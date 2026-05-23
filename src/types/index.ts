@@ -1,2 +1,1 @@
-// Shared TypeScript types — populated in Stage 1+
-export {};
+export type { Database, Tables, TablesInsert, TablesUpdate } from './supabase';
