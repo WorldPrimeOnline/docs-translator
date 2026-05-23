@@ -1,4 +1,6 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function Home() {
   return (
@@ -14,10 +16,11 @@ export default function Home() {
           <p className="text-sm text-muted-foreground">
             Upload a scanned PDF and receive a translated version in minutes — across 10+ languages.
           </p>
-          <p className="mt-4 text-xs text-muted-foreground/60 font-medium uppercase tracking-widest">
-            Coming soon
-          </p>
         </CardContent>
+        <CardFooter className="flex gap-2">
+          <Button render={<Link href="/auth/signup" />}>Sign up</Button>
+          <Button variant="outline" render={<Link href="/auth/login" />}>Log in</Button>
+        </CardFooter>
       </Card>
     </main>
   );
