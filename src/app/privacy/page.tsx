@@ -1,0 +1,154 @@
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Privacy Policy — Docs Translator',
+};
+
+export default function PrivacyPolicy() {
+  return (
+    <div className="mx-auto max-w-3xl px-4 py-16">
+      <h1 className="mb-2 text-3xl font-bold tracking-tight">Privacy Policy</h1>
+      <p className="mb-10 text-sm text-muted-foreground">Last updated: January 2026</p>
+
+      <div className="space-y-8 text-sm leading-relaxed">
+        <section>
+          <h2 className="mb-3 text-xl font-semibold">1. What We Collect</h2>
+          <p className="text-muted-foreground">When you use Docs Translator, we collect:</p>
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground">
+            <li>
+              <strong>Account information</strong>: email address when you sign up
+            </li>
+            <li>
+              <strong>Uploaded documents</strong>: PDF files you upload for translation
+            </li>
+            <li>
+              <strong>Translation output</strong>: the translated PDFs we produce
+            </li>
+            <li>
+              <strong>Payment information</strong>: payment is processed by Stripe — we store
+              only the charge ID and amount, never your card details
+            </li>
+            <li>
+              <strong>Usage data</strong>: basic logs (timestamps, document types, language pairs)
+              to operate and improve the service
+            </li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 className="mb-3 text-xl font-semibold">2. How Long We Keep Your Data</h2>
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground">
+            <li>
+              <strong>Uploaded and translated files</strong>: automatically and permanently
+              deleted <strong>30 days</strong> after the translation is completed
+            </li>
+            <li>
+              <strong>Account information</strong>: retained until you delete your account
+            </li>
+            <li>
+              <strong>Payment records</strong>: retained as required by applicable tax and
+              financial regulations (typically 7 years)
+            </li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 className="mb-3 text-xl font-semibold">3. How We Use Your Data</h2>
+          <p className="text-muted-foreground">We use your data exclusively to:</p>
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground">
+            <li>Provide the translation service you requested</li>
+            <li>Process and verify payments</li>
+            <li>Send you the translated document and service notifications</li>
+            <li>Improve the accuracy and reliability of the service</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 className="mb-3 text-xl font-semibold">4. No Third-Party Sharing</h2>
+          <p className="text-muted-foreground">
+            We <strong>never sell, rent, or share</strong> your documents or personal data with
+            third parties for marketing or advertising purposes.
+          </p>
+          <p className="mt-3 text-muted-foreground">
+            We use the following sub-processors to operate the service:
+          </p>
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground">
+            <li>
+              <strong>Supabase</strong> — database and authentication
+            </li>
+            <li>
+              <strong>Cloudflare R2</strong> — encrypted file storage
+            </li>
+            <li>
+              <strong>Mistral AI</strong> — OCR (text extraction from PDFs)
+            </li>
+            <li>
+              <strong>Anthropic</strong> — AI translation
+            </li>
+            <li>
+              <strong>Stripe</strong> — payment processing
+            </li>
+          </ul>
+          <p className="mt-3 text-muted-foreground">
+            Each sub-processor receives only the minimum data needed to perform their function.
+            Document content is transmitted to OCR and translation providers solely for the
+            purpose of producing your translation.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="mb-3 text-xl font-semibold">5. Security</h2>
+          <p className="text-muted-foreground">
+            All files are stored with encryption at rest. Data in transit is protected by TLS.
+            Access to your documents is restricted to your authenticated account only.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="mb-3 text-xl font-semibold">6. Your Rights</h2>
+          <p className="text-muted-foreground">You have the right to:</p>
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground">
+            <li>
+              <strong>Access</strong> the personal data we hold about you
+            </li>
+            <li>
+              <strong>Delete your account</strong> and all associated data (except payment
+              records required by law)
+            </li>
+            <li>
+              <strong>Request early deletion</strong> of your uploaded documents before the
+              30-day period
+            </li>
+          </ul>
+          <p className="mt-3 text-muted-foreground">
+            To exercise these rights, contact us through the website. We will respond within
+            30 days.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="mb-3 text-xl font-semibold">7. Cookies</h2>
+          <p className="text-muted-foreground">
+            We use only essential cookies required for authentication (managed by Supabase).
+            We do not use tracking, analytics, or advertising cookies.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="mb-3 text-xl font-semibold">8. Changes to This Policy</h2>
+          <p className="text-muted-foreground">
+            We may update this Privacy Policy from time to time. We will notify you of
+            significant changes by email or by a notice on the service.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="mb-3 text-xl font-semibold">9. Contact</h2>
+          <p className="text-muted-foreground">
+            For privacy-related questions or data requests, please contact us through the website.
+          </p>
+        </section>
+      </div>
+    </div>
+  );
+}
