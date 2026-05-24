@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { Toaster } from '@/components/ui/sonner';
 import { Navbar } from '@/components/navbar';
-import { TonProvider } from '@/components/ton-provider';
 import Link from 'next/link';
 import './globals.css';
 
@@ -30,7 +29,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <TonProvider>
         <Navbar />
         {children}
         <footer className="border-t bg-white">
@@ -54,7 +52,6 @@ export default function RootLayout({
           </div>
         </footer>
         <Toaster position="bottom-right" richColors />
-        </TonProvider>
       </body>
     </html>
   );

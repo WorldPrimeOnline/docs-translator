@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { TonConnectButton, useTonAddress, useTonConnectUI } from '@tonconnect/ui-react';
 
 interface PaymentDetails {
   paymentId: string;
@@ -13,7 +12,7 @@ interface PaymentDetails {
   expiresAt: string;
 }
 
-type Phase = 'loading' | 'ready' | 'sending' | 'waiting' | 'confirmed' | 'failed' | 'expired';
+type Phase = 'loading' | 'ready' | 'waiting' | 'confirmed' | 'failed' | 'expired';
 
 interface Props {
   documentId: string;
@@ -35,8 +34,26 @@ function useCountdown(expiresAt: string | null): number {
   return seconds;
 }
 
-function formatCountdown(s: number): string {
+function fmt(s: number): string {
   return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+}
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        void navigator.clipboard.writeText(text).then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1500);
+        });
+      }}
+      className="shrink-0 text-xs text-primary hover:underline"
+    >
+      {copied ? 'Copied!' : 'Copy'}
+    </button>
+  );
 }
 
 export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props) {
@@ -44,8 +61,6 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
   const [details, setDetails] = useState<PaymentDetails | null>(null);
   const [error, setError] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [tonConnectUI] = useTonConnectUI();
-  const walletAddress = useTonAddress();
   const secondsLeft = useCountdown(details?.expiresAt ?? null);
 
   // Fetch payment quote on mount
@@ -73,27 +88,12 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
     })();
   }, [documentId, jobId]);
 
-  // Link wallet address to user account whenever it changes
-  useEffect(() => {
-    if (!walletAddress) return;
-    void fetch('/api/payments/link-wallet', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ address: walletAddress }),
-    });
-  }, [walletAddress]);
-
   const pollVerify = useCallback(async () => {
-    if (!details) return;
     try {
       const res = await fetch('/api/payments/verify-ton-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          jobId,
-          documentId,
-          amountNanoton: String(details.amountNanoton),
-        }),
+        body: JSON.stringify({ jobId }),
       });
       const data = (await res.json()) as { verified?: boolean; expired?: boolean };
       if (data.expired) {
@@ -109,9 +109,9 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
     } catch {
       // silently retry
     }
-  }, [jobId, documentId, details, onSuccess]);
+  }, [jobId, onSuccess]);
 
-  // Start polling once transaction is sent
+  // Poll every 5 s while waiting
   useEffect(() => {
     if (phase === 'waiting') {
       pollRef.current = setInterval(() => void pollVerify(), 5000);
@@ -121,7 +121,7 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
     };
   }, [phase, pollVerify]);
 
-  // Expire when the actual timestamp passes (NOT when secondsLeft===0 on first render)
+  // Expire only when the real timestamp has passed (secondsLeft starts at 0)
   useEffect(() => {
     if ((phase === 'ready' || phase === 'waiting') && details) {
       if (Date.now() >= new Date(details.expiresAt).getTime()) {
@@ -131,29 +131,13 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
     }
   }, [secondsLeft, phase, details]);
 
-  async function handleSend() {
-    if (!details || !walletAddress) return;
-    setPhase('sending');
-    try {
-      await tonConnectUI.sendTransaction({
-        validUntil: Math.floor(Date.now() / 1000) + 120,
-        messages: [
-          {
-            address: details.merchantAddress,
-            amount: details.amountNanoton.toString(),
-          },
-        ],
-      });
-      setPhase('waiting');
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      if (msg.toLowerCase().includes('reject') || msg.toLowerCase().includes('cancel')) {
-        setPhase('ready');
-      } else {
-        setError(msg);
-        setPhase('failed');
-      }
-    }
+  function handlePayClick() {
+    if (!details) return;
+    const deeplink =
+      `ton://transfer/${details.merchantAddress}` +
+      `?amount=${details.amountNanoton}&text=${encodeURIComponent(jobId)}`;
+    window.open(deeplink, '_blank');
+    setPhase('waiting');
   }
 
   return (
@@ -169,27 +153,24 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
         </button>
 
         <h2 className="mb-1 text-lg font-semibold">Pay with TON</h2>
-        <p className="mb-5 text-sm text-muted-foreground">
-          Connect your TON wallet and confirm the payment. No memo required.
-        </p>
 
+        {/* Loading */}
         {phase === 'loading' && (
           <p className="text-sm text-muted-foreground">Preparing payment…</p>
         )}
 
+        {/* Error */}
         {phase === 'failed' && (
           <div className="flex flex-col gap-3">
             <p className="text-sm text-destructive">{error ?? 'Something went wrong.'}</p>
-            <button
-              type="button"
-              onClick={onClose}
-              className="inline-flex w-fit items-center rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-muted"
-            >
+            <button type="button" onClick={onClose}
+              className="inline-flex w-fit items-center rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-muted">
               Close
             </button>
           </div>
         )}
 
+        {/* Confirmed */}
         {phase === 'confirmed' && (
           <div className="flex flex-col items-center gap-3 py-4 text-center">
             <span className="text-4xl">✓</span>
@@ -198,67 +179,107 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
           </div>
         )}
 
+        {/* Expired */}
         {phase === 'expired' && (
           <div className="flex flex-col gap-3">
             <p className="text-sm text-destructive">
               Payment window expired. Please upload your document again.
             </p>
-            <button
-              type="button"
-              onClick={onClose}
-              className="inline-flex w-fit items-center rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-muted"
-            >
+            <button type="button" onClick={onClose}
+              className="inline-flex w-fit items-center rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-muted">
               Close
             </button>
           </div>
         )}
 
-        {(phase === 'ready' || phase === 'sending' || phase === 'waiting') && details && (
-          <div className="flex flex-col gap-4">
+        {/* Ready or waiting */}
+        {(phase === 'ready' || phase === 'waiting') && details && (
+          <div className="flex flex-col gap-5">
             {/* Amount */}
             <div className="rounded-lg border bg-muted/40 p-4">
-              <p className="text-2xl font-bold">{details.amountTon} TON</p>
+              <p className="text-3xl font-bold">{details.amountTon} TON</p>
               <p className="text-sm text-muted-foreground">
                 ≈ ${details.amountUsd} USD · 1 TON = ${details.tonPriceUsd}
               </p>
             </div>
 
-            {/* Timer */}
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Time remaining</span>
-              <span
-                className={`font-mono font-medium ${
-                  secondsLeft < 120 ? 'text-destructive' : 'text-foreground'
-                }`}
-              >
-                {formatCountdown(secondsLeft)}
-              </span>
-            </div>
-
-            {/* Wallet + pay button */}
-            <div className="flex flex-col gap-3">
-              <TonConnectButton />
-
-              {walletAddress && phase !== 'waiting' && (
+            {phase === 'ready' && (
+              <>
+                {/* Deeplink button */}
                 <button
                   type="button"
-                  onClick={handleSend}
-                  disabled={phase === 'sending'}
-                  className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
+                  onClick={handlePayClick}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
                 >
-                  {phase === 'sending'
-                    ? 'Confirm in wallet…'
-                    : `Pay ${details.amountTon} TON`}
+                  Pay with Tonkeeper
                 </button>
-              )}
 
-              {phase === 'waiting' && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                  Verifying payment…
+                {/* Manual payment fallback */}
+                <div className="flex flex-col gap-2 rounded-lg border p-4 text-sm">
+                  <p className="font-medium text-muted-foreground">Or pay manually:</p>
+
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs uppercase tracking-wide text-muted-foreground">Address</span>
+                    <div className="flex items-center gap-2 rounded border bg-muted/40 px-3 py-2">
+                      <code className="flex-1 truncate text-xs">{details.merchantAddress}</code>
+                      <CopyButton text={details.merchantAddress} />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs uppercase tracking-wide text-muted-foreground">Amount</span>
+                    <div className="flex items-center gap-2 rounded border bg-muted/40 px-3 py-2">
+                      <code className="flex-1 text-xs">{details.amountTon} TON</code>
+                      <CopyButton text={details.amountTon} />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                      Memo / Comment
+                    </span>
+                    <div className="flex items-center gap-2 rounded border bg-muted/40 px-3 py-2">
+                      <code className="flex-1 truncate text-xs">{jobId}</code>
+                      <CopyButton text={jobId} />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Include this exact comment — it links your payment to the translation.
+                    </p>
+                  </div>
                 </div>
-              )}
-            </div>
+
+                {/* Timer */}
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Time remaining</span>
+                  <span className={`font-mono font-medium ${secondsLeft < 120 ? 'text-destructive' : ''}`}>
+                    {fmt(secondsLeft)}
+                  </span>
+                </div>
+              </>
+            )}
+
+            {phase === 'waiting' && (
+              <div className="flex flex-col items-center gap-4 py-4 text-center">
+                <span className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                <p className="font-medium">Waiting for payment…</p>
+                <p className="text-sm text-muted-foreground">
+                  Checking every 5 seconds. This page will update automatically.
+                </p>
+                <div className="flex items-center justify-between w-full text-sm">
+                  <span className="text-muted-foreground">Time remaining</span>
+                  <span className={`font-mono font-medium ${secondsLeft < 120 ? 'text-destructive' : ''}`}>
+                    {fmt(secondsLeft)}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPhase('ready')}
+                  className="text-xs text-muted-foreground underline-offset-4 hover:underline"
+                >
+                  Haven&apos;t paid yet? Go back
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
