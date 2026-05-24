@@ -14,8 +14,8 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   trailingSlash: false,
 
-  // Prevent webpack from bundling native/binary packages — they must stay external
-  serverExternalPackages: ['puppeteer', 'puppeteer-core', '@sparticuz/chromium-min'],
+  // Prevent webpack from bundling puppeteer-core (native bindings)
+  serverExternalPackages: ['puppeteer-core'],
 
   async headers() {
     return [

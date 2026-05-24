@@ -66,8 +66,8 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
       translatedAt,
     });
 
-    const translatedPdfKey = `documents/${doc.user_id}/${documentId}/translated.pdf`;
-    await uploadFile(translatedPdfKey, pdfOut, 'application/pdf');
+    const translatedPdfKey = `documents/${doc.user_id}/${documentId}/translated.html`;
+    await uploadFile(translatedPdfKey, pdfOut, 'text/html; charset=utf-8');
 
     await supabaseServer.from('translations').insert({
       job_id: jobId,
