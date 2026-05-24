@@ -95,7 +95,7 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
     })();
   }, [documentId, jobId]);
 
-  // Expire when real timestamp passes (secondsLeft re-evaluates this every second)
+  // Expire when real timestamp passes (re-evaluated every second via secondsLeft)
   useEffect(() => {
     if ((phase === 'ready' || phase === 'waiting') && details) {
       if (Date.now() >= new Date(details.expiresAt).getTime()) {
@@ -202,8 +202,8 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
           </div>
         )}
 
-        {/* Ready or waiting */}
-        {(phase === 'ready' || phase === 'waiting') && details && (
+        {/* Ready — QR, deeplink button, manual transfer, "I've paid" */}
+        {phase === 'ready' && details && (
           <div className="flex flex-col gap-5">
             {/* Amount */}
             <div className="rounded-lg border bg-muted/40 p-4">
@@ -213,120 +213,124 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
               </p>
             </div>
 
-            {phase === 'ready' && (
-              <>
-                {/* QR code — desktop only */}
-                <div className="hidden md:flex flex-col items-center gap-2">
-                  <QRCodeSVG value={deeplink} size={200} />
-                  <p className="text-xs text-muted-foreground">Сканируйте камерой телефона</p>
+            {/* QR code — desktop only */}
+            <div className="hidden md:flex flex-col items-center gap-2">
+              <QRCodeSVG value={deeplink} size={200} />
+              <p className="text-xs text-muted-foreground">Сканируйте камерой телефона</p>
+            </div>
+
+            {/* Deeplink button */}
+            <button
+              type="button"
+              onClick={handlePayClick}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              Pay with Tonkeeper
+            </button>
+
+            {/* Manual payment */}
+            <div className="flex flex-col gap-2 rounded-lg border p-4 text-sm">
+              <p className="font-medium text-muted-foreground">Or pay manually:</p>
+
+              <div className="flex flex-col gap-1">
+                <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Address
+                </span>
+                <div className="flex items-center gap-2 rounded border bg-muted/40 px-3 py-2">
+                  <code className="flex-1 truncate text-xs">{details.merchantAddress}</code>
+                  <CopyButton text={details.merchantAddress} />
                 </div>
-
-                {/* Deeplink button */}
-                <button
-                  type="button"
-                  onClick={handlePayClick}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-                >
-                  Pay with Tonkeeper
-                </button>
-
-                {/* Manual payment fallback */}
-                <div className="flex flex-col gap-2 rounded-lg border p-4 text-sm">
-                  <p className="font-medium text-muted-foreground">Or pay manually:</p>
-
-                  <div className="flex flex-col gap-1">
-                    <span className="text-xs uppercase tracking-wide text-muted-foreground">
-                      Address
-                    </span>
-                    <div className="flex items-center gap-2 rounded border bg-muted/40 px-3 py-2">
-                      <code className="flex-1 truncate text-xs">{details.merchantAddress}</code>
-                      <CopyButton text={details.merchantAddress} />
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-1">
-                    <span className="text-xs uppercase tracking-wide text-muted-foreground">
-                      Amount
-                    </span>
-                    <div className="flex items-center gap-2 rounded border bg-muted/40 px-3 py-2">
-                      <code className="flex-1 text-xs">{details.amountTon} TON</code>
-                      <CopyButton text={details.amountTon} />
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-1">
-                    <span className="text-xs uppercase tracking-wide text-muted-foreground">
-                      Memo / Comment
-                    </span>
-                    <div className="flex items-center gap-2 rounded border bg-muted/40 px-3 py-2">
-                      <code className="flex-1 truncate text-xs">{jobId}</code>
-                      <CopyButton text={jobId} />
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Include this exact comment — it links your payment to the translation.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Timer */}
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Time remaining</span>
-                  <span
-                    className={`font-mono font-medium ${secondsLeft < 120 ? 'text-destructive' : ''}`}
-                  >
-                    {fmt(secondsLeft)}
-                  </span>
-                </div>
-              </>
-            )}
-
-            {phase === 'waiting' && (
-              <div className="flex flex-col gap-4">
-                {/* Timer */}
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Time remaining</span>
-                  <span
-                    className={`font-mono font-medium ${secondsLeft < 120 ? 'text-destructive' : ''}`}
-                  >
-                    {fmt(secondsLeft)}
-                  </span>
-                </div>
-
-                {/* Failed check message */}
-                {checkError && (
-                  <p className="text-sm text-amber-600">{checkError}</p>
-                )}
-
-                {/* I've paid button */}
-                <button
-                  type="button"
-                  onClick={() => void handleCheckClick()}
-                  disabled={checking || inCooldown}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
-                >
-                  {checking ? (
-                    <>
-                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
-                      Checking payment…
-                    </>
-                  ) : (
-                    "I've paid"
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPhase('ready');
-                    setCheckError(null);
-                    setCooldownUntil(null);
-                  }}
-                  className="text-center text-xs text-muted-foreground underline-offset-4 hover:underline"
-                >
-                  Haven&apos;t paid yet? Go back
-                </button>
               </div>
+
+              <div className="flex flex-col gap-1">
+                <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Amount
+                </span>
+                <div className="flex items-center gap-2 rounded border bg-muted/40 px-3 py-2">
+                  <code className="flex-1 text-xs">{details.amountTon} TON</code>
+                  <CopyButton text={details.amountTon} />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Memo / Comment
+                </span>
+                <div className="flex items-center gap-2 rounded border bg-muted/40 px-3 py-2">
+                  <code className="flex-1 truncate text-xs">{jobId}</code>
+                  <CopyButton text={jobId} />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Include this exact comment — it links your payment to the translation.
+                </p>
+              </div>
+            </div>
+
+            {/* Timer */}
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Time remaining</span>
+              <span
+                className={`font-mono font-medium ${secondsLeft < 120 ? 'text-destructive' : ''}`}
+              >
+                {fmt(secondsLeft)}
+              </span>
+            </div>
+
+            {/* I've paid — for QR / manual transfer users */}
+            {checkError && (
+              <p className="text-sm text-amber-600">{checkError}</p>
             )}
+            <button
+              type="button"
+              onClick={() => void handleCheckClick()}
+              disabled={checking || inCooldown}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-border px-4 py-3 text-sm font-semibold transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50"
+            >
+              {checking ? (
+                <>
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-foreground border-t-transparent" />
+                  Checking payment…
+                </>
+              ) : (
+                "I've paid"
+              )}
+            </button>
+          </div>
+        )}
+
+        {/* Waiting — shown after "Pay with Tonkeeper" deeplink is opened */}
+        {phase === 'waiting' && details && (
+          <div className="flex flex-col gap-5">
+            {/* Amount */}
+            <div className="rounded-lg border bg-muted/40 p-4">
+              <p className="text-3xl font-bold">{details.amountTon} TON</p>
+              <p className="text-sm text-muted-foreground">
+                ≈ ${details.amountUsd} USD · 1 TON = ${details.tonPriceUsd}
+              </p>
+            </div>
+
+            <div className="flex flex-col items-center gap-4 py-2 text-center">
+              <span className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+              <p className="font-medium">Waiting for payment…</p>
+              <p className="text-sm text-muted-foreground">
+                Complete the payment in Tonkeeper, then come back here.
+              </p>
+              <div className="flex items-center justify-between w-full text-sm">
+                <span className="text-muted-foreground">Time remaining</span>
+                <span
+                  className={`font-mono font-medium ${secondsLeft < 120 ? 'text-destructive' : ''}`}
+                >
+                  {fmt(secondsLeft)}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPhase('ready')}
+                className="text-xs text-muted-foreground underline-offset-4 hover:underline"
+              >
+                Haven&apos;t paid yet? Go back
+              </button>
+            </div>
           </div>
         )}
       </div>
