@@ -13,4 +13,18 @@ const envSchema = z.object({
   MISTRAL_API_KEY: z.string().min(1),
 });
 
-export const env = envSchema.parse(process.env);
+type Env = z.infer<typeof envSchema>;
+
+// Validate lazily on first property access so the Vercel build phase can collect
+// page metadata without requiring runtime env vars to be present in the build container.
+let _validated: Env | null = null;
+function validated(): Env {
+  if (!_validated) _validated = envSchema.parse(process.env);
+  return _validated;
+}
+
+export const env = new Proxy({} as Env, {
+  get(_target, prop: string) {
+    return validated()[prop as keyof Env];
+  },
+});
