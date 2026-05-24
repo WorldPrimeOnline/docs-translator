@@ -213,12 +213,12 @@ export default function DashboardPage() {
     void loadDocuments();
   };
 
-  async function handlePay(documentId: string): Promise<void> {
+  async function handlePay(documentId: string, jobId?: string): Promise<void> {
     setPaying(true);
-    const res = await fetch('/api/payments/create-checkout', {
+    const res = await fetch('/api/payments/create-polar-checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ documentId }),
+      body: JSON.stringify({ documentId, jobId }),
     });
     const data = (await res.json()) as { checkoutUrl?: string; error?: string };
 
@@ -330,15 +330,15 @@ export default function DashboardPage() {
             {activeJob.awaitingPayment ? (
               <>
                 <p className="text-sm text-muted-foreground">
-                  Your file is uploaded. Pay $9.99 to start translation.
+                  Your file is uploaded. Pay $4.99 to start translation.
                 </p>
                 <button
                   type="button"
-                  onClick={() => void handlePay(activeJob.documentId)}
+                  onClick={() => void handlePay(activeJob.documentId, activeJob.jobId)}
                   disabled={paying}
                   className="inline-flex w-fit items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
                 >
-                  {paying ? 'Redirecting to checkout…' : 'Pay to Translate — $9.99'}
+                  {paying ? 'Redirecting to checkout…' : 'Pay to Translate — $4.99'}
                 </button>
               </>
             ) : (
@@ -410,7 +410,7 @@ export default function DashboardPage() {
                         disabled={paying}
                         className="inline-flex items-center justify-center rounded-lg border border-border bg-background px-3 py-1 text-xs font-medium transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50"
                       >
-                        Pay $9.99
+                        Pay $4.99
                       </button>
                     )}
                     {doc.status === 'completed' && (
