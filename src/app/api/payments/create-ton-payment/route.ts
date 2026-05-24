@@ -4,12 +4,7 @@ import { cookies } from 'next/headers';
 import { supabaseServer } from '@/lib/supabase/server';
 import { getPriceUsd, MERCHANT_ADDRESS, PAYMENT_WINDOW_MS } from '@/lib/ton/config';
 import { getTonPriceUsd, usdToNanoton } from '@/lib/ton/price';
-import { beginCell } from '@ton/ton';
 import type { Database } from '@/types';
-
-function buildCommentPayload(comment: string): string {
-  return beginCell().storeUint(0, 32).storeStringTail(comment).endCell().toBoc().toString('base64');
-}
 
 async function getAuthUser() {
   const cookieStore = await cookies();
@@ -39,7 +34,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'documentId and jobId are required' }, { status: 400 });
     }
 
-    // Verify ownership
     const { data: doc } = await supabaseServer
       .from('documents')
       .select('id, user_id, document_type')
@@ -76,8 +70,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         amountUsd: Number(existing.amount_usd).toFixed(2),
         tonPriceUsd: Number(existing.ton_price_usd).toFixed(2),
         merchantAddress: MERCHANT_ADDRESS,
-        memo: existing.job_id,
-        payload: buildCommentPayload(existing.job_id),
         expiresAt: existing.expires_at,
       });
     }
@@ -129,8 +121,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       amountUsd: amountUsd.toFixed(2),
       tonPriceUsd: tonPriceUsd.toFixed(2),
       merchantAddress: MERCHANT_ADDRESS,
-      memo: jobId,
-      payload: buildCommentPayload(jobId),
       expiresAt,
     });
   } catch (err) {

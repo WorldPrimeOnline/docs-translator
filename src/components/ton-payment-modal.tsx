@@ -10,8 +10,6 @@ interface PaymentDetails {
   amountUsd: string;
   tonPriceUsd: string;
   merchantAddress: string;
-  memo: string;
-  payload: string;
   expiresAt: string;
 }
 
@@ -26,25 +24,19 @@ interface Props {
 
 function useCountdown(expiresAt: string | null): number {
   const [seconds, setSeconds] = useState(0);
-
   useEffect(() => {
     if (!expiresAt) return;
-    const tick = () => {
-      const diff = Math.max(0, Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000));
-      setSeconds(diff);
-    };
+    const tick = () =>
+      setSeconds(Math.max(0, Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000)));
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, [expiresAt]);
-
   return seconds;
 }
 
-function formatCountdown(seconds: number): string {
-  const m = Math.floor(seconds / 60).toString().padStart(2, '0');
-  const s = (seconds % 60).toString().padStart(2, '0');
-  return `${m}:${s}`;
+function formatCountdown(s: number): string {
+  return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 }
 
 export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props) {
@@ -56,7 +48,7 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
   const walletAddress = useTonAddress();
   const secondsLeft = useCountdown(details?.expiresAt ?? null);
 
-  // Fetch payment details on mount
+  // Fetch payment quote on mount
   useEffect(() => {
     void (async () => {
       try {
@@ -81,46 +73,55 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
     })();
   }, [documentId, jobId]);
 
-  const pollVerify = useCallback(
-    async (paymentId: string) => {
-      try {
-        const res = await fetch('/api/payments/verify-ton-payment', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ paymentId }),
-        });
-        const data = (await res.json()) as { verified?: boolean; expired?: boolean };
-        if (data.expired) {
-          if (pollRef.current) clearInterval(pollRef.current);
-          setPhase('expired');
-          return;
-        }
-        if (data.verified) {
-          if (pollRef.current) clearInterval(pollRef.current);
-          setPhase('confirmed');
-          setTimeout(onSuccess, 1500);
-        }
-      } catch {
-        // silently retry
-      }
-    },
-    [onSuccess],
-  );
-
-  // Start polling when in waiting phase
+  // Link wallet address to user account whenever it changes
   useEffect(() => {
-    if (phase === 'waiting' && details) {
-      pollRef.current = setInterval(() => {
-        void pollVerify(details.paymentId);
-      }, 5000);
+    if (!walletAddress) return;
+    void fetch('/api/payments/link-wallet', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ address: walletAddress }),
+    });
+  }, [walletAddress]);
+
+  const pollVerify = useCallback(async () => {
+    if (!details) return;
+    try {
+      const res = await fetch('/api/payments/verify-ton-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobId,
+          documentId,
+          amountNanoton: String(details.amountNanoton),
+        }),
+      });
+      const data = (await res.json()) as { verified?: boolean; expired?: boolean };
+      if (data.expired) {
+        if (pollRef.current) clearInterval(pollRef.current);
+        setPhase('expired');
+        return;
+      }
+      if (data.verified) {
+        if (pollRef.current) clearInterval(pollRef.current);
+        setPhase('confirmed');
+        setTimeout(onSuccess, 1500);
+      }
+    } catch {
+      // silently retry
+    }
+  }, [jobId, documentId, details, onSuccess]);
+
+  // Start polling once transaction is sent
+  useEffect(() => {
+    if (phase === 'waiting') {
+      pollRef.current = setInterval(() => void pollVerify(), 5000);
     }
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
-  }, [phase, details, pollVerify]);
+  }, [phase, pollVerify]);
 
-  // Expire only when the actual timestamp has passed — NOT when secondsLeft===0,
-  // because secondsLeft initialises to 0 before the first countdown tick fires.
+  // Expire when the actual timestamp passes (NOT when secondsLeft===0 on first render)
   useEffect(() => {
     if ((phase === 'ready' || phase === 'waiting') && details) {
       if (Date.now() >= new Date(details.expiresAt).getTime()) {
@@ -135,12 +136,11 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
     setPhase('sending');
     try {
       await tonConnectUI.sendTransaction({
-        validUntil: Math.floor(new Date(details.expiresAt).getTime() / 1000),
+        validUntil: Math.floor(Date.now() / 1000) + 120,
         messages: [
           {
             address: details.merchantAddress,
             amount: details.amountNanoton.toString(),
-            payload: details.payload,
           },
         ],
       });
@@ -170,8 +170,7 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
 
         <h2 className="mb-1 text-lg font-semibold">Pay with TON</h2>
         <p className="mb-5 text-sm text-muted-foreground">
-          Connect your TON wallet (e.g. Tonkeeper). The amount and memo are
-          filled automatically — just confirm in your wallet app.
+          Connect your TON wallet and confirm the payment. No memo required.
         </p>
 
         {phase === 'loading' && (
@@ -216,6 +215,7 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
 
         {(phase === 'ready' || phase === 'sending' || phase === 'waiting') && details && (
           <div className="flex flex-col gap-4">
+            {/* Amount */}
             <div className="rounded-lg border bg-muted/40 p-4">
               <p className="text-2xl font-bold">{details.amountTon} TON</p>
               <p className="text-sm text-muted-foreground">
@@ -223,34 +223,19 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
               </p>
             </div>
 
-            <div className="flex flex-col gap-1">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Memo / Comment (required)
-              </p>
-              <div className="flex items-center gap-2 rounded border bg-muted/40 px-3 py-2">
-                <code className="flex-1 truncate text-xs">{details.memo}</code>
-                <button
-                  type="button"
-                  onClick={() => void navigator.clipboard.writeText(details.memo)}
-                  className="shrink-0 text-xs text-primary hover:underline"
-                >
-                  Copy
-                </button>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Automatically included by your wallet — do not change it.
-              </p>
-            </div>
-
+            {/* Timer */}
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Time remaining</span>
               <span
-                className={`font-mono font-medium ${secondsLeft < 120 ? 'text-destructive' : 'text-foreground'}`}
+                className={`font-mono font-medium ${
+                  secondsLeft < 120 ? 'text-destructive' : 'text-foreground'
+                }`}
               >
                 {formatCountdown(secondsLeft)}
               </span>
             </div>
 
+            {/* Wallet + pay button */}
             <div className="flex flex-col gap-3">
               <TonConnectButton />
 
@@ -261,7 +246,9 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
                   disabled={phase === 'sending'}
                   className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
                 >
-                  {phase === 'sending' ? 'Confirm in wallet…' : `Send ${details.amountTon} TON`}
+                  {phase === 'sending'
+                    ? 'Confirm in wallet…'
+                    : `Pay ${details.amountTon} TON`}
                 </button>
               )}
 

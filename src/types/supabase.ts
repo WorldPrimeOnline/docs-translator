@@ -162,6 +162,29 @@ export type Database = {
           { foreignKeyName: 'translations_job_id_fkey'; columns: ['job_id']; referencedRelation: 'jobs'; referencedColumns: ['id'] },
         ];
       };
+      wallet_links: {
+        Row: {
+          id: string;
+          user_id: string;
+          address: string;
+          address_raw: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          address: string;
+          address_raw: string;
+          created_at?: string;
+        };
+        Update: {
+          address?: string;
+          address_raw?: string;
+        };
+        Relationships: [
+          { foreignKeyName: 'wallet_links_user_id_fkey'; columns: ['user_id']; referencedRelation: 'users'; referencedColumns: ['id'] },
+        ];
+      };
       ton_payments: {
         Row: {
           id: string;
@@ -173,6 +196,7 @@ export type Database = {
           ton_price_usd: number;
           status: 'pending' | 'completed' | 'expired' | 'failed';
           tx_hash: string | null;
+          wallet_address: string | null;
           expires_at: string;
           created_at: string;
         };
@@ -186,12 +210,14 @@ export type Database = {
           ton_price_usd: number;
           status?: 'pending' | 'completed' | 'expired' | 'failed';
           tx_hash?: string | null;
+          wallet_address?: string | null;
           expires_at: string;
           created_at?: string;
         };
         Update: {
           status?: 'pending' | 'completed' | 'expired' | 'failed';
           tx_hash?: string | null;
+          wallet_address?: string | null;
         };
         Relationships: [
           { foreignKeyName: 'ton_payments_user_id_fkey'; columns: ['user_id']; referencedRelation: 'users'; referencedColumns: ['id'] },

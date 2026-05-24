@@ -11,6 +11,7 @@ const envSchema = z.object({
   R2_BUCKET_NAME: z.string().min(1),
   ANTHROPIC_API_KEY: z.string().min(1),
   MISTRAL_API_KEY: z.string().min(1),
+  TONCENTER_API_KEY: z.string().optional(),
 });
 
 type Env = z.infer<typeof envSchema>;
