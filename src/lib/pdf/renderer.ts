@@ -8,7 +8,8 @@ interface RenderMeta {
 }
 
 export async function renderToPdf(translatedMarkdown: string, meta: RenderMeta): Promise<Buffer> {
-  const htmlBody = await marked.parse(translatedMarkdown);
+  const stripped = translatedMarkdown.replace(/!\[.*?\]\(.*?\)/g, '');
+  const htmlBody = await marked.parse(stripped);
 
   const html = `<!DOCTYPE html>
 <html lang="en">

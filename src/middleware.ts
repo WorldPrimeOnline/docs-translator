@@ -12,18 +12,20 @@ interface RateLimitEntry {
 const rateLimitMap = new Map<string, RateLimitEntry>();
 const WINDOW_MS = 60_000;
 const MAX_REQUESTS = 10;
+const MAX_REQUESTS_JOBS = 120;
 
-function isRateLimited(ip: string): boolean {
+function isRateLimited(ip: string, limit: number): boolean {
+  const key = `${ip}:${limit}`;
   const now = Date.now();
-  const entry = rateLimitMap.get(ip);
+  const entry = rateLimitMap.get(key);
 
   if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(ip, { count: 1, resetAt: now + WINDOW_MS });
+    rateLimitMap.set(key, { count: 1, resetAt: now + WINDOW_MS });
     return false;
   }
 
   entry.count += 1;
-  return entry.count > MAX_REQUESTS;
+  return entry.count > limit;
 }
 
 // ---------------------------------------------------------------------------
@@ -39,7 +41,8 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
       request.headers.get('x-real-ip') ??
       'unknown';
 
-    if (isRateLimited(ip)) {
+    const limit = pathname.startsWith('/api/jobs/') ? MAX_REQUESTS_JOBS : MAX_REQUESTS;
+    if (isRateLimited(ip, limit)) {
       return new NextResponse(JSON.stringify({ error: 'Too many requests' }), {
         status: 429,
         headers: { 'Content-Type': 'application/json' },
