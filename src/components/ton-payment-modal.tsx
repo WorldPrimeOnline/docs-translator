@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 
 interface PaymentDetails {
@@ -61,14 +61,13 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
   const [phase, setPhase] = useState<Phase>('loading');
   const [details, setDetails] = useState<PaymentDetails | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  // Keep a stable ref so onSuccess never needs to be in pollVerify's dep array.
-  // Without this, the parent re-renders every 3 s (job poll) create a new onSuccess
-  // reference → pollVerify gets a new reference → the 5 s interval restarts
-  // before it ever fires.
-  const onSuccessRef = useRef(onSuccess);
-  useEffect(() => { onSuccessRef.current = onSuccess; }, [onSuccess]);
+  const [checking, setChecking] = useState(false);
+  const [checkError, setCheckError] = useState<string | null>(null);
+  const [cooldownUntil, setCooldownUntil] = useState<number | null>(null);
   const secondsLeft = useCountdown(details?.expiresAt ?? null);
+
+  // secondsLeft ticks every second — piggyback on it to re-evaluate cooldown
+  const inCooldown = cooldownUntil !== null && Date.now() < cooldownUntil;
 
   // Fetch payment quote on mount
   useEffect(() => {
@@ -81,7 +80,8 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
         });
         const data = (await res.json()) as PaymentDetails & { error?: string; detail?: string };
         if (!res.ok) {
-          const msg = [data.error, data.detail].filter(Boolean).join(' — ') || 'Failed to create payment';
+          const msg =
+            [data.error, data.detail].filter(Boolean).join(' — ') || 'Failed to create payment';
           setError(`${msg} (HTTP ${res.status})`);
           setPhase('failed');
           return;
@@ -95,45 +95,10 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
     })();
   }, [documentId, jobId]);
 
-  const pollVerify = useCallback(async () => {
-    try {
-      const res = await fetch('/api/payments/verify-ton-payment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jobId }),
-      });
-      const data = (await res.json()) as { verified?: boolean; expired?: boolean };
-      if (data.expired) {
-        if (pollRef.current) clearInterval(pollRef.current);
-        setPhase('expired');
-        return;
-      }
-      if (data.verified) {
-        if (pollRef.current) clearInterval(pollRef.current);
-        setPhase('confirmed');
-        setTimeout(() => onSuccessRef.current(), 1500);
-      }
-    } catch {
-      // silently retry
-    }
-  }, [jobId]); // onSuccess intentionally omitted — accessed via stable ref
-
-  // Poll every 5 s once payment details exist, regardless of sub-phase.
-  // This lets the modal auto-close even if the user navigates back to 'ready'.
-  useEffect(() => {
-    if ((phase === 'ready' || phase === 'waiting') && details) {
-      pollRef.current = setInterval(() => void pollVerify(), 5000);
-    }
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-    };
-  }, [phase, details, pollVerify]);
-
-  // Expire only when the real timestamp has passed (secondsLeft starts at 0)
+  // Expire when real timestamp passes (secondsLeft re-evaluates this every second)
   useEffect(() => {
     if ((phase === 'ready' || phase === 'waiting') && details) {
       if (Date.now() >= new Date(details.expiresAt).getTime()) {
-        if (pollRef.current) clearInterval(pollRef.current);
         setPhase('expired');
       }
     }
@@ -147,6 +112,36 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
     if (!details) return;
     window.open(deeplink, '_blank');
     setPhase('waiting');
+  }
+
+  async function handleCheckClick(): Promise<void> {
+    if (checking || inCooldown) return;
+    setChecking(true);
+    setCheckError(null);
+    try {
+      const res = await fetch('/api/payments/verify-ton-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId }),
+      });
+      const data = (await res.json()) as { verified?: boolean; expired?: boolean };
+      if (data.expired) {
+        setPhase('expired');
+        return;
+      }
+      if (data.verified) {
+        setPhase('confirmed');
+        setTimeout(onSuccess, 1500);
+        return;
+      }
+      setCheckError('Payment not found yet, please wait a moment and try again.');
+      setCooldownUntil(Date.now() + 10_000);
+    } catch {
+      setCheckError('Network error. Please try again.');
+      setCooldownUntil(Date.now() + 10_000);
+    } finally {
+      setChecking(false);
+    }
   }
 
   return (
@@ -172,8 +167,11 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
         {phase === 'failed' && (
           <div className="flex flex-col gap-3">
             <p className="text-sm text-destructive">{error ?? 'Something went wrong.'}</p>
-            <button type="button" onClick={onClose}
-              className="inline-flex w-fit items-center rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-muted">
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex w-fit items-center rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-muted"
+            >
               Close
             </button>
           </div>
@@ -194,8 +192,11 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
             <p className="text-sm text-destructive">
               Payment window expired. Please upload your document again.
             </p>
-            <button type="button" onClick={onClose}
-              className="inline-flex w-fit items-center rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-muted">
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex w-fit items-center rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-muted"
+            >
               Close
             </button>
           </div>
@@ -234,7 +235,9 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
                   <p className="font-medium text-muted-foreground">Or pay manually:</p>
 
                   <div className="flex flex-col gap-1">
-                    <span className="text-xs uppercase tracking-wide text-muted-foreground">Address</span>
+                    <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                      Address
+                    </span>
                     <div className="flex items-center gap-2 rounded border bg-muted/40 px-3 py-2">
                       <code className="flex-1 truncate text-xs">{details.merchantAddress}</code>
                       <CopyButton text={details.merchantAddress} />
@@ -242,7 +245,9 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
                   </div>
 
                   <div className="flex flex-col gap-1">
-                    <span className="text-xs uppercase tracking-wide text-muted-foreground">Amount</span>
+                    <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                      Amount
+                    </span>
                     <div className="flex items-center gap-2 rounded border bg-muted/40 px-3 py-2">
                       <code className="flex-1 text-xs">{details.amountTon} TON</code>
                       <CopyButton text={details.amountTon} />
@@ -266,7 +271,9 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
                 {/* Timer */}
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Time remaining</span>
-                  <span className={`font-mono font-medium ${secondsLeft < 120 ? 'text-destructive' : ''}`}>
+                  <span
+                    className={`font-mono font-medium ${secondsLeft < 120 ? 'text-destructive' : ''}`}
+                  >
                     {fmt(secondsLeft)}
                   </span>
                 </div>
@@ -274,22 +281,47 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
             )}
 
             {phase === 'waiting' && (
-              <div className="flex flex-col items-center gap-4 py-4 text-center">
-                <span className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-                <p className="font-medium">Waiting for payment…</p>
-                <p className="text-sm text-muted-foreground">
-                  Checking every 5 seconds. This page will update automatically.
-                </p>
-                <div className="flex items-center justify-between w-full text-sm">
+              <div className="flex flex-col gap-4">
+                {/* Timer */}
+                <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Time remaining</span>
-                  <span className={`font-mono font-medium ${secondsLeft < 120 ? 'text-destructive' : ''}`}>
+                  <span
+                    className={`font-mono font-medium ${secondsLeft < 120 ? 'text-destructive' : ''}`}
+                  >
                     {fmt(secondsLeft)}
                   </span>
                 </div>
+
+                {/* Failed check message */}
+                {checkError && (
+                  <p className="text-sm text-amber-600">{checkError}</p>
+                )}
+
+                {/* I've paid button */}
                 <button
                   type="button"
-                  onClick={() => setPhase('ready')}
-                  className="text-xs text-muted-foreground underline-offset-4 hover:underline"
+                  onClick={() => void handleCheckClick()}
+                  disabled={checking || inCooldown}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
+                >
+                  {checking ? (
+                    <>
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+                      Checking payment…
+                    </>
+                  ) : (
+                    "I've paid"
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPhase('ready');
+                    setCheckError(null);
+                    setCooldownUntil(null);
+                  }}
+                  className="text-center text-xs text-muted-foreground underline-offset-4 hover:underline"
                 >
                   Haven&apos;t paid yet? Go back
                 </button>
