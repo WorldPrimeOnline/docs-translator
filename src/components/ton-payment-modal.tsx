@@ -111,15 +111,16 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
     }
   }, [jobId, onSuccess]);
 
-  // Poll every 5 s while waiting
+  // Poll every 5 s once payment details exist, regardless of sub-phase.
+  // This lets the modal auto-close even if the user navigates back to 'ready'.
   useEffect(() => {
-    if (phase === 'waiting') {
+    if ((phase === 'ready' || phase === 'waiting') && details) {
       pollRef.current = setInterval(() => void pollVerify(), 5000);
     }
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
-  }, [phase, pollVerify]);
+  }, [phase, details, pollVerify]);
 
   // Expire only when the real timestamp has passed (secondsLeft starts at 0)
   useEffect(() => {
