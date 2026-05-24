@@ -54,6 +54,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         { status: 400 },
       );
 
+    const safeFilename = file.name
+      .replace(/[^a-zA-Z0-9._\- ]/g, '_')
+      .slice(0, 200);
+
     const docId = crypto.randomUUID();
     const fileKey = `documents/${user.id}/${docId}/original.pdf`;
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -65,7 +69,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       .insert({
         id: docId,
         user_id: user.id,
-        filename: file.name,
+        filename: safeFilename,
         original_file_size: file.size,
         file_key: fileKey,
         source_language: sourceLang,
