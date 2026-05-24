@@ -40,14 +40,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       const authHeader = request.headers.get('authorization') ?? '';
       const provided = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
       if (provided !== secret) {
+        console.warn('[ton-webhook] unauthorized — header:', authHeader);
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
     }
 
-    const body = (await request.json()) as TonconsoleWebhook;
-    const { tx_hash } = body;
+    const rawBody = (await request.json()) as TonconsoleWebhook;
+    console.log('[ton-webhook] raw payload:', JSON.stringify(rawBody));
+
+    const { tx_hash } = rawBody;
 
     if (!tx_hash) {
+      console.warn('[ton-webhook] missing tx_hash in payload:', JSON.stringify(rawBody));
       return NextResponse.json({ error: 'tx_hash required' }, { status: 400 });
     }
 
@@ -63,6 +67,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     const txData = (await tonapiRes.json()) as TonapiTx;
+    console.log('[ton-webhook] tonapi tx data:', JSON.stringify(txData));
+
     const inMsg = txData.in_msg;
 
     if (!inMsg) {
@@ -71,8 +77,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     const comment = extractComment(inMsg).trim();
+    console.log('[ton-webhook] extracted comment (jobId):', JSON.stringify(comment), 'from decoded_body:', JSON.stringify(inMsg.decoded_body));
+
     if (!comment) {
-      console.log('[ton-webhook] no comment in tx', tx_hash);
+      console.warn('[ton-webhook] no comment in tx — full in_msg:', JSON.stringify(inMsg));
       return NextResponse.json({ ok: true });
     }
 
@@ -81,41 +89,61 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     console.log('[ton-webhook] tx', tx_hash, 'comment:', comment, 'value:', valueNanoton);
 
-    // Find pending payment by job_id (comment = jobId)
+    // Find payment by job_id (comment = jobId) — any non-expired status
     const { data: payment, error: fetchErr } = await supabaseServer
       .from('ton_payments')
       .select('*')
       .eq('job_id', comment)
-      .eq('status', 'pending')
       .single();
 
     if (fetchErr || !payment) {
-      console.log('[ton-webhook] no pending payment for job_id:', comment);
+      console.warn('[ton-webhook] no payment found for job_id:', comment, 'error:', fetchErr);
+      return NextResponse.json({ ok: true });
+    }
+
+    console.log('[ton-webhook] found payment:', JSON.stringify(payment));
+
+    // Idempotency: already completed
+    if (payment.status === 'completed') {
+      console.log('[ton-webhook] payment already completed for job_id:', comment);
+      return NextResponse.json({ ok: true });
+    }
+
+    if (payment.status !== 'pending') {
+      console.warn('[ton-webhook] payment status is not pending:', payment.status, 'job_id:', comment);
       return NextResponse.json({ ok: true });
     }
 
     // Check expiry
     if (new Date() > new Date(payment.expires_at)) {
-      await supabaseServer
+      const { error: expireErr } = await supabaseServer
         .from('ton_payments')
         .update({ status: 'expired' })
         .eq('id', payment.id);
-      console.log('[ton-webhook] payment expired for job_id:', comment);
+      console.log('[ton-webhook] payment expired for job_id:', comment, 'expire update error:', expireErr);
       return NextResponse.json({ ok: true });
     }
 
     // Verify amount (allow 1% slippage)
     const minAmount = Math.floor(Number(payment.amount_nanoton) * 0.99);
     if (valueNanoton < minAmount) {
-      console.log('[ton-webhook] amount too low', valueNanoton, '<', minAmount);
+      console.warn('[ton-webhook] amount too low', valueNanoton, '<', minAmount, 'for job_id:', comment);
       return NextResponse.json({ ok: true });
     }
 
     // Mark completed
-    await supabaseServer
+    const { data: updateData, error: updateErr, count: updateCount } = await supabaseServer
       .from('ton_payments')
       .update({ status: 'completed', tx_hash })
-      .eq('id', payment.id);
+      .eq('id', payment.id)
+      .select();
+
+    console.log('[ton-webhook] UPDATE result — data:', JSON.stringify(updateData), 'error:', updateErr, 'count:', updateCount);
+
+    if (updateErr) {
+      console.error('[ton-webhook] UPDATE failed for job_id:', comment, 'error:', updateErr);
+      return NextResponse.json({ ok: true });
+    }
 
     console.log('[ton-webhook] payment completed for job_id:', comment);
 
