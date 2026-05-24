@@ -259,6 +259,7 @@ export default function DashboardPage() {
                 className="text-sm"
                 onChange={(e) => setFile(e.target.files?.[0] ?? null)}
               />
+              <p className="text-xs text-muted-foreground">PDF only · Max 25 MB · Max 50 pages</p>
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

@@ -1,11 +1,37 @@
-import puppeteer from 'puppeteer';
 import { marked } from 'marked';
+import type { Browser } from 'puppeteer-core';
 
 interface PdfMeta {
   sourceLang: string;
   targetLang: string;
   documentType: string;
   translatedAt: string;
+}
+
+// Chromium binary released alongside @sparticuz/chromium-min v148
+const CHROMIUM_PACK_URL =
+  'https://github.com/Sparticuz/chromium/releases/download/v148.0.0/chromium-v148.0.0-pack.tar';
+
+async function launchBrowser(): Promise<Browser> {
+  if (process.env.NODE_ENV === 'production') {
+    const [{ default: Chromium }, { default: puppeteerCore }] = await Promise.all([
+      import('@sparticuz/chromium-min'),
+      import('puppeteer-core'),
+    ]);
+    return puppeteerCore.launch({
+      args: Chromium.args,
+      executablePath: await Chromium.executablePath(
+        process.env.CHROMIUM_EXECUTABLE_PATH ?? CHROMIUM_PACK_URL,
+      ),
+      headless: true,
+    });
+  }
+
+  const { default: puppeteer } = await import('puppeteer');
+  return puppeteer.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+  });
 }
 
 export async function renderToPdf(translatedMarkdown: string, meta: PdfMeta): Promise<Buffer> {
@@ -22,7 +48,6 @@ export async function renderToPdf(translatedMarkdown: string, meta: PdfMeta): Pr
     font-size: 11pt;
     line-height: 1.6;
     color: #111;
-    padding: 0;
   }
   .banner {
     background: #c0392b;
@@ -34,9 +59,7 @@ export async function renderToPdf(translatedMarkdown: string, meta: PdfMeta): Pr
     padding: 6px 12px;
     margin-bottom: 24px;
   }
-  .content {
-    padding: 0 40px;
-  }
+  .content { padding: 0 40px; }
   h1, h2, h3 { margin: 16px 0 8px; }
   p { margin: 8px 0; }
   table { border-collapse: collapse; width: 100%; margin: 12px 0; }
@@ -58,11 +81,7 @@ export async function renderToPdf(translatedMarkdown: string, meta: PdfMeta): Pr
 </body>
 </html>`;
 
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-  });
-
+  const browser = await launchBrowser();
   try {
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: 'domcontentloaded' });
