@@ -27,6 +27,24 @@ async function getAuthUser() {
   return user;
 }
 
+// toncenter sometimes returns address as {address:"..."} object instead of plain string
+function extractAddrString(val: unknown): string {
+  if (typeof val === 'string') return val;
+  if (val && typeof val === 'object' && 'address' in val) {
+    return String((val as Record<string, unknown>).address);
+  }
+  return '';
+}
+
+function tryNormalize(addr: string): string | null {
+  if (!addr) return null;
+  try {
+    return Address.parse(addr).toRawString();
+  } catch {
+    return null;
+  }
+}
+
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const user = await getAuthUser();
@@ -44,7 +62,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Look up payment record
     const { data: payment } = await supabaseServer
       .from('ton_payments')
       .select('*')
@@ -53,36 +70,40 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       .single();
 
     if (!payment) return NextResponse.json({ error: 'Payment not found' }, { status: 404 });
-
     if (payment.status === 'completed') return NextResponse.json({ verified: true });
 
     const now = new Date();
     const expiresAt = new Date(payment.expires_at);
     if (now > expiresAt) {
-      await supabaseServer
-        .from('ton_payments')
-        .update({ status: 'expired' })
-        .eq('id', payment.id);
+      await supabaseServer.from('ton_payments').update({ status: 'expired' }).eq('id', payment.id);
       return NextResponse.json({ verified: false, expired: true });
     }
 
-    // Get user's linked wallet address
     const { data: walletLink } = await supabaseServer
       .from('wallet_links')
-      .select('address_raw')
+      .select('address_raw, address')
       .eq('user_id', user.id)
       .single();
 
     if (!walletLink) {
+      console.log('[verify] no wallet linked for user', user.id);
       return NextResponse.json({ verified: false, error: 'Wallet not linked' });
     }
 
-    // Normalize merchant address once
-    const merchantRaw = Address.parse(MERCHANT_ADDRESS).toRawString();
+    const merchantRaw = tryNormalize(MERCHANT_ADDRESS);
     const minAmount = Math.floor(Number(amountNanoton) * 0.99);
     const windowStartSec = Math.floor(now.getTime() / 1000) - 1800;
 
-    // Query toncenter for recent incoming transactions to merchant address
+    console.log('[verify] checking payment', {
+      jobId,
+      walletAddressRaw: walletLink.address_raw,
+      walletAddressDisplay: walletLink.address,
+      merchantAddressOriginal: MERCHANT_ADDRESS,
+      merchantAddressNormalized: merchantRaw,
+      minAmountNanoton: minAmount,
+      windowStartSec,
+    });
+
     const url = new URL(TONCENTER_URL);
     url.searchParams.set('address', MERCHANT_ADDRESS);
     url.searchParams.set('limit', '50');
@@ -90,36 +111,58 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (apiKey) url.searchParams.set('api_key', apiKey);
 
     const tcRes = await fetch(url.toString(), { cache: 'no-store' });
-    if (!tcRes.ok) return NextResponse.json({ verified: false });
-
-    const tcData = (await tcRes.json()) as {
-      ok: boolean;
-      result: Array<{
-        utime: number;
-        in_msg: { source: string; destination: string; value: string };
-      }>;
-    };
-    if (!tcData.ok || !Array.isArray(tcData.result)) {
+    if (!tcRes.ok) {
+      console.log('[verify] toncenter HTTP error', tcRes.status);
       return NextResponse.json({ verified: false });
     }
 
-    for (const tx of tcData.result) {
-      if (tx.utime < windowStartSec) continue;
+    const tcData = (await tcRes.json()) as { ok: boolean; result: unknown[] };
+    if (!tcData.ok || !Array.isArray(tcData.result)) {
+      console.log('[verify] toncenter bad response', JSON.stringify(tcData).slice(0, 200));
+      return NextResponse.json({ verified: false });
+    }
 
-      let rawFrom: string;
-      let rawDest: string;
-      try {
-        rawFrom = Address.parse(tx.in_msg.source).toRawString();
-        rawDest = Address.parse(tx.in_msg.destination).toRawString();
-      } catch {
+    console.log('[verify] toncenter returned', tcData.result.length, 'transactions');
+
+    for (const rawTx of tcData.result) {
+      const tx = rawTx as Record<string, unknown>;
+      const inMsg = tx.in_msg as Record<string, unknown> | undefined;
+
+      const sourceRaw = extractAddrString(inMsg?.source);
+      const destRaw = extractAddrString(inMsg?.destination);
+      const value = String(inMsg?.value ?? '0');
+      const utime = Number(tx.utime ?? 0);
+
+      console.log('[verify] TX:', JSON.stringify({ source: inMsg?.source, destination: inMsg?.destination, value, utime }));
+
+      if (utime < windowStartSec) {
+        console.log('[verify]   skip: too old', utime, '<', windowStartSec);
         continue;
       }
 
-      if (rawFrom !== walletLink.address_raw) continue;
-      if (rawDest !== merchantRaw) continue;
-      if (Number(tx.in_msg.value) < minAmount) continue;
+      // Try normalised comparison first, fall back to plain string comparison
+      const normalizedFrom = tryNormalize(sourceRaw);
+      const normalizedDest = tryNormalize(destRaw);
 
-      // Match found — mark paid and start processing
+      const fromMatch =
+        (normalizedFrom !== null && normalizedFrom === walletLink.address_raw) ||
+        sourceRaw === walletLink.address_raw ||
+        sourceRaw === walletLink.address;
+
+      const destMatch =
+        (normalizedDest !== null && merchantRaw !== null && normalizedDest === merchantRaw) ||
+        destRaw === MERCHANT_ADDRESS;
+
+      const amountMatch = Number(value) >= minAmount;
+
+      console.log('[verify]   from match:', fromMatch, { normalizedFrom, storedRaw: walletLink.address_raw, sourceRaw });
+      console.log('[verify]   dest match:', destMatch, { normalizedDest, merchantRaw, destRaw });
+      console.log('[verify]   amount match:', amountMatch, { value, minAmount });
+
+      if (!fromMatch || !destMatch || !amountMatch) continue;
+
+      console.log('[verify] MATCH FOUND — marking payment completed');
+
       await supabaseServer
         .from('ton_payments')
         .update({ status: 'completed', wallet_address: walletLink.address_raw })
@@ -132,6 +175,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ verified: true });
     }
 
+    console.log('[verify] no matching transaction found');
     return NextResponse.json({ verified: false });
   } catch (err) {
     console.error('[verify-ton-payment] error:', err);
