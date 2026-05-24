@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 
 interface PaymentDetails {
   paymentId: string;
@@ -132,11 +133,12 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
     }
   }, [secondsLeft, phase, details]);
 
+  const deeplink = details
+    ? `ton://transfer/${details.merchantAddress}?amount=${details.amountNanoton}&text=${encodeURIComponent(jobId)}`
+    : '';
+
   function handlePayClick() {
     if (!details) return;
-    const deeplink =
-      `ton://transfer/${details.merchantAddress}` +
-      `?amount=${details.amountNanoton}&text=${encodeURIComponent(jobId)}`;
     window.open(deeplink, '_blank');
     setPhase('waiting');
   }
@@ -206,6 +208,12 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
 
             {phase === 'ready' && (
               <>
+                {/* QR code — desktop only */}
+                <div className="hidden md:flex flex-col items-center gap-2">
+                  <QRCodeSVG value={deeplink} size={200} />
+                  <p className="text-xs text-muted-foreground">Сканируйте камерой телефона</p>
+                </div>
+
                 {/* Deeplink button */}
                 <button
                   type="button"
