@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { supabaseServer } from '@/lib/supabase/server';
 import { uploadFile } from '@/lib/r2/client';
+import { processJob } from '@/lib/jobs/processor';
 import type { Database } from '@/types';
 
 const MAX_FILE_SIZE = 25 * 1024 * 1024;
@@ -75,7 +76,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         source_language: sourceLang,
         target_language: targetLang,
         document_type: documentType,
-        status: 'uploading',
+        status: 'processing',
       })
       .select()
       .single();
@@ -98,6 +99,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       console.error('[upload] job insert failed:', jobError);
       return NextResponse.json({ error: 'Failed to create job' }, { status: 500 });
     }
+
+    setTimeout(() => {
+      void processJob(job.id, doc.id);
+    }, 0);
 
     return NextResponse.json({ jobId: job.id, documentId: doc.id });
   } catch (err) {

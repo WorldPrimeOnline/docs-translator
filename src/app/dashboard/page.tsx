@@ -25,7 +25,6 @@ interface ActiveJob {
   progress: number;
   errorMessage: string | null;
   filename: string;
-  awaitingPayment: boolean;
 }
 
 const LANGUAGES = [
@@ -76,38 +75,12 @@ export default function DashboardPage() {
   const [targetLang, setTargetLang] = useState('en');
   const [documentType, setDocumentType] = useState('other');
   const [uploading, setUploading] = useState(false);
-  const [paying, setPaying] = useState(false);
 
   const [activeJob, setActiveJob] = useState<ActiveJob | null>(null);
   const [documents, setDocuments] = useState<Document[]>([]);
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Read URL params on mount to restore state after Stripe redirect
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const payment = params.get('payment');
-    const jobId = params.get('jobId');
-    const documentId = params.get('documentId');
-
-    if (payment === 'success' && jobId && documentId) {
-      toast.success('Payment successful! Translation is starting…');
-      setActiveJob({
-        jobId,
-        documentId,
-        status: 'queued',
-        progress: 0,
-        errorMessage: null,
-        filename: '',
-        awaitingPayment: false,
-      });
-      // Clean up URL params
-      router.replace('/dashboard');
-    } else if (payment === 'cancelled') {
-      toast.error('Payment cancelled.');
-      router.replace('/dashboard');
-    }
-  }, [router]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -128,16 +101,9 @@ export default function DashboardPage() {
 
   const activeJobId = activeJob?.jobId ?? null;
   const activeJobStatus = activeJob?.status ?? null;
-  const activeJobAwaiting = activeJob?.awaitingPayment ?? false;
 
   useEffect(() => {
-    if (
-      !activeJobId ||
-      !activeJobStatus ||
-      activeJobAwaiting ||
-      activeJobStatus === 'completed' ||
-      activeJobStatus === 'failed'
-    ) {
+    if (!activeJobId || !activeJobStatus || activeJobStatus === 'completed' || activeJobStatus === 'failed') {
       if (pollRef.current) clearInterval(pollRef.current);
       if (activeJobStatus === 'completed' || activeJobStatus === 'failed') {
         void loadDocuments();
@@ -152,7 +118,7 @@ export default function DashboardPage() {
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
-  }, [activeJobId, activeJobStatus, activeJobAwaiting]);
+  }, [activeJobId, activeJobStatus]);
 
   async function pollJob(jobId: string): Promise<void> {
     const res = await fetch(`/api/jobs/${jobId}`);
@@ -207,29 +173,11 @@ export default function DashboardPage() {
       progress: 0,
       errorMessage: null,
       filename: file.name,
-      awaitingPayment: true,
     });
-    toast.success('File uploaded — complete payment to start translation');
+    toast.success('File uploaded — translation starting…');
     void loadDocuments();
   };
 
-  async function handlePay(documentId: string, jobId?: string): Promise<void> {
-    setPaying(true);
-    const res = await fetch('/api/payments/create-polar-checkout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ documentId, jobId }),
-    });
-    const data = (await res.json()) as { checkoutUrl?: string; error?: string };
-
-    if (!res.ok || !data.checkoutUrl) {
-      toast.error(data.error ?? 'Failed to create checkout session');
-      setPaying(false);
-      return;
-    }
-
-    window.location.href = data.checkoutUrl;
-  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -327,48 +275,30 @@ export default function DashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
-            {activeJob.awaitingPayment ? (
-              <>
-                <p className="text-sm text-muted-foreground">
-                  Your file is uploaded. Pay $4.99 to start translation.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => void handlePay(activeJob.documentId, activeJob.jobId)}
-                  disabled={paying}
-                  className="inline-flex w-fit items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
-                >
-                  {paying ? 'Redirecting to checkout…' : 'Pay to Translate — $4.99'}
-                </button>
-              </>
-            ) : (
-              <>
-                <p className="text-sm text-muted-foreground">
-                  {statusLabel(activeJob.status, activeJob.progress)}
-                </p>
+            <p className="text-sm text-muted-foreground">
+              {statusLabel(activeJob.status, activeJob.progress)}
+            </p>
 
-                {activeJob.status !== 'completed' && activeJob.status !== 'failed' && (
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                    <div
-                      className="h-full rounded-full bg-primary transition-all duration-500"
-                      style={{ width: `${activeJob.progress}%` }}
-                    />
-                  </div>
-                )}
+            {activeJob.status !== 'completed' && activeJob.status !== 'failed' && (
+              <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-primary transition-all duration-500"
+                  style={{ width: `${activeJob.progress}%` }}
+                />
+              </div>
+            )}
 
-                {activeJob.status === 'failed' && activeJob.errorMessage && (
-                  <p className="text-sm text-destructive">{activeJob.errorMessage}</p>
-                )}
+            {activeJob.status === 'failed' && activeJob.errorMessage && (
+              <p className="text-sm text-destructive">{activeJob.errorMessage}</p>
+            )}
 
-                {activeJob.status === 'completed' && (
-                  <a
-                    href={`/api/documents/${activeJob.documentId}/download`}
-                    className="inline-flex w-fit items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-                  >
-                    Download Translation
-                  </a>
-                )}
-              </>
+            {activeJob.status === 'completed' && (
+              <a
+                href={`/api/documents/${activeJob.documentId}/download`}
+                className="inline-flex w-fit items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                Download Translation
+              </a>
             )}
           </CardContent>
         </Card>
@@ -403,16 +333,6 @@ export default function DashboardPage() {
                     >
                       {doc.status}
                     </span>
-                    {doc.status === 'uploading' && (
-                      <button
-                        type="button"
-                        onClick={() => void handlePay(doc.id)}
-                        disabled={paying}
-                        className="inline-flex items-center justify-center rounded-lg border border-border bg-background px-3 py-1 text-xs font-medium transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50"
-                      >
-                        Pay $4.99
-                      </button>
-                    )}
                     {doc.status === 'completed' && (
                       <a
                         href={`/api/documents/${doc.id}/download`}
