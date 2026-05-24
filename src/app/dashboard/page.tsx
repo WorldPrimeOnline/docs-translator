@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { TonPaymentModal } from '@/components/ton-payment-modal';
 import { createClient } from '@/lib/supabase/client';
 import type { Tables } from '@/types';
 
@@ -78,6 +79,7 @@ export default function DashboardPage() {
 
   const [activeJob, setActiveJob] = useState<ActiveJob | null>(null);
   const [documents, setDocuments] = useState<Document[]>([]);
+  const [pendingPayment, setPendingPayment] = useState<{ documentId: string; jobId: string } | null>(null);
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -174,7 +176,8 @@ export default function DashboardPage() {
       errorMessage: null,
       filename: file.name,
     });
-    toast.success('File uploaded — translation starting…');
+    setPendingPayment({ documentId: data.documentId, jobId: data.jobId });
+    toast.success('File uploaded — complete payment to start translation.');
     void loadDocuments();
   };
 
@@ -302,6 +305,19 @@ export default function DashboardPage() {
             )}
           </CardContent>
         </Card>
+      )}
+
+      {/* TON payment modal */}
+      {pendingPayment && (
+        <TonPaymentModal
+          documentId={pendingPayment.documentId}
+          jobId={pendingPayment.jobId}
+          onSuccess={() => {
+            setPendingPayment(null);
+            toast.success('Payment confirmed — translation starting…');
+          }}
+          onClose={() => setPendingPayment(null)}
+        />
       )}
 
       {/* Past documents */}

@@ -162,6 +162,43 @@ export type Database = {
           { foreignKeyName: 'translations_job_id_fkey'; columns: ['job_id']; referencedRelation: 'jobs'; referencedColumns: ['id'] },
         ];
       };
+      ton_payments: {
+        Row: {
+          id: string;
+          user_id: string;
+          document_id: string;
+          job_id: string;
+          amount_nanoton: string;
+          amount_usd: number;
+          ton_price_usd: number;
+          status: 'pending' | 'completed' | 'expired' | 'failed';
+          tx_hash: string | null;
+          expires_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          document_id: string;
+          job_id: string;
+          amount_nanoton: number | string;
+          amount_usd: number;
+          ton_price_usd: number;
+          status?: 'pending' | 'completed' | 'expired' | 'failed';
+          tx_hash?: string | null;
+          expires_at: string;
+          created_at?: string;
+        };
+        Update: {
+          status?: 'pending' | 'completed' | 'expired' | 'failed';
+          tx_hash?: string | null;
+        };
+        Relationships: [
+          { foreignKeyName: 'ton_payments_user_id_fkey'; columns: ['user_id']; referencedRelation: 'users'; referencedColumns: ['id'] },
+          { foreignKeyName: 'ton_payments_document_id_fkey'; columns: ['document_id']; referencedRelation: 'documents'; referencedColumns: ['id'] },
+          { foreignKeyName: 'ton_payments_job_id_fkey'; columns: ['job_id']; referencedRelation: 'jobs'; referencedColumns: ['id'] },
+        ];
+      };
       payments: {
         Row: {
           id: string;
