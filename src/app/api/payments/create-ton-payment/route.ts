@@ -76,8 +76,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         amountUsd: Number(existing.amount_usd).toFixed(2),
         tonPriceUsd: Number(existing.ton_price_usd).toFixed(2),
         merchantAddress: MERCHANT_ADDRESS,
-        memo: existing.id,
-        payload: buildCommentPayload(existing.id),
+        memo: existing.job_id,
+        payload: buildCommentPayload(existing.job_id),
         expiresAt: existing.expires_at,
       });
     }
@@ -129,8 +129,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       amountUsd: amountUsd.toFixed(2),
       tonPriceUsd: tonPriceUsd.toFixed(2),
       merchantAddress: MERCHANT_ADDRESS,
-      memo: payment.id,
-      payload: buildCommentPayload(payment.id),
+      memo: jobId,
+      payload: buildCommentPayload(jobId),
       expiresAt,
     });
   } catch (err) {

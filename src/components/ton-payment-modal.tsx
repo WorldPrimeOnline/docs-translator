@@ -170,7 +170,8 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
 
         <h2 className="mb-1 text-lg font-semibold">Pay with TON</h2>
         <p className="mb-5 text-sm text-muted-foreground">
-          Connect your TON wallet and send the exact amount with the memo below.
+          Connect your TON wallet (e.g. Tonkeeper). The amount and memo are
+          filled automatically — just confirm in your wallet app.
         </p>
 
         {phase === 'loading' && (
@@ -237,7 +238,7 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
                 </button>
               </div>
               <p className="text-xs text-muted-foreground">
-                You MUST include this memo — it links the payment to your document.
+                Automatically included by your wallet — do not change it.
               </p>
             </div>
 
@@ -267,7 +268,7 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
               {phase === 'waiting' && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                  Waiting for on-chain confirmation…
+                  Verifying payment…
                 </div>
               )}
             </div>

@@ -60,7 +60,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const result = await verifyTonPayment({
       address: MERCHANT_ADDRESS,
       amountNanoton: Number(payment.amount_nanoton),
-      memo: payment.id,
+      memo: payment.job_id,
       createdAtSec: Math.floor(new Date(payment.created_at).getTime() / 1000),
       expiresAtSec: Math.floor(expiresAt.getTime() / 1000),
     });
