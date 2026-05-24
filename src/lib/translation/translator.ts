@@ -3,7 +3,7 @@ import { env } from '@/lib/env';
 
 const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
 
-const MODEL = 'claude-sonnet-4-5';
+const MODEL = 'claude-sonnet-4-5-20250929';
 const MAX_RETRIES = 3;
 const CHUNK_WORD_LIMIT = 3000;
 
@@ -63,6 +63,11 @@ Rules:
       return block.text;
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));
+      console.error(`[translator] attempt ${attempt + 1} failed:`, {
+        message: lastError.message,
+        status: (err as Record<string, unknown>)?.status,
+        error: (err as Record<string, unknown>)?.error,
+      });
     }
   }
 
