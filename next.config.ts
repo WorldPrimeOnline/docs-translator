@@ -15,7 +15,7 @@ const nextConfig: NextConfig = {
   trailingSlash: false,
 
   // Prevent webpack from bundling puppeteer-core (native bindings)
-  serverExternalPackages: ['puppeteer-core'],
+  serverExternalPackages: ['puppeteer-core', '@ton/ton', '@ton/core', '@ton/crypto'],
 
   async headers() {
     return [

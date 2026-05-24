@@ -4,7 +4,12 @@ import { cookies } from 'next/headers';
 import { supabaseServer } from '@/lib/supabase/server';
 import { getPriceUsd, MERCHANT_ADDRESS, PAYMENT_WINDOW_MS } from '@/lib/ton/config';
 import { getTonPriceUsd, usdToNanoton } from '@/lib/ton/price';
+import { beginCell } from '@ton/ton';
 import type { Database } from '@/types';
+
+function buildCommentPayload(comment: string): string {
+  return beginCell().storeUint(0, 32).storeStringTail(comment).endCell().toBoc().toString('base64');
+}
 
 async function getAuthUser() {
   const cookieStore = await cookies();
@@ -64,6 +69,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         tonPriceUsd: Number(existing.ton_price_usd).toFixed(2),
         merchantAddress: MERCHANT_ADDRESS,
         memo: existing.id,
+        payload: buildCommentPayload(existing.id),
         expiresAt: existing.expires_at,
       });
     }
@@ -101,6 +107,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       tonPriceUsd: tonPriceUsd.toFixed(2),
       merchantAddress: MERCHANT_ADDRESS,
       memo: payment.id,
+      payload: buildCommentPayload(payment.id),
       expiresAt,
     });
   } catch (err) {

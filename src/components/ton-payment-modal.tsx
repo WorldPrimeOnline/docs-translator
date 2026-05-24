@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { TonConnectButton, useTonAddress, useTonConnectUI } from '@tonconnect/ui-react';
-import { beginCell } from '@ton/ton';
 
 interface PaymentDetails {
   paymentId: string;
@@ -12,6 +11,7 @@ interface PaymentDetails {
   tonPriceUsd: string;
   merchantAddress: string;
   memo: string;
+  payload: string;
   expiresAt: string;
 }
 
@@ -22,15 +22,6 @@ interface Props {
   jobId: string;
   onSuccess: () => void;
   onClose: () => void;
-}
-
-function buildCommentPayload(comment: string): string {
-  return beginCell()
-    .storeUint(0, 32)
-    .storeStringTail(comment)
-    .endCell()
-    .toBoc()
-    .toString('base64');
 }
 
 function useCountdown(expiresAt: string | null): number {
@@ -145,7 +136,7 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
           {
             address: details.merchantAddress,
             amount: details.amountNanoton.toString(),
-            payload: buildCommentPayload(details.memo),
+            payload: details.payload,
           },
         ],
       });
