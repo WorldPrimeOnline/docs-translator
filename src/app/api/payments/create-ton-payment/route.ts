@@ -51,13 +51,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Return existing pending payment if one exists for this job
-    const { data: existing } = await supabaseServer
+    const { data: existing, error: existingError } = await supabaseServer
       .from('ton_payments')
       .select('*')
       .eq('job_id', jobId)
       .eq('status', 'pending')
       .gt('expires_at', new Date().toISOString())
       .maybeSingle();
+
+    if (existingError) {
+      console.error('[create-ton-payment] ton_payments query failed:', existingError);
+      return NextResponse.json(
+        { error: 'Database error', detail: existingError.message },
+        { status: 500 },
+      );
+    }
 
     if (existing) {
       const amountTon = Number(existing.amount_nanoton) / 1e9;
@@ -75,7 +83,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     const amountUsd = getPriceUsd(doc.document_type);
-    const tonPriceUsd = await getTonPriceUsd();
+
+    let tonPriceUsd: number;
+    try {
+      tonPriceUsd = await getTonPriceUsd();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error('[create-ton-payment] price fetch failed:', msg);
+      return NextResponse.json(
+        { error: 'Failed to fetch TON price', detail: msg },
+        { status: 502 },
+      );
+    }
+
     const amountNanoton = usdToNanoton(amountUsd, tonPriceUsd);
     const expiresAt = new Date(Date.now() + PAYMENT_WINDOW_MS).toISOString();
 
@@ -95,7 +115,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     if (paymentError || !payment) {
       console.error('[create-ton-payment] insert failed:', paymentError);
-      return NextResponse.json({ error: 'Failed to create payment' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to create payment record', detail: paymentError?.message },
+        { status: 500 },
+      );
     }
 
     const amountTon = amountNanoton / 1e9;
@@ -111,7 +134,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       expiresAt,
     });
   } catch (err) {
-    console.error('[create-ton-payment] error:', err);
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[create-ton-payment] unhandled error:', err);
+    return NextResponse.json({ error: 'Internal error', detail: msg }, { status: 500 });
   }
 }

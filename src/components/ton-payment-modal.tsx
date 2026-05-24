@@ -65,16 +65,17 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ documentId, jobId }),
         });
-        const data = (await res.json()) as PaymentDetails & { error?: string };
+        const data = (await res.json()) as PaymentDetails & { error?: string; detail?: string };
         if (!res.ok) {
-          setError(data.error ?? 'Failed to create payment');
+          const msg = [data.error, data.detail].filter(Boolean).join(' — ') || 'Failed to create payment';
+          setError(`${msg} (HTTP ${res.status})`);
           setPhase('failed');
           return;
         }
         setDetails(data);
         setPhase('ready');
-      } catch {
-        setError('Network error');
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Network error');
         setPhase('failed');
       }
     })();
@@ -118,11 +119,14 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
     };
   }, [phase, details, pollVerify]);
 
-  // Countdown reached 0 → expire
+  // Expire only when the actual timestamp has passed — NOT when secondsLeft===0,
+  // because secondsLeft initialises to 0 before the first countdown tick fires.
   useEffect(() => {
-    if ((phase === 'ready' || phase === 'waiting') && secondsLeft === 0 && details) {
-      if (pollRef.current) clearInterval(pollRef.current);
-      setPhase('expired');
+    if ((phase === 'ready' || phase === 'waiting') && details) {
+      if (Date.now() >= new Date(details.expiresAt).getTime()) {
+        if (pollRef.current) clearInterval(pollRef.current);
+        setPhase('expired');
+      }
     }
   }, [secondsLeft, phase, details]);
 
@@ -174,7 +178,16 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
         )}
 
         {phase === 'failed' && (
-          <p className="text-sm text-destructive">{error ?? 'Something went wrong.'}</p>
+          <div className="flex flex-col gap-3">
+            <p className="text-sm text-destructive">{error ?? 'Something went wrong.'}</p>
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex w-fit items-center rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-muted"
+            >
+              Close
+            </button>
+          </div>
         )}
 
         {phase === 'confirmed' && (
