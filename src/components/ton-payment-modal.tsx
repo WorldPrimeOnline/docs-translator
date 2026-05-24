@@ -62,6 +62,12 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
   const [details, setDetails] = useState<PaymentDetails | null>(null);
   const [error, setError] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Keep a stable ref so onSuccess never needs to be in pollVerify's dep array.
+  // Without this, the parent re-renders every 3 s (job poll) create a new onSuccess
+  // reference → pollVerify gets a new reference → the 5 s interval restarts
+  // before it ever fires.
+  const onSuccessRef = useRef(onSuccess);
+  useEffect(() => { onSuccessRef.current = onSuccess; }, [onSuccess]);
   const secondsLeft = useCountdown(details?.expiresAt ?? null);
 
   // Fetch payment quote on mount
@@ -105,12 +111,12 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
       if (data.verified) {
         if (pollRef.current) clearInterval(pollRef.current);
         setPhase('confirmed');
-        setTimeout(onSuccess, 1500);
+        setTimeout(() => onSuccessRef.current(), 1500);
       }
     } catch {
       // silently retry
     }
-  }, [jobId, onSuccess]);
+  }, [jobId]); // onSuccess intentionally omitted — accessed via stable ref
 
   // Poll every 5 s once payment details exist, regardless of sub-phase.
   // This lets the modal auto-close even if the user navigates back to 'ready'.
