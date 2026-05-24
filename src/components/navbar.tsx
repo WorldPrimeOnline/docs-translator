@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { FileText } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/client';
 
 export function Navbar() {
@@ -35,17 +34,26 @@ export function Navbar() {
 
         <nav className="flex items-center gap-2">
           {isLoggedIn ? (
-            <Button size="sm" render={<Link href="/dashboard" />}>
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center justify-center rounded-lg bg-primary px-3 py-1 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            >
               Dashboard
-            </Button>
+            </Link>
           ) : (
             <>
-              <Button size="sm" variant="ghost" render={<Link href="/auth/login" />}>
+              <Link
+                href="/auth/login"
+                className="inline-flex items-center justify-center rounded-lg px-3 py-1 text-xs font-medium transition-colors hover:bg-muted hover:text-foreground"
+              >
                 Log in
-              </Button>
-              <Button size="sm" render={<Link href="/auth/signup" />}>
+              </Link>
+              <Link
+                href="/auth/signup"
+                className="inline-flex items-center justify-center rounded-lg bg-primary px-3 py-1 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+              >
                 Sign up
-              </Button>
+              </Link>
             </>
           )}
         </nav>

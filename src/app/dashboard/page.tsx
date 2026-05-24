@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { createClient } from '@/lib/supabase/client';
 import type { Tables } from '@/types';
@@ -239,9 +238,14 @@ export default function DashboardPage() {
         <p className="text-sm text-muted-foreground">
           Signed in as <span className="font-medium text-foreground">{userEmail ?? '…'}</span>
         </p>
-        <Button variant="outline" size="sm" onClick={handleLogout} disabled={isLoggingOut}>
+        <button
+          type="button"
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+          className="inline-flex items-center justify-center rounded-lg border border-border bg-background px-3 py-1 text-xs font-medium transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50"
+        >
           {isLoggingOut ? 'Logging out…' : 'Log out'}
-        </Button>
+        </button>
       </div>
 
       {/* Upload form */}
@@ -303,9 +307,13 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <Button type="submit" disabled={uploading || !file} className="w-fit">
+            <button
+              type="submit"
+              disabled={uploading || !file}
+              className="inline-flex w-fit items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
+            >
               {uploading ? 'Uploading…' : 'Upload Document'}
-            </Button>
+            </button>
           </form>
         </CardContent>
       </Card>
@@ -324,13 +332,14 @@ export default function DashboardPage() {
                 <p className="text-sm text-muted-foreground">
                   Your file is uploaded. Pay $9.99 to start translation.
                 </p>
-                <Button
+                <button
+                  type="button"
                   onClick={() => void handlePay(activeJob.documentId)}
                   disabled={paying}
-                  className="w-fit"
+                  className="inline-flex w-fit items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
                 >
                   {paying ? 'Redirecting to checkout…' : 'Pay to Translate — $9.99'}
-                </Button>
+                </button>
               </>
             ) : (
               <>
@@ -395,14 +404,14 @@ export default function DashboardPage() {
                       {doc.status}
                     </span>
                     {doc.status === 'uploading' && (
-                      <Button
-                        size="sm"
-                        variant="outline"
+                      <button
+                        type="button"
                         onClick={() => void handlePay(doc.id)}
                         disabled={paying}
+                        className="inline-flex items-center justify-center rounded-lg border border-border bg-background px-3 py-1 text-xs font-medium transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50"
                       >
                         Pay $9.99
-                      </Button>
+                      </button>
                     )}
                     {doc.status === 'completed' && (
                       <a

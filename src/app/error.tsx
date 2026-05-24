@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+
 
 export default function Error({
   error,
@@ -27,10 +27,19 @@ export default function Error({
         )}
       </div>
       <div className="flex gap-3">
-        <Button onClick={reset}>Try again</Button>
-        <Button variant="outline" render={<Link href="/dashboard" />}>
+        <button
+          type="button"
+          onClick={reset}
+          className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          Try again
+        </button>
+        <Link
+          href="/dashboard"
+          className="inline-flex items-center justify-center rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-muted"
+        >
           Go to Dashboard
-        </Button>
+        </Link>
       </div>
     </div>
   );

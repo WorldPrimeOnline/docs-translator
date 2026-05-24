@@ -1,7 +1,7 @@
 'use client';
 
 import { Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface AuthFormProps {
@@ -29,9 +29,13 @@ export function AuthForm({
       <CardContent>
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
           {children}
-          <Button type="submit" disabled={isLoading} className="mt-1 w-full">
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="mt-1 inline-flex w-full items-center justify-center rounded-lg bg-primary py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
+          >
             {isLoading ? <Loader2 className="size-4 animate-spin" /> : submitLabel}
-          </Button>
+          </button>
         </form>
       </CardContent>
       {footer && (

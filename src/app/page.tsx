@@ -17,7 +17,7 @@ import {
   Lock,
   AlertCircle,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+
 
 const HOW_IT_WORKS = [
   {
@@ -127,17 +127,18 @@ export default function Home() {
             Accepted for review by consulates, universities, and immigration services.
           </p>
           <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-            <Button size="lg" className="px-8 text-base" render={<Link href="/auth/signup" />}>
+            <Link
+              href="/auth/signup"
+              className="inline-flex items-center justify-center rounded-lg bg-primary px-8 py-2.5 text-base font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            >
               Translate Now
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="px-8 text-base"
-              render={<a href="#how-it-works" />}
+            </Link>
+            <a
+              href="#how-it-works"
+              className="inline-flex items-center justify-center rounded-lg border border-border bg-background px-8 py-2.5 text-base font-medium transition-colors hover:bg-muted"
             >
               See How It Works
-            </Button>
+            </a>
           </div>
           <p className="mt-6 text-sm text-muted-foreground">
             From <strong>$9.99</strong> per document &nbsp;·&nbsp; Results in 2–5 minutes
@@ -242,9 +243,12 @@ export default function Home() {
                 </li>
               ))}
             </ul>
-            <Button size="lg" className="w-full text-base" render={<Link href="/auth/signup" />}>
+            <Link
+              href="/auth/signup"
+              className="inline-flex w-full items-center justify-center rounded-lg bg-primary py-2.5 text-base font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            >
               Start Translating
-            </Button>
+            </Link>
             <p className="mt-4 text-xs text-muted-foreground">No subscription · No hidden fees</p>
           </div>
         </div>
@@ -310,13 +314,12 @@ export default function Home() {
           <p className="mb-8 text-muted-foreground">
             Upload your PDF and get a translated version in minutes.
           </p>
-          <Button
-            size="lg"
-            className="px-10 text-base"
-            render={<Link href="/auth/signup" />}
+          <Link
+            href="/auth/signup"
+            className="inline-flex items-center justify-center rounded-lg bg-primary px-10 py-2.5 text-base font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
             Get Started — $9.99
-          </Button>
+          </Link>
           <p className="mt-4 text-sm text-muted-foreground">
             No subscription · Pay only when you translate
           </p>
