@@ -28,17 +28,6 @@ export async function renderToPdf(translatedMarkdown: string, meta: RenderMeta):
     margin: 0 auto;
     padding: 24px 32px;
   }
-  .banner {
-    background: #c0392b;
-    color: #fff;
-    text-align: center;
-    font-size: 10pt;
-    font-weight: bold;
-    letter-spacing: 0.05em;
-    padding: 8px 16px;
-    margin-bottom: 12px;
-    border-radius: 4px;
-  }
   .meta {
     font-size: 9pt;
     color: #888;
@@ -51,12 +40,11 @@ export async function renderToPdf(translatedMarkdown: string, meta: RenderMeta):
   .content th, .content td { border: 1px solid #ccc; padding: 6px 10px; text-align: left; }
   .content th { background: #f2f2f2; }
   @media print {
-    .banner { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body { padding: 0; }
   }
 </style>
 </head>
 <body>
-  <div class="banner">UNOFFICIAL TRANSLATION — FOR INFORMATIONAL PURPOSES ONLY</div>
   <div class="meta">Translated ${meta.translatedAt} &nbsp;·&nbsp; ${meta.sourceLang} → ${meta.targetLang} &nbsp;·&nbsp; Docs Translator</div>
   <div class="content">${htmlBody}</div>
 </body>
