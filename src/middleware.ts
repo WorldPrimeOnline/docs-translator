@@ -34,8 +34,13 @@ function isRateLimited(ip: string, limit: number): boolean {
 export async function middleware(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
 
-  // Rate-limit all API routes except webhooks (Stripe must be able to retry)
-  if (pathname.startsWith('/api/') && !pathname.startsWith('/api/webhooks/')) {
+  // Rate-limit all API routes except webhooks and the payment verify endpoint
+  // (verify is polled every 5 s by the modal; rate-limiting it breaks auto-close)
+  if (
+    pathname.startsWith('/api/') &&
+    !pathname.startsWith('/api/webhooks/') &&
+    pathname !== '/api/payments/verify-ton-payment'
+  ) {
     const ip =
       request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
       request.headers.get('x-real-ip') ??
