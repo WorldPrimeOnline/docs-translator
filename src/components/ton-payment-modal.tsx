@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { X, Copy, Check, Loader2 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 
 interface PaymentDetails {
@@ -39,21 +40,32 @@ function fmt(s: number): string {
   return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 }
 
-function CopyButton({ text }: { text: string }) {
+function CopyField({ label, value }: { label: string; value: string }) {
   const [copied, setCopied] = useState(false);
+  const copy = () => {
+    void navigator.clipboard.writeText(value).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
+
   return (
-    <button
-      type="button"
-      onClick={() => {
-        void navigator.clipboard.writeText(text).then(() => {
-          setCopied(true);
-          setTimeout(() => setCopied(false), 1500);
-        });
-      }}
-      className="shrink-0 text-xs text-primary hover:underline"
-    >
-      {copied ? 'Copied!' : 'Copy'}
-    </button>
+    <div className="flex flex-col gap-1">
+      <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+        {label}
+      </span>
+      <div className="flex items-center gap-2 rounded-md border border-white/10 bg-background/60 px-3 py-2">
+        <code className="flex-1 truncate text-xs text-foreground">{value}</code>
+        <button
+          type="button"
+          onClick={copy}
+          className="shrink-0 rounded p-0.5 text-muted-foreground transition-colors hover:text-foreground"
+          aria-label={`Copy ${label}`}
+        >
+          {copied ? <Check className="h-3.5 w-3.5 text-primary" /> : <Copy className="h-3.5 w-3.5" />}
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -66,10 +78,8 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
   const [cooldownUntil, setCooldownUntil] = useState<number | null>(null);
   const secondsLeft = useCountdown(details?.expiresAt ?? null);
 
-  // secondsLeft ticks every second — piggyback on it to re-evaluate cooldown
   const inCooldown = cooldownUntil !== null && Date.now() < cooldownUntil;
 
-  // Fetch payment quote on mount
   useEffect(() => {
     void (async () => {
       try {
@@ -95,7 +105,6 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
     })();
   }, [documentId, jobId]);
 
-  // Expire when real timestamp passes (re-evaluated every second via secondsLeft)
   useEffect(() => {
     if ((phase === 'ready' || phase === 'waiting') && details) {
       if (Date.now() >= new Date(details.expiresAt).getTime()) {
@@ -134,7 +143,7 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
         setTimeout(onSuccess, 1500);
         return;
       }
-      setCheckError('Payment not found yet, please wait a moment and try again.');
+      setCheckError('Payment not found yet — please wait a moment and try again.');
       setCooldownUntil(Date.now() + 10_000);
     } catch {
       setCheckError('Network error. Please try again.');
@@ -145,184 +154,203 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="relative w-full max-w-md rounded-xl border bg-background p-6 shadow-xl">
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute right-4 top-4 text-muted-foreground hover:text-foreground"
-          aria-label="Close"
-        >
-          ✕
-        </button>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 backdrop-blur-sm sm:items-center">
+      <div className="relative w-full max-w-md rounded-lg border border-white/10 bg-card shadow-2xl shadow-black/50">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
+          <h2 className="text-base font-semibold text-foreground">TON Payment</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
+            aria-label="Close"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
 
-        <h2 className="mb-1 text-lg font-semibold">Pay with TON</h2>
+        <div className="p-6">
+          {/* Loading */}
+          {phase === 'loading' && (
+            <div className="flex items-center gap-3 py-4 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="text-sm">Preparing payment…</span>
+            </div>
+          )}
 
-        {/* Loading */}
-        {phase === 'loading' && (
-          <p className="text-sm text-muted-foreground">Preparing payment…</p>
-        )}
+          {/* Error */}
+          {phase === 'failed' && (
+            <div className="flex flex-col gap-4">
+              <p className="text-sm text-destructive">{error ?? 'Something went wrong.'}</p>
+              <button
+                type="button"
+                onClick={onClose}
+                className="inline-flex w-fit items-center rounded-md border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-white/10"
+              >
+                Close
+              </button>
+            </div>
+          )}
 
-        {/* Error */}
-        {phase === 'failed' && (
-          <div className="flex flex-col gap-3">
-            <p className="text-sm text-destructive">{error ?? 'Something went wrong.'}</p>
-            <button
-              type="button"
-              onClick={onClose}
-              className="inline-flex w-fit items-center rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-muted"
-            >
-              Close
-            </button>
-          </div>
-        )}
+          {/* Confirmed */}
+          {phase === 'confirmed' && (
+            <div className="flex flex-col items-center gap-3 py-8 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/10">
+                <Check className="h-7 w-7 text-emerald-400" />
+              </div>
+              <p className="font-semibold text-foreground">Payment confirmed!</p>
+              <p className="text-sm text-muted-foreground">Translation is starting…</p>
+            </div>
+          )}
 
-        {/* Confirmed */}
-        {phase === 'confirmed' && (
-          <div className="flex flex-col items-center gap-3 py-4 text-center">
-            <span className="text-4xl">✓</span>
-            <p className="font-medium text-green-600">Payment confirmed!</p>
-            <p className="text-sm text-muted-foreground">Translation is starting…</p>
-          </div>
-        )}
-
-        {/* Expired */}
-        {phase === 'expired' && (
-          <div className="flex flex-col gap-3">
-            <p className="text-sm text-destructive">
-              Payment window expired. Please upload your document again.
-            </p>
-            <button
-              type="button"
-              onClick={onClose}
-              className="inline-flex w-fit items-center rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-muted"
-            >
-              Close
-            </button>
-          </div>
-        )}
-
-        {/* Ready — QR, deeplink button, manual transfer, "I've paid" */}
-        {phase === 'ready' && details && (
-          <div className="flex flex-col gap-5">
-            {/* Amount */}
-            <div className="rounded-lg border bg-muted/40 p-4">
-              <p className="text-3xl font-bold">{details.amountTon} TON</p>
+          {/* Expired */}
+          {phase === 'expired' && (
+            <div className="flex flex-col gap-4">
               <p className="text-sm text-muted-foreground">
-                ≈ ${details.amountUsd} USD · 1 TON = ${details.tonPriceUsd}
+                Payment window expired. Please upload your document again.
               </p>
+              <button
+                type="button"
+                onClick={onClose}
+                className="inline-flex w-fit items-center rounded-md border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-white/10"
+              >
+                Close
+              </button>
             </div>
+          )}
 
-            {/* QR code — desktop only */}
-            <div className="hidden md:flex flex-col items-center gap-2">
-              <QRCodeSVG value={deeplink} size={200} />
-              <p className="text-xs text-muted-foreground">Сканируйте камерой телефона</p>
-            </div>
-
-            {/* Deeplink button */}
-            <button
-              type="button"
-              onClick={handlePayClick}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-            >
-              Pay with Tonkeeper
-            </button>
-
-            {/* Manual payment */}
-            <div className="flex flex-col gap-2 rounded-lg border p-4 text-sm">
-              <p className="font-medium text-muted-foreground">Or pay manually:</p>
-
-              <div className="flex flex-col gap-1">
-                <span className="text-xs uppercase tracking-wide text-muted-foreground">
-                  Address
-                </span>
-                <div className="flex items-center gap-2 rounded border bg-muted/40 px-3 py-2">
-                  <code className="flex-1 truncate text-xs">{details.merchantAddress}</code>
-                  <CopyButton text={details.merchantAddress} />
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <span className="text-xs uppercase tracking-wide text-muted-foreground">
-                  Amount
-                </span>
-                <div className="flex items-center gap-2 rounded border bg-muted/40 px-3 py-2">
-                  <code className="flex-1 text-xs">{details.amountTon} TON</code>
-                  <CopyButton text={details.amountTon} />
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <span className="text-xs uppercase tracking-wide text-muted-foreground">
-                  Memo / Comment
-                </span>
-                <div className="flex items-center gap-2 rounded border bg-muted/40 px-3 py-2">
-                  <code className="flex-1 truncate text-xs">{jobId}</code>
-                  <CopyButton text={jobId} />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Include this exact comment — it links your payment to the translation.
+          {/* Ready */}
+          {phase === 'ready' && details && (
+            <div className="flex flex-col gap-5">
+              {/* Amount */}
+              <div className="rounded-md border border-white/10 bg-background/60 p-4">
+                <p className="text-3xl font-bold tracking-tight text-foreground">
+                  {details.amountTon}{' '}
+                  <span className="text-xl font-medium text-primary">TON</span>
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  ≈ ${details.amountUsd} USD · 1 TON = ${details.tonPriceUsd}
                 </p>
               </div>
-            </div>
 
-            {/* Timer */}
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Time remaining</span>
-              <span
-                className={`font-mono font-medium ${secondsLeft < 120 ? 'text-destructive' : ''}`}
+              {/* QR code — desktop */}
+              <div className="hidden flex-col items-center gap-3 md:flex">
+                <div className="rounded-lg border border-white/10 bg-white p-3">
+                  <QRCodeSVG value={deeplink} size={180} />
+                </div>
+                <p className="text-xs text-muted-foreground">Scan with your TON wallet</p>
+              </div>
+
+              {/* Primary CTA */}
+              <button
+                type="button"
+                onClick={handlePayClick}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-gold-dark"
               >
-                {fmt(secondsLeft)}
-              </span>
-            </div>
+                Open in Tonkeeper
+              </button>
 
-            {/* I've paid — for QR / manual transfer users */}
-            {checkError && (
-              <p className="text-sm text-amber-600">{checkError}</p>
-            )}
-            <button
-              type="button"
-              onClick={() => void handleCheckClick()}
-              disabled={checking || inCooldown}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-border px-4 py-3 text-sm font-semibold transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50"
-            >
-              {checking ? (
-                <>
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-foreground border-t-transparent" />
-                  Checking payment…
-                </>
-              ) : (
-                "I've paid"
-              )}
-            </button>
-          </div>
-        )}
+              {/* Manual payment */}
+              <details className="group rounded-md border border-white/10">
+                <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-xs font-medium text-muted-foreground hover:text-foreground">
+                  Pay manually
+                  <span className="transition-transform duration-200 group-open:rotate-180">▾</span>
+                </summary>
+                <div className="flex flex-col gap-3 border-t border-white/10 px-4 pb-4 pt-3">
+                  <CopyField label="Address" value={details.merchantAddress} />
+                  <CopyField label="Amount" value={`${details.amountTon} TON`} />
+                  <CopyField label="Memo / Comment" value={jobId} />
+                  <p className="text-xs text-muted-foreground">
+                    Include the exact memo — it links your payment to the translation.
+                  </p>
+                </div>
+              </details>
 
-        {/* Waiting — shown after "Pay with Tonkeeper" deeplink is opened */}
-        {phase === 'waiting' && details && (
-          <div className="flex flex-col gap-5">
-            {/* Amount */}
-            <div className="rounded-lg border bg-muted/40 p-4">
-              <p className="text-3xl font-bold">{details.amountTon} TON</p>
-              <p className="text-sm text-muted-foreground">
-                ≈ ${details.amountUsd} USD · 1 TON = ${details.tonPriceUsd}
-              </p>
-            </div>
-
-            <div className="flex flex-col items-center gap-4 py-2 text-center">
-              <span className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-              <p className="font-medium">Waiting for payment…</p>
-              <p className="text-sm text-muted-foreground">
-                Complete the payment in Tonkeeper, then come back here.
-              </p>
-              <div className="flex items-center justify-between w-full text-sm">
+              {/* Timer */}
+              <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">Time remaining</span>
                 <span
-                  className={`font-mono font-medium ${secondsLeft < 120 ? 'text-destructive' : ''}`}
+                  className={`font-mono font-semibold ${secondsLeft < 120 ? 'text-destructive' : 'text-foreground'}`}
                 >
                   {fmt(secondsLeft)}
                 </span>
               </div>
+
+              {/* Verify button */}
+              {checkError && (
+                <p className="text-xs text-amber-400">{checkError}</p>
+              )}
+              <button
+                type="button"
+                onClick={() => void handleCheckClick()}
+                disabled={checking || inCooldown}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-white/15 bg-white/5 py-3 text-sm font-medium text-foreground transition-colors hover:bg-white/10 disabled:pointer-events-none disabled:opacity-50"
+              >
+                {checking ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Checking payment…
+                  </>
+                ) : inCooldown ? (
+                  "I've Paid — Verify"
+                ) : (
+                  "I've Paid — Verify"
+                )}
+              </button>
+            </div>
+          )}
+
+          {/* Waiting */}
+          {phase === 'waiting' && details && (
+            <div className="flex flex-col gap-5">
+              <div className="rounded-md border border-white/10 bg-background/60 p-4">
+                <p className="text-3xl font-bold tracking-tight text-foreground">
+                  {details.amountTon}{' '}
+                  <span className="text-xl font-medium text-primary">TON</span>
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  ≈ ${details.amountUsd} USD
+                </p>
+              </div>
+
+              <div className="flex flex-col items-center gap-4 py-4 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/10">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                </div>
+                <p className="font-medium text-foreground">Waiting for payment…</p>
+                <p className="text-sm text-muted-foreground">
+                  Complete the payment in your TON wallet, then verify below.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">Time remaining</span>
+                <span
+                  className={`font-mono font-semibold ${secondsLeft < 120 ? 'text-destructive' : 'text-foreground'}`}
+                >
+                  {fmt(secondsLeft)}
+                </span>
+              </div>
+
+              {checkError && (
+                <p className="text-xs text-amber-400">{checkError}</p>
+              )}
+              <button
+                type="button"
+                onClick={() => void handleCheckClick()}
+                disabled={checking || inCooldown}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-gold-dark disabled:pointer-events-none disabled:opacity-50"
+              >
+                {checking ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Checking…
+                  </>
+                ) : (
+                  "I've Paid — Verify"
+                )}
+              </button>
+
               <button
                 type="button"
                 onClick={() => setPhase('ready')}
@@ -331,8 +359,8 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
                 Haven&apos;t paid yet? Go back
               </button>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { FileText } from 'lucide-react';
+import { WpoLogo } from '@/components/wpo-logo';
 import { createClient } from '@/lib/supabase/client';
 
 export function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -18,25 +19,34 @@ export function Navbar() {
     } = supabase.auth.onAuthStateChange((_, session) => {
       setIsLoggedIn(!!session);
     });
-    return () => subscription.unsubscribe();
+
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener('scroll', onScroll);
+    };
   }, []);
 
   return (
-    <header className="sticky top-0 z-50 border-b bg-white/95 backdrop-blur-sm">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
-        <Link
-          href="/"
-          className="flex items-center gap-2 text-sm font-semibold tracking-tight text-foreground"
-        >
-          <FileText className="h-4 w-4 text-primary" />
-          Docs Translator
+    <header
+      className={`sticky top-0 z-50 transition-all duration-200 ${
+        scrolled
+          ? 'border-b border-white/10 bg-navy/90 backdrop-blur-md shadow-lg shadow-black/20'
+          : 'bg-transparent'
+      }`}
+    >
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
+        <Link href="/" className="flex items-center gap-2">
+          <WpoLogo size="sm" />
         </Link>
 
-        <nav className="flex items-center gap-2">
+        <nav className="flex items-center gap-1">
           {isLoggedIn ? (
             <Link
               href="/dashboard"
-              className="inline-flex items-center justify-center rounded-lg bg-primary px-3 py-1 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+              className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-gold-dark"
             >
               Dashboard
             </Link>
@@ -44,15 +54,15 @@ export function Navbar() {
             <>
               <Link
                 href="/auth/login"
-                className="inline-flex items-center justify-center rounded-lg px-3 py-1 text-xs font-medium transition-colors hover:bg-muted hover:text-foreground"
+                className="inline-flex items-center justify-center rounded-md px-4 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-white/5"
               >
                 Log in
               </Link>
               <Link
                 href="/auth/signup"
-                className="inline-flex items-center justify-center rounded-lg bg-primary px-3 py-1 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-gold-dark"
               >
-                Sign up
+                Get Started
               </Link>
             </>
           )}
