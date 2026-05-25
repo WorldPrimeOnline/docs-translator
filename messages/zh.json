@@ -13,11 +13,11 @@
     "label": "操作流程",
     "title": "三步完成翻译",
     "step1Title": "上传 PDF",
-    "step1Desc": "选择任意扫描文件——护照、文凭、银行流水等。最多 50 页，25 MB。",
-    "step2Title": "AI 逐字翻译",
-    "step2Desc": "我们的 AI 读取文件，保留姓名和数字，在数分钟内提供准确翻译。",
-    "step3Title": "下载译文",
-    "step3Desc": "获取每页均含免责声明的格式清晰文件，可直接分享或附于申请材料。"
+    "step1Desc": "扫描或数字版 PDF，最大 25 MB，最多 50 页，支持所有官方文件。",
+    "step2Title": "选择语言和文件类型",
+    "step2Desc": "选择源语言和目标语言，然后选择文件类型以获得最佳输出效果。",
+    "step3Title": "付款并获取译文",
+    "step3Desc": "通过 TON 加密货币安全付款，2–5 分钟内收到整洁的译文 PDF。"
   },
   "documents": {
     "label": "翻译范围",
@@ -31,7 +31,11 @@
     "employment": "劳动合同",
     "police": "无犯罪记录证明",
     "driver": "驾驶证",
-    "other": "其他文件"
+    "other": "其他文件",
+    "hubLabel": "文件类型",
+    "hubTitle": "选择您的文件类型",
+    "hubSubtitle": "部分文件类型有专属页面，提供详细指引",
+    "otherOfficial": "其他官方文件"
   },
   "pricing": {
     "label": "定价",
@@ -74,6 +78,16 @@
     "q5": "我的文件安全吗？",
     "a5": "您的文件在传输和存储过程中均经过加密，30 天后永久删除。"
   },
+  "landing": {
+    "processLabel": "操作流程",
+    "trustLabel": "为何选择 WPO 翻译",
+    "trustDisclaimer": "WPO Online Translations 提供的所有翻译均为非官方翻译，仅供参考。翻译未经认证、公证，不具法律效力。请勿在正式场合以其替代经认证的翻译。",
+    "pricingLabel": "定价",
+    "perDocument": "每份文件",
+    "mostPopular": "最受欢迎",
+    "faqLabel": "常见问题",
+    "noSubscription": "无订阅 · 仅在翻译时付费"
+  },
   "dashboard": {
     "newTranslation": "新建翻译",
     "dropzone": "将 PDF 拖放至此处，或点击浏览",
@@ -82,6 +96,7 @@
     "targetLanguage": "目标语言",
     "documentType": "文件类型",
     "uploadBtn": "上传并翻译",
+    "uploadPay": "上传并付款",
     "pastTranslations": "历史翻译",
     "completed": "已完成",
     "processing": "处理中",
@@ -93,15 +108,64 @@
     "usingPlan": "使用 {plan} 计划 · 剩余 {remaining} 份文件 — 无需付款",
     "limitReached": "已达每月上限，请升级套餐或单独付费。",
     "upgradeToPro": "升级至专业版",
-    "viewPlans": "查看套餐"
+    "viewPlans": "查看套餐",
+    "docsUsed": "已使用文件数",
+    "expires": "到期",
+    "allDocsUsed": "本月 {n} 份文件已全部使用。",
+    "docsRemaining": "剩余 {n} 份文件",
+    "noTranslations": "暂无翻译记录。",
+    "noTranslationsHint": "请上传您的第一份文件开始翻译。",
+    "downloadTranslation": "下载译文",
+    "basicPlan": "基础版套餐",
+    "proPlan": "专业版套餐",
+    "jobTitle": "翻译进行中",
+    "subBannerTitle": "订阅后享受更快翻译",
+    "subBannerDesc": "低至 $9.99/月——10 份文件，无需按次付费",
+    "usingPlanSub": "使用 {plan} 计划 · 剩余 {remaining} 份文件 — 无需付款",
+    "status": {
+      "queued": "排队中——等待开始…",
+      "ocr": "正在提取文字… ({pct}%)",
+      "ocrDone": "OCR 完成，正在开始翻译… ({pct}%)",
+      "translating": "翻译中… ({pct}%)",
+      "rendering": "生成 PDF 中… ({pct}%)",
+      "completed": "已完成",
+      "failed": "失败"
+    },
+    "langs": {
+      "auto": "自动检测",
+      "ru": "俄语",
+      "en": "英语",
+      "th": "泰语",
+      "zh": "中文",
+      "ko": "韩语",
+      "ja": "日语",
+      "de": "德语",
+      "fr": "法语",
+      "es": "西班牙语",
+      "ar": "阿拉伯语"
+    },
+    "docTypes": {
+      "passport": "护照 / 身份证",
+      "diploma": "文凭 / 成绩单",
+      "contract": "合同",
+      "bank_statement": "银行流水",
+      "medical": "医疗记录 / 证明",
+      "employment": "劳动合同 / 工作证明",
+      "police_clearance": "无犯罪记录证明",
+      "driver_license": "驾驶证",
+      "other": "其他"
+    }
   },
   "auth": {
     "login": "登录",
     "signup": "创建账号",
     "email": "邮箱",
     "password": "密码",
+    "confirmPassword": "确认密码",
+    "loginTitle": "欢迎回来",
+    "signupTitle": "创建账号",
     "loginBtn": "登录",
-    "signupBtn": "创建账号",
+    "signupBtn": "注册",
     "noAccount": "还没有账号？",
     "hasAccount": "已有账号？",
     "signupLink": "注册",

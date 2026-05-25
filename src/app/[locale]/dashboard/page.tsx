@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations, useLocale } from 'next-intl';
 import { toast } from 'sonner';
 import { Upload, FileText, Download, AlertCircle, Loader2, Zap, Star } from 'lucide-react';
 import { TonPaymentModal } from '@/components/ton-payment-modal';
@@ -41,78 +42,42 @@ interface SubscriptionInfo {
   expiresAt: string | null;
 }
 
-const LANGUAGES = [
-  { value: 'auto', label: 'Auto-detect' },
-  { value: 'ru', label: 'Russian' },
-  { value: 'en', label: 'English' },
-  { value: 'th', label: 'Thai' },
-  { value: 'zh', label: 'Chinese' },
-  { value: 'ko', label: 'Korean' },
-  { value: 'ja', label: 'Japanese' },
-  { value: 'de', label: 'German' },
-  { value: 'fr', label: 'French' },
-  { value: 'es', label: 'Spanish' },
-  { value: 'ar', label: 'Arabic' },
-];
-
-const DOCUMENT_TYPES = [
-  { value: 'passport', label: 'Passport / ID Card' },
-  { value: 'diploma', label: 'Diploma / Transcript' },
-  { value: 'contract', label: 'Contract' },
-  { value: 'bank_statement', label: 'Bank Statement' },
-  { value: 'medical', label: 'Medical Record / Certificate' },
-  { value: 'employment', label: 'Employment Contract / Labor Book' },
-  { value: 'police_clearance', label: 'Police Clearance Certificate' },
-  { value: 'driver_license', label: "Driver's License" },
-  { value: 'other', label: 'Other' },
-];
-
-function statusLabel(status: JobStatus, progress: number): string {
-  switch (status) {
-    case 'queued': return 'Queued — waiting to start…';
-    case 'ocr_in_progress': return `Extracting text… (${progress}%)`;
-    case 'ocr_completed': return `OCR complete, starting translation… (${progress}%)`;
-    case 'translation_in_progress': return `Translating… (${progress}%)`;
-    case 'pdf_rendering': return `Rendering PDF… (${progress}%)`;
-    case 'completed': return 'Completed';
-    case 'failed': return 'Failed';
-  }
-}
-
 function StatusBadge({ status }: { status: string }) {
+  const t = useTranslations('dashboard');
   switch (status) {
     case 'completed':
       return (
         <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-400">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-          Completed
+          {t('completed')}
         </span>
       );
     case 'failed':
       return (
         <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2.5 py-0.5 text-xs font-medium text-red-400">
           <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
-          Failed
+          {t('failed')}
         </span>
       );
     case 'queued':
       return (
         <span className="inline-flex items-center gap-1 rounded-full bg-white/5 px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
           <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground" />
-          Queued
+          {t('queued')}
         </span>
       );
     default:
       return (
         <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2.5 py-0.5 text-xs font-medium text-blue-400">
           <span className="h-1.5 w-1.5 animate-badge-pulse rounded-full bg-blue-400" />
-          Processing
+          {t('processing')}
         </span>
       );
   }
 }
 
 function SubscriptionBanner({ onViewPlans }: { onViewPlans: () => void }) {
+  const t = useTranslations('dashboard');
   return (
     <div className="flex items-center justify-between gap-4 rounded-lg border border-primary/20 bg-primary/5 px-5 py-4">
       <div className="flex items-center gap-3">
@@ -120,12 +85,8 @@ function SubscriptionBanner({ onViewPlans }: { onViewPlans: () => void }) {
           <Zap className="h-4 w-4 text-primary" />
         </div>
         <div>
-          <p className="text-sm font-medium text-foreground">
-            Translate faster with a subscription
-          </p>
-          <p className="text-xs text-muted-foreground">
-            From $9.99/mo — 10 documents, no per-doc payments
-          </p>
+          <p className="text-sm font-medium text-foreground">{t('subBannerTitle')}</p>
+          <p className="text-xs text-muted-foreground">{t('subBannerDesc')}</p>
         </div>
       </div>
       <button
@@ -133,7 +94,7 @@ function SubscriptionBanner({ onViewPlans }: { onViewPlans: () => void }) {
         onClick={onViewPlans}
         className="shrink-0 inline-flex items-center rounded-md bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-gold-dark"
       >
-        View plans
+        {t('viewPlans')}
       </button>
     </div>
   );
@@ -146,10 +107,12 @@ function SubscriptionCard({
   sub: SubscriptionInfo;
   onUpgrade: () => void;
 }) {
+  const t = useTranslations('dashboard');
+  const locale = useLocale();
   const pct = Math.round((sub.documentsUsed / sub.documentsLimit) * 100);
   const remaining = sub.documentsLimit - sub.documentsUsed;
   const expiresDate = sub.expiresAt
-    ? new Date(sub.expiresAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    ? new Date(sub.expiresAt).toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' })
     : '—';
 
   const isPro = sub.plan === 'pro';
@@ -164,7 +127,7 @@ function SubscriptionCard({
             <Zap className="h-4 w-4 text-primary" />
           )}
           <span className="text-sm font-semibold text-foreground">
-            {isPro ? 'Pro' : 'Basic'} Plan
+            {isPro ? t('proPlan') : t('basicPlan')}
           </span>
           {isPro && (
             <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-bold text-primary-foreground">
@@ -172,12 +135,11 @@ function SubscriptionCard({
             </span>
           )}
         </div>
-        <span className="text-xs text-muted-foreground">Expires {expiresDate}</span>
+        <span className="text-xs text-muted-foreground">{t('expires')} {expiresDate}</span>
       </div>
 
-      {/* Progress bar */}
       <div className="mb-2 flex items-center justify-between text-xs">
-        <span className="text-muted-foreground">Documents used</span>
+        <span className="text-muted-foreground">{t('docsUsed')}</span>
         <span className="font-medium text-foreground">
           {sub.documentsUsed} / {sub.documentsLimit}
         </span>
@@ -192,29 +154,29 @@ function SubscriptionCard({
       {remaining === 0 ? (
         <div className="flex items-center justify-between gap-3">
           <p className="text-xs text-amber-400">
-            All {sub.documentsLimit} documents used this month.
+            {t('allDocsUsed', { n: sub.documentsLimit })}
           </p>
           <button
             type="button"
             onClick={onUpgrade}
             className="shrink-0 inline-flex items-center rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-gold-dark"
           >
-            Upgrade to Pro
+            {t('upgradeToPro')}
           </button>
         </div>
       ) : !isPro ? (
         <div className="flex items-center justify-between gap-3">
-          <p className="text-xs text-muted-foreground">{remaining} documents remaining</p>
+          <p className="text-xs text-muted-foreground">{t('docsRemaining', { n: remaining })}</p>
           <button
             type="button"
             onClick={onUpgrade}
             className="shrink-0 inline-flex items-center rounded-md border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-white/10"
           >
-            Upgrade to Pro
+            {t('upgradeToPro')}
           </button>
         </div>
       ) : (
-        <p className="text-xs text-muted-foreground">{remaining} documents remaining</p>
+        <p className="text-xs text-muted-foreground">{t('docsRemaining', { n: remaining })}</p>
       )}
     </div>
   );
@@ -222,6 +184,46 @@ function SubscriptionCard({
 
 export default function DashboardPage() {
   const router = useRouter();
+  const t = useTranslations('dashboard');
+
+  const LANGUAGES = [
+    { value: 'auto', label: t('langs.auto') },
+    { value: 'ru',   label: t('langs.ru')   },
+    { value: 'en',   label: t('langs.en')   },
+    { value: 'th',   label: t('langs.th')   },
+    { value: 'zh',   label: t('langs.zh')   },
+    { value: 'ko',   label: t('langs.ko')   },
+    { value: 'ja',   label: t('langs.ja')   },
+    { value: 'de',   label: t('langs.de')   },
+    { value: 'fr',   label: t('langs.fr')   },
+    { value: 'es',   label: t('langs.es')   },
+    { value: 'ar',   label: t('langs.ar')   },
+  ];
+
+  const DOCUMENT_TYPES = [
+    { value: 'passport',        label: t('docTypes.passport')        },
+    { value: 'diploma',         label: t('docTypes.diploma')         },
+    { value: 'contract',        label: t('docTypes.contract')        },
+    { value: 'bank_statement',  label: t('docTypes.bank_statement')  },
+    { value: 'medical',         label: t('docTypes.medical')         },
+    { value: 'employment',      label: t('docTypes.employment')      },
+    { value: 'police_clearance',label: t('docTypes.police_clearance')},
+    { value: 'driver_license',  label: t('docTypes.driver_license')  },
+    { value: 'other',           label: t('docTypes.other')           },
+  ];
+
+  function statusLabel(status: JobStatus, progress: number): string {
+    switch (status) {
+      case 'queued':               return t('status.queued');
+      case 'ocr_in_progress':      return t('status.ocr',      { pct: progress });
+      case 'ocr_completed':        return t('status.ocrDone',  { pct: progress });
+      case 'translation_in_progress': return t('status.translating', { pct: progress });
+      case 'pdf_rendering':        return t('status.rendering', { pct: progress });
+      case 'completed':            return t('status.completed');
+      case 'failed':               return t('status.failed');
+    }
+  }
+
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -236,7 +238,7 @@ export default function DashboardPage() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [pendingPayment, setPendingPayment] = useState<{ documentId: string; jobId: string } | null>(null);
 
-  const [subscription, setSubscription] = useState<SubscriptionInfo | null | undefined>(undefined); // undefined = loading
+  const [subscription, setSubscription] = useState<SubscriptionInfo | null | undefined>(undefined);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -349,7 +351,6 @@ export default function DashboardPage() {
     setFile(null);
 
     if (data.paidViaSubscription) {
-      // Subscription path: start immediately
       setActiveJob({
         jobId: data.jobId,
         documentId: data.documentId,
@@ -367,7 +368,6 @@ export default function DashboardPage() {
       void loadSubscription();
       void loadDocuments();
     } else {
-      // Pay-per-doc path
       setActiveJob({
         jobId: data.jobId,
         documentId: data.documentId,
@@ -377,7 +377,7 @@ export default function DashboardPage() {
         filename: file.name,
       });
       if (data.limitReached) {
-        toast.error("You've used all your documents this month. Upgrade or pay per document.");
+        toast.error(t('limitReached'));
       } else {
         toast.success('File uploaded — complete payment to start translation.');
       }
@@ -399,12 +399,14 @@ export default function DashboardPage() {
 
   const selectClass = 'rounded-md border border-white/10 bg-input px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring transition-colors hover:border-white/20';
 
+  const useSubscription = subscription && subscription.documentsUsed < subscription.documentsLimit;
+
   return (
     <div className="flex flex-col gap-5">
       {/* Header row */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          Signed in as{' '}
+          {t('signedIn')}{' '}
           <span className="font-medium text-foreground">{userEmail ?? '…'}</span>
         </p>
         <button
@@ -413,7 +415,7 @@ export default function DashboardPage() {
           disabled={isLoggingOut}
           className="inline-flex items-center justify-center rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-white/20 hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
         >
-          {isLoggingOut ? 'Logging out…' : 'Log out'}
+          {isLoggingOut ? '…' : t('logout')}
         </button>
       </div>
 
@@ -429,7 +431,7 @@ export default function DashboardPage() {
 
       {/* Upload form */}
       <div className="rounded-lg border border-white/10 bg-card p-6">
-        <h2 className="mb-5 text-base font-semibold text-foreground">New Translation</h2>
+        <h2 className="mb-5 text-base font-semibold text-foreground">{t('newTranslation')}</h2>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           {/* Drag-drop zone */}
@@ -464,10 +466,8 @@ export default function DashboardPage() {
             ) : (
               <>
                 <Upload className="mb-3 h-8 w-8 text-muted-foreground" />
-                <p className="text-sm font-medium text-foreground">
-                  Drop your PDF here, or click to browse
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">PDF only · Max 25 MB · Max 50 pages</p>
+                <p className="text-sm font-medium text-foreground">{t('dropzone')}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{t('dropzoneHint')}</p>
               </>
             )}
           </div>
@@ -476,7 +476,7 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Source Language
+                {t('sourceLanguage')}
               </label>
               <select
                 value={sourceLang}
@@ -491,7 +491,7 @@ export default function DashboardPage() {
 
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Target Language
+                {t('targetLanguage')}
               </label>
               <select
                 value={targetLang}
@@ -506,40 +506,42 @@ export default function DashboardPage() {
 
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Document Type
+                {t('documentType')}
               </label>
               <select
                 value={documentType}
                 onChange={(e) => setDocumentType(e.target.value)}
                 className={selectClass}
               >
-                {DOCUMENT_TYPES.map((t) => (
-                  <option key={t.value} value={t.value}>{t.label}</option>
+                {DOCUMENT_TYPES.map((dt) => (
+                  <option key={dt.value} value={dt.value}>{dt.label}</option>
                 ))}
               </select>
             </div>
           </div>
 
-          {/* Subscription hint below submit */}
+          {/* Subscription hint */}
           {subscription && subscription.documentsUsed >= subscription.documentsLimit ? (
             <div className="flex items-start gap-2 rounded-md border border-amber-500/20 bg-amber-500/5 p-3">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
               <p className="text-xs text-amber-400">
-                You&apos;ve used all {subscription.documentsLimit} documents this month.{' '}
+                {t('allDocsUsed', { n: subscription.documentsLimit })}{' '}
                 <button
                   type="button"
                   onClick={() => setShowSubscriptionModal(true)}
                   className="underline underline-offset-2 hover:text-amber-300"
                 >
-                  Upgrade to Pro
+                  {t('upgradeToPro')}
                 </button>{' '}
                 or continue with pay-per-document below.
               </p>
             </div>
           ) : subscription ? (
             <p className="text-xs text-muted-foreground">
-              ✓ Using your {subscription.plan === 'pro' ? 'Pro' : 'Basic'} plan ·{' '}
-              {subscription.documentsLimit - subscription.documentsUsed} doc{subscription.documentsLimit - subscription.documentsUsed === 1 ? '' : 's'} remaining — no payment required
+              ✓ {t('usingPlan', {
+                plan: subscription.plan === 'pro' ? 'Pro' : 'Basic',
+                remaining: subscription.documentsLimit - subscription.documentsUsed,
+              })}
             </p>
           ) : null}
 
@@ -551,17 +553,17 @@ export default function DashboardPage() {
             {uploading ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Uploading…
+                …
               </>
-            ) : subscription && subscription.documentsUsed < subscription.documentsLimit ? (
+            ) : useSubscription ? (
               <>
                 <Upload className="h-4 w-4" />
-                Upload & Translate
+                {t('uploadBtn')}
               </>
             ) : (
               <>
                 <Upload className="h-4 w-4" />
-                Upload & Pay
+                {t('uploadPay')}
               </>
             )}
           </button>
@@ -574,7 +576,7 @@ export default function DashboardPage() {
           <div className="mb-4 flex items-start justify-between gap-4">
             <div>
               <h3 className="text-sm font-semibold text-foreground">
-                {activeJob.filename || 'Translation in progress'}
+                {activeJob.filename || t('jobTitle')}
               </h3>
               <p className="mt-0.5 text-xs text-muted-foreground">
                 {statusLabel(activeJob.status, activeJob.progress)}
@@ -586,7 +588,7 @@ export default function DashboardPage() {
                   ) : (
                     <Zap className="h-3 w-3" />
                   )}
-                  Using {activeJob.subscriptionPlan === 'pro' ? 'Pro' : 'Basic'} plan
+                  {activeJob.subscriptionPlan === 'pro' ? t('proPlan') : t('basicPlan')}
                   {activeJob.remainingDocs !== undefined && ` · ${activeJob.remainingDocs} remaining`}
                 </p>
               )}
@@ -616,13 +618,13 @@ export default function DashboardPage() {
               className="mt-4 inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-gold-dark"
             >
               <Download className="h-4 w-4" />
-              Download Translation
+              {t('downloadTranslation')}
             </a>
           )}
         </div>
       )}
 
-      {/* TON payment modal (pay-per-doc) */}
+      {/* TON payment modal */}
       {pendingPayment && (
         <TonPaymentModal
           documentId={pendingPayment.documentId}
@@ -650,13 +652,13 @@ export default function DashboardPage() {
       {/* Past documents */}
       <div className="rounded-lg border border-white/10 bg-card">
         <div className="border-b border-white/10 px-6 py-4">
-          <h2 className="text-sm font-semibold text-foreground">Past Translations</h2>
+          <h2 className="text-sm font-semibold text-foreground">{t('pastTranslations')}</h2>
         </div>
         {documents.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-3 px-6 py-14 text-center">
             <FileText className="h-10 w-10 text-muted-foreground/30" />
-            <p className="text-sm font-medium text-muted-foreground">No translations yet.</p>
-            <p className="text-xs text-muted-foreground/60">Upload your first document above to get started.</p>
+            <p className="text-sm font-medium text-muted-foreground">{t('noTranslations')}</p>
+            <p className="text-xs text-muted-foreground/60">{t('noTranslationsHint')}</p>
           </div>
         ) : (
           <div className="divide-y divide-white/5">
@@ -679,7 +681,7 @@ export default function DashboardPage() {
                       className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-foreground transition-colors hover:border-white/20 hover:bg-white/10"
                     >
                       <Download className="h-3 w-3" />
-                      Download
+                      {t('download')}
                     </a>
                   )}
                 </div>

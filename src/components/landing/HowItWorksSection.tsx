@@ -1,20 +1,23 @@
-import type { HowItWorksStep } from '@/lib/landing-pages/types';
+import { getTranslations } from 'next-intl/server';
 
-interface Props {
-  headline?: string;
-  steps: HowItWorksStep[];
-}
+export async function HowItWorksSection() {
+  const t = await getTranslations();
 
-export function HowItWorksSection({ headline = 'How it works', steps }: Props) {
+  const steps = [
+    { n: '01', title: t('howItWorks.step1Title'), desc: t('howItWorks.step1Desc') },
+    { n: '02', title: t('howItWorks.step2Title'), desc: t('howItWorks.step2Desc') },
+    { n: '03', title: t('howItWorks.step3Title'), desc: t('howItWorks.step3Desc') },
+  ];
+
   return (
     <section className="border-y border-white/10 bg-card px-4 py-20">
       <div className="mx-auto max-w-6xl">
         <div className="mb-12 text-center">
           <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">
-            Process
+            {t('landing.processLabel')}
           </p>
           <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            {headline}
+            {t('howItWorks.title')}
           </h2>
         </div>
 

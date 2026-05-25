@@ -13,11 +13,11 @@
     "label": "THE PROCESS",
     "title": "Three steps to your translation",
     "step1Title": "Upload your PDF",
-    "step1Desc": "Select any scanned document — passport, diploma, bank statement, or more. Up to 50 pages, 25 MB.",
-    "step2Title": "AI translates every word",
-    "step2Desc": "Our AI reads the document, preserves names and numbers, and produces an accurate translation in minutes.",
-    "step3Title": "Download your translation",
-    "step3Desc": "Receive a clean, formatted document with a disclaimer on every page. Ready to share or attach to your application."
+    "step1Desc": "Scanned or digital PDF, up to 25 MB and 50 pages. Any official document accepted.",
+    "step2Title": "Choose language and document type",
+    "step2Desc": "Select source and target languages, then choose the document type for the best output.",
+    "step3Title": "Pay and receive your translation",
+    "step3Desc": "Pay securely with TON cryptocurrency. Receive a clean translated PDF in 2–5 minutes."
   },
   "documents": {
     "label": "WHAT WE TRANSLATE",
@@ -31,7 +31,11 @@
     "employment": "Employment Contract",
     "police": "Police Clearance",
     "driver": "Driver's License",
-    "other": "Any Other Document"
+    "other": "Any Other Document",
+    "hubLabel": "Document Types",
+    "hubTitle": "Choose your document type",
+    "hubSubtitle": "Some document types have dedicated pages with specific guidance",
+    "otherOfficial": "Other Official Document"
   },
   "pricing": {
     "label": "PRICING",
@@ -74,6 +78,16 @@
     "q5": "Are my documents safe?",
     "a5": "Your files are encrypted in transit and at rest. They are permanently deleted after 30 days."
   },
+  "landing": {
+    "processLabel": "THE PROCESS",
+    "trustLabel": "WHY WPO TRANSLATIONS",
+    "trustDisclaimer": "All translations provided by WPO Online Translations are unofficial and for informational purposes only. They are not certified, notarized, or legally binding. Do not use them as replacements for certified translations where officially required.",
+    "pricingLabel": "PRICING",
+    "perDocument": "per document",
+    "mostPopular": "Most popular",
+    "faqLabel": "FAQ",
+    "noSubscription": "No subscription · Pay only when you translate"
+  },
   "dashboard": {
     "newTranslation": "New Translation",
     "dropzone": "Drop your PDF here, or click to browse",
@@ -82,6 +96,7 @@
     "targetLanguage": "TARGET LANGUAGE",
     "documentType": "DOCUMENT TYPE",
     "uploadBtn": "Upload & Translate",
+    "uploadPay": "Upload & Pay",
     "pastTranslations": "Past Translations",
     "completed": "Completed",
     "processing": "Processing",
@@ -93,19 +108,68 @@
     "usingPlan": "Using your {plan} plan · {remaining} docs remaining — no payment required",
     "limitReached": "Monthly limit reached. Upgrade or pay per document.",
     "upgradeToPro": "Upgrade to Pro",
-    "viewPlans": "View plans"
+    "viewPlans": "View plans",
+    "docsUsed": "Documents used",
+    "expires": "Expires",
+    "allDocsUsed": "All {n} documents used this month.",
+    "docsRemaining": "{n} documents remaining",
+    "noTranslations": "No translations yet.",
+    "noTranslationsHint": "Upload your first document above to get started.",
+    "downloadTranslation": "Download Translation",
+    "basicPlan": "Basic Plan",
+    "proPlan": "Pro Plan",
+    "jobTitle": "Translation in progress",
+    "subBannerTitle": "Translate faster with a subscription",
+    "subBannerDesc": "From $9.99/mo — 10 documents, no per-doc payments",
+    "usingPlanSub": "Using your {plan} plan · {remaining} doc{s} remaining — no payment required",
+    "status": {
+      "queued": "Queued — waiting to start…",
+      "ocr": "Extracting text… ({pct}%)",
+      "ocrDone": "OCR complete, starting translation… ({pct}%)",
+      "translating": "Translating… ({pct}%)",
+      "rendering": "Rendering PDF… ({pct}%)",
+      "completed": "Completed",
+      "failed": "Failed"
+    },
+    "langs": {
+      "auto": "Auto-detect",
+      "ru": "Russian",
+      "en": "English",
+      "th": "Thai",
+      "zh": "Chinese",
+      "ko": "Korean",
+      "ja": "Japanese",
+      "de": "German",
+      "fr": "French",
+      "es": "Spanish",
+      "ar": "Arabic"
+    },
+    "docTypes": {
+      "passport": "Passport / ID Card",
+      "diploma": "Diploma / Transcript",
+      "contract": "Contract",
+      "bank_statement": "Bank Statement",
+      "medical": "Medical Record / Certificate",
+      "employment": "Employment Contract / Labor Book",
+      "police_clearance": "Police Clearance Certificate",
+      "driver_license": "Driver's License",
+      "other": "Other"
+    }
   },
   "auth": {
     "login": "Sign in",
     "signup": "Create account",
     "email": "Email",
     "password": "Password",
-    "loginBtn": "Sign in",
-    "signupBtn": "Create account",
+    "confirmPassword": "Confirm password",
+    "loginTitle": "Welcome back",
+    "signupTitle": "Create an account",
+    "loginBtn": "Log in",
+    "signupBtn": "Sign up",
     "noAccount": "Don't have an account?",
     "hasAccount": "Already have an account?",
     "signupLink": "Sign up",
-    "loginLink": "Sign in"
+    "loginLink": "Log in"
   },
   "disclaimer": "UNOFFICIAL TRANSLATION — FOR INFORMATIONAL PURPOSES ONLY"
 }

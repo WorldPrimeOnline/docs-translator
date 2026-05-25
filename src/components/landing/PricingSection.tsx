@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { getTranslations } from 'next-intl/server';
 import type { PricingTier } from '@/lib/landing-pages/types';
 
 interface Props {
@@ -8,13 +9,15 @@ interface Props {
   footnote?: string;
 }
 
-export function PricingSection({ headline, subheadline, tiers, footnote }: Props) {
+export async function PricingSection({ headline, subheadline, tiers, footnote }: Props) {
+  const t = await getTranslations();
+
   return (
     <section className="border-y border-white/10 bg-card px-4 py-20">
       <div className="mx-auto max-w-3xl">
         <div className="mb-12 text-center">
           <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">
-            Pricing
+            {t('landing.pricingLabel')}
           </p>
           <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
             {headline}
@@ -37,7 +40,7 @@ export function PricingSection({ headline, subheadline, tiers, footnote }: Props
               {tier.highlighted && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                   <span className="rounded-full bg-primary px-3 py-0.5 text-xs font-semibold text-primary-foreground">
-                    Most popular
+                    {t('landing.mostPopular')}
                   </span>
                 </div>
               )}
@@ -49,7 +52,7 @@ export function PricingSection({ headline, subheadline, tiers, footnote }: Props
                 <span className="text-4xl font-bold tracking-tight text-foreground">
                   {tier.price}
                 </span>
-                <span className="mb-1 text-sm text-muted-foreground">per document</span>
+                <span className="mb-1 text-sm text-muted-foreground">{t('landing.perDocument')}</span>
               </div>
 
               <ul className="mb-6 space-y-2 text-sm text-muted-foreground">

@@ -13,11 +13,11 @@
     "label": "진행 과정",
     "title": "세 단계로 번역 완료",
     "step1Title": "PDF 업로드",
-    "step1Desc": "여권, 졸업장, 은행 거래내역서 등 스캔 문서를 선택하세요. 최대 50페이지, 25 MB.",
-    "step2Title": "AI가 모든 내용을 번역",
-    "step2Desc": "AI가 문서를 읽고, 이름과 숫자를 보존하며, 몇 분 안에 정확한 번역을 제공합니다.",
-    "step3Title": "번역본 다운로드",
-    "step3Desc": "매 페이지에 면책 조항이 포함된 깔끔하게 정리된 문서를 받으세요. 공유하거나 신청서에 첨부할 준비가 됩니다."
+    "step1Desc": "스캔 또는 디지털 PDF, 최대 25 MB, 최대 50페이지. 모든 공식 문서 지원.",
+    "step2Title": "언어 및 문서 유형 선택",
+    "step2Desc": "원본 언어와 번역 언어를 선택하고, 최적의 결과를 위해 문서 유형을 선택하세요.",
+    "step3Title": "결제 후 번역본 수령",
+    "step3Desc": "TON 암호화폐로 안전하게 결제하세요. 2~5분 안에 깔끔한 번역 PDF를 받으세요."
   },
   "documents": {
     "label": "번역 가능 문서",
@@ -31,7 +31,11 @@
     "employment": "고용 계약서",
     "police": "범죄경력 증명서",
     "driver": "운전면허증",
-    "other": "기타 문서"
+    "other": "기타 문서",
+    "hubLabel": "문서 유형",
+    "hubTitle": "문서 유형을 선택하세요",
+    "hubSubtitle": "일부 문서 유형은 상세 안내가 있는 전용 페이지가 있습니다",
+    "otherOfficial": "기타 공식 문서"
   },
   "pricing": {
     "label": "요금제",
@@ -74,6 +78,16 @@
     "q5": "문서가 안전한가요?",
     "a5": "파일은 전송 중과 저장 중 모두 암호화되며 30일 후 영구적으로 삭제됩니다."
   },
+  "landing": {
+    "processLabel": "진행 과정",
+    "trustLabel": "WPO TRANSLATIONS를 선택하는 이유",
+    "trustDisclaimer": "WPO Online Translations가 제공하는 모든 번역은 비공식 번역으로 정보 제공 목적으로만 사용됩니다. 인증, 공증되지 않았으며 법적 효력이 없습니다. 공인 번역이 필요한 경우 본 번역을 대체 사용하지 마세요.",
+    "pricingLabel": "요금제",
+    "perDocument": "문서당",
+    "mostPopular": "인기 요금제",
+    "faqLabel": "자주 묻는 질문",
+    "noSubscription": "구독 없음 · 번역 시에만 결제"
+  },
   "dashboard": {
     "newTranslation": "새 번역",
     "dropzone": "PDF를 여기에 놓거나 클릭하여 탐색",
@@ -82,6 +96,7 @@
     "targetLanguage": "번역 언어",
     "documentType": "문서 유형",
     "uploadBtn": "업로드 및 번역",
+    "uploadPay": "업로드 및 결제",
     "pastTranslations": "번역 내역",
     "completed": "완료됨",
     "processing": "처리 중",
@@ -93,15 +108,64 @@
     "usingPlan": "{plan} 플랜 사용 중 · 남은 문서 {remaining}개 — 결제 불필요",
     "limitReached": "월 한도를 초과했습니다. 요금제를 업그레이드하거나 개별 결제하세요.",
     "upgradeToPro": "프로로 업그레이드",
-    "viewPlans": "요금제 보기"
+    "viewPlans": "요금제 보기",
+    "docsUsed": "사용된 문서 수",
+    "expires": "만료",
+    "allDocsUsed": "이번 달 {n}개의 문서를 모두 사용했습니다.",
+    "docsRemaining": "{n}개 문서 남음",
+    "noTranslations": "번역 내역이 없습니다.",
+    "noTranslationsHint": "위에서 첫 번째 문서를 업로드하여 시작하세요.",
+    "downloadTranslation": "번역본 다운로드",
+    "basicPlan": "베이직 플랜",
+    "proPlan": "프로 플랜",
+    "jobTitle": "번역 진행 중",
+    "subBannerTitle": "구독으로 더 빠르게 번역하세요",
+    "subBannerDesc": "$9.99/월부터 — 10개 문서, 건당 결제 없음",
+    "usingPlanSub": "{plan} 플랜 사용 중 · 남은 문서 {remaining}개 — 결제 불필요",
+    "status": {
+      "queued": "대기 중 — 시작 대기…",
+      "ocr": "텍스트 추출 중… ({pct}%)",
+      "ocrDone": "OCR 완료, 번역 시작 중… ({pct}%)",
+      "translating": "번역 중… ({pct}%)",
+      "rendering": "PDF 생성 중… ({pct}%)",
+      "completed": "완료됨",
+      "failed": "실패"
+    },
+    "langs": {
+      "auto": "자동 감지",
+      "ru": "러시아어",
+      "en": "영어",
+      "th": "태국어",
+      "zh": "중국어",
+      "ko": "한국어",
+      "ja": "일본어",
+      "de": "독일어",
+      "fr": "프랑스어",
+      "es": "스페인어",
+      "ar": "아랍어"
+    },
+    "docTypes": {
+      "passport": "여권 / 신분증",
+      "diploma": "졸업장 / 성적증명서",
+      "contract": "계약서",
+      "bank_statement": "은행 거래내역서",
+      "medical": "의료 기록 / 증명서",
+      "employment": "고용 계약서 / 재직증명서",
+      "police_clearance": "범죄경력 증명서",
+      "driver_license": "운전면허증",
+      "other": "기타"
+    }
   },
   "auth": {
     "login": "로그인",
     "signup": "계정 만들기",
     "email": "이메일",
     "password": "비밀번호",
+    "confirmPassword": "비밀번호 확인",
+    "loginTitle": "다시 오신 것을 환영합니다",
+    "signupTitle": "계정 만들기",
     "loginBtn": "로그인",
-    "signupBtn": "계정 만들기",
+    "signupBtn": "회원가입",
     "noAccount": "계정이 없으신가요?",
     "hasAccount": "이미 계정이 있으신가요?",
     "signupLink": "회원가입",

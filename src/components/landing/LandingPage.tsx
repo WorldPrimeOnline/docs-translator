@@ -20,9 +20,7 @@ export function LandingPage({ config }: Props) {
     <div className="bg-background">
       <HeroSection {...hero} breadcrumb={breadcrumb} />
 
-      {howItWorks && (
-        <HowItWorksSection headline={howItWorks.headline} steps={howItWorks.steps} />
-      )}
+      {howItWorks && <HowItWorksSection />}
 
       {docs && (
         <SupportedDocumentsSection
@@ -34,13 +32,7 @@ export function LandingPage({ config }: Props) {
 
       {pain && <PainSection headline={pain.headline} points={pain.points} />}
 
-      {trust && (
-        <TrustSection
-          headline={trust.headline}
-          items={trust.items}
-          disclaimer={trust.disclaimer}
-        />
-      )}
+      {trust && <TrustSection headline={trust.headline} />}
 
       {pricing && (
         <PricingSection

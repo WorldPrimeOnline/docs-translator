@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { getTranslations } from 'next-intl/server';
 
 interface Props {
   headline: string;
@@ -7,7 +8,9 @@ interface Props {
   ctaHref?: string;
 }
 
-export function FinalCTASection({ headline, sub, cta, ctaHref = '/auth/signup' }: Props) {
+export async function FinalCTASection({ headline, sub, cta, ctaHref = '/auth/signup' }: Props) {
+  const t = await getTranslations();
+
   return (
     <section className="relative overflow-hidden px-4 py-28 text-center">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_60%_at_50%_50%,rgba(201,168,76,0.07),transparent)]" />
@@ -25,7 +28,7 @@ export function FinalCTASection({ headline, sub, cta, ctaHref = '/auth/signup' }
           {cta}
         </Link>
         <p className="mt-4 text-xs text-muted-foreground">
-          No subscription · Pay only when you translate
+          {t('landing.noSubscription')}
         </p>
       </div>
     </section>

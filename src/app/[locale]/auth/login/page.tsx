@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -21,6 +22,7 @@ type FormValues = z.infer<typeof schema>;
 
 export default function LoginPage() {
   const router = useRouter();
+  const t = useTranslations('auth');
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<FormValues>({
@@ -49,18 +51,18 @@ export default function LoginPage() {
 
   return (
     <AuthForm
-      title="Welcome back"
+      title={t('loginTitle')}
       onSubmit={form.handleSubmit(onSubmit)}
       isLoading={isLoading}
-      submitLabel="Log in"
+      submitLabel={t('loginBtn')}
       footer={
         <span>
-          Don&apos;t have an account?{' '}
+          {t('noAccount')}{' '}
           <Link
             href="/auth/signup"
             className="text-foreground underline underline-offset-4 hover:opacity-80"
           >
-            Sign up
+            {t('signupLink')}
           </Link>
         </span>
       }
@@ -71,7 +73,7 @@ export default function LoginPage() {
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email</FormLabel>
+              <FormLabel>{t('email')}</FormLabel>
               <FormControl>
                 <Input type="email" placeholder="you@example.com" autoComplete="email" {...field} />
               </FormControl>
@@ -84,7 +86,7 @@ export default function LoginPage() {
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Password</FormLabel>
+              <FormLabel>{t('password')}</FormLabel>
               <FormControl>
                 <Input type="password" autoComplete="current-password" {...field} />
               </FormControl>

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -27,6 +28,7 @@ type FormValues = z.infer<typeof schema>;
 
 export default function SignupPage() {
   const router = useRouter();
+  const t = useTranslations('auth');
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<FormValues>({
@@ -55,18 +57,18 @@ export default function SignupPage() {
 
   return (
     <AuthForm
-      title="Create an account"
+      title={t('signupTitle')}
       onSubmit={form.handleSubmit(onSubmit)}
       isLoading={isLoading}
-      submitLabel="Sign up"
+      submitLabel={t('signupBtn')}
       footer={
         <span>
-          Already have an account?{' '}
+          {t('hasAccount')}{' '}
           <Link
             href="/auth/login"
             className="text-foreground underline underline-offset-4 hover:opacity-80"
           >
-            Log in
+            {t('loginLink')}
           </Link>
         </span>
       }
@@ -77,7 +79,7 @@ export default function SignupPage() {
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email</FormLabel>
+              <FormLabel>{t('email')}</FormLabel>
               <FormControl>
                 <Input type="email" placeholder="you@example.com" autoComplete="email" {...field} />
               </FormControl>
@@ -90,7 +92,7 @@ export default function SignupPage() {
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Password</FormLabel>
+              <FormLabel>{t('password')}</FormLabel>
               <FormControl>
                 <Input type="password" autoComplete="new-password" {...field} />
               </FormControl>
@@ -103,7 +105,7 @@ export default function SignupPage() {
           name="confirmPassword"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Confirm password</FormLabel>
+              <FormLabel>{t('confirmPassword')}</FormLabel>
               <FormControl>
                 <Input type="password" autoComplete="new-password" {...field} />
               </FormControl>

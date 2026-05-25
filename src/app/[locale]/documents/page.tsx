@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { setRequestLocale, getTranslations } from 'next-intl/server';
 import { HeroSection } from '@/components/landing/HeroSection';
 import { HowItWorksSection } from '@/components/landing/HowItWorksSection';
 import { TrustSection } from '@/components/landing/TrustSection';
@@ -24,38 +25,47 @@ export const metadata: Metadata = {
   description: documentsHubConfig.description,
 };
 
-const DOCUMENT_LINKS = [
-  { icon: IdCard, name: 'Passport & ID Card', href: '/documents/passport-translation', price: '$4.39' },
-  { icon: Landmark, name: 'Bank Statement', href: '/documents/bank-statement-translation', price: '$4.99' },
-  { icon: GraduationCap, name: 'Diploma & Transcript', href: '/documents/diploma-translation', price: '$4.99' },
-  { icon: FileHeart, name: 'Birth & Marriage Certificate', href: '/auth/signup', price: '$4.99' },
-  { icon: Briefcase, name: 'Employment Contract', href: '/auth/signup', price: '$4.99' },
-  { icon: HeartPulse, name: 'Medical Certificate', href: '/auth/signup', price: '$4.99' },
-  { icon: Shield, name: 'Police Clearance', href: '/auth/signup', price: '$4.99' },
-  { icon: Car, name: "Driver's License", href: '/auth/signup', price: '$4.39' },
-  { icon: FileText, name: 'Other Official Document', href: '/auth/signup', price: '$4.99' },
-];
+export default async function DocumentsHubPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  setRequestLocale(locale);
 
-export default function DocumentsHubPage() {
+  const t = await getTranslations();
   const c = documentsHubConfig;
+
+  const DOCUMENT_LINKS = [
+    { icon: IdCard,       name: t('documents.passport'), href: '/documents/passport-translation',    price: '$4.39' },
+    { icon: Landmark,     name: t('documents.bank'),     href: '/documents/bank-statement-translation', price: '$4.99' },
+    { icon: GraduationCap,name: t('documents.diploma'),  href: '/documents/diploma-translation',     price: '$4.99' },
+    { icon: FileHeart,    name: t('documents.birth'),    href: '/auth/signup',                       price: '$4.99' },
+    { icon: Briefcase,    name: t('documents.employment'),href: '/auth/signup',                      price: '$4.99' },
+    { icon: HeartPulse,   name: t('documents.medical'),  href: '/auth/signup',                       price: '$4.99' },
+    { icon: Shield,       name: t('documents.police'),   href: '/auth/signup',                       price: '$4.99' },
+    { icon: Car,          name: t('documents.driver'),   href: '/auth/signup',                       price: '$4.39' },
+    { icon: FileText,     name: t('documents.otherOfficial'), href: '/auth/signup',                  price: '$4.99' },
+  ];
+
   return (
     <div className="bg-background">
       <HeroSection {...c.hero} />
 
-      <HowItWorksSection steps={c.howItWorks!.steps} />
+      <HowItWorksSection />
 
       {/* Document type grid with links */}
       <section id="documents" className="px-4 py-20">
         <div className="mx-auto max-w-6xl">
           <div className="mb-12 text-center">
             <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">
-              Document Types
+              {t('documents.hubLabel')}
             </p>
             <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-              Choose your document type
+              {t('documents.hubTitle')}
             </h2>
             <p className="mt-3 text-sm text-muted-foreground">
-              Some document types have dedicated pages with specific guidance
+              {t('documents.hubSubtitle')}
             </p>
           </div>
 
@@ -79,7 +89,7 @@ export default function DocumentsHubPage() {
         </div>
       </section>
 
-      {c.trust && <TrustSection {...c.trust} />}
+      {c.trust && <TrustSection />}
       {c.pricing && <PricingSection {...c.pricing} />}
       {c.faq && <FAQSection {...c.faq} />}
       {c.finalCta && <FinalCTASection {...c.finalCta} ctaHref={c.hero.ctaHref} />}

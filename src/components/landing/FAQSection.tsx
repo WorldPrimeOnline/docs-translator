@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { ChevronDown } from 'lucide-react';
 import type { FAQ } from '@/lib/landing-pages/types';
 
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export function FAQSection({ headline = 'Frequently asked questions', items }: Props) {
+  const t = useTranslations('landing');
   const [open, setOpen] = useState<number | null>(null);
 
   return (
@@ -17,7 +19,7 @@ export function FAQSection({ headline = 'Frequently asked questions', items }: P
       <div className="mx-auto max-w-2xl">
         <div className="mb-12 text-center">
           <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">
-            FAQ
+            {t('faqLabel')}
           </p>
           <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
             {headline}
