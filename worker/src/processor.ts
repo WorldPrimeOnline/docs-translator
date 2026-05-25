@@ -1,9 +1,11 @@
 import { supabase, type JobRow, type DocumentRow } from './lib/supabase';
-import { downloadFile, uploadFile } from './lib/r2';
+import { downloadFile, uploadFile, getPresignedUrl } from './lib/r2';
 import { extractTextFromPdf } from './lib/ocr';
 import { translateDocument } from './lib/translator';
 import { renderToHtml } from './lib/renderer';
 import { generatePdfFromHtml } from './lib/pdf';
+import { sendTranslationReady } from './lib/email';
+import { env } from './lib/env';
 
 type JobStatus = JobRow['status'];
 
@@ -140,6 +142,34 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
     await updateJob(jobId, 'completed', 100);
 
     console.log(`${tag} ✓ completed (${contentType})`);
+
+    // ── 8. Send email notification ───────────────────────────────────────────
+    if (env.RESEND_API_KEY) {
+      try {
+        // Get user email from Supabase Auth
+        const { data: authUser } = await supabase.auth.admin.getUserById(doc.user_id);
+        const userEmail = authUser.user?.email;
+
+        if (userEmail) {
+          // Presigned download URL valid for 7 days
+          const downloadUrl = await getPresignedUrl(translatedKey, 7 * 24 * 3600);
+          await sendTranslationReady({
+            to: userEmail,
+            filename: doc.filename,
+            downloadUrl,
+            targetLanguage: doc.target_language,
+          });
+          console.log(`${tag} email sent to ${userEmail}`);
+        } else {
+          console.warn(`${tag} no email found for user ${doc.user_id}, skipping email`);
+        }
+      } catch (emailErr) {
+        const msg = emailErr instanceof Error ? emailErr.message : String(emailErr);
+        console.error(`${tag} email send failed (non-fatal): ${msg}`);
+      }
+    } else {
+      console.log(`${tag} RESEND_API_KEY not set — skipping email notification`);
+    }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error(`${tag} ✗ failed:`, message);

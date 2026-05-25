@@ -11,6 +11,8 @@ const schema = z.object({
   MISTRAL_API_KEY: z.string().min(1),
   POLL_INTERVAL_MS: z.coerce.number().default(10_000),
   WORKER_CONCURRENCY: z.coerce.number().default(1),
+  RESEND_API_KEY: z.string().optional(),
+  SITE_URL: z.string().url().default('https://wpotranslations.org'),
 });
 
 function load() {
