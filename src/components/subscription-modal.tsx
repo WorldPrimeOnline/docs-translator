@@ -99,6 +99,8 @@ export function SubscriptionModal({ onSuccess, onClose }: Props) {
   const [details, setDetails] = useState<PaymentDetails | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pollCount, setPollCount] = useState(0);
+  const [checking, setChecking] = useState(false);
+  const [checkError, setCheckError] = useState<string | null>(null);
 
   // Countdown: 30 min from now when payment details are loaded
   const [expiresMs, setExpiresMs] = useState<number | null>(null);
@@ -160,6 +162,28 @@ export function SubscriptionModal({ onSuccess, onClose }: Props) {
     if (!details) return;
     window.open(details.deeplink, '_blank');
     setPhase('polling');
+  }
+
+  async function handleCheckPayment(): Promise<void> {
+    if (checking) return;
+    setChecking(true);
+    setCheckError(null);
+    try {
+      const res = await fetch('/api/subscriptions/current');
+      const data = (await res.json()) as {
+        subscription?: { plan: 'basic' | 'pro'; status: string; documentsLimit: number } | null;
+      };
+      if (data.subscription?.status === 'active') {
+        setPhase('confirmed');
+        setTimeout(() => onSuccess(data.subscription!.plan), 1500);
+      } else {
+        setCheckError('Payment not confirmed yet. Try again in a moment.');
+      }
+    } catch {
+      setCheckError('Payment not confirmed yet. Try again in a moment.');
+    } finally {
+      setChecking(false);
+    }
   }
 
   return (
@@ -354,6 +378,30 @@ export function SubscriptionModal({ onSuccess, onClose }: Props) {
                     </p>
                   </div>
                 </details>
+              )}
+
+              {/* I've paid — manual verify */}
+              {(phase === 'ready' || phase === 'waiting' || phase === 'polling') && (
+                <div className="flex flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void handleCheckPayment()}
+                    disabled={checking}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-white/20 bg-transparent py-3 text-sm font-medium text-foreground transition-colors hover:bg-white/5 disabled:pointer-events-none disabled:opacity-50"
+                  >
+                    {checking ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Checking…
+                      </>
+                    ) : (
+                      "I've paid"
+                    )}
+                  </button>
+                  {checkError && (
+                    <p className="text-center text-xs text-amber-400">{checkError}</p>
+                  )}
+                </div>
               )}
 
               {/* Timer */}
