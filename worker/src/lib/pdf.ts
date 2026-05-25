@@ -17,19 +17,21 @@ async function getBrowser(): Promise<Browser> {
     }
   }
 
-  console.log('[pdf] launching Chromium…');
+  const executablePath =
+    process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium';
+
+  console.log(`[pdf] launching Chromium at ${executablePath}…`);
   _browser = await puppeteer.launch({
+    executablePath,
     headless: true,
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
       '--disable-dev-shm-usage',
-      '--disable-accelerated-2d-canvas',
       '--disable-gpu',
       '--no-first-run',
       '--no-zygote',
-      '--single-process',     // Needed in some Railway environments
-      '--disable-extensions',
+      '--single-process',
     ],
   });
 
