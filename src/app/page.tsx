@@ -459,7 +459,7 @@ export default function Home() {
               Built on security, accuracy, and accessibility
             </h2>
             <p className="mt-3 text-muted-foreground">
-              Every part of WPO is designed for people who can't afford mistakes with their documents.
+              Every part of WPO is designed for people who can&apos;t afford mistakes with their documents.
             </p>
           </div>
           <div className="grid gap-6 sm:grid-cols-3">
