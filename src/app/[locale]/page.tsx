@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 import {
   Upload,
   Cpu,
@@ -20,38 +21,11 @@ import {
   ChevronDown,
 } from 'lucide-react';
 
-const HOW_IT_WORKS = [
-  {
-    icon: Upload,
-    title: 'Upload your PDF',
-    desc: 'Select any scanned document — passport, diploma, bank statement, or more. Up to 50 pages, 25 MB.',
-    step: '01',
-  },
-  {
-    icon: Cpu,
-    title: 'AI translates every word',
-    desc: 'Our AI reads the document, preserves names and numbers, and produces an accurate translation in minutes.',
-    step: '02',
-  },
-  {
-    icon: Download,
-    title: 'Download your translation',
-    desc: 'Receive a clean, formatted PDF with a disclaimer on every page. Ready to share or attach to your application.',
-    step: '03',
-  },
-];
+const DOC_ICONS = [IdCard, FileHeart, GraduationCap, Landmark, HeartPulse, Briefcase, Shield, Car, FileText];
 
-const DOC_TYPES = [
-  { icon: IdCard, label: 'Passport & ID Card' },
-  { icon: FileHeart, label: 'Birth / Marriage Certificate' },
-  { icon: GraduationCap, label: 'Diploma & Transcript' },
-  { icon: Landmark, label: 'Bank Statement' },
-  { icon: HeartPulse, label: 'Medical Record' },
-  { icon: Briefcase, label: 'Employment Contract' },
-  { icon: Shield, label: 'Police Clearance' },
-  { icon: Car, label: "Driver's License" },
-  { icon: FileText, label: 'Any Other Document' },
-];
+const STEP_ICONS = [Upload, Cpu, Download];
+
+const TRUST_ICONS = [Zap, BadgeDollarSign, Coins, Lock, AlertCircle];
 
 const LANGUAGES = [
   { flag: '🇬🇧', name: 'English' },
@@ -66,69 +40,55 @@ const LANGUAGES = [
   { flag: '🇸🇦', name: 'Arabic' },
 ];
 
-const TRUST = [
-  {
-    icon: Zap,
-    title: 'Ready in 2–5 minutes',
-    desc: 'Most documents are translated in under 5 minutes. Traditional bureaus take days.',
-  },
-  {
-    icon: BadgeDollarSign,
-    title: 'Up to 3× cheaper',
-    desc: 'From $4.39 per document vs $25–40 at a translation bureau. Same result, fraction of the price.',
-  },
-  {
-    icon: Coins,
-    title: 'TON blockchain payments',
-    desc: 'Pay securely with TON cryptocurrency. No bank card required. Instant, trustless, borderless.',
-  },
-  {
-    icon: Lock,
-    title: 'Auto-deleted after 30 days',
-    desc: 'Your documents are stored securely and permanently deleted after 30 days. We never share them.',
-  },
-  {
-    icon: AlertCircle,
-    title: 'Informational translation',
-    desc: 'Our translations are for informational use. Not certified or notarized. Check with your institution.',
-  },
-];
+export default async function Home({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  setRequestLocale(locale);
 
-const FAQ = [
-  {
-    q: 'Is this translation accepted by consulates or universities?',
-    a: 'This is an informational translation, not a certified or notarized one. For official certified translations required by government bodies, please check with the specific institution. Many institutions accept informational translations for internal review purposes.',
-  },
-  {
-    q: 'How long does it take?',
-    a: 'Most documents (1–5 pages) are translated in 2–5 minutes. Longer documents may take up to 10–15 minutes.',
-  },
-  {
-    q: 'Which languages are supported?',
-    a: 'We support 10+ languages including English, Russian, Thai, Chinese, Korean, Japanese, German, French, Spanish, and Arabic. Our AI handles additional languages too — contact us if yours is not listed.',
-  },
-  {
-    q: 'Is my document kept private?',
-    a: 'Yes. Your files are encrypted in storage and automatically deleted after 30 days. We never share your documents with third parties.',
-  },
-  {
-    q: 'What file formats are accepted?',
-    a: 'We accept PDF files only, up to 25 MB in size and 50 pages in length. Both scanned and digital PDFs are supported.',
-  },
-  {
-    q: 'How do I pay?',
-    a: 'We accept TON cryptocurrency. Use any TON wallet — Tonkeeper, MyTonWallet, or any other. The payment window is 30 minutes after you submit your document.',
-  },
-];
+  const t = await getTranslations();
 
-export default function Home() {
+  const HOW_IT_WORKS = [
+    { icon: STEP_ICONS[0]!, title: t('howItWorks.step1Title'), desc: t('howItWorks.step1Desc'), step: '01' },
+    { icon: STEP_ICONS[1]!, title: t('howItWorks.step2Title'), desc: t('howItWorks.step2Desc'), step: '02' },
+    { icon: STEP_ICONS[2]!, title: t('howItWorks.step3Title'), desc: t('howItWorks.step3Desc'), step: '03' },
+  ];
+
+  const DOC_TYPES = [
+    { icon: DOC_ICONS[0]!, label: t('documents.passport') },
+    { icon: DOC_ICONS[1]!, label: t('documents.birth') },
+    { icon: DOC_ICONS[2]!, label: t('documents.diploma') },
+    { icon: DOC_ICONS[3]!, label: t('documents.bank') },
+    { icon: DOC_ICONS[4]!, label: t('documents.medical') },
+    { icon: DOC_ICONS[5]!, label: t('documents.employment') },
+    { icon: DOC_ICONS[6]!, label: t('documents.police') },
+    { icon: DOC_ICONS[7]!, label: t('documents.driver') },
+    { icon: DOC_ICONS[8]!, label: t('documents.other') },
+  ];
+
+  const TRUST = [
+    { icon: TRUST_ICONS[0]!, title: t('trust.speed'),    desc: t('trust.speedDesc') },
+    { icon: TRUST_ICONS[1]!, title: t('trust.price'),    desc: t('trust.priceDesc') },
+    { icon: TRUST_ICONS[2]!, title: t('trust.ton'),      desc: t('trust.tonDesc') },
+    { icon: TRUST_ICONS[3]!, title: t('trust.security'), desc: t('trust.securityDesc') },
+    { icon: TRUST_ICONS[4]!, title: t('trust.informal'), desc: t('trust.informalDesc') },
+  ];
+
+  const FAQ = [
+    { q: t('faq.q1'), a: t('faq.a1') },
+    { q: t('faq.q2'), a: t('faq.a2') },
+    { q: t('faq.q3'), a: t('faq.a3') },
+    { q: t('faq.q4'), a: t('faq.a4') },
+    { q: t('faq.q5'), a: t('faq.a5') },
+  ];
+
   return (
     <div className="bg-background">
       {/* HERO */}
       <section className="relative overflow-hidden bg-grid px-4 pb-16 pt-20 text-center sm:pb-20 sm:pt-28">
-        {/* Gold radial glow from top */}
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_-10%,rgba(201,168,76,0.12),transparent)]" />
-        {/* Darker gradient at bottom to blend into next section */}
         <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent" />
 
         <div className="relative mx-auto max-w-3xl">
@@ -144,8 +104,7 @@ export default function Home() {
           </h1>
 
           <p className="mx-auto mb-10 max-w-xl text-lg leading-relaxed text-muted-foreground">
-            AI-powered translation for passports, diplomas, contracts, and bank statements.
-            From <strong className="text-foreground">$4.39</strong> per document — 3× cheaper than translation bureaus.
+            {t('hero.subtitle')}
           </p>
 
           <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
@@ -153,7 +112,7 @@ export default function Home() {
               href="/auth/signup"
               className="inline-flex items-center justify-center rounded-md bg-primary px-8 py-3 text-sm font-semibold text-primary-foreground transition-[background-color,filter,transform] duration-150 hover:bg-gold-dark hover:brightness-110 hover:scale-[1.02]"
             >
-              Start Translating
+              {t('hero.cta')}
             </Link>
             <a
               href="#how-it-works"
@@ -173,7 +132,6 @@ export default function Home() {
         <div className="relative mx-auto mt-14 max-w-[480px] animate-fade-in-up px-4">
           <div className="pointer-events-none absolute -inset-6 rounded-2xl bg-[radial-gradient(ellipse_80%_60%_at_50%_50%,rgba(201,168,76,0.05),transparent)]" />
           <div className="relative overflow-hidden rounded-xl border border-white/12 bg-card shadow-2xl shadow-black/50">
-            {/* Card header */}
             <div className="flex items-center justify-between border-b border-white/8 px-5 py-3">
               <div className="flex items-center gap-2">
                 <FileText className="h-4 w-4 text-muted-foreground" />
@@ -181,10 +139,9 @@ export default function Home() {
               </div>
               <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                Completed
+                {t('dashboard.completed')}
               </span>
             </div>
-            {/* Language pair row */}
             <div className="flex items-center gap-3 border-b border-white/5 px-5 py-3">
               <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10 text-sm">🇷🇺</div>
               <div className="h-px w-6 bg-white/15" />
@@ -196,15 +153,14 @@ export default function Home() {
                 3 min 42 sec
               </div>
             </div>
-            {/* Download action */}
             <div className="flex items-center justify-between px-5 py-4">
               <div className="flex flex-col gap-0.5">
                 <span className="text-xs font-semibold text-foreground">Translation ready</span>
-                <span className="text-[10px] text-muted-foreground">Russian → English · Passport & ID</span>
+                <span className="text-[10px] text-muted-foreground">Russian → English · Passport &amp; ID</span>
               </div>
               <div className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">
                 <Download className="h-3 w-3" />
-                Download PDF
+                {t('dashboard.download')} PDF
               </div>
             </div>
           </div>
@@ -234,16 +190,15 @@ export default function Home() {
         <div className="mx-auto max-w-6xl">
           <div className="mb-14 text-center">
             <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">
-              The Process
+              {t('howItWorks.label')}
             </p>
             <h2 className="text-3xl font-bold tracking-[-0.02em] text-foreground sm:text-4xl">
-              Three steps to your translation
+              {t('howItWorks.title')}
             </h2>
           </div>
 
           <div className="relative grid gap-8 sm:grid-cols-3">
             <div className="absolute left-1/6 right-1/6 top-7 hidden h-px bg-gradient-to-r from-transparent via-white/10 to-transparent sm:block" />
-
             {HOW_IT_WORKS.map((step) => (
               <div key={step.step} className="flex flex-col items-center text-center">
                 <div className="relative mb-5">
@@ -267,14 +222,12 @@ export default function Home() {
         <div className="mx-auto max-w-6xl">
           <div className="mb-14 text-center">
             <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">
-              What We Translate
+              {t('documents.label')}
             </p>
             <h2 className="text-3xl font-bold tracking-[-0.02em] text-foreground sm:text-4xl">
-              All document types
+              {t('documents.title')}
             </h2>
-            <p className="mt-3 text-muted-foreground">
-              Used in immigration, education, banking, and legal contexts
-            </p>
+            <p className="mt-3 text-muted-foreground">{t('documents.subtitle')}</p>
           </div>
 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -324,10 +277,10 @@ export default function Home() {
         <div className="mx-auto max-w-5xl">
           <div className="mb-14 text-center">
             <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">
-              Pricing
+              {t('pricing.label')}
             </p>
             <h2 className="text-3xl font-bold tracking-[-0.02em] text-foreground sm:text-4xl">
-              Simple, transparent pricing
+              {t('pricing.title')}
             </h2>
             <p className="mt-3 text-muted-foreground">
               Pay per document or save with a monthly plan.
@@ -338,20 +291,15 @@ export default function Home() {
             {/* PAY AS YOU GO */}
             <div className="flex flex-col rounded-lg border border-white/10 bg-background/60 p-7">
               <div className="mb-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                Pay as you go
+                {t('pricing.payg')}
               </div>
               <div className="mb-2 flex items-end gap-1">
                 <span className="text-4xl font-extrabold tracking-[-0.02em] text-foreground">$4.39</span>
-                <span className="mb-1 text-sm text-muted-foreground">/ doc</span>
+                <span className="mb-1 text-sm text-muted-foreground">{t('pricing.perDoc')}</span>
               </div>
               <p className="mb-5 text-xs text-muted-foreground">From $4.39 — passports &amp; IDs. $4.99 — all other documents.</p>
               <ul className="mb-7 flex-1 space-y-2 text-sm text-muted-foreground">
-                {[
-                  'No commitment',
-                  'All document types',
-                  'AI translation by Claude',
-                  'Clean PDF output',
-                ].map((f) => (
+                {['No commitment', 'All document types', 'AI translation by Claude', 'Clean PDF output'].map((f) => (
                   <li key={f} className="flex items-start gap-2">
                     <span className="mt-0.5 text-muted-foreground">✓</span>
                     {f}
@@ -362,33 +310,27 @@ export default function Home() {
                 href="/auth/signup"
                 className="inline-flex w-full items-center justify-center rounded-md border border-white/20 bg-white/5 py-2.5 text-sm font-semibold text-foreground transition-[background-color,border-color,transform] duration-150 hover:border-white/50 hover:bg-white/10 hover:scale-[1.02]"
               >
-                Start Translating
+                {t('pricing.startTranslating')}
               </Link>
             </div>
 
-            {/* BASIC — Most Popular */}
+            {/* BASIC */}
             <div className="relative flex flex-col rounded-lg border border-primary/50 bg-primary/5 p-7 shadow-lg shadow-primary/10">
               <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                 <span className="rounded-full bg-primary px-3 py-0.5 text-xs font-semibold text-primary-foreground">
-                  Most Popular
+                  {t('pricing.mostPopular')}
                 </span>
               </div>
               <div className="mb-1 text-xs font-semibold uppercase tracking-widest text-primary">
-                Basic
+                {t('pricing.basic')}
               </div>
               <div className="mb-2 flex items-end gap-1">
                 <span className="text-4xl font-extrabold tracking-[-0.02em] text-foreground">$9.99</span>
-                <span className="mb-1 text-sm text-muted-foreground">/ month</span>
+                <span className="mb-1 text-sm text-muted-foreground">{t('pricing.perMonth')}</span>
               </div>
-              <p className="mb-5 text-xs text-muted-foreground">10 documents per month. No per-doc payments.</p>
+              <p className="mb-5 text-xs text-muted-foreground">10 {t('pricing.docs')}.</p>
               <ul className="mb-7 flex-1 space-y-2 text-sm text-muted-foreground">
-                {[
-                  '10 documents / month',
-                  'All document types',
-                  'AI translation by Claude',
-                  'Clean PDF output',
-                  '30-day access',
-                ].map((f) => (
+                {[`10 ${t('pricing.docs')}`, 'All document types', 'AI translation by Claude', 'Clean PDF output', '30-day access'].map((f) => (
                   <li key={f} className="flex items-start gap-2">
                     <span className="mt-0.5 text-primary">✓</span>
                     {f}
@@ -399,29 +341,22 @@ export default function Home() {
                 href="/auth/signup"
                 className="inline-flex w-full items-center justify-center rounded-md bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-[background-color,filter,transform] duration-150 hover:bg-gold-dark hover:brightness-110 hover:scale-[1.02]"
               >
-                Subscribe with TON
+                {t('pricing.subscribe')}
               </Link>
             </div>
 
             {/* PRO */}
             <div className="flex flex-col rounded-lg border border-white/10 bg-background/60 p-7">
               <div className="mb-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                Pro
+                {t('pricing.pro')}
               </div>
               <div className="mb-2 flex items-end gap-1">
                 <span className="text-4xl font-extrabold tracking-[-0.02em] text-foreground">$24.99</span>
-                <span className="mb-1 text-sm text-muted-foreground">/ month</span>
+                <span className="mb-1 text-sm text-muted-foreground">{t('pricing.perMonth')}</span>
               </div>
-              <p className="mb-5 text-xs text-muted-foreground">40 documents per month. Priority processing.</p>
+              <p className="mb-5 text-xs text-muted-foreground">40 {t('pricing.docs')}. Priority processing.</p>
               <ul className="mb-7 flex-1 space-y-2 text-sm text-muted-foreground">
-                {[
-                  '40 documents / month',
-                  'All document types',
-                  'AI translation by Claude',
-                  'Clean PDF output',
-                  'Priority processing',
-                  'PRO badge in dashboard',
-                ].map((f) => (
+                {[`40 ${t('pricing.docs')}`, 'All document types', 'AI translation by Claude', 'Clean PDF output', 'Priority processing', 'PRO badge'].map((f) => (
                   <li key={f} className="flex items-start gap-2">
                     <span className="mt-0.5 text-primary">✓</span>
                     {f}
@@ -432,7 +367,7 @@ export default function Home() {
                 href="/auth/signup"
                 className="inline-flex w-full items-center justify-center rounded-md border border-white/20 bg-white/5 py-2.5 text-sm font-semibold text-foreground transition-[background-color,border-color,transform] duration-150 hover:border-white/50 hover:bg-white/10 hover:scale-[1.02]"
               >
-                Subscribe with TON
+                {t('pricing.subscribe')}
               </Link>
             </div>
           </div>
@@ -448,19 +383,16 @@ export default function Home() {
         <div className="mx-auto max-w-6xl">
           <div className="mb-14 text-center">
             <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">
-              Why WPO Translations
+              {t('trust.label')}
             </p>
             <h2 className="text-3xl font-bold tracking-[-0.02em] text-foreground sm:text-4xl">
-              Built for people navigating bureaucracy abroad
+              {t('trust.title')}
             </h2>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {TRUST.slice(0, 3).map(({ icon: Icon, title, desc }) => (
-              <div
-                key={title}
-                className="rounded-lg border border-white/10 bg-card p-6 transition-colors hover:border-white/15"
-              >
+              <div key={title} className="rounded-lg border border-white/10 bg-card p-6 transition-colors hover:border-white/15">
                 <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-md bg-primary/10">
                   <Icon className="h-4 w-4 text-primary" />
                 </div>
@@ -469,13 +401,9 @@ export default function Home() {
               </div>
             ))}
           </div>
-
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             {TRUST.slice(3).map(({ icon: Icon, title, desc }) => (
-              <div
-                key={title}
-                className="rounded-lg border border-white/10 bg-card p-6 transition-colors hover:border-white/15"
-              >
+              <div key={title} className="rounded-lg border border-white/10 bg-card p-6 transition-colors hover:border-white/15">
                 <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-md bg-primary/10">
                   <Icon className="h-4 w-4 text-primary" />
                 </div>
@@ -487,7 +415,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* TRUST PILLARS — Security / Accuracy / Payments */}
+      {/* TRUST PILLARS */}
       <section className="border-y border-white/10 bg-card px-4 py-24">
         <div className="mx-auto max-w-6xl">
           <div className="mb-12 text-center">
@@ -499,33 +427,19 @@ export default function Home() {
             </p>
           </div>
           <div className="grid gap-6 sm:grid-cols-3">
-            <div className="rounded-xl border border-white/10 bg-background/60 p-8">
-              <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10">
-                <Lock className="h-5 w-5 text-primary" />
+            {[
+              { Icon: Lock, head: 'Bank-level security', body: 'Files stored on Cloudflare R2 with server-side encryption and TLS in transit. Permanently deleted after 30 days. We never share your documents.' },
+              { Icon: Cpu,  head: 'AI-powered accuracy', body: 'Mistral OCR extracts text from scanned documents. Claude Sonnet translates with context awareness. Names, dates, and numbers are preserved exactly as written.' },
+              { Icon: Coins, head: 'Pay from anywhere', body: 'TON blockchain payments require no bank card or account. Works from any country, any wallet. Instant, borderless, and fully trustless.' },
+            ].map(({ Icon, head, body }) => (
+              <div key={head} className="rounded-xl border border-white/10 bg-background/60 p-8">
+                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10">
+                  <Icon className="h-5 w-5 text-primary" />
+                </div>
+                <h3 className="mb-2 text-base font-semibold tracking-[-0.02em] text-foreground">{head}</h3>
+                <p className="text-sm leading-relaxed text-muted-foreground">{body}</p>
               </div>
-              <h3 className="mb-2 text-base font-semibold tracking-[-0.02em] text-foreground">Bank-level security</h3>
-              <p className="text-sm leading-relaxed text-muted-foreground">
-                Files stored on Cloudflare R2 with server-side encryption and TLS in transit. Permanently deleted after 30 days. We never share your documents.
-              </p>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-background/60 p-8">
-              <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10">
-                <Cpu className="h-5 w-5 text-primary" />
-              </div>
-              <h3 className="mb-2 text-base font-semibold tracking-[-0.02em] text-foreground">AI-powered accuracy</h3>
-              <p className="text-sm leading-relaxed text-muted-foreground">
-                Mistral OCR extracts text from scanned documents. Claude Sonnet translates with context awareness. Names, dates, and numbers are preserved exactly as written.
-              </p>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-background/60 p-8">
-              <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10">
-                <Coins className="h-5 w-5 text-primary" />
-              </div>
-              <h3 className="mb-2 text-base font-semibold tracking-[-0.02em] text-foreground">Pay from anywhere</h3>
-              <p className="text-sm leading-relaxed text-muted-foreground">
-                TON blockchain payments require no bank card or account. Works from any country, any wallet. Instant, borderless, and fully trustless.
-              </p>
-            </div>
+            ))}
           </div>
         </div>
       </section>
@@ -535,19 +449,16 @@ export default function Home() {
         <div className="mx-auto max-w-2xl">
           <div className="mb-14 text-center">
             <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">
-              FAQ
+              {t('faq.label')}
             </p>
             <h2 className="text-3xl font-bold tracking-[-0.02em] text-foreground sm:text-4xl">
-              Frequently asked questions
+              {t('faq.title')}
             </h2>
           </div>
 
           <div className="space-y-2">
             {FAQ.map(({ q, a }) => (
-              <details
-                key={q}
-                className="group rounded-lg border border-white/10 bg-card px-5 py-4"
-              >
+              <details key={q} className="group rounded-lg border border-white/10 bg-card px-5 py-4">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-medium text-foreground">
                   {q}
                   <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 group-open:rotate-180" />
@@ -567,13 +478,13 @@ export default function Home() {
             Ready to translate your document?
           </h2>
           <p className="mb-10 text-muted-foreground">
-            Upload your PDF and get a translated version in minutes. From $4.39.
+            {t('hero.subtitle')}
           </p>
           <Link
             href="/auth/signup"
             className="inline-flex items-center justify-center rounded-md bg-primary px-10 py-3 text-sm font-semibold text-primary-foreground transition-[background-color,filter,transform] duration-150 hover:bg-gold-dark hover:brightness-110 hover:scale-[1.02]"
           >
-            Get Started
+            {t('hero.cta')}
           </Link>
           <p className="mt-4 text-xs text-muted-foreground">
             No subscription · Pay only when you translate
