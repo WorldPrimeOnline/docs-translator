@@ -2,21 +2,54 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useLocale } from 'next-intl';
-import { useRouter, usePathname } from '@/i18n/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { ChevronDown } from 'lucide-react';
 
 const LANGUAGES = [
-  { code: 'en', flag: '🇬🇧', label: 'EN', name: 'English' },
-  { code: 'ru', flag: '🇷🇺', label: 'RU', name: 'Русский' },
-  { code: 'zh', flag: '🇨🇳', label: 'ZH', name: '中文' },
-  { code: 'ko', flag: '🇰🇷', label: 'KO', name: '한국어' },
-  { code: 'kk', flag: '🇰🇿', label: 'KK', name: 'Қазақша' },
+  { code: 'en', flag: '🇬🇧', short: 'EN',  name: 'English'   },
+  { code: 'ru', flag: '🇷🇺', short: 'RU',  name: 'Русский'   },
+  { code: 'zh', flag: '🇨🇳', short: 'CN',  name: '中文'       },
+  { code: 'ko', flag: '🇰🇷', short: 'KR',  name: '한국어'     },
+  { code: 'kk', flag: '🇰🇿', short: 'KZ',  name: 'Қазақша'   },
 ] as const;
 
+type LangCode = (typeof LANGUAGES)[number]['code'];
+
+// Non-default locales that appear as a path prefix in the URL
+const PREFIXED_LOCALES: LangCode[] = ['ru', 'zh', 'ko', 'kk'];
+
+/**
+ * Strip any locale prefix from the pathname and prepend the new one.
+ * Works with `localePrefix: 'as-needed'` where EN has no prefix.
+ *
+ * Examples:
+ *   ('/ru/dashboard', 'zh') → '/zh/dashboard'
+ *   ('/dashboard',    'ru') → '/ru/dashboard'
+ *   ('/ru',           'en') → '/'
+ *   ('/',             'ru') → '/ru'
+ */
+function buildLocalePath(pathname: string, newLocale: LangCode): string {
+  // Strip existing prefix
+  let clean = pathname;
+  for (const loc of PREFIXED_LOCALES) {
+    if (pathname.startsWith(`/${loc}/`)) {
+      clean = pathname.slice(loc.length + 1); // '/ru/dashboard' → 'dashboard'
+      break;
+    }
+    if (pathname === `/${loc}`) {
+      clean = '';
+      break;
+    }
+  }
+
+  if (newLocale === 'en') return clean ? `/${clean}` : '/';
+  return `/${newLocale}${clean ? `/${clean}` : ''}`;
+}
+
 export function LanguageSwitcher() {
-  const locale = useLocale();
+  const locale = useLocale() as LangCode;
   const router = useRouter();
-  const pathname = usePathname();
+  const pathname = usePathname(); // real URL path, e.g. '/ru/dashboard'
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -33,13 +66,16 @@ export function LanguageSwitcher() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  function switchLocale(code: string) {
-    router.replace(pathname, { locale: code });
+  function switchLocale(code: LangCode) {
+    if (code === locale) { setOpen(false); return; }
+    const newPath = buildLocalePath(pathname, code);
+    router.push(newPath);
     setOpen(false);
   }
 
   return (
     <div ref={ref} className="relative">
+      {/* Collapsed button — flag + short code */}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -47,14 +83,15 @@ export function LanguageSwitcher() {
         aria-label="Switch language"
       >
         <span className="text-sm leading-none">{current.flag}</span>
-        <span>{current.label}</span>
+        <span>{current.short}</span>
         <ChevronDown
           className={`h-3 w-3 transition-transform duration-150 ${open ? 'rotate-180' : ''}`}
         />
       </button>
 
+      {/* Dropdown — flag + native name */}
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-1 w-36 rounded-lg border border-white/10 bg-navy-light py-1 shadow-xl shadow-black/30">
+        <div className="absolute right-0 top-full z-50 mt-1 w-40 rounded-lg border border-white/10 bg-navy-light py-1 shadow-xl shadow-black/30">
           {LANGUAGES.map((lang) => (
             <button
               key={lang.code}
@@ -62,13 +99,15 @@ export function LanguageSwitcher() {
               onClick={() => switchLocale(lang.code)}
               className={`flex w-full items-center gap-2.5 px-3 py-2 text-xs transition-colors hover:bg-white/5 ${
                 lang.code === locale
-                  ? 'text-primary font-semibold'
+                  ? 'font-semibold text-primary'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               <span className="text-sm leading-none">{lang.flag}</span>
-              <span className="font-medium">{lang.label}</span>
-              <span className="ml-auto text-[10px] text-muted-foreground/60">{lang.name}</span>
+              <span>{lang.name}</span>
+              {lang.code === locale && (
+                <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" />
+              )}
             </button>
           ))}
         </div>
