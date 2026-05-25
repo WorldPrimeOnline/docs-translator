@@ -1,4 +1,5 @@
-import puppeteer, { type Browser } from 'puppeteer';
+import puppeteer, { type Browser } from 'puppeteer-core';
+import chromium from '@sparticuz/chromium';
 
 let _browser: Browser | null = null;
 
@@ -17,26 +18,14 @@ async function getBrowser(): Promise<Browser> {
     }
   }
 
-  console.log('[pdf] executable:', process.env.PUPPETEER_EXECUTABLE_PATH);
+  const executablePath = await chromium.executablePath();
+  console.log('[pdf] sparticuz executable:', executablePath);
   console.log('[pdf] launching with --no-sandbox...');
 
   _browser = await puppeteer.launch({
-    executablePath:
-      process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium',
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-gpu',
-      '--no-first-run',
-      '--no-zygote',
-      '--single-process',
-      '--disable-extensions',
-      '--disable-crash-reporter',
-      '--disable-breakpad',
-    ],
+    args: chromium.args,
+    executablePath,
     headless: true,
-    timeout: 30000,
   });
 
   _browser.on('disconnected', () => {

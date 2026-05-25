@@ -14,21 +14,29 @@ RUN npm run build
 # ── Stage 2: runtime ─────────────────────────────────────────────────────────
 FROM node:22-slim AS runner
 
-# System Chromium + required shared libs
+# @sparticuz/chromium bundles its own Chromium — only need these system libs
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    chromium \
+    ca-certificates \
     fonts-liberation \
     libatk-bridge2.0-0 \
+    libatk1.0-0 \
+    libcups2 \
     libdrm2 \
     libgbm1 \
     libgtk-3-0 \
+    libnspr4 \
     libnss3 \
+    libx11-6 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxrandr2 \
     libxss1 \
+    libxtst6 \
     && rm -rf /var/lib/apt/lists/*
 
-# Tell Puppeteer to use system Chromium — do not download its own
+# Do not let puppeteer download its own chrome — @sparticuz/chromium is used
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
 WORKDIR /app
 
