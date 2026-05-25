@@ -1,0 +1,76 @@
+import puppeteer, { type Browser } from 'puppeteer';
+
+let _browser: Browser | null = null;
+
+/**
+ * Return a shared browser instance, launching it if not yet started.
+ * Re-launch automatically if the process has crashed.
+ */
+async function getBrowser(): Promise<Browser> {
+  if (_browser) {
+    try {
+      // Quick health-check: if this throws the browser is gone
+      await _browser.version();
+      return _browser;
+    } catch {
+      _browser = null;
+    }
+  }
+
+  console.log('[pdf] launching Chromium…');
+  _browser = await puppeteer.launch({
+    headless: true,
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-accelerated-2d-canvas',
+      '--disable-gpu',
+      '--no-first-run',
+      '--no-zygote',
+      '--single-process',     // Needed in some Railway environments
+      '--disable-extensions',
+    ],
+  });
+
+  _browser.on('disconnected', () => {
+    console.warn('[pdf] browser disconnected — will relaunch on next request');
+    _browser = null;
+  });
+
+  return _browser;
+}
+
+export async function closeBrowser(): Promise<void> {
+  if (_browser) {
+    await _browser.close();
+    _browser = null;
+  }
+}
+
+/**
+ * Convert an HTML string to a PDF Buffer using Puppeteer.
+ * Throws on error — caller should fall back to HTML.
+ */
+export async function generatePdfFromHtml(html: string): Promise<Buffer> {
+  const browser = await getBrowser();
+  const page = await browser.newPage();
+
+  try {
+    await page.setContent(html, {
+      waitUntil: 'load',
+      timeout: 30_000,
+    });
+
+    const pdf = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: { top: '20mm', bottom: '20mm', left: '15mm', right: '15mm' },
+      timeout: 60_000,
+    });
+
+    return Buffer.from(pdf);
+  } finally {
+    await page.close();
+  }
+}
