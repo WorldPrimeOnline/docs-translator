@@ -17,13 +17,12 @@ async function getBrowser(): Promise<Browser> {
     }
   }
 
-  const executablePath =
-    process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium';
+  console.log('[pdf] executable:', process.env.PUPPETEER_EXECUTABLE_PATH);
+  console.log('[pdf] launching with --no-sandbox...');
 
-  console.log(`[pdf] launching Chromium at ${executablePath}…`);
   _browser = await puppeteer.launch({
-    executablePath,
-    headless: true,
+    executablePath:
+      process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium',
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
@@ -33,7 +32,11 @@ async function getBrowser(): Promise<Browser> {
       '--no-zygote',
       '--single-process',
       '--disable-extensions',
+      '--disable-crash-reporter',
+      '--disable-breakpad',
     ],
+    headless: true,
+    timeout: 30000,
   });
 
   _browser.on('disconnected', () => {
