@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Upload, FileText, Download, AlertCircle, Loader2 } from 'lucide-react';
+import { Upload, FileText, Download, AlertCircle, Loader2, Zap, Star } from 'lucide-react';
 import { TonPaymentModal } from '@/components/ton-payment-modal';
+import { SubscriptionModal } from '@/components/subscription-modal';
 import { createClient } from '@/lib/supabase/client';
 import type { Tables } from '@/types';
 
@@ -26,6 +27,18 @@ interface ActiveJob {
   progress: number;
   errorMessage: string | null;
   filename: string;
+  paidViaSubscription?: boolean;
+  subscriptionPlan?: string;
+  remainingDocs?: number;
+}
+
+interface SubscriptionInfo {
+  id: string;
+  plan: 'basic' | 'pro';
+  status: string;
+  documentsLimit: number;
+  documentsUsed: number;
+  expiresAt: string | null;
 }
 
 const LANGUAGES = [
@@ -99,6 +112,114 @@ function StatusBadge({ status }: { status: string }) {
   }
 }
 
+function SubscriptionBanner({ onViewPlans }: { onViewPlans: () => void }) {
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-lg border border-primary/20 bg-primary/5 px-5 py-4">
+      <div className="flex items-center gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/10">
+          <Zap className="h-4 w-4 text-primary" />
+        </div>
+        <div>
+          <p className="text-sm font-medium text-foreground">
+            Translate faster with a subscription
+          </p>
+          <p className="text-xs text-muted-foreground">
+            From $9.99/mo — 10 documents, no per-doc payments
+          </p>
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={onViewPlans}
+        className="shrink-0 inline-flex items-center rounded-md bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-gold-dark"
+      >
+        View plans
+      </button>
+    </div>
+  );
+}
+
+function SubscriptionCard({
+  sub,
+  onUpgrade,
+}: {
+  sub: SubscriptionInfo;
+  onUpgrade: () => void;
+}) {
+  const pct = Math.round((sub.documentsUsed / sub.documentsLimit) * 100);
+  const remaining = sub.documentsLimit - sub.documentsUsed;
+  const expiresDate = sub.expiresAt
+    ? new Date(sub.expiresAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    : '—';
+
+  const isPro = sub.plan === 'pro';
+
+  return (
+    <div className={`rounded-lg border p-5 ${isPro ? 'border-primary/40 bg-primary/5' : 'border-white/10 bg-card'}`}>
+      <div className="mb-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {isPro ? (
+            <Star className="h-4 w-4 text-primary" />
+          ) : (
+            <Zap className="h-4 w-4 text-primary" />
+          )}
+          <span className="text-sm font-semibold text-foreground">
+            {isPro ? 'Pro' : 'Basic'} Plan
+          </span>
+          {isPro && (
+            <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-bold text-primary-foreground">
+              PRO
+            </span>
+          )}
+        </div>
+        <span className="text-xs text-muted-foreground">Expires {expiresDate}</span>
+      </div>
+
+      {/* Progress bar */}
+      <div className="mb-2 flex items-center justify-between text-xs">
+        <span className="text-muted-foreground">Documents used</span>
+        <span className="font-medium text-foreground">
+          {sub.documentsUsed} / {sub.documentsLimit}
+        </span>
+      </div>
+      <div className="mb-4 h-2 w-full overflow-hidden rounded-full bg-white/10">
+        <div
+          className={`h-full rounded-full transition-all duration-500 ${pct >= 90 ? 'bg-amber-500' : 'bg-primary'}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+
+      {remaining === 0 ? (
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs text-amber-400">
+            All {sub.documentsLimit} documents used this month.
+          </p>
+          <button
+            type="button"
+            onClick={onUpgrade}
+            className="shrink-0 inline-flex items-center rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-gold-dark"
+          >
+            Upgrade to Pro
+          </button>
+        </div>
+      ) : !isPro ? (
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs text-muted-foreground">{remaining} documents remaining</p>
+          <button
+            type="button"
+            onClick={onUpgrade}
+            className="shrink-0 inline-flex items-center rounded-md border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-white/10"
+          >
+            Upgrade to Pro
+          </button>
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground">{remaining} documents remaining</p>
+      )}
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -115,8 +236,22 @@ export default function DashboardPage() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [pendingPayment, setPendingPayment] = useState<{ documentId: string; jobId: string } | null>(null);
 
+  const [subscription, setSubscription] = useState<SubscriptionInfo | null | undefined>(undefined); // undefined = loading
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const loadSubscription = useCallback(async (): Promise<void> => {
+    try {
+      const res = await fetch('/api/subscriptions/current');
+      if (!res.ok) { setSubscription(null); return; }
+      const data = (await res.json()) as { subscription: SubscriptionInfo | null };
+      setSubscription(data.subscription);
+    } catch {
+      setSubscription(null);
+    }
+  }, []);
 
   useEffect(() => {
     const supabase = createClient();
@@ -124,7 +259,8 @@ export default function DashboardPage() {
       setUserEmail(data.session?.user.email ?? null);
     });
     void loadDocuments();
-  }, []);
+    void loadSubscription();
+  }, [loadSubscription]);
 
   async function loadDocuments(): Promise<void> {
     const supabase = createClient();
@@ -143,6 +279,7 @@ export default function DashboardPage() {
       if (pollRef.current) clearInterval(pollRef.current);
       if (activeJobStatus === 'completed' || activeJobStatus === 'failed') {
         void loadDocuments();
+        void loadSubscription();
       }
       return;
     }
@@ -154,7 +291,7 @@ export default function DashboardPage() {
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
-  }, [activeJobId, activeJobStatus]);
+  }, [activeJobId, activeJobStatus, loadSubscription]);
 
   async function pollJob(jobId: string): Promise<void> {
     const res = await fetch(`/api/jobs/${jobId}`);
@@ -192,7 +329,15 @@ export default function DashboardPage() {
     form.append('documentType', documentType);
 
     const res = await fetch('/api/documents/upload', { method: 'POST', body: form });
-    const data = (await res.json()) as { jobId?: string; documentId?: string; error?: string };
+    const data = (await res.json()) as {
+      jobId?: string;
+      documentId?: string;
+      error?: string;
+      paidViaSubscription?: boolean;
+      subscriptionPlan?: string;
+      remainingDocs?: number;
+      limitReached?: boolean;
+    };
 
     if (!res.ok || !data.jobId || !data.documentId) {
       toast.error(data.error ?? 'Upload failed');
@@ -202,17 +347,43 @@ export default function DashboardPage() {
 
     setUploading(false);
     setFile(null);
-    setActiveJob({
-      jobId: data.jobId,
-      documentId: data.documentId,
-      status: 'queued',
-      progress: 0,
-      errorMessage: null,
-      filename: file.name,
-    });
-    setPendingPayment({ documentId: data.documentId, jobId: data.jobId });
-    toast.success('File uploaded — complete payment to start translation.');
-    void loadDocuments();
+
+    if (data.paidViaSubscription) {
+      // Subscription path: start immediately
+      setActiveJob({
+        jobId: data.jobId,
+        documentId: data.documentId,
+        status: 'queued',
+        progress: 0,
+        errorMessage: null,
+        filename: file.name,
+        paidViaSubscription: true,
+        subscriptionPlan: data.subscriptionPlan,
+        remainingDocs: data.remainingDocs,
+      });
+      toast.success(
+        `Translation started — ${data.remainingDocs ?? 0} doc${data.remainingDocs === 1 ? '' : 's'} remaining on your ${data.subscriptionPlan === 'pro' ? 'Pro' : 'Basic'} plan.`,
+      );
+      void loadSubscription();
+      void loadDocuments();
+    } else {
+      // Pay-per-doc path
+      setActiveJob({
+        jobId: data.jobId,
+        documentId: data.documentId,
+        status: 'queued',
+        progress: 0,
+        errorMessage: null,
+        filename: file.name,
+      });
+      if (data.limitReached) {
+        toast.error("You've used all your documents this month. Upgrade or pay per document.");
+      } else {
+        toast.success('File uploaded — complete payment to start translation.');
+      }
+      setPendingPayment({ documentId: data.documentId, jobId: data.jobId });
+      void loadDocuments();
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -245,6 +416,16 @@ export default function DashboardPage() {
           {isLoggingOut ? 'Logging out…' : 'Log out'}
         </button>
       </div>
+
+      {/* Subscription block */}
+      {subscription === undefined ? null : subscription ? (
+        <SubscriptionCard
+          sub={subscription}
+          onUpgrade={() => setShowSubscriptionModal(true)}
+        />
+      ) : (
+        <SubscriptionBanner onViewPlans={() => setShowSubscriptionModal(true)} />
+      )}
 
       {/* Upload form */}
       <div className="rounded-lg border border-white/10 bg-card p-6">
@@ -339,6 +520,29 @@ export default function DashboardPage() {
             </div>
           </div>
 
+          {/* Subscription hint below submit */}
+          {subscription && subscription.documentsUsed >= subscription.documentsLimit ? (
+            <div className="flex items-start gap-2 rounded-md border border-amber-500/20 bg-amber-500/5 p-3">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+              <p className="text-xs text-amber-400">
+                You&apos;ve used all {subscription.documentsLimit} documents this month.{' '}
+                <button
+                  type="button"
+                  onClick={() => setShowSubscriptionModal(true)}
+                  className="underline underline-offset-2 hover:text-amber-300"
+                >
+                  Upgrade to Pro
+                </button>{' '}
+                or continue with pay-per-document below.
+              </p>
+            </div>
+          ) : subscription ? (
+            <p className="text-xs text-muted-foreground">
+              ✓ Using your {subscription.plan === 'pro' ? 'Pro' : 'Basic'} plan ·{' '}
+              {subscription.documentsLimit - subscription.documentsUsed} doc{subscription.documentsLimit - subscription.documentsUsed === 1 ? '' : 's'} remaining — no payment required
+            </p>
+          ) : null}
+
           <button
             type="submit"
             disabled={uploading || !file}
@@ -348,6 +552,11 @@ export default function DashboardPage() {
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Uploading…
+              </>
+            ) : subscription && subscription.documentsUsed < subscription.documentsLimit ? (
+              <>
+                <Upload className="h-4 w-4" />
+                Upload & Translate
               </>
             ) : (
               <>
@@ -370,6 +579,17 @@ export default function DashboardPage() {
               <p className="mt-0.5 text-xs text-muted-foreground">
                 {statusLabel(activeJob.status, activeJob.progress)}
               </p>
+              {activeJob.paidViaSubscription && activeJob.status !== 'completed' && activeJob.status !== 'failed' && (
+                <p className="mt-1 flex items-center gap-1 text-xs text-primary">
+                  {activeJob.subscriptionPlan === 'pro' ? (
+                    <Star className="h-3 w-3" />
+                  ) : (
+                    <Zap className="h-3 w-3" />
+                  )}
+                  Using {activeJob.subscriptionPlan === 'pro' ? 'Pro' : 'Basic'} plan
+                  {activeJob.remainingDocs !== undefined && ` · ${activeJob.remainingDocs} remaining`}
+                </p>
+              )}
             </div>
             <StatusBadge status={activeJob.status} />
           </div>
@@ -402,7 +622,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* TON payment modal */}
+      {/* TON payment modal (pay-per-doc) */}
       {pendingPayment && (
         <TonPaymentModal
           documentId={pendingPayment.documentId}
@@ -412,6 +632,18 @@ export default function DashboardPage() {
             toast.success('Payment confirmed — translation starting…');
           }}
           onClose={() => setPendingPayment(null)}
+        />
+      )}
+
+      {/* Subscription modal */}
+      {showSubscriptionModal && (
+        <SubscriptionModal
+          onSuccess={(plan) => {
+            setShowSubscriptionModal(false);
+            void loadSubscription();
+            toast.success(`${plan === 'pro' ? 'Pro' : 'Basic'} plan activated!`);
+          }}
+          onClose={() => setShowSubscriptionModal(false)}
         />
       )}
 

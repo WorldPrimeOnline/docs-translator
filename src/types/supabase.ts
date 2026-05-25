@@ -76,6 +76,8 @@ export type Database = {
           status: 'queued' | 'ocr_in_progress' | 'ocr_completed' | 'translation_in_progress' | 'pdf_rendering' | 'completed' | 'failed';
           error_message: string | null;
           progress_percent: number;
+          priority: number;
+          payment_source: 'ton_payment' | 'subscription' | null;
           started_at: string | null;
           completed_at: string | null;
           created_at: string;
@@ -86,6 +88,8 @@ export type Database = {
           status: 'queued' | 'ocr_in_progress' | 'ocr_completed' | 'translation_in_progress' | 'pdf_rendering' | 'completed' | 'failed';
           error_message?: string | null;
           progress_percent?: number;
+          priority?: number;
+          payment_source?: 'ton_payment' | 'subscription' | null;
           started_at?: string | null;
           completed_at?: string | null;
           created_at?: string;
@@ -96,6 +100,8 @@ export type Database = {
           status?: 'queued' | 'ocr_in_progress' | 'ocr_completed' | 'translation_in_progress' | 'pdf_rendering' | 'completed' | 'failed';
           error_message?: string | null;
           progress_percent?: number;
+          priority?: number;
+          payment_source?: 'ton_payment' | 'subscription' | null;
           started_at?: string | null;
           completed_at?: string | null;
           created_at?: string;
@@ -223,6 +229,48 @@ export type Database = {
           { foreignKeyName: 'ton_payments_user_id_fkey'; columns: ['user_id']; referencedRelation: 'users'; referencedColumns: ['id'] },
           { foreignKeyName: 'ton_payments_document_id_fkey'; columns: ['document_id']; referencedRelation: 'documents'; referencedColumns: ['id'] },
           { foreignKeyName: 'ton_payments_job_id_fkey'; columns: ['job_id']; referencedRelation: 'jobs'; referencedColumns: ['id'] },
+        ];
+      };
+      subscriptions: {
+        Row: {
+          id: string;
+          user_id: string;
+          plan: 'basic' | 'pro';
+          status: 'pending' | 'active' | 'expired' | 'cancelled';
+          documents_limit: number;
+          documents_used: number;
+          amount_nanoton: string | null;
+          amount_usd: number | null;
+          ton_price_usd: number | null;
+          tx_hash: string | null;
+          started_at: string | null;
+          expires_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          plan: 'basic' | 'pro';
+          status?: 'pending' | 'active' | 'expired' | 'cancelled';
+          documents_limit: number;
+          documents_used?: number;
+          amount_nanoton?: number | string | null;
+          amount_usd?: number | null;
+          ton_price_usd?: number | null;
+          tx_hash?: string | null;
+          started_at?: string | null;
+          expires_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          status?: 'pending' | 'active' | 'expired' | 'cancelled';
+          documents_used?: number;
+          tx_hash?: string | null;
+          started_at?: string | null;
+          expires_at?: string | null;
+        };
+        Relationships: [
+          { foreignKeyName: 'subscriptions_user_id_fkey'; columns: ['user_id']; referencedRelation: 'users'; referencedColumns: ['id'] },
         ];
       };
       payments: {

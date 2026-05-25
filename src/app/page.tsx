@@ -321,7 +321,7 @@ export default function Home() {
 
       {/* PRICING */}
       <section className="border-y border-white/10 bg-card px-4 py-24">
-        <div className="mx-auto max-w-3xl">
+        <div className="mx-auto max-w-5xl">
           <div className="mb-14 text-center">
             <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">
               Pricing
@@ -330,61 +330,27 @@ export default function Home() {
               Simple, transparent pricing
             </h2>
             <p className="mt-3 text-muted-foreground">
-              No subscription. Pay only when you translate.
+              Pay per document or save with a monthly plan.
             </p>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            {/* Passport / ID — highlighted */}
-            <div className="relative rounded-lg border border-primary/40 bg-background/60 p-7 shadow-lg shadow-primary/5">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                <span className="rounded-full bg-primary px-3 py-0.5 text-xs font-semibold text-primary-foreground">
-                  Most popular
-                </span>
-              </div>
-              <div className="mb-1 text-xs font-semibold uppercase tracking-widest text-primary">
-                Passport & ID
-              </div>
-              <div className="mb-5 flex items-end gap-1">
-                <span className="text-4xl font-extrabold tracking-[-0.02em] text-foreground">$4.39</span>
-                <span className="mb-1 text-sm text-muted-foreground">per document</span>
-              </div>
-              <ul className="mb-7 space-y-2 text-sm text-muted-foreground">
-                {[
-                  "Passport, ID card, driver's license",
-                  'AI translation by Claude Sonnet',
-                  'Clean PDF with disclaimer',
-                  'Delivery in 2–5 minutes',
-                ].map((f) => (
-                  <li key={f} className="flex items-start gap-2">
-                    <span className="mt-0.5 text-primary">✓</span>
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <Link
-                href="/auth/signup"
-                className="inline-flex w-full items-center justify-center rounded-md bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-[background-color,filter,transform] duration-150 hover:bg-gold-dark hover:brightness-110 hover:scale-[1.02]"
-              >
-                Start Translating
-              </Link>
-            </div>
-
-            {/* All other documents */}
-            <div className="rounded-lg border border-white/10 bg-background/60 p-7">
+          <div className="grid gap-5 sm:grid-cols-3">
+            {/* PAY AS YOU GO */}
+            <div className="flex flex-col rounded-lg border border-white/10 bg-background/60 p-7">
               <div className="mb-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                All Other Documents
+                Pay as you go
               </div>
-              <div className="mb-5 flex items-end gap-1">
-                <span className="text-4xl font-extrabold tracking-[-0.02em] text-foreground">$4.99</span>
-                <span className="mb-1 text-sm text-muted-foreground">per document</span>
+              <div className="mb-2 flex items-end gap-1">
+                <span className="text-4xl font-extrabold tracking-[-0.02em] text-foreground">$4.39</span>
+                <span className="mb-1 text-sm text-muted-foreground">/ doc</span>
               </div>
-              <ul className="mb-7 space-y-2 text-sm text-muted-foreground">
+              <p className="mb-5 text-xs text-muted-foreground">From $4.39 — passports &amp; IDs. $4.99 — all other documents.</p>
+              <ul className="mb-7 flex-1 space-y-2 text-sm text-muted-foreground">
                 {[
-                  'Diplomas, contracts, bank statements',
-                  'Medical records, certificates',
-                  'AI translation by Claude Sonnet',
-                  '10+ language pairs',
+                  'No commitment',
+                  'All document types',
+                  'AI translation by Claude',
+                  'Clean PDF output',
                 ].map((f) => (
                   <li key={f} className="flex items-start gap-2">
                     <span className="mt-0.5 text-muted-foreground">✓</span>
@@ -399,10 +365,80 @@ export default function Home() {
                 Start Translating
               </Link>
             </div>
+
+            {/* BASIC — Most Popular */}
+            <div className="relative flex flex-col rounded-lg border border-primary/50 bg-primary/5 p-7 shadow-lg shadow-primary/10">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                <span className="rounded-full bg-primary px-3 py-0.5 text-xs font-semibold text-primary-foreground">
+                  Most Popular
+                </span>
+              </div>
+              <div className="mb-1 text-xs font-semibold uppercase tracking-widest text-primary">
+                Basic
+              </div>
+              <div className="mb-2 flex items-end gap-1">
+                <span className="text-4xl font-extrabold tracking-[-0.02em] text-foreground">$9.99</span>
+                <span className="mb-1 text-sm text-muted-foreground">/ month</span>
+              </div>
+              <p className="mb-5 text-xs text-muted-foreground">10 documents per month. No per-doc payments.</p>
+              <ul className="mb-7 flex-1 space-y-2 text-sm text-muted-foreground">
+                {[
+                  '10 documents / month',
+                  'All document types',
+                  'AI translation by Claude',
+                  'Clean PDF output',
+                  '30-day access',
+                ].map((f) => (
+                  <li key={f} className="flex items-start gap-2">
+                    <span className="mt-0.5 text-primary">✓</span>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href="/auth/signup"
+                className="inline-flex w-full items-center justify-center rounded-md bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-[background-color,filter,transform] duration-150 hover:bg-gold-dark hover:brightness-110 hover:scale-[1.02]"
+              >
+                Subscribe with TON
+              </Link>
+            </div>
+
+            {/* PRO */}
+            <div className="flex flex-col rounded-lg border border-white/10 bg-background/60 p-7">
+              <div className="mb-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                Pro
+              </div>
+              <div className="mb-2 flex items-end gap-1">
+                <span className="text-4xl font-extrabold tracking-[-0.02em] text-foreground">$24.99</span>
+                <span className="mb-1 text-sm text-muted-foreground">/ month</span>
+              </div>
+              <p className="mb-5 text-xs text-muted-foreground">40 documents per month. Priority processing.</p>
+              <ul className="mb-7 flex-1 space-y-2 text-sm text-muted-foreground">
+                {[
+                  '40 documents / month',
+                  'All document types',
+                  'AI translation by Claude',
+                  'Clean PDF output',
+                  'Priority processing',
+                  'PRO badge in dashboard',
+                ].map((f) => (
+                  <li key={f} className="flex items-start gap-2">
+                    <span className="mt-0.5 text-primary">✓</span>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href="/auth/signup"
+                className="inline-flex w-full items-center justify-center rounded-md border border-white/20 bg-white/5 py-2.5 text-sm font-semibold text-foreground transition-[background-color,border-color,transform] duration-150 hover:border-white/50 hover:bg-white/10 hover:scale-[1.02]"
+              >
+                Subscribe with TON
+              </Link>
+            </div>
           </div>
 
           <p className="mt-6 text-center text-xs text-muted-foreground">
-            All prices in USD · Paid via TON cryptocurrency · No bank card required
+            All prices in USD · Paid via TON cryptocurrency · No bank card required · No auto-renewal
           </p>
         </div>
       </section>
