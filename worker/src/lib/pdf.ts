@@ -32,6 +32,7 @@ async function getBrowser(): Promise<Browser> {
       '--no-first-run',
       '--no-zygote',
       '--single-process',
+      '--disable-extensions',
     ],
   });
 
