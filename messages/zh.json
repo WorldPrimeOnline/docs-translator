@@ -1,0 +1,111 @@
+{
+  "nav": {
+    "login": "登录",
+    "dashboard": "控制台",
+    "signup": "注册"
+  },
+  "hero": {
+    "title": "几分钟内翻译您的文件",
+    "subtitle": "上传 PDF，获取译文文件。适用于签证、银行、大学、移民事务。",
+    "cta": "开始翻译"
+  },
+  "howItWorks": {
+    "label": "操作流程",
+    "title": "三步完成翻译",
+    "step1Title": "上传 PDF",
+    "step1Desc": "选择任意扫描文件——护照、文凭、银行流水等。最多 50 页，25 MB。",
+    "step2Title": "AI 逐字翻译",
+    "step2Desc": "我们的 AI 读取文件，保留姓名和数字，在数分钟内提供准确翻译。",
+    "step3Title": "下载译文",
+    "step3Desc": "获取每页均含免责声明的格式清晰文件，可直接分享或附于申请材料。"
+  },
+  "documents": {
+    "label": "翻译范围",
+    "title": "所有文件类型",
+    "subtitle": "适用于移民、教育、银行及法律场景",
+    "passport": "护照和身份证",
+    "birth": "出生证明 / 结婚证",
+    "diploma": "文凭和成绩单",
+    "bank": "银行流水",
+    "medical": "医疗记录",
+    "employment": "劳动合同",
+    "police": "无犯罪记录证明",
+    "driver": "驾驶证",
+    "other": "其他文件"
+  },
+  "pricing": {
+    "label": "定价",
+    "title": "简单透明的价格",
+    "payg": "按需付费",
+    "basic": "基础版",
+    "pro": "专业版",
+    "perDoc": "每份文件",
+    "perMonth": "/ 月",
+    "mostPopular": "最受欢迎",
+    "subscribe": "用 TON 订阅",
+    "startTranslating": "开始翻译",
+    "docs": "份文件 / 月"
+  },
+  "trust": {
+    "label": "为何选择 WPO 翻译",
+    "title": "专为在海外应对繁琐手续的人而生",
+    "speed": "2–5 分钟内完成",
+    "speedDesc": "大多数文件翻译不超过 5 分钟。传统翻译机构需要数天。",
+    "price": "最高节省 3 倍费用",
+    "priceDesc": "每份文件低至 $4.39，而翻译机构收费 $25–40。",
+    "ton": "TON 区块链支付",
+    "tonDesc": "使用 TON 加密货币安全支付，无需银行卡。",
+    "security": "30 天后自动删除",
+    "securityDesc": "您的文件安全存储，30 天后永久删除。",
+    "informal": "信息性翻译",
+    "informalDesc": "我们的翻译仅供参考，非经认证或公证的翻译。"
+  },
+  "faq": {
+    "label": "常见问题",
+    "title": "常见问题解答",
+    "q1": "此翻译是否被领事馆或大学接受？",
+    "a1": "我们的翻译仅供参考，未经认证或公证。请务必向您的机构确认非正式翻译是否足够。",
+    "q2": "需要多长时间？",
+    "a2": "大多数文件 2–5 分钟完成翻译，复杂或较长的文件最多需要 10 分钟。",
+    "q3": "支持哪些语言？",
+    "a3": "目标语言支持俄语、英语、泰语、中文、韩语、日语、德语、法语、西班牙语和阿拉伯语。",
+    "q4": "如何支付？",
+    "a4": "我们通过 Tonkeeper 钱包接受 TON 加密货币，无需银行卡。",
+    "q5": "我的文件安全吗？",
+    "a5": "您的文件在传输和存储过程中均经过加密，30 天后永久删除。"
+  },
+  "dashboard": {
+    "newTranslation": "新建翻译",
+    "dropzone": "将 PDF 拖放至此处，或点击浏览",
+    "dropzoneHint": "仅支持 PDF · 最大 25 MB · 最多 50 页",
+    "sourceLanguage": "源语言",
+    "targetLanguage": "目标语言",
+    "documentType": "文件类型",
+    "uploadBtn": "上传并翻译",
+    "pastTranslations": "历史翻译",
+    "completed": "已完成",
+    "processing": "处理中",
+    "queued": "排队中",
+    "failed": "失败",
+    "download": "下载",
+    "signedIn": "当前登录账号",
+    "logout": "退出登录",
+    "usingPlan": "使用 {plan} 计划 · 剩余 {remaining} 份文件 — 无需付款",
+    "limitReached": "已达每月上限，请升级套餐或单独付费。",
+    "upgradeToPro": "升级至专业版",
+    "viewPlans": "查看套餐"
+  },
+  "auth": {
+    "login": "登录",
+    "signup": "创建账号",
+    "email": "邮箱",
+    "password": "密码",
+    "loginBtn": "登录",
+    "signupBtn": "创建账号",
+    "noAccount": "还没有账号？",
+    "hasAccount": "已有账号？",
+    "signupLink": "注册",
+    "loginLink": "登录"
+  },
+  "disclaimer": "非官方翻译——仅供参考"
+}

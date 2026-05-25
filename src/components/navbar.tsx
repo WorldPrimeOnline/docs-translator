@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { WpoLogo } from '@/components/wpo-logo';
 import { createClient } from '@/lib/supabase/client';
 import { Menu, X, ChevronDown } from 'lucide-react';
+import { LanguageSwitcher } from '@/components/language-switcher';
 
 const NAV_LINKS = [
   {
@@ -119,8 +120,9 @@ export function Navbar() {
           ))}
         </nav>
 
-        {/* Desktop auth */}
+        {/* Desktop auth + language switcher */}
         <div className="hidden items-center gap-1 lg:flex">
+          <LanguageSwitcher />
           {isLoggedIn ? (
             <Link
               href="/dashboard"
@@ -146,8 +148,9 @@ export function Navbar() {
           )}
         </div>
 
-        {/* Mobile: auth + hamburger */}
+        {/* Mobile: language switcher + auth + hamburger */}
         <div className="flex items-center gap-2 lg:hidden">
+          <LanguageSwitcher />
           {isLoggedIn ? (
             <Link
               href="/dashboard"

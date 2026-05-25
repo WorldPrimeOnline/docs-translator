@@ -1,0 +1,111 @@
+{
+  "nav": {
+    "login": "Login",
+    "dashboard": "Dashboard",
+    "signup": "Sign up"
+  },
+  "hero": {
+    "title": "Translate your documents in minutes",
+    "subtitle": "Upload a PDF — get a translated document. For visas, banks, universities, immigration.",
+    "cta": "Start translating"
+  },
+  "howItWorks": {
+    "label": "THE PROCESS",
+    "title": "Three steps to your translation",
+    "step1Title": "Upload your PDF",
+    "step1Desc": "Select any scanned document — passport, diploma, bank statement, or more. Up to 50 pages, 25 MB.",
+    "step2Title": "AI translates every word",
+    "step2Desc": "Our AI reads the document, preserves names and numbers, and produces an accurate translation in minutes.",
+    "step3Title": "Download your translation",
+    "step3Desc": "Receive a clean, formatted document with a disclaimer on every page. Ready to share or attach to your application."
+  },
+  "documents": {
+    "label": "WHAT WE TRANSLATE",
+    "title": "All document types",
+    "subtitle": "Used in immigration, education, banking, and legal contexts",
+    "passport": "Passport & ID Card",
+    "birth": "Birth / Marriage Certificate",
+    "diploma": "Diploma & Transcript",
+    "bank": "Bank Statement",
+    "medical": "Medical Record",
+    "employment": "Employment Contract",
+    "police": "Police Clearance",
+    "driver": "Driver's License",
+    "other": "Any Other Document"
+  },
+  "pricing": {
+    "label": "PRICING",
+    "title": "Simple, transparent pricing",
+    "payg": "Pay as you go",
+    "basic": "Basic",
+    "pro": "Pro",
+    "perDoc": "per document",
+    "perMonth": "/ month",
+    "mostPopular": "Most Popular",
+    "subscribe": "Subscribe with TON",
+    "startTranslating": "Start translating",
+    "docs": "documents / month"
+  },
+  "trust": {
+    "label": "WHY WPO TRANSLATIONS",
+    "title": "Built for people navigating bureaucracy abroad",
+    "speed": "Ready in 2–5 minutes",
+    "speedDesc": "Most documents are translated in under 5 minutes. Traditional bureaus take days.",
+    "price": "Up to 3× cheaper",
+    "priceDesc": "From $4.39 per document vs $25–40 at a translation bureau.",
+    "ton": "TON blockchain payments",
+    "tonDesc": "Pay securely with TON cryptocurrency. No bank card required.",
+    "security": "Auto-deleted after 30 days",
+    "securityDesc": "Your documents are stored securely and permanently deleted after 30 days.",
+    "informal": "Informational translation",
+    "informalDesc": "Our translations are for informational use. Not certified or notarized."
+  },
+  "faq": {
+    "label": "FAQ",
+    "title": "Frequently asked questions",
+    "q1": "Is this translation accepted by consulates or universities?",
+    "a1": "Our translations are for informational use only. They are not certified or notarized. Always check with your institution whether an unofficial translation is sufficient.",
+    "q2": "How long does it take?",
+    "a2": "Most documents are translated in 2–5 minutes. Complex or long documents may take up to 10 minutes.",
+    "q3": "What languages do you support?",
+    "a3": "We support Russian, English, Thai, Chinese, Korean, Japanese, German, French, Spanish, and Arabic as target languages.",
+    "q4": "How do I pay?",
+    "a4": "We accept TON cryptocurrency via Tonkeeper wallet. No bank card required.",
+    "q5": "Are my documents safe?",
+    "a5": "Your files are encrypted in transit and at rest. They are permanently deleted after 30 days."
+  },
+  "dashboard": {
+    "newTranslation": "New Translation",
+    "dropzone": "Drop your PDF here, or click to browse",
+    "dropzoneHint": "PDF only · Max 25 MB · Max 50 pages",
+    "sourceLanguage": "SOURCE LANGUAGE",
+    "targetLanguage": "TARGET LANGUAGE",
+    "documentType": "DOCUMENT TYPE",
+    "uploadBtn": "Upload & Translate",
+    "pastTranslations": "Past Translations",
+    "completed": "Completed",
+    "processing": "Processing",
+    "queued": "Queued",
+    "failed": "Failed",
+    "download": "Download",
+    "signedIn": "Signed in as",
+    "logout": "Log out",
+    "usingPlan": "Using your {plan} plan · {remaining} docs remaining — no payment required",
+    "limitReached": "Monthly limit reached. Upgrade or pay per document.",
+    "upgradeToPro": "Upgrade to Pro",
+    "viewPlans": "View plans"
+  },
+  "auth": {
+    "login": "Sign in",
+    "signup": "Create account",
+    "email": "Email",
+    "password": "Password",
+    "loginBtn": "Sign in",
+    "signupBtn": "Create account",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "signupLink": "Sign up",
+    "loginLink": "Sign in"
+  },
+  "disclaimer": "UNOFFICIAL TRANSLATION — FOR INFORMATIONAL PURPOSES ONLY"
+}
