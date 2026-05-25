@@ -92,7 +92,7 @@ function StatusBadge({ status }: { status: string }) {
     default:
       return (
         <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2.5 py-0.5 text-xs font-medium text-blue-400">
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-400" />
+          <span className="h-1.5 w-1.5 animate-badge-pulse rounded-full bg-blue-400" />
           Processing
         </span>
       );
@@ -253,12 +253,12 @@ export default function DashboardPage() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           {/* Drag-drop zone */}
           <div
-            className={`relative flex flex-col items-center justify-center rounded-lg border-2 border-dashed px-6 py-10 text-center transition-colors cursor-pointer ${
+            className={`relative flex flex-col items-center justify-center rounded-lg border-2 border-dashed px-6 py-10 text-center transition-[border-color,background-color] duration-150 cursor-pointer ${
               isDragging
-                ? 'border-primary/60 bg-primary/5'
+                ? 'border-primary/70 bg-[rgba(201,168,76,0.05)]'
                 : file
                   ? 'border-primary/40 bg-primary/5'
-                  : 'border-white/15 hover:border-white/25 hover:bg-white/3'
+                  : 'border-white/15 hover:border-white/25 hover:bg-white/[0.03]'
             }`}
             onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
             onDragLeave={() => setIsDragging(false)}
@@ -416,14 +416,20 @@ export default function DashboardPage() {
       )}
 
       {/* Past documents */}
-      {documents.length > 0 && (
-        <div className="rounded-lg border border-white/10 bg-card">
-          <div className="border-b border-white/10 px-6 py-4">
-            <h2 className="text-sm font-semibold text-foreground">Past Translations</h2>
+      <div className="rounded-lg border border-white/10 bg-card">
+        <div className="border-b border-white/10 px-6 py-4">
+          <h2 className="text-sm font-semibold text-foreground">Past Translations</h2>
+        </div>
+        {documents.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-3 px-6 py-14 text-center">
+            <FileText className="h-10 w-10 text-muted-foreground/30" />
+            <p className="text-sm font-medium text-muted-foreground">No translations yet.</p>
+            <p className="text-xs text-muted-foreground/60">Upload your first document above to get started.</p>
           </div>
+        ) : (
           <div className="divide-y divide-white/5">
             {documents.map((doc) => (
-              <div key={doc.id} className="flex items-center justify-between px-6 py-4">
+              <div key={doc.id} className="flex items-center justify-between px-6 py-4 transition-colors hover:bg-white/[0.03]">
                 <div className="flex min-w-0 flex-col gap-0.5">
                   <span className="truncate text-sm font-medium text-foreground">
                     {doc.filename}
@@ -448,8 +454,8 @@ export default function DashboardPage() {
               </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

@@ -32,10 +32,13 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <Navbar />
         {children}
-        <footer className="border-t border-white/10 bg-navy">
+        <footer className="border-t border-white/8 bg-navy">
           <div className="mx-auto max-w-6xl px-4 py-10">
-            <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-              <WpoLogo size="sm" />
+            <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex flex-col gap-1.5">
+                <WpoLogo size="sm" />
+                <p className="text-xs text-muted-foreground">Professional document translation powered by AI</p>
+              </div>
               <nav className="flex gap-6 text-sm text-muted-foreground">
                 <Link href="/tos" className="transition-colors hover:text-foreground">
                   Terms of Service

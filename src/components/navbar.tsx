@@ -61,7 +61,7 @@ export function Navbar() {
       setIsLoggedIn(!!session);
     });
 
-    const onScroll = () => setScrolled(window.scrollY > 8);
+    const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', onScroll, { passive: true });
 
     return () => {
@@ -74,7 +74,7 @@ export function Navbar() {
     <header
       className={`sticky top-0 z-50 transition-all duration-200 ${
         scrolled || menuOpen
-          ? 'border-b border-white/10 bg-navy/95 backdrop-blur-md shadow-lg shadow-black/20'
+          ? 'border-b border-white/10 bg-navy/90 backdrop-blur-[12px] shadow-lg shadow-black/20'
           : 'bg-transparent'
       }`}
     >

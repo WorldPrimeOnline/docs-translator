@@ -125,7 +125,7 @@ export default function Home() {
   return (
     <div className="bg-background">
       {/* HERO */}
-      <section className="relative overflow-hidden bg-grid px-4 pb-28 pt-20 text-center sm:pb-36 sm:pt-28">
+      <section className="relative overflow-hidden bg-grid px-4 pb-16 pt-20 text-center sm:pb-20 sm:pt-28">
         {/* Gold radial glow from top */}
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_-10%,rgba(201,168,76,0.12),transparent)]" />
         {/* Darker gradient at bottom to blend into next section */}
@@ -137,7 +137,7 @@ export default function Home() {
             AI-powered · Instant results · 10+ languages
           </div>
 
-          <h1 className="mb-6 text-5xl font-bold tracking-tight text-foreground sm:text-6xl lg:text-7xl">
+          <h1 className="mb-6 text-5xl font-extrabold tracking-[-0.02em] text-foreground sm:text-6xl lg:text-7xl">
             Translate Any Document
             <br />
             <span className="text-primary">in Minutes</span>
@@ -151,13 +151,13 @@ export default function Home() {
           <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
             <Link
               href="/auth/signup"
-              className="inline-flex items-center justify-center rounded-md bg-primary px-8 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-gold-dark"
+              className="inline-flex items-center justify-center rounded-md bg-primary px-8 py-3 text-sm font-semibold text-primary-foreground transition-[background-color,filter,transform] duration-150 hover:bg-gold-dark hover:brightness-110 hover:scale-[1.02]"
             >
               Start Translating
             </Link>
             <a
               href="#how-it-works"
-              className="inline-flex items-center justify-center gap-1.5 rounded-md border border-white/15 bg-white/5 px-8 py-3 text-sm font-medium text-foreground transition-colors hover:bg-white/10"
+              className="inline-flex items-center justify-center gap-1.5 rounded-md border border-white/20 bg-white/5 px-8 py-3 text-sm font-medium text-foreground transition-[background-color,border-color,transform] duration-150 hover:border-white/50 hover:bg-white/10 hover:scale-[1.02]"
             >
               See How It Works
               <ChevronDown className="h-4 w-4" />
@@ -168,7 +168,66 @@ export default function Home() {
             No subscription · Pay only when you translate · Results in 2–5 minutes
           </p>
         </div>
+
+        {/* Hero UI mockup card */}
+        <div className="relative mx-auto mt-14 max-w-[480px] animate-fade-in-up px-4">
+          <div className="pointer-events-none absolute -inset-6 rounded-2xl bg-[radial-gradient(ellipse_80%_60%_at_50%_50%,rgba(201,168,76,0.05),transparent)]" />
+          <div className="relative overflow-hidden rounded-xl border border-white/12 bg-card shadow-2xl shadow-black/50">
+            {/* Card header */}
+            <div className="flex items-center justify-between border-b border-white/8 px-5 py-3">
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-muted-foreground" />
+                <span className="text-xs font-medium text-foreground">passport_scan.pdf</span>
+              </div>
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                Completed
+              </span>
+            </div>
+            {/* Language pair row */}
+            <div className="flex items-center gap-3 border-b border-white/5 px-5 py-3">
+              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10 text-sm">🇷🇺</div>
+              <div className="h-px w-6 bg-white/15" />
+              <svg className="h-3 w-3 text-muted-foreground" fill="none" viewBox="0 0 12 12"><path d="M2 6h8M7 3l3 3-3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              <div className="h-px w-6 bg-white/15" />
+              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10 text-sm">🇬🇧</div>
+              <div className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Zap className="h-3 w-3 text-primary" />
+                3 min 42 sec
+              </div>
+            </div>
+            {/* Download action */}
+            <div className="flex items-center justify-between px-5 py-4">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-xs font-semibold text-foreground">Translation ready</span>
+                <span className="text-[10px] text-muted-foreground">Russian → English · Passport & ID</span>
+              </div>
+              <div className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">
+                <Download className="h-3 w-3" />
+                Download PDF
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
+
+      {/* SOCIAL PROOF STRIPE */}
+      <div className="border-y border-white/8 bg-white/[0.02] px-4 py-6">
+        <div className="mx-auto flex max-w-2xl flex-col items-center gap-5 sm:flex-row sm:justify-center sm:divide-x sm:divide-white/10 sm:gap-0">
+          <div className="px-8 text-center">
+            <p className="text-2xl font-extrabold tracking-[-0.02em] text-primary">2,400+</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">Documents Translated</p>
+          </div>
+          <div className="px-8 text-center">
+            <p className="text-2xl font-extrabold tracking-[-0.02em] text-primary">42</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">Countries</p>
+          </div>
+          <div className="px-8 text-center">
+            <p className="text-2xl font-extrabold tracking-[-0.02em] text-primary">4.9★</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">Average Rating</p>
+          </div>
+        </div>
+      </div>
 
       {/* HOW IT WORKS */}
       <section id="how-it-works" className="px-4 py-24">
@@ -177,13 +236,12 @@ export default function Home() {
             <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">
               The Process
             </p>
-            <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+            <h2 className="text-3xl font-bold tracking-[-0.02em] text-foreground sm:text-4xl">
               Three steps to your translation
             </h2>
           </div>
 
           <div className="relative grid gap-8 sm:grid-cols-3">
-            {/* Connecting line on desktop */}
             <div className="absolute left-1/6 right-1/6 top-7 hidden h-px bg-gradient-to-r from-transparent via-white/10 to-transparent sm:block" />
 
             {HOW_IT_WORKS.map((step) => (
@@ -211,7 +269,7 @@ export default function Home() {
             <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">
               What We Translate
             </p>
-            <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+            <h2 className="text-3xl font-bold tracking-[-0.02em] text-foreground sm:text-4xl">
               All document types
             </h2>
             <p className="mt-3 text-muted-foreground">
@@ -223,10 +281,10 @@ export default function Home() {
             {DOC_TYPES.map(({ icon: Icon, label }) => (
               <div
                 key={label}
-                className="flex items-center gap-3 rounded-lg border border-white/8 bg-background/60 p-4 transition-colors hover:border-white/15 hover:bg-background/80"
+                className="group flex items-center gap-3 rounded-lg border border-white/8 bg-background/60 p-4 transition-[border-color,box-shadow] duration-200 hover:border-primary/30 hover:shadow-[0_0_20px_rgba(201,168,76,0.08)]"
               >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/10">
-                  <Icon className="h-4 w-4 text-primary" />
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                  <Icon className="h-6 w-6 text-primary" />
                 </div>
                 <span className="text-sm font-medium text-foreground">{label}</span>
               </div>
@@ -242,7 +300,7 @@ export default function Home() {
             <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">
               Language Pairs
             </p>
-            <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+            <h2 className="text-3xl font-bold tracking-[-0.02em] text-foreground sm:text-4xl">
               10+ languages supported
             </h2>
           </div>
@@ -268,7 +326,7 @@ export default function Home() {
             <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">
               Pricing
             </p>
-            <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+            <h2 className="text-3xl font-bold tracking-[-0.02em] text-foreground sm:text-4xl">
               Simple, transparent pricing
             </h2>
             <p className="mt-3 text-muted-foreground">
@@ -288,12 +346,12 @@ export default function Home() {
                 Passport & ID
               </div>
               <div className="mb-5 flex items-end gap-1">
-                <span className="text-4xl font-bold tracking-tight text-foreground">$4.39</span>
+                <span className="text-4xl font-extrabold tracking-[-0.02em] text-foreground">$4.39</span>
                 <span className="mb-1 text-sm text-muted-foreground">per document</span>
               </div>
               <ul className="mb-7 space-y-2 text-sm text-muted-foreground">
                 {[
-                  'Passport, ID card, driver\'s license',
+                  "Passport, ID card, driver's license",
                   'AI translation by Claude Sonnet',
                   'Clean PDF with disclaimer',
                   'Delivery in 2–5 minutes',
@@ -306,7 +364,7 @@ export default function Home() {
               </ul>
               <Link
                 href="/auth/signup"
-                className="inline-flex w-full items-center justify-center rounded-md bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-gold-dark"
+                className="inline-flex w-full items-center justify-center rounded-md bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-[background-color,filter,transform] duration-150 hover:bg-gold-dark hover:brightness-110 hover:scale-[1.02]"
               >
                 Start Translating
               </Link>
@@ -318,7 +376,7 @@ export default function Home() {
                 All Other Documents
               </div>
               <div className="mb-5 flex items-end gap-1">
-                <span className="text-4xl font-bold tracking-tight text-foreground">$4.99</span>
+                <span className="text-4xl font-extrabold tracking-[-0.02em] text-foreground">$4.99</span>
                 <span className="mb-1 text-sm text-muted-foreground">per document</span>
               </div>
               <ul className="mb-7 space-y-2 text-sm text-muted-foreground">
@@ -336,7 +394,7 @@ export default function Home() {
               </ul>
               <Link
                 href="/auth/signup"
-                className="inline-flex w-full items-center justify-center rounded-md border border-white/15 bg-white/5 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-white/10"
+                className="inline-flex w-full items-center justify-center rounded-md border border-white/20 bg-white/5 py-2.5 text-sm font-semibold text-foreground transition-[background-color,border-color,transform] duration-150 hover:border-white/50 hover:bg-white/10 hover:scale-[1.02]"
               >
                 Start Translating
               </Link>
@@ -356,7 +414,7 @@ export default function Home() {
             <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">
               Why WPO Translations
             </p>
-            <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+            <h2 className="text-3xl font-bold tracking-[-0.02em] text-foreground sm:text-4xl">
               Built for people navigating bureaucracy abroad
             </h2>
           </div>
@@ -393,14 +451,57 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FAQ */}
+      {/* TRUST PILLARS — Security / Accuracy / Payments */}
       <section className="border-y border-white/10 bg-card px-4 py-24">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-12 text-center">
+            <h2 className="text-3xl font-bold tracking-[-0.02em] text-foreground sm:text-4xl">
+              Built on security, accuracy, and accessibility
+            </h2>
+            <p className="mt-3 text-muted-foreground">
+              Every part of WPO is designed for people who can't afford mistakes with their documents.
+            </p>
+          </div>
+          <div className="grid gap-6 sm:grid-cols-3">
+            <div className="rounded-xl border border-white/10 bg-background/60 p-8">
+              <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10">
+                <Lock className="h-5 w-5 text-primary" />
+              </div>
+              <h3 className="mb-2 text-base font-semibold tracking-[-0.02em] text-foreground">Bank-level security</h3>
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                Files stored on Cloudflare R2 with server-side encryption and TLS in transit. Permanently deleted after 30 days. We never share your documents.
+              </p>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-background/60 p-8">
+              <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10">
+                <Cpu className="h-5 w-5 text-primary" />
+              </div>
+              <h3 className="mb-2 text-base font-semibold tracking-[-0.02em] text-foreground">AI-powered accuracy</h3>
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                Mistral OCR extracts text from scanned documents. Claude Sonnet translates with context awareness. Names, dates, and numbers are preserved exactly as written.
+              </p>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-background/60 p-8">
+              <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10">
+                <Coins className="h-5 w-5 text-primary" />
+              </div>
+              <h3 className="mb-2 text-base font-semibold tracking-[-0.02em] text-foreground">Pay from anywhere</h3>
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                TON blockchain payments require no bank card or account. Works from any country, any wallet. Instant, borderless, and fully trustless.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="px-4 py-24">
         <div className="mx-auto max-w-2xl">
           <div className="mb-14 text-center">
             <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">
               FAQ
             </p>
-            <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+            <h2 className="text-3xl font-bold tracking-[-0.02em] text-foreground sm:text-4xl">
               Frequently asked questions
             </h2>
           </div>
@@ -409,7 +510,7 @@ export default function Home() {
             {FAQ.map(({ q, a }) => (
               <details
                 key={q}
-                className="group rounded-lg border border-white/10 bg-background/60 px-5 py-4"
+                className="group rounded-lg border border-white/10 bg-card px-5 py-4"
               >
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-medium text-foreground">
                   {q}
@@ -423,10 +524,10 @@ export default function Home() {
       </section>
 
       {/* FINAL CTA */}
-      <section className="relative overflow-hidden px-4 py-32 text-center">
+      <section className="relative overflow-hidden border-t border-white/10 px-4 py-32 text-center">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_60%_at_50%_50%,rgba(201,168,76,0.07),transparent)]" />
         <div className="relative mx-auto max-w-xl">
-          <h2 className="mb-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
+          <h2 className="mb-4 text-3xl font-bold tracking-[-0.02em] text-foreground sm:text-4xl lg:text-5xl">
             Ready to translate your document?
           </h2>
           <p className="mb-10 text-muted-foreground">
@@ -434,7 +535,7 @@ export default function Home() {
           </p>
           <Link
             href="/auth/signup"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-10 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-gold-dark"
+            className="inline-flex items-center justify-center rounded-md bg-primary px-10 py-3 text-sm font-semibold text-primary-foreground transition-[background-color,filter,transform] duration-150 hover:bg-gold-dark hover:brightness-110 hover:scale-[1.02]"
           >
             Get Started
           </Link>
