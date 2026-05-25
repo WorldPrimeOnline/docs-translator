@@ -3,8 +3,8 @@ FROM node:22-slim AS builder
 
 WORKDIR /app
 
-COPY package.json ./
-RUN npm install --frozen-lockfile
+COPY package.json package-lock.json ./
+RUN npm ci
 
 COPY tsconfig.json ./
 COPY src ./src
@@ -57,8 +57,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # Copy built files and production deps
-COPY package.json ./
-RUN npm install --omit=dev --frozen-lockfile
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
 
 # Puppeteer downloads Chromium during npm install — tell it where
 ENV PUPPETEER_CACHE_DIR=/app/.cache/puppeteer
