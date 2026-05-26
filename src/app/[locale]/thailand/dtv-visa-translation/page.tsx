@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { setRequestLocale } from 'next-intl/server';
+import { setRequestLocale, getTranslations } from 'next-intl/server';
 import { LandingPage } from '@/components/landing/LandingPage';
 import { thailandDtvConfig } from '@/lib/landing-pages/thailand';
 
@@ -15,5 +15,29 @@ export default async function ThailandDtvPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  return <LandingPage config={thailandDtvConfig} />;
+  const t = await getTranslations('thailandDtv');
+
+  const config = {
+    ...thailandDtvConfig,
+    hero: {
+      ...thailandDtvConfig.hero,
+      badge: t('heroBadge'),
+      headline: t('heroHeadline'),
+      accentLine: t('heroAccentLine'),
+      subheadline: t('heroSubheadline'),
+      ctaLabel: t('heroCtaLabel'),
+      trustLine: t('heroTrustLine'),
+    },
+    faq: {
+      items: t.raw('faq') as Array<{ q: string; a: string }>,
+    },
+    finalCta: {
+      ...thailandDtvConfig.finalCta!,
+      headline: t('finalCtaHeadline'),
+      sub: t('finalCtaSub'),
+      cta: t('finalCtaCta'),
+    },
+  };
+
+  return <LandingPage config={config} />;
 }

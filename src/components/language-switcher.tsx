@@ -68,6 +68,8 @@ export function LanguageSwitcher() {
 
   function switchLocale(code: LangCode) {
     if (code === locale) { setOpen(false); return; }
+    // Persist locale choice so next-intl middleware restores it on every navigation
+    document.cookie = `NEXT_LOCALE=${code}; path=/; max-age=${365 * 24 * 60 * 60}; SameSite=Lax`;
     const newPath = buildLocalePath(pathname, code);
     router.push(newPath);
     setOpen(false);

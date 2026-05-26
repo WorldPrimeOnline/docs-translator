@@ -34,7 +34,22 @@ export default async function DocumentsHubPage({
   setRequestLocale(locale);
 
   const t = await getTranslations();
+  const tHub = await getTranslations('documentsHub');
   const c = documentsHubConfig;
+
+  // Translated hero (overrides English config strings)
+  const hero = {
+    ...c.hero,
+    badge: tHub('heroBadge'),
+    headline: tHub('heroHeadline'),
+    accentLine: tHub('heroAccentLine'),
+    subheadline: tHub('heroSubheadline'),
+    ctaLabel: tHub('heroCtaLabel'),
+    trustLine: tHub('heroTrustLine'),
+  };
+
+  // Translated FAQ items
+  const faqItems = (tHub.raw('faq') as Array<{ q: string; a: string }>);
 
   const DOCUMENT_LINKS = [
     { icon: IdCard,       name: t('documents.passport'), href: '/documents/passport-translation',    price: '$4.39' },
@@ -50,7 +65,7 @@ export default async function DocumentsHubPage({
 
   return (
     <div className="bg-background">
-      <HeroSection {...c.hero} />
+      <HeroSection {...hero} />
 
       <HowItWorksSection />
 
@@ -91,8 +106,15 @@ export default async function DocumentsHubPage({
 
       {c.trust && <TrustSection />}
       {c.pricing && <PricingSection {...c.pricing} />}
-      {c.faq && <FAQSection {...c.faq} />}
-      {c.finalCta && <FinalCTASection {...c.finalCta} ctaHref={c.hero.ctaHref} />}
+      {c.faq && <FAQSection items={faqItems} />}
+      {c.finalCta && (
+        <FinalCTASection
+          headline={tHub('finalCtaHeadline')}
+          sub={tHub('finalCtaSub')}
+          cta={tHub('finalCtaCta')}
+          ctaHref={c.hero.ctaHref}
+        />
+      )}
     </div>
   );
 }

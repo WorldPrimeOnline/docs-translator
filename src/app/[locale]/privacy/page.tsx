@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { setRequestLocale } from 'next-intl/server';
+import { setRequestLocale, getTranslations } from 'next-intl/server';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy — WPO Translations',
@@ -12,15 +12,16 @@ export default async function PrivacyPolicy({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const t = await getTranslations('privacyPage');
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-16">
-      <h1 className="mb-2 text-3xl font-bold tracking-tight">Privacy Policy</h1>
-      <p className="mb-10 text-sm text-muted-foreground">Last updated: January 2026</p>
+      <h1 className="mb-2 text-3xl font-bold tracking-tight">{t('title')}</h1>
+      <p className="mb-10 text-sm text-muted-foreground">{t('lastUpdated')}</p>
 
       <div className="space-y-8 text-sm leading-relaxed">
         <section>
-          <h2 className="mb-3 text-xl font-semibold">1. What We Collect</h2>
+          <h2 className="mb-3 text-xl font-semibold">{t('s1')}</h2>
           <p className="text-muted-foreground">When you use WPO Translations, we collect:</p>
           <ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground">
             <li><strong>Account information</strong>: email address when you sign up</li>
@@ -32,7 +33,7 @@ export default async function PrivacyPolicy({
         </section>
 
         <section>
-          <h2 className="mb-3 text-xl font-semibold">2. How Long We Keep Your Data</h2>
+          <h2 className="mb-3 text-xl font-semibold">{t('s2')}</h2>
           <ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground">
             <li><strong>Uploaded and translated files</strong>: automatically and permanently deleted <strong>30 days</strong> after the translation is completed</li>
             <li><strong>Account information</strong>: retained until you delete your account</li>
@@ -41,7 +42,7 @@ export default async function PrivacyPolicy({
         </section>
 
         <section>
-          <h2 className="mb-3 text-xl font-semibold">3. How We Use Your Data</h2>
+          <h2 className="mb-3 text-xl font-semibold">{t('s3')}</h2>
           <p className="text-muted-foreground">We use your data exclusively to:</p>
           <ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground">
             <li>Provide the translation service you requested</li>
@@ -52,7 +53,7 @@ export default async function PrivacyPolicy({
         </section>
 
         <section>
-          <h2 className="mb-3 text-xl font-semibold">4. No Third-Party Sharing</h2>
+          <h2 className="mb-3 text-xl font-semibold">{t('s4')}</h2>
           <p className="text-muted-foreground">We <strong>never sell, rent, or share</strong> your documents or personal data with third parties for marketing or advertising purposes.</p>
           <p className="mt-3 text-muted-foreground">We use the following sub-processors to operate the service:</p>
           <ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground">
@@ -64,12 +65,12 @@ export default async function PrivacyPolicy({
         </section>
 
         <section>
-          <h2 className="mb-3 text-xl font-semibold">5. Security</h2>
+          <h2 className="mb-3 text-xl font-semibold">{t('s5')}</h2>
           <p className="text-muted-foreground">All files are stored with encryption at rest. Data in transit is protected by TLS. Access to your documents is restricted to your authenticated account only.</p>
         </section>
 
         <section>
-          <h2 className="mb-3 text-xl font-semibold">6. Your Rights</h2>
+          <h2 className="mb-3 text-xl font-semibold">{t('s6')}</h2>
           <p className="text-muted-foreground">You have the right to:</p>
           <ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground">
             <li><strong>Access</strong> the personal data we hold about you</li>
@@ -80,17 +81,17 @@ export default async function PrivacyPolicy({
         </section>
 
         <section>
-          <h2 className="mb-3 text-xl font-semibold">7. Cookies</h2>
+          <h2 className="mb-3 text-xl font-semibold">{t('s7')}</h2>
           <p className="text-muted-foreground">We use only essential cookies required for authentication (managed by Supabase). We do not use tracking, analytics, or advertising cookies.</p>
         </section>
 
         <section>
-          <h2 className="mb-3 text-xl font-semibold">8. Changes to This Policy</h2>
+          <h2 className="mb-3 text-xl font-semibold">{t('s8')}</h2>
           <p className="text-muted-foreground">We may update this Privacy Policy from time to time. We will notify you of significant changes by email or by a notice on the service.</p>
         </section>
 
         <section>
-          <h2 className="mb-3 text-xl font-semibold">9. Contact</h2>
+          <h2 className="mb-3 text-xl font-semibold">{t('s9')}</h2>
           <p className="text-muted-foreground">For privacy-related questions or data requests, please contact us through the website.</p>
         </section>
       </div>
