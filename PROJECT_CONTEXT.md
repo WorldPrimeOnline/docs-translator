@@ -627,9 +627,10 @@ MVP is ready when:
 - ✅ Disclaimer appears on every PDF page
 - ✅ Dashboard shows uploaded and translated documents
 - ✅ Site runs on real domain with SSL (wpotranslations.org)
-- ⬜ User receives result by email (Resend not yet integrated)
-- ⬜ Files auto-delete after 30 days
-- ⬜ Privacy Policy, Terms, and Disclaimer pages exist
+- ✅ User receives result by email (Resend integrated in worker — sends on job completion)
+- ✅ Files auto-delete after 30 days (Vercel cron `/api/cron/cleanup` daily at 02:00 UTC)
+- ✅ Privacy Policy and Terms of Service pages exist (at /privacy and /tos)
+- ✅ Site fully localized — 11 languages (EN, RU, ZH, KO, KK, TJ, UZ, TK, MN, KY, ES)
 - ⬜ Stripe card payment option
 - ⬜ Sentry catches errors
 
@@ -637,7 +638,7 @@ MVP is ready when:
 
 ## 18. CURRENT IMPLEMENTATION STATE
 
-Last updated: 2026-05-25
+Last updated: 2026-05-26
 
 ### Production domain
 - **https://wpotranslations.org** — deployed on Vercel
@@ -676,11 +677,15 @@ Last updated: 2026-05-25
 - `subscriptions` — Basic/Pro plans (status: pending/active/expired/cancelled, documents_used)
 
 ### What is NOT yet implemented
-- Email notifications (Resend)
-- 30-day auto-delete of files
 - Stripe card payments
 - Sentry error monitoring
-- Legal pages (Privacy, Terms, Disclaimer)
+
+### What IS implemented (updated 2026-05-26)
+- Email notifications via Resend (worker sends on job completion)
+- 30-day auto-delete via Vercel cron (`/api/cron/cleanup`, daily 02:00 UTC, secured with CRON_SECRET)
+- Legal pages: Privacy Policy (`/privacy`) and Terms of Service (`/tos`)
+- Full i18n: 11 languages — EN, RU, ZH, KO, KK, TJ, UZ, TK, MN, KY, ES
+- Locale switcher (click-based dropdown) + cookie persistence (`NEXT_LOCALE`)
 
 ---
 

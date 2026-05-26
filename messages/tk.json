@@ -77,7 +77,14 @@
     "feature2": "Ähli resminama görnüşleri",
     "feature3": "Claude tarapyndan emeli intellekt terjimesi",
     "feature4": "Arassa PDF çykary",
-    "translateNow": "Häzir terjime et"
+    "translateNow": "Häzir terjime et",
+    "allDocTypes": "Ähli resminama görnüşleri",
+    "aiTranslation": "Claude arkaly AI terjimesi",
+    "cleanPdf": "Arassa PDF çykyşy",
+    "dayAccess": "30 günlük giriş",
+    "priorityProcessing": "Ileri derejeli gaýtadan işleme",
+    "proBadge": "PRO nyşany",
+    "proDesc": "Ileri derejeli gaýtadan işleme."
   },
   "trust": {
     "label": "NÄME ÜÇIN WPO TERJIMELERI",
@@ -233,9 +240,18 @@
     "finalCtaSub": "Islendik resmi PDF ýükläň we 2–5 minutda arassa terjime alyň.",
     "finalCtaCta": "Resminamy ýükle",
     "faq": [
-      { "q": "Haýsy resminama görnüşlerini goldaýarsyňyz?", "a": "Biz ähli esasy resmi resminama görnüşlerini goldaýarys: pasportlar, ID kartlar, bank beýannamalary, diplomlar, transkriptler, dogluş we nikah şahadatnamalary, zähmet şertnamalary, lukmançylyk ýazgylary, polisiýa arassaçylyk şahadatnamalary, sürüjilik şahadatnamalary we umumy resmi resminamalar." },
-      { "q": "Haýsy diller goldanýar?", "a": "Biz iňlis, rus, taý, hytaý, koreý, ýapon, nemes, fransuz, ispan we arap dillerini öz içine alýan 10+ dili goldaýarys. Çeşme dil awtomatik anyklanylýar." },
-      { "q": "Terjimeleriňiz sertifikatlanandyrmy ýa-da notarius tassyklananmy?", "a": "Ýok. Ähli terjimeler resmi däl we diňe maglumat üçin. Her terjime edilen sahypada görünýän duýduryş pikirlendirme teksti peýda bolýar. Sertifikatlanan ýa-da notarius tassyklanan terjimeler litsenzirlenedilen terjimeçi ýa-da notariusdan alynmalydyr." }
+      {
+        "q": "Haýsy resminama görnüşlerini goldaýarsyňyz?",
+        "a": "Biz ähli esasy resmi resminama görnüşlerini goldaýarys: pasportlar, ID kartlar, bank beýannamalary, diplomlar, transkriptler, dogluş we nikah şahadatnamalary, zähmet şertnamalary, lukmançylyk ýazgylary, polisiýa arassaçylyk şahadatnamalary, sürüjilik şahadatnamalary we umumy resmi resminamalar."
+      },
+      {
+        "q": "Haýsy diller goldanýar?",
+        "a": "Biz iňlis, rus, taý, hytaý, koreý, ýapon, nemes, fransuz, ispan we arap dillerini öz içine alýan 10+ dili goldaýarys. Çeşme dil awtomatik anyklanylýar."
+      },
+      {
+        "q": "Terjimeleriňiz sertifikatlanandyrmy ýa-da notarius tassyklananmy?",
+        "a": "Ýok. Ähli terjimeler resmi däl we diňe maglumat üçin. Her terjime edilen sahypada görünýän duýduryş pikirlendirme teksti peýda bolýar. Sertifikatlanan ýa-da notarius tassyklanan terjimeler litsenzirlenedilen terjimeçi ýa-da notariusdan alynmalydyr."
+      }
     ]
   },
   "kazakhstan": {
@@ -250,11 +266,26 @@
     "finalCtaSub": "PDF ýükläň we 2–5 minutda arassa terjime edilen görnüşi alyň.",
     "finalCtaCta": "Terjimäni başla",
     "faq": [
-      { "q": "Notariusa barmazdan ozal bu terjimäni ulanyp bilerinmi?", "a": "Hawa. Köpüsi notariuslar we sertifikatlanan terjimeçiler sertifikatlanan görnüşi tamamlamazdan ozal resmi däl terjime eskizini gözden geçirýärler. Arassa, gurluşly WPO terjimesi bu gürrüňi çaltlaşdyryp we soňky sertifikatlanan resminamadaky ýalňyşlyklary azaldyp biler." },
-      { "q": "Gazagystanly resminamalar üçin haýsy dilleri goldaýarsyňyz?", "a": "Biz esasy jübütler hökmünde rus ↔ iňlis we iňlis → rusy goldaýarys. Gazak ↔ rus we gazak → iňlis hem goldanýar. Bular Gazagystanly resminamalar üçin halkara maqsatlarda esasy iş akymlaryny öz içine alýar." },
-      { "q": "Bu terjime daşary ýurt uniwersitetleri tarapyndan kabul edilýärmi?", "a": "Daşary ýurt uniwersitetleri adatda sertifikatlanan ýa-da notarius tassyklanan terjimeçileri talap edýär. WPO arza taýýarlyk tapgyrynda, bilim maslahatçylary tarapyndan gözden geçirmek üçin ýa-da sertifikatlanan terjimeçi üçin salgylanma eskizi hökmünde ulanylyp bilinýän resmi däl terjimeler berýär." },
-      { "q": "Notariuslar we wiza agentleri müşderileriň adyndan bu hyzmaty ulanyp bilerlermi?", "a": "Hawa. Islendik ulanyjy müşderiniň resminamasyny ýükläp, gaýtadan işläp we terjime edilen PDF alyp biler. Agentlikler üçin hyzmatdaş dolandyryş paneli geljekdäki çykarylyş üçin meýilleşdirilýär." },
-      { "q": "Apostil näme we terjime oňa täsir edýärmi?", "a": "Apostil — hükümet edarasy tarapyndan bir resminamada ulanylýan resmi tassyklama möhüri. Apostil asyl resminama degişli. Terjime — apostil alynandan soň köplenç talap edilýän aýratyn ädim. WPO terjime ädimini üpjün edýär; apostil degişli hükümet edarasyndan alynmalydyr." }
+      {
+        "q": "Notariusa barmazdan ozal bu terjimäni ulanyp bilerinmi?",
+        "a": "Hawa. Köpüsi notariuslar we sertifikatlanan terjimeçiler sertifikatlanan görnüşi tamamlamazdan ozal resmi däl terjime eskizini gözden geçirýärler. Arassa, gurluşly WPO terjimesi bu gürrüňi çaltlaşdyryp we soňky sertifikatlanan resminamadaky ýalňyşlyklary azaldyp biler."
+      },
+      {
+        "q": "Gazagystanly resminamalar üçin haýsy dilleri goldaýarsyňyz?",
+        "a": "Biz esasy jübütler hökmünde rus ↔ iňlis we iňlis → rusy goldaýarys. Gazak ↔ rus we gazak → iňlis hem goldanýar. Bular Gazagystanly resminamalar üçin halkara maqsatlarda esasy iş akymlaryny öz içine alýar."
+      },
+      {
+        "q": "Bu terjime daşary ýurt uniwersitetleri tarapyndan kabul edilýärmi?",
+        "a": "Daşary ýurt uniwersitetleri adatda sertifikatlanan ýa-da notarius tassyklanan terjimeçileri talap edýär. WPO arza taýýarlyk tapgyrynda, bilim maslahatçylary tarapyndan gözden geçirmek üçin ýa-da sertifikatlanan terjimeçi üçin salgylanma eskizi hökmünde ulanylyp bilinýän resmi däl terjimeler berýär."
+      },
+      {
+        "q": "Notariuslar we wiza agentleri müşderileriň adyndan bu hyzmaty ulanyp bilerlermi?",
+        "a": "Hawa. Islendik ulanyjy müşderiniň resminamasyny ýükläp, gaýtadan işläp we terjime edilen PDF alyp biler. Agentlikler üçin hyzmatdaş dolandyryş paneli geljekdäki çykarylyş üçin meýilleşdirilýär."
+      },
+      {
+        "q": "Apostil näme we terjime oňa täsir edýärmi?",
+        "a": "Apostil — hükümet edarasy tarapyndan bir resminamada ulanylýan resmi tassyklama möhüri. Apostil asyl resminama degişli. Terjime — apostil alynandan soň köplenç talap edilýän aýratyn ädim. WPO terjime ädimini üpjün edýär; apostil degişli hükümet edarasyndan alynmalydyr."
+      }
     ]
   },
   "kazakhstanNotarized": {
@@ -268,10 +299,22 @@
     "finalCtaSub": "Resminamaňyzy ýükläň we 2–5 minutda gurluşly terjime alyň. $4.39-dan.",
     "finalCtaCta": "Terjimäni başla",
     "faq": [
-      { "q": "Bu sertifikatlanan ýa-da notarius tassyklanan terjimemi?", "a": "Ýok. WPO maglumat we taýýarlyk maksatly resmi däl terjime eskizlerini berýär. Sertifikatlanan ýa-da notarius tassyklanan terjime litsenzirlenedilen terjimeçi ýa-da notarius tarapyndan taýarlanmalydyr. WPO eskizleri bu prosese girip biler, ýöne ony çalşyp bilmez." },
-      { "q": "Notariusym WPO terjime eskizini başlangyç nokat hökmünde kabul edermi?", "a": "Köpüsi notariuslar we sertifikatlanan terjimeçiler öňünden taýarlanan eskizden işlemäge taýyndyr. Bu olaryň işini çaltlaşdyrýar we ýalňyşlyk ähtimallygyny azaldýar. Emma ähli notariuslar daşky eskizleri kabul etmeýär — bu iş akymyny ulanmazdan ozal öz notariusynyz bilen tassyklaň." },
-      { "q": "Haýsy diller goldanýar?", "a": "Rus ↔ iňlis, gazak → iňlis we gazak → rus. Bular halkara maqsatlar üçin Gazagystanda taýarlanan resminamalar üçin esasy dil jübütlerini öz içine alýar." },
-      { "q": "Notarius ýa-da migrasiýa maslahatçysy hökmünde bu hizmaty ulanyp bilerinmi?", "a": "Hawa. Müşderi resminamalaryny ýükläp, olaryň adyndan terjime edilen eskizleri alyp bilersiňiz. Aýratyn hyzmatdaş iş akymy işlenip düzülýär." }
+      {
+        "q": "Bu sertifikatlanan ýa-da notarius tassyklanan terjimemi?",
+        "a": "Ýok. WPO maglumat we taýýarlyk maksatly resmi däl terjime eskizlerini berýär. Sertifikatlanan ýa-da notarius tassyklanan terjime litsenzirlenedilen terjimeçi ýa-da notarius tarapyndan taýarlanmalydyr. WPO eskizleri bu prosese girip biler, ýöne ony çalşyp bilmez."
+      },
+      {
+        "q": "Notariusym WPO terjime eskizini başlangyç nokat hökmünde kabul edermi?",
+        "a": "Köpüsi notariuslar we sertifikatlanan terjimeçiler öňünden taýarlanan eskizden işlemäge taýyndyr. Bu olaryň işini çaltlaşdyrýar we ýalňyşlyk ähtimallygyny azaldýar. Emma ähli notariuslar daşky eskizleri kabul etmeýär — bu iş akymyny ulanmazdan ozal öz notariusynyz bilen tassyklaň."
+      },
+      {
+        "q": "Haýsy diller goldanýar?",
+        "a": "Rus ↔ iňlis, gazak → iňlis we gazak → rus. Bular halkara maqsatlar üçin Gazagystanda taýarlanan resminamalar üçin esasy dil jübütlerini öz içine alýar."
+      },
+      {
+        "q": "Notarius ýa-da migrasiýa maslahatçysy hökmünde bu hizmaty ulanyp bilerinmi?",
+        "a": "Hawa. Müşderi resminamalaryny ýükläp, olaryň adyndan terjime edilen eskizleri alyp bilersiňiz. Aýratyn hyzmatdaş iş akymy işlenip düzülýär."
+      }
     ]
   },
   "kazakhstanUniversity": {
@@ -285,10 +328,22 @@
     "finalCtaSub": "Diplomyňyzy, transkriptiňizi ýa-da akademiki şahadatnamaňyzy ýükläň we birnäçe minutda arassa iňlis terjimesini alyň.",
     "finalCtaCta": "Akademiki resminamalarymy terjime et",
     "faq": [
-      { "q": "Daşary ýurt uniwersitetleri WPO terjimesini kabul edermi?", "a": "Talap uniwersitete we ýurda baglydyr. Köp uniwersitetler başlangyç arza gözden geçiriş üçin resmi däl terjimelerini kabul edýär, sertifikatlanan terjimeler diňe kabul edilenden soň ýa-da hasaba alynmak wagtynda talap edilýär. Maksat uniwersitetiňiz üçin ýörite talaplary elmydama barlaň." },
-      { "q": "\"Mekdebi tamamlama şahadatnamasy\" (Attestat) näme?", "a": "Attestat — Gazagystanyň orta mekdebi tamamlama şahadatnamasy. Ähli dersler boýunça soňky bahalary hasaba alýar. Biz ähli dersleriň atlaryny, bahalary we hünär jikme-jikliklerini öz içine alýan doly resminamy arassa iňlisce terjime edýäris." },
-      { "q": "Baha skalasyny we bahalama ulgamyny saklap galýaňyzmy?", "a": "Hawa. Asyl bahalary görkezilişi ýaly saklap galýarys (meselem, 5 ballyk ýa-da 100 ballyk skala) we terjime edilen resminamada bahalama ulgamyny belleýäris. Bahalary öwürmeýäris ýa-da hiç hili ýorum goşmaýarys." },
-      { "q": "IELTS, TOEFL ýa-da tasdyknama bahalama maksatly resminamalary terjime edip bilersiňizmi?", "a": "WPO terjimeçileri resmi däl. Olar resmi bal habar bermek üçin IELTS/TOEFL administratiw edaralary tarapyndan kabul edilmeýär. Emma olar öz taýýarlyk, resmi däl arza gözden geçiriş ýa-da sertifikatlanan terjime iş akymyna giriş üçin ulanylyp bilner." }
+      {
+        "q": "Daşary ýurt uniwersitetleri WPO terjimesini kabul edermi?",
+        "a": "Talap uniwersitete we ýurda baglydyr. Köp uniwersitetler başlangyç arza gözden geçiriş üçin resmi däl terjimelerini kabul edýär, sertifikatlanan terjimeler diňe kabul edilenden soň ýa-da hasaba alynmak wagtynda talap edilýär. Maksat uniwersitetiňiz üçin ýörite talaplary elmydama barlaň."
+      },
+      {
+        "q": "\"Mekdebi tamamlama şahadatnamasy\" (Attestat) näme?",
+        "a": "Attestat — Gazagystanyň orta mekdebi tamamlama şahadatnamasy. Ähli dersler boýunça soňky bahalary hasaba alýar. Biz ähli dersleriň atlaryny, bahalary we hünär jikme-jikliklerini öz içine alýan doly resminamy arassa iňlisce terjime edýäris."
+      },
+      {
+        "q": "Baha skalasyny we bahalama ulgamyny saklap galýaňyzmy?",
+        "a": "Hawa. Asyl bahalary görkezilişi ýaly saklap galýarys (meselem, 5 ballyk ýa-da 100 ballyk skala) we terjime edilen resminamada bahalama ulgamyny belleýäris. Bahalary öwürmeýäris ýa-da hiç hili ýorum goşmaýarys."
+      },
+      {
+        "q": "IELTS, TOEFL ýa-da tasdyknama bahalama maksatly resminamalary terjime edip bilersiňizmi?",
+        "a": "WPO terjimeçileri resmi däl. Olar resmi bal habar bermek üçin IELTS/TOEFL administratiw edaralary tarapyndan kabul edilmeýär. Emma olar öz taýýarlyk, resmi däl arza gözden geçiriş ýa-da sertifikatlanan terjime iş akymyna giriş üçin ulanylyp bilner."
+      }
     ]
   },
   "thailand": {
@@ -303,12 +358,30 @@
     "finalCtaSub": "PDF ýükläň we birnäçe minutda arassa terjime edilen görnüşi alyň. $4.39-dan.",
     "finalCtaCta": "Terjimäni başla",
     "faq": [
-      { "q": "Bu terjimäni DTV wiza arzasy üçin ulanyp bilerinmi?", "a": "Terjimelerimiziň diňe maglumat we resmi däl maksatly. Olar sertifikatlanan ýa-da notarius tassyklanan terjimeler däl. DTV wiza üçin Tailand immigrasiýasy adatda asyl nusga bilen birlikde terjimeleri talap edýär. Öz konsullaryňyz ýa-da immigrasiýa agentiňiz bilen haýsy derejeli terjimäniň talap edilýändigini tassyklamagy maslahat berýäris." },
-      { "q": "Tailand üçin haýsy dil jübütlerini goldaýarsyňyz?", "a": "Biz rus → iňlis, iňlis → rus, rus → taý, taý → iňlis we iňlis → taýy goldaýarys. Bular Tailanddaky rus dilli ekspat we sanly göçüp-gonujylar üçin iň köp ýaýran iş akymlaryny öz içine alýar." },
-      { "q": "Terjime edilen resminamamy nähili tiz alýaryn?", "a": "Köpüsi resminamalar tölegden soň 2–5 minutda taýyndyr. Uzyn resminamalar (10+ sahypa) 15 minuta çenli alyp biler. E-poçtaňyza ýükläp almak salgysy alarsyňyz we dolandyryş paneliňizden hem ýükläp alyp bilersiňiz." },
-      { "q": "Bu resmi ýa-da sertifikatlanan terjimemi?", "a": "Ýok. WPO Terjimeleri diňe maglumat maksatly resmi däl terjimeler berýär. Terjime edilen PDF her sahypada görünýän duýduryş öz içine alýar. Tailand hükümet edaralary tarapyndan kabul edilýän resmi sertifikatlanan terjimeler üçin sertifikatlanan terjimeçi ýa-da notarius tassyklanan terjime hyzmatyna ýüz tutmaly bolarsyňyz." },
-      { "q": "Terjime edilen PDF-e näme girizilýär?", "a": "Terjime edilen PDF ähli görünýän tekstiň arassa terjimesini öz içine alýar, şahsy atlar transliterasiýa edilýär (terjime edilmeýär), sanlar, seneler we resminama sanlary edil görkezilişi ýaly saklanýar. Her sahypada duýduryş altybasy peýda bolýar." },
-      { "q": "Resminamam nädip saklanýar we goralýar?", "a": "Fayllar şifrelenýär we Cloudflare R2 saklaýjyda saklanýar. Olar 30 günden soň awtomatik pozulýar. Biz resminamalaryňyzy üçünji taraplar bilen paýlaşmaýarys." }
+      {
+        "q": "Bu terjimäni DTV wiza arzasy üçin ulanyp bilerinmi?",
+        "a": "Terjimelerimiziň diňe maglumat we resmi däl maksatly. Olar sertifikatlanan ýa-da notarius tassyklanan terjimeler däl. DTV wiza üçin Tailand immigrasiýasy adatda asyl nusga bilen birlikde terjimeleri talap edýär. Öz konsullaryňyz ýa-da immigrasiýa agentiňiz bilen haýsy derejeli terjimäniň talap edilýändigini tassyklamagy maslahat berýäris."
+      },
+      {
+        "q": "Tailand üçin haýsy dil jübütlerini goldaýarsyňyz?",
+        "a": "Biz rus → iňlis, iňlis → rus, rus → taý, taý → iňlis we iňlis → taýy goldaýarys. Bular Tailanddaky rus dilli ekspat we sanly göçüp-gonujylar üçin iň köp ýaýran iş akymlaryny öz içine alýar."
+      },
+      {
+        "q": "Terjime edilen resminamamy nähili tiz alýaryn?",
+        "a": "Köpüsi resminamalar tölegden soň 2–5 minutda taýyndyr. Uzyn resminamalar (10+ sahypa) 15 minuta çenli alyp biler. E-poçtaňyza ýükläp almak salgysy alarsyňyz we dolandyryş paneliňizden hem ýükläp alyp bilersiňiz."
+      },
+      {
+        "q": "Bu resmi ýa-da sertifikatlanan terjimemi?",
+        "a": "Ýok. WPO Terjimeleri diňe maglumat maksatly resmi däl terjimeler berýär. Terjime edilen PDF her sahypada görünýän duýduryş öz içine alýar. Tailand hükümet edaralary tarapyndan kabul edilýän resmi sertifikatlanan terjimeler üçin sertifikatlanan terjimeçi ýa-da notarius tassyklanan terjime hyzmatyna ýüz tutmaly bolarsyňyz."
+      },
+      {
+        "q": "Terjime edilen PDF-e näme girizilýär?",
+        "a": "Terjime edilen PDF ähli görünýän tekstiň arassa terjimesini öz içine alýar, şahsy atlar transliterasiýa edilýär (terjime edilmeýär), sanlar, seneler we resminama sanlary edil görkezilişi ýaly saklanýar. Her sahypada duýduryş altybasy peýda bolýar."
+      },
+      {
+        "q": "Resminamam nädip saklanýar we goralýar?",
+        "a": "Fayllar şifrelenýär we Cloudflare R2 saklaýjyda saklanýar. Olar 30 günden soň awtomatik pozulýar. Biz resminamalaryňyzy üçünji taraplar bilen paýlaşmaýarys."
+      }
     ]
   },
   "thailandDtv": {
@@ -322,11 +395,26 @@
     "finalCtaSub": "Bank beýannamalaryny, iş hatlaryny we girdeji isbatlaryny birnäçe minutda terjime ediň.",
     "finalCtaCta": "Terjimäni başla",
     "faq": [
-      { "q": "DTV arzasy üçin haýsy resminamalar gerek?", "a": "Tailand Sanly Göçüji Wizasy (DTV) adatda şulary talap edýär: ýeterli mablag görkezýän 6 aýlyk bank beýannamalary, girdeji ýa-da iş subut edişi, saglygy goraýyş ätiýaçlygy resminamalary, azyndan 18 aý möhleti bolan pasport we ýaşaýyş ýeri subut edişi. Talap konsullyga baglylykda üýtgäp biler — elmydama göni tassyklaň." },
-      { "q": "Resminamalarym taý ýa-da iňlisce terjime edilmelimi?", "a": "Daşary ýurtlardaky köpüsi taý konsullygy iňlis dilinde terjimeleri kabul edýär. Käbirleri Tailanddaky Tailand immigrasiýa edarasynda arza berýän bolsaňyz, taý dilinde terjime talap edip biler. Biz hem taý hem-de iňlisi maksat dili hökmünde goldaýarys." },
-      { "q": "DTV üçin iň az girdeji talaby näme?", "a": "2024–2025 ýyl ýagdaýy boýunça DTV daşary ýurt bank hasabynda azyndan 500,000 THB (takmynan $14,000) ýa-da deňeçer girdeji subut edişi talap edýär. Arza bermazdan ozal resmi Tailand immigrasiýa web sahypasynda häzirki talaplary barlaň." },
-      { "q": "Tailand immigrasiýasy terjimaňyzy kabul edermi?", "a": "WPO resmi däl, maglumatly terjimeler berýär. Olar sertifikatlanan ýa-da notarius tassyklanan däl. Köpüsi arza beriji olary resminama taýýarlygyny tassyklaýan wiza agenti ýa-da immigrasiýa maslahatçysy tarapyndan gözden geçirilýän toplum hökmünde ulanýar. Resmi talaplar boýunça elmydama wiza agentiňiz ýa-da konsulluk bilen maslahatlaşyň." },
-      { "q": "Birnäçe resminamany bir wagtyň özünde terjime edip bilerinmi?", "a": "Häzirki wagtda her resminama aýratyn ýüklenýär we terjime edilýär. Köp resminamy ýüklemek ýol kartamyzda. Dolandyryş paneliňiz arkaly birnäçe resminamany yzygiderli terjime edip bilersiňiz." }
+      {
+        "q": "DTV arzasy üçin haýsy resminamalar gerek?",
+        "a": "Tailand Sanly Göçüji Wizasy (DTV) adatda şulary talap edýär: ýeterli mablag görkezýän 6 aýlyk bank beýannamalary, girdeji ýa-da iş subut edişi, saglygy goraýyş ätiýaçlygy resminamalary, azyndan 18 aý möhleti bolan pasport we ýaşaýyş ýeri subut edişi. Talap konsullyga baglylykda üýtgäp biler — elmydama göni tassyklaň."
+      },
+      {
+        "q": "Resminamalarym taý ýa-da iňlisce terjime edilmelimi?",
+        "a": "Daşary ýurtlardaky köpüsi taý konsullygy iňlis dilinde terjimeleri kabul edýär. Käbirleri Tailanddaky Tailand immigrasiýa edarasynda arza berýän bolsaňyz, taý dilinde terjime talap edip biler. Biz hem taý hem-de iňlisi maksat dili hökmünde goldaýarys."
+      },
+      {
+        "q": "DTV üçin iň az girdeji talaby näme?",
+        "a": "2024–2025 ýyl ýagdaýy boýunça DTV daşary ýurt bank hasabynda azyndan 500,000 THB (takmynan $14,000) ýa-da deňeçer girdeji subut edişi talap edýär. Arza bermazdan ozal resmi Tailand immigrasiýa web sahypasynda häzirki talaplary barlaň."
+      },
+      {
+        "q": "Tailand immigrasiýasy terjimaňyzy kabul edermi?",
+        "a": "WPO resmi däl, maglumatly terjimeler berýär. Olar sertifikatlanan ýa-da notarius tassyklanan däl. Köpüsi arza beriji olary resminama taýýarlygyny tassyklaýan wiza agenti ýa-da immigrasiýa maslahatçysy tarapyndan gözden geçirilýän toplum hökmünde ulanýar. Resmi talaplar boýunça elmydama wiza agentiňiz ýa-da konsulluk bilen maslahatlaşyň."
+      },
+      {
+        "q": "Birnäçe resminamany bir wagtyň özünde terjime edip bilerinmi?",
+        "a": "Häzirki wagtda her resminama aýratyn ýüklenýär we terjime edilýär. Köp resminamy ýüklemek ýol kartamyzda. Dolandyryş paneliňiz arkaly birnäçe resminamany yzygiderli terjime edip bilersiňiz."
+      }
     ]
   },
   "thailandImmigration": {
@@ -340,10 +428,22 @@
     "finalCtaSub": "PDF ýükläň we birnäçe minutda arassa terjime edilen görnüşi alyň.",
     "finalCtaCta": "Terjimäni başla",
     "faq": [
-      { "q": "Tailand immigrasiýa edaralary üçin sertifikatlanan terjime gerekmi?", "a": "Talap wiza görnüşine we immigrasiýa edarasyna baglydyr. Köp immigrasiýa wezipeleri — goldaw resminamasy tabşyrmak hem — asyl nusga bilen birlikde resmi däl terjime nusga bilen ýerine ýetirilip bilner. Sud önümçilikleri ýa-da resmi borçly sertifikatlaşdyrma üçin sertifikatlanan terjimeçi talap edilýär. Elmydama ýüz tutýan edaraňyz bilen tassyklaň." },
-      { "q": "Tailand immigrasiýa resminamalary üçin haýsy dil jübütlerini goldaýarsyňyz?", "a": "Biz rus ↔ iňlis, iňlis ↔ taý we rus → taýy goldaýarys. Bu Tailand immigrasiýasy bilen işleýän rus dilli ekspat we sanly göçüp-gonujylar üçin gerekli esasy dil birleşimlerini öz içine alýar." },
-      { "q": "Taý äriniň/aýalynyň wiza arzasy üçin nikah şahadatnamasyny terjime edip bilersiňizmi?", "a": "Hawa, nikah şahadatnamalaryny rus ýa-da iňlisden taý ýa-da iňlisce terjime edip bileris. Bu terjimeler resmi däl we maglumat üçin. Nikah şahadatnamasyny öz içine alýan resmi wiza arzalary üçin notarius tassyklanan terjimaň talap edilýändigini tassyklaň." },
-      { "q": "Eltip bermek nähili çalt?", "a": "Köpüsi resminamalar üçin 2–5 minut. Polisiýa arassaçylyk şahadatnamalary we köp sahypaly bank beýannamalary 10 minuta çenli alyp biler. Tamamlanandan soň derrew e-poçta arkaly ýükläp almak baglanyşygyny alarsyňyz." }
+      {
+        "q": "Tailand immigrasiýa edaralary üçin sertifikatlanan terjime gerekmi?",
+        "a": "Talap wiza görnüşine we immigrasiýa edarasyna baglydyr. Köp immigrasiýa wezipeleri — goldaw resminamasy tabşyrmak hem — asyl nusga bilen birlikde resmi däl terjime nusga bilen ýerine ýetirilip bilner. Sud önümçilikleri ýa-da resmi borçly sertifikatlaşdyrma üçin sertifikatlanan terjimeçi talap edilýär. Elmydama ýüz tutýan edaraňyz bilen tassyklaň."
+      },
+      {
+        "q": "Tailand immigrasiýa resminamalary üçin haýsy dil jübütlerini goldaýarsyňyz?",
+        "a": "Biz rus ↔ iňlis, iňlis ↔ taý we rus → taýy goldaýarys. Bu Tailand immigrasiýasy bilen işleýän rus dilli ekspat we sanly göçüp-gonujylar üçin gerekli esasy dil birleşimlerini öz içine alýar."
+      },
+      {
+        "q": "Taý äriniň/aýalynyň wiza arzasy üçin nikah şahadatnamasyny terjime edip bilersiňizmi?",
+        "a": "Hawa, nikah şahadatnamalaryny rus ýa-da iňlisden taý ýa-da iňlisce terjime edip bileris. Bu terjimeler resmi däl we maglumat üçin. Nikah şahadatnamasyny öz içine alýan resmi wiza arzalary üçin notarius tassyklanan terjimaň talap edilýändigini tassyklaň."
+      },
+      {
+        "q": "Eltip bermek nähili çalt?",
+        "a": "Köpüsi resminamalar üçin 2–5 minut. Polisiýa arassaçylyk şahadatnamalary we köp sahypaly bank beýannamalary 10 minuta çenli alyp biler. Tamamlanandan soň derrew e-poçta arkaly ýükläp almak baglanyşygyny alarsyňyz."
+      }
     ]
   },
   "passportTranslation": {
@@ -357,11 +457,26 @@
     "finalCtaSub": "Pasport skaniňizi ýükläň we birnäçe minutda arassa, gurluşly iňlis terjimesini alyň.",
     "finalCtaCta": "Pasportymi terjime et",
     "faq": [
-      { "q": "Terjimä haýsy pasport maglumatlary girizilýär?", "a": "Pasport maglumatlar sahypasynda ähli görünýän meýdanlary terjime edýäris: familiýa, at(lar), milleti, doglan senesi, doglan ýeri, jynsy, berlen senesi, möhleti, pasport sany, berýän organ we MRZ zola mazmunlary. Şahsy atlar maksat skriptine transliterasiýa edilýär." },
-      { "q": "Pasport haýsy dillere terjime edilip bilner?", "a": "Biz iňlis, rus, taý, hytaý, koreý, ýapon, nemes, fransuz, ispan we arap dillerini öz içine alýan 10+ maksat dili goldaýarys. Çeşme dil awtomatik anyklanylýar ýa-da el bilen görkezilip bilner." },
-      { "q": "Terjime wiza arzalary üçin kabul edilýärmi?", "a": "Terjimelerimiziň resmi däl we maglumat üçin. Käbir konsullylar asyl pasport bilen birlikde resmi däl terjime nusga kabul edýär. Beýlekileri sertifikatlanan terjimeler talap edýär. Elmydama öz ilçihanañyz ýa-da konsullygyňyz bilen haýsy derejeli terjimaň talap edilýändigini tassyklaň." },
-      { "q": "Atlar terjimede nädip işlenýär?", "a": "Şahsy atlar pasport görnüşli resminamalar üçin ICAO 9303 standartlaryna laýyklykda we beýleki skriptler üçin standart transliterasiýa düzgünlerine görä transliterasiýa edilýär. Atlar hiç wagt semantik taýdan terjime edilmeýär." },
-      { "q": "Pasport maglumatlarym howpsuzmy?", "a": "Resminamaňyz şifrelenmedik Cloudflare R2 saklaýjyda işlenýär we saklanýar. Ol 30 günden soň awtomatik pozulýar. Pasportyňyzdaky şahsy maglumatlary terjimäni döretmekden başga maksatlar üçin saklamaýarys, paýlaşmaýarys ýa-da ulanmaýarys." }
+      {
+        "q": "Terjimä haýsy pasport maglumatlary girizilýär?",
+        "a": "Pasport maglumatlar sahypasynda ähli görünýän meýdanlary terjime edýäris: familiýa, at(lar), milleti, doglan senesi, doglan ýeri, jynsy, berlen senesi, möhleti, pasport sany, berýän organ we MRZ zola mazmunlary. Şahsy atlar maksat skriptine transliterasiýa edilýär."
+      },
+      {
+        "q": "Pasport haýsy dillere terjime edilip bilner?",
+        "a": "Biz iňlis, rus, taý, hytaý, koreý, ýapon, nemes, fransuz, ispan we arap dillerini öz içine alýan 10+ maksat dili goldaýarys. Çeşme dil awtomatik anyklanylýar ýa-da el bilen görkezilip bilner."
+      },
+      {
+        "q": "Terjime wiza arzalary üçin kabul edilýärmi?",
+        "a": "Terjimelerimiziň resmi däl we maglumat üçin. Käbir konsullylar asyl pasport bilen birlikde resmi däl terjime nusga kabul edýär. Beýlekileri sertifikatlanan terjimeler talap edýär. Elmydama öz ilçihanañyz ýa-da konsullygyňyz bilen haýsy derejeli terjimaň talap edilýändigini tassyklaň."
+      },
+      {
+        "q": "Atlar terjimede nädip işlenýär?",
+        "a": "Şahsy atlar pasport görnüşli resminamalar üçin ICAO 9303 standartlaryna laýyklykda we beýleki skriptler üçin standart transliterasiýa düzgünlerine görä transliterasiýa edilýär. Atlar hiç wagt semantik taýdan terjime edilmeýär."
+      },
+      {
+        "q": "Pasport maglumatlarym howpsuzmy?",
+        "a": "Resminamaňyz şifrelenmedik Cloudflare R2 saklaýjyda işlenýär we saklanýar. Ol 30 günden soň awtomatik pozulýar. Pasportyňyzdaky şahsy maglumatlary terjimäni döretmekden başga maksatlar üçin saklamaýarys, paýlaşmaýarys ýa-da ulanmaýarys."
+      }
     ]
   },
   "diplomaTranslation": {
@@ -375,11 +490,26 @@
     "finalCtaSub": "Akademiki ygtybarnama ýükläň we birnäçe minutda arassa, gurluşly iňlis terjimesini alyň.",
     "finalCtaCta": "Diplomymi terjime et",
     "faq": [
-      { "q": "Terjimaňyz WES ýa-da beýleki ygtybarnama bahalama üçin kabul edilýärmi?", "a": "WES (World Education Services) we köpüsi ygtybarnama bahalama edaralary sertifikatlanan ýa-da notarius tassyklanan terjimeler talap edýär. WPO taýýarlyk döwründe, bilim maslahatçylary tarapyndan ýa-da sertifikatlanan terjime iş akymyna giriş hökmünde ulanylyp bilinýän resmi däl terjimeler berýär. Tabşyrmazdan ozal resmi talaplary barlaň." },
-      { "q": "Diplom goşundylaryny we baha düşündirişlerini terjime edýärsiňizmi?", "a": "Hawa. Diplom goşundylary, baha skalasy düşündirişleri we goşulan akademiki transkriptler resminamy bir bölegi hökmünde terjime edilýär. Ders atlary standart akademiki iňlis terminologiýasy ulanylyp terjime edilýär." },
-      { "q": "Diplom terjimesi üçin haýsy dilleri goldaýarsyňyz?", "a": "Biz 10+ dili goldaýarys. Diplom terjimesi üçin iň ýaýran jübütler: rus → iňlis, gazak → iňlis, taý → iňlis we hytaý → iňlis. Çeşme dil awtomatik anyklanylýar." },
-      { "q": "Dereje atlary we akademiki bahalary nädip işleýärsiňiz?", "a": "Dereje atlary gerek ýerinde düşündiriş konteksti bilen terjime edilýär (meselem, \"Hünärmen derejesi (5 ýyllyk birleşdirilen maksatnama)\"). Bahalar öwürmezden asyl skala boýunça saklanýar." },
-      { "q": "Bunu hünärmen litsenzirlemesi arzasy üçin ulanyp bilerinmi?", "a": "Köpüsi litsenzirlemesi geňeşleri daşary ýurt hünärmenleriniň sertifikatlanan ýa-da notarius tassyklanan terjimelerini talap edýär. WPO taýýarlyk we salgylanma üçin resmi däl terjimeler berýär. Litsenzirlemesi geňeşiňiz bilen sertifikatlaşdyrma talaplaryny tassyklaň." }
+      {
+        "q": "Terjimaňyz WES ýa-da beýleki ygtybarnama bahalama üçin kabul edilýärmi?",
+        "a": "WES (World Education Services) we köpüsi ygtybarnama bahalama edaralary sertifikatlanan ýa-da notarius tassyklanan terjimeler talap edýär. WPO taýýarlyk döwründe, bilim maslahatçylary tarapyndan ýa-da sertifikatlanan terjime iş akymyna giriş hökmünde ulanylyp bilinýän resmi däl terjimeler berýär. Tabşyrmazdan ozal resmi talaplary barlaň."
+      },
+      {
+        "q": "Diplom goşundylaryny we baha düşündirişlerini terjime edýärsiňizmi?",
+        "a": "Hawa. Diplom goşundylary, baha skalasy düşündirişleri we goşulan akademiki transkriptler resminamy bir bölegi hökmünde terjime edilýär. Ders atlary standart akademiki iňlis terminologiýasy ulanylyp terjime edilýär."
+      },
+      {
+        "q": "Diplom terjimesi üçin haýsy dilleri goldaýarsyňyz?",
+        "a": "Biz 10+ dili goldaýarys. Diplom terjimesi üçin iň ýaýran jübütler: rus → iňlis, gazak → iňlis, taý → iňlis we hytaý → iňlis. Çeşme dil awtomatik anyklanylýar."
+      },
+      {
+        "q": "Dereje atlary we akademiki bahalary nädip işleýärsiňiz?",
+        "a": "Dereje atlary gerek ýerinde düşündiriş konteksti bilen terjime edilýär (meselem, \"Hünärmen derejesi (5 ýyllyk birleşdirilen maksatnama)\"). Bahalar öwürmezden asyl skala boýunça saklanýar."
+      },
+      {
+        "q": "Bunu hünärmen litsenzirlemesi arzasy üçin ulanyp bilerinmi?",
+        "a": "Köpüsi litsenzirlemesi geňeşleri daşary ýurt hünärmenleriniň sertifikatlanan ýa-da notarius tassyklanan terjimelerini talap edýär. WPO taýýarlyk we salgylanma üçin resmi däl terjimeler berýär. Litsenzirlemesi geňeşiňiz bilen sertifikatlaşdyrma talaplaryny tassyklaň."
+      }
     ]
   },
   "bankStatementTranslation": {
@@ -393,11 +523,26 @@
     "finalCtaSub": "Bank beýannamamyzy ýükläň we 2–5 minutda arassa iňlis terjimesini alyň.",
     "finalCtaCta": "Bank beýannamamyi terjime et",
     "faq": [
-      { "q": "Haýsy wiza görnüşleri terjime edilen bank beýannamasyny talap edýär?", "a": "Tailand DTV, Şengen wizalary, Beýik Britaniýa myhman wizalary, ABŞ B1/B2 wizalary we köpüsi immigrasiýa arzalary adatda iňlis dilinde bankdan mablag subut edişini talap edýär. Girdeji şahadatnamalary we aýlyk hatlar ýaly beýleki resminamalar hem köplenç talap edilýär." },
-      { "q": "Walýutalar we mukdarlar öwürmezden saklanýarmy?", "a": "Hawa. Ähli mukdarlar, walýutalar we galyndylar asyl resminamada görkezilişi ýaly saklanýar. Walýutalary öwürmeýäris, mukdarlary tegelenmeýäris ýa-da maliýe maglumatlaryny hiç hili düşündirmeýäris." },
-      { "q": "Bank beýannamam 6 sahypaly bolsa näme?", "a": "Biz 50 sahypa çenli bank beýannamalaryny goldaýarys. Resminama üçin baha şol çäkde sahypa sanyna garamazdan ulanylýar. Ähli sahypalar bir resminamy hökmünde terjime edilýär." },
-      { "q": "Terjime edilen beýannama konsullygymy tarapyndan kabul edilýärmi?", "a": "Terjimelerimiziň resmi däl. Köpüsi konsullylar asyl beýannama bilen birlikde resmi däl terjimeleri kabul edýär. Beýlekileri sertifikatlanan terjimeni talap edýär. Öz konsullygynyz ýa-da wiza agentiňiz bilen talaplary barlaň." },
-      { "q": "Onlaýn bank skrinşotlaryny ýa-da PDF eksportlaryny terjime edip bilersiňizmi?", "a": "Hawa. Skanerlenen kagyzy beýannamalar we onlaýn bankçylyk ulgamyndan sanly PDF eksportlary hem goldanýar. Skanerlenen resminamalar terjimeden ozal OCR arkaly işlenýär." }
+      {
+        "q": "Haýsy wiza görnüşleri terjime edilen bank beýannamasyny talap edýär?",
+        "a": "Tailand DTV, Şengen wizalary, Beýik Britaniýa myhman wizalary, ABŞ B1/B2 wizalary we köpüsi immigrasiýa arzalary adatda iňlis dilinde bankdan mablag subut edişini talap edýär. Girdeji şahadatnamalary we aýlyk hatlar ýaly beýleki resminamalar hem köplenç talap edilýär."
+      },
+      {
+        "q": "Walýutalar we mukdarlar öwürmezden saklanýarmy?",
+        "a": "Hawa. Ähli mukdarlar, walýutalar we galyndylar asyl resminamada görkezilişi ýaly saklanýar. Walýutalary öwürmeýäris, mukdarlary tegelenmeýäris ýa-da maliýe maglumatlaryny hiç hili düşündirmeýäris."
+      },
+      {
+        "q": "Bank beýannamam 6 sahypaly bolsa näme?",
+        "a": "Biz 50 sahypa çenli bank beýannamalaryny goldaýarys. Resminama üçin baha şol çäkde sahypa sanyna garamazdan ulanylýar. Ähli sahypalar bir resminamy hökmünde terjime edilýär."
+      },
+      {
+        "q": "Terjime edilen beýannama konsullygymy tarapyndan kabul edilýärmi?",
+        "a": "Terjimelerimiziň resmi däl. Köpüsi konsullylar asyl beýannama bilen birlikde resmi däl terjimeleri kabul edýär. Beýlekileri sertifikatlanan terjimeni talap edýär. Öz konsullygynyz ýa-da wiza agentiňiz bilen talaplary barlaň."
+      },
+      {
+        "q": "Onlaýn bank skrinşotlaryny ýa-da PDF eksportlaryny terjime edip bilersiňizmi?",
+        "a": "Hawa. Skanerlenen kagyzy beýannamalar we onlaýn bankçylyk ulgamyndan sanly PDF eksportlary hem goldanýar. Skanerlenen resminamalar terjimeden ozal OCR arkaly işlenýär."
+      }
     ]
   },
   "tos": {
@@ -425,5 +570,10 @@
     "s7": "7. Kukiler",
     "s8": "8. Bu syýasatda üýtgeşmeler",
     "s9": "9. Habarlaşmak"
+  },
+  "footer": {
+    "tagline": "AI esasly professional resminama terjimesi",
+    "tos": "Hyzmat şertleri",
+    "privacy": "Gizlinlik syýasaty"
   }
 }

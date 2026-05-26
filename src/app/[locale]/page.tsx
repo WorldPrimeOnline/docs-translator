@@ -328,7 +328,7 @@ export default async function Home({
               </div>
               <p className="mb-5 text-xs text-muted-foreground">10 {t('pricing.docs')}.</p>
               <ul className="mb-7 flex-1 space-y-2 text-sm text-muted-foreground">
-                {[`10 ${t('pricing.docs')}`, 'All document types', 'AI translation by Claude', 'Clean PDF output', '30-day access'].map((f) => (
+                {[`10 ${t('pricing.docs')}`, t('pricing.allDocTypes'), t('pricing.aiTranslation'), t('pricing.cleanPdf'), t('pricing.dayAccess')].map((f) => (
                   <li key={f} className="flex items-start gap-2">
                     <span className="mt-0.5 text-primary">✓</span>
                     {f}
@@ -352,9 +352,9 @@ export default async function Home({
                 <span className="text-4xl font-extrabold tracking-[-0.02em] text-foreground">$24.99</span>
                 <span className="mb-1 text-sm text-muted-foreground">{t('pricing.perMonth')}</span>
               </div>
-              <p className="mb-5 text-xs text-muted-foreground">40 {t('pricing.docs')}. Priority processing.</p>
+              <p className="mb-5 text-xs text-muted-foreground">40 {t('pricing.docs')}. {t('pricing.proDesc')}</p>
               <ul className="mb-7 flex-1 space-y-2 text-sm text-muted-foreground">
-                {[`40 ${t('pricing.docs')}`, 'All document types', 'AI translation by Claude', 'Clean PDF output', 'Priority processing', 'PRO badge'].map((f) => (
+                {[`40 ${t('pricing.docs')}`, t('pricing.allDocTypes'), t('pricing.aiTranslation'), t('pricing.cleanPdf'), t('pricing.priorityProcessing'), t('pricing.proBadge')].map((f) => (
                   <li key={f} className="flex items-start gap-2">
                     <span className="mt-0.5 text-primary">✓</span>
                     {f}

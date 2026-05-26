@@ -77,7 +77,14 @@
     "feature2": "All document types",
     "feature3": "AI translation by Claude",
     "feature4": "Clean PDF output",
-    "translateNow": "Translate Now"
+    "translateNow": "Translate Now",
+    "allDocTypes": "All document types",
+    "aiTranslation": "AI translation by Claude",
+    "cleanPdf": "Clean PDF output",
+    "dayAccess": "30-day access",
+    "priorityProcessing": "Priority processing",
+    "proBadge": "PRO badge",
+    "proDesc": "Priority processing."
   },
   "trust": {
     "label": "WHY WPO TRANSLATIONS",
@@ -222,7 +229,6 @@
     "loginLink": "Log in"
   },
   "disclaimer": "UNOFFICIAL TRANSLATION — FOR INFORMATIONAL PURPOSES ONLY",
-
   "documentsHub": {
     "heroBadge": "All Document Types",
     "heroHeadline": "Translate Any Official Document",
@@ -234,12 +240,20 @@
     "finalCtaSub": "Upload any official PDF and receive a clean translation in 2–5 minutes.",
     "finalCtaCta": "Upload Document",
     "faq": [
-      { "q": "Which document types do you support?", "a": "We support all major official document types: passports, ID cards, bank statements, diplomas, transcripts, birth and marriage certificates, employment contracts, medical records, police clearance certificates, driver's licenses, and generic official documents." },
-      { "q": "What languages are supported?", "a": "We support 10+ languages including English, Russian, Thai, Chinese, Korean, Japanese, German, French, Spanish, and Arabic. Source language can be auto-detected." },
-      { "q": "Are your translations certified or notarized?", "a": "No. All translations are unofficial and for informational use only. A visible disclaimer appears on every translated page. Certified or notarized translations must be obtained from a licensed translator or notary." }
+      {
+        "q": "Which document types do you support?",
+        "a": "We support all major official document types: passports, ID cards, bank statements, diplomas, transcripts, birth and marriage certificates, employment contracts, medical records, police clearance certificates, driver's licenses, and generic official documents."
+      },
+      {
+        "q": "What languages are supported?",
+        "a": "We support 10+ languages including English, Russian, Thai, Chinese, Korean, Japanese, German, French, Spanish, and Arabic. Source language can be auto-detected."
+      },
+      {
+        "q": "Are your translations certified or notarized?",
+        "a": "No. All translations are unofficial and for informational use only. A visible disclaimer appears on every translated page. Certified or notarized translations must be obtained from a licensed translator or notary."
+      }
     ]
   },
-
   "kazakhstan": {
     "heroBadge": "Kazakhstan · Document Workflows",
     "heroHeadline": "Document Translation for Kazakhstan",
@@ -252,14 +266,28 @@
     "finalCtaSub": "Upload your PDF and receive a clean translated version in 2–5 minutes.",
     "finalCtaCta": "Start Translating",
     "faq": [
-      { "q": "Can I use this translation before visiting a notary?", "a": "Yes. Many notaries and certified translators review an informal translation draft before completing the certified version. A clean, structured WPO translation can speed up that conversation and reduce errors in the final certified document." },
-      { "q": "Which languages do you support for Kazakhstan documents?", "a": "We support Russian ↔ English and English → Russian as the primary pairs. Kazakh ↔ Russian and Kazakh → English are also supported. These cover the main workflows for Kazakhstani documents used internationally." },
-      { "q": "Is this translation accepted by foreign universities?", "a": "Foreign universities typically require certified or notarized translations. WPO provides unofficial translations that can be used during the application preparation stage, for review by an education consultant, or as a reference draft for a certified translator. Always confirm official requirements with the target university." },
-      { "q": "Can notaries and visa agents use this service on behalf of clients?", "a": "Yes. Any user can upload a client's document, process it, and receive the translated PDF. A partner dashboard for agencies is planned for a future release." },
-      { "q": "What is an apostille and does translation affect it?", "a": "An apostille is an official authentication stamp applied to a document by a government authority. The apostille applies to the original document. The translation is a separate step, often required after the apostille has been obtained. WPO provides the translation step; the apostille must be obtained from the relevant government authority." }
+      {
+        "q": "Can I use this translation before visiting a notary?",
+        "a": "Yes. Many notaries and certified translators review an informal translation draft before completing the certified version. A clean, structured WPO translation can speed up that conversation and reduce errors in the final certified document."
+      },
+      {
+        "q": "Which languages do you support for Kazakhstan documents?",
+        "a": "We support Russian ↔ English and English → Russian as the primary pairs. Kazakh ↔ Russian and Kazakh → English are also supported. These cover the main workflows for Kazakhstani documents used internationally."
+      },
+      {
+        "q": "Is this translation accepted by foreign universities?",
+        "a": "Foreign universities typically require certified or notarized translations. WPO provides unofficial translations that can be used during the application preparation stage, for review by an education consultant, or as a reference draft for a certified translator. Always confirm official requirements with the target university."
+      },
+      {
+        "q": "Can notaries and visa agents use this service on behalf of clients?",
+        "a": "Yes. Any user can upload a client's document, process it, and receive the translated PDF. A partner dashboard for agencies is planned for a future release."
+      },
+      {
+        "q": "What is an apostille and does translation affect it?",
+        "a": "An apostille is an official authentication stamp applied to a document by a government authority. The apostille applies to the original document. The translation is a separate step, often required after the apostille has been obtained. WPO provides the translation step; the apostille must be obtained from the relevant government authority."
+      }
     ]
   },
-
   "kazakhstanNotarized": {
     "heroBadge": "Kazakhstan · Notary Preparation",
     "heroHeadline": "Translation for",
@@ -271,13 +299,24 @@
     "finalCtaSub": "Upload your document and receive a structured translation in 2–5 minutes. From $4.39.",
     "finalCtaCta": "Start Translation",
     "faq": [
-      { "q": "Is this a certified or notarized translation?", "a": "No. WPO provides unofficial translation drafts for informational and preparation purposes. A certified or notarized translation must be produced by a licensed translator or notary. WPO drafts can be used as input to that process, not as a replacement." },
-      { "q": "Will my notary accept a WPO translation draft as a starting point?", "a": "Most notaries and certified translators are willing to work from a pre-prepared draft. It speeds up their work and reduces the likelihood of errors. However, not all notaries accept external drafts — confirm with your specific notary before using this workflow." },
-      { "q": "What languages are supported?", "a": "Russian ↔ English, Kazakh → English, and Kazakh → Russian. These cover the main language pairs for documents prepared in Kazakhstan for international use." },
-      { "q": "Can I use this service as a notary or migration consultant?", "a": "Yes. You can upload client documents and receive translated drafts on their behalf. A dedicated partner workflow is in development." }
+      {
+        "q": "Is this a certified or notarized translation?",
+        "a": "No. WPO provides unofficial translation drafts for informational and preparation purposes. A certified or notarized translation must be produced by a licensed translator or notary. WPO drafts can be used as input to that process, not as a replacement."
+      },
+      {
+        "q": "Will my notary accept a WPO translation draft as a starting point?",
+        "a": "Most notaries and certified translators are willing to work from a pre-prepared draft. It speeds up their work and reduces the likelihood of errors. However, not all notaries accept external drafts — confirm with your specific notary before using this workflow."
+      },
+      {
+        "q": "What languages are supported?",
+        "a": "Russian ↔ English, Kazakh → English, and Kazakh → Russian. These cover the main language pairs for documents prepared in Kazakhstan for international use."
+      },
+      {
+        "q": "Can I use this service as a notary or migration consultant?",
+        "a": "Yes. You can upload client documents and receive translated drafts on their behalf. A dedicated partner workflow is in development."
+      }
     ]
   },
-
   "kazakhstanUniversity": {
     "heroBadge": "Kazakhstan · University Applications",
     "heroHeadline": "Translate Academic Documents",
@@ -289,13 +328,24 @@
     "finalCtaSub": "Upload your diploma, transcript, or academic certificate and get a clean English translation in minutes.",
     "finalCtaCta": "Translate My Academic Documents",
     "faq": [
-      { "q": "Will foreign universities accept a WPO translation?", "a": "Requirements vary by university and country. Many universities accept unofficial translations for initial application review, with certified translations required only after acceptance or at enrollment. Always check the specific requirements for your target university." },
-      { "q": "What is a \"school leaving certificate\" (Attestat)?", "a": "The Attestat is the Kazakhstani secondary school completion certificate. It lists final grades in all subjects. We translate the complete document including subject names, grades, and qualification details into clean English." },
-      { "q": "Do you preserve the grade scale and grading system?", "a": "Yes. We preserve the original grades as shown (e.g., 5-point or 100-point scale) and note the grading system in the translated document. We do not convert grades or apply any interpretation." },
-      { "q": "Can you translate documents for IELTS, TOEFL, or credential evaluation purposes?", "a": "WPO translations are unofficial. They are not accepted by IELTS/TOEFL administrative bodies for formal score reporting. However, they can be used for your own preparation, for informal application review, or as input to a certified translation workflow." }
+      {
+        "q": "Will foreign universities accept a WPO translation?",
+        "a": "Requirements vary by university and country. Many universities accept unofficial translations for initial application review, with certified translations required only after acceptance or at enrollment. Always check the specific requirements for your target university."
+      },
+      {
+        "q": "What is a \"school leaving certificate\" (Attestat)?",
+        "a": "The Attestat is the Kazakhstani secondary school completion certificate. It lists final grades in all subjects. We translate the complete document including subject names, grades, and qualification details into clean English."
+      },
+      {
+        "q": "Do you preserve the grade scale and grading system?",
+        "a": "Yes. We preserve the original grades as shown (e.g., 5-point or 100-point scale) and note the grading system in the translated document. We do not convert grades or apply any interpretation."
+      },
+      {
+        "q": "Can you translate documents for IELTS, TOEFL, or credential evaluation purposes?",
+        "a": "WPO translations are unofficial. They are not accepted by IELTS/TOEFL administrative bodies for formal score reporting. However, they can be used for your own preparation, for informal application review, or as input to a certified translation workflow."
+      }
     ]
   },
-
   "thailand": {
     "heroBadge": "Thailand · Expat & Visa Documents",
     "heroHeadline": "Document Translation for Thailand",
@@ -308,15 +358,32 @@
     "finalCtaSub": "Upload a PDF and get a clean translated version in minutes. From $4.39.",
     "finalCtaCta": "Start Translating",
     "faq": [
-      { "q": "Can I use this translation for a DTV visa application?", "a": "Our translations are unofficial and for informational purposes only. They are not certified or notarized translations. For DTV visa, Thai immigration typically requires translations to accompany originals. We recommend confirming with your specific consulate or immigration agent what level of translation is required." },
-      { "q": "Which language pairs do you support for Thailand?", "a": "We support Russian → English, English → Russian, Russian → Thai, Thai → English, and English → Thai. These cover the most common workflows for Russian-speaking expats and digital nomads in Thailand." },
-      { "q": "How quickly will I get my translated document?", "a": "Most documents are ready in 2–5 minutes after payment. Longer documents (10+ pages) may take up to 15 minutes. You will receive a download link by email and can also download from your dashboard." },
-      { "q": "Is this an official or certified translation?", "a": "No. WPO Translations provides unofficial translations for informational purposes only. The translated PDF includes a visible disclaimer on every page. For official certified translations accepted by Thai government bodies, you will need a certified translator or a notarized translation service." },
-      { "q": "What exactly is included in the translated PDF?", "a": "The translated PDF includes a clean translation of all visible text, with personal names transliterated (not translated), numbers, dates, and document numbers preserved exactly as shown. A disclaimer footer appears on every page." },
-      { "q": "How is my document stored and protected?", "a": "Your files are encrypted and stored on Cloudflare R2 storage. They are automatically deleted after 30 days. We do not share your documents with third parties." }
+      {
+        "q": "Can I use this translation for a DTV visa application?",
+        "a": "Our translations are unofficial and for informational purposes only. They are not certified or notarized translations. For DTV visa, Thai immigration typically requires translations to accompany originals. We recommend confirming with your specific consulate or immigration agent what level of translation is required."
+      },
+      {
+        "q": "Which language pairs do you support for Thailand?",
+        "a": "We support Russian → English, English → Russian, Russian → Thai, Thai → English, and English → Thai. These cover the most common workflows for Russian-speaking expats and digital nomads in Thailand."
+      },
+      {
+        "q": "How quickly will I get my translated document?",
+        "a": "Most documents are ready in 2–5 minutes after payment. Longer documents (10+ pages) may take up to 15 minutes. You will receive a download link by email and can also download from your dashboard."
+      },
+      {
+        "q": "Is this an official or certified translation?",
+        "a": "No. WPO Translations provides unofficial translations for informational purposes only. The translated PDF includes a visible disclaimer on every page. For official certified translations accepted by Thai government bodies, you will need a certified translator or a notarized translation service."
+      },
+      {
+        "q": "What exactly is included in the translated PDF?",
+        "a": "The translated PDF includes a clean translation of all visible text, with personal names transliterated (not translated), numbers, dates, and document numbers preserved exactly as shown. A disclaimer footer appears on every page."
+      },
+      {
+        "q": "How is my document stored and protected?",
+        "a": "Your files are encrypted and stored on Cloudflare R2 storage. They are automatically deleted after 30 days. We do not share your documents with third parties."
+      }
     ]
   },
-
   "thailandDtv": {
     "heroBadge": "Thailand DTV Visa",
     "heroHeadline": "Translate Documents for Thailand",
@@ -328,14 +395,28 @@
     "finalCtaSub": "Translate your bank statements, employment letters, and income proof in minutes.",
     "finalCtaCta": "Start Translating",
     "faq": [
-      { "q": "What documents do I need for a DTV application?", "a": "The Thailand Digital Nomad Visa (DTV) typically requires: 6 months of bank statements showing sufficient funds, proof of income or employment, health insurance documentation, a passport valid for at least 18 months, and accommodation proof. Requirements may vary by consulate — always confirm directly." },
-      { "q": "Should my documents be translated into Thai or English?", "a": "Most Thai consulates abroad accept English translations. Some may require Thai translations if you are applying at a Thai immigration office inside Thailand. We support both Thai and English as target languages." },
-      { "q": "What is the minimum income requirement for DTV?", "a": "As of 2024–2025, the DTV requires proof of income of at least 500,000 THB (approximately $14,000) held in a foreign bank account, or equivalent income proof. Please verify the current requirements on the official Thai immigration website before applying." },
-      { "q": "Is your translation accepted by Thai immigration?", "a": "WPO provides unofficial, informational translations. They are not certified or notarized. Many applicants use them as part of a package reviewed by a visa agent or immigration consultant who confirms document readiness. Always consult your visa agent or consulate regarding official requirements." },
-      { "q": "Can I translate multiple documents at once?", "a": "Currently each document is uploaded and translated separately. Multi-document upload is on our roadmap. You can translate several documents in sequence through your dashboard." }
+      {
+        "q": "What documents do I need for a DTV application?",
+        "a": "The Thailand Digital Nomad Visa (DTV) typically requires: 6 months of bank statements showing sufficient funds, proof of income or employment, health insurance documentation, a passport valid for at least 18 months, and accommodation proof. Requirements may vary by consulate — always confirm directly."
+      },
+      {
+        "q": "Should my documents be translated into Thai or English?",
+        "a": "Most Thai consulates abroad accept English translations. Some may require Thai translations if you are applying at a Thai immigration office inside Thailand. We support both Thai and English as target languages."
+      },
+      {
+        "q": "What is the minimum income requirement for DTV?",
+        "a": "As of 2024–2025, the DTV requires proof of income of at least 500,000 THB (approximately $14,000) held in a foreign bank account, or equivalent income proof. Please verify the current requirements on the official Thai immigration website before applying."
+      },
+      {
+        "q": "Is your translation accepted by Thai immigration?",
+        "a": "WPO provides unofficial, informational translations. They are not certified or notarized. Many applicants use them as part of a package reviewed by a visa agent or immigration consultant who confirms document readiness. Always consult your visa agent or consulate regarding official requirements."
+      },
+      {
+        "q": "Can I translate multiple documents at once?",
+        "a": "Currently each document is uploaded and translated separately. Multi-document upload is on our roadmap. You can translate several documents in sequence through your dashboard."
+      }
     ]
   },
-
   "thailandImmigration": {
     "heroBadge": "Thai Immigration Workflow",
     "heroHeadline": "Translate Documents for",
@@ -347,13 +428,24 @@
     "finalCtaSub": "Upload your PDF and receive a clean translated version in minutes.",
     "finalCtaCta": "Start Translating",
     "faq": [
-      { "q": "Do I need a certified translation for Thai immigration offices?", "a": "Requirements vary by visa type and immigration office. Many immigration tasks — including supporting document submission — can be handled with informal translated copies alongside originals. For court proceedings or officially mandated certification, a certified translator is required. Always verify with the specific office you are dealing with." },
-      { "q": "Which language pairs do you support for Thai immigration documents?", "a": "We support Russian ↔ English, English ↔ Thai, and Russian → Thai. This covers the main language combinations needed by Russian-speaking expats and digital nomads dealing with Thai immigration." },
-      { "q": "Can you translate a marriage certificate for a Thai spouse visa?", "a": "Yes, we can translate marriage certificates from Russian or English into Thai or English. These translations are unofficial and for informational use. For formal visa applications involving marriage certificates, confirm whether a notarized translation is required." },
-      { "q": "How fast is the delivery?", "a": "2–5 minutes for most documents. Police clearance certificates and multi-page bank statements may take up to 10 minutes. You receive a download link by email immediately upon completion." }
+      {
+        "q": "Do I need a certified translation for Thai immigration offices?",
+        "a": "Requirements vary by visa type and immigration office. Many immigration tasks — including supporting document submission — can be handled with informal translated copies alongside originals. For court proceedings or officially mandated certification, a certified translator is required. Always verify with the specific office you are dealing with."
+      },
+      {
+        "q": "Which language pairs do you support for Thai immigration documents?",
+        "a": "We support Russian ↔ English, English ↔ Thai, and Russian → Thai. This covers the main language combinations needed by Russian-speaking expats and digital nomads dealing with Thai immigration."
+      },
+      {
+        "q": "Can you translate a marriage certificate for a Thai spouse visa?",
+        "a": "Yes, we can translate marriage certificates from Russian or English into Thai or English. These translations are unofficial and for informational use. For formal visa applications involving marriage certificates, confirm whether a notarized translation is required."
+      },
+      {
+        "q": "How fast is the delivery?",
+        "a": "2–5 minutes for most documents. Police clearance certificates and multi-page bank statements may take up to 10 minutes. You receive a download link by email immediately upon completion."
+      }
     ]
   },
-
   "passportTranslation": {
     "heroBadge": "Document Type · Passport & ID",
     "heroHeadline": "Passport Translation",
@@ -365,14 +457,28 @@
     "finalCtaSub": "Upload your passport scan and receive a clean, structured English translation in minutes.",
     "finalCtaCta": "Translate My Passport",
     "faq": [
-      { "q": "What passport data is included in the translation?", "a": "We translate all visible fields on the passport data page: surname, given name(s), nationality, date of birth, place of birth, gender, date of issue, date of expiry, passport number, issuing authority, and MRZ zone contents. Personal names are transliterated into the target script." },
-      { "q": "What languages can a passport be translated into?", "a": "We support 10+ target languages including English, Russian, Thai, Chinese, Korean, Japanese, German, French, Spanish, and Arabic. Source language is auto-detected or can be manually specified." },
-      { "q": "Is the translation accepted for visa applications?", "a": "Our translations are unofficial and for informational use. Some consulates accept informal translated copies alongside the original passport. Others require certified translations. Always confirm with the specific embassy or consulate what level of translation they require." },
-      { "q": "How are names handled in the translation?", "a": "Personal names are transliterated following ICAO 9303 standards for passport-style documents where applicable, and standard transliteration conventions for other scripts. Names are never translated semantically." },
-      { "q": "Is my passport data safe?", "a": "Your document is processed and stored on encrypted Cloudflare R2 storage. It is automatically deleted after 30 days. We do not store, share, or use the personal data in your passport for any purpose other than generating the translation." }
+      {
+        "q": "What passport data is included in the translation?",
+        "a": "We translate all visible fields on the passport data page: surname, given name(s), nationality, date of birth, place of birth, gender, date of issue, date of expiry, passport number, issuing authority, and MRZ zone contents. Personal names are transliterated into the target script."
+      },
+      {
+        "q": "What languages can a passport be translated into?",
+        "a": "We support 10+ target languages including English, Russian, Thai, Chinese, Korean, Japanese, German, French, Spanish, and Arabic. Source language is auto-detected or can be manually specified."
+      },
+      {
+        "q": "Is the translation accepted for visa applications?",
+        "a": "Our translations are unofficial and for informational use. Some consulates accept informal translated copies alongside the original passport. Others require certified translations. Always confirm with the specific embassy or consulate what level of translation they require."
+      },
+      {
+        "q": "How are names handled in the translation?",
+        "a": "Personal names are transliterated following ICAO 9303 standards for passport-style documents where applicable, and standard transliteration conventions for other scripts. Names are never translated semantically."
+      },
+      {
+        "q": "Is my passport data safe?",
+        "a": "Your document is processed and stored on encrypted Cloudflare R2 storage. It is automatically deleted after 30 days. We do not store, share, or use the personal data in your passport for any purpose other than generating the translation."
+      }
     ]
   },
-
   "diplomaTranslation": {
     "heroBadge": "Document Type · Diploma & Transcript",
     "heroHeadline": "Diploma & Academic Credential",
@@ -384,14 +490,28 @@
     "finalCtaSub": "Upload your academic credential and receive a clean, structured English translation in minutes.",
     "finalCtaCta": "Translate My Diploma",
     "faq": [
-      { "q": "Is your translation accepted for WES or other credential evaluations?", "a": "WES (World Education Services) and most credential evaluation bodies require certified or notarized translations. WPO provides unofficial translations that can be used during preparation, by education consultants, or as input to a certified translation workflow. Verify official requirements before submitting." },
-      { "q": "Do you translate diploma supplements and grade explanations?", "a": "Yes. Diploma supplements, grade scale explanations, and attached transcripts are translated as part of the document. Subject names are translated using standard academic English terminology." },
-      { "q": "What languages do you support for diploma translation?", "a": "We support 10+ languages. The most common pairs for diploma translation are Russian → English, Kazakh → English, Thai → English, and Chinese → English. Source language can be auto-detected." },
-      { "q": "How do you handle degree titles and academic grades?", "a": "Degree titles are translated with explanatory context where needed (e.g., \"Specialist degree (5-year integrated program)\"). Grades are preserved in the original scale without conversion." },
-      { "q": "Can I use this for a professional licensing application?", "a": "Many licensing boards require certified or notarized translations of foreign credentials. WPO provides unofficial translations for preparation and reference. Confirm certification requirements with your licensing board." }
+      {
+        "q": "Is your translation accepted for WES or other credential evaluations?",
+        "a": "WES (World Education Services) and most credential evaluation bodies require certified or notarized translations. WPO provides unofficial translations that can be used during preparation, by education consultants, or as input to a certified translation workflow. Verify official requirements before submitting."
+      },
+      {
+        "q": "Do you translate diploma supplements and grade explanations?",
+        "a": "Yes. Diploma supplements, grade scale explanations, and attached transcripts are translated as part of the document. Subject names are translated using standard academic English terminology."
+      },
+      {
+        "q": "What languages do you support for diploma translation?",
+        "a": "We support 10+ languages. The most common pairs for diploma translation are Russian → English, Kazakh → English, Thai → English, and Chinese → English. Source language can be auto-detected."
+      },
+      {
+        "q": "How do you handle degree titles and academic grades?",
+        "a": "Degree titles are translated with explanatory context where needed (e.g., \"Specialist degree (5-year integrated program)\"). Grades are preserved in the original scale without conversion."
+      },
+      {
+        "q": "Can I use this for a professional licensing application?",
+        "a": "Many licensing boards require certified or notarized translations of foreign credentials. WPO provides unofficial translations for preparation and reference. Confirm certification requirements with your licensing board."
+      }
     ]
   },
-
   "bankStatementTranslation": {
     "heroBadge": "Document Type · Bank Statement",
     "heroHeadline": "Bank Statement Translation",
@@ -403,14 +523,28 @@
     "finalCtaSub": "Upload your bank statement and receive a clean English translation in 2–5 minutes.",
     "finalCtaCta": "Translate My Bank Statement",
     "faq": [
-      { "q": "Which visa types require a translated bank statement?", "a": "Thailand DTV, Schengen visas, UK visitor visas, US B1/B2 visas, and most immigration applications require proof of funds from a bank, typically in English. Other documents like income certificates and payslips are also commonly required." },
-      { "q": "Are currencies and amounts preserved without conversion?", "a": "Yes. All amounts, currencies, and balances are preserved exactly as they appear in the original document. We do not convert currencies, round amounts, or interpret financial data in any way." },
-      { "q": "What if my bank statement is 6 pages long?", "a": "We support bank statements up to 50 pages. The price per document applies regardless of page count within that limit. All pages are translated as one document." },
-      { "q": "Will the translated statement be accepted by my consulate?", "a": "Our translations are unofficial. Many consulates accept informal translations accompanying the original statement. Others require a certified translation. Verify the requirements with your specific consulate or visa agent." },
-      { "q": "Can you translate online banking screenshots or PDF exports?", "a": "Yes. Both scanned paper statements and digital PDF exports from online banking are supported. Scanned documents are processed through OCR before translation." }
+      {
+        "q": "Which visa types require a translated bank statement?",
+        "a": "Thailand DTV, Schengen visas, UK visitor visas, US B1/B2 visas, and most immigration applications require proof of funds from a bank, typically in English. Other documents like income certificates and payslips are also commonly required."
+      },
+      {
+        "q": "Are currencies and amounts preserved without conversion?",
+        "a": "Yes. All amounts, currencies, and balances are preserved exactly as they appear in the original document. We do not convert currencies, round amounts, or interpret financial data in any way."
+      },
+      {
+        "q": "What if my bank statement is 6 pages long?",
+        "a": "We support bank statements up to 50 pages. The price per document applies regardless of page count within that limit. All pages are translated as one document."
+      },
+      {
+        "q": "Will the translated statement be accepted by my consulate?",
+        "a": "Our translations are unofficial. Many consulates accept informal translations accompanying the original statement. Others require a certified translation. Verify the requirements with your specific consulate or visa agent."
+      },
+      {
+        "q": "Can you translate online banking screenshots or PDF exports?",
+        "a": "Yes. Both scanned paper statements and digital PDF exports from online banking are supported. Scanned documents are processed through OCR before translation."
+      }
     ]
   },
-
   "tos": {
     "title": "Terms of Service",
     "lastUpdated": "Last updated: January 2026",
@@ -424,7 +558,6 @@
     "s8": "8. Changes to Terms",
     "s9": "9. Contact"
   },
-
   "privacyPage": {
     "title": "Privacy Policy",
     "lastUpdated": "Last updated: January 2026",
@@ -437,5 +570,10 @@
     "s7": "7. Cookies",
     "s8": "8. Changes to This Policy",
     "s9": "9. Contact"
+  },
+  "footer": {
+    "tagline": "Professional document translation powered by AI",
+    "tos": "Terms of Service",
+    "privacy": "Privacy Policy"
   }
 }

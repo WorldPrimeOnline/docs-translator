@@ -77,7 +77,14 @@
     "feature2": "Barcha hujjat turlari",
     "feature3": "Claude tomonidan sun'iy intellekt tarjimasi",
     "feature4": "Toza PDF natija",
-    "translateNow": "Hozir tarjima qiling"
+    "translateNow": "Hozir tarjima qiling",
+    "allDocTypes": "Barcha hujjat turlari",
+    "aiTranslation": "Claude orqali AI tarjimasi",
+    "cleanPdf": "Toza PDF chiqishi",
+    "dayAccess": "30 kunlik kirish",
+    "priorityProcessing": "Ustuvor qayta ishlash",
+    "proBadge": "PRO nishoni",
+    "proDesc": "Ustuvor qayta ishlash."
   },
   "trust": {
     "label": "NIMA UCHUN WPO TARJIMALARI",
@@ -233,9 +240,18 @@
     "finalCtaSub": "Har qanday rasmiy PDF yuklang va 2–5 daqiqada toza tarjima oling.",
     "finalCtaCta": "Hujjat yuklash",
     "faq": [
-      { "q": "Qaysi hujjat turlarini qo'llabquvvatlaysiz?", "a": "Biz barcha asosiy rasmiy hujjat turlarini qo'llab-quvvatlaymiz: pasportlar, ID kartalar, bank ko'chirmalari, diplomlar, akademik ko'chirmalar, tug'ilish va nikoh guvohnomalarari, mehnat shartnomalar, tibbiy yozuvlar, jinoiy javobgarlik yo'qligi guvohnomalari, haydovchilik guvohnomalar va boshqa rasmiy hujjatlar." },
-      { "q": "Qaysi tillar qo'llabquvvatlanadi?", "a": "Biz ingliz, rus, tailand, xitoy, koreys, yapon, nemis, frantsuz, ispan va arab tillarini o'z ichiga olgan 10+ tilni qo'llab-quvvatlaymiz. Manba tili avtomatik aniqlanishi mumkin." },
-      { "q": "Tarjimalaringiz sertifikatlangan yoki notarius tasdiqlaganmi?", "a": "Yo'q. Barcha tarjimalar norasmiy va faqat ma'lumot olish uchun. Har bir tarjima qilingan sahifada ko'rinadigan ogoh qilish maydoni paydo bo'ladi. Sertifikatlangan yoki notarius tasdiqlangan tarjimalar litsenziyalangan tarjimon yoki notariusdan olinishi kerak." }
+      {
+        "q": "Qaysi hujjat turlarini qo'llabquvvatlaysiz?",
+        "a": "Biz barcha asosiy rasmiy hujjat turlarini qo'llab-quvvatlaymiz: pasportlar, ID kartalar, bank ko'chirmalari, diplomlar, akademik ko'chirmalar, tug'ilish va nikoh guvohnomalarari, mehnat shartnomalar, tibbiy yozuvlar, jinoiy javobgarlik yo'qligi guvohnomalari, haydovchilik guvohnomalar va boshqa rasmiy hujjatlar."
+      },
+      {
+        "q": "Qaysi tillar qo'llabquvvatlanadi?",
+        "a": "Biz ingliz, rus, tailand, xitoy, koreys, yapon, nemis, frantsuz, ispan va arab tillarini o'z ichiga olgan 10+ tilni qo'llab-quvvatlaymiz. Manba tili avtomatik aniqlanishi mumkin."
+      },
+      {
+        "q": "Tarjimalaringiz sertifikatlangan yoki notarius tasdiqlaganmi?",
+        "a": "Yo'q. Barcha tarjimalar norasmiy va faqat ma'lumot olish uchun. Har bir tarjima qilingan sahifada ko'rinadigan ogoh qilish maydoni paydo bo'ladi. Sertifikatlangan yoki notarius tasdiqlangan tarjimalar litsenziyalangan tarjimon yoki notariusdan olinishi kerak."
+      }
     ]
   },
   "kazakhstan": {
@@ -250,11 +266,26 @@
     "finalCtaSub": "PDF yuklang va 2–5 daqiqada toza tarjima qilingan versiyani oling.",
     "finalCtaCta": "Tarjimani boshlash",
     "faq": [
-      { "q": "Notariusga borishdan oldin bu tarjimadan foydalana olamanmi?", "a": "Ha. Ko'pgina notariuslar va sertifikatlangan tarjimonlar sertifikatlangan versiyani yakunlashdan oldin norasmiy tarjima loyihasini ko'rib chiqishadi. Toza, tuzilgan WPO tarjimasi bu suhbatni tezlashtirishi va yakuniy sertifikatlangan hujjatdagi xatolarni kamaytirishi mumkin." },
-      { "q": "Qozog'iston hujjatlari uchun qaysi tillarni qo'llabquvvatlaysiz?", "a": "Biz asosiy juftliklar sifatida rus ↔ ingliz va ingliz → rusni qo'llab-quvvatlaymiz. Qozog'cha ↔ rus va qozog'cha → ingliz ham qo'llab-quvvatlanadi. Bular xalqaro maqsadlar uchun ishlatiladigan Qozog'istonli hujjatlarning asosiy ish oqimlarini qamrab oladi." },
-      { "q": "Bu tarjima xorijiy universitetlar tomonidan qabul qilinadimi?", "a": "Xorijiy universitetlar odatda sertifikatlangan yoki notarius tasdiqlangan tarjimalarni talab qiladi. WPO ariza tayyorlash bosqichida, ta'lim maslahatchisi tomonidan ko'rib chiqish uchun yoki sertifikatlangan tarjimon uchun havola loyihasi sifatida foydalanish mumkin bo'lgan norasmiy tarjimalar taqdim etadi." },
-      { "q": "Notariuslar va viza agentlari mijozlar nomidan bu xizmatdan foydalana oladimi?", "a": "Ha. Har qanday foydalanuvchi mijozning hujjatini yuklashi, qayta ishlashi va tarjima qilingan PDFni olishi mumkin. Agentliklar uchun hamkor boshqaruv paneli kelajakdagi versiyada rejalashtirilgan." },
-      { "q": "Apostil nima va tarjima unga ta'sir qiladimi?", "a": "Apostil — hukumat organi tomonidan hujjatga qo'yiladigan rasmiy autentifikatsiya muhri. Apostil asl hujjatga tegishli. Tarjima — apostil olingandan keyin ko'pincha talab qilinadigan alohida qadam. WPO tarjima bosqichini ta'minlaydi; apostil tegishli hukumat organidan olinishi kerak." }
+      {
+        "q": "Notariusga borishdan oldin bu tarjimadan foydalana olamanmi?",
+        "a": "Ha. Ko'pgina notariuslar va sertifikatlangan tarjimonlar sertifikatlangan versiyani yakunlashdan oldin norasmiy tarjima loyihasini ko'rib chiqishadi. Toza, tuzilgan WPO tarjimasi bu suhbatni tezlashtirishi va yakuniy sertifikatlangan hujjatdagi xatolarni kamaytirishi mumkin."
+      },
+      {
+        "q": "Qozog'iston hujjatlari uchun qaysi tillarni qo'llabquvvatlaysiz?",
+        "a": "Biz asosiy juftliklar sifatida rus ↔ ingliz va ingliz → rusni qo'llab-quvvatlaymiz. Qozog'cha ↔ rus va qozog'cha → ingliz ham qo'llab-quvvatlanadi. Bular xalqaro maqsadlar uchun ishlatiladigan Qozog'istonli hujjatlarning asosiy ish oqimlarini qamrab oladi."
+      },
+      {
+        "q": "Bu tarjima xorijiy universitetlar tomonidan qabul qilinadimi?",
+        "a": "Xorijiy universitetlar odatda sertifikatlangan yoki notarius tasdiqlangan tarjimalarni talab qiladi. WPO ariza tayyorlash bosqichida, ta'lim maslahatchisi tomonidan ko'rib chiqish uchun yoki sertifikatlangan tarjimon uchun havola loyihasi sifatida foydalanish mumkin bo'lgan norasmiy tarjimalar taqdim etadi."
+      },
+      {
+        "q": "Notariuslar va viza agentlari mijozlar nomidan bu xizmatdan foydalana oladimi?",
+        "a": "Ha. Har qanday foydalanuvchi mijozning hujjatini yuklashi, qayta ishlashi va tarjima qilingan PDFni olishi mumkin. Agentliklar uchun hamkor boshqaruv paneli kelajakdagi versiyada rejalashtirilgan."
+      },
+      {
+        "q": "Apostil nima va tarjima unga ta'sir qiladimi?",
+        "a": "Apostil — hukumat organi tomonidan hujjatga qo'yiladigan rasmiy autentifikatsiya muhri. Apostil asl hujjatga tegishli. Tarjima — apostil olingandan keyin ko'pincha talab qilinadigan alohida qadam. WPO tarjima bosqichini ta'minlaydi; apostil tegishli hukumat organidan olinishi kerak."
+      }
     ]
   },
   "kazakhstanNotarized": {
@@ -268,10 +299,22 @@
     "finalCtaSub": "Hujjatingizni yuklang va 2–5 daqiqada tuzilgan tarjima oling. $4.39 dan.",
     "finalCtaCta": "Tarjimani boshlash",
     "faq": [
-      { "q": "Bu sertifikatlangan yoki notarius tasdiqlagan tarjimami?", "a": "Yo'q. WPO ma'lumot olish va tayyorlash maqsadlari uchun norasmiy tarjima loyihalari taqdim etadi. Sertifikatlangan yoki notarius tasdiqlagan tarjima litsenziyalangan tarjimon yoki notarius tomonidan tayyorlanishi kerak. WPO loyihalari bu jarayonga kirish sifatida ishlatilishi mumkin, ammo uning o'rnini bosa olmaydi." },
-      { "q": "Notariusim WPO tarjima loyihasini boshlang'ich nuqta sifatida qabul qiladimi?", "a": "Ko'pgina notariuslar va sertifikatlangan tarjimonlar oldindan tayyorlangan loyihadan ishlashga tayyor. Bu ularning ishini tezlashtiradi va xato ehtimolini kamaytiradi. Biroq, barcha notariuslar tashqi loyihalarni qabul qilmaydi — bu ish oqimidan foydalanishdan oldin o'zingizning notariusingiz bilan tasdiqlang." },
-      { "q": "Qaysi tillar qo'llabquvvatlanadi?", "a": "Rus ↔ ingliz, qozog'cha → ingliz va qozog'cha → rus. Bular xalqaro maqsadlar uchun Qozog'istonda tayyorlangan hujjatlar uchun asosiy til juftliklarini qamrab oladi." },
-      { "q": "Notarius yoki migratsiya maslahatchisi sifatida bu xizmatdan foydalana olamanmi?", "a": "Ha. Siz mijoz hujjatlarini yuklashingiz va ularning nomidan tarjima qilingan loyihalarni olishingiz mumkin. Maxsus hamkor ish oqimi ishlab chiqilmoqda." }
+      {
+        "q": "Bu sertifikatlangan yoki notarius tasdiqlagan tarjimami?",
+        "a": "Yo'q. WPO ma'lumot olish va tayyorlash maqsadlari uchun norasmiy tarjima loyihalari taqdim etadi. Sertifikatlangan yoki notarius tasdiqlagan tarjima litsenziyalangan tarjimon yoki notarius tomonidan tayyorlanishi kerak. WPO loyihalari bu jarayonga kirish sifatida ishlatilishi mumkin, ammo uning o'rnini bosa olmaydi."
+      },
+      {
+        "q": "Notariusim WPO tarjima loyihasini boshlang'ich nuqta sifatida qabul qiladimi?",
+        "a": "Ko'pgina notariuslar va sertifikatlangan tarjimonlar oldindan tayyorlangan loyihadan ishlashga tayyor. Bu ularning ishini tezlashtiradi va xato ehtimolini kamaytiradi. Biroq, barcha notariuslar tashqi loyihalarni qabul qilmaydi — bu ish oqimidan foydalanishdan oldin o'zingizning notariusingiz bilan tasdiqlang."
+      },
+      {
+        "q": "Qaysi tillar qo'llabquvvatlanadi?",
+        "a": "Rus ↔ ingliz, qozog'cha → ingliz va qozog'cha → rus. Bular xalqaro maqsadlar uchun Qozog'istonda tayyorlangan hujjatlar uchun asosiy til juftliklarini qamrab oladi."
+      },
+      {
+        "q": "Notarius yoki migratsiya maslahatchisi sifatida bu xizmatdan foydalana olamanmi?",
+        "a": "Ha. Siz mijoz hujjatlarini yuklashingiz va ularning nomidan tarjima qilingan loyihalarni olishingiz mumkin. Maxsus hamkor ish oqimi ishlab chiqilmoqda."
+      }
     ]
   },
   "kazakhstanUniversity": {
@@ -285,10 +328,22 @@
     "finalCtaSub": "Diplomingizni, akademik ko'chirmangizni yoki akademik guvohnomangizni yuklang va bir necha daqiqada toza ingliz tarjimasini oling.",
     "finalCtaCta": "Akademik hujjatlarimni tarjima qilish",
     "faq": [
-      { "q": "Xorijiy universitetlar WPO tarjimasini qabul qiladimi?", "a": "Talablar universitetga va mamlakatga qarab farq qiladi. Ko'pgina universitetlar dastlabki ariza ko'rib chiqishi uchun norasmiy tarjimalarni qabul qiladi, sertifikatlangan tarjimalar faqat qabul qilinganidan keyin yoki ro'yxatga olish vaqtida talab qilinadi. Maqsadli universitetingiz uchun maxsus talablarni doimo tekshiring." },
-      { "q": "\"Maktabni tugatish guvohnomasi\" (Attestat) nima?", "a": "Attestat — Qozog'istonning o'rta maktabni tugatish guvohnomasi. Barcha fanlardagi yakuniy baholarni ro'yxatga oladi. Biz fan nomlari, baholar va malaka tafsilotlari bilan to'liq hujjatni toza ingliz tiliga tarjima qilamiz." },
-      { "q": "Baho shkalasi va baholash tizimini saqlaydingizmi?", "a": "Ha. Biz asl baholarni ko'rsatilganidek saqlaymiz (masalan, 5 ballik yoki 100 ballik shkala) va tarjima qilingan hujjatda baholash tizimini qayd etamiz. Baholarni konvertatsiya qilmaymiz yoki hech qanday talqin qo'llamaymiz." },
-      { "q": "IELTS, TOEFL yoki hisob-kitob maqsadlari uchun hujjatlarni tarjima qila olasizmi?", "a": "WPO tarjimalari norasmiy. Ular rasmiy ball hisoboti uchun IELTS/TOEFL ma'muriy organlari tomonidan qabul qilinmaydi. Biroq, ular o'z tayyorgarligingiz, norasmiy ariza ko'rib chiqish yoki sertifikatlangan tarjima ish oqimiga kirish uchun ishlatilishi mumkin." }
+      {
+        "q": "Xorijiy universitetlar WPO tarjimasini qabul qiladimi?",
+        "a": "Talablar universitetga va mamlakatga qarab farq qiladi. Ko'pgina universitetlar dastlabki ariza ko'rib chiqishi uchun norasmiy tarjimalarni qabul qiladi, sertifikatlangan tarjimalar faqat qabul qilinganidan keyin yoki ro'yxatga olish vaqtida talab qilinadi. Maqsadli universitetingiz uchun maxsus talablarni doimo tekshiring."
+      },
+      {
+        "q": "\"Maktabni tugatish guvohnomasi\" (Attestat) nima?",
+        "a": "Attestat — Qozog'istonning o'rta maktabni tugatish guvohnomasi. Barcha fanlardagi yakuniy baholarni ro'yxatga oladi. Biz fan nomlari, baholar va malaka tafsilotlari bilan to'liq hujjatni toza ingliz tiliga tarjima qilamiz."
+      },
+      {
+        "q": "Baho shkalasi va baholash tizimini saqlaydingizmi?",
+        "a": "Ha. Biz asl baholarni ko'rsatilganidek saqlaymiz (masalan, 5 ballik yoki 100 ballik shkala) va tarjima qilingan hujjatda baholash tizimini qayd etamiz. Baholarni konvertatsiya qilmaymiz yoki hech qanday talqin qo'llamaymiz."
+      },
+      {
+        "q": "IELTS, TOEFL yoki hisob-kitob maqsadlari uchun hujjatlarni tarjima qila olasizmi?",
+        "a": "WPO tarjimalari norasmiy. Ular rasmiy ball hisoboti uchun IELTS/TOEFL ma'muriy organlari tomonidan qabul qilinmaydi. Biroq, ular o'z tayyorgarligingiz, norasmiy ariza ko'rib chiqish yoki sertifikatlangan tarjima ish oqimiga kirish uchun ishlatilishi mumkin."
+      }
     ]
   },
   "thailand": {
@@ -303,12 +358,30 @@
     "finalCtaSub": "PDF yuklang va bir necha daqiqada toza tarjima qilingan versiyani oling. $4.39 dan.",
     "finalCtaCta": "Tarjimani boshlash",
     "faq": [
-      { "q": "Bu tarjimani DTV viza arizasi uchun ishlatsa bo'ladimi?", "a": "Tarjimalarimiz norasmiy va faqat ma'lumot olish uchun. Ular sertifikatlangan yoki notarius tasdiqlagan tarjimalar emas. DTV viza uchun Tailand immigratsiyasi odatda asl nusxalar bilan birga tarjimalarni talab qiladi. O'zingizning konsulxonangiz yoki immigratsiya agentingiz bilan qanday darajadagi tarjima talab qilinishini tasdiqlashni tavsiya qilamiz." },
-      { "q": "Tailand uchun qaysi til juftliklarini qo'llabquvvatlaysiz?", "a": "Biz rus → ingliz, ingliz → rus, rus → tailand, tailand → ingliz va ingliz → tailandni qo'llab-quvvatlaymiz. Bular Tailanddagi rus tilli ekspat va raqamli ko'chmanchilar uchun eng keng tarqalgan ish oqimlarini qamrab oladi." },
-      { "q": "Tarjima qilingan hujjatni qancha tez olaman?", "a": "Ko'pgina hujjatlar to'lovdan keyin 2–5 daqiqada tayyor. Uzunroq hujjatlar (10+ sahifa) 15 daqiqagacha ketishi mumkin. Elektron pochtangizga yuklab olish havola olinadi va boshqaruv panelingizdan ham yuklab olishingiz mumkin." },
-      { "q": "Bu rasmiy yoki sertifikatlangan tarjimami?", "a": "Yo'q. WPO Tarjimalari faqat ma'lumot olish maqsadlari uchun norasmiy tarjimalar taqdim etadi. Tarjima qilingan PDF har bir sahifada ko'rinadigan ogoh qilishni o'z ichiga oladi. Tailand hukumat organlari tomonidan qabul qilinadigan rasmiy sertifikatlangan tarjimalar uchun sertifikatlangan tarjimon yoki notarius tasdiqlagan tarjima xizmatiga murojaat qilishingiz kerak bo'ladi." },
-      { "q": "Tarjima qilingan PDFga nima kiritilgan?", "a": "Tarjima qilingan PDF barcha ko'rinadigan matnning toza tarjimasini o'z ichiga oladi, shaxsiy ismlar transliteratsiya qilinadi (tarjima qilinmaydi), raqamlar, sanalar va hujjat raqamlari aynan ko'rsatilganidek saqlanadi. Har bir sahifada ogoh qilish kolontituli paydo bo'ladi." },
-      { "q": "Hujjatim qanday saqlanadi va himoya qilinadi?", "a": "Fayllaringiz shifrlangan va Cloudflare R2 saqlashda saqlanadi. Ular 30 kundan keyin avtomatik o'chiriladi. Biz hujjatlaringizni uchinchi shaxslar bilan ulashmaymiz." }
+      {
+        "q": "Bu tarjimani DTV viza arizasi uchun ishlatsa bo'ladimi?",
+        "a": "Tarjimalarimiz norasmiy va faqat ma'lumot olish uchun. Ular sertifikatlangan yoki notarius tasdiqlagan tarjimalar emas. DTV viza uchun Tailand immigratsiyasi odatda asl nusxalar bilan birga tarjimalarni talab qiladi. O'zingizning konsulxonangiz yoki immigratsiya agentingiz bilan qanday darajadagi tarjima talab qilinishini tasdiqlashni tavsiya qilamiz."
+      },
+      {
+        "q": "Tailand uchun qaysi til juftliklarini qo'llabquvvatlaysiz?",
+        "a": "Biz rus → ingliz, ingliz → rus, rus → tailand, tailand → ingliz va ingliz → tailandni qo'llab-quvvatlaymiz. Bular Tailanddagi rus tilli ekspat va raqamli ko'chmanchilar uchun eng keng tarqalgan ish oqimlarini qamrab oladi."
+      },
+      {
+        "q": "Tarjima qilingan hujjatni qancha tez olaman?",
+        "a": "Ko'pgina hujjatlar to'lovdan keyin 2–5 daqiqada tayyor. Uzunroq hujjatlar (10+ sahifa) 15 daqiqagacha ketishi mumkin. Elektron pochtangizga yuklab olish havola olinadi va boshqaruv panelingizdan ham yuklab olishingiz mumkin."
+      },
+      {
+        "q": "Bu rasmiy yoki sertifikatlangan tarjimami?",
+        "a": "Yo'q. WPO Tarjimalari faqat ma'lumot olish maqsadlari uchun norasmiy tarjimalar taqdim etadi. Tarjima qilingan PDF har bir sahifada ko'rinadigan ogoh qilishni o'z ichiga oladi. Tailand hukumat organlari tomonidan qabul qilinadigan rasmiy sertifikatlangan tarjimalar uchun sertifikatlangan tarjimon yoki notarius tasdiqlagan tarjima xizmatiga murojaat qilishingiz kerak bo'ladi."
+      },
+      {
+        "q": "Tarjima qilingan PDFga nima kiritilgan?",
+        "a": "Tarjima qilingan PDF barcha ko'rinadigan matnning toza tarjimasini o'z ichiga oladi, shaxsiy ismlar transliteratsiya qilinadi (tarjima qilinmaydi), raqamlar, sanalar va hujjat raqamlari aynan ko'rsatilganidek saqlanadi. Har bir sahifada ogoh qilish kolontituli paydo bo'ladi."
+      },
+      {
+        "q": "Hujjatim qanday saqlanadi va himoya qilinadi?",
+        "a": "Fayllaringiz shifrlangan va Cloudflare R2 saqlashda saqlanadi. Ular 30 kundan keyin avtomatik o'chiriladi. Biz hujjatlaringizni uchinchi shaxslar bilan ulashmaymiz."
+      }
     ]
   },
   "thailandDtv": {
@@ -322,11 +395,26 @@
     "finalCtaSub": "Bank ko'chirmalari, ish xatlari va daromad isbotini bir necha daqiqada tarjima qiling.",
     "finalCtaCta": "Tarjimani boshlash",
     "faq": [
-      { "q": "DTV arizasi uchun qaysi hujjatlar kerak?", "a": "Tailand Raqamli Ko'chmanchi Vizasi (DTV) odatda quyidagilarni talab qiladi: yetarli mablag'larni ko'rsatuvchi 6 oylik bank ko'chirmalari, daromad yoki ish isboti, sog'liqni saqlash sug'urtasi hujjatlari, kamida 18 oy amal qiladigan pasport va yashash joyi isboti. Talablar konsulxonaga qarab farq qilishi mumkin — doimo to'g'ridan-to'g'ri tasdiqlang." },
-      { "q": "Hujjatlarim tailand yoki ingliz tiliga tarjima qilinishi kerakmi?", "a": "Chet ellarning ko'pgina Tailand konsulxonalari ingliz tilida tarjimalarni qabul qiladi. Ba'zilari Tailand ichidagi Tailand immigratsiya idorasida ariza topshirayotgan bo'lsangiz tailand tilida tarjimalarni talab qilishi mumkin. Biz ham tailand, ham inglizni maqsad tili sifatida qo'llab-quvvatlaymiz." },
-      { "q": "DTV uchun minimal daromad talabi nima?", "a": "2024–2025 yillar holatiga ko'ra, DTV xorijiy bank hisobida kamida 500 000 THB (taxminan $14 000) yoki ekvivalent daromad isbotini talab qiladi. Ariza topshirishdan oldin Tailand immigratsiyasining rasmiy veb-saytida joriy talablarni tekshiring." },
-      { "q": "Tailand immigratsiyasi tarjimangizni qabul qiladimi?", "a": "WPO norasmiy, ma'lumotli tarjimalar taqdim etadi. Ular sertifikatlangan yoki notarius tasdiqlagan emas. Ko'pgina ariza beruvchilar ularni hujjatlar tayyorligini tasdiqlaydi viza agenti yoki immigratsiya maslahatchisi tomonidan ko'rib chiqiladigan to'plam sifatida ishlatadi. Rasmiy talablar bo'yicha doimo viza agentingiz yoki konsulxona bilan maslahatlashing." },
-      { "q": "Bir vaqtning o'zida bir nechta hujjatni tarjima qila olamanmi?", "a": "Hozirda har bir hujjat alohida yuklanadi va tarjima qilinadi. Ko'p hujjatli yuklash yo'l xaritamizda. Boshqaruv panelingiz orqali bir necha hujjatni ketma-ket tarjima qilishingiz mumkin." }
+      {
+        "q": "DTV arizasi uchun qaysi hujjatlar kerak?",
+        "a": "Tailand Raqamli Ko'chmanchi Vizasi (DTV) odatda quyidagilarni talab qiladi: yetarli mablag'larni ko'rsatuvchi 6 oylik bank ko'chirmalari, daromad yoki ish isboti, sog'liqni saqlash sug'urtasi hujjatlari, kamida 18 oy amal qiladigan pasport va yashash joyi isboti. Talablar konsulxonaga qarab farq qilishi mumkin — doimo to'g'ridan-to'g'ri tasdiqlang."
+      },
+      {
+        "q": "Hujjatlarim tailand yoki ingliz tiliga tarjima qilinishi kerakmi?",
+        "a": "Chet ellarning ko'pgina Tailand konsulxonalari ingliz tilida tarjimalarni qabul qiladi. Ba'zilari Tailand ichidagi Tailand immigratsiya idorasida ariza topshirayotgan bo'lsangiz tailand tilida tarjimalarni talab qilishi mumkin. Biz ham tailand, ham inglizni maqsad tili sifatida qo'llab-quvvatlaymiz."
+      },
+      {
+        "q": "DTV uchun minimal daromad talabi nima?",
+        "a": "2024–2025 yillar holatiga ko'ra, DTV xorijiy bank hisobida kamida 500 000 THB (taxminan $14 000) yoki ekvivalent daromad isbotini talab qiladi. Ariza topshirishdan oldin Tailand immigratsiyasining rasmiy veb-saytida joriy talablarni tekshiring."
+      },
+      {
+        "q": "Tailand immigratsiyasi tarjimangizni qabul qiladimi?",
+        "a": "WPO norasmiy, ma'lumotli tarjimalar taqdim etadi. Ular sertifikatlangan yoki notarius tasdiqlagan emas. Ko'pgina ariza beruvchilar ularni hujjatlar tayyorligini tasdiqlaydi viza agenti yoki immigratsiya maslahatchisi tomonidan ko'rib chiqiladigan to'plam sifatida ishlatadi. Rasmiy talablar bo'yicha doimo viza agentingiz yoki konsulxona bilan maslahatlashing."
+      },
+      {
+        "q": "Bir vaqtning o'zida bir nechta hujjatni tarjima qila olamanmi?",
+        "a": "Hozirda har bir hujjat alohida yuklanadi va tarjima qilinadi. Ko'p hujjatli yuklash yo'l xaritamizda. Boshqaruv panelingiz orqali bir necha hujjatni ketma-ket tarjima qilishingiz mumkin."
+      }
     ]
   },
   "thailandImmigration": {
@@ -340,10 +428,22 @@
     "finalCtaSub": "PDF yuklang va bir necha daqiqada toza tarjima qilingan versiyani oling.",
     "finalCtaCta": "Tarjimani boshlash",
     "faq": [
-      { "q": "Tailand immigratsiya idoralari uchun sertifikatlangan tarjima kerakmi?", "a": "Talablar viza turi va immigratsiya idorasiga qarab farq qiladi. Ko'pgina immigratsiya vazifalari — qo'shimcha hujjat topshirish ham — asl nusxalar bilan birga norasmiy tarjima nusxalari bilan hal qilinishi mumkin. Sud jarayonlari yoki rasmiy sertifikatlash uchun sertifikatlangan tarjimon talab qilinadi. Doimo o'zingiz murojaat qilayotgan idora bilan tasdiqlang." },
-      { "q": "Tailand immigratsiya hujjatlari uchun qaysi til juftliklarini qo'llabquvvatlaysiz?", "a": "Biz rus ↔ ingliz, ingliz ↔ tailand va rus → tailandni qo'llab-quvvatlaymiz. Bu Tailand immigratsiyasi bilan shug'ullanayotgan rus tilli ekspat va raqamli ko'chmanchilar uchun kerakli asosiy til kombinatsiyalarini qamrab oladi." },
-      { "q": "Tailand turmush o'rtog'i vizasi uchun nikoh guvohnomasini tarjima qila olasizmi?", "a": "Ha, nikoh guvohnomalarini rus yoki ingliz tilidan tailand yoki ingliz tiliga tarjima qila olamiz. Bu tarjimalar norasmiy va ma'lumot olish uchun. Nikoh guvohnomasini o'z ichiga olgan rasmiy viza arizalari uchun notarius tasdiqlagan tarjima talab qilinishini tasdiqlang." },
-      { "q": "Yetkazib berish qanchalik tez?", "a": "Ko'pgina hujjatlar uchun 2–5 daqiqa. Jinoiy javobgarlik yo'qligi guvohnomalari va ko'p sahifali bank ko'chirmalari 10 daqiqagacha ketishi mumkin. Tugatilgandan keyin darhol elektron pochta orqali yuklab olish havolasini olasiz." }
+      {
+        "q": "Tailand immigratsiya idoralari uchun sertifikatlangan tarjima kerakmi?",
+        "a": "Talablar viza turi va immigratsiya idorasiga qarab farq qiladi. Ko'pgina immigratsiya vazifalari — qo'shimcha hujjat topshirish ham — asl nusxalar bilan birga norasmiy tarjima nusxalari bilan hal qilinishi mumkin. Sud jarayonlari yoki rasmiy sertifikatlash uchun sertifikatlangan tarjimon talab qilinadi. Doimo o'zingiz murojaat qilayotgan idora bilan tasdiqlang."
+      },
+      {
+        "q": "Tailand immigratsiya hujjatlari uchun qaysi til juftliklarini qo'llabquvvatlaysiz?",
+        "a": "Biz rus ↔ ingliz, ingliz ↔ tailand va rus → tailandni qo'llab-quvvatlaymiz. Bu Tailand immigratsiyasi bilan shug'ullanayotgan rus tilli ekspat va raqamli ko'chmanchilar uchun kerakli asosiy til kombinatsiyalarini qamrab oladi."
+      },
+      {
+        "q": "Tailand turmush o'rtog'i vizasi uchun nikoh guvohnomasini tarjima qila olasizmi?",
+        "a": "Ha, nikoh guvohnomalarini rus yoki ingliz tilidan tailand yoki ingliz tiliga tarjima qila olamiz. Bu tarjimalar norasmiy va ma'lumot olish uchun. Nikoh guvohnomasini o'z ichiga olgan rasmiy viza arizalari uchun notarius tasdiqlagan tarjima talab qilinishini tasdiqlang."
+      },
+      {
+        "q": "Yetkazib berish qanchalik tez?",
+        "a": "Ko'pgina hujjatlar uchun 2–5 daqiqa. Jinoiy javobgarlik yo'qligi guvohnomalari va ko'p sahifali bank ko'chirmalari 10 daqiqagacha ketishi mumkin. Tugatilgandan keyin darhol elektron pochta orqali yuklab olish havolasini olasiz."
+      }
     ]
   },
   "passportTranslation": {
@@ -357,11 +457,26 @@
     "finalCtaSub": "Pasport skaningizni yuklang va bir necha daqiqada toza, tuzilgan ingliz tarjimasini oling.",
     "finalCtaCta": "Pasportimni tarjima qilish",
     "faq": [
-      { "q": "Tarjimaga qaysi pasport ma'lumotlari kiritilgan?", "a": "Biz pasport ma'lumotlar sahifasidagi barcha ko'rinadigan maydonlarni tarjima qilamiz: familiya, ism(lar), millat, tug'ilgan sana, tug'ilgan joy, jins, berilgan sana, amal qilish muddati, pasport raqami, beruvchi organ va MRZ zonasi mazmuni. Shaxsiy ismlar maqsadli skriptga transliteratsiya qilinadi." },
-      { "q": "Pasport qaysi tillarga tarjima qilinishi mumkin?", "a": "Biz ingliz, rus, tailand, xitoy, koreys, yapon, nemis, frantsuz, ispan va arab tillarini o'z ichiga olgan 10+ maqsad tilni qo'llab-quvvatlaymiz. Manba tili avtomatik aniqlanishi yoki qo'lda ko'rsatilishi mumkin." },
-      { "q": "Tarjima viza arizalari uchun qabul qilinadimi?", "a": "Tarjimalarimiz norasmiy va ma'lumot olish uchun. Ba'zi konsulxonalar asl pasport bilan birga norasmiy tarjima nusxalarini qabul qiladi. Boshqalari sertifikatlangan tarjimalarni talab qiladi. Doimo o'zingizning elchixona yoki konsulxonangiz bilan qanday darajadagi tarjima talab qilinishini tasdiqlang." },
-      { "q": "Ismlar tarjimada qanday qayta ishlanadi?", "a": "Shaxsiy ismlar pasport uslubidagi hujjatlar uchun ICAO 9303 standartlariga muvofiq va boshqa skriptlar uchun standart transliteratsiya qoidalariga ko'ra transliteratsiya qilinadi. Ismlar hech qachon semantik jihatdan tarjima qilinmaydi." },
-      { "q": "Pasport ma'lumotlarim xavfsizmi?", "a": "Hujjatingiz shifrlangan Cloudflare R2 saqlashda qayta ishlanadi va saqlanadi. U 30 kundan keyin avtomatik o'chiriladi. Biz pasportingizda shaxsiy ma'lumotlarni tarjima yaratishdan boshqa maqsadlar uchun saqlamaymiz, ulashmaymiz yoki ishlatmaymiz." }
+      {
+        "q": "Tarjimaga qaysi pasport ma'lumotlari kiritilgan?",
+        "a": "Biz pasport ma'lumotlar sahifasidagi barcha ko'rinadigan maydonlarni tarjima qilamiz: familiya, ism(lar), millat, tug'ilgan sana, tug'ilgan joy, jins, berilgan sana, amal qilish muddati, pasport raqami, beruvchi organ va MRZ zonasi mazmuni. Shaxsiy ismlar maqsadli skriptga transliteratsiya qilinadi."
+      },
+      {
+        "q": "Pasport qaysi tillarga tarjima qilinishi mumkin?",
+        "a": "Biz ingliz, rus, tailand, xitoy, koreys, yapon, nemis, frantsuz, ispan va arab tillarini o'z ichiga olgan 10+ maqsad tilni qo'llab-quvvatlaymiz. Manba tili avtomatik aniqlanishi yoki qo'lda ko'rsatilishi mumkin."
+      },
+      {
+        "q": "Tarjima viza arizalari uchun qabul qilinadimi?",
+        "a": "Tarjimalarimiz norasmiy va ma'lumot olish uchun. Ba'zi konsulxonalar asl pasport bilan birga norasmiy tarjima nusxalarini qabul qiladi. Boshqalari sertifikatlangan tarjimalarni talab qiladi. Doimo o'zingizning elchixona yoki konsulxonangiz bilan qanday darajadagi tarjima talab qilinishini tasdiqlang."
+      },
+      {
+        "q": "Ismlar tarjimada qanday qayta ishlanadi?",
+        "a": "Shaxsiy ismlar pasport uslubidagi hujjatlar uchun ICAO 9303 standartlariga muvofiq va boshqa skriptlar uchun standart transliteratsiya qoidalariga ko'ra transliteratsiya qilinadi. Ismlar hech qachon semantik jihatdan tarjima qilinmaydi."
+      },
+      {
+        "q": "Pasport ma'lumotlarim xavfsizmi?",
+        "a": "Hujjatingiz shifrlangan Cloudflare R2 saqlashda qayta ishlanadi va saqlanadi. U 30 kundan keyin avtomatik o'chiriladi. Biz pasportingizda shaxsiy ma'lumotlarni tarjima yaratishdan boshqa maqsadlar uchun saqlamaymiz, ulashmaymiz yoki ishlatmaymiz."
+      }
     ]
   },
   "diplomaTranslation": {
@@ -375,11 +490,26 @@
     "finalCtaSub": "Akademik hisob-kitobingizni yuklang va bir necha daqiqada toza, tuzilgan ingliz tarjimasini oling.",
     "finalCtaCta": "Diplomimni tarjima qilish",
     "faq": [
-      { "q": "Tarjimangiz WES yoki boshqa hisob-kitob baholashlari uchun qabul qilinadimi?", "a": "WES (World Education Services) va ko'pgina hisob-kitob baholash organlari sertifikatlangan yoki notarius tasdiqlagan tarjimalarni talab qiladi. WPO tayyorgarlik paytida, ta'lim maslahatchilari tomonidan yoki sertifikatlangan tarjima ish oqimiga kirish sifatida foydalanish mumkin bo'lgan norasmiy tarjimalar taqdim etadi. Topshirishdan oldin rasmiy talablarni tekshiring." },
-      { "q": "Diplom qo'shimchalari va baho tushuntirishlarini tarjima qilasizmi?", "a": "Ha. Diplom qo'shimchalari, baho shkalasi tushuntirishlari va ilova qilingan akademik ko'chirmalar hujjat sifatida tarjima qilinadi. Fan nomlari standart akademik ingliz terminologiyasidan foydalanib tarjima qilinadi." },
-      { "q": "Diplom tarjimasi uchun qaysi tillarni qo'llabquvvatlaysiz?", "a": "Biz 10+ tilni qo'llab-quvvatlaymiz. Diplom tarjimasi uchun eng keng tarqalgan juftliklar: rus → ingliz, qozog'cha → ingliz, tailand → ingliz va xitoy → ingliz. Manba tili avtomatik aniqlanishi mumkin." },
-      { "q": "Daraja unvonlari va akademik baholarni qanday qayta ishlaysiz?", "a": "Daraja unvonlari kerak bo'lganda tushuntirish konteksti bilan tarjima qilinadi (masalan, \"Mutaxassis darajasi (5 yillik integral dastur)\"). Baholar konvertatsiya qilinmasdan asl shkala bo'yicha saqlanadi." },
-      { "q": "Buni professional litsenziyalash arizasi uchun ishlatsa bo'ladimi?", "a": "Ko'pgina litsenziyalash kengashlari xorijiy hisob-kitoblarning sertifikatlangan yoki notarius tasdiqlagan tarjimalarini talab qiladi. WPO tayyorgarlik va ma'lumot olish uchun norasmiy tarjimalar taqdim etadi. Litsenziyalash kengashingiz bilan sertifikatlash talablarini tasdiqlang." }
+      {
+        "q": "Tarjimangiz WES yoki boshqa hisob-kitob baholashlari uchun qabul qilinadimi?",
+        "a": "WES (World Education Services) va ko'pgina hisob-kitob baholash organlari sertifikatlangan yoki notarius tasdiqlagan tarjimalarni talab qiladi. WPO tayyorgarlik paytida, ta'lim maslahatchilari tomonidan yoki sertifikatlangan tarjima ish oqimiga kirish sifatida foydalanish mumkin bo'lgan norasmiy tarjimalar taqdim etadi. Topshirishdan oldin rasmiy talablarni tekshiring."
+      },
+      {
+        "q": "Diplom qo'shimchalari va baho tushuntirishlarini tarjima qilasizmi?",
+        "a": "Ha. Diplom qo'shimchalari, baho shkalasi tushuntirishlari va ilova qilingan akademik ko'chirmalar hujjat sifatida tarjima qilinadi. Fan nomlari standart akademik ingliz terminologiyasidan foydalanib tarjima qilinadi."
+      },
+      {
+        "q": "Diplom tarjimasi uchun qaysi tillarni qo'llabquvvatlaysiz?",
+        "a": "Biz 10+ tilni qo'llab-quvvatlaymiz. Diplom tarjimasi uchun eng keng tarqalgan juftliklar: rus → ingliz, qozog'cha → ingliz, tailand → ingliz va xitoy → ingliz. Manba tili avtomatik aniqlanishi mumkin."
+      },
+      {
+        "q": "Daraja unvonlari va akademik baholarni qanday qayta ishlaysiz?",
+        "a": "Daraja unvonlari kerak bo'lganda tushuntirish konteksti bilan tarjima qilinadi (masalan, \"Mutaxassis darajasi (5 yillik integral dastur)\"). Baholar konvertatsiya qilinmasdan asl shkala bo'yicha saqlanadi."
+      },
+      {
+        "q": "Buni professional litsenziyalash arizasi uchun ishlatsa bo'ladimi?",
+        "a": "Ko'pgina litsenziyalash kengashlari xorijiy hisob-kitoblarning sertifikatlangan yoki notarius tasdiqlagan tarjimalarini talab qiladi. WPO tayyorgarlik va ma'lumot olish uchun norasmiy tarjimalar taqdim etadi. Litsenziyalash kengashingiz bilan sertifikatlash talablarini tasdiqlang."
+      }
     ]
   },
   "bankStatementTranslation": {
@@ -393,11 +523,26 @@
     "finalCtaSub": "Bank ko'chirmangizni yuklang va 2–5 daqiqada toza ingliz tarjimasini oling.",
     "finalCtaCta": "Bank ko'chirmamni tarjima qilish",
     "faq": [
-      { "q": "Qaysi viza turlari tarjima qilingan bank ko'chirmasini talab qiladi?", "a": "Tailand DTV, Shengen vizalari, Buyuk Britaniya tashrif vizalari, AQSh B1/B2 vizalari va ko'pgina immigratsiya arizalari odatda ingliz tilida bankdan mablag'lar isbotini talab qiladi. Daromad guvohnomalar va ish haqi to'lovnomalari kabi boshqa hujjatlar ham ko'pincha talab qilinadi." },
-      { "q": "Valyutalar va miqdorlar konvertatsiyasiz saqlanadimi?", "a": "Ha. Barcha miqdorlar, valyutalar va qoldiqlar asl hujjatda ko'rsatilganidek saqlanadi. Biz valyutalarni konvertatsiya qilmaymiz, miqdorlarni yaxlitlamaymiz yoki moliyaviy ma'lumotlarni hech qanday tarzda talqin qilmaymiz." },
-      { "q": "Bank ko'chirmam 6 sahifali bo'lsa nima bo'ladi?", "a": "Biz 50 sahifagacha bo'lgan bank ko'chirmalarini qo'llab-quvvatlaymiz. Hujjat uchun narx shu chegaradagi sahifalar sonidan qat'iy nazar qo'llaniladi. Barcha sahifalar bitta hujjat sifatida tarjima qilinadi." },
-      { "q": "Tarjima qilingan ko'chirma konsulxonam tomonidan qabul qilinadimi?", "a": "Tarjimalarimiz norasmiy. Ko'pgina konsulxonalar asl ko'chirma bilan birga norasmiy tarjimalarni qabul qiladi. Boshqalari sertifikatlangan tarjimani talab qiladi. O'zingizning konsulxonangiz yoki viza agentingiz bilan talablarni tekshiring." },
-      { "q": "Onlayn bank skrinshoti yoki PDF eksportlarini tarjima qila olasizmi?", "a": "Ha. Skanerlangan qog'oz ko'chirmalari ham, onlayn bank tizimidan raqamli PDF eksportlari ham qo'llab-quvvatlanadi. Skanerlangan hujjatlar tarjimadan oldin OCR orqali qayta ishlanadi." }
+      {
+        "q": "Qaysi viza turlari tarjima qilingan bank ko'chirmasini talab qiladi?",
+        "a": "Tailand DTV, Shengen vizalari, Buyuk Britaniya tashrif vizalari, AQSh B1/B2 vizalari va ko'pgina immigratsiya arizalari odatda ingliz tilida bankdan mablag'lar isbotini talab qiladi. Daromad guvohnomalar va ish haqi to'lovnomalari kabi boshqa hujjatlar ham ko'pincha talab qilinadi."
+      },
+      {
+        "q": "Valyutalar va miqdorlar konvertatsiyasiz saqlanadimi?",
+        "a": "Ha. Barcha miqdorlar, valyutalar va qoldiqlar asl hujjatda ko'rsatilganidek saqlanadi. Biz valyutalarni konvertatsiya qilmaymiz, miqdorlarni yaxlitlamaymiz yoki moliyaviy ma'lumotlarni hech qanday tarzda talqin qilmaymiz."
+      },
+      {
+        "q": "Bank ko'chirmam 6 sahifali bo'lsa nima bo'ladi?",
+        "a": "Biz 50 sahifagacha bo'lgan bank ko'chirmalarini qo'llab-quvvatlaymiz. Hujjat uchun narx shu chegaradagi sahifalar sonidan qat'iy nazar qo'llaniladi. Barcha sahifalar bitta hujjat sifatida tarjima qilinadi."
+      },
+      {
+        "q": "Tarjima qilingan ko'chirma konsulxonam tomonidan qabul qilinadimi?",
+        "a": "Tarjimalarimiz norasmiy. Ko'pgina konsulxonalar asl ko'chirma bilan birga norasmiy tarjimalarni qabul qiladi. Boshqalari sertifikatlangan tarjimani talab qiladi. O'zingizning konsulxonangiz yoki viza agentingiz bilan talablarni tekshiring."
+      },
+      {
+        "q": "Onlayn bank skrinshoti yoki PDF eksportlarini tarjima qila olasizmi?",
+        "a": "Ha. Skanerlangan qog'oz ko'chirmalari ham, onlayn bank tizimidan raqamli PDF eksportlari ham qo'llab-quvvatlanadi. Skanerlangan hujjatlar tarjimadan oldin OCR orqali qayta ishlanadi."
+      }
     ]
   },
   "tos": {
@@ -425,5 +570,10 @@
     "s7": "7. Kukilar",
     "s8": "8. Ushbu siyosatga o'zgarishlar",
     "s9": "9. Aloqa"
+  },
+  "footer": {
+    "tagline": "AI asosida professional hujjat tarjimasi",
+    "tos": "Xizmat shartlari",
+    "privacy": "Maxfiylik siyosati"
   }
 }

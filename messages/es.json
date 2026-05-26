@@ -87,7 +87,14 @@
     "feature2": "Todos los tipos de documentos",
     "feature3": "Traducción con IA de Claude",
     "feature4": "PDF limpio de salida",
-    "translateNow": "Traducir ahora"
+    "translateNow": "Traducir ahora",
+    "allDocTypes": "Todos los tipos de documentos",
+    "aiTranslation": "Traducción IA con Claude",
+    "cleanPdf": "PDF limpio de salida",
+    "dayAccess": "Acceso 30 días",
+    "priorityProcessing": "Procesamiento prioritario",
+    "proBadge": "Insignia PRO",
+    "proDesc": "Procesamiento prioritario."
   },
   "trust": {
     "label": "POR QUÉ WPO TRANSLATIONS",
@@ -222,7 +229,6 @@
     "loginLink": "Iniciar sesión"
   },
   "disclaimer": "TRADUCCIÓN NO OFICIAL — SOLO PARA FINES INFORMATIVOS",
-
   "documentsHub": {
     "heroBadge": "Todos los Tipos de Documentos",
     "heroHeadline": "Traduce Cualquier Documento Oficial",
@@ -234,12 +240,20 @@
     "finalCtaSub": "Sube cualquier PDF oficial y recibe una traducción limpia en 2–5 minutos.",
     "finalCtaCta": "Subir documento",
     "faq": [
-      { "q": "¿Qué tipos de documentos soportan?", "a": "Soportamos todos los tipos de documentos oficiales principales: pasaportes, DNI, extractos bancarios, diplomas, expedientes, actas de nacimiento y matrimonio, contratos de trabajo, historiales médicos, certificados de antecedentes penales, carnés de conducir y documentos oficiales genéricos." },
-      { "q": "¿Qué idiomas están disponibles?", "a": "Soportamos más de 10 idiomas, incluyendo inglés, ruso, tailandés, chino, coreano, japonés, alemán, francés, español y árabe. El idioma de origen puede detectarse automáticamente." },
-      { "q": "¿Están certificadas o apostilladas sus traducciones?", "a": "No. Todas las traducciones son informales y solo para uso informativo. Las traducciones certificadas o apostilladas deben obtenerse de un traductor o notario autorizado." }
+      {
+        "q": "¿Qué tipos de documentos soportan?",
+        "a": "Soportamos todos los tipos de documentos oficiales principales: pasaportes, DNI, extractos bancarios, diplomas, expedientes, actas de nacimiento y matrimonio, contratos de trabajo, historiales médicos, certificados de antecedentes penales, carnés de conducir y documentos oficiales genéricos."
+      },
+      {
+        "q": "¿Qué idiomas están disponibles?",
+        "a": "Soportamos más de 10 idiomas, incluyendo inglés, ruso, tailandés, chino, coreano, japonés, alemán, francés, español y árabe. El idioma de origen puede detectarse automáticamente."
+      },
+      {
+        "q": "¿Están certificadas o apostilladas sus traducciones?",
+        "a": "No. Todas las traducciones son informales y solo para uso informativo. Las traducciones certificadas o apostilladas deben obtenerse de un traductor o notario autorizado."
+      }
     ]
   },
-
   "kazakhstan": {
     "heroBadge": "Kazajistán · Gestión de documentos",
     "heroHeadline": "Traducción de documentos para Kazajistán",
@@ -252,14 +266,28 @@
     "finalCtaSub": "Sube tu PDF y recibe una versión traducida limpia en 2–5 minutos.",
     "finalCtaCta": "Comenzar a traducir",
     "faq": [
-      { "q": "¿Puedo usar esta traducción antes de visitar un notario?", "a": "Sí. Muchos notarios y traductores certificados revisan una traducción previa antes de completar la versión certificada. Una traducción WPO limpia puede acelerar ese proceso." },
-      { "q": "¿Qué idiomas soportan para documentos de Kazajistán?", "a": "Soportamos ruso ↔ inglés como pares principales. También se soportan kazajo ↔ ruso y kazajo → inglés." },
-      { "q": "¿Esta traducción es aceptada por universidades extranjeras?", "a": "Las universidades extranjeras generalmente requieren traducciones certificadas. WPO proporciona traducciones informales para la etapa de preparación. Siempre confirma los requisitos oficiales con la universidad de destino." },
-      { "q": "¿Pueden los notarios y agentes de visas usar este servicio en nombre de clientes?", "a": "Sí. Cualquier usuario puede cargar el documento de un cliente, procesarlo y recibir el PDF traducido." },
-      { "q": "¿Qué es una apostilla y cómo afecta a la traducción?", "a": "Una apostilla es un sello oficial aplicado a un documento por una autoridad gubernamental. La traducción es un paso separado. WPO proporciona el paso de traducción; la apostilla debe obtenerse de la autoridad gubernamental correspondiente." }
+      {
+        "q": "¿Puedo usar esta traducción antes de visitar un notario?",
+        "a": "Sí. Muchos notarios y traductores certificados revisan una traducción previa antes de completar la versión certificada. Una traducción WPO limpia puede acelerar ese proceso."
+      },
+      {
+        "q": "¿Qué idiomas soportan para documentos de Kazajistán?",
+        "a": "Soportamos ruso ↔ inglés como pares principales. También se soportan kazajo ↔ ruso y kazajo → inglés."
+      },
+      {
+        "q": "¿Esta traducción es aceptada por universidades extranjeras?",
+        "a": "Las universidades extranjeras generalmente requieren traducciones certificadas. WPO proporciona traducciones informales para la etapa de preparación. Siempre confirma los requisitos oficiales con la universidad de destino."
+      },
+      {
+        "q": "¿Pueden los notarios y agentes de visas usar este servicio en nombre de clientes?",
+        "a": "Sí. Cualquier usuario puede cargar el documento de un cliente, procesarlo y recibir el PDF traducido."
+      },
+      {
+        "q": "¿Qué es una apostilla y cómo afecta a la traducción?",
+        "a": "Una apostilla es un sello oficial aplicado a un documento por una autoridad gubernamental. La traducción es un paso separado. WPO proporciona el paso de traducción; la apostilla debe obtenerse de la autoridad gubernamental correspondiente."
+      }
     ]
   },
-
   "kazakhstanNotarized": {
     "heroBadge": "Kazajistán · Preparación para notario",
     "heroHeadline": "Traducción para",
@@ -271,13 +299,24 @@
     "finalCtaSub": "Sube tu documento y recibe una traducción estructurada en 2–5 minutos. Desde $4.39.",
     "finalCtaCta": "Comenzar traducción",
     "faq": [
-      { "q": "¿Es esta una traducción certificada o notarial?", "a": "No. WPO proporciona traducciones informales para fines informativos y de preparación. Una traducción certificada o notarial debe ser producida por un traductor o notario autorizado." },
-      { "q": "¿Aceptará mi notario una traducción de WPO como punto de partida?", "a": "La mayoría de los notarios y traductores certificados están dispuestos a trabajar con un borrador preparado. Confirma con tu notario específico antes de usar este flujo de trabajo." },
-      { "q": "¿Qué idiomas están soportados?", "a": "Ruso ↔ inglés, kazajo → inglés y kazajo → ruso." },
-      { "q": "¿Puedo usar este servicio como notario o consultor de migración?", "a": "Sí. Puedes cargar documentos de clientes y recibir traducciones en su nombre." }
+      {
+        "q": "¿Es esta una traducción certificada o notarial?",
+        "a": "No. WPO proporciona traducciones informales para fines informativos y de preparación. Una traducción certificada o notarial debe ser producida por un traductor o notario autorizado."
+      },
+      {
+        "q": "¿Aceptará mi notario una traducción de WPO como punto de partida?",
+        "a": "La mayoría de los notarios y traductores certificados están dispuestos a trabajar con un borrador preparado. Confirma con tu notario específico antes de usar este flujo de trabajo."
+      },
+      {
+        "q": "¿Qué idiomas están soportados?",
+        "a": "Ruso ↔ inglés, kazajo → inglés y kazajo → ruso."
+      },
+      {
+        "q": "¿Puedo usar este servicio como notario o consultor de migración?",
+        "a": "Sí. Puedes cargar documentos de clientes y recibir traducciones en su nombre."
+      }
     ]
   },
-
   "kazakhstanUniversity": {
     "heroBadge": "Kazajistán · Solicitudes universitarias",
     "heroHeadline": "Traducción de documentos académicos",
@@ -289,13 +328,24 @@
     "finalCtaSub": "Sube tu diploma, expediente o certificado académico y obtén una traducción al inglés en minutos.",
     "finalCtaCta": "Traducir mis documentos académicos",
     "faq": [
-      { "q": "¿Aceptarán las universidades extranjeras la traducción de WPO?", "a": "Los requisitos varían según la universidad y el país. Muchas universidades aceptan traducciones informales para la revisión inicial de la solicitud. Verifica los requisitos específicos de tu universidad objetivo." },
-      { "q": "¿Qué es un certificado de estudios (Attestat)?", "a": "El Attestat es el certificado de finalización de educación secundaria de Kazajistán. Enumeramos todas las notas finales en todas las asignaturas en inglés." },
-      { "q": "¿Preservan la escala de calificaciones?", "a": "Sí. Preservamos las calificaciones originales tal como aparecen y anotamos el sistema de calificaciones en el documento traducido." },
-      { "q": "¿Pueden traducir documentos para evaluación de credenciales?", "a": "WPO proporciona traducciones informales para preparación y referencia. Confirma los requisitos de certificación con tu organismo evaluador." }
+      {
+        "q": "¿Aceptarán las universidades extranjeras la traducción de WPO?",
+        "a": "Los requisitos varían según la universidad y el país. Muchas universidades aceptan traducciones informales para la revisión inicial de la solicitud. Verifica los requisitos específicos de tu universidad objetivo."
+      },
+      {
+        "q": "¿Qué es un certificado de estudios (Attestat)?",
+        "a": "El Attestat es el certificado de finalización de educación secundaria de Kazajistán. Enumeramos todas las notas finales en todas las asignaturas en inglés."
+      },
+      {
+        "q": "¿Preservan la escala de calificaciones?",
+        "a": "Sí. Preservamos las calificaciones originales tal como aparecen y anotamos el sistema de calificaciones en el documento traducido."
+      },
+      {
+        "q": "¿Pueden traducir documentos para evaluación de credenciales?",
+        "a": "WPO proporciona traducciones informales para preparación y referencia. Confirma los requisitos de certificación con tu organismo evaluador."
+      }
     ]
   },
-
   "thailand": {
     "heroBadge": "Tailandia · Documentos para expatriados y visas",
     "heroHeadline": "Traducción de documentos para Tailandia",
@@ -308,15 +358,32 @@
     "finalCtaSub": "Sube un PDF y obtén una versión traducida limpia en minutos. Desde $4.39.",
     "finalCtaCta": "Comenzar a traducir",
     "faq": [
-      { "q": "¿Puedo usar esta traducción para una solicitud de visa DTV?", "a": "Nuestras traducciones son informales y solo para fines informativos. Para la visa DTV, la inmigración tailandesa generalmente requiere que las traducciones acompañen los originales. Recomendamos confirmar con tu consulado o agente de inmigración específico." },
-      { "q": "¿Qué pares de idiomas soportan para Tailandia?", "a": "Soportamos ruso → inglés, inglés → ruso, ruso → tailandés, tailandés → inglés e inglés → tailandés." },
-      { "q": "¿Con qué rapidez recibiré mi documento traducido?", "a": "La mayoría de los documentos están listos en 2–5 minutos después del pago. Documentos más largos (10+ páginas) pueden tardar hasta 15 minutos." },
-      { "q": "¿Es esta una traducción oficial o certificada?", "a": "No. WPO Translations proporciona traducciones informales. Para traducciones oficiales certificadas aceptadas por organismos gubernamentales tailandeses, necesitarás un traductor certificado." },
-      { "q": "¿Qué se incluye exactamente en el PDF traducido?", "a": "El PDF traducido incluye una traducción limpia de todo el texto visible, con nombres personales transliterados, números, fechas y números de documentos preservados exactamente como se muestran." },
-      { "q": "¿Cómo se almacena y protege mi documento?", "a": "Tus archivos están cifrados y almacenados en Cloudflare R2. Se eliminan automáticamente después de 30 días. No compartimos tus documentos con terceros." }
+      {
+        "q": "¿Puedo usar esta traducción para una solicitud de visa DTV?",
+        "a": "Nuestras traducciones son informales y solo para fines informativos. Para la visa DTV, la inmigración tailandesa generalmente requiere que las traducciones acompañen los originales. Recomendamos confirmar con tu consulado o agente de inmigración específico."
+      },
+      {
+        "q": "¿Qué pares de idiomas soportan para Tailandia?",
+        "a": "Soportamos ruso → inglés, inglés → ruso, ruso → tailandés, tailandés → inglés e inglés → tailandés."
+      },
+      {
+        "q": "¿Con qué rapidez recibiré mi documento traducido?",
+        "a": "La mayoría de los documentos están listos en 2–5 minutos después del pago. Documentos más largos (10+ páginas) pueden tardar hasta 15 minutos."
+      },
+      {
+        "q": "¿Es esta una traducción oficial o certificada?",
+        "a": "No. WPO Translations proporciona traducciones informales. Para traducciones oficiales certificadas aceptadas por organismos gubernamentales tailandeses, necesitarás un traductor certificado."
+      },
+      {
+        "q": "¿Qué se incluye exactamente en el PDF traducido?",
+        "a": "El PDF traducido incluye una traducción limpia de todo el texto visible, con nombres personales transliterados, números, fechas y números de documentos preservados exactamente como se muestran."
+      },
+      {
+        "q": "¿Cómo se almacena y protege mi documento?",
+        "a": "Tus archivos están cifrados y almacenados en Cloudflare R2. Se eliminan automáticamente después de 30 días. No compartimos tus documentos con terceros."
+      }
     ]
   },
-
   "thailandDtv": {
     "heroBadge": "Visa DTV Tailandia",
     "heroHeadline": "Traducir documentos para Tailandia",
@@ -328,14 +395,28 @@
     "finalCtaSub": "Traduce tus extractos bancarios, cartas de empleo y pruebas de ingresos en minutos.",
     "finalCtaCta": "Comenzar a traducir",
     "faq": [
-      { "q": "¿Qué documentos necesito para una solicitud DTV?", "a": "La Visa de Nómada Digital de Tailandia (DTV) generalmente requiere: 6 meses de extractos bancarios, prueba de ingresos o empleo, documentación de seguro médico, un pasaporte válido por al menos 18 meses y prueba de alojamiento. Los requisitos pueden variar según el consulado." },
-      { "q": "¿Debo traducir mis documentos al tailandés o al inglés?", "a": "La mayoría de los consulados tailandeses en el extranjero aceptan traducciones al inglés. Soportamos tanto tailandés como inglés como idiomas de destino." },
-      { "q": "¿Cuál es el requisito mínimo de ingresos para DTV?", "a": "A partir de 2024–2025, la DTV requiere prueba de ingresos de al menos 500,000 THB en una cuenta bancaria extranjera. Verifica los requisitos actuales en el sitio web oficial de inmigración tailandesa." },
-      { "q": "¿Es tu traducción aceptada por la inmigración tailandesa?", "a": "WPO proporciona traducciones informales. Muchos solicitantes las usan como parte de un paquete revisado por un agente de visas. Siempre consulta a tu agente de visas o consulado." },
-      { "q": "¿Puedo traducir varios documentos a la vez?", "a": "Actualmente cada documento se carga y traduce por separado. Puedes traducir varios documentos en secuencia a través de tu panel." }
+      {
+        "q": "¿Qué documentos necesito para una solicitud DTV?",
+        "a": "La Visa de Nómada Digital de Tailandia (DTV) generalmente requiere: 6 meses de extractos bancarios, prueba de ingresos o empleo, documentación de seguro médico, un pasaporte válido por al menos 18 meses y prueba de alojamiento. Los requisitos pueden variar según el consulado."
+      },
+      {
+        "q": "¿Debo traducir mis documentos al tailandés o al inglés?",
+        "a": "La mayoría de los consulados tailandeses en el extranjero aceptan traducciones al inglés. Soportamos tanto tailandés como inglés como idiomas de destino."
+      },
+      {
+        "q": "¿Cuál es el requisito mínimo de ingresos para DTV?",
+        "a": "A partir de 2024–2025, la DTV requiere prueba de ingresos de al menos 500,000 THB en una cuenta bancaria extranjera. Verifica los requisitos actuales en el sitio web oficial de inmigración tailandesa."
+      },
+      {
+        "q": "¿Es tu traducción aceptada por la inmigración tailandesa?",
+        "a": "WPO proporciona traducciones informales. Muchos solicitantes las usan como parte de un paquete revisado por un agente de visas. Siempre consulta a tu agente de visas o consulado."
+      },
+      {
+        "q": "¿Puedo traducir varios documentos a la vez?",
+        "a": "Actualmente cada documento se carga y traduce por separado. Puedes traducir varios documentos en secuencia a través de tu panel."
+      }
     ]
   },
-
   "thailandImmigration": {
     "heroBadge": "Inmigración Tailandesa",
     "heroHeadline": "Traducir documentos para",
@@ -347,13 +428,24 @@
     "finalCtaSub": "Sube tu PDF y recibe una versión traducida limpia en minutos.",
     "finalCtaCta": "Comenzar a traducir",
     "faq": [
-      { "q": "¿Necesito una traducción certificada para las oficinas de inmigración tailandesas?", "a": "Los requisitos varían según el tipo de visa y la oficina de inmigración. Muchas tareas de inmigración pueden manejarse con copias traducidas informales junto con los originales. Siempre verifica con la oficina específica." },
-      { "q": "¿Qué pares de idiomas soportan para documentos de inmigración tailandesa?", "a": "Soportamos ruso ↔ inglés, inglés ↔ tailandés y ruso → tailandés." },
-      { "q": "¿Pueden traducir un acta de matrimonio para una visa de cónyuge tailandés?", "a": "Sí, podemos traducir actas de matrimonio del ruso o inglés al tailandés o inglés. Para solicitudes formales de visa, confirma si se requiere una traducción notariada." },
-      { "q": "¿Qué tan rápida es la entrega?", "a": "2–5 minutos para la mayoría de los documentos. Recibes un enlace de descarga por correo electrónico inmediatamente al completarse." }
+      {
+        "q": "¿Necesito una traducción certificada para las oficinas de inmigración tailandesas?",
+        "a": "Los requisitos varían según el tipo de visa y la oficina de inmigración. Muchas tareas de inmigración pueden manejarse con copias traducidas informales junto con los originales. Siempre verifica con la oficina específica."
+      },
+      {
+        "q": "¿Qué pares de idiomas soportan para documentos de inmigración tailandesa?",
+        "a": "Soportamos ruso ↔ inglés, inglés ↔ tailandés y ruso → tailandés."
+      },
+      {
+        "q": "¿Pueden traducir un acta de matrimonio para una visa de cónyuge tailandés?",
+        "a": "Sí, podemos traducir actas de matrimonio del ruso o inglés al tailandés o inglés. Para solicitudes formales de visa, confirma si se requiere una traducción notariada."
+      },
+      {
+        "q": "¿Qué tan rápida es la entrega?",
+        "a": "2–5 minutos para la mayoría de los documentos. Recibes un enlace de descarga por correo electrónico inmediatamente al completarse."
+      }
     ]
   },
-
   "passportTranslation": {
     "heroBadge": "Tipo de documento · Pasaporte e ID",
     "heroHeadline": "Traducción de pasaporte",
@@ -365,14 +457,28 @@
     "finalCtaSub": "Sube el escaneo de tu pasaporte y recibe una traducción al inglés limpia y estructurada en minutos.",
     "finalCtaCta": "Traducir mi pasaporte",
     "faq": [
-      { "q": "¿Qué datos del pasaporte se incluyen en la traducción?", "a": "Traducimos todos los campos visibles de la página de datos del pasaporte: apellido, nombre(s), nacionalidad, fecha de nacimiento, lugar de nacimiento, género, fecha de emisión, fecha de vencimiento, número de pasaporte, autoridad emisora y contenidos de la zona MRZ." },
-      { "q": "¿A qué idiomas se puede traducir un pasaporte?", "a": "Soportamos más de 10 idiomas de destino, incluidos inglés, ruso, tailandés, chino, coreano, japonés, alemán, francés, español y árabe." },
-      { "q": "¿Se acepta la traducción para solicitudes de visa?", "a": "Nuestras traducciones son informales. Algunos consulados aceptan copias traducidas informales junto con el pasaporte original. Otros requieren traducciones certificadas. Siempre confirma con la embajada o consulado específico." },
-      { "q": "¿Cómo se manejan los nombres en la traducción?", "a": "Los nombres personales se transcriben siguiendo estándares de estilo pasaporte donde sea aplicable. Los nombres nunca se traducen semánticamente." },
-      { "q": "¿Están seguros los datos de mi pasaporte?", "a": "Tu documento se procesa y almacena en Cloudflare R2 cifrado. Se elimina automáticamente después de 30 días." }
+      {
+        "q": "¿Qué datos del pasaporte se incluyen en la traducción?",
+        "a": "Traducimos todos los campos visibles de la página de datos del pasaporte: apellido, nombre(s), nacionalidad, fecha de nacimiento, lugar de nacimiento, género, fecha de emisión, fecha de vencimiento, número de pasaporte, autoridad emisora y contenidos de la zona MRZ."
+      },
+      {
+        "q": "¿A qué idiomas se puede traducir un pasaporte?",
+        "a": "Soportamos más de 10 idiomas de destino, incluidos inglés, ruso, tailandés, chino, coreano, japonés, alemán, francés, español y árabe."
+      },
+      {
+        "q": "¿Se acepta la traducción para solicitudes de visa?",
+        "a": "Nuestras traducciones son informales. Algunos consulados aceptan copias traducidas informales junto con el pasaporte original. Otros requieren traducciones certificadas. Siempre confirma con la embajada o consulado específico."
+      },
+      {
+        "q": "¿Cómo se manejan los nombres en la traducción?",
+        "a": "Los nombres personales se transcriben siguiendo estándares de estilo pasaporte donde sea aplicable. Los nombres nunca se traducen semánticamente."
+      },
+      {
+        "q": "¿Están seguros los datos de mi pasaporte?",
+        "a": "Tu documento se procesa y almacena en Cloudflare R2 cifrado. Se elimina automáticamente después de 30 días."
+      }
     ]
   },
-
   "diplomaTranslation": {
     "heroBadge": "Tipo de documento · Diploma y Expediente",
     "heroHeadline": "Diploma y credencial académica",
@@ -384,14 +490,28 @@
     "finalCtaSub": "Sube tu credencial académica y recibe una traducción al inglés limpia y estructurada en minutos.",
     "finalCtaCta": "Traducir mi diploma",
     "faq": [
-      { "q": "¿Se acepta tu traducción para WES u otras evaluaciones de credenciales?", "a": "WES y la mayoría de los organismos de evaluación de credenciales requieren traducciones certificadas. WPO proporciona traducciones informales para preparación. Verifica los requisitos oficiales antes de presentar." },
-      { "q": "¿Traducen suplementos de diploma y explicaciones de calificaciones?", "a": "Sí. Los suplementos de diploma, explicaciones de escala de calificaciones y expedientes adjuntos se traducen como parte del documento." },
-      { "q": "¿Qué idiomas soportan para traducción de diplomas?", "a": "Soportamos más de 10 idiomas. Los pares más comunes son ruso → inglés, kazajo → inglés, tailandés → inglés y chino → inglés." },
-      { "q": "¿Cómo manejan los títulos académicos y las calificaciones?", "a": "Los títulos se traducen con contexto explicativo donde sea necesario. Las calificaciones se preservan en la escala original sin conversión." },
-      { "q": "¿Puedo usarla para una solicitud de licencia profesional?", "a": "Muchas juntas de licencias requieren traducciones certificadas. WPO proporciona traducciones informales para preparación. Confirma los requisitos de certificación con tu junta de licencias." }
+      {
+        "q": "¿Se acepta tu traducción para WES u otras evaluaciones de credenciales?",
+        "a": "WES y la mayoría de los organismos de evaluación de credenciales requieren traducciones certificadas. WPO proporciona traducciones informales para preparación. Verifica los requisitos oficiales antes de presentar."
+      },
+      {
+        "q": "¿Traducen suplementos de diploma y explicaciones de calificaciones?",
+        "a": "Sí. Los suplementos de diploma, explicaciones de escala de calificaciones y expedientes adjuntos se traducen como parte del documento."
+      },
+      {
+        "q": "¿Qué idiomas soportan para traducción de diplomas?",
+        "a": "Soportamos más de 10 idiomas. Los pares más comunes son ruso → inglés, kazajo → inglés, tailandés → inglés y chino → inglés."
+      },
+      {
+        "q": "¿Cómo manejan los títulos académicos y las calificaciones?",
+        "a": "Los títulos se traducen con contexto explicativo donde sea necesario. Las calificaciones se preservan en la escala original sin conversión."
+      },
+      {
+        "q": "¿Puedo usarla para una solicitud de licencia profesional?",
+        "a": "Muchas juntas de licencias requieren traducciones certificadas. WPO proporciona traducciones informales para preparación. Confirma los requisitos de certificación con tu junta de licencias."
+      }
     ]
   },
-
   "bankStatementTranslation": {
     "heroBadge": "Tipo de documento · Extracto bancario",
     "heroHeadline": "Traducción de extracto bancario",
@@ -403,14 +523,28 @@
     "finalCtaSub": "Sube tu extracto bancario y recibe una traducción al inglés limpia en 2–5 minutos.",
     "finalCtaCta": "Traducir mi extracto bancario",
     "faq": [
-      { "q": "¿Qué tipos de visa requieren un extracto bancario traducido?", "a": "La DTV tailandesa, visados Schengen, visados de visitante del Reino Unido, visados B1/B2 de EE. UU. y la mayoría de solicitudes de inmigración requieren prueba de fondos, generalmente en inglés." },
-      { "q": "¿Se preservan las divisas y los importes sin conversión?", "a": "Sí. Todos los importes, divisas y saldos se preservan exactamente como aparecen en el documento original." },
-      { "q": "¿Qué pasa si mi extracto bancario tiene 6 páginas?", "a": "Soportamos extractos bancarios de hasta 50 páginas. El precio por documento se aplica independientemente del número de páginas dentro de ese límite." },
-      { "q": "¿Aceptará el consulado el extracto traducido?", "a": "Nuestras traducciones son informales. Muchos consulados aceptan traducciones informales junto con el extracto original. Verifica los requisitos con tu consulado." },
-      { "q": "¿Pueden traducir capturas de pantalla de banca online o exportaciones PDF?", "a": "Sí. Tanto los extractos en papel escaneados como las exportaciones PDF digitales de banca online son compatibles." }
+      {
+        "q": "¿Qué tipos de visa requieren un extracto bancario traducido?",
+        "a": "La DTV tailandesa, visados Schengen, visados de visitante del Reino Unido, visados B1/B2 de EE. UU. y la mayoría de solicitudes de inmigración requieren prueba de fondos, generalmente en inglés."
+      },
+      {
+        "q": "¿Se preservan las divisas y los importes sin conversión?",
+        "a": "Sí. Todos los importes, divisas y saldos se preservan exactamente como aparecen en el documento original."
+      },
+      {
+        "q": "¿Qué pasa si mi extracto bancario tiene 6 páginas?",
+        "a": "Soportamos extractos bancarios de hasta 50 páginas. El precio por documento se aplica independientemente del número de páginas dentro de ese límite."
+      },
+      {
+        "q": "¿Aceptará el consulado el extracto traducido?",
+        "a": "Nuestras traducciones son informales. Muchos consulados aceptan traducciones informales junto con el extracto original. Verifica los requisitos con tu consulado."
+      },
+      {
+        "q": "¿Pueden traducir capturas de pantalla de banca online o exportaciones PDF?",
+        "a": "Sí. Tanto los extractos en papel escaneados como las exportaciones PDF digitales de banca online son compatibles."
+      }
     ]
   },
-
   "tos": {
     "title": "Términos de servicio",
     "lastUpdated": "Última actualización: enero 2026",
@@ -424,7 +558,6 @@
     "s8": "8. Cambios en los términos",
     "s9": "9. Contacto"
   },
-
   "privacyPage": {
     "title": "Política de privacidad",
     "lastUpdated": "Última actualización: enero 2026",
@@ -437,5 +570,10 @@
     "s7": "7. Cookies",
     "s8": "8. Cambios en esta política",
     "s9": "9. Contacto"
+  },
+  "footer": {
+    "tagline": "Traducción profesional de documentos con IA",
+    "tos": "Términos de servicio",
+    "privacy": "Política de privacidad"
   }
 }

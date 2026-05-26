@@ -1,5 +1,5 @@
 import { NextIntlClientProvider } from 'next-intl';
-import { getMessages, setRequestLocale } from 'next-intl/server';
+import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { Toaster } from '@/components/ui/sonner';
 import { Navbar } from '@/components/navbar';
@@ -28,6 +28,7 @@ export default async function LocaleLayout({
   setRequestLocale(locale);
 
   const messages = await getMessages();
+  const tFooter = await getTranslations('footer');
 
   return (
     <NextIntlClientProvider messages={messages}>
@@ -38,14 +39,14 @@ export default async function LocaleLayout({
           <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex flex-col gap-1.5">
               <WpoLogo size="sm" />
-              <p className="text-xs text-muted-foreground">Professional document translation powered by AI</p>
+              <p className="text-xs text-muted-foreground">{tFooter('tagline')}</p>
             </div>
             <nav className="flex gap-6 text-sm text-muted-foreground">
               <Link href="/tos" className="transition-colors hover:text-foreground">
-                Terms of Service
+                {tFooter('tos')}
               </Link>
               <Link href="/privacy" className="transition-colors hover:text-foreground">
-                Privacy Policy
+                {tFooter('privacy')}
               </Link>
             </nav>
           </div>
