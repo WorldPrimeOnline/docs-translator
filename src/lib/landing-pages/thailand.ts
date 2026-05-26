@@ -13,7 +13,6 @@ import type { LandingPageConfig } from './types';
 import {
   defaultHowItWorksSteps,
   defaultTrustItems,
-  defaultDisclaimer,
   defaultPricingTiers,
   defaultPricingFootnote,
 } from './shared';
@@ -87,7 +86,6 @@ export const thailandConfig: LandingPageConfig = {
   trust: {
     headline: 'Secure, transparent, and legally clear',
     items: defaultTrustItems,
-    disclaimer: defaultDisclaimer,
   },
 
   pricing: {
@@ -233,7 +231,6 @@ export const thailandDtvConfig: LandingPageConfig = {
 
   trust: {
     items: defaultTrustItems,
-    disclaimer: defaultDisclaimer,
   },
 
   pricing: {
@@ -361,7 +358,6 @@ export const thailandImmigrationConfig: LandingPageConfig = {
 
   trust: {
     items: defaultTrustItems,
-    disclaimer: defaultDisclaimer,
   },
 
   pricing: {

@@ -13,7 +13,6 @@ import type { LandingPageConfig } from './types';
 import {
   defaultHowItWorksSteps,
   defaultTrustItems,
-  defaultDisclaimer,
   defaultPricingTiers,
   defaultPricingFootnote,
 } from './shared';
@@ -80,7 +79,6 @@ export const passportTranslationConfig: LandingPageConfig = {
 
   trust: {
     items: defaultTrustItems,
-    disclaimer: defaultDisclaimer,
   },
 
   pricing: {
@@ -208,7 +206,6 @@ export const bankStatementTranslationConfig: LandingPageConfig = {
 
   trust: {
     items: defaultTrustItems,
-    disclaimer: defaultDisclaimer,
   },
 
   pricing: {
@@ -324,7 +321,6 @@ export const diplomaTranslationConfig: LandingPageConfig = {
 
   trust: {
     items: defaultTrustItems,
-    disclaimer: defaultDisclaimer,
   },
 
   pricing: {
@@ -415,7 +411,6 @@ export const documentsHubConfig: LandingPageConfig = {
 
   trust: {
     items: defaultTrustItems,
-    disclaimer: defaultDisclaimer,
   },
 
   pricing: {

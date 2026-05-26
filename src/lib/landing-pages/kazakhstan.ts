@@ -14,7 +14,6 @@ import type { LandingPageConfig } from './types';
 import {
   defaultHowItWorksSteps,
   defaultTrustItems,
-  defaultDisclaimer,
   defaultPricingTiers,
   defaultPricingFootnote,
 } from './shared';
@@ -87,7 +86,6 @@ export const kazakhstanConfig: LandingPageConfig = {
   trust: {
     headline: 'Transparent, private, and legally clear',
     items: defaultTrustItems,
-    disclaimer: defaultDisclaimer,
   },
 
   pricing: {
@@ -169,7 +167,7 @@ export const kazakhstanNotarizedConfig: LandingPageConfig = {
       'Upload your document and receive a clean, structured Russian or English translation ready to present to a notary or certified translator. Reduce review time, reduce errors, lower overall cost.',
     ctaLabel: 'Prepare Translation Draft',
     ctaHref: '/auth/signup',
-    trustLine: 'From $4.39 · Unofficial draft · Notary reviews and certifies',
+    trustLine: 'From $4.39 · 2–5 minutes · Notary-ready output',
   },
 
   howItWorks: {
@@ -238,8 +236,6 @@ export const kazakhstanNotarizedConfig: LandingPageConfig = {
         desc: 'Professional consultants use WPO to prepare client document drafts before certified translation appointments, reducing time and cost for everyone involved.',
       },
     ],
-    disclaimer:
-      'WPO translations are unofficial and for informational use only. They are not certified, notarized, or legally binding. Certified or notarized translations must be produced by a licensed translator or notary.',
   },
 
   pricing: {
@@ -352,7 +348,6 @@ export const kazakhstanUniversityConfig: LandingPageConfig = {
 
   trust: {
     items: defaultTrustItems,
-    disclaimer: defaultDisclaimer,
   },
 
   pricing: {

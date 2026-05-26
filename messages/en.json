@@ -1,13 +1,34 @@
 {
   "nav": {
-    "login": "Login",
+    "login": "Log in",
     "dashboard": "Dashboard",
-    "signup": "Sign up"
+    "signup": "Sign up",
+    "getStarted": "Get Started",
+    "thailand": "Thailand",
+    "kazakhstan": "Kazakhstan",
+    "documents": "Documents",
+    "thailandOverview": "Thailand Overview",
+    "dtvVisa": "DTV Visa Translation",
+    "immigrationDocs": "Immigration Documents",
+    "kazakhstanOverview": "Kazakhstan Overview",
+    "translationForNotary": "Translation for Notary",
+    "universityDocs": "University Documents",
+    "allDocTypes": "All Document Types",
+    "passportTranslation": "Passport Translation",
+    "bankStatement": "Bank Statement",
+    "diplomaTranslation": "Diploma Translation"
   },
   "hero": {
     "title": "Translate your documents in minutes",
     "subtitle": "Upload a PDF — get a translated document. For visas, banks, universities, immigration.",
-    "cta": "Start translating"
+    "cta": "Start translating",
+    "badge": "AI-powered · Instant results · 10+ languages",
+    "seeHowItWorks": "See How It Works",
+    "socialProof": "No subscription · Pay only when you translate · Results in 2–5 minutes",
+    "translationReady": "Translation ready",
+    "downloadPdf": "Download PDF",
+    "mockupSub": "Russian → English · Passport & ID",
+    "noSub": "No subscription · Pay only when you translate"
   },
   "howItWorks": {
     "label": "THE PROCESS",
@@ -48,7 +69,15 @@
     "mostPopular": "Most Popular",
     "subscribe": "Subscribe with TON",
     "startTranslating": "Start translating",
-    "docs": "documents / month"
+    "docs": "documents / month",
+    "subtitle": "Pay per document or save with a monthly plan.",
+    "allPricesNote": "All prices in USD · Paid via TON cryptocurrency · No bank card required · No auto-renewal",
+    "paygNote": "From $4.39 — passports & IDs. $4.99 — all other documents.",
+    "feature1": "No commitment",
+    "feature2": "All document types",
+    "feature3": "AI translation by Claude",
+    "feature4": "Clean PDF output",
+    "translateNow": "Translate Now"
   },
   "trust": {
     "label": "WHY WPO TRANSLATIONS",
@@ -61,8 +90,14 @@
     "tonDesc": "Pay securely with TON cryptocurrency. No bank card required.",
     "security": "Auto-deleted after 30 days",
     "securityDesc": "Your documents are stored securely and permanently deleted after 30 days.",
-    "informal": "Informational translation",
-    "informalDesc": "Our translations are for informational use. Not certified or notarized."
+    "sectionTitle": "Built on security, accuracy, and accessibility",
+    "sectionSubtitle": "Every part of WPO is designed for people who can't afford mistakes with their documents.",
+    "pillar1Title": "Bank-level security",
+    "pillar1Body": "Files stored on Cloudflare R2 with server-side encryption and TLS in transit. Permanently deleted after 30 days. We never share your documents.",
+    "pillar2Title": "AI-powered accuracy",
+    "pillar2Body": "Mistral OCR extracts text from scanned documents. Claude Sonnet translates with context awareness. Names, dates, and numbers are preserved exactly as written.",
+    "pillar3Title": "Pay from anywhere",
+    "pillar3Body": "TON blockchain payments require no bank card or account. Works from any country, any wallet. Instant, borderless, and fully trustless."
   },
   "faq": {
     "label": "FAQ",
@@ -78,10 +113,25 @@
     "q5": "Are my documents safe?",
     "a5": "Your files are encrypted in transit and at rest. They are permanently deleted after 30 days."
   },
+  "stats": {
+    "documentCount": "2,400+",
+    "documentsLabel": "Documents Translated",
+    "countriesCount": "42",
+    "countriesLabel": "Countries",
+    "rating": "4.9★",
+    "ratingLabel": "Average Rating",
+    "languagePairs": "Language Pairs",
+    "languagePairsLabel": "10+ languages supported"
+  },
+  "cta": {
+    "title": "Ready to translate your document?",
+    "subtitle": "Upload a PDF — get a translated document. For visas, banks, universities, immigration.",
+    "button": "Start Translating",
+    "noSub": "No subscription · Pay only when you translate"
+  },
   "landing": {
     "processLabel": "THE PROCESS",
     "trustLabel": "WHY WPO TRANSLATIONS",
-    "trustDisclaimer": "All translations provided by WPO Online Translations are unofficial and for informational purposes only. They are not certified, notarized, or legally binding. Do not use them as replacements for certified translations where officially required.",
     "pricingLabel": "PRICING",
     "perDocument": "per document",
     "mostPopular": "Most popular",
@@ -212,14 +262,14 @@
 
   "kazakhstanNotarized": {
     "heroBadge": "Kazakhstan · Notary Preparation",
-    "heroHeadline": "Translation Draft for",
+    "heroHeadline": "Translation for",
     "heroAccentLine": "Notary Review & Certification",
     "heroSubheadline": "Upload your document and receive a clean, structured Russian or English translation ready to present to a notary or certified translator. Reduce review time, reduce errors, lower overall cost.",
-    "heroCtaLabel": "Prepare Translation Draft",
-    "heroTrustLine": "From $4.39 · Unofficial draft · Notary reviews and certifies",
-    "finalCtaHeadline": "Prepare a clean translation draft before your notary appointment",
+    "heroCtaLabel": "Prepare Translation",
+    "heroTrustLine": "From $4.39 · 2–5 minutes · Notary-ready output",
+    "finalCtaHeadline": "Prepare your translation before the notary appointment",
     "finalCtaSub": "Upload your document and receive a structured translation in 2–5 minutes. From $4.39.",
-    "finalCtaCta": "Create Translation Draft",
+    "finalCtaCta": "Start Translation",
     "faq": [
       { "q": "Is this a certified or notarized translation?", "a": "No. WPO provides unofficial translation drafts for informational and preparation purposes. A certified or notarized translation must be produced by a licensed translator or notary. WPO drafts can be used as input to that process, not as a replacement." },
       { "q": "Will my notary accept a WPO translation draft as a starting point?", "a": "Most notaries and certified translators are willing to work from a pre-prepared draft. It speeds up their work and reduces the likelihood of errors. However, not all notaries accept external drafts — confirm with your specific notary before using this workflow." },

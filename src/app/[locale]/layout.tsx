@@ -49,9 +49,8 @@ export default async function LocaleLayout({
               </Link>
             </nav>
           </div>
-          <div className="mt-8 flex flex-col gap-1 border-t border-white/10 pt-6 text-center text-xs text-muted-foreground sm:flex-row sm:justify-between">
+          <div className="mt-8 border-t border-white/10 pt-6 text-center text-xs text-muted-foreground">
             <span>© 2026 WorldPrime Online. All rights reserved.</span>
-            <span>Translations are for informational purposes only. Not certified or notarized.</span>
           </div>
         </div>
       </footer>

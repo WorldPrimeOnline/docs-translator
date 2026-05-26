@@ -11,12 +11,18 @@ const LANGUAGES = [
   { code: 'zh', flag: '🇨🇳', short: 'CN',  name: '中文'       },
   { code: 'ko', flag: '🇰🇷', short: 'KR',  name: '한국어'     },
   { code: 'kk', flag: '🇰🇿', short: 'KZ',  name: 'Қазақша'   },
+  { code: 'tj', flag: '🇹🇯', short: 'TJ',  name: 'Тоҷикӣ'   },
+  { code: 'uz', flag: '🇺🇿', short: 'UZ',  name: "O'zbek"    },
+  { code: 'tk', flag: '🇹🇲', short: 'TK',  name: 'Türkmen'   },
+  { code: 'mn', flag: '🇲🇳', short: 'MN',  name: 'Монгол'    },
+  { code: 'ky', flag: '🇰🇬', short: 'KY',  name: 'Кыргызча'  },
+  { code: 'es', flag: '🇪🇸', short: 'ES',  name: 'Español'   },
 ] as const;
 
 type LangCode = (typeof LANGUAGES)[number]['code'];
 
 // Non-default locales that appear as a path prefix in the URL
-const PREFIXED_LOCALES: LangCode[] = ['ru', 'zh', 'ko', 'kk'];
+const PREFIXED_LOCALES: LangCode[] = ['ru', 'zh', 'ko', 'kk', 'tj', 'uz', 'tk', 'mn', 'ky', 'es'];
 
 /**
  * Strip any locale prefix from the pathname and prepend the new one.

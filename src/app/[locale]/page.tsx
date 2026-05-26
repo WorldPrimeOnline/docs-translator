@@ -16,7 +16,6 @@ import {
   Zap,
   BadgeDollarSign,
   Lock,
-  AlertCircle,
   Coins,
   ChevronDown,
 } from 'lucide-react';
@@ -25,7 +24,7 @@ const DOC_ICONS = [IdCard, FileHeart, GraduationCap, Landmark, HeartPulse, Brief
 
 const STEP_ICONS = [Upload, Cpu, Download];
 
-const TRUST_ICONS = [Zap, BadgeDollarSign, Coins, Lock, AlertCircle];
+const TRUST_ICONS = [Zap, BadgeDollarSign, Coins, Lock];
 
 const LANGUAGES = [
   { flag: '🇬🇧', name: 'English' },
@@ -73,7 +72,6 @@ export default async function Home({
     { icon: TRUST_ICONS[1]!, title: t('trust.price'),    desc: t('trust.priceDesc') },
     { icon: TRUST_ICONS[2]!, title: t('trust.ton'),      desc: t('trust.tonDesc') },
     { icon: TRUST_ICONS[3]!, title: t('trust.security'), desc: t('trust.securityDesc') },
-    { icon: TRUST_ICONS[4]!, title: t('trust.informal'), desc: t('trust.informalDesc') },
   ];
 
   const FAQ = [
@@ -94,7 +92,7 @@ export default async function Home({
         <div className="relative mx-auto max-w-3xl">
           <div className="mb-6 inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
-            AI-powered · Instant results · 10+ languages
+            {t('hero.badge')}
           </div>
 
           <h1 className="mb-6 text-5xl font-extrabold tracking-[-0.02em] text-foreground sm:text-6xl lg:text-7xl">
@@ -118,13 +116,13 @@ export default async function Home({
               href="#how-it-works"
               className="inline-flex items-center justify-center gap-1.5 rounded-md border border-white/20 bg-white/5 px-8 py-3 text-sm font-medium text-foreground transition-[background-color,border-color,transform] duration-150 hover:border-white/50 hover:bg-white/10 hover:scale-[1.02]"
             >
-              See How It Works
+              {t('hero.seeHowItWorks')}
               <ChevronDown className="h-4 w-4" />
             </a>
           </div>
 
           <p className="mt-8 text-xs text-muted-foreground">
-            No subscription · Pay only when you translate · Results in 2–5 minutes
+            {t('hero.socialProof')}
           </p>
         </div>
 
@@ -155,12 +153,12 @@ export default async function Home({
             </div>
             <div className="flex items-center justify-between px-5 py-4">
               <div className="flex flex-col gap-0.5">
-                <span className="text-xs font-semibold text-foreground">Translation ready</span>
-                <span className="text-[10px] text-muted-foreground">Russian → English · Passport &amp; ID</span>
+                <span className="text-xs font-semibold text-foreground">{t('hero.translationReady')}</span>
+                <span className="text-[10px] text-muted-foreground">{t('hero.mockupSub')}</span>
               </div>
               <div className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">
                 <Download className="h-3 w-3" />
-                {t('dashboard.download')} PDF
+                {t('hero.downloadPdf')}
               </div>
             </div>
           </div>
@@ -171,16 +169,16 @@ export default async function Home({
       <div className="border-y border-white/8 bg-white/[0.02] px-4 py-6">
         <div className="mx-auto flex max-w-2xl flex-col items-center gap-5 sm:flex-row sm:justify-center sm:divide-x sm:divide-white/10 sm:gap-0">
           <div className="px-8 text-center">
-            <p className="text-2xl font-extrabold tracking-[-0.02em] text-primary">2,400+</p>
-            <p className="mt-0.5 text-xs text-muted-foreground">Documents Translated</p>
+            <p className="text-2xl font-extrabold tracking-[-0.02em] text-primary">{t('stats.documentCount')}</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{t('stats.documentsLabel')}</p>
           </div>
           <div className="px-8 text-center">
-            <p className="text-2xl font-extrabold tracking-[-0.02em] text-primary">42</p>
-            <p className="mt-0.5 text-xs text-muted-foreground">Countries</p>
+            <p className="text-2xl font-extrabold tracking-[-0.02em] text-primary">{t('stats.countriesCount')}</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{t('stats.countriesLabel')}</p>
           </div>
           <div className="px-8 text-center">
-            <p className="text-2xl font-extrabold tracking-[-0.02em] text-primary">4.9★</p>
-            <p className="mt-0.5 text-xs text-muted-foreground">Average Rating</p>
+            <p className="text-2xl font-extrabold tracking-[-0.02em] text-primary">{t('stats.rating')}</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{t('stats.ratingLabel')}</p>
           </div>
         </div>
       </div>
@@ -251,10 +249,10 @@ export default async function Home({
         <div className="mx-auto max-w-6xl">
           <div className="mb-14 text-center">
             <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">
-              Language Pairs
+              {t('stats.languagePairs')}
             </p>
             <h2 className="text-3xl font-bold tracking-[-0.02em] text-foreground sm:text-4xl">
-              10+ languages supported
+              {t('stats.languagePairsLabel')}
             </h2>
           </div>
 
@@ -283,7 +281,7 @@ export default async function Home({
               {t('pricing.title')}
             </h2>
             <p className="mt-3 text-muted-foreground">
-              Pay per document or save with a monthly plan.
+              {t('pricing.subtitle')}
             </p>
           </div>
 
@@ -297,9 +295,9 @@ export default async function Home({
                 <span className="text-4xl font-extrabold tracking-[-0.02em] text-foreground">$4.39</span>
                 <span className="mb-1 text-sm text-muted-foreground">{t('pricing.perDoc')}</span>
               </div>
-              <p className="mb-5 text-xs text-muted-foreground">From $4.39 — passports &amp; IDs. $4.99 — all other documents.</p>
+              <p className="mb-5 text-xs text-muted-foreground">{t('pricing.paygNote')}</p>
               <ul className="mb-7 flex-1 space-y-2 text-sm text-muted-foreground">
-                {['No commitment', 'All document types', 'AI translation by Claude', 'Clean PDF output'].map((f) => (
+                {[t('pricing.feature1'), t('pricing.feature2'), t('pricing.feature3'), t('pricing.feature4')].map((f) => (
                   <li key={f} className="flex items-start gap-2">
                     <span className="mt-0.5 text-muted-foreground">✓</span>
                     {f}
@@ -373,7 +371,7 @@ export default async function Home({
           </div>
 
           <p className="mt-6 text-center text-xs text-muted-foreground">
-            All prices in USD · Paid via TON cryptocurrency · No bank card required · No auto-renewal
+            {t('pricing.allPricesNote')}
           </p>
         </div>
       </section>
@@ -390,19 +388,8 @@ export default async function Home({
             </h2>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {TRUST.slice(0, 3).map(({ icon: Icon, title, desc }) => (
-              <div key={title} className="rounded-lg border border-white/10 bg-card p-6 transition-colors hover:border-white/15">
-                <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-md bg-primary/10">
-                  <Icon className="h-4 w-4 text-primary" />
-                </div>
-                <h3 className="mb-1.5 text-sm font-semibold text-foreground">{title}</h3>
-                <p className="text-sm leading-relaxed text-muted-foreground">{desc}</p>
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            {TRUST.slice(3).map(({ icon: Icon, title, desc }) => (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {TRUST.map(({ icon: Icon, title, desc }) => (
               <div key={title} className="rounded-lg border border-white/10 bg-card p-6 transition-colors hover:border-white/15">
                 <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-md bg-primary/10">
                   <Icon className="h-4 w-4 text-primary" />
@@ -420,17 +407,17 @@ export default async function Home({
         <div className="mx-auto max-w-6xl">
           <div className="mb-12 text-center">
             <h2 className="text-3xl font-bold tracking-[-0.02em] text-foreground sm:text-4xl">
-              Built on security, accuracy, and accessibility
+              {t('trust.sectionTitle')}
             </h2>
             <p className="mt-3 text-muted-foreground">
-              Every part of WPO is designed for people who can&apos;t afford mistakes with their documents.
+              {t('trust.sectionSubtitle')}
             </p>
           </div>
           <div className="grid gap-6 sm:grid-cols-3">
             {[
-              { Icon: Lock, head: 'Bank-level security', body: 'Files stored on Cloudflare R2 with server-side encryption and TLS in transit. Permanently deleted after 30 days. We never share your documents.' },
-              { Icon: Cpu,  head: 'AI-powered accuracy', body: 'Mistral OCR extracts text from scanned documents. Claude Sonnet translates with context awareness. Names, dates, and numbers are preserved exactly as written.' },
-              { Icon: Coins, head: 'Pay from anywhere', body: 'TON blockchain payments require no bank card or account. Works from any country, any wallet. Instant, borderless, and fully trustless.' },
+              { Icon: Lock,  head: t('trust.pillar1Title'), body: t('trust.pillar1Body') },
+              { Icon: Cpu,   head: t('trust.pillar2Title'), body: t('trust.pillar2Body') },
+              { Icon: Coins, head: t('trust.pillar3Title'), body: t('trust.pillar3Body') },
             ].map(({ Icon, head, body }) => (
               <div key={head} className="rounded-xl border border-white/10 bg-background/60 p-8">
                 <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10">
@@ -475,19 +462,19 @@ export default async function Home({
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_60%_at_50%_50%,rgba(201,168,76,0.07),transparent)]" />
         <div className="relative mx-auto max-w-xl">
           <h2 className="mb-4 text-3xl font-bold tracking-[-0.02em] text-foreground sm:text-4xl lg:text-5xl">
-            Ready to translate your document?
+            {t('cta.title')}
           </h2>
           <p className="mb-10 text-muted-foreground">
-            {t('hero.subtitle')}
+            {t('cta.subtitle')}
           </p>
           <Link
             href="/auth/signup"
             className="inline-flex items-center justify-center rounded-md bg-primary px-10 py-3 text-sm font-semibold text-primary-foreground transition-[background-color,filter,transform] duration-150 hover:bg-gold-dark hover:brightness-110 hover:scale-[1.02]"
           >
-            {t('hero.cta')}
+            {t('cta.button')}
           </Link>
           <p className="mt-4 text-xs text-muted-foreground">
-            No subscription · Pay only when you translate
+            {t('cta.noSub')}
           </p>
         </div>
       </section>

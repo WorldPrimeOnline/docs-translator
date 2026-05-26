@@ -2,12 +2,33 @@
   "nav": {
     "login": "로그인",
     "dashboard": "대시보드",
-    "signup": "회원가입"
+    "signup": "회원가입",
+    "getStarted": "시작하기",
+    "thailand": "태국",
+    "kazakhstan": "카자흐스탄",
+    "documents": "문서",
+    "thailandOverview": "태국 개요",
+    "dtvVisa": "DTV 비자 번역",
+    "immigrationDocs": "이민 서류",
+    "kazakhstanOverview": "카자흐스탄 개요",
+    "translationForNotary": "공증 번역",
+    "universityDocs": "대학 신청 서류",
+    "allDocTypes": "모든 문서 유형",
+    "passportTranslation": "여권 번역",
+    "bankStatement": "은행 거래내역서",
+    "diplomaTranslation": "졸업장 번역"
   },
   "hero": {
     "title": "몇 분 안에 문서를 번역하세요",
     "subtitle": "PDF를 업로드하면 번역된 문서를 받아보세요. 비자, 은행, 대학, 이민 업무에 활용하세요.",
-    "cta": "번역 시작"
+    "cta": "번역 시작",
+    "badge": "AI 기반 · 즉시 결과 · 10개 이상의 언어",
+    "seeHowItWorks": "작동 방식 보기",
+    "socialProof": "구독 불필요 · 번역 시에만 결제 · 2–5분 내 결과",
+    "translationReady": "번역 완료",
+    "downloadPdf": "PDF 다운로드",
+    "mockupSub": "러시아어 → 영어 · 여권 및 신분증",
+    "noSub": "구독 불필요 · 번역 시에만 결제"
   },
   "howItWorks": {
     "label": "진행 과정",
@@ -48,7 +69,15 @@
     "mostPopular": "인기 요금제",
     "subscribe": "TON으로 구독",
     "startTranslating": "번역 시작",
-    "docs": "문서 / 월"
+    "docs": "문서 / 월",
+    "subtitle": "문서당 결제하거나 월간 요금제로 절약하세요.",
+    "allPricesNote": "모든 가격은 USD · TON 암호화폐로 결제 · 은행 카드 불필요 · 자동 갱신 없음",
+    "paygNote": "$4.39부터 — 여권 및 신분증. $4.99 — 기타 모든 문서.",
+    "feature1": "약정 없음",
+    "feature2": "모든 문서 유형",
+    "feature3": "Claude AI 번역",
+    "feature4": "깔끔한 PDF 출력",
+    "translateNow": "지금 번역"
   },
   "trust": {
     "label": "WPO TRANSLATIONS를 선택하는 이유",
@@ -61,8 +90,14 @@
     "tonDesc": "TON 암호화폐로 안전하게 결제하세요. 은행 카드가 필요 없습니다.",
     "security": "30일 후 자동 삭제",
     "securityDesc": "문서는 안전하게 보관되며 30일 후 영구적으로 삭제됩니다.",
-    "informal": "정보용 번역",
-    "informalDesc": "번역본은 정보 제공 목적으로만 제공됩니다. 공인 또는 공증 번역이 아닙니다."
+    "sectionTitle": "보안, 정확성, 접근성을 기반으로 구축됨",
+    "sectionSubtitle": "WPO의 모든 부분은 문서에서 실수를 감당할 수 없는 분들을 위해 설계되었습니다.",
+    "pillar1Title": "은행 수준의 보안",
+    "pillar1Body": "파일은 서버 측 암호화와 전송 중 TLS를 갖춘 Cloudflare R2에 저장됩니다. 30일 후 영구 삭제됩니다. 귀하의 문서를 절대 공유하지 않습니다.",
+    "pillar2Title": "AI 기반 정확성",
+    "pillar2Body": "Mistral OCR은 스캔된 문서에서 텍스트를 추출합니다. Claude Sonnet은 문맥을 고려하여 번역합니다. 이름, 날짜, 숫자는 원문 그대로 보존됩니다.",
+    "pillar3Title": "어디서나 결제 가능",
+    "pillar3Body": "TON 블록체인 결제는 은행 카드나 계좌가 필요 없습니다. 어느 나라, 어느 지갑에서든 사용 가능합니다. 즉시, 국경 없이, 완전한 신뢰."
   },
   "faq": {
     "label": "자주 묻는 질문",
@@ -78,10 +113,25 @@
     "q5": "문서가 안전한가요?",
     "a5": "파일은 전송 중과 저장 중 모두 암호화되며 30일 후 영구적으로 삭제됩니다."
   },
+  "stats": {
+    "documentCount": "2,400+",
+    "documentsLabel": "번역된 문서",
+    "countriesCount": "42",
+    "countriesLabel": "국가",
+    "rating": "4.9★",
+    "ratingLabel": "평균 평점",
+    "languagePairs": "언어 쌍",
+    "languagePairsLabel": "10개 이상의 지원 언어"
+  },
+  "cta": {
+    "title": "문서를 번역할 준비가 되셨나요?",
+    "subtitle": "PDF를 업로드하면 번역된 문서를 받아보세요. 비자, 은행, 대학, 이민 업무에 활용하세요.",
+    "button": "번역 시작",
+    "noSub": "구독 불필요 · 번역 시에만 결제"
+  },
   "landing": {
     "processLabel": "진행 과정",
     "trustLabel": "WPO TRANSLATIONS를 선택하는 이유",
-    "trustDisclaimer": "WPO Online Translations가 제공하는 모든 번역은 비공식 번역으로 정보 제공 목적으로만 사용됩니다. 인증, 공증되지 않았으며 법적 효력이 없습니다. 공인 번역이 필요한 경우 본 번역을 대체 사용하지 마세요.",
     "pricingLabel": "요금제",
     "perDocument": "문서당",
     "mostPopular": "인기 요금제",
@@ -213,13 +263,13 @@
   "kazakhstanNotarized": {
     "heroBadge": "카자흐스탄 · 공증 준비",
     "heroHeadline": "공증 검토를 위한",
-    "heroAccentLine": "번역 초안 준비",
-    "heroSubheadline": "문서를 업로드하고 공증인이나 인증 번역가에게 제출할 깔끔하고 구조화된 러시아어 또는 영어 번역 초안을 받으세요.",
-    "heroCtaLabel": "번역 초안 준비",
-    "heroTrustLine": "$4.39부터 · 비공식 초안 · 공증인이 검토 및 인증",
-    "finalCtaHeadline": "공증 예약 전 깔끔한 번역 초안을 준비하세요",
+    "heroAccentLine": "번역 준비",
+    "heroSubheadline": "문서를 업로드하고 공증인이나 인증 번역가에게 제출할 깔끔하고 구조화된 러시아어 또는 영어 번역을 받으세요.",
+    "heroCtaLabel": "번역 준비",
+    "heroTrustLine": "$4.39부터 · 2~5분 · 공증 준비 완료",
+    "finalCtaHeadline": "공증 예약 전 번역을 준비하세요",
     "finalCtaSub": "문서를 업로드하고 2~5분 내에 구조화된 번역을 받으세요. $4.39부터.",
-    "finalCtaCta": "번역 초안 만들기",
+    "finalCtaCta": "번역 시작",
     "faq": [
       { "q": "이것이 인증 또는 공증 번역인가요?", "a": "아니요. WPO는 정보 제공 및 준비 목적의 비공식 번역 초안을 제공합니다. 인증 또는 공증 번역은 공인 번역가나 공증인이 작성해야 합니다. WPO 초안은 해당 과정의 입력 자료로 사용할 수 있습니다." },
       { "q": "공증인이 WPO 번역 초안을 시작점으로 받아들일까요?", "a": "대부분의 공증인과 인증 번역가들은 미리 준비된 초안을 기꺼이 사용합니다. 이는 작업 속도를 높이고 오류 가능성을 줄여줍니다. 단, 모든 공증인이 외부 초안을 받아들이는 것은 아니므로 이 워크플로를 사용하기 전에 담당 공증인에게 확인하세요." },

@@ -3,7 +3,6 @@ import {
   Lock,
   BadgeDollarSign,
   Coins,
-  AlertCircle,
 } from 'lucide-react';
 import type { HowItWorksStep, TrustItem, PricingTier } from './types';
 
@@ -46,15 +45,7 @@ export const defaultTrustItems: TrustItem[] = [
     title: 'Files deleted after 30 days',
     desc: 'Your documents are stored securely and permanently deleted after 30 days.',
   },
-  {
-    icon: AlertCircle,
-    title: 'Clear disclaimer on every page',
-    desc: 'Every translated PDF includes a visible unofficial translation disclaimer as required.',
-  },
 ];
-
-export const defaultDisclaimer =
-  'All translations provided by WPO Online Translations are unofficial and for informational purposes only. They are not certified, notarized, or legally binding. Do not use them as replacements for certified translations where officially required.';
 
 export const defaultPricingTiers: PricingTier[] = [
   {
@@ -63,7 +54,7 @@ export const defaultPricingTiers: PricingTier[] = [
     features: [
       'Passport, ID card, driver\'s license',
       'Translation by Claude Sonnet AI',
-      'Clean PDF with official disclaimer',
+      'Clean PDF output',
       'Delivery in 2–5 minutes',
       '10+ language pairs',
     ],
@@ -77,7 +68,7 @@ export const defaultPricingTiers: PricingTier[] = [
       'Diplomas, transcripts, contracts',
       'Bank statements, medical records',
       'Translation by Claude Sonnet AI',
-      'Clean PDF with official disclaimer',
+      'Clean PDF output',
       'Delivery in 2–5 minutes',
     ],
     cta: 'Translate Now',

@@ -80,11 +80,11 @@ export interface LandingPageConfig {
     points: PainPoint[];
   };
 
-  // Trust + disclaimer
+  // Trust
   trust?: {
     headline?: string;
     items: TrustItem[];
-    disclaimer: string;
+    disclaimer?: string;
   };
 
   // Pricing
