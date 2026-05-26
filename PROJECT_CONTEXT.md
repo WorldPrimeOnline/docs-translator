@@ -631,8 +631,8 @@ MVP is ready when:
 - ✅ Files auto-delete after 30 days (Vercel cron `/api/cron/cleanup` daily at 02:00 UTC)
 - ✅ Privacy Policy and Terms of Service pages exist (at /privacy and /tos)
 - ✅ Site fully localized — 11 languages (EN, RU, ZH, KO, KK, TJ, UZ, TK, MN, KY, ES)
+- ✅ Sentry catches errors (@sentry/nextjs v10, client + server + edge + global-error.tsx)
 - ⬜ Stripe card payment option
-- ⬜ Sentry catches errors
 
 ---
 
@@ -678,7 +678,6 @@ Last updated: 2026-05-26
 
 ### What is NOT yet implemented
 - Stripe card payments
-- Sentry error monitoring
 
 ### What IS implemented (updated 2026-05-26)
 - Email notifications via Resend (worker sends on job completion)
@@ -686,6 +685,7 @@ Last updated: 2026-05-26
 - Legal pages: Privacy Policy (`/privacy`) and Terms of Service (`/tos`)
 - Full i18n: 11 languages — EN, RU, ZH, KO, KK, TJ, UZ, TK, MN, KY, ES
 - Locale switcher (click-based dropdown) + cookie persistence (`NEXT_LOCALE`)
+- Sentry error monitoring: @sentry/nextjs v10, client + server + edge configs, global-error.tsx
 
 ---
 
