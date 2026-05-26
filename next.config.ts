@@ -1,5 +1,6 @@
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
+import { withSentryConfig } from '@sentry/nextjs';
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
@@ -30,4 +31,20 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withNextIntl(nextConfig);
+export default withSentryConfig(withNextIntl(nextConfig), {
+  // Sentry org/project — read from env at build time if available
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+
+  // Silent build output to keep CI logs clean
+  silent: !process.env.CI,
+
+  // Upload source maps to Sentry for readable stack traces
+  widenClientFileUpload: true,
+
+  // Automatically tree-shake Sentry logger statements in production
+  disableLogger: true,
+
+  // Don't automatically instrument Next.js server pages (we handle it via instrumentation.ts)
+  autoInstrumentServerFunctions: false,
+});
