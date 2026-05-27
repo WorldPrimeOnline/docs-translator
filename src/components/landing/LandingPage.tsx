@@ -14,14 +14,33 @@ interface Props {
 }
 
 export function LandingPage({ config }: Props) {
-  const { hero, howItWorks, docs, pain, trust, pricing, faq, finalCta, seoContent, structuredData, breadcrumb } = config;
+  const {
+    hero,
+    howItWorks,
+    docs,
+    pain,
+    trust,
+    pricing,
+    faq,
+    finalCta,
+    seoContent,
+    structuredData,
+    breadcrumb,
+  } = config;
 
   return (
     <div className="bg-background">
+
+      {/* 1. Hero */}
       <HeroSection {...hero} breadcrumb={breadcrumb} />
 
+      {/* 2. Pain section */}
+      {pain && <PainSection headline={pain.headline} points={pain.points} />}
+
+      {/* 3. How it works */}
       {howItWorks && <HowItWorksSection />}
 
+      {/* 4. Supported documents */}
       {docs && (
         <SupportedDocumentsSection
           headline={docs.headline}
@@ -30,10 +49,13 @@ export function LandingPage({ config }: Props) {
         />
       )}
 
-      {pain && <PainSection headline={pain.headline} points={pain.points} />}
+      {/* 5. Features / trust */}
+      {trust && <TrustSection headline={trust.headline} mode="features" />}
 
-      {trust && <TrustSection headline={trust.headline} />}
+      {/* 6. Security */}
+      <TrustSection mode="security" />
 
+      {/* 7. Pricing */}
       {pricing && (
         <PricingSection
           headline={pricing.headline}
@@ -43,19 +65,21 @@ export function LandingPage({ config }: Props) {
         />
       )}
 
+      {/* 8. FAQ */}
       {faq && <FAQSection headline={faq.headline} items={faq.items} />}
 
+      {/* 9. SEO prose */}
       {seoContent && (
-        <section className="border-t border-white/10 bg-card px-4 py-16">
+        <section className="border-t border-white/[0.07] bg-card px-4 py-16">
           <div className="mx-auto max-w-2xl">
             {seoContent.headline && (
-              <h2 className="mb-6 text-xl font-semibold text-foreground">
+              <h2 className="mb-6 text-xl font-semibold tracking-[-0.02em] text-foreground">
                 {seoContent.headline}
               </h2>
             )}
             <div className="space-y-4">
               {seoContent.paragraphs.map((p, i) => (
-                <p key={i} className="text-sm leading-relaxed text-muted-foreground">
+                <p key={i} className="text-[13px] leading-relaxed text-muted-foreground/80">
                   {p}
                 </p>
               ))}
@@ -64,6 +88,7 @@ export function LandingPage({ config }: Props) {
         </section>
       )}
 
+      {/* 10. Final CTA */}
       {finalCta && (
         <FinalCTASection
           headline={finalCta.headline}

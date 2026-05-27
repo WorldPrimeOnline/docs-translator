@@ -86,7 +86,6 @@ export const passportTranslationConfig: LandingPageConfig = {
     subheadline: '$4.39 per document — the lowest of our pricing tiers',
     tiers: [
       {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         ...defaultPricingTiers[0]!,
         name: 'Passport & ID',
         features: [

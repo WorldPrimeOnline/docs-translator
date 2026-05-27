@@ -28,7 +28,8 @@
     "translationReady": "Тарҷума омодааст",
     "downloadPdf": "PDF-ро зеркашӣ кунед",
     "mockupSub": "Русӣ → Англисӣ · Шиносномаи",
-    "noSub": "Бе обуна · Танҳо ҳангоми тарҷума пардохт кунед"
+    "noSub": "Бе обуна · Танҳо ҳангоми тарҷума пардохт кунед",
+    "accentLine": "барои визаҳо, донишгоҳҳо ва ҳуҷҷатҳои расмӣ"
   },
   "stats": {
     "documentCount": "2 400+",
@@ -681,5 +682,44 @@
     "notFoundDesc": "Саҳифае, ки меҷӯед, вуҷуд надорад ё кӯчонида шудааст.",
     "goHome": "Ба хона",
     "dashboard": "Панел"
+  },
+  "pain": {
+    "label": "THE PROBLEM",
+    "title": "Translation bureaus weren't designed for your deadline",
+    "item1Title": "3–7 day wait",
+    "item1Desc": "Traditional bureaus work during office hours. Your deadline does not.",
+    "item2Title": "No online workflow",
+    "item2Desc": "Files sent over WhatsApp and email. No tracking. No transparency.",
+    "item3Title": "Unpredictable pricing",
+    "item3Desc": "Per-page, per-language, per-urgency. Final price surprises you at the end.",
+    "item4Title": "You are abroad",
+    "item4Desc": "The bureau is in another city or country. You need the document today."
+  },
+  "security": {
+    "label": "PRIVACY AND SECURITY",
+    "title": "Your documents stay private",
+    "subtitle": "We handle passports, bank statements, and medical records. Security is not optional.",
+    "item1Title": "Encrypted storage",
+    "item1Desc": "Cloudflare R2 with server-side encryption and TLS in transit.",
+    "item2Title": "30-day auto-delete",
+    "item2Desc": "Original and translated files are permanently deleted after 30 days. No archives.",
+    "item3Title": "No human review",
+    "item3Desc": "Translation is performed by AI only. No staff reads your documents.",
+    "item4Title": "Delete on request",
+    "item4Desc": "You can request immediate deletion from your dashboard at any time.",
+    "disclaimer": "UNOFFICIAL TRANSLATION — FOR INFORMATIONAL PURPOSES ONLY",
+    "disclaimerSub": "Not certified or notarized. Always verify with the receiving institution."
+  },
+  "useCases": {
+    "label": "USE CASES",
+    "title": "Built for the documents that matter",
+    "visa": "Visa and Immigration",
+    "visaDesc": "Passports, invitation letters, and financial documents for visa applications.",
+    "university": "University Admissions",
+    "universityDesc": "Diplomas, transcripts, and academic certificates for international admissions.",
+    "banking": "Banking and Finance",
+    "bankingDesc": "Bank statements, employment contracts, and proof of income documents.",
+    "relocation": "Relocation and Expat Life",
+    "relocationDesc": "Any official document you need to translate to live, work, or register abroad."
   }
 }

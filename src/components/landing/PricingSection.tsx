@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
+import { CheckCircle2 } from 'lucide-react';
 import type { PricingTier } from '@/lib/landing-pages/types';
 
 interface Props {
@@ -13,13 +14,13 @@ export async function PricingSection({ headline, subheadline, tiers, footnote }:
   const t = await getTranslations();
 
   return (
-    <section className="border-y border-white/10 bg-card px-4 py-20">
-      <div className="mx-auto max-w-3xl">
-        <div className="mb-12 text-center">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">
+    <section className="border-y border-white/[0.07] bg-card px-4 py-20">
+      <div className="mx-auto max-w-[860px]">
+        <div className="mb-14 text-center">
+          <p className="mb-2.5 text-[10px] font-bold uppercase tracking-[0.15em] text-primary/70">
             {t('landing.pricingLabel')}
           </p>
-          <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+          <h2 className="text-2xl font-bold tracking-[-0.025em] text-foreground sm:text-[1.85rem]">
             {headline}
           </h2>
           {subheadline && (
@@ -27,61 +28,71 @@ export async function PricingSection({ headline, subheadline, tiers, footnote }:
           )}
         </div>
 
-        <div className={`grid gap-4 ${tiers.length > 1 ? 'sm:grid-cols-2' : 'max-w-sm mx-auto'}`}>
+        <div className={`grid gap-4 ${tiers.length > 2 ? 'sm:grid-cols-3' : tiers.length === 2 ? 'sm:grid-cols-2' : 'mx-auto max-w-xs'}`}>
           {tiers.map((tier) => (
             <div
               key={tier.name}
-              className={`relative rounded-lg p-7 ${
+              className={`relative flex flex-col overflow-hidden rounded-xl transition-all ${
                 tier.highlighted
-                  ? 'border border-primary/40 bg-background/60 shadow-lg shadow-primary/5'
-                  : 'border border-white/10 bg-background/60'
+                  ? 'border border-primary/35 bg-background/70 shadow-[0_0_40px_rgba(201,168,76,0.07)]'
+                  : 'border border-white/[0.08] bg-background/60'
               }`}
             >
+              {/* Top accent line for highlighted */}
+              {tier.highlighted && (
+                <div className="absolute -top-px left-1/2 h-px w-24 -translate-x-1/2 bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
+              )}
+
+              {/* Popular badge */}
               {tier.highlighted && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <span className="rounded-full bg-primary px-3 py-0.5 text-xs font-semibold text-primary-foreground">
+                  <span className="rounded-full bg-primary px-3 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary-foreground">
                     {t('landing.mostPopular')}
                   </span>
                 </div>
               )}
 
-              <div className="mb-1 text-xs font-semibold uppercase tracking-widest text-primary">
-                {tier.name}
-              </div>
-              <div className="mb-5 flex items-end gap-1">
-                <span className="text-4xl font-bold tracking-tight text-foreground">
-                  {tier.price}
-                </span>
-                <span className="mb-1 text-sm text-muted-foreground">{t('landing.perDocument')}</span>
+              {/* Tier header */}
+              <div className={`border-b px-6 py-5 ${tier.highlighted ? 'border-primary/15' : 'border-white/[0.06]'}`}>
+                <p className={`mb-0.5 text-[10px] font-bold uppercase tracking-[0.12em] ${tier.highlighted ? 'text-primary' : 'text-muted-foreground/70'}`}>
+                  {tier.name}
+                </p>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-3xl font-extrabold tracking-[-0.02em] text-foreground">
+                    {tier.price}
+                  </span>
+                  <span className="text-xs text-muted-foreground">{t('landing.perDocument')}</span>
+                </div>
               </div>
 
-              <ul className="mb-6 space-y-2 text-sm text-muted-foreground">
-                {tier.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2">
-                    <span className={`mt-0.5 ${tier.highlighted ? 'text-primary' : 'text-muted-foreground'}`}>
-                      ✓
-                    </span>
-                    {f}
-                  </li>
-                ))}
-              </ul>
+              {/* Features */}
+              <div className="flex flex-1 flex-col p-6">
+                <ul className="mb-6 flex-1 space-y-2">
+                  {tier.features.map((f) => (
+                    <li key={f} className="flex items-start gap-2 text-[13px] text-muted-foreground">
+                      <CheckCircle2 className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${tier.highlighted ? 'text-primary/70' : 'text-muted-foreground/40'}`} />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
 
-              <Link
-                href="/auth/signup"
-                className={`inline-flex w-full items-center justify-center rounded-md py-2.5 text-sm font-semibold transition-colors ${
-                  tier.highlighted
-                    ? 'bg-primary text-primary-foreground hover:bg-gold-dark'
-                    : 'border border-white/15 bg-white/5 text-foreground hover:bg-white/10'
-                }`}
-              >
-                {tier.cta}
-              </Link>
+                <Link
+                  href="/auth/signup"
+                  className={`inline-flex w-full items-center justify-center rounded-lg py-2.5 text-sm font-semibold transition-all duration-150 ${
+                    tier.highlighted
+                      ? 'bg-primary text-primary-foreground hover:bg-gold-dark hover:brightness-110'
+                      : 'border border-white/15 bg-white/[0.04] text-foreground/80 hover:border-white/30 hover:bg-white/[0.07] hover:text-foreground'
+                  }`}
+                >
+                  {tier.cta}
+                </Link>
+              </div>
             </div>
           ))}
         </div>
 
         {footnote && (
-          <p className="mt-5 text-center text-xs text-muted-foreground">{footnote}</p>
+          <p className="mt-5 text-center text-[11px] text-muted-foreground/60">{footnote}</p>
         )}
       </div>
     </section>
