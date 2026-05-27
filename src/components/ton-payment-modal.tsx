@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { X, Copy, Check, Loader2 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
+import { useTranslations } from 'next-intl';
 
 interface PaymentDetails {
   paymentId: string;
@@ -70,6 +71,7 @@ function CopyField({ label, value }: { label: string; value: string }) {
 }
 
 export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props) {
+  const t = useTranslations('payment');
   const [phase, setPhase] = useState<Phase>('loading');
   const [details, setDetails] = useState<PaymentDetails | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -143,10 +145,10 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
         setTimeout(onSuccess, 1500);
         return;
       }
-      setCheckError('Payment not found yet — please wait a moment and try again.');
+      setCheckError(t('paymentNotFound'));
       setCooldownUntil(Date.now() + 10_000);
     } catch {
-      setCheckError('Network error. Please try again.');
+      setCheckError(t('networkError'));
       setCooldownUntil(Date.now() + 10_000);
     } finally {
       setChecking(false);
@@ -158,7 +160,7 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
       <div className="relative w-full max-w-md rounded-lg border border-white/10 bg-card shadow-2xl shadow-black/50">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
-          <h2 className="text-base font-semibold text-foreground">TON Payment</h2>
+          <h2 className="text-base font-semibold text-foreground">{t('title')}</h2>
           <button
             type="button"
             onClick={onClose}
@@ -174,20 +176,20 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
           {phase === 'loading' && (
             <div className="flex items-center gap-3 py-4 text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
-              <span className="text-sm">Preparing payment…</span>
+              <span className="text-sm">{t('preparing')}</span>
             </div>
           )}
 
           {/* Error */}
           {phase === 'failed' && (
             <div className="flex flex-col gap-4">
-              <p className="text-sm text-destructive">{error ?? 'Something went wrong.'}</p>
+              <p className="text-sm text-destructive">{error ?? t('errorFallback')}</p>
               <button
                 type="button"
                 onClick={onClose}
                 className="inline-flex w-fit items-center rounded-md border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-white/10"
               >
-                Close
+                {t('close')}
               </button>
             </div>
           )}
@@ -198,23 +200,21 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/10">
                 <Check className="h-7 w-7 text-emerald-400" />
               </div>
-              <p className="font-semibold text-foreground">Payment confirmed!</p>
-              <p className="text-sm text-muted-foreground">Translation is starting…</p>
+              <p className="font-semibold text-foreground">{t('confirmed')}</p>
+              <p className="text-sm text-muted-foreground">{t('translationStarting')}</p>
             </div>
           )}
 
           {/* Expired */}
           {phase === 'expired' && (
             <div className="flex flex-col gap-4">
-              <p className="text-sm text-muted-foreground">
-                Payment window expired. Please upload your document again.
-              </p>
+              <p className="text-sm text-muted-foreground">{t('expired')}</p>
               <button
                 type="button"
                 onClick={onClose}
                 className="inline-flex w-fit items-center rounded-md border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-white/10"
               >
-                Close
+                {t('close')}
               </button>
             </div>
           )}
@@ -238,7 +238,7 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
                 <div className="rounded-lg border border-white/10 bg-white p-3">
                   <QRCodeSVG value={deeplink} size={180} />
                 </div>
-                <p className="text-xs text-muted-foreground">Scan with your TON wallet</p>
+                <p className="text-xs text-muted-foreground">{t('scanQr')}</p>
               </div>
 
               {/* Primary CTA */}
@@ -247,28 +247,26 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
                 onClick={handlePayClick}
                 className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-gold-dark"
               >
-                Open in Tonkeeper
+                {t('openTonkeeper')}
               </button>
 
               {/* Manual payment */}
               <details className="group rounded-md border border-white/10">
                 <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-xs font-medium text-muted-foreground hover:text-foreground">
-                  Pay manually
+                  {t('payManually')}
                   <span className="transition-transform duration-200 group-open:rotate-180">▾</span>
                 </summary>
                 <div className="flex flex-col gap-3 border-t border-white/10 px-4 pb-4 pt-3">
-                  <CopyField label="Address" value={details.merchantAddress} />
-                  <CopyField label="Amount" value={`${details.amountTon} TON`} />
-                  <CopyField label="Memo / Comment" value={jobId} />
-                  <p className="text-xs text-muted-foreground">
-                    Include the exact memo — it links your payment to the translation.
-                  </p>
+                  <CopyField label={t('fieldAddress')} value={details.merchantAddress} />
+                  <CopyField label={t('fieldAmount')} value={`${details.amountTon} TON`} />
+                  <CopyField label={t('fieldMemo')} value={jobId} />
+                  <p className="text-xs text-muted-foreground">{t('memoNote')}</p>
                 </div>
               </details>
 
               {/* Timer */}
               <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Time remaining</span>
+                <span className="text-muted-foreground">{t('timeRemaining')}</span>
                 <span
                   className={`font-mono font-semibold ${secondsLeft < 120 ? 'text-destructive' : 'text-foreground'}`}
                 >
@@ -289,12 +287,10 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
                 {checking ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Checking payment…
+                    {t('checkingPayment')}
                   </>
-                ) : inCooldown ? (
-                  "I've Paid — Verify"
                 ) : (
-                  "I've Paid — Verify"
+                  t('verifyButton')
                 )}
               </button>
             </div>
@@ -317,14 +313,12 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
                 <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/10">
                   <Loader2 className="h-5 w-5 animate-spin text-primary" />
                 </div>
-                <p className="font-medium text-foreground">Waiting for payment…</p>
-                <p className="text-sm text-muted-foreground">
-                  Complete the payment in your TON wallet, then verify below.
-                </p>
+                <p className="font-medium text-foreground">{t('waitingPayment')}</p>
+                <p className="text-sm text-muted-foreground">{t('waitingDesc')}</p>
               </div>
 
               <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Time remaining</span>
+                <span className="text-muted-foreground">{t('timeRemaining')}</span>
                 <span
                   className={`font-mono font-semibold ${secondsLeft < 120 ? 'text-destructive' : 'text-foreground'}`}
                 >
@@ -344,10 +338,10 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
                 {checking ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Checking…
+                    {t('checking')}
                   </>
                 ) : (
-                  "I've Paid — Verify"
+                  t('verifyButton')
                 )}
               </button>
 
@@ -356,7 +350,7 @@ export function TonPaymentModal({ documentId, jobId, onSuccess, onClose }: Props
                 onClick={() => setPhase('ready')}
                 className="text-xs text-muted-foreground underline-offset-4 hover:underline"
               >
-                Haven&apos;t paid yet? Go back
+                {t('goBack')}
               </button>
             </div>
           )}

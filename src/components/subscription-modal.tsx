@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { X, Copy, Check, Loader2, Zap, Star } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
+import { useTranslations } from 'next-intl';
 
 type Phase =
   | 'choose'
@@ -74,26 +75,9 @@ function CopyField({ label, value }: { label: string; value: string }) {
   );
 }
 
-const PLAN_DETAILS = {
-  basic: {
-    name: 'Basic',
-    price: '$9.99',
-    docs: '10 documents / month',
-    features: ['All document types', 'AI translation', 'Clean PDF output', '30-day subscription'],
-    icon: Zap,
-    popular: true,
-  },
-  pro: {
-    name: 'Pro',
-    price: '$24.99',
-    docs: '40 documents / month',
-    features: ['All document types', 'AI translation', 'Clean PDF output', 'Priority processing', 'PRO badge'],
-    icon: Star,
-    popular: false,
-  },
-} as const;
-
 export function SubscriptionModal({ onSuccess, onClose }: Props) {
+  const t = useTranslations('subscription');
+  const tp = useTranslations('pricing');
   const [phase, setPhase] = useState<Phase>('choose');
   const [selectedPlan, setSelectedPlan] = useState<'basic' | 'pro' | null>(null);
   const [details, setDetails] = useState<PaymentDetails | null>(null);
@@ -105,6 +89,37 @@ export function SubscriptionModal({ onSuccess, onClose }: Props) {
   // Countdown: 30 min from now when payment details are loaded
   const [expiresMs, setExpiresMs] = useState<number | null>(null);
   const secondsLeft = useCountdown(expiresMs);
+
+  // Plan details — defined inside component so t() is in scope
+  const PLAN_DETAILS = {
+    basic: {
+      name: 'Basic',
+      price: '$9.99',
+      docs: `10 ${t('docsPerMonth')}`,
+      features: [
+        tp('allDocTypes'),
+        t('aiTranslationShort'),
+        tp('cleanPdf'),
+        t('daySubscription'),
+      ],
+      icon: Zap,
+      popular: true,
+    },
+    pro: {
+      name: 'Pro',
+      price: '$24.99',
+      docs: `40 ${t('docsPerMonth')}`,
+      features: [
+        tp('allDocTypes'),
+        t('aiTranslationShort'),
+        tp('cleanPdf'),
+        tp('priorityProcessing'),
+        tp('proBadge'),
+      ],
+      icon: Star,
+      popular: false,
+    },
+  } as const;
 
   // Start subscription payment for chosen plan
   async function startSubscription(plan: 'basic' | 'pro'): Promise<void> {
@@ -177,23 +192,28 @@ export function SubscriptionModal({ onSuccess, onClose }: Props) {
         setPhase('confirmed');
         setTimeout(() => onSuccess(data.subscription!.plan), 1500);
       } else {
-        setCheckError('Payment not confirmed yet. Try again in a moment.');
+        setCheckError(t('notConfirmed'));
       }
     } catch {
-      setCheckError('Payment not confirmed yet. Try again in a moment.');
+      setCheckError(t('notConfirmed'));
     } finally {
       setChecking(false);
     }
   }
+
+  const headerTitle =
+    phase === 'choose'
+      ? t('choosePlan')
+      : selectedPlan === 'basic'
+      ? t('basicSubscription')
+      : t('proSubscription');
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 backdrop-blur-sm sm:items-center">
       <div className="relative w-full max-w-lg rounded-xl border border-white/10 bg-card shadow-2xl shadow-black/60">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
-          <h2 className="text-base font-semibold text-foreground">
-            {phase === 'choose' ? 'Choose a Plan' : `${selectedPlan === 'basic' ? 'Basic' : 'Pro'} Subscription`}
-          </h2>
+          <h2 className="text-base font-semibold text-foreground">{headerTitle}</h2>
           <button
             type="button"
             onClick={onClose}
@@ -222,7 +242,7 @@ export function SubscriptionModal({ onSuccess, onClose }: Props) {
                   >
                     {p.popular && (
                       <span className="absolute -top-2.5 left-4 rounded-full bg-primary px-2.5 py-0.5 text-xs font-semibold text-primary-foreground">
-                        Most Popular
+                        {t('mostPopular')}
                       </span>
                     )}
                     <div className="mb-3 flex items-center justify-between">
@@ -234,7 +254,7 @@ export function SubscriptionModal({ onSuccess, onClose }: Props) {
                       </div>
                       <div className="text-right">
                         <span className="text-xl font-extrabold text-foreground">{p.price}</span>
-                        <span className="text-xs text-muted-foreground">/mo</span>
+                        <span className="text-xs text-muted-foreground">{t('perMonth')}</span>
                       </div>
                     </div>
                     <p className="mb-3 text-xs font-medium text-primary">{p.docs}</p>
@@ -255,14 +275,12 @@ export function SubscriptionModal({ onSuccess, onClose }: Props) {
                           : 'border border-white/20 bg-white/5 text-foreground hover:bg-white/10'
                       }`}
                     >
-                      Subscribe with TON
+                      {t('subscribeWithTon')}
                     </button>
                   </div>
                 );
               })}
-              <p className="text-center text-xs text-muted-foreground">
-                Paid via TON · 30-day access · No auto-renewal
-              </p>
+              <p className="text-center text-xs text-muted-foreground">{t('tonFootnote')}</p>
             </div>
           )}
 
@@ -270,28 +288,28 @@ export function SubscriptionModal({ onSuccess, onClose }: Props) {
           {phase === 'loading' && (
             <div className="flex items-center gap-3 py-6 text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
-              <span className="text-sm">Preparing payment…</span>
+              <span className="text-sm">{t('preparing')}</span>
             </div>
           )}
 
           {/* ── FAILED ── */}
           {phase === 'failed' && (
             <div className="flex flex-col gap-4">
-              <p className="text-sm text-destructive">{error ?? 'Something went wrong.'}</p>
+              <p className="text-sm text-destructive">{error ?? t('errorFallback')}</p>
               <div className="flex gap-3">
                 <button
                   type="button"
                   onClick={() => setPhase('choose')}
                   className="inline-flex items-center rounded-md border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-white/10"
                 >
-                  ← Back
+                  {t('back')}
                 </button>
                 <button
                   type="button"
                   onClick={onClose}
                   className="inline-flex items-center rounded-md border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-white/10"
                 >
-                  Close
+                  {t('close')}
                 </button>
               </div>
             </div>
@@ -303,14 +321,14 @@ export function SubscriptionModal({ onSuccess, onClose }: Props) {
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/10">
                 <Check className="h-7 w-7 text-emerald-400" />
               </div>
-              <p className="font-semibold text-foreground">Subscription activated!</p>
+              <p className="font-semibold text-foreground">{t('activated')}</p>
               <p className="text-sm text-muted-foreground">
-                Your {selectedPlan === 'basic' ? 'Basic' : 'Pro'} plan is now active.
+                {selectedPlan === 'basic' ? t('basicPlanActive') : t('proPlanActive')}
               </p>
             </div>
           )}
 
-          {/* ── READY / WAITING ── */}
+          {/* ── READY / WAITING / POLLING ── */}
           {(phase === 'ready' || phase === 'waiting' || phase === 'polling') && details && (
             <div className="flex flex-col gap-5">
               {/* Amount */}
@@ -334,7 +352,7 @@ export function SubscriptionModal({ onSuccess, onClose }: Props) {
                   <div className="rounded-lg border border-white/10 bg-white p-3">
                     <QRCodeSVG value={details.qrData} size={160} />
                   </div>
-                  <p className="text-xs text-muted-foreground">Scan with your TON wallet</p>
+                  <p className="text-xs text-muted-foreground">{t('scanQr')}</p>
                 </div>
               )}
 
@@ -344,9 +362,9 @@ export function SubscriptionModal({ onSuccess, onClose }: Props) {
                   <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10">
                     <Loader2 className="h-5 w-5 animate-spin text-primary" />
                   </div>
-                  <p className="text-sm font-medium text-foreground">Waiting for payment…</p>
+                  <p className="text-sm font-medium text-foreground">{t('waitingPayment')}</p>
                   <p className="text-xs text-muted-foreground">
-                    Checking every 15 seconds{pollCount > 0 ? ` (${pollCount} checks)` : ''}
+                    {t('pollingDesc')}{pollCount > 0 ? ` (${pollCount})` : ''}
                   </p>
                 </div>
               )}
@@ -358,7 +376,7 @@ export function SubscriptionModal({ onSuccess, onClose }: Props) {
                   onClick={handlePayClick}
                   className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-gold-dark"
                 >
-                  Open in Tonkeeper
+                  {t('openTonkeeper')}
                 </button>
               )}
 
@@ -366,16 +384,14 @@ export function SubscriptionModal({ onSuccess, onClose }: Props) {
               {(phase === 'ready' || phase === 'polling') && (
                 <details className="group rounded-md border border-white/10">
                   <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-xs font-medium text-muted-foreground hover:text-foreground">
-                    Pay manually
+                    {t('payManually')}
                     <span className="transition-transform duration-200 group-open:rotate-180">▾</span>
                   </summary>
                   <div className="flex flex-col gap-3 border-t border-white/10 px-4 pb-4 pt-3">
-                    <CopyField label="Address" value={details.walletAddress} />
-                    <CopyField label="Amount" value={`${details.amountTon} TON`} />
-                    <CopyField label="Memo / Comment" value={details.subscriptionId} />
-                    <p className="text-xs text-muted-foreground">
-                      ⚠ Include the exact memo — it activates your subscription.
-                    </p>
+                    <CopyField label={t('fieldAddress')} value={details.walletAddress} />
+                    <CopyField label={t('fieldAmount')} value={`${details.amountTon} TON`} />
+                    <CopyField label={t('fieldMemo')} value={details.subscriptionId} />
+                    <p className="text-xs text-muted-foreground">{t('memoNote')}</p>
                   </div>
                 </details>
               )}
@@ -392,10 +408,10 @@ export function SubscriptionModal({ onSuccess, onClose }: Props) {
                     {checking ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        Checking…
+                        {t('checking')}
                       </>
                     ) : (
-                      "I've paid"
+                      t('ivePaid')
                     )}
                   </button>
                   {checkError && (
@@ -407,7 +423,7 @@ export function SubscriptionModal({ onSuccess, onClose }: Props) {
               {/* Timer */}
               {expiresMs && phase !== 'polling' && (
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Offer expires</span>
+                  <span className="text-muted-foreground">{t('offerExpires')}</span>
                   <span className={`font-mono font-semibold ${secondsLeft < 120 ? 'text-destructive' : 'text-foreground'}`}>
                     {fmt(secondsLeft)}
                   </span>
@@ -421,7 +437,7 @@ export function SubscriptionModal({ onSuccess, onClose }: Props) {
                   onClick={() => { setPhase('choose'); setDetails(null); }}
                   className="text-xs text-muted-foreground underline-offset-4 hover:underline"
                 >
-                  ← Choose different plan
+                  {t('chooseDifferent')}
                 </button>
               )}
             </div>
