@@ -8,6 +8,7 @@ import { Upload, FileText, Download, AlertCircle, Loader2, Zap, Star } from 'luc
 import { TonPaymentModal } from '@/components/ton-payment-modal';
 import { SubscriptionModal } from '@/components/subscription-modal';
 import { createClient } from '@/lib/supabase/client';
+import { Link } from '@/i18n/navigation';
 import type { Tables } from '@/types';
 
 type Document = Tables<'documents'>;
@@ -185,6 +186,7 @@ function SubscriptionCard({
 export default function DashboardPage() {
   const router = useRouter();
   const t = useTranslations('dashboard');
+  const tLegal = useTranslations('legal');
 
   const LANGUAGES = [
     { value: 'auto', label: t('langs.auto') },
@@ -233,6 +235,7 @@ export default function DashboardPage() {
   const [targetLang, setTargetLang] = useState('en');
   const [documentType, setDocumentType] = useState('other');
   const [uploading, setUploading] = useState(false);
+  const [consentChecked, setConsentChecked] = useState(false);
 
   const [activeJob, setActiveJob] = useState<ActiveJob | null>(null);
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -545,9 +548,65 @@ export default function DashboardPage() {
             </p>
           ) : null}
 
+          {/* Disclaimers */}
+          <div className="flex flex-col gap-2 rounded-md border border-white/8 bg-white/[0.02] p-3">
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              <AlertCircle className="mr-1 inline-block h-3 w-3 align-middle text-amber-400" />
+              {tLegal('thirdPartyNotice')}
+            </p>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              <AlertCircle className="mr-1 inline-block h-3 w-3 align-middle text-muted-foreground/60" />
+              {tLegal('notarizationNotice')}
+            </p>
+          </div>
+
+          {/* Consent checkbox */}
+          <label className="flex cursor-pointer items-start gap-2.5">
+            <input
+              type="checkbox"
+              checked={consentChecked}
+              onChange={(e) => setConsentChecked(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+            />
+            <span className="text-xs leading-relaxed text-muted-foreground">
+              {tLegal.rich('consentText', {
+                offerLink: (chunks) => (
+                  <Link
+                    href={{ pathname: '/legal/offer' }}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline underline-offset-2 transition-colors hover:text-foreground"
+                  >
+                    {chunks}
+                  </Link>
+                ),
+                privacyLink: (chunks) => (
+                  <Link
+                    href={{ pathname: '/legal/privacy' }}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline underline-offset-2 transition-colors hover:text-foreground"
+                  >
+                    {chunks}
+                  </Link>
+                ),
+                consentLink: (chunks) => (
+                  <Link
+                    href={{ pathname: '/legal/personal-data-consent' }}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline underline-offset-2 transition-colors hover:text-foreground"
+                  >
+                    {chunks}
+                  </Link>
+                ),
+              })}
+            </span>
+          </label>
+
           <button
             type="submit"
-            disabled={uploading || !file}
+            disabled={uploading || !file || !consentChecked}
             className="inline-flex w-fit items-center justify-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-gold-dark disabled:pointer-events-none disabled:opacity-50"
           >
             {uploading ? (

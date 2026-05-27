@@ -729,5 +729,18 @@
     "bankingDesc": "Bank statements, employment contracts, and proof of income documents.",
     "relocation": "Relocation and Expat Life",
     "relocationDesc": "Any official document you need to translate to live, work, or register abroad."
+  },
+  "legal": {
+    "footerHeading": "Hukuk resminamalary",
+    "offer": "Oferta şertnamasy",
+    "privacy": "Gizlinlik syýasaty",
+    "personalData": "Şahsy maglumatlary işlemegiň razylyk blanky",
+    "refund": "Töleg gaýtaryş syýasaty",
+    "disclaimer": "Jogapkärçilikden ýüz dönüş",
+    "terms": "Hyzmat şertleri",
+    "partners": "Hyzmatdaşlyk şertleri",
+    "consentText": "Men <offerLink>Oferta şertnamasy</offerLink>, <privacyLink>Gizlinlik syýasaty</privacyLink> we <consentLink>Şahsy maglumatlary işlemegiň razylyk blanky</consentLink> okadym we razylaşýaryn.",
+    "thirdPartyNotice": "Terjime netijeleri ýardamçy häsiýetde hödürlenýär. Üçünji taraplar (döwlet edaralary, konsulatlary, iş beriji) tarapyndan kabul edilmegi kepillendirilmeýär.",
+    "notarizationNotice": "Notarial tassyklamasy ýa-da apostil deslapky taýdan goşulmaýar. Gerek bolsa, degişli hyzmat derejesini saýlaň."
   }
 }

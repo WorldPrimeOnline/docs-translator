@@ -729,5 +729,18 @@
     "bankingDesc": "Bank statements, employment contracts, and proof of income documents.",
     "relocation": "Relocation and Expat Life",
     "relocationDesc": "Any official document you need to translate to live, work, or register abroad."
+  },
+  "legal": {
+    "footerHeading": "Хуулийн баримт бичгүүд",
+    "offer": "Үйлчилгээний гэрээ",
+    "privacy": "Нууцлалын бодлого",
+    "personalData": "Хувийн мэдээлэл боловсруулахад зөвшөөрөл",
+    "refund": "Буцааж олголтын бодлого",
+    "disclaimer": "Хариуцлагаас татгалзсан мэдэгдэл",
+    "terms": "Үйлчилгээний нөхцөлүүд",
+    "partners": "Хамтын ажиллагааны нөхцөлүүд",
+    "consentText": "Би <offerLink>Үйлчилгээний гэрээ</offerLink>, <privacyLink>Нууцлалын бодлого</privacyLink> болон <consentLink>Хувийн мэдээлэл боловсруулахад зөвшөөрөл</consentLink>г уншиж, зөвшөөрч байна.",
+    "thirdPartyNotice": "Орчуулгын үр дүн нь лавлагаа зориулалттай. Гуравдагч этгээд (засгийн газрын байгуулага, консулат, ажил олгогч) хүлээн авах эсэх баталгаагүй бөгөөд тэдний шаардлагаас хамаарна.",
+    "notarizationNotice": "Нотариат эсвэл апостиль анхдагч байдлаар оруулагдаагүй. Шаардлагатай бол тохирох үйлчилгээний түвшинг сонгоно уу."
   }
 }

@@ -729,5 +729,18 @@
     "bankingDesc": "Bank statements, employment contracts, and proof of income documents.",
     "relocation": "Relocation and Expat Life",
     "relocationDesc": "Any official document you need to translate to live, work, or register abroad."
+  },
+  "legal": {
+    "footerHeading": "法律文件",
+    "offer": "服务协议",
+    "privacy": "隐私政策",
+    "personalData": "个人数据处理同意书",
+    "refund": "退款政策",
+    "disclaimer": "免责声明",
+    "terms": "使用条款",
+    "partners": "合作伙伴条款",
+    "consentText": "我已阅读并同意<offerLink>服务协议</offerLink>、<privacyLink>隐私政策</privacyLink>和<consentLink>个人数据处理同意书</consentLink>。",
+    "thirdPartyNotice": "翻译结果仅供参考。第三方（政府机构、领事馆、雇主）是否接受不作保证，取决于其具体要求。",
+    "notarizationNotice": "公证或认证附加说明默认不包含在内。如有需要，请选择相应服务级别。"
   }
 }

@@ -729,5 +729,18 @@
     "bankingDesc": "Bank statements, employment contracts, and proof of income documents.",
     "relocation": "Relocation and Expat Life",
     "relocationDesc": "Any official document you need to translate to live, work, or register abroad."
+  },
+  "legal": {
+    "footerHeading": "Legal",
+    "offer": "Service Agreement",
+    "privacy": "Privacy Policy",
+    "personalData": "Personal Data Consent",
+    "refund": "Refund Policy",
+    "disclaimer": "Disclaimer",
+    "terms": "Terms of Use",
+    "partners": "Partner Terms",
+    "consentText": "I have read and agree to the <offerLink>Service Agreement</offerLink>, <privacyLink>Privacy Policy</privacyLink>, and <consentLink>Personal Data Consent</consentLink>.",
+    "thirdPartyNotice": "Translation results are intended to assist you. Acceptance by third parties (government agencies, consulates, employers) is not guaranteed and depends on their requirements.",
+    "notarizationNotice": "Notarization or apostille is not included by default. If required, please select the appropriate service level."
   }
 }

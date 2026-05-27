@@ -729,5 +729,18 @@
     "bankingDesc": "Bank statements, employment contracts, and proof of income documents.",
     "relocation": "Relocation and Expat Life",
     "relocationDesc": "Any official document you need to translate to live, work, or register abroad."
+  },
+  "legal": {
+    "footerHeading": "Huquqiy hujjatlar",
+    "offer": "Oferta shartnomasi",
+    "privacy": "Maxfiylik siyosati",
+    "personalData": "Shaxsiy ma'lumotlarni qayta ishlashga rozilik",
+    "refund": "Qaytarish siyosati",
+    "disclaimer": "Mas'uliyatdan voz kechish",
+    "terms": "Foydalanish shartlari",
+    "partners": "Hamkorlik shartlari",
+    "consentText": "Men <offerLink>Oferta shartnomasi</offerLink>, <privacyLink>Maxfiylik siyosati</privacyLink> va <consentLink>Shaxsiy ma'lumotlarni qayta ishlashga rozilik</consentLink>ni o'qidim va roziman.",
+    "thirdPartyNotice": "Tarjima natijalari ma'lumotnoma sifatida taqdim etiladi. Uchinchi tomonlarning (davlat organlari, konsulliklar, ish beruvchilar) qabul qilishi kafolatlanmaydi.",
+    "notarizationNotice": "Notarial tasdiqlash yoki apostil standart ravishda kiritilmagan. Zarur bo'lsa, tegishli xizmat darajasini tanlang."
   }
 }

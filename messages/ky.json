@@ -729,5 +729,18 @@
     "bankingDesc": "Bank statements, employment contracts, and proof of income documents.",
     "relocation": "Relocation and Expat Life",
     "relocationDesc": "Any official document you need to translate to live, work, or register abroad."
+  },
+  "legal": {
+    "footerHeading": "Юридикалык документтер",
+    "offer": "Оферта келишими",
+    "privacy": "Купуялуулук саясаты",
+    "personalData": "Жеке маалыматтарды иштетүүгө макулдук",
+    "refund": "Акчаны кайтаруу саясаты",
+    "disclaimer": "Жоопкерчиликтен баш тартуу",
+    "terms": "Кызмат шарттары",
+    "partners": "Өнөктөштүк шарттары",
+    "consentText": "Мен <offerLink>Оферта келишими</offerLink>, <privacyLink>Купуялуулук саясаты</privacyLink> жана <consentLink>Жеке маалыматтарды иштетүүгө макулдук</consentLink> окуп чыктым жана макул болдум.",
+    "thirdPartyNotice": "Котормо натыйжалары маалымдамалык мүнөздө берилет. Үчүнчү жактардын (мамлекеттик органдар, консулаттар, иш берүүчүлөр) кабыл алуусу кепилденбейт жана алардын талаптарына жараша болот.",
+    "notarizationNotice": "Нотариалдык күбөлөндүрүү же апостиль демейде кирбейт. Зарыл болсо, тиешелүү кызмат деңгээлин тандаңыз."
   }
 }

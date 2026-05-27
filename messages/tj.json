@@ -721,5 +721,18 @@
     "bankingDesc": "Bank statements, employment contracts, and proof of income documents.",
     "relocation": "Relocation and Expat Life",
     "relocationDesc": "Any official document you need to translate to live, work, or register abroad."
+  },
+  "legal": {
+    "footerHeading": "Ҳуҷҷатҳои ҳуқуқӣ",
+    "offer": "Шартномаи оферта",
+    "privacy": "Сиёсати махфӣ",
+    "personalData": "Розигӣ ба коркарди маълумоти шахсӣ",
+    "refund": "Сиёсати баргардонидан",
+    "disclaimer": "Даст кашидан аз масъулият",
+    "terms": "Шартҳои истифода",
+    "partners": "Шартҳои шарикӣ",
+    "consentText": "Ман <offerLink>Шартномаи офертаро</offerLink>, <privacyLink>Сиёсати махфиро</privacyLink> ва <consentLink>Розигӣ ба коркарди маълумоти шахсиро</consentLink> хондам ва розиям.",
+    "thirdPartyNotice": "Натиҷаҳои тарҷума барои кӯмак пешниҳод мешаванд. Қабули тарафҳои сеюм (мақомоти давлатӣ, консулгариҳо, корфармоёни) кафолат дода намешавад.",
+    "notarizationNotice": "Тасдиқи нотариалӣ ё апостиль ба таври пешфарз дохил нест. Дар сурати зарурат, сатҳи мувофиқи хизматро интихоб кунед."
   }
 }
