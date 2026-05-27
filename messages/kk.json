@@ -19,8 +19,8 @@
     "diplomaTranslation": "Диплом аудармасы"
   },
   "hero": {
-    "title": "Құжаттарыңызды минуттар ішінде аударыңыз",
-    "subtitle": "PDF жүктеп салыңыз — аударылған құжатты алыңыз. Виза, банк, университет, иммиграция үшін.",
+    "title": "Professional Document Translation",
+    "subtitle": "Upload your PDF — receive a clean, formatted translation. Built for visa applications, university submissions, banking, and international paperwork.",
     "cta": "Аударуды бастау",
     "badge": "ЖИ арқылы · Жылдам нәтиже · 10+ тіл",
     "seeHowItWorks": "Жұмыс принципін қарау",
@@ -29,7 +29,7 @@
     "downloadPdf": "PDF жүктеу",
     "mockupSub": "Орыс → Ағылшын · Төлқұжат және куәлік",
     "noSub": "Жазылымсыз · Тек аударма кезінде төлеңіз",
-    "accentLine": "визалар, университеттер және ресми құжаттар үшін"
+    "accentLine": "Online. Fast. Structured."
   },
   "howItWorks": {
     "label": "ПРОЦЕСС",

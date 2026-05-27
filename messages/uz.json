@@ -19,8 +19,8 @@
     "diplomaTranslation": "Diplom tarjimasi"
   },
   "hero": {
-    "title": "Hujjatlaringizni bir necha daqiqada tarjima qiling",
-    "subtitle": "PDF yuklang — tarjima qilingan hujjat oling. Vizalar, banklar, universitetlar, immigratsiya uchun.",
+    "title": "Professional Document Translation",
+    "subtitle": "Upload your PDF — receive a clean, formatted translation. Built for visa applications, university submissions, banking, and international paperwork.",
     "cta": "Tarjimani boshlash",
     "badge": "Sun'iy intellekt · Tezkor natijalar · 10+ til",
     "seeHowItWorks": "Qanday ishlashini ko'ring",
@@ -29,7 +29,7 @@
     "downloadPdf": "PDF yuklab olish",
     "mockupSub": "Rus → Ingliz · Pasport va ID",
     "noSub": "Obuna yo'q · Faqat tarjima qilganingizda to'lang",
-    "accentLine": "vizalar, universitetlar va rasmiy hujjatlar uchun"
+    "accentLine": "Online. Fast. Structured."
   },
   "howItWorks": {
     "label": "JARAYON",

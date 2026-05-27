@@ -19,8 +19,8 @@
     "diplomaTranslation": "Diploma Translation"
   },
   "hero": {
-    "title": "Translate your documents in minutes",
-    "subtitle": "Upload a PDF — get a translated document. For visas, banks, universities, immigration.",
+    "title": "Professional Document Translation",
+    "subtitle": "Upload your PDF — receive a clean, formatted translation. Built for visa applications, university submissions, banking, and international paperwork.",
     "cta": "Start translating",
     "badge": "AI-powered · Instant results · 10+ languages",
     "seeHowItWorks": "See How It Works",
@@ -29,7 +29,7 @@
     "downloadPdf": "Download PDF",
     "mockupSub": "Russian → English · Passport & ID",
     "noSub": "No subscription · Pay only when you translate",
-    "accentLine": "for Visas, Universities, and Official Paperwork"
+    "accentLine": "Online. Fast. Structured."
   },
   "howItWorks": {
     "label": "THE PROCESS",

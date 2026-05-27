@@ -19,8 +19,8 @@
     "diplomaTranslation": "Diplom terjimesi"
   },
   "hero": {
-    "title": "Resminamalaryňyzy birnäçe minutda terjime ediň",
-    "subtitle": "PDF ýükläň — terjime edilen resminama alyň. Wizalar, banklar, uniwersitetler, immigrasiýa üçin.",
+    "title": "Professional Document Translation",
+    "subtitle": "Upload your PDF — receive a clean, formatted translation. Built for visa applications, university submissions, banking, and international paperwork.",
     "cta": "Terjimäni başla",
     "badge": "Emeli intellekt · Bada-bat netijeler · 10+ dil",
     "seeHowItWorks": "Nädip işleýändigini gör",
@@ -29,7 +29,7 @@
     "downloadPdf": "PDF ýükle",
     "mockupSub": "Rus → Iňlis · Pasport we ID",
     "noSub": "Abuna ýok · Diňe terjime edeninde tölä",
-    "accentLine": "wizalar, uniwersitetler we resmi resminamalar üçin"
+    "accentLine": "Online. Fast. Structured."
   },
   "howItWorks": {
     "label": "PROSESS",

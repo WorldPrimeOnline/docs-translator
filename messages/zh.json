@@ -19,8 +19,8 @@
     "diplomaTranslation": "文凭翻译"
   },
   "hero": {
-    "title": "几分钟内翻译您的文件",
-    "subtitle": "上传 PDF，获取译文文件。适用于签证、银行、大学、移民事务。",
+    "title": "Professional Document Translation",
+    "subtitle": "Upload your PDF — receive a clean, formatted translation. Built for visa applications, university submissions, banking, and international paperwork.",
     "cta": "开始翻译",
     "badge": "AI 驱动 · 即时结果 · 10+ 语言",
     "seeHowItWorks": "查看工作原理",
@@ -29,7 +29,7 @@
     "downloadPdf": "下载 PDF",
     "mockupSub": "俄语 → 英语 · 护照和证件",
     "noSub": "无需订阅 · 仅在翻译时付费",
-    "accentLine": "用于签证、大学和官方文件"
+    "accentLine": "Online. Fast. Structured."
   },
   "howItWorks": {
     "label": "操作流程",

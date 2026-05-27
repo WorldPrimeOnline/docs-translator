@@ -19,8 +19,8 @@
     "diplomaTranslation": "Traducción de diploma"
   },
   "hero": {
-    "title": "Traduce tus documentos en minutos",
-    "subtitle": "Sube un PDF — recibe el documento traducido. Para visados, bancos, universidades, inmigración.",
+    "title": "Professional Document Translation",
+    "subtitle": "Upload your PDF — receive a clean, formatted translation. Built for visa applications, university submissions, banking, and international paperwork.",
     "cta": "Comenzar a traducir",
     "badge": "Impulsado por IA · Resultados instantáneos · +10 idiomas",
     "seeHowItWorks": "Ver cómo funciona",
@@ -29,7 +29,7 @@
     "downloadPdf": "Descargar PDF",
     "mockupSub": "Ruso → Inglés · Pasaporte e ID",
     "noSub": "Sin suscripción · Paga solo cuando traduzcas",
-    "accentLine": "para visados, universidades y documentación oficial"
+    "accentLine": "Online. Fast. Structured."
   },
   "stats": {
     "documentCount": "2.400+",

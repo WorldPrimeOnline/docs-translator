@@ -19,8 +19,8 @@
     "diplomaTranslation": "Дипломын орчуулга"
   },
   "hero": {
-    "title": "Баримт бичгээ хэдхэн минутын дотор орчуулаарай",
-    "subtitle": "PDF байршуулаад — орчуулсан баримт бичиг аваарай. Виз, банк, их сургууль, цагаачлалд зориулсан.",
+    "title": "Professional Document Translation",
+    "subtitle": "Upload your PDF — receive a clean, formatted translation. Built for visa applications, university submissions, banking, and international paperwork.",
     "cta": "Орчуулга эхлэх",
     "badge": "Хиймэл оюун ухаан · Шуурхай үр дүн · 10+ хэл",
     "seeHowItWorks": "Хэрхэн ажилладгийг үзэх",
@@ -29,7 +29,7 @@
     "downloadPdf": "PDF татаж авах",
     "mockupSub": "Орос → Англи · Паспорт ба ID",
     "noSub": "Захиалга байхгүй · Зөвхөн орчуулах үедээ төлөх",
-    "accentLine": "виз, их сургууль, албан ёсны баримт бичгийн хувьд"
+    "accentLine": "Online. Fast. Structured."
   },
   "howItWorks": {
     "label": "ҮЙЛДЛИЙН ЯВЦ",

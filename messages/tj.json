@@ -19,8 +19,8 @@
     "diplomaTranslation": "Тарҷумаи диплом"
   },
   "hero": {
-    "title": "Ҳуҷҷатҳои худро дар чанд дақиқа тарҷума кунед",
-    "subtitle": "PDF-и худро бор кунед — ҳуҷҷати тарҷумашударо гиред. Барои виза, бонк, донишгоҳ, муҳоҷират.",
+    "title": "Professional Document Translation",
+    "subtitle": "Upload your PDF — receive a clean, formatted translation. Built for visa applications, university submissions, banking, and international paperwork.",
     "cta": "Оғоз кардани тарҷума",
     "badge": "Тарҷумаи ЗМ · Натиҷаи фаврӣ · 10+ забон",
     "seeHowItWorks": "Бубинед чӣ тавр кор мекунад",
@@ -29,7 +29,7 @@
     "downloadPdf": "PDF-ро зеркашӣ кунед",
     "mockupSub": "Русӣ → Англисӣ · Шиносномаи",
     "noSub": "Бе обуна · Танҳо ҳангоми тарҷума пардохт кунед",
-    "accentLine": "барои визаҳо, донишгоҳҳо ва ҳуҷҷатҳои расмӣ"
+    "accentLine": "Online. Fast. Structured."
   },
   "stats": {
     "documentCount": "2 400+",

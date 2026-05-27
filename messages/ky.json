@@ -19,8 +19,8 @@
     "diplomaTranslation": "Диплом котормосу"
   },
   "hero": {
-    "title": "Документтериңизди бир нече мүнөттө которуңуз",
-    "subtitle": "PDF жүктөп, которулган документти алыңыз. Виза, банк, университет, иммиграция үчүн.",
+    "title": "Professional Document Translation",
+    "subtitle": "Upload your PDF — receive a clean, formatted translation. Built for visa applications, university submissions, banking, and international paperwork.",
     "cta": "Котормону баштоо",
     "badge": "Жасалма интеллект · Дароо натыйжалар · 10+ тил",
     "seeHowItWorks": "Кантип иштээрин көрүү",
@@ -29,7 +29,7 @@
     "downloadPdf": "PDF жүктөп алуу",
     "mockupSub": "Орус → Англис · Паспорт жана ID",
     "noSub": "Жазылуу жок · Которгонуңузда гана төлөңүз",
-    "accentLine": "визалар, университеттер жана расмий документтер үчүн"
+    "accentLine": "Online. Fast. Structured."
   },
   "howItWorks": {
     "label": "ПРОЦЕСС",

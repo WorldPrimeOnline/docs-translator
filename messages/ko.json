@@ -19,8 +19,8 @@
     "diplomaTranslation": "졸업장 번역"
   },
   "hero": {
-    "title": "몇 분 안에 문서를 번역하세요",
-    "subtitle": "PDF를 업로드하면 번역된 문서를 받아보세요. 비자, 은행, 대학, 이민 업무에 활용하세요.",
+    "title": "Professional Document Translation",
+    "subtitle": "Upload your PDF — receive a clean, formatted translation. Built for visa applications, university submissions, banking, and international paperwork.",
     "cta": "번역 시작",
     "badge": "AI 기반 · 즉시 결과 · 10개 이상의 언어",
     "seeHowItWorks": "작동 방식 보기",
@@ -29,7 +29,7 @@
     "downloadPdf": "PDF 다운로드",
     "mockupSub": "러시아어 → 영어 · 여권 및 신분증",
     "noSub": "구독 불필요 · 번역 시에만 결제",
-    "accentLine": "비자, 대학교 및 공식 서류를 위한"
+    "accentLine": "Online. Fast. Structured."
   },
   "howItWorks": {
     "label": "진행 과정",
