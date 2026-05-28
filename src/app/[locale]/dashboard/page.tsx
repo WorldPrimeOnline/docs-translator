@@ -119,7 +119,7 @@ function SubscriptionCard({
   const isPro = sub.plan === 'pro';
 
   return (
-    <div className={`rounded-lg border p-5 ${isPro ? 'border-primary/40 bg-primary/5' : 'border-white/10 bg-card'}`}>
+    <div className={`overflow-hidden rounded-lg border p-5 ${isPro ? 'border-primary/40 bg-primary/5' : 'border-white/10 bg-card'}`}>
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           {isPro ? (
