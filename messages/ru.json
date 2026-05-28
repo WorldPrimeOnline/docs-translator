@@ -144,7 +144,21 @@
     "perDocument": "за документ",
     "mostPopular": "Популярный выбор",
     "faqLabel": "ВОПРОСЫ И ОТВЕТЫ",
-    "noSubscription": "Без подписки · Платите только за переводы"
+    "noSubscription": "Без подписки · Платите только за переводы",
+    "pricingPassport": "Паспорт и удостоверение",
+    "pricingOtherDocs": "Все остальные документы",
+    "pricingFeaturePassportDoc": "Паспорт, удостоверение личности, водительские права",
+    "pricingFeatureClaudeTranslation": "Перевод с помощью Claude Sonnet AI",
+    "pricingFeatureCleanPdf": "Чистый PDF-вывод",
+    "pricingFeatureDelivery": "Доставка за 2–5 минут",
+    "pricingFeatureLanguages": "10+ языковых пар",
+    "pricingFeatureDiplomas": "Дипломы, транскрипты, договоры",
+    "pricingFeatureBankMedical": "Банковские выписки, медицинские документы",
+    "pricingCta": "Перевести сейчас",
+    "pricingFootnote": "Все цены в USD · Оплата через TON · Без подписки · Без скрытых платежей",
+    "simplePricing": "Простое ценообразование",
+    "noSubscriptionPay": "Без подписки. Платите только за переводы.",
+    "faqTitle": "Часто задаваемые вопросы"
   },
   "dashboard": {
     "newTranslation": "Новый перевод",

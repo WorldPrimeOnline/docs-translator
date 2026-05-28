@@ -144,7 +144,21 @@
     "perDocument": "per document",
     "mostPopular": "Most popular",
     "faqLabel": "FAQ",
-    "noSubscription": "No subscription · Pay only when you translate"
+    "noSubscription": "No subscription · Pay only when you translate",
+    "pricingPassport": "Passport & ID",
+    "pricingOtherDocs": "All Other Documents",
+    "pricingFeaturePassportDoc": "Passport, ID card, driver's license",
+    "pricingFeatureClaudeTranslation": "Translation by Claude Sonnet AI",
+    "pricingFeatureCleanPdf": "Clean PDF output",
+    "pricingFeatureDelivery": "Delivery in 2–5 minutes",
+    "pricingFeatureLanguages": "10+ language pairs",
+    "pricingFeatureDiplomas": "Diplomas, transcripts, contracts",
+    "pricingFeatureBankMedical": "Bank statements, medical records",
+    "pricingCta": "Translate Now",
+    "pricingFootnote": "All prices in USD · Paid via TON cryptocurrency · No subscription · No hidden fees",
+    "simplePricing": "Simple pricing",
+    "noSubscriptionPay": "No subscription. Pay only when you translate.",
+    "faqTitle": "Frequently asked questions"
   },
   "dashboard": {
     "newTranslation": "New Translation",

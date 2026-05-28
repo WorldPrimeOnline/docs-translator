@@ -144,7 +144,21 @@
     "perDocument": "resminama üçin",
     "mostPopular": "Iň meşhur",
     "faqLabel": "ÝYGY-ÝYGYDAN SORALÝAN SORAGLAR",
-    "noSubscription": "Abuna ýok · Diňe terjime edeninde tölä"
+    "noSubscription": "Abuna ýok · Diňe terjime edeninde tölä",
+    "pricingPassport": "Pasport we şahsyýetname",
+    "pricingOtherDocs": "Beýleki ähli resminamalar",
+    "pricingFeaturePassportDoc": "Pasport, şahsyýetname, sürüjilik şahadatnamasy",
+    "pricingFeatureClaudeTranslation": "Claude Sonnet AI terjimesi",
+    "pricingFeatureCleanPdf": "Arassa PDF çykyşy",
+    "pricingFeatureDelivery": "2–5 minutda eltip bermek",
+    "pricingFeatureLanguages": "10+ dil jübüti",
+    "pricingFeatureDiplomas": "Diplomlar, transkriptler, şertnamalar",
+    "pricingFeatureBankMedical": "Bank çykyşlary, lukmançylyk resminamalary",
+    "pricingCta": "Häzir terjime et",
+    "pricingFootnote": "Ähli bahalar USD · TON arkaly töleg · Abuna ýok · Gizlin tölegler ýok",
+    "simplePricing": "Ýönekeý bahalar",
+    "noSubscriptionPay": "Abuna ýok. Diňe terjime edeninde tölä.",
+    "faqTitle": "Köplenç soralýan soraglar"
   },
   "dashboard": {
     "newTranslation": "Täze terjime",

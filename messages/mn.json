@@ -144,7 +144,21 @@
     "perDocument": "баримт бичиг тутамд",
     "mostPopular": "Хамгийн алдартай",
     "faqLabel": "ТҮГЭЭМЭЛ АСУУЛТУУД",
-    "noSubscription": "Захиалга байхгүй · Зөвхөн орчуулах үедээ төлөх"
+    "noSubscription": "Захиалга байхгүй · Зөвхөн орчуулах үедээ төлөх",
+    "pricingPassport": "Паспорт ба үнэмлэх",
+    "pricingOtherDocs": "Бусад бүх баримт бичиг",
+    "pricingFeaturePassportDoc": "Паспорт, үнэмлэх, жолооны үнэмлэх",
+    "pricingFeatureClaudeTranslation": "Claude Sonnet AI орчуулга",
+    "pricingFeatureCleanPdf": "Цэвэр PDF гаралт",
+    "pricingFeatureDelivery": "2–5 минутад хүргэлт",
+    "pricingFeatureLanguages": "10+ хэлний хос",
+    "pricingFeatureDiplomas": "Диплом, хуулбар, гэрээнүүд",
+    "pricingFeatureBankMedical": "Банкны хуулга, эмнэлгийн баримт",
+    "pricingCta": "Одоо орчуулах",
+    "pricingFootnote": "Бүх үнэ USD · TON криптовалютаар төлөх · Захиалга байхгүй · Нуугдмал хураамж байхгүй",
+    "simplePricing": "Энгийн үнэ",
+    "noSubscriptionPay": "Захиалга байхгүй. Зөвхөн орчуулах үедээ төлөх.",
+    "faqTitle": "Түгээмэл асуултууд"
   },
   "dashboard": {
     "newTranslation": "Шинэ орчуулга",

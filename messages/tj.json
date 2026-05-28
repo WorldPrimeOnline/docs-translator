@@ -144,7 +144,21 @@
     "perDocument": "барои ҳар ҳуҷҷат",
     "mostPopular": "Маъмултарин",
     "faqLabel": "САВОЛҲО",
-    "noSubscription": "Бе обуна · Танҳо ҳангоми тарҷума пардохт кунед"
+    "noSubscription": "Бе обуна · Танҳо ҳангоми тарҷума пардохт кунед",
+    "pricingPassport": "Шиноснома ва ҳуввияттнома",
+    "pricingOtherDocs": "Ҳамаи дигар ҳуҷҷатҳо",
+    "pricingFeaturePassportDoc": "Шиноснома, ҳуввияттнома, иҷозатномаи ронандагӣ",
+    "pricingFeatureClaudeTranslation": "Тарҷума бо Claude Sonnet AI",
+    "pricingFeatureCleanPdf": "Баромади тозаи PDF",
+    "pricingFeatureDelivery": "Таҳвил дар 2–5 дақиқа",
+    "pricingFeatureLanguages": "10+ ҷуфти забон",
+    "pricingFeatureDiplomas": "Дипломҳо, транскриптҳо, шартномаҳо",
+    "pricingFeatureBankMedical": "Изҳороти бонкӣ, ҳуҷҷатҳои тиббӣ",
+    "pricingCta": "Ҳоло тарҷума кунед",
+    "pricingFootnote": "Ҳамаи нархҳо дар USD · Пардохт тавассути TON · Бе обуна · Бе музди пинҳонӣ",
+    "simplePricing": "Нархгузории оддӣ",
+    "noSubscriptionPay": "Бе обуна. Танҳо ҳангоми тарҷума пардохт кунед.",
+    "faqTitle": "Саволҳои зуд-зуд додашаванда"
   },
   "dashboard": {
     "newTranslation": "Тарҷумаи нав",

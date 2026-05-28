@@ -10,8 +10,9 @@ interface Props {
   items: FAQ[];
 }
 
-export function FAQSection({ headline = 'Frequently asked questions', items }: Props) {
+export function FAQSection({ headline, items }: Props) {
   const t = useTranslations('landing');
+  const resolvedHeadline = headline ?? t('faqTitle');
   const [open, setOpen] = useState<number | null>(null);
 
   return (
@@ -22,7 +23,7 @@ export function FAQSection({ headline = 'Frequently asked questions', items }: P
             {t('faqLabel')}
           </p>
           <h2 className="text-2xl font-bold tracking-[-0.025em] text-foreground sm:text-[1.85rem]">
-            {headline}
+            {resolvedHeadline}
           </h2>
         </div>
 

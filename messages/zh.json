@@ -144,7 +144,21 @@
     "perDocument": "每份文件",
     "mostPopular": "最受欢迎",
     "faqLabel": "常见问题",
-    "noSubscription": "无订阅 · 仅在翻译时付费"
+    "noSubscription": "无订阅 · 仅在翻译时付费",
+    "pricingPassport": "护照和身份证",
+    "pricingOtherDocs": "所有其他文件",
+    "pricingFeaturePassportDoc": "护照、身份证、驾驶证",
+    "pricingFeatureClaudeTranslation": "Claude Sonnet AI 翻译",
+    "pricingFeatureCleanPdf": "清洁 PDF 输出",
+    "pricingFeatureDelivery": "2–5 分钟内交付",
+    "pricingFeatureLanguages": "10+ 种语言对",
+    "pricingFeatureDiplomas": "文凭、成绩单、合同",
+    "pricingFeatureBankMedical": "银行对账单、医疗记录",
+    "pricingCta": "立即翻译",
+    "pricingFootnote": "所有价格均以美元计 · 通过 TON 加密货币支付 · 无订阅 · 无隐藏费用",
+    "simplePricing": "简单定价",
+    "noSubscriptionPay": "无需订阅。仅在翻译时付款。",
+    "faqTitle": "常见问题"
   },
   "dashboard": {
     "newTranslation": "新建翻译",

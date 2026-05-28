@@ -144,7 +144,21 @@
     "perDocument": "문서당",
     "mostPopular": "인기 요금제",
     "faqLabel": "자주 묻는 질문",
-    "noSubscription": "구독 없음 · 번역 시에만 결제"
+    "noSubscription": "구독 없음 · 번역 시에만 결제",
+    "pricingPassport": "여권 및 신분증",
+    "pricingOtherDocs": "기타 모든 문서",
+    "pricingFeaturePassportDoc": "여권, 신분증, 운전면허증",
+    "pricingFeatureClaudeTranslation": "Claude Sonnet AI 번역",
+    "pricingFeatureCleanPdf": "깔끔한 PDF 출력",
+    "pricingFeatureDelivery": "2~5분 내 전달",
+    "pricingFeatureLanguages": "10개 이상의 언어 쌍",
+    "pricingFeatureDiplomas": "졸업장, 성적표, 계약서",
+    "pricingFeatureBankMedical": "은행 명세서, 의료 기록",
+    "pricingCta": "지금 번역",
+    "pricingFootnote": "모든 가격은 USD · TON 암호화폐 결제 · 구독 없음 · 숨겨진 수수료 없음",
+    "simplePricing": "간단한 가격",
+    "noSubscriptionPay": "구독 없음. 번역할 때만 결제.",
+    "faqTitle": "자주 묻는 질문"
   },
   "dashboard": {
     "newTranslation": "새 번역",

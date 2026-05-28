@@ -47,33 +47,34 @@ export const defaultTrustItems: TrustItem[] = [
   },
 ];
 
+// Feature strings use translation keys from the landing namespace.
+// PricingSection detects keys that start with "pricing" and translates them via getTranslations('landing').
 export const defaultPricingTiers: PricingTier[] = [
   {
-    name: 'Passport & ID',
+    name: 'pricingPassport',
     price: '$4.39',
     features: [
-      'Passport, ID card, driver\'s license',
-      'Translation by Claude Sonnet AI',
-      'Clean PDF output',
-      'Delivery in 2–5 minutes',
-      '10+ language pairs',
+      'pricingFeaturePassportDoc',
+      'pricingFeatureClaudeTranslation',
+      'pricingFeatureCleanPdf',
+      'pricingFeatureDelivery',
+      'pricingFeatureLanguages',
     ],
-    cta: 'Translate Now',
+    cta: 'pricingCta',
     highlighted: true,
   },
   {
-    name: 'All Other Documents',
+    name: 'pricingOtherDocs',
     price: '$4.99',
     features: [
-      'Diplomas, transcripts, contracts',
-      'Bank statements, medical records',
-      'Translation by Claude Sonnet AI',
-      'Clean PDF output',
-      'Delivery in 2–5 minutes',
+      'pricingFeatureDiplomas',
+      'pricingFeatureBankMedical',
+      'pricingFeatureClaudeTranslation',
+      'pricingFeatureCleanPdf',
+      'pricingFeatureDelivery',
     ],
-    cta: 'Translate Now',
+    cta: 'pricingCta',
   },
 ];
 
-export const defaultPricingFootnote =
-  'All prices in USD · Paid via TON cryptocurrency · No subscription · No hidden fees';
+export const defaultPricingFootnote = 'pricingFootnote';

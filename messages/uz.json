@@ -144,7 +144,21 @@
     "perDocument": "hujjat uchun",
     "mostPopular": "Eng mashhur",
     "faqLabel": "Ko'p so'raladigan savollar",
-    "noSubscription": "Obuna yo'q · Faqat tarjima qilganingizda to'lang"
+    "noSubscription": "Obuna yo'q · Faqat tarjima qilganingizda to'lang",
+    "pricingPassport": "Pasport va shaxsiy guvohnoma",
+    "pricingOtherDocs": "Barcha boshqa hujjatlar",
+    "pricingFeaturePassportDoc": "Pasport, shaxsiy guvohnoma, haydovchilik guvohnomasi",
+    "pricingFeatureClaudeTranslation": "Claude Sonnet AI tarjimasi",
+    "pricingFeatureCleanPdf": "Toza PDF chiqishi",
+    "pricingFeatureDelivery": "2–5 daqiqada yetkazib berish",
+    "pricingFeatureLanguages": "10+ til juftligi",
+    "pricingFeatureDiplomas": "Diplomlar, transkriptlar, shartnomalar",
+    "pricingFeatureBankMedical": "Bank ko'chirmalari, tibbiy hujjatlar",
+    "pricingCta": "Hozir tarjima qiling",
+    "pricingFootnote": "Barcha narxlar USD da · TON orqali to'lov · Obuna yo'q · Yashirin to'lovlar yo'q",
+    "simplePricing": "Oddiy narxlash",
+    "noSubscriptionPay": "Obuna yo'q. Faqat tarjima qilganingizda to'lang.",
+    "faqTitle": "Ko'p so'raladigan savollar"
   },
   "dashboard": {
     "newTranslation": "Yangi tarjima",

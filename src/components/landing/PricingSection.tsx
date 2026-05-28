@@ -10,8 +10,18 @@ interface Props {
   footnote?: string;
 }
 
+// Keys in defaultPricingTiers that should be looked up in the landing namespace
+const PRICING_KEYS = new Set([
+  'pricingPassport', 'pricingOtherDocs', 'pricingFeaturePassportDoc',
+  'pricingFeatureClaudeTranslation', 'pricingFeatureCleanPdf', 'pricingFeatureDelivery',
+  'pricingFeatureLanguages', 'pricingFeatureDiplomas', 'pricingFeatureBankMedical',
+  'pricingCta', 'pricingFootnote', 'simplePricing', 'noSubscriptionPay', 'faqTitle',
+]);
+
 export async function PricingSection({ headline, subheadline, tiers, footnote }: Props) {
   const t = await getTranslations();
+  const tL = await getTranslations('landing');
+  const tr = (s: string): string => (PRICING_KEYS.has(s) ? tL(s as Parameters<typeof tL>[0]) : s);
 
   return (
     <section className="border-y border-white/[0.07] bg-card px-4 py-20">
@@ -55,7 +65,7 @@ export async function PricingSection({ headline, subheadline, tiers, footnote }:
               {/* Tier header */}
               <div className={`border-b px-6 py-5 ${tier.highlighted ? 'border-primary/15' : 'border-white/[0.06]'}`}>
                 <p className={`mb-0.5 text-[10px] font-bold uppercase tracking-[0.12em] ${tier.highlighted ? 'text-primary' : 'text-muted-foreground/70'}`}>
-                  {tier.name}
+                  {tr(tier.name)}
                 </p>
                 <div className="flex items-baseline gap-1">
                   <span className="text-3xl font-extrabold tracking-[-0.02em] text-foreground">
@@ -71,7 +81,7 @@ export async function PricingSection({ headline, subheadline, tiers, footnote }:
                   {tier.features.map((f) => (
                     <li key={f} className="flex items-start gap-2 text-[13px] text-muted-foreground">
                       <CheckCircle2 className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${tier.highlighted ? 'text-primary/70' : 'text-muted-foreground/40'}`} />
-                      {f}
+                      {tr(f)}
                     </li>
                   ))}
                 </ul>
@@ -84,7 +94,7 @@ export async function PricingSection({ headline, subheadline, tiers, footnote }:
                       : 'border border-white/15 bg-white/[0.04] text-foreground/80 hover:border-white/30 hover:bg-white/[0.07] hover:text-foreground'
                   }`}
                 >
-                  {tier.cta}
+                  {tr(tier.cta)}
                 </Link>
               </div>
             </div>
@@ -92,7 +102,7 @@ export async function PricingSection({ headline, subheadline, tiers, footnote }:
         </div>
 
         {footnote && (
-          <p className="mt-5 text-center text-[11px] text-muted-foreground/60">{footnote}</p>
+          <p className="mt-5 text-center text-[11px] text-muted-foreground/60">{tr(footnote)}</p>
         )}
       </div>
     </section>

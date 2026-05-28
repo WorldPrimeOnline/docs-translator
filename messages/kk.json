@@ -144,7 +144,21 @@
     "perDocument": "бір құжат үшін",
     "mostPopular": "Ең танымал",
     "faqLabel": "СҰРАҚТАР МЕН ЖАУАПТАР",
-    "noSubscription": "Жазылымсыз · Тек аударған кезде төлеңіз"
+    "noSubscription": "Жазылымсыз · Тек аударған кезде төлеңіз",
+    "pricingPassport": "Паспорт және куәлік",
+    "pricingOtherDocs": "Барлық басқа құжаттар",
+    "pricingFeaturePassportDoc": "Паспорт, жеке куәлік, жүргізуші куәлігі",
+    "pricingFeatureClaudeTranslation": "Claude Sonnet AI аудармасы",
+    "pricingFeatureCleanPdf": "Таза PDF шығарылымы",
+    "pricingFeatureDelivery": "2–5 минутта жеткізу",
+    "pricingFeatureLanguages": "10+ тіл жұбы",
+    "pricingFeatureDiplomas": "Дипломдар, транскрипттер, шарттар",
+    "pricingFeatureBankMedical": "Банк үзінділері, медициналық жазбалар",
+    "pricingCta": "Қазір аудару",
+    "pricingFootnote": "Барлық бағалар USD · TON арқылы төлем · Жазылым жоқ · Жасырын комиссия жоқ",
+    "simplePricing": "Қарапайым баға",
+    "noSubscriptionPay": "Жазылым жоқ. Тек аударған кезде төлеңіз.",
+    "faqTitle": "Жиі қойылатын сұрақтар"
   },
   "dashboard": {
     "newTranslation": "Жаңа аударма",

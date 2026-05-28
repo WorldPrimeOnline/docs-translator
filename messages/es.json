@@ -144,7 +144,21 @@
     "perDocument": "por documento",
     "mostPopular": "Más popular",
     "faqLabel": "FAQ",
-    "noSubscription": "Sin suscripción · Paga solo cuando traduzcas"
+    "noSubscription": "Sin suscripción · Paga solo cuando traduzcas",
+    "pricingPassport": "Pasaporte y DNI",
+    "pricingOtherDocs": "Todos los demás documentos",
+    "pricingFeaturePassportDoc": "Pasaporte, DNI, carnet de conducir",
+    "pricingFeatureClaudeTranslation": "Traducción por Claude Sonnet AI",
+    "pricingFeatureCleanPdf": "Salida en PDF limpio",
+    "pricingFeatureDelivery": "Entrega en 2–5 minutos",
+    "pricingFeatureLanguages": "Más de 10 pares de idiomas",
+    "pricingFeatureDiplomas": "Títulos, expedientes, contratos",
+    "pricingFeatureBankMedical": "Extractos bancarios, registros médicos",
+    "pricingCta": "Traducir ahora",
+    "pricingFootnote": "Todos los precios en USD · Pago con criptomoneda TON · Sin suscripción · Sin tarifas ocultas",
+    "simplePricing": "Precios simples",
+    "noSubscriptionPay": "Sin suscripción. Paga solo cuando traduzcas.",
+    "faqTitle": "Preguntas frecuentes"
   },
   "dashboard": {
     "newTranslation": "Nueva traducción",

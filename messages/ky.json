@@ -144,7 +144,21 @@
     "perDocument": "документ үчүн",
     "mostPopular": "Эң популярдуу",
     "faqLabel": "КӨП БЕРИЛҮҮЧҮ СУРООЛОР",
-    "noSubscription": "Жазылуу жок · Которгонуңузда гана төлөңүз"
+    "noSubscription": "Жазылуу жок · Которгонуңузда гана төлөңүз",
+    "pricingPassport": "Паспорт жана күбөлүк",
+    "pricingOtherDocs": "Башка бардык документтер",
+    "pricingFeaturePassportDoc": "Паспорт, жеке күбөлүк, айдоочунун күбөлүгү",
+    "pricingFeatureClaudeTranslation": "Claude Sonnet AI котормосу",
+    "pricingFeatureCleanPdf": "Таза PDF чыгаруу",
+    "pricingFeatureDelivery": "2–5 мүнөттө жеткизүү",
+    "pricingFeatureLanguages": "10+ тил жубу",
+    "pricingFeatureDiplomas": "Дипломдор, транскрипттер, келишимдер",
+    "pricingFeatureBankMedical": "Банк көчүрмөлөрү, медициналык документтер",
+    "pricingCta": "Азыр которуу",
+    "pricingFootnote": "Бардык баалар USD · TON аркылуу төлөм · Жазылуу жок · Жашыруун комиссия жок",
+    "simplePricing": "Жөнөкөй баалоо",
+    "noSubscriptionPay": "Жазылуу жок. Которгонуңузда гана төлөңүз.",
+    "faqTitle": "Жыш берилүүчү суроолор"
   },
   "dashboard": {
     "newTranslation": "Жаңы котормо",
