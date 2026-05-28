@@ -110,6 +110,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     console.log('[upload] uploading to R2:', fileKey, `(${pdfBuffer.length} bytes)`);
     await uploadFile(fileKey, pdfBuffer, 'application/pdf');
 
+    // Per-user rate limit: max 10 uploads per hour
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const { count: recentCount } = await supabaseServer
+      .from('documents')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .gte('created_at', oneHourAgo);
+
+    if (recentCount !== null && recentCount >= 10) {
+      return NextResponse.json(
+        { error: 'Too many uploads. Please wait before uploading again.' },
+        { status: 429 },
+      );
+    }
+
     // Ensure a public.users row exists — auth.users and public.users are separate tables.
     // Without this, the FK on documents.user_id fails for users who signed up before
     // the row was synced, or if no trigger is configured.
