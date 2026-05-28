@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useLocale } from 'next-intl';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { ChevronDown } from 'lucide-react';
 
 const LANGUAGES = [
@@ -54,7 +54,6 @@ function buildLocalePath(pathname: string, newLocale: LangCode): string {
 
 export function LanguageSwitcher() {
   const locale = useLocale() as LangCode;
-  const router = useRouter();
   const pathname = usePathname(); // real URL path, e.g. '/ru/dashboard'
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -77,8 +76,7 @@ export function LanguageSwitcher() {
     // Persist locale choice so next-intl middleware restores it on every navigation
     document.cookie = `NEXT_LOCALE=${code}; path=/; max-age=${365 * 24 * 60 * 60}; SameSite=Lax`;
     const newPath = buildLocalePath(pathname, code);
-    router.push(newPath);
-    router.refresh();
+    window.location.href = newPath;
     setOpen(false);
   }
 

@@ -548,18 +548,6 @@ export default function DashboardPage() {
             </p>
           ) : null}
 
-          {/* Disclaimers */}
-          <div className="flex flex-col gap-2 rounded-md border border-white/8 bg-white/[0.02] p-3">
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              <AlertCircle className="mr-1 inline-block h-3 w-3 align-middle text-amber-400" />
-              {tLegal('thirdPartyNotice')}
-            </p>
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              <AlertCircle className="mr-1 inline-block h-3 w-3 align-middle text-muted-foreground/60" />
-              {tLegal('notarizationNotice')}
-            </p>
-          </div>
-
           {/* Consent checkbox */}
           <label className="flex cursor-pointer items-start gap-2.5">
             <input

@@ -504,13 +504,15 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
             <div className="relative flex flex-col overflow-hidden rounded-2xl border border-primary/40 bg-card shadow-[0_0_60px_rgba(201,168,76,0.08)]">
               {/* Top glow line */}
               <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
-              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+
+              {/* Popular badge — inline so overflow-hidden doesn't clip it */}
+              <div className="flex justify-center pt-5">
                 <span className="rounded-full bg-primary px-4 py-1 text-[10px] font-bold uppercase tracking-widest text-primary-foreground shadow-lg">
                   {t('pricing.mostPopular')}
                 </span>
               </div>
 
-              <div className="border-b border-primary/[0.12] px-7 py-6">
+              <div className="border-b border-primary/[0.12] px-7 pb-6 pt-3">
                 <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.12em] text-primary">
                   {t('pricing.basic')}
                 </p>
