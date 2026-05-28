@@ -56,6 +56,27 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
     const { markdown, pageCount } = await extractTextFromPdf(pdfBuffer);
     console.log(`${tag} OCR done — ${pageCount} pages, ${markdown.length} chars`);
 
+    // OCR quality check — abort early rather than waste translation credits
+    const ocrWordCount = markdown.trim().split(/\s+/).filter(Boolean).length;
+    const ocrCharCount = markdown.length;
+
+    if (ocrWordCount < 10 || ocrCharCount < 50) {
+      console.error(`${tag} OCR quality too low — ${ocrWordCount} words, ${ocrCharCount} chars`);
+      await updateJob(jobId, 'failed', 0,
+        'Document quality too low. Please upload a clearer scan with better lighting and resolution.');
+      await supabase.from('documents').update({ status: 'failed' }).eq('id', documentId);
+      return;
+    }
+
+    const nonLatinRatio = (markdown.match(/[^\x00-\x7FЀ-ӿ一-鿿]/g) ?? []).length / ocrCharCount;
+    if (nonLatinRatio > 0.3) {
+      console.error(`${tag} OCR junk ratio too high — ${(nonLatinRatio * 100).toFixed(1)}%`);
+      await updateJob(jobId, 'failed', 0,
+        'Document appears to be a low-quality scan. Please upload a higher resolution image.');
+      await supabase.from('documents').update({ status: 'failed' }).eq('id', documentId);
+      return;
+    }
+
     await updateJob(jobId, 'ocr_completed', 40);
 
     await supabase.from('ocr_results').insert({
