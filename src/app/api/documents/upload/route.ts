@@ -107,8 +107,24 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const docId = crypto.randomUUID();
     const fileKey = `documents/${user.id}/${docId}/original.pdf`;
 
+    console.log('[upload] uploading to R2:', fileKey, `(${pdfBuffer.length} bytes)`);
     await uploadFile(fileKey, pdfBuffer, 'application/pdf');
 
+    // Ensure a public.users row exists — auth.users and public.users are separate tables.
+    // Without this, the FK on documents.user_id fails for users who signed up before
+    // the row was synced, or if no trigger is configured.
+    console.log('[upload] upserting user:', user.id, user.email);
+    const { error: userUpsertError } = await supabaseServer
+      .from('users')
+      .upsert(
+        { id: user.id, email: user.email ?? '' },
+        { onConflict: 'id', ignoreDuplicates: true },
+      );
+    if (userUpsertError) {
+      console.error('[upload] user upsert failed:', userUpsertError);
+    }
+
+    console.log('[upload] inserting document record:', docId);
     const { data: doc, error: docError } = await supabaseServer
       .from('documents')
       .insert({
@@ -127,12 +143,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       .single();
 
     if (docError || !doc) {
-      console.error('[upload] document insert failed:', docError);
+      console.error('[upload] document insert failed — code:', docError?.code, 'message:', docError?.message, 'details:', docError?.details, 'hint:', docError?.hint);
       return NextResponse.json(
-        { error: 'Failed to create document record', detail: docError },
+        { error: 'Failed to create document record', detail: docError?.message },
         { status: 500 },
       );
     }
+    console.log('[upload] document created:', doc.id);
 
     const subResult = await getActiveSubscription(user.id);
 
