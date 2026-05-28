@@ -234,6 +234,7 @@ export default function DashboardPage() {
   const [sourceLang, setSourceLang] = useState('auto');
   const [targetLang, setTargetLang] = useState('en');
   const [documentType, setDocumentType] = useState('other');
+  const [notarized, setNotarized] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [consentChecked, setConsentChecked] = useState(false);
 
@@ -332,6 +333,7 @@ export default function DashboardPage() {
     form.append('sourceLang', sourceLang);
     form.append('targetLang', targetLang);
     form.append('documentType', documentType);
+    form.append('notarized', String(notarized));
 
     const res = await fetch('/api/documents/upload', { method: 'POST', body: form });
     const data = (await res.json()) as {
@@ -522,6 +524,33 @@ export default function DashboardPage() {
               </select>
             </div>
           </div>
+
+          {/* Notarized option */}
+          <button
+            type="button"
+            onClick={() => setNotarized((v) => !v)}
+            className={`flex w-full items-start gap-3 rounded-lg border px-4 py-3.5 text-left transition-all duration-150 ${
+              notarized
+                ? 'border-primary/40 bg-primary/5'
+                : 'border-white/10 bg-transparent hover:border-white/20 hover:bg-white/[0.02]'
+            }`}
+          >
+            <span
+              className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors ${
+                notarized ? 'border-primary bg-primary' : 'border-white/30 bg-transparent'
+              }`}
+            >
+              {notarized && (
+                <svg className="h-2.5 w-2.5 text-primary-foreground" fill="none" viewBox="0 0 10 10">
+                  <path d="M1.5 5l2.5 2.5 4.5-4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
+            </span>
+            <span className="flex flex-col gap-0.5">
+              <span className="text-sm font-medium text-foreground">{t('notarizedLabel')}</span>
+              <span className="text-xs leading-relaxed text-muted-foreground">{t('notarizedDesc')}</span>
+            </span>
+          </button>
 
           {/* Subscription hint */}
           {subscription && subscription.documentsUsed >= subscription.documentsLimit ? (

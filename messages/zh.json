@@ -226,7 +226,9 @@
       "police_clearance": "无犯罪记录证明",
       "driver_license": "驾驶证",
       "other": "其他"
-    }
+    },
+    "notarizedLabel": "公证/官方认证翻译",
+    "notarizedDesc": "文件将被结构化和格式化，以便移交给公证人或认证翻译员。建议用于移民、大学和法律工作流程。"
   },
   "auth": {
     "login": "登录",

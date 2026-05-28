@@ -226,7 +226,9 @@
       "police_clearance": "Polisiýa arassaçylyk şahadatnamasy",
       "driver_license": "Sürüjilik şahadatnamasy",
       "other": "Beýleki"
-    }
+    },
+    "notarizedLabel": "Notarius / resmi tassyklama üçin terjime",
+    "notarizedDesc": "Resminama notariusa ýa-da ygtyýarly terjimana tabşyrmak üçin düzülýär. Immigrasiýa, uniwersitet we hukuk meseleleri üçin maslahat berilýär."
   },
   "auth": {
     "login": "Giriş",

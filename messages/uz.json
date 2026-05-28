@@ -226,7 +226,9 @@
       "police_clearance": "Jinoiy javobgarlik yo'qligi guvohnomasi",
       "driver_license": "Haydovchilik guvohnomasi",
       "other": "Boshqa"
-    }
+    },
+    "notarizedLabel": "Notarius / rasmiy tasdiqlash uchun tarjima",
+    "notarizedDesc": "Hujjat notariusga yoki tasdiqlangan tarjimonga topshirish uchun tuziladi. Immigratsiya, universitet va yuridik jarayonlar uchun tavsiya etiladi."
   },
   "auth": {
     "login": "Kirish",

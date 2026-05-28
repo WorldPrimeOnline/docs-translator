@@ -226,7 +226,9 @@
       "police_clearance": "Certificado de antecedentes penales",
       "driver_license": "Carné de conducir",
       "other": "Otro"
-    }
+    },
+    "notarizedLabel": "Traducción para notario / certificación oficial",
+    "notarizedDesc": "El documento será estructurado y formateado para entregarlo a un notario o traductor certificado. Recomendado para trámites de inmigración, universitarios y legales."
   },
   "auth": {
     "login": "Iniciar sesión",
