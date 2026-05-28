@@ -3,11 +3,29 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { supabaseServer } from '@/lib/supabase/server';
 import { uploadFile } from '@/lib/r2/client';
+import { convertToPdf } from '@/lib/convert-to-pdf';
 import { processJob } from '@/lib/jobs/processor';
 import { SUBSCRIPTION_PLANS } from '@/lib/subscriptions/config';
 import type { Database } from '@/types';
 
 const MAX_FILE_SIZE = 25 * 1024 * 1024;
+
+const ALLOWED_MIME_TYPES: Record<string, string> = {
+  'application/pdf': 'pdf',
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+};
+
+function detectMimeType(file: File): string {
+  if (file.type && ALLOWED_MIME_TYPES[file.type]) return file.type;
+  const ext = file.name.toLowerCase().split('.').pop() ?? '';
+  if (ext === 'pdf') return 'application/pdf';
+  if (ext === 'jpg' || ext === 'jpeg') return 'image/jpeg';
+  if (ext === 'png') return 'image/png';
+  if (ext === 'docx') return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  return file.type;
+}
 
 async function getAuthUser() {
   const cookieStore = await cookies();
@@ -29,7 +47,6 @@ async function getAuthUser() {
   return user;
 }
 
-/** Returns active subscription with remaining capacity, or null */
 async function getActiveSubscription(userId: string) {
   const { data: sub } = await supabaseServer
     .from('subscriptions')
@@ -56,11 +73,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const sourceLang = formData.get('sourceLang');
     const targetLang = formData.get('targetLang');
     const documentType = formData.get('documentType');
+    const country = formData.get('country');
+    const notarized = formData.get('notarized') === 'true';
+    const bureauStamp = formData.get('bureauStamp') === 'true';
+    const outputFormat = (formData.get('outputFormat') as string) || 'pdf';
 
     if (!(file instanceof File))
       return NextResponse.json({ error: 'file is required' }, { status: 400 });
-    if (!file.name.toLowerCase().endsWith('.pdf') && file.type !== 'application/pdf')
-      return NextResponse.json({ error: 'Only PDF files are accepted' }, { status: 400 });
+
+    const mimeType = detectMimeType(file);
+    if (!ALLOWED_MIME_TYPES[mimeType]) {
+      return NextResponse.json(
+        { error: 'Only PDF, PNG, JPG, and DOCX files are accepted' },
+        { status: 400 },
+      );
+    }
     if (file.size > MAX_FILE_SIZE)
       return NextResponse.json({ error: 'File exceeds 25 MB limit' }, { status: 400 });
     if (
@@ -73,15 +100,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         { status: 400 },
       );
 
-    const safeFilename = file.name
-      .replace(/[^a-zA-Z0-9._\- ]/g, '_')
-      .slice(0, 200);
+    const safeFilename = file.name.replace(/[^a-zA-Z0-9._\- ]/g, '_').slice(0, 200);
+    const rawBuffer = Buffer.from(await file.arrayBuffer());
+    const pdfBuffer = await convertToPdf(rawBuffer, mimeType);
 
     const docId = crypto.randomUUID();
     const fileKey = `documents/${user.id}/${docId}/original.pdf`;
-    const buffer = Buffer.from(await file.arrayBuffer());
 
-    await uploadFile(fileKey, buffer, 'application/pdf');
+    await uploadFile(fileKey, pdfBuffer, 'application/pdf');
 
     const { data: doc, error: docError } = await supabaseServer
       .from('documents')
@@ -94,6 +120,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         source_language: sourceLang,
         target_language: targetLang,
         document_type: documentType,
+        output_format: outputFormat,
         status: 'processing',
       })
       .select()
@@ -107,16 +134,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Check active subscription
     const subResult = await getActiveSubscription(user.id);
 
     if (subResult && subResult.hasCapacity) {
-      // --- Subscription path: paid immediately, deduct from limit ---
       const { sub } = subResult;
       const planConfig = SUBSCRIPTION_PLANS[sub.plan as keyof typeof SUBSCRIPTION_PLANS];
       const priority = planConfig?.priority ?? 0;
 
-      // Increment documents_used
       const { error: subUpdateErr } = await supabaseServer
         .from('subscriptions')
         .update({ documents_used: sub.documents_used + 1 })
@@ -124,7 +148,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
       if (subUpdateErr) {
         console.error('[upload] subscription documents_used update failed:', subUpdateErr);
-        // Fall through to pay-per-doc flow
       } else {
         const { data: job, error: jobError } = await supabaseServer
           .from('jobs')
@@ -134,6 +157,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             progress_percent: 0,
             priority,
             payment_source: 'subscription',
+            country: typeof country === 'string' ? country : null,
+            notarized,
+            bureau_stamp: bureauStamp,
           })
           .select()
           .single();
@@ -143,13 +169,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           return NextResponse.json({ error: 'Failed to create job' }, { status: 500 });
         }
 
-        // Start processing immediately
         setTimeout(() => {
           void processJob(job.id, doc.id);
         }, 0);
 
         const remainingDocs = sub.documents_limit - sub.documents_used - 1;
-
         return NextResponse.json({
           jobId: job.id,
           documentId: doc.id,
@@ -160,7 +184,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }
     }
 
-    // --- Pay-per-document path (no active subscription or limit exhausted) ---
     const limitReached = subResult && !subResult.hasCapacity;
 
     const { data: job, error: jobError } = await supabaseServer
@@ -171,6 +194,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         progress_percent: 0,
         priority: 0,
         payment_source: 'ton_payment',
+        country: typeof country === 'string' ? country : null,
+        notarized,
+        bureau_stamp: bureauStamp,
       })
       .select()
       .single();

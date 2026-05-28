@@ -29,6 +29,22 @@ export default async function ThailandPage({
       ctaSecondaryLabel: t('heroCtaSecondaryLabel'),
       trustLine: t('heroTrustLine'),
     },
+    docs: {
+      ...thailandConfig.docs,
+      headline: t('docsHeadline'),
+      subheadline: t('docsSubheadline'),
+      items: thailandConfig.docs!.items.map((item, i) => ({
+        ...item,
+        name: t(`docItem${i + 1}`),
+      })),
+    },
+    pain: {
+      headline: t('painHeadline'),
+      points: thailandConfig.pain!.points.map((_, i) => ({
+        title: t(`pain${i + 1}Title`),
+        desc: t(`pain${i + 1}Desc`),
+      })),
+    },
     faq: {
       items: t.raw('faq') as Array<{ q: string; a: string }>,
     },

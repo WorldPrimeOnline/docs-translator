@@ -36,7 +36,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const { data: doc } = await supabaseServer
       .from('documents')
-      .select('id, user_id, document_type')
+      .select('id, user_id, document_type, price_usd')
       .eq('id', documentId)
       .single();
 
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       });
     }
 
-    const amountUsd = getPriceUsd(doc.document_type);
+    const amountUsd = doc.price_usd != null ? Number(doc.price_usd) : getPriceUsd(doc.document_type);
 
     let tonPriceUsd: number;
     try {
