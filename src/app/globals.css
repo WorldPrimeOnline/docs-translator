@@ -103,8 +103,6 @@
   }
 }
 
-@utility bg-grid {}
-
 /* Hero card entrance */
 @keyframes fade-in-up {
   from {
@@ -177,4 +175,3 @@
   animation: slide-down 0.2s ease-out both;
 }
 
-@utility bg-subtle-grain {}
