@@ -1,7 +1,7 @@
 'use client';
 
 import { Loader2 } from 'lucide-react';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
 
 interface AuthFormProps {
   title: string;
@@ -23,9 +23,7 @@ export function AuthForm({
   return (
     <div className="mx-auto flex w-full max-w-sm flex-col items-center gap-6">
       <Card className="w-full border-white/10 bg-card shadow-xl shadow-black/30">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-xl text-foreground">{title}</CardTitle>
-        </CardHeader>
+
         <CardContent>
           <form onSubmit={onSubmit} className="flex flex-col gap-4">
             {children}
