@@ -11,9 +11,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             <Image
               src="/logo/logo.png"
               alt="World Prime Online"
-              width={320}
-              height={120}
-              style={{ objectFit: 'contain', height: '120px', width: 'auto' }}
+              width={640}
+              height={240}
+              style={{ objectFit: 'contain', height: '240px', width: 'auto' }}
               priority
             />
           </Link>
