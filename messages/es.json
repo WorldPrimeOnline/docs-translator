@@ -39,7 +39,7 @@
   },
   "howItWorks": {
     "label": "EL PROCESO",
-    "title": "Tres pasos para tu traducción",
+    "title": "Cuatro pasos para tu traducción",
     "step1Title": "Sube tu PDF",
     "step1Desc": "PDF escaneado o digital, hasta 25 MB y 50 páginas. Se acepta cualquier documento oficial.",
     "step2Title": "Elige idioma y tipo de documento",
@@ -238,7 +238,14 @@
     "noAccount": "¿No tienes cuenta?",
     "hasAccount": "¿Ya tienes cuenta?",
     "signupLink": "Registrarse",
-    "loginLink": "Iniciar sesión"
+    "loginLink": "Iniciar sesión",
+    "forgotPassword": "¿Olvidaste tu contraseña?",
+    "forgotPasswordBtn": "Enviar enlace",
+    "forgotPasswordSuccess": "Revisa tu correo para el enlace de restablecimiento",
+    "resetPasswordBtn": "Actualizar contraseña",
+    "resetPasswordSuccess": "Contraseña actualizada. Ahora puedes iniciar sesión.",
+    "newPassword": "Nueva contraseña",
+    "backToLogin": "Volver al inicio de sesión"
   },
   "disclaimer": "TRADUCCIÓN NO OFICIAL — SOLO PARA FINES INFORMATIVOS",
   "documentsHub": {

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useForm } from 'react-hook-form';
@@ -13,69 +12,61 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { createClient } from '@/lib/supabase/client';
 
-const schema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(1, 'Password is required'),
-});
+const schema = z
+  .object({
+    password: z.string().min(8, 'Password must be at least 8 characters'),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  });
 
 type FormValues = z.infer<typeof schema>;
 
-export default function LoginPage() {
+export default function ResetPasswordPage() {
   const router = useRouter();
   const t = useTranslations('auth');
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { email: '', password: '' },
+    defaultValues: { password: '', confirmPassword: '' },
   });
 
   const onSubmit = async (values: FormValues): Promise<void> => {
     setIsLoading(true);
     const supabase = createClient();
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email: values.email,
-      password: values.password,
-    });
+    const { error } = await supabase.auth.updateUser({ password: values.password });
 
     if (error) {
-      toast.error('Invalid email or password');
+      toast.error(error.message);
       setIsLoading(false);
       return;
     }
 
+    toast.success(t('resetPasswordSuccess'));
     router.push('/dashboard');
     router.refresh();
   };
 
   return (
     <AuthForm
-      title={t('loginTitle')}
+      title=""
       onSubmit={form.handleSubmit(onSubmit)}
       isLoading={isLoading}
-      submitLabel={t('loginBtn')}
-      footer={
-        <span>
-          {t('noAccount')}{' '}
-          <Link
-            href="/auth/signup"
-            className="text-foreground underline underline-offset-4 hover:opacity-80"
-          >
-            {t('signupLink')}
-          </Link>
-        </span>
-      }
+      submitLabel={t('resetPasswordBtn')}
     >
       <Form {...form}>
         <FormField
           control={form.control}
-          name="email"
+          name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{t('email')}</FormLabel>
+              <FormLabel>{t('newPassword')}</FormLabel>
               <FormControl>
-                <Input type="email" placeholder="you@example.com" autoComplete="email" {...field} />
+                <Input type="password" autoComplete="new-password" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -83,20 +74,12 @@ export default function LoginPage() {
         />
         <FormField
           control={form.control}
-          name="password"
+          name="confirmPassword"
           render={({ field }) => (
             <FormItem>
-              <div className="flex items-center justify-between">
-                <FormLabel>{t('password')}</FormLabel>
-                <Link
-                  href="/auth/forgot-password"
-                  className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
-                >
-                  {t('forgotPassword')}
-                </Link>
-              </div>
+              <FormLabel>{t('confirmPassword')}</FormLabel>
               <FormControl>
-                <Input type="password" autoComplete="current-password" {...field} />
+                <Input type="password" autoComplete="new-password" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

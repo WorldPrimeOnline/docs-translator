@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -15,56 +14,63 @@ import { createClient } from '@/lib/supabase/client';
 
 const schema = z.object({
   email: z.string().email('Invalid email address'),
-  password: z.string().min(1, 'Password is required'),
 });
 
 type FormValues = z.infer<typeof schema>;
 
-export default function LoginPage() {
-  const router = useRouter();
+export default function ForgotPasswordPage() {
   const t = useTranslations('auth');
   const [isLoading, setIsLoading] = useState(false);
+  const [sent, setSent] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { email: '', password: '' },
+    defaultValues: { email: '' },
   });
 
   const onSubmit = async (values: FormValues): Promise<void> => {
     setIsLoading(true);
     const supabase = createClient();
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email: values.email,
-      password: values.password,
+    const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
+      redirectTo: `${window.location.origin}/auth/reset-password`,
     });
 
+    setIsLoading(false);
     if (error) {
-      toast.error('Invalid email or password');
-      setIsLoading(false);
+      toast.error(error.message);
       return;
     }
-
-    router.push('/dashboard');
-    router.refresh();
+    setSent(true);
   };
+
+  if (sent) {
+    return (
+      <div className="mx-auto flex w-full max-w-sm flex-col items-center gap-4">
+        <p className="text-center text-sm text-muted-foreground">{t('forgotPasswordSuccess')}</p>
+        <Link
+          href="/auth/login"
+          className="text-sm text-foreground underline underline-offset-4 hover:opacity-80"
+        >
+          {t('backToLogin')}
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <AuthForm
-      title={t('loginTitle')}
+      title=""
       onSubmit={form.handleSubmit(onSubmit)}
       isLoading={isLoading}
-      submitLabel={t('loginBtn')}
+      submitLabel={t('forgotPasswordBtn')}
       footer={
-        <span>
-          {t('noAccount')}{' '}
-          <Link
-            href="/auth/signup"
-            className="text-foreground underline underline-offset-4 hover:opacity-80"
-          >
-            {t('signupLink')}
-          </Link>
-        </span>
+        <Link
+          href="/auth/login"
+          className="text-foreground underline underline-offset-4 hover:opacity-80"
+        >
+          {t('backToLogin')}
+        </Link>
       }
     >
       <Form {...form}>
@@ -76,27 +82,6 @@ export default function LoginPage() {
               <FormLabel>{t('email')}</FormLabel>
               <FormControl>
                 <Input type="email" placeholder="you@example.com" autoComplete="email" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="password"
-          render={({ field }) => (
-            <FormItem>
-              <div className="flex items-center justify-between">
-                <FormLabel>{t('password')}</FormLabel>
-                <Link
-                  href="/auth/forgot-password"
-                  className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
-                >
-                  {t('forgotPassword')}
-                </Link>
-              </div>
-              <FormControl>
-                <Input type="password" autoComplete="current-password" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

@@ -29,7 +29,7 @@
   },
   "howItWorks": {
     "label": "JARAYON",
-    "title": "Tarjimangizga uch qadam",
+    "title": "Tarjimangizga to'rt qadam",
     "step1Title": "PDF yuklang",
     "step1Desc": "Skanerlangan yoki raqamli PDF, 25 MB va 50 sahifagacha. Har qanday rasmiy hujjat qabul qilinadi.",
     "step2Title": "Til va hujjat turini tanlang",
@@ -238,7 +238,14 @@
     "noAccount": "Hisobingiz yo'qmi?",
     "hasAccount": "Allaqachon hisobingiz bormi?",
     "signupLink": "Ro'yxatdan o'tish",
-    "loginLink": "Kirish"
+    "loginLink": "Kirish",
+    "forgotPassword": "Parolni unutdingizmi?",
+    "forgotPasswordBtn": "Havola yuborish",
+    "forgotPasswordSuccess": "Parolni tiklash havolasi uchun elektron pochtangizni tekshiring",
+    "resetPasswordBtn": "Parolni yangilash",
+    "resetPasswordSuccess": "Parol yangilandi. Endi tizimga kirishingiz mumkin.",
+    "newPassword": "Yangi parol",
+    "backToLogin": "Kirishga qaytish"
   },
   "disclaimer": "NORASMIY TARJIMA — FAQAT MA'LUMOT OLISH UCHUN",
   "documentsHub": {

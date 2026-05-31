@@ -205,25 +205,6 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
       </section>
 
       {/* ═══════════════════════════════════════════
-          STAT STRIP
-      ═══════════════════════════════════════════ */}
-      <div className="border-y border-white/[0.07] px-4 py-5">
-        <div className="mx-auto flex max-w-3xl flex-col items-center gap-4 sm:flex-row sm:justify-around sm:gap-0">
-          {[
-            { val: t('stats.documentCount'), label: t('stats.documentsLabel') },
-            { val: t('stats.countriesCount'), label: t('stats.countriesLabel') },
-            { val: t('stats.rating'),         label: t('stats.ratingLabel') },
-            { val: '10+',                      label: t('stats.languagePairs') },
-          ].map(({ val, label }) => (
-            <div key={label} className="text-center sm:px-6">
-              <p className="text-2xl font-extrabold tracking-tight text-primary">{val}</p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">{label}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ═══════════════════════════════════════════
           PAIN  —  why bureaus don't work
       ═══════════════════════════════════════════ */}
       <section className="px-4 py-20 lg:py-28">

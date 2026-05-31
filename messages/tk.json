@@ -29,7 +29,7 @@
   },
   "howItWorks": {
     "label": "PROSESS",
-    "title": "Terjimaňyza üç ädim",
+    "title": "Terjimaňyza dört ädim",
     "step1Title": "PDF ýükläň",
     "step1Desc": "Skanerlenen ýa-da sanly PDF, 25 MB we 50 sahypa çenli. Islendik resmi resminama kabul edilýär.",
     "step2Title": "Dil we resminama görnüşini saýlaň",
@@ -238,7 +238,14 @@
     "noAccount": "Hasabyňyz ýokmy?",
     "hasAccount": "Eýýäm hasabyňyz barmy?",
     "signupLink": "Hasap aç",
-    "loginLink": "Giriş"
+    "loginLink": "Giriş",
+    "forgotPassword": "Paroly ýatdan çykardyňyzmy?",
+    "forgotPasswordBtn": "Salgylanma ibermek",
+    "forgotPasswordSuccess": "Paroly dikeltmek baglanyşygy üçin e-poçtaňyzy barlaň",
+    "resetPasswordBtn": "Paroly täzelemek",
+    "resetPasswordSuccess": "Parol täzelendi. Indi ulgama girip bilersiňiz.",
+    "newPassword": "Täze parol",
+    "backToLogin": "Girişe gaýtmak"
   },
   "disclaimer": "RESMI DÄLJIK TERJIME — DIŇE MAGLUMAT ÜÇIN",
   "documentsHub": {

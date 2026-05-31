@@ -29,7 +29,7 @@
   },
   "howItWorks": {
     "label": "진행 과정",
-    "title": "세 단계로 번역 완료",
+    "title": "네 단계로 번역 완료",
     "step1Title": "PDF 업로드",
     "step1Desc": "스캔 또는 디지털 PDF, 최대 25 MB, 최대 50페이지. 모든 공식 문서 지원.",
     "step2Title": "언어 및 문서 유형 선택",
@@ -238,7 +238,14 @@
     "noAccount": "계정이 없으신가요?",
     "hasAccount": "이미 계정이 있으신가요?",
     "signupLink": "회원가입",
-    "loginLink": "로그인"
+    "loginLink": "로그인",
+    "forgotPassword": "비밀번호를 잊으셨나요?",
+    "forgotPasswordBtn": "재설정 링크 보내기",
+    "forgotPasswordSuccess": "이메일에서 비밀번호 재설정 링크를 확인하세요",
+    "resetPasswordBtn": "비밀번호 업데이트",
+    "resetPasswordSuccess": "비밀번호가 업데이트되었습니다. 이제 로그인할 수 있습니다.",
+    "newPassword": "새 비밀번호",
+    "backToLogin": "로그인으로 돌아가기"
   },
   "disclaimer": "비공식 번역 — 정보 제공 목적으로만 사용",
   "documentsHub": {
