@@ -23,6 +23,10 @@ export const metadata: Metadata = {
   title: 'WPO Translations — AI Document Translation',
   description:
     'AI-powered document translation. Upload a scanned PDF and receive a translated version in minutes — passports, diplomas, contracts, bank statements and more.',
+  icons: {
+    icon: { url: '/icon.png', sizes: '512x512', type: 'image/png' },
+    apple: { url: '/icon.png', sizes: '512x512', type: 'image/png' },
+  },
 };
 
 /**
