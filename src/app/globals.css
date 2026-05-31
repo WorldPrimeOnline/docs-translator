@@ -103,11 +103,7 @@
   }
 }
 
-/* Subtle dot-grid background — used on hero and auth pages */
-@utility bg-grid {
-  background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
-  background-size: 28px 28px;
-}
+@utility bg-grid {}
 
 /* Hero card entrance */
 @keyframes fade-in-up {
@@ -181,11 +177,4 @@
   animation: slide-down 0.2s ease-out both;
 }
 
-/* Subtle grain for sections */
-@utility bg-subtle-grain {
-  background-image:
-    radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
-    linear-gradient(rgba(255,255,255,0.01) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.01) 1px, transparent 1px);
-  background-size: 32px 32px, 32px 32px, 32px 32px;
-}
+@utility bg-subtle-grain {}
