@@ -38,7 +38,7 @@ export const kazakhstanConfig: LandingPageConfig = {
     ctaHref: '/auth/signup',
     ctaSecondaryLabel: 'View Supported Documents',
     ctaSecondaryHref: '#documents',
-    trustLine: 'From $4.39 · RU / EN / KZ · 2–5 minutes',
+    trustLine: 'От 2 290 ₸ · RU / EN / KZ · 2–5 minutes',
   },
 
   howItWorks: {
@@ -167,7 +167,7 @@ export const kazakhstanNotarizedConfig: LandingPageConfig = {
       'Upload your document and receive a clean, structured Russian or English translation ready to present to a notary or certified translator. Reduce review time, reduce errors, lower overall cost.',
     ctaLabel: 'Prepare Translation Draft',
     ctaHref: '/auth/signup',
-    trustLine: 'From $4.39 · 2–5 minutes · Notary-ready output',
+    trustLine: 'От 2 290 ₸ · 2–5 minutes · Notary-ready output',
   },
 
   howItWorks: {
@@ -267,7 +267,7 @@ export const kazakhstanNotarizedConfig: LandingPageConfig = {
 
   finalCta: {
     headline: 'Prepare a clean translation draft before your notary appointment',
-    sub: 'Upload your document and receive a structured translation in 2–5 minutes. From $4.39.',
+    sub: 'Upload your document and receive a structured translation in 2–5 minutes. От 2 290 ₸.',
     cta: 'Create Translation Draft',
   },
 
@@ -303,7 +303,7 @@ export const kazakhstanUniversityConfig: LandingPageConfig = {
       'Get clean English translations of diplomas, transcripts, school certificates, and academic records for university applications in the UK, US, Europe, Canada, and beyond.',
     ctaLabel: 'Translate Academic Documents',
     ctaHref: '/auth/signup',
-    trustLine: 'From $4.99 · Diploma & Transcript formats · RU / EN',
+    trustLine: 'От 2 590 ₸ · Diploma & Transcript formats · RU / EN',
   },
 
   howItWorks: {

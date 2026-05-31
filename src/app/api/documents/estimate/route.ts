@@ -6,9 +6,9 @@ import { downloadFile } from '@/lib/r2/client';
 import { env } from '@/lib/env';
 import type { Database } from '@/types';
 
-const PRICE_PER_WORD = 0.01;
-const NOTARIZED_SURCHARGE = 10;
-const BUREAU_STAMP_SURCHARGE = 5;
+const PRICE_PER_WORD = 5; // KZT per word
+const NOTARIZED_SURCHARGE = 5000; // KZT
+const BUREAU_STAMP_SURCHARGE = 2500; // KZT
 
 async function getAuthUser() {
   const cookieStore = await cookies();

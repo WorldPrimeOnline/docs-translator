@@ -459,7 +459,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
                   {t('pricing.payg')}
                 </p>
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-[2rem] font-extrabold tracking-tight text-foreground">$4.39</span>
+                  <span className="text-[2rem] font-extrabold tracking-tight text-foreground">2 290 ₸</span>
                   <span className="text-[13px] text-muted-foreground">{t('pricing.perDoc')}</span>
                 </div>
                 <p className="mt-2 text-[12px] text-muted-foreground">{t('pricing.paygNote')}</p>
@@ -496,7 +496,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
                   {t('pricing.basic')}
                 </p>
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-[2rem] font-extrabold tracking-tight text-foreground">$9.99</span>
+                  <span className="text-[2rem] font-extrabold tracking-tight text-foreground">4 990 ₸</span>
                   <span className="text-[13px] text-muted-foreground">{t('pricing.perMonth')}</span>
                 </div>
                 <p className="mt-2 text-[12px] text-muted-foreground">10 {t('pricing.docs')}</p>
@@ -523,7 +523,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
                   {t('pricing.pro')}
                 </p>
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-[2rem] font-extrabold tracking-tight text-foreground">$24.99</span>
+                  <span className="text-[2rem] font-extrabold tracking-tight text-foreground">12 990 ₸</span>
                   <span className="text-[13px] text-muted-foreground">{t('pricing.perMonth')}</span>
                 </div>
                 <p className="mt-2 text-[12px] text-muted-foreground">40 {t('pricing.docs')}</p>

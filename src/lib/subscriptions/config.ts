@@ -1,13 +1,13 @@
 export const SUBSCRIPTION_PLANS = {
   basic: {
     name: 'Basic',
-    priceUsd: 9.99,
+    priceKzt: 4990,
     documentsLimit: 10,
     priority: 0,
   },
   pro: {
     name: 'Pro',
-    priceUsd: 24.99,
+    priceKzt: 12990,
     documentsLimit: 40,
     priority: 1,
   },

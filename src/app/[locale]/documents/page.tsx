@@ -52,15 +52,15 @@ export default async function DocumentsHubPage({
   const faqItems = (tHub.raw('faq') as Array<{ q: string; a: string }>);
 
   const DOCUMENT_LINKS = [
-    { icon: IdCard,       name: t('documents.passport'), href: '/documents/passport-translation',    price: '$4.39' },
-    { icon: Landmark,     name: t('documents.bank'),     href: '/documents/bank-statement-translation', price: '$4.99' },
-    { icon: GraduationCap,name: t('documents.diploma'),  href: '/documents/diploma-translation',     price: '$4.99' },
-    { icon: FileHeart,    name: t('documents.birth'),    href: '/auth/signup',                       price: '$4.99' },
-    { icon: Briefcase,    name: t('documents.employment'),href: '/auth/signup',                      price: '$4.99' },
-    { icon: HeartPulse,   name: t('documents.medical'),  href: '/auth/signup',                       price: '$4.99' },
-    { icon: Shield,       name: t('documents.police'),   href: '/auth/signup',                       price: '$4.99' },
-    { icon: Car,          name: t('documents.driver'),   href: '/auth/signup',                       price: '$4.39' },
-    { icon: FileText,     name: t('documents.otherOfficial'), href: '/auth/signup',                  price: '$4.99' },
+    { icon: IdCard,       name: t('documents.passport'), href: '/documents/passport-translation',    price: '2 290 ₸' },
+    { icon: Landmark,     name: t('documents.bank'),     href: '/documents/bank-statement-translation', price: '2 590 ₸' },
+    { icon: GraduationCap,name: t('documents.diploma'),  href: '/documents/diploma-translation',     price: '2 590 ₸' },
+    { icon: FileHeart,    name: t('documents.birth'),    href: '/auth/signup',                       price: '2 590 ₸' },
+    { icon: Briefcase,    name: t('documents.employment'),href: '/auth/signup',                      price: '2 590 ₸' },
+    { icon: HeartPulse,   name: t('documents.medical'),  href: '/auth/signup',                       price: '2 590 ₸' },
+    { icon: Shield,       name: t('documents.police'),   href: '/auth/signup',                       price: '2 590 ₸' },
+    { icon: Car,          name: t('documents.driver'),   href: '/auth/signup',                       price: '2 290 ₸' },
+    { icon: FileText,     name: t('documents.otherOfficial'), href: '/auth/signup',                  price: '2 590 ₸' },
   ];
 
   return (
