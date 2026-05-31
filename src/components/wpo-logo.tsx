@@ -5,7 +5,7 @@ interface WpoLogoProps {
 }
 
 export function WpoLogo({ size = 'sm' }: WpoLogoProps) {
-  const iconPx = size === 'lg' ? 36 : size === 'md' ? 28 : 22;
+  const iconPx = size === 'lg' ? 44 : size === 'md' ? 34 : 28;
   const textSize = size === 'lg' ? 'text-xl' : size === 'md' ? 'text-base' : 'text-sm';
 
   return (
