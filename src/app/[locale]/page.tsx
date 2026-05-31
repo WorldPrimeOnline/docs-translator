@@ -25,7 +25,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
     { icon: Zap,    title: t('trust.speed'),         desc: t('trust.speedDesc') },
     { icon: Lock,   title: t('trust.security'),      desc: t('trust.securityDesc') },
     { icon: Cpu,    title: t('trust.pillar2Title'),   desc: t('trust.pillar2Body') },
-    { icon: Globe,  title: t('trust.ton'),            desc: t('trust.tonDesc') },
+    { icon: CreditCard, title: t('trust.payment'),     desc: t('trust.paymentDesc') },
   ];
 
   const PAIN_ITEMS = [
@@ -115,7 +115,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
 
               {/* Trust signals */}
               <div className="mt-7 flex flex-wrap gap-x-6 gap-y-2">
-                {[t('trust.speed'), t('trust.security'), t('trust.ton')].map((item) => (
+                {[t('trust.speed'), t('trust.security'), t('trust.payment')].map((item) => (
                   <span key={item} className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground/70">
                     <CheckCircle2 className="h-3 w-3 text-primary/50 shrink-0" />
                     {item}

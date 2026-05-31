@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { toast } from 'sonner';
 import { Upload, FileText, Download, AlertCircle, Loader2, Zap, Star } from 'lucide-react';
-import { TonPaymentModal } from '@/components/ton-payment-modal';
 import { SubscriptionModal } from '@/components/subscription-modal';
 import { createClient } from '@/lib/supabase/client';
 import { Link } from '@/i18n/navigation';
@@ -240,8 +239,6 @@ export default function DashboardPage() {
 
   const [activeJob, setActiveJob] = useState<ActiveJob | null>(null);
   const [documents, setDocuments] = useState<Document[]>([]);
-  const [pendingPayment, setPendingPayment] = useState<{ documentId: string; jobId: string } | null>(null);
-
   const [subscription, setSubscription] = useState<SubscriptionInfo | null | undefined>(undefined);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
 
@@ -343,7 +340,6 @@ export default function DashboardPage() {
       paidViaSubscription?: boolean;
       subscriptionPlan?: string;
       remainingDocs?: number;
-      limitReached?: boolean;
     };
 
     if (!res.ok || !data.jobId || !data.documentId) {
@@ -371,22 +367,6 @@ export default function DashboardPage() {
         `Translation started — ${data.remainingDocs ?? 0} doc${data.remainingDocs === 1 ? '' : 's'} remaining on your ${data.subscriptionPlan === 'pro' ? 'Pro' : 'Basic'} plan.`,
       );
       void loadSubscription();
-      void loadDocuments();
-    } else {
-      setActiveJob({
-        jobId: data.jobId,
-        documentId: data.documentId,
-        status: 'queued',
-        progress: 0,
-        errorMessage: null,
-        filename: file.name,
-      });
-      if (data.limitReached) {
-        toast.error(t('limitReached'));
-      } else {
-        toast.success('File uploaded — complete payment to start translation.');
-      }
-      setPendingPayment({ documentId: data.documentId, jobId: data.jobId });
       void loadDocuments();
     }
   };
@@ -698,19 +678,6 @@ export default function DashboardPage() {
             </a>
           )}
         </div>
-      )}
-
-      {/* TON payment modal */}
-      {pendingPayment && (
-        <TonPaymentModal
-          documentId={pendingPayment.documentId}
-          jobId={pendingPayment.jobId}
-          onSuccess={() => {
-            setPendingPayment(null);
-            toast.success('Payment confirmed — translation starting…');
-          }}
-          onClose={() => setPendingPayment(null)}
-        />
       )}
 
       {/* Subscription modal */}

@@ -1,5 +1,5 @@
 import { getTranslations } from 'next-intl/server';
-import { Zap, Lock, Cpu, Globe, Server, Trash2, Eye, Shield } from 'lucide-react';
+import { Zap, Lock, Cpu, CreditCard, Server, Trash2, Eye, Shield } from 'lucide-react';
 
 interface Props {
   headline?: string;
@@ -13,7 +13,7 @@ export async function TrustSection({ headline, mode = 'features' }: Props) {
     { icon: Zap,    title: t('trust.speed'),    desc: t('trust.speedDesc') },
     { icon: Lock,   title: t('trust.security'), desc: t('trust.securityDesc') },
     { icon: Cpu,    title: t('trust.pillar2Title'), desc: t('trust.pillar2Body') },
-    { icon: Globe,  title: t('trust.ton'),      desc: t('trust.tonDesc') },
+    { icon: CreditCard, title: t('trust.payment'), desc: t('trust.paymentDesc') },
   ];
 
   const securityItems = [

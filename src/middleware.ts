@@ -68,8 +68,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   // 1. Rate-limit API routes
   if (
     pathname.startsWith('/api/') &&
-    !pathname.startsWith('/api/webhooks/') &&
-    pathname !== '/api/payments/verify-ton-payment'
+    !pathname.startsWith('/api/webhooks/')
   ) {
     const ip =
       request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
@@ -86,7 +85,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   }
 
   // 2. API & manifest routes: skip i18n
-  if (pathname.startsWith('/api/') || pathname.includes('tonconnect-manifest')) {
+  if (pathname.startsWith('/api/') || pathname.includes('tonconnect-manifest.json')) {
     let apiResponse = NextResponse.next({ request });
 
     const supabase = createServerClient(

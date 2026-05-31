@@ -2,7 +2,7 @@ import {
   Zap,
   Lock,
   BadgeDollarSign,
-  Coins,
+  CreditCard,
 } from 'lucide-react';
 import type { HowItWorksStep, TrustItem, PricingTier } from './types';
 
@@ -20,7 +20,7 @@ export const defaultHowItWorksSteps: HowItWorksStep[] = [
   {
     n: '03',
     title: 'Pay and receive your translation',
-    desc: 'Pay securely with TON cryptocurrency. Receive a clean translated PDF in 2–5 minutes.',
+    desc: 'Pay securely online. Receive a clean translated PDF in 2–5 minutes.',
   },
 ];
 
@@ -36,9 +36,9 @@ export const defaultTrustItems: TrustItem[] = [
     desc: 'Up to 3× cheaper than traditional translation bureaus. No subscription required.',
   },
   {
-    icon: Coins,
-    title: 'TON blockchain payment',
-    desc: 'Pay with TON cryptocurrency — no bank card required. Instant, borderless, trustless.',
+    icon: CreditCard,
+    title: 'Secure online payment',
+    desc: 'Pay via available payment methods. Instant processing, no hidden fees.',
   },
   {
     icon: Lock,

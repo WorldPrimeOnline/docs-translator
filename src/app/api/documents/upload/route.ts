@@ -8,6 +8,7 @@ import { processJob } from '@/lib/jobs/processor';
 import { SUBSCRIPTION_PLANS } from '@/lib/subscriptions/config';
 import type { Database } from '@/types';
 
+
 const MAX_FILE_SIZE = 25 * 1024 * 1024;
 
 const ALLOWED_MIME_TYPES: Record<string, string> = {
@@ -217,33 +218,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     const limitReached = subResult && !subResult.hasCapacity;
-
-    const { data: job, error: jobError } = await supabaseServer
-      .from('jobs')
-      .insert({
-        document_id: doc.id,
-        status: 'queued',
-        progress_percent: 0,
-        priority: 0,
-        payment_source: 'ton_payment',
-        country: typeof country === 'string' ? country : null,
-        notarized,
-        bureau_stamp: bureauStamp,
-      })
-      .select()
-      .single();
-
-    if (jobError || !job) {
-      console.error('[upload] job insert failed:', jobError);
-      return NextResponse.json({ error: 'Failed to create job' }, { status: 500 });
-    }
-
-    return NextResponse.json({
-      jobId: job.id,
-      documentId: doc.id,
-      paidViaSubscription: false,
-      limitReached: limitReached ?? false,
-    });
+    return NextResponse.json(
+      {
+        error: limitReached
+          ? 'Subscription document limit reached'
+          : 'No active subscription — payment method unavailable',
+      },
+      { status: 402 },
+    );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error('[upload] unhandled error:', err);
