@@ -1,7 +1,6 @@
 'use client';
 
 import { Loader2 } from 'lucide-react';
-import { WpoLogo } from '@/components/wpo-logo';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface AuthFormProps {
@@ -23,8 +22,6 @@ export function AuthForm({
 }: AuthFormProps) {
   return (
     <div className="mx-auto flex w-full max-w-sm flex-col items-center gap-6">
-      <WpoLogo size="md" />
-
       <Card className="w-full border-white/10 bg-card shadow-xl shadow-black/30">
         <CardHeader className="pb-4">
           <CardTitle className="text-xl text-foreground">{title}</CardTitle>
