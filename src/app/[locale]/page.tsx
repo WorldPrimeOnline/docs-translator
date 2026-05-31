@@ -66,8 +66,6 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
       <section className="relative overflow-hidden pt-14 pb-16 sm:pt-20 sm:pb-24 lg:pt-24 lg:pb-28">
         {/* Top glow */}
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_60%_at_60%_-10%,rgba(201,168,76,0.08),transparent)]" />
-        {/* Grid texture */}
-        <div className="pointer-events-none absolute inset-0 bg-grid opacity-60" />
         {/* Bottom fade */}
         <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent" />
 
@@ -611,7 +609,6 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
       ═══════════════════════════════════════════ */}
       <section className="relative overflow-hidden px-4 py-28 text-center lg:py-36">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_50%,rgba(201,168,76,0.07),transparent)]" />
-        <div className="pointer-events-none absolute inset-0 bg-grid opacity-40" />
 
         <div className="relative mx-auto max-w-[560px]">
           <p className="mb-5 text-[11px] font-bold uppercase tracking-[0.14em] text-primary/60">
