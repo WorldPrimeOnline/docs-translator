@@ -1,11 +1,17 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Cormorant_Garamond, Geist_Mono, Inter } from 'next/font/google';
 import { headers } from 'next/headers';
 import './globals.css';
 
-const geistSans = Geist({
-  variable: '--font-sans',
-  subsets: ['latin'],
+const inter = Inter({
+  variable: '--font-inter',
+  subsets: ['latin', 'latin-ext', 'cyrillic'],
+});
+
+const cormorant = Cormorant_Garamond({
+  variable: '--font-cormorant',
+  subsets: ['latin', 'latin-ext', 'cyrillic'],
+  weight: ['400', '500', '600', '700'],
 });
 
 const geistMono = Geist_Mono({
@@ -34,7 +40,7 @@ export default async function RootLayout({
 
   return (
     <html lang={locale} suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body className={`${inter.variable} ${cormorant.variable} ${geistMono.variable} antialiased`}>
         {children}
       </body>
     </html>
