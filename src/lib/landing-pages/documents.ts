@@ -108,7 +108,7 @@ export const passportTranslationConfig: LandingPageConfig = {
       },
       {
         q: 'What languages can a passport be translated into?',
-        a: 'We support 10+ target languages including English, Russian, Thai, Chinese, Korean, Japanese, German, French, Spanish, and Arabic. Source language is auto-detected or can be manually specified.',
+        a: 'We support 10+ target languages including English, Russian, Chinese, Korean, Japanese, German, French, Spanish, and Arabic. Source language is auto-detected or can be manually specified.',
       },
       {
         q: 'Is the translation accepted for visa applications?',
@@ -217,7 +217,7 @@ export const bankStatementTranslationConfig: LandingPageConfig = {
     items: [
       {
         q: 'Which visa types require a translated bank statement?',
-        a: 'Thailand DTV, Schengen visas, UK visitor visas, US B1/B2 visas, and most immigration applications require proof of funds from a bank, typically in English. Other documents like income certificates and payslips are also commonly required.',
+        a: 'Schengen visas, UK visitor visas, US B1/B2 visas, and most immigration applications require proof of funds from a bank, typically in English. Other documents like income certificates and payslips are also commonly required.',
       },
       {
         q: 'Are currencies and amounts preserved without conversion?',
@@ -340,7 +340,7 @@ export const diplomaTranslationConfig: LandingPageConfig = {
       },
       {
         q: 'What languages do you support for diploma translation?',
-        a: 'We support 10+ languages. The most common pairs for diploma translation are Russian → English, Kazakh → English, Thai → English, and Chinese → English. Source language can be auto-detected.',
+        a: 'We support 10+ languages. The most common pairs for diploma translation are Russian → English, Kazakh → English, and Chinese → English. Source language can be auto-detected.',
       },
       {
         q: 'How do you handle degree titles and academic grades?',
@@ -426,7 +426,7 @@ export const documentsHubConfig: LandingPageConfig = {
       },
       {
         q: 'What languages are supported?',
-        a: 'We support 10+ languages including English, Russian, Thai, Chinese, Korean, Japanese, German, French, Spanish, and Arabic. Source language can be auto-detected.',
+        a: 'We support 10+ languages including English, Russian, Chinese, Korean, Japanese, German, French, Spanish, and Arabic. Source language can be auto-detected.',
       },
       {
         q: 'Are your translations certified or notarized?',

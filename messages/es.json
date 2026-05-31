@@ -4,12 +4,8 @@
     "dashboard": "Panel",
     "signup": "Registrarse",
     "getStarted": "Comenzar",
-    "thailand": "Tailandia",
     "kazakhstan": "Kazajistán",
     "documents": "Documentos",
-    "thailandOverview": "Resumen de Tailandia",
-    "dtvVisa": "Traducción para visa DTV",
-    "immigrationDocs": "Documentos de inmigración",
     "kazakhstanOverview": "Resumen de Kazajistán",
     "translationForNotary": "Traducción para notario",
     "universityDocs": "Documentos universitarios",
@@ -131,7 +127,7 @@
     "q2": "¿Cuánto tiempo tarda?",
     "a2": "La mayoría de los documentos se traducen en 2–5 minutos. Los documentos complejos o largos pueden tardar hasta 10 minutos.",
     "q3": "¿Qué idiomas soportan?",
-    "a3": "Soportamos ruso, inglés, tailandés, chino, coreano, japonés, alemán, francés, español y árabe como idiomas de destino.",
+    "a3": "Soportamos ruso, inglés, chino, coreano, japonés, alemán, francés, español y árabe como idiomas de destino.",
     "q4": "¿Cómo pago?",
     "a4": "Aceptamos criptomoneda TON a través de la billetera Tonkeeper. No se requiere tarjeta bancaria.",
     "q5": "¿Están seguros mis documentos?",
@@ -207,7 +203,6 @@
       "auto": "Detectar automáticamente",
       "ru": "Ruso",
       "en": "Inglés",
-      "th": "Tailandés",
       "zh": "Chino",
       "ko": "Coreano",
       "ja": "Japonés",
@@ -263,7 +258,7 @@
       },
       {
         "q": "¿Qué idiomas están disponibles?",
-        "a": "Soportamos más de 10 idiomas, incluyendo inglés, ruso, tailandés, chino, coreano, japonés, alemán, francés, español y árabe. El idioma de origen puede detectarse automáticamente."
+        "a": "Soportamos más de 10 idiomas, incluyendo inglés, ruso, chino, coreano, japonés, alemán, francés, español y árabe. El idioma de origen puede detectarse automáticamente."
       },
       {
         "q": "¿Están certificadas o apostilladas sus traducciones?",
@@ -363,106 +358,6 @@
       }
     ]
   },
-  "thailand": {
-    "heroBadge": "Tailandia · Documentos para expatriados y visas",
-    "heroHeadline": "Traducción de documentos para Tailandia",
-    "heroAccentLine": "Visas, Vida de Expatriado e Inmigración",
-    "heroSubheadline": "Traduce pasaportes, extractos bancarios, cartas de empleo y documentos oficiales en línea. PDF limpio para solicitudes de visa DTV, oficinas de inmigración tailandesas, bancos y agencias.",
-    "heroCtaLabel": "Traducir un documento",
-    "heroCtaSecondaryLabel": "Ver documentos soportados",
-    "heroTrustLine": "Desde $4.39 · 2–5 minutos · Pares de idiomas RU/EN/TH",
-    "finalCtaHeadline": "¿Listo para traducir tu documento?",
-    "finalCtaSub": "Sube un PDF y obtén una versión traducida limpia en minutos. Desde $4.39.",
-    "finalCtaCta": "Comenzar a traducir",
-    "faq": [
-      {
-        "q": "¿Puedo usar esta traducción para una solicitud de visa DTV?",
-        "a": "Nuestras traducciones son informales y solo para fines informativos. Para la visa DTV, la inmigración tailandesa generalmente requiere que las traducciones acompañen los originales. Recomendamos confirmar con tu consulado o agente de inmigración específico."
-      },
-      {
-        "q": "¿Qué pares de idiomas soportan para Tailandia?",
-        "a": "Soportamos ruso → inglés, inglés → ruso, ruso → tailandés, tailandés → inglés e inglés → tailandés."
-      },
-      {
-        "q": "¿Con qué rapidez recibiré mi documento traducido?",
-        "a": "La mayoría de los documentos están listos en 2–5 minutos después del pago. Documentos más largos (10+ páginas) pueden tardar hasta 15 minutos."
-      },
-      {
-        "q": "¿Es esta una traducción oficial o certificada?",
-        "a": "No. WPO Translations proporciona traducciones informales. Para traducciones oficiales certificadas aceptadas por organismos gubernamentales tailandeses, necesitarás un traductor certificado."
-      },
-      {
-        "q": "¿Qué se incluye exactamente en el PDF traducido?",
-        "a": "El PDF traducido incluye una traducción limpia de todo el texto visible, con nombres personales transliterados, números, fechas y números de documentos preservados exactamente como se muestran."
-      },
-      {
-        "q": "¿Cómo se almacena y protege mi documento?",
-        "a": "Tus archivos están cifrados y almacenados en Cloudflare R2. Se eliminan automáticamente después de 30 días. No compartimos tus documentos con terceros."
-      }
-    ]
-  },
-  "thailandDtv": {
-    "heroBadge": "Visa DTV Tailandia",
-    "heroHeadline": "Traducir documentos para Tailandia",
-    "heroAccentLine": "Solicitud de Visa DTV",
-    "heroSubheadline": "Obtén traducciones limpias al inglés o tailandés de extractos bancarios, cartas de empleo, certificados de ingresos y otros documentos requeridos para la Visa de Nómada Digital de Tailandia.",
-    "heroCtaLabel": "Traducir mis documentos DTV",
-    "heroTrustLine": "Desde $4.39 · RU/EN/TH · 2–5 minutos",
-    "finalCtaHeadline": "Prepara hoy tus documentos para la solicitud DTV",
-    "finalCtaSub": "Traduce tus extractos bancarios, cartas de empleo y pruebas de ingresos en minutos.",
-    "finalCtaCta": "Comenzar a traducir",
-    "faq": [
-      {
-        "q": "¿Qué documentos necesito para una solicitud DTV?",
-        "a": "La Visa de Nómada Digital de Tailandia (DTV) generalmente requiere: 6 meses de extractos bancarios, prueba de ingresos o empleo, documentación de seguro médico, un pasaporte válido por al menos 18 meses y prueba de alojamiento. Los requisitos pueden variar según el consulado."
-      },
-      {
-        "q": "¿Debo traducir mis documentos al tailandés o al inglés?",
-        "a": "La mayoría de los consulados tailandeses en el extranjero aceptan traducciones al inglés. Soportamos tanto tailandés como inglés como idiomas de destino."
-      },
-      {
-        "q": "¿Cuál es el requisito mínimo de ingresos para DTV?",
-        "a": "A partir de 2024–2025, la DTV requiere prueba de ingresos de al menos 500,000 THB en una cuenta bancaria extranjera. Verifica los requisitos actuales en el sitio web oficial de inmigración tailandesa."
-      },
-      {
-        "q": "¿Es tu traducción aceptada por la inmigración tailandesa?",
-        "a": "WPO proporciona traducciones informales. Muchos solicitantes las usan como parte de un paquete revisado por un agente de visas. Siempre consulta a tu agente de visas o consulado."
-      },
-      {
-        "q": "¿Puedo traducir varios documentos a la vez?",
-        "a": "Actualmente cada documento se carga y traduce por separado. Puedes traducir varios documentos en secuencia a través de tu panel."
-      }
-    ]
-  },
-  "thailandImmigration": {
-    "heroBadge": "Inmigración Tailandesa",
-    "heroHeadline": "Traducir documentos para",
-    "heroAccentLine": "Inmigración y Residencia en Tailandia",
-    "heroSubheadline": "Traduce pasaportes, actas de matrimonio, antecedentes penales, extractos bancarios y registros médicos para las oficinas de inmigración tailandesas, TM30, extensiones de visa y solicitudes de residencia.",
-    "heroCtaLabel": "Traducir documentos de inmigración",
-    "heroTrustLine": "Desde $4.39 · RU / EN / TH · Listo en minutos",
-    "finalCtaHeadline": "Ten listos tus documentos de inmigración",
-    "finalCtaSub": "Sube tu PDF y recibe una versión traducida limpia en minutos.",
-    "finalCtaCta": "Comenzar a traducir",
-    "faq": [
-      {
-        "q": "¿Necesito una traducción certificada para las oficinas de inmigración tailandesas?",
-        "a": "Los requisitos varían según el tipo de visa y la oficina de inmigración. Muchas tareas de inmigración pueden manejarse con copias traducidas informales junto con los originales. Siempre verifica con la oficina específica."
-      },
-      {
-        "q": "¿Qué pares de idiomas soportan para documentos de inmigración tailandesa?",
-        "a": "Soportamos ruso ↔ inglés, inglés ↔ tailandés y ruso → tailandés."
-      },
-      {
-        "q": "¿Pueden traducir un acta de matrimonio para una visa de cónyuge tailandés?",
-        "a": "Sí, podemos traducir actas de matrimonio del ruso o inglés al tailandés o inglés. Para solicitudes formales de visa, confirma si se requiere una traducción notariada."
-      },
-      {
-        "q": "¿Qué tan rápida es la entrega?",
-        "a": "2–5 minutos para la mayoría de los documentos. Recibes un enlace de descarga por correo electrónico inmediatamente al completarse."
-      }
-    ]
-  },
   "passportTranslation": {
     "heroBadge": "Tipo de documento · Pasaporte e ID",
     "heroHeadline": "Traducción de pasaporte",
@@ -480,7 +375,7 @@
       },
       {
         "q": "¿A qué idiomas se puede traducir un pasaporte?",
-        "a": "Soportamos más de 10 idiomas de destino, incluidos inglés, ruso, tailandés, chino, coreano, japonés, alemán, francés, español y árabe."
+        "a": "Soportamos más de 10 idiomas de destino, incluidos inglés, ruso, chino, coreano, japonés, alemán, francés, español y árabe."
       },
       {
         "q": "¿Se acepta la traducción para solicitudes de visa?",
@@ -517,7 +412,7 @@
       },
       {
         "q": "¿Qué idiomas soportan para traducción de diplomas?",
-        "a": "Soportamos más de 10 idiomas. Los pares más comunes son ruso → inglés, kazajo → inglés, tailandés → inglés y chino → inglés."
+        "a": "Soportamos más de 10 idiomas. Los pares más comunes son ruso → inglés, kazajo → inglés y chino → inglés."
       },
       {
         "q": "¿Cómo manejan los títulos académicos y las calificaciones?",
@@ -542,7 +437,7 @@
     "faq": [
       {
         "q": "¿Qué tipos de visa requieren un extracto bancario traducido?",
-        "a": "La DTV tailandesa, visados Schengen, visados de visitante del Reino Unido, visados B1/B2 de EE. UU. y la mayoría de solicitudes de inmigración requieren prueba de fondos, generalmente en inglés."
+        "a": "Visados Schengen, visados de visitante del Reino Unido, visados B1/B2 de EE. UU. y la mayoría de solicitudes de inmigración requieren prueba de fondos, generalmente en inglés."
       },
       {
         "q": "¿Se preservan las divisas y los importes sin conversión?",

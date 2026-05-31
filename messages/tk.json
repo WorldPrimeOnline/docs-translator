@@ -4,12 +4,8 @@
     "dashboard": "Dolandyryş paneli",
     "signup": "Hasap açmak",
     "getStarted": "Başla",
-    "thailand": "Tailand",
     "kazakhstan": "Gazagystan",
     "documents": "Resminamalar",
-    "thailandOverview": "Tailand hakynda",
-    "dtvVisa": "DTV Wiza terjimesi",
-    "immigrationDocs": "Immigrasiýa resminamalary",
     "kazakhstanOverview": "Gazagystan hakynda",
     "translationForNotary": "Notarius üçin terjime",
     "universityDocs": "Uniwersitet resminamalary",
@@ -115,7 +111,7 @@
     "q2": "Näçe wagt alýar?",
     "a2": "Köpüsi resminamalar 2–5 minutda terjime edilýär. Çylşyrymly ýa-da uzyn resminamalar 10 minuta çenli alyp biler.",
     "q3": "Haýsy dilleri goldaýarsyňyz?",
-    "a3": "Biz maksat dili hökmünde rus, iňlis, taý, hytaý, koreý, ýapon, nemes, fransuz, ispan we arap dillerini goldaýarys.",
+    "a3": "Biz maksat dili hökmünde rus, iňlis, hytaý, koreý, ýapon, nemes, fransuz, ispan we arap dillerini goldaýarys.",
     "q4": "Nädip töläýärin?",
     "a4": "Biz Tonkeeper gapjygy arkaly TON kriptovalýutasyny kabul edýäris. Bank karty gerek däl.",
     "q5": "Resminamalarym howpsuzmy?",
@@ -207,7 +203,6 @@
       "auto": "Awtomatik anykla",
       "ru": "Rus",
       "en": "Iňlis",
-      "th": "Taý",
       "zh": "Hytaý",
       "ko": "Koreý",
       "ja": "Ýapon",
@@ -263,7 +258,7 @@
       },
       {
         "q": "Haýsy diller goldanýar?",
-        "a": "Biz iňlis, rus, taý, hytaý, koreý, ýapon, nemes, fransuz, ispan we arap dillerini öz içine alýan 10+ dili goldaýarys. Çeşme dil awtomatik anyklanylýar."
+        "a": "Biz iňlis, rus, hytaý, koreý, ýapon, nemes, fransuz, ispan we arap dillerini öz içine alýan 10+ dili goldaýarys. Çeşme dil awtomatik anyklanylýar."
       },
       {
         "q": "Terjimeleriňiz sertifikatlanandyrmy ýa-da notarius tassyklananmy?",
@@ -363,106 +358,6 @@
       }
     ]
   },
-  "thailand": {
-    "heroBadge": "Tailand · Ekspat we Wiza resminamalary",
-    "heroHeadline": "Tailand üçin resminama terjimesi",
-    "heroAccentLine": "Wizalar, ekspat durmuşy we immigrasiýa",
-    "heroSubheadline": "Pasportlary, bank beýannamalaryny, iş hatlaryny we resmi resminamalary onlaýn terjime ediň. DTV wiza arzalary, Tailand immigrasiýa edaralary, banklar we agentlikler üçin arassa PDF çykyşy.",
-    "heroCtaLabel": "Resminamy terjime et",
-    "heroCtaSecondaryLabel": "Goldanýan resminamalara bak",
-    "heroTrustLine": "$4.39-dan · 2–5 minut · RU/EN/TH dil jübütleri",
-    "finalCtaHeadline": "Resminamaňyzy terjime etmäge taýynmy?",
-    "finalCtaSub": "PDF ýükläň we birnäçe minutda arassa terjime edilen görnüşi alyň. $4.39-dan.",
-    "finalCtaCta": "Terjimäni başla",
-    "faq": [
-      {
-        "q": "Bu terjimäni DTV wiza arzasy üçin ulanyp bilerinmi?",
-        "a": "Terjimelerimiziň diňe maglumat we resmi däl maksatly. Olar sertifikatlanan ýa-da notarius tassyklanan terjimeler däl. DTV wiza üçin Tailand immigrasiýasy adatda asyl nusga bilen birlikde terjimeleri talap edýär. Öz konsullaryňyz ýa-da immigrasiýa agentiňiz bilen haýsy derejeli terjimäniň talap edilýändigini tassyklamagy maslahat berýäris."
-      },
-      {
-        "q": "Tailand üçin haýsy dil jübütlerini goldaýarsyňyz?",
-        "a": "Biz rus → iňlis, iňlis → rus, rus → taý, taý → iňlis we iňlis → taýy goldaýarys. Bular Tailanddaky rus dilli ekspat we sanly göçüp-gonujylar üçin iň köp ýaýran iş akymlaryny öz içine alýar."
-      },
-      {
-        "q": "Terjime edilen resminamamy nähili tiz alýaryn?",
-        "a": "Köpüsi resminamalar tölegden soň 2–5 minutda taýyndyr. Uzyn resminamalar (10+ sahypa) 15 minuta çenli alyp biler. E-poçtaňyza ýükläp almak salgysy alarsyňyz we dolandyryş paneliňizden hem ýükläp alyp bilersiňiz."
-      },
-      {
-        "q": "Bu resmi ýa-da sertifikatlanan terjimemi?",
-        "a": "Ýok. WPO Terjimeleri diňe maglumat maksatly resmi däl terjimeler berýär. Terjime edilen PDF her sahypada görünýän duýduryş öz içine alýar. Tailand hükümet edaralary tarapyndan kabul edilýän resmi sertifikatlanan terjimeler üçin sertifikatlanan terjimeçi ýa-da notarius tassyklanan terjime hyzmatyna ýüz tutmaly bolarsyňyz."
-      },
-      {
-        "q": "Terjime edilen PDF-e näme girizilýär?",
-        "a": "Terjime edilen PDF ähli görünýän tekstiň arassa terjimesini öz içine alýar, şahsy atlar transliterasiýa edilýär (terjime edilmeýär), sanlar, seneler we resminama sanlary edil görkezilişi ýaly saklanýar. Her sahypada duýduryş altybasy peýda bolýar."
-      },
-      {
-        "q": "Resminamam nädip saklanýar we goralýar?",
-        "a": "Fayllar şifrelenýär we Cloudflare R2 saklaýjyda saklanýar. Olar 30 günden soň awtomatik pozulýar. Biz resminamalaryňyzy üçünji taraplar bilen paýlaşmaýarys."
-      }
-    ]
-  },
-  "thailandDtv": {
-    "heroBadge": "Tailand DTV Wizasy",
-    "heroHeadline": "Tailand üçin resminamalary terjime ediň",
-    "heroAccentLine": "DTV Wiza Arzasy",
-    "heroSubheadline": "Tailand Sanly Göçüji Wizasy üçin talap edilýän bank beýannamalarynyň, iş hatlarnyň, girdeji şahadatnamalarynyň we beýleki resminamalaryň arassa iňlis ýa-da taý terjimelerini alyň. Birnäçe minutda eltilýär.",
-    "heroCtaLabel": "DTV resminamalarymi terjime et",
-    "heroTrustLine": "$4.39-dan · RU/EN/TH · 2–5 minut",
-    "finalCtaHeadline": "DTV arza resminamalaryňyzy şu gün taýarlaň",
-    "finalCtaSub": "Bank beýannamalaryny, iş hatlaryny we girdeji isbatlaryny birnäçe minutda terjime ediň.",
-    "finalCtaCta": "Terjimäni başla",
-    "faq": [
-      {
-        "q": "DTV arzasy üçin haýsy resminamalar gerek?",
-        "a": "Tailand Sanly Göçüji Wizasy (DTV) adatda şulary talap edýär: ýeterli mablag görkezýän 6 aýlyk bank beýannamalary, girdeji ýa-da iş subut edişi, saglygy goraýyş ätiýaçlygy resminamalary, azyndan 18 aý möhleti bolan pasport we ýaşaýyş ýeri subut edişi. Talap konsullyga baglylykda üýtgäp biler — elmydama göni tassyklaň."
-      },
-      {
-        "q": "Resminamalarym taý ýa-da iňlisce terjime edilmelimi?",
-        "a": "Daşary ýurtlardaky köpüsi taý konsullygy iňlis dilinde terjimeleri kabul edýär. Käbirleri Tailanddaky Tailand immigrasiýa edarasynda arza berýän bolsaňyz, taý dilinde terjime talap edip biler. Biz hem taý hem-de iňlisi maksat dili hökmünde goldaýarys."
-      },
-      {
-        "q": "DTV üçin iň az girdeji talaby näme?",
-        "a": "2024–2025 ýyl ýagdaýy boýunça DTV daşary ýurt bank hasabynda azyndan 500,000 THB (takmynan $14,000) ýa-da deňeçer girdeji subut edişi talap edýär. Arza bermazdan ozal resmi Tailand immigrasiýa web sahypasynda häzirki talaplary barlaň."
-      },
-      {
-        "q": "Tailand immigrasiýasy terjimaňyzy kabul edermi?",
-        "a": "WPO resmi däl, maglumatly terjimeler berýär. Olar sertifikatlanan ýa-da notarius tassyklanan däl. Köpüsi arza beriji olary resminama taýýarlygyny tassyklaýan wiza agenti ýa-da immigrasiýa maslahatçysy tarapyndan gözden geçirilýän toplum hökmünde ulanýar. Resmi talaplar boýunça elmydama wiza agentiňiz ýa-da konsulluk bilen maslahatlaşyň."
-      },
-      {
-        "q": "Birnäçe resminamany bir wagtyň özünde terjime edip bilerinmi?",
-        "a": "Häzirki wagtda her resminama aýratyn ýüklenýär we terjime edilýär. Köp resminamy ýüklemek ýol kartamyzda. Dolandyryş paneliňiz arkaly birnäçe resminamany yzygiderli terjime edip bilersiňiz."
-      }
-    ]
-  },
-  "thailandImmigration": {
-    "heroBadge": "Tailand immigrasiýa iş akymy",
-    "heroHeadline": "Tailand üçin resminamalary terjime ediň",
-    "heroAccentLine": "Tailand immigrasiýasy we ýaşaýyş",
-    "heroSubheadline": "Tailand immigrasiýa edaralary, TM30, wiza uzaltmalary we ýaşaýyş arzalary üçin pasportlary, nikah şahadatnamalaryny, polisiýa arassaçylyk şahadatnamalaryny, bank beýannamalaryny we lukmançylyk ýazgylaryny terjime ediň.",
-    "heroCtaLabel": "Immigrasiýa resminamalaryny terjime et",
-    "heroTrustLine": "$4.39-dan · RU / EN / TH · Birnäçe minutda taýyn",
-    "finalCtaHeadline": "Immigrasiýa resminamalaryňyzy taýarlaň",
-    "finalCtaSub": "PDF ýükläň we birnäçe minutda arassa terjime edilen görnüşi alyň.",
-    "finalCtaCta": "Terjimäni başla",
-    "faq": [
-      {
-        "q": "Tailand immigrasiýa edaralary üçin sertifikatlanan terjime gerekmi?",
-        "a": "Talap wiza görnüşine we immigrasiýa edarasyna baglydyr. Köp immigrasiýa wezipeleri — goldaw resminamasy tabşyrmak hem — asyl nusga bilen birlikde resmi däl terjime nusga bilen ýerine ýetirilip bilner. Sud önümçilikleri ýa-da resmi borçly sertifikatlaşdyrma üçin sertifikatlanan terjimeçi talap edilýär. Elmydama ýüz tutýan edaraňyz bilen tassyklaň."
-      },
-      {
-        "q": "Tailand immigrasiýa resminamalary üçin haýsy dil jübütlerini goldaýarsyňyz?",
-        "a": "Biz rus ↔ iňlis, iňlis ↔ taý we rus → taýy goldaýarys. Bu Tailand immigrasiýasy bilen işleýän rus dilli ekspat we sanly göçüp-gonujylar üçin gerekli esasy dil birleşimlerini öz içine alýar."
-      },
-      {
-        "q": "Taý äriniň/aýalynyň wiza arzasy üçin nikah şahadatnamasyny terjime edip bilersiňizmi?",
-        "a": "Hawa, nikah şahadatnamalaryny rus ýa-da iňlisden taý ýa-da iňlisce terjime edip bileris. Bu terjimeler resmi däl we maglumat üçin. Nikah şahadatnamasyny öz içine alýan resmi wiza arzalary üçin notarius tassyklanan terjimaň talap edilýändigini tassyklaň."
-      },
-      {
-        "q": "Eltip bermek nähili çalt?",
-        "a": "Köpüsi resminamalar üçin 2–5 minut. Polisiýa arassaçylyk şahadatnamalary we köp sahypaly bank beýannamalary 10 minuta çenli alyp biler. Tamamlanandan soň derrew e-poçta arkaly ýükläp almak baglanyşygyny alarsyňyz."
-      }
-    ]
-  },
   "passportTranslation": {
     "heroBadge": "Resminama görnüşi · Pasport we ID",
     "heroHeadline": "Pasport terjimesi",
@@ -480,7 +375,7 @@
       },
       {
         "q": "Pasport haýsy dillere terjime edilip bilner?",
-        "a": "Biz iňlis, rus, taý, hytaý, koreý, ýapon, nemes, fransuz, ispan we arap dillerini öz içine alýan 10+ maksat dili goldaýarys. Çeşme dil awtomatik anyklanylýar ýa-da el bilen görkezilip bilner."
+        "a": "Biz iňlis, rus, hytaý, koreý, ýapon, nemes, fransuz, ispan we arap dillerini öz içine alýan 10+ maksat dili goldaýarys. Çeşme dil awtomatik anyklanylýar ýa-da el bilen görkezilip bilner."
       },
       {
         "q": "Terjime wiza arzalary üçin kabul edilýärmi?",
@@ -517,7 +412,7 @@
       },
       {
         "q": "Diplom terjimesi üçin haýsy dilleri goldaýarsyňyz?",
-        "a": "Biz 10+ dili goldaýarys. Diplom terjimesi üçin iň ýaýran jübütler: rus → iňlis, gazak → iňlis, taý → iňlis we hytaý → iňlis. Çeşme dil awtomatik anyklanylýar."
+        "a": "Biz 10+ dili goldaýarys. Diplom terjimesi üçin iň ýaýran jübütler: rus → iňlis, gazak → iňlis we hytaý → iňlis. Çeşme dil awtomatik anyklanylýar."
       },
       {
         "q": "Dereje atlary we akademiki bahalary nädip işleýärsiňiz?",
@@ -542,7 +437,7 @@
     "faq": [
       {
         "q": "Haýsy wiza görnüşleri terjime edilen bank beýannamasyny talap edýär?",
-        "a": "Tailand DTV, Şengen wizalary, Beýik Britaniýa myhman wizalary, ABŞ B1/B2 wizalary we köpüsi immigrasiýa arzalary adatda iňlis dilinde bankdan mablag subut edişini talap edýär. Girdeji şahadatnamalary we aýlyk hatlar ýaly beýleki resminamalar hem köplenç talap edilýär."
+        "a": "Şengen wizalary, Beýik Britaniýa myhman wizalary, ABŞ B1/B2 wizalary we köpüsi immigrasiýa arzalary adatda iňlis dilinde bankdan mablag subut edişini talap edýär. Girdeji şahadatnamalary we aýlyk hatlar ýaly beýleki resminamalar hem köplenç talap edilýär."
       },
       {
         "q": "Walýutalar we mukdarlar öwürmezden saklanýarmy?",

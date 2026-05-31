@@ -4,12 +4,8 @@
     "dashboard": "Boshqaruv paneli",
     "signup": "Ro'yxatdan o'tish",
     "getStarted": "Boshlash",
-    "thailand": "Tailand",
     "kazakhstan": "Qozog'iston",
     "documents": "Hujjatlar",
-    "thailandOverview": "Tailand haqida",
-    "dtvVisa": "DTV Viza tarjimasi",
-    "immigrationDocs": "Immigratsiya hujjatlari",
     "kazakhstanOverview": "Qozog'iston haqida",
     "translationForNotary": "Notarius uchun tarjima",
     "universityDocs": "Universitet hujjatlari",
@@ -115,7 +111,7 @@
     "q2": "Qancha vaqt ketadi?",
     "a2": "Ko'pgina hujjatlar 2–5 daqiqada tarjima qilinadi. Murakkab yoki uzun hujjatlar 10 daqiqagacha ketishi mumkin.",
     "q3": "Qaysi tillarni qo'llabquvvatlaysiz?",
-    "a3": "Biz maqsad tili sifatida rus, ingliz, tailand, xitoy, koreys, yapon, nemis, frantsuz, ispan va arab tillarini qo'llab-quvvatlaymiz.",
+    "a3": "Biz maqsad tili sifatida rus, ingliz, xitoy, koreys, yapon, nemis, frantsuz, ispan va arab tillarini qo'llab-quvvatlaymiz.",
     "q4": "Qanday to'layman?",
     "a4": "Biz Tonkeeper hamyoni orqali TON kriptovalyutasini qabul qilamiz. Bank kartasi talab qilinmaydi.",
     "q5": "Hujjatlarim xavfsizmi?",
@@ -207,7 +203,6 @@
       "auto": "Avtomatik aniqlash",
       "ru": "Rus",
       "en": "Ingliz",
-      "th": "Tailand",
       "zh": "Xitoy",
       "ko": "Koreys",
       "ja": "Yapon",
@@ -263,7 +258,7 @@
       },
       {
         "q": "Qaysi tillar qo'llabquvvatlanadi?",
-        "a": "Biz ingliz, rus, tailand, xitoy, koreys, yapon, nemis, frantsuz, ispan va arab tillarini o'z ichiga olgan 10+ tilni qo'llab-quvvatlaymiz. Manba tili avtomatik aniqlanishi mumkin."
+        "a": "Biz ingliz, rus, xitoy, koreys, yapon, nemis, frantsuz, ispan va arab tillarini o'z ichiga olgan 10+ tilni qo'llab-quvvatlaymiz. Manba tili avtomatik aniqlanishi mumkin."
       },
       {
         "q": "Tarjimalaringiz sertifikatlangan yoki notarius tasdiqlaganmi?",
@@ -363,106 +358,6 @@
       }
     ]
   },
-  "thailand": {
-    "heroBadge": "Tailand · Ekspat va Viza hujjatlari",
-    "heroHeadline": "Tailand uchun hujjat tarjimasi",
-    "heroAccentLine": "Vizalar, ekspat hayoti va immigratsiya",
-    "heroSubheadline": "Pasportlar, bank ko'chirmalari, ish xatlari va rasmiy hujjatlarni onlayn tarjima qiling. DTV viza arizalari, Tailand immigratsiya idoralari, banklar va agentliklar uchun toza PDF natija.",
-    "heroCtaLabel": "Hujjat tarjima qilish",
-    "heroCtaSecondaryLabel": "Qo'llab-quvvatlanadigan hujjatlarni ko'rish",
-    "heroTrustLine": "$4.39 dan · 2–5 daqiqa · RU/EN/TH til juftliklari",
-    "finalCtaHeadline": "Hujjatingizni tarjima qilishga tayyormisiz?",
-    "finalCtaSub": "PDF yuklang va bir necha daqiqada toza tarjima qilingan versiyani oling. $4.39 dan.",
-    "finalCtaCta": "Tarjimani boshlash",
-    "faq": [
-      {
-        "q": "Bu tarjimani DTV viza arizasi uchun ishlatsa bo'ladimi?",
-        "a": "Tarjimalarimiz norasmiy va faqat ma'lumot olish uchun. Ular sertifikatlangan yoki notarius tasdiqlagan tarjimalar emas. DTV viza uchun Tailand immigratsiyasi odatda asl nusxalar bilan birga tarjimalarni talab qiladi. O'zingizning konsulxonangiz yoki immigratsiya agentingiz bilan qanday darajadagi tarjima talab qilinishini tasdiqlashni tavsiya qilamiz."
-      },
-      {
-        "q": "Tailand uchun qaysi til juftliklarini qo'llabquvvatlaysiz?",
-        "a": "Biz rus → ingliz, ingliz → rus, rus → tailand, tailand → ingliz va ingliz → tailandni qo'llab-quvvatlaymiz. Bular Tailanddagi rus tilli ekspat va raqamli ko'chmanchilar uchun eng keng tarqalgan ish oqimlarini qamrab oladi."
-      },
-      {
-        "q": "Tarjima qilingan hujjatni qancha tez olaman?",
-        "a": "Ko'pgina hujjatlar to'lovdan keyin 2–5 daqiqada tayyor. Uzunroq hujjatlar (10+ sahifa) 15 daqiqagacha ketishi mumkin. Elektron pochtangizga yuklab olish havola olinadi va boshqaruv panelingizdan ham yuklab olishingiz mumkin."
-      },
-      {
-        "q": "Bu rasmiy yoki sertifikatlangan tarjimami?",
-        "a": "Yo'q. WPO Tarjimalari faqat ma'lumot olish maqsadlari uchun norasmiy tarjimalar taqdim etadi. Tarjima qilingan PDF har bir sahifada ko'rinadigan ogoh qilishni o'z ichiga oladi. Tailand hukumat organlari tomonidan qabul qilinadigan rasmiy sertifikatlangan tarjimalar uchun sertifikatlangan tarjimon yoki notarius tasdiqlagan tarjima xizmatiga murojaat qilishingiz kerak bo'ladi."
-      },
-      {
-        "q": "Tarjima qilingan PDFga nima kiritilgan?",
-        "a": "Tarjima qilingan PDF barcha ko'rinadigan matnning toza tarjimasini o'z ichiga oladi, shaxsiy ismlar transliteratsiya qilinadi (tarjima qilinmaydi), raqamlar, sanalar va hujjat raqamlari aynan ko'rsatilganidek saqlanadi. Har bir sahifada ogoh qilish kolontituli paydo bo'ladi."
-      },
-      {
-        "q": "Hujjatim qanday saqlanadi va himoya qilinadi?",
-        "a": "Fayllaringiz shifrlangan va Cloudflare R2 saqlashda saqlanadi. Ular 30 kundan keyin avtomatik o'chiriladi. Biz hujjatlaringizni uchinchi shaxslar bilan ulashmaymiz."
-      }
-    ]
-  },
-  "thailandDtv": {
-    "heroBadge": "Tailand DTV Vizasi",
-    "heroHeadline": "Tailand uchun hujjatlarni tarjima qiling",
-    "heroAccentLine": "DTV Viza Arizasi",
-    "heroSubheadline": "Tailand Raqamli Ko'chmanchi Vizasi uchun talab qilinadigan bank ko'chirmalari, ish xatlari, daromad guvohnomalar va boshqa hujjatlarning toza ingliz yoki tailand tarjimalarini oling. Bir necha daqiqada yetkazib beriladi.",
-    "heroCtaLabel": "DTV hujjatlarimni tarjima qilish",
-    "heroTrustLine": "$4.39 dan · RU/EN/TH · 2–5 daqiqa",
-    "finalCtaHeadline": "DTV ariza hujjatlaringizni bugun tayyorlang",
-    "finalCtaSub": "Bank ko'chirmalari, ish xatlari va daromad isbotini bir necha daqiqada tarjima qiling.",
-    "finalCtaCta": "Tarjimani boshlash",
-    "faq": [
-      {
-        "q": "DTV arizasi uchun qaysi hujjatlar kerak?",
-        "a": "Tailand Raqamli Ko'chmanchi Vizasi (DTV) odatda quyidagilarni talab qiladi: yetarli mablag'larni ko'rsatuvchi 6 oylik bank ko'chirmalari, daromad yoki ish isboti, sog'liqni saqlash sug'urtasi hujjatlari, kamida 18 oy amal qiladigan pasport va yashash joyi isboti. Talablar konsulxonaga qarab farq qilishi mumkin — doimo to'g'ridan-to'g'ri tasdiqlang."
-      },
-      {
-        "q": "Hujjatlarim tailand yoki ingliz tiliga tarjima qilinishi kerakmi?",
-        "a": "Chet ellarning ko'pgina Tailand konsulxonalari ingliz tilida tarjimalarni qabul qiladi. Ba'zilari Tailand ichidagi Tailand immigratsiya idorasida ariza topshirayotgan bo'lsangiz tailand tilida tarjimalarni talab qilishi mumkin. Biz ham tailand, ham inglizni maqsad tili sifatida qo'llab-quvvatlaymiz."
-      },
-      {
-        "q": "DTV uchun minimal daromad talabi nima?",
-        "a": "2024–2025 yillar holatiga ko'ra, DTV xorijiy bank hisobida kamida 500 000 THB (taxminan $14 000) yoki ekvivalent daromad isbotini talab qiladi. Ariza topshirishdan oldin Tailand immigratsiyasining rasmiy veb-saytida joriy talablarni tekshiring."
-      },
-      {
-        "q": "Tailand immigratsiyasi tarjimangizni qabul qiladimi?",
-        "a": "WPO norasmiy, ma'lumotli tarjimalar taqdim etadi. Ular sertifikatlangan yoki notarius tasdiqlagan emas. Ko'pgina ariza beruvchilar ularni hujjatlar tayyorligini tasdiqlaydi viza agenti yoki immigratsiya maslahatchisi tomonidan ko'rib chiqiladigan to'plam sifatida ishlatadi. Rasmiy talablar bo'yicha doimo viza agentingiz yoki konsulxona bilan maslahatlashing."
-      },
-      {
-        "q": "Bir vaqtning o'zida bir nechta hujjatni tarjima qila olamanmi?",
-        "a": "Hozirda har bir hujjat alohida yuklanadi va tarjima qilinadi. Ko'p hujjatli yuklash yo'l xaritamizda. Boshqaruv panelingiz orqali bir necha hujjatni ketma-ket tarjima qilishingiz mumkin."
-      }
-    ]
-  },
-  "thailandImmigration": {
-    "heroBadge": "Tailand Immigratsiya ish oqimi",
-    "heroHeadline": "Tailand uchun hujjatlarni tarjima qiling",
-    "heroAccentLine": "Tailand immigratsiyasi va turar joy",
-    "heroSubheadline": "Tailand immigratsiya idoralari, TM30, viza kengaytirishlari va yashash joyi arizalari uchun pasportlar, nikoh guvohnomalar, jinoiy javobgarlik yo'qligi guvohnomalari, bank ko'chirmalari va tibbiy yozuvlarni tarjima qiling.",
-    "heroCtaLabel": "Immigratsiya hujjatlarini tarjima qilish",
-    "heroTrustLine": "$4.39 dan · RU / EN / TH · Bir necha daqiqada tayyor",
-    "finalCtaHeadline": "Immigratsiya hujjatlaringizni tayyor qiling",
-    "finalCtaSub": "PDF yuklang va bir necha daqiqada toza tarjima qilingan versiyani oling.",
-    "finalCtaCta": "Tarjimani boshlash",
-    "faq": [
-      {
-        "q": "Tailand immigratsiya idoralari uchun sertifikatlangan tarjima kerakmi?",
-        "a": "Talablar viza turi va immigratsiya idorasiga qarab farq qiladi. Ko'pgina immigratsiya vazifalari — qo'shimcha hujjat topshirish ham — asl nusxalar bilan birga norasmiy tarjima nusxalari bilan hal qilinishi mumkin. Sud jarayonlari yoki rasmiy sertifikatlash uchun sertifikatlangan tarjimon talab qilinadi. Doimo o'zingiz murojaat qilayotgan idora bilan tasdiqlang."
-      },
-      {
-        "q": "Tailand immigratsiya hujjatlari uchun qaysi til juftliklarini qo'llabquvvatlaysiz?",
-        "a": "Biz rus ↔ ingliz, ingliz ↔ tailand va rus → tailandni qo'llab-quvvatlaymiz. Bu Tailand immigratsiyasi bilan shug'ullanayotgan rus tilli ekspat va raqamli ko'chmanchilar uchun kerakli asosiy til kombinatsiyalarini qamrab oladi."
-      },
-      {
-        "q": "Tailand turmush o'rtog'i vizasi uchun nikoh guvohnomasini tarjima qila olasizmi?",
-        "a": "Ha, nikoh guvohnomalarini rus yoki ingliz tilidan tailand yoki ingliz tiliga tarjima qila olamiz. Bu tarjimalar norasmiy va ma'lumot olish uchun. Nikoh guvohnomasini o'z ichiga olgan rasmiy viza arizalari uchun notarius tasdiqlagan tarjima talab qilinishini tasdiqlang."
-      },
-      {
-        "q": "Yetkazib berish qanchalik tez?",
-        "a": "Ko'pgina hujjatlar uchun 2–5 daqiqa. Jinoiy javobgarlik yo'qligi guvohnomalari va ko'p sahifali bank ko'chirmalari 10 daqiqagacha ketishi mumkin. Tugatilgandan keyin darhol elektron pochta orqali yuklab olish havolasini olasiz."
-      }
-    ]
-  },
   "passportTranslation": {
     "heroBadge": "Hujjat turi · Pasport va ID",
     "heroHeadline": "Pasport tarjimasi",
@@ -480,7 +375,7 @@
       },
       {
         "q": "Pasport qaysi tillarga tarjima qilinishi mumkin?",
-        "a": "Biz ingliz, rus, tailand, xitoy, koreys, yapon, nemis, frantsuz, ispan va arab tillarini o'z ichiga olgan 10+ maqsad tilni qo'llab-quvvatlaymiz. Manba tili avtomatik aniqlanishi yoki qo'lda ko'rsatilishi mumkin."
+        "a": "Biz ingliz, rus, xitoy, koreys, yapon, nemis, frantsuz, ispan va arab tillarini o'z ichiga olgan 10+ maqsad tilni qo'llab-quvvatlaymiz. Manba tili avtomatik aniqlanishi yoki qo'lda ko'rsatilishi mumkin."
       },
       {
         "q": "Tarjima viza arizalari uchun qabul qilinadimi?",
@@ -517,7 +412,7 @@
       },
       {
         "q": "Diplom tarjimasi uchun qaysi tillarni qo'llabquvvatlaysiz?",
-        "a": "Biz 10+ tilni qo'llab-quvvatlaymiz. Diplom tarjimasi uchun eng keng tarqalgan juftliklar: rus → ingliz, qozog'cha → ingliz, tailand → ingliz va xitoy → ingliz. Manba tili avtomatik aniqlanishi mumkin."
+        "a": "Biz 10+ tilni qo'llab-quvvatlaymiz. Diplom tarjimasi uchun eng keng tarqalgan juftliklar: rus → ingliz, qozog'cha → ingliz va xitoy → ingliz. Manba tili avtomatik aniqlanishi mumkin."
       },
       {
         "q": "Daraja unvonlari va akademik baholarni qanday qayta ishlaysiz?",
@@ -542,7 +437,7 @@
     "faq": [
       {
         "q": "Qaysi viza turlari tarjima qilingan bank ko'chirmasini talab qiladi?",
-        "a": "Tailand DTV, Shengen vizalari, Buyuk Britaniya tashrif vizalari, AQSh B1/B2 vizalari va ko'pgina immigratsiya arizalari odatda ingliz tilida bankdan mablag'lar isbotini talab qiladi. Daromad guvohnomalar va ish haqi to'lovnomalari kabi boshqa hujjatlar ham ko'pincha talab qilinadi."
+        "a": "Shengen vizalari, Buyuk Britaniya tashrif vizalari, AQSh B1/B2 vizalari va ko'pgina immigratsiya arizalari odatda ingliz tilida bankdan mablag'lar isbotini talab qiladi. Daromad guvohnomalar va ish haqi to'lovnomalari kabi boshqa hujjatlar ham ko'pincha talab qilinadi."
       },
       {
         "q": "Valyutalar va miqdorlar konvertatsiyasiz saqlanadimi?",

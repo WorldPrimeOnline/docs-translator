@@ -4,12 +4,8 @@
     "dashboard": "Dashboard",
     "signup": "Sign up",
     "getStarted": "Get Started",
-    "thailand": "Thailand",
     "kazakhstan": "Kazakhstan",
     "documents": "Documents",
-    "thailandOverview": "Thailand Overview",
-    "dtvVisa": "DTV Visa Translation",
-    "immigrationDocs": "Immigration Documents",
     "kazakhstanOverview": "Kazakhstan Overview",
     "translationForNotary": "Translation for Notary",
     "universityDocs": "University Documents",
@@ -115,7 +111,7 @@
     "q2": "How long does it take?",
     "a2": "Most documents are translated in 2–5 minutes. Complex or long documents may take up to 10 minutes.",
     "q3": "What languages do you support?",
-    "a3": "We support Russian, English, Thai, Chinese, Korean, Japanese, German, French, Spanish, and Arabic as target languages.",
+    "a3": "We support Russian, English, Chinese, Korean, Japanese, German, French, Spanish, and Arabic as target languages.",
     "q4": "How do I pay?",
     "a4": "We accept TON cryptocurrency via Tonkeeper wallet. No bank card required.",
     "q5": "Are my documents safe?",
@@ -209,7 +205,6 @@
       "auto": "Auto-detect",
       "ru": "Russian",
       "en": "English",
-      "th": "Thai",
       "zh": "Chinese",
       "ko": "Korean",
       "ja": "Japanese",
@@ -263,7 +258,7 @@
       },
       {
         "q": "What languages are supported?",
-        "a": "We support 10+ languages including English, Russian, Thai, Chinese, Korean, Japanese, German, French, Spanish, and Arabic. Source language can be auto-detected."
+        "a": "We support 10+ languages including English, Russian, Chinese, Korean, Japanese, German, French, Spanish, and Arabic. Source language can be auto-detected."
       },
       {
         "q": "Are your translations certified or notarized?",
@@ -420,164 +415,6 @@
       }
     ]
   },
-  "thailand": {
-    "heroBadge": "Thailand · Expat & Visa Documents",
-    "heroHeadline": "Document Translation for Thailand",
-    "heroAccentLine": "Visas, Expat Life & Immigration",
-    "heroSubheadline": "Translate passports, bank statements, employment letters, and official documents online. Clean PDF output for DTV visa applications, Thai immigration offices, banks, and agencies.",
-    "heroCtaLabel": "Translate a Document",
-    "heroCtaSecondaryLabel": "View Supported Documents",
-    "heroTrustLine": "From $4.39 · 2–5 minutes · RU/EN/TH language pairs",
-    "docsHeadline": "Supported Document Types",
-    "docsSubheadline": "All common document types used in Thai visa and expat workflows",
-    "docItem1": "Passport & ID Card",
-    "docItem2": "Bank Statement",
-    "docItem3": "Employment Letter & Proof of Income",
-    "docItem4": "Diploma & Transcript",
-    "docItem5": "Police Clearance Certificate",
-    "docItem6": "Medical Certificate",
-    "docItem7": "Driver's License",
-    "docItem8": "Marriage & Birth Certificate",
-    "docItem9": "Lease Agreement & Accommodation Proof",
-    "painHeadline": "Why traditional translation agencies fall short in Thailand",
-    "pain1Title": "You are abroad — they require in-person visits",
-    "pain1Desc": "Most certified translation bureaus require you to appear in person or physically mail your documents. When you are already in Thailand, that is not an option.",
-    "pain2Title": "Agencies take 2–5 business days for a single letter",
-    "pain2Desc": "Employment letters, income proofs, and bank summaries are often simple one-page documents — yet agencies charge premium rates and return them days later.",
-    "pain3Title": "WhatsApp-based services lose documents and delay replies",
-    "pain3Desc": "Informal translation services common in expat communities often go dark, send incomplete PDFs, and have no structured delivery process.",
-    "pain4Title": "Thai consulates expect specific formatting",
-    "pain4Desc": "Immigration offices want clean, readable documents. Generic OCR dumps or poorly formatted Word files create unnecessary complications during review.",
-    "finalCtaHeadline": "Ready to translate your document?",
-    "finalCtaSub": "Upload a PDF and get a clean translated version in minutes. From $4.39.",
-    "finalCtaCta": "Start Translating",
-    "faq": [
-      {
-        "q": "Can I use this translation for a DTV visa application?",
-        "a": "Our translations are unofficial and for informational purposes only. They are not certified or notarized translations. For DTV visa, Thai immigration typically requires translations to accompany originals. We recommend confirming with your specific consulate or immigration agent what level of translation is required."
-      },
-      {
-        "q": "Which language pairs do you support for Thailand?",
-        "a": "We support Russian → English, English → Russian, Russian → Thai, Thai → English, and English → Thai. These cover the most common workflows for Russian-speaking expats and digital nomads in Thailand."
-      },
-      {
-        "q": "How quickly will I get my translated document?",
-        "a": "Most documents are ready in 2–5 minutes after payment. Longer documents (10+ pages) may take up to 15 minutes. You will receive a download link by email and can also download from your dashboard."
-      },
-      {
-        "q": "Is this an official or certified translation?",
-        "a": "No. WPO Translations provides unofficial translations for informational purposes only. The translated PDF includes a visible disclaimer on every page. For official certified translations accepted by Thai government bodies, you will need a certified translator or a notarized translation service."
-      },
-      {
-        "q": "What exactly is included in the translated PDF?",
-        "a": "The translated PDF includes a clean translation of all visible text, with personal names transliterated (not translated), numbers, dates, and document numbers preserved exactly as shown. A disclaimer footer appears on every page."
-      },
-      {
-        "q": "How is my document stored and protected?",
-        "a": "Your files are encrypted and stored on Cloudflare R2 storage. They are automatically deleted after 30 days. We do not share your documents with third parties."
-      }
-    ]
-  },
-  "thailandDtv": {
-    "heroBadge": "Thailand DTV Visa",
-    "heroHeadline": "Translate Documents for Thailand",
-    "heroAccentLine": "DTV Visa Application",
-    "heroSubheadline": "Get clean English or Thai translations of bank statements, employment letters, income certificates, and other documents required for the Thailand Digital Nomad Visa. Delivered in minutes.",
-    "heroCtaLabel": "Translate My DTV Documents",
-    "heroTrustLine": "From $4.39 · RU/EN/TH · 2–5 minutes",
-    "docsHeadline": "Documents commonly required for DTV",
-    "docsSubheadline": "We translate all standard documents in a DTV application package",
-    "docItem1": "Bank Statement (6 months)",
-    "docItem2": "Employment Letter or Contract",
-    "docItem3": "Freelance Income Proof",
-    "docItem4": "Tax Return or Tax Notice",
-    "docItem5": "Company Registration Document",
-    "docItem6": "Lease or Accommodation Proof",
-    "docItem7": "Passport Copy",
-    "docItem8": "Health Insurance Documents",
-    "painHeadline": "The DTV application process is straightforward — the document preparation is not",
-    "pain1Title": "Bank statements in Russian are not readable by Thai immigration",
-    "pain1Desc": "If your bank account is in Russia, Kazakhstan, or another country, your statement is in Cyrillic. Thai offices require an English version. Getting one quickly from abroad is the main bottleneck.",
-    "pain2Title": "Employment letters from remote employers need professional formatting",
-    "pain2Desc": "A typed PDF on company letterhead is acceptable. A forwarded email or an informal WhatsApp message is not. You need a clean, properly formatted English translation.",
-    "pain3Title": "Agencies quote 3–7 business days and charge per page",
-    "pain3Desc": "For what is essentially a formatting and translation task, traditional bureaus charge $30–60 and require a week. DTV applicants preparing from abroad cannot afford that timeline.",
-    "pain4Title": "Requirements are not standardised across consulates",
-    "pain4Desc": "Some consulates want Thai translations, others want English. Having a fast, flexible tool to produce either version on demand reduces back-and-forth with your visa agent.",
-    "finalCtaHeadline": "Prepare your DTV application documents today",
-    "finalCtaSub": "Translate your bank statements, employment letters, and income proof in minutes.",
-    "finalCtaCta": "Start Translating",
-    "faq": [
-      {
-        "q": "What documents do I need for a DTV application?",
-        "a": "The Thailand Digital Nomad Visa (DTV) typically requires: 6 months of bank statements showing sufficient funds, proof of income or employment, health insurance documentation, a passport valid for at least 18 months, and accommodation proof. Requirements may vary by consulate — always confirm directly."
-      },
-      {
-        "q": "Should my documents be translated into Thai or English?",
-        "a": "Most Thai consulates abroad accept English translations. Some may require Thai translations if you are applying at a Thai immigration office inside Thailand. We support both Thai and English as target languages."
-      },
-      {
-        "q": "What is the minimum income requirement for DTV?",
-        "a": "As of 2024–2025, the DTV requires proof of income of at least 500,000 THB (approximately $14,000) held in a foreign bank account, or equivalent income proof. Please verify the current requirements on the official Thai immigration website before applying."
-      },
-      {
-        "q": "Is your translation accepted by Thai immigration?",
-        "a": "WPO provides unofficial, informational translations. They are not certified or notarized. Many applicants use them as part of a package reviewed by a visa agent or immigration consultant who confirms document readiness. Always consult your visa agent or consulate regarding official requirements."
-      },
-      {
-        "q": "Can I translate multiple documents at once?",
-        "a": "Currently each document is uploaded and translated separately. Multi-document upload is on our roadmap. You can translate several documents in sequence through your dashboard."
-      }
-    ]
-  },
-  "thailandImmigration": {
-    "heroBadge": "Thai Immigration Workflow",
-    "heroHeadline": "Translate Documents for",
-    "heroAccentLine": "Thai Immigration & Residency",
-    "heroSubheadline": "Translate passports, marriage certificates, police clearance, bank statements, and medical records for Thai immigration offices, TM30, visa extensions, and residency applications.",
-    "heroCtaLabel": "Translate Immigration Documents",
-    "heroTrustLine": "From $4.39 · RU / EN / TH · Ready in minutes",
-    "docsHeadline": "Supported immigration document types",
-    "docItem1": "Passport & ID Card",
-    "docItem2": "Marriage & Birth Certificate",
-    "docItem3": "Police Clearance Certificate",
-    "docItem4": "Medical Certificate",
-    "docItem5": "Bank Statement",
-    "docItem6": "Employment Letter / Work Certificate",
-    "docItem7": "TM30 Supporting Documents",
-    "docItem8": "Lease Agreement",
-    "docItem9": "Driver's License",
-    "painHeadline": "Thai immigration paperwork involves more documents than expected",
-    "pain1Title": "Visa extensions require clean, readable versions of foreign documents",
-    "pain1Desc": "Thai immigration officers reviewing documents in Russian or Cyrillic need English or Thai versions. Poorly formatted PDFs cause delays and return trips.",
-    "pain2Title": "TM30 and residency filings require full names and dates to match exactly",
-    "pain2Desc": "Inconsistencies between translated and original documents create complications. Our AI preserves all names, numbers, and dates exactly as they appear.",
-    "pain3Title": "Marriage and birth certificates require specific formatting for Thai use",
-    "pain3Desc": "Vital documents for Thai family-based visas must be clearly structured. Generic translation tools produce unstructured text outputs that Thai offices reject.",
-    "pain4Title": "Finding a bilingual Thai/Russian or Thai/English translator is expensive",
-    "pain4Desc": "Certified translators for less common language pairs like Russian → Thai charge significant premiums and have long turnaround times.",
-    "finalCtaHeadline": "Get your immigration documents ready",
-    "finalCtaSub": "Upload your PDF and receive a clean translated version in minutes.",
-    "finalCtaCta": "Start Translating",
-    "faq": [
-      {
-        "q": "Do I need a certified translation for Thai immigration offices?",
-        "a": "Requirements vary by visa type and immigration office. Many immigration tasks — including supporting document submission — can be handled with informal translated copies alongside originals. For court proceedings or officially mandated certification, a certified translator is required. Always verify with the specific office you are dealing with."
-      },
-      {
-        "q": "Which language pairs do you support for Thai immigration documents?",
-        "a": "We support Russian ↔ English, English ↔ Thai, and Russian → Thai. This covers the main language combinations needed by Russian-speaking expats and digital nomads dealing with Thai immigration."
-      },
-      {
-        "q": "Can you translate a marriage certificate for a Thai spouse visa?",
-        "a": "Yes, we can translate marriage certificates from Russian or English into Thai or English. These translations are unofficial and for informational use. For formal visa applications involving marriage certificates, confirm whether a notarized translation is required."
-      },
-      {
-        "q": "How fast is the delivery?",
-        "a": "2–5 minutes for most documents. Police clearance certificates and multi-page bank statements may take up to 10 minutes. You receive a download link by email immediately upon completion."
-      }
-    ]
-  },
   "passportTranslation": {
     "heroBadge": "Document Type · Passport & ID",
     "heroHeadline": "Passport Translation",
@@ -595,7 +432,7 @@
       },
       {
         "q": "What languages can a passport be translated into?",
-        "a": "We support 10+ target languages including English, Russian, Thai, Chinese, Korean, Japanese, German, French, Spanish, and Arabic. Source language is auto-detected or can be manually specified."
+        "a": "We support 10+ target languages including English, Russian, Chinese, Korean, Japanese, German, French, Spanish, and Arabic. Source language is auto-detected or can be manually specified."
       },
       {
         "q": "Is the translation accepted for visa applications?",
@@ -650,7 +487,7 @@
       },
       {
         "q": "What languages do you support for diploma translation?",
-        "a": "We support 10+ languages. The most common pairs for diploma translation are Russian → English, Kazakh → English, Thai → English, and Chinese → English. Source language can be auto-detected."
+        "a": "We support 10+ languages. The most common pairs for diploma translation are Russian → English, Kazakh → English, and Chinese → English. Source language can be auto-detected."
       },
       {
         "q": "How do you handle degree titles and academic grades?",
@@ -691,7 +528,7 @@
     "faq": [
       {
         "q": "Which visa types require a translated bank statement?",
-        "a": "Thailand DTV, Schengen visas, UK visitor visas, US B1/B2 visas, and most immigration applications require proof of funds from a bank, typically in English. Other documents like income certificates and payslips are also commonly required."
+        "a": "Schengen visas, UK visitor visas, US B1/B2 visas, and most immigration applications require proof of funds from a bank, typically in English. Other documents like income certificates and payslips are also commonly required."
       },
       {
         "q": "Are currencies and amounts preserved without conversion?",

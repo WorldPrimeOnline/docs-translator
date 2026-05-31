@@ -14,15 +14,6 @@ export function Navbar() {
 
   const NAV_LINKS = [
     {
-      label: t('thailand'),
-      href: '/thailand',
-      children: [
-        { label: t('thailandOverview'), href: '/thailand' },
-        { label: t('dtvVisa'), href: '/thailand/dtv-visa-translation' },
-        { label: t('immigrationDocs'), href: '/thailand/immigration-document-translation' },
-      ],
-    },
-    {
       label: t('kazakhstan'),
       href: '/kazakhstan',
       children: [
