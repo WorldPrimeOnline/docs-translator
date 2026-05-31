@@ -6,15 +6,15 @@ export const legalDocs: LegalDocs = {
   offer: {
     slug: 'offer',
     title: 'Jemgyýetçilik Teklibi (Oferta)',
-    metaTitle: 'Hyzmat Şertnamasy — [SERVICE NAME]',
-    metaDescription: '[SERVICE NAME] platformasynyň hyzmatlaryny ulanmak şertleri.',
-    effectiveDate: '[Publication date]',
+    metaTitle: 'Hyzmat Şertnamasy — World Prime Online',
+    metaDescription: 'World Prime Online platformasynyň hyzmatlaryny ulanmak şertleri.',
+    effectiveDate: '2026-05-26',
     sections: [
       {
         id: 'general',
         heading: '1. Umumy Düzgünler',
         body: [
-          'Bu resminama [SERVICE NAME] platformasynyň (mundan beýläk — Ýerine ýetiriji) ulanyjylara (mundan beýläk — Müşderi) teklibidir we hyzmat şertnamasynyň düzgünlerini kesgitleýär.',
+          'Bu resminama World Prime Online platformasynyň (mundan beýläk — Ýerine ýetiriji) ulanyjylara (mundan beýläk — Müşderi) teklibidir we hyzmat şertnamasynyň düzgünlerini kesgitleýär.',
           'Platformany hasaba almak ýa-da platformany ulanmak şu Teklibi doly kabul etmegi aňladýar.',
           LP,
         ],
@@ -23,10 +23,10 @@ export const legalDocs: LegalDocs = {
         id: 'definitions',
         heading: '2. Kesgitlemeler',
         body: [
-          '• Ýerine ýetiriji — [SOLE PROPRIETOR NAME / COMPANY NAME], IIN/BIN: [IIN/BIN].',
+          '• Ýerine ýetiriji — World Prime Online, .',
           '• Müşderi — şu Teklibi kabul eden fiziki ýa-da ýuridik şahs.',
           '• Hyzmat — Ýerine ýetiriji tarapyndan hödürlenýän terjime, lokalizasiýa we degişli hyzmatlar.',
-          '• Platforma — [Website domain] salgysynda ýerleşen web-platforma.',
+          '• Platforma — https://www.wpotranslations.org/ salgysynda ýerleşen web-platforma.',
           '• Sargyt — Müşderi tarapyndan ýerine ýetirilmegi üçin iberen işiň tehniki şertnamasy.',
         ],
       },
@@ -156,12 +156,10 @@ export const legalDocs: LegalDocs = {
         id: 'contacts',
         heading: '16. Habarlaşmak',
         body: [
-          'Sag: [SOLE PROPRIETOR NAME / COMPANY NAME]',
-          'IIN/BIN: [IIN/BIN]',
-          'Salgy: [Legal address]',
-          'E-poçta: [Email]',
-          'Telefon: [Phone]',
-          'Saýt: [Website domain]',
+          'Sag: World Prime Online',
+          '',
+          'E-poçta: worldprimeonline@gmail.com',
+          'Saýt: https://www.wpotranslations.org/',
         ],
       },
     ],
@@ -170,15 +168,15 @@ export const legalDocs: LegalDocs = {
   privacy: {
     slug: 'privacy',
     title: 'Gizlinlik Syýasaty',
-    metaTitle: 'Gizlinlik Syýasaty — [SERVICE NAME]',
-    metaDescription: '[SERVICE NAME] tarapyndan şahsy maglumatlaryň nähili işlenilýändigi barada maglumat.',
-    effectiveDate: '[Publication date]',
+    metaTitle: 'Gizlinlik Syýasaty — World Prime Online',
+    metaDescription: 'World Prime Online tarapyndan şahsy maglumatlaryň nähili işlenilýändigi barada maglumat.',
+    effectiveDate: '2026-05-26',
     sections: [
       {
         id: 'general',
         heading: '1. Umumy Düzgünler',
         body: [
-          'Bu Gizlinlik Syýasaty [SOLE PROPRIETOR NAME / COMPANY NAME] (mundan beýläk — Ýerine ýetiriji) tarapyndan [SERVICE NAME] platformasynyň ulanyjylarynyň şahsy maglumatlaryny nädip toplaýandygyny we işleýändigini düşündirýär.',
+          'Bu Gizlinlik Syýasaty World Prime Online (mundan beýläk — Ýerine ýetiriji) tarapyndan World Prime Online platformasynyň ulanyjylarynyň şahsy maglumatlaryny nädip toplaýandygyny we işleýändigini düşündirýär.',
           'Platformany ulanmak bilen siz şu Syýasatyň şertlerini kabul edýärsiňiz.',
           LP,
         ],
@@ -244,7 +242,7 @@ export const legalDocs: LegalDocs = {
           '• Nädogry maglumatlary düzetmek.',
           '• Belli şertlerde maglumatlar öçürilmegini talap etmek.',
           '• Işlemegi çäklendirmäge razylyk bermedik.',
-          'Bu hukuklardan peýdalanmak üçin [Email] salgysyndan habarlaşyňyz.',
+          'Bu hukuklardan peýdalanmak üçin worldprimeonline@gmail.com salgysyndan habarlaşyňyz.',
         ],
       },
       {
@@ -283,8 +281,8 @@ export const legalDocs: LegalDocs = {
         id: 'contacts',
         heading: '12. Habarlaşmak',
         body: [
-          'Gizlinlik baradaky soraglar üçin: [Email]',
-          '[SOLE PROPRIETOR NAME / COMPANY NAME], [Legal address]',
+          'Gizlinlik baradaky soraglar üçin: worldprimeonline@gmail.com',
+          'World Prime Online',
         ],
       },
     ],
@@ -293,15 +291,15 @@ export const legalDocs: LegalDocs = {
   'personal-data-consent': {
     slug: 'personal-data-consent',
     title: 'Şahsy Maglumatlary Işlemegiň Razylyk Blanky',
-    metaTitle: 'Şahsy Maglumatlary Işlemäge Razylyk — [SERVICE NAME]',
+    metaTitle: 'Şahsy Maglumatlary Işlemäge Razylyk — World Prime Online',
     metaDescription: 'Şahsy maglumatlary işlemäge razylyk barada maglumat.',
-    effectiveDate: '[Publication date]',
+    effectiveDate: '2026-05-26',
     sections: [
       {
         id: 'intro',
         heading: '1. Giriş',
         body: [
-          'Bu resminama [SOLE PROPRIETOR NAME / COMPANY NAME] (IIN/BIN: [IIN/BIN]) tarapyndan ulanyjylaryň şahsy maglumatlaryny işlemäge razylygy dolandyrýar.',
+          'Bu resminama World Prime Online () tarapyndan ulanyjylaryň şahsy maglumatlaryny işlemäge razylygy dolandyrýar.',
           LP,
         ],
       },
@@ -330,7 +328,7 @@ export const legalDocs: LegalDocs = {
         id: 'withdrawal',
         heading: '4. Razylygы Yzyna Almak',
         body: [
-          'Razylygыňyzy islendik wagt [Email] salgysyndan yzyna alyp bilersiňiz.',
+          'Razylygыňyzy islendik wagt worldprimeonline@gmail.com salgysyndan yzyna alyp bilersiňiz.',
           'Razylygы yzyna almak öň amala aşyrylan hyzmatlaryň kanuny esasyna täsir etmeýär.',
         ],
       },
@@ -339,16 +337,15 @@ export const legalDocs: LegalDocs = {
         heading: '5. Hukuklar',
         body: [
           'Siz öz maglumatlaryna elýeterlilik, düzetmek we öçürmek hukugyňyz bar.',
-          'Bu hukuklardan peýdalanmak üçin [Email] arkaly ýüz tutup bilersiňiz.',
+          'Bu hukuklardan peýdalanmak üçin worldprimeonline@gmail.com arkaly ýüz tutup bilersiňiz.',
         ],
       },
       {
         id: 'contacts',
         heading: '6. Habarlaşmak',
         body: [
-          '[SOLE PROPRIETOR NAME / COMPANY NAME]',
-          'E-poçta: [Email]',
-          'Salgy: [Legal address]',
+          'World Prime Online',
+          'E-poçta: worldprimeonline@gmail.com',
         ],
       },
     ],
@@ -357,15 +354,15 @@ export const legalDocs: LegalDocs = {
   'refund-policy': {
     slug: 'refund-policy',
     title: 'Töleg Gaýtaryş Syýasaty',
-    metaTitle: 'Töleg Gaýtaryş Syýasaty — [SERVICE NAME]',
-    metaDescription: '[SERVICE NAME] hyzmatlarynda tölegleri gaýtarmak şertleri.',
-    effectiveDate: '[Publication date]',
+    metaTitle: 'Töleg Gaýtaryş Syýasaty — World Prime Online',
+    metaDescription: 'World Prime Online hyzmatlarynda tölegleri gaýtarmak şertleri.',
+    effectiveDate: '2026-05-26',
     sections: [
       {
         id: 'general',
         heading: '1. Umumy Düzgünler',
         body: [
-          'Bu Syýasat [SERVICE NAME] platformasynyň hyzmatlarynda tölegleri gaýtarmak we çalşyrmak şertlerini kesgitleýär.',
+          'Bu Syýasat World Prime Online platformasynyň hyzmatlarynda tölegleri gaýtarmak we çalşyrmak şertlerini kesgitleýär.',
           LP,
         ],
       },
@@ -394,7 +391,7 @@ export const legalDocs: LegalDocs = {
         id: 'process',
         heading: '4. Gaýtarmagyň Tertibi',
         body: [
-          '7 (ýedi) iş gününiň dowamynda [Email] salgysyndan sargytyň belgisi bilen arz bermelidir.',
+          '7 (ýedi) iş gününiň dowamynda worldprimeonline@gmail.com salgysyndan sargytyň belgisi bilen arz bermelidir.',
           'Arz berilenden soň 5 (bäş) iş günüň dowamynda seredilýär.',
           'Onaylanan töleg 10 (on) iş gününiň dowamynda başlangyç usul bilen gaýtarylýar.',
         ],
@@ -419,8 +416,8 @@ export const legalDocs: LegalDocs = {
         id: 'contacts',
         heading: '7. Habarlaşmak',
         body: [
-          'Töleg gaýtaryş soraglary: [Email]',
-          '[SOLE PROPRIETOR NAME / COMPANY NAME], [Legal address]',
+          'Töleg gaýtaryş soraglary: worldprimeonline@gmail.com',
+          'World Prime Online',
         ],
       },
     ],
@@ -429,15 +426,15 @@ export const legalDocs: LegalDocs = {
   disclaimer: {
     slug: 'disclaimer',
     title: 'Jogapkärçilikden Ýüz Dönüş',
-    metaTitle: 'Jogapkärçilikden Ýüz Dönüş — [SERVICE NAME]',
-    metaDescription: '[SERVICE NAME] hyzmatlarynyň çäkleri we hukuklary barada maglumat.',
-    effectiveDate: '[Publication date]',
+    metaTitle: 'Jogapkärçilikden Ýüz Dönüş — World Prime Online',
+    metaDescription: 'World Prime Online hyzmatlarynyň çäkleri we hukuklary barada maglumat.',
+    effectiveDate: '2026-05-26',
     sections: [
       {
         id: 'general',
         heading: '1. Umumy Ýagdaý',
         body: [
-          '[SERVICE NAME] terjime we lokalizasiýa hyzmatlaryny hödürleýär. Şu resminama hyzmatyň çäklerini we Ýerine ýetirijiniň jogapkärçiliginden ýüz dönüşini kesgitleýär.',
+          'World Prime Online terjime we lokalizasiýa hyzmatlaryny hödürleýär. Şu resminama hyzmatyň çäklerini we Ýerine ýetirijiniň jogapkärçiliginden ýüz dönüşini kesgitleýär.',
           LP,
         ],
       },
@@ -454,7 +451,7 @@ export const legalDocs: LegalDocs = {
         id: 'no-legal-advice',
         heading: '3. Hukuk Maslahat Berilmeýär',
         body: [
-          '[SERVICE NAME] hyzmatynyň çäklerinde hukuk, göç ýa-da salgyt maslahatyny bermeýär.',
+          'World Prime Online hyzmatynyň çäklerinde hukuk, göç ýa-da salgyt maslahatyny bermeýär.',
           'Hukuk meseleleri üçin hünärli hukukçylaryň maslahatyna ýüz tutuň.',
         ],
       },
@@ -487,9 +484,9 @@ export const legalDocs: LegalDocs = {
         id: 'contacts',
         heading: '7. Habarlaşmak',
         body: [
-          '[SOLE PROPRIETOR NAME / COMPANY NAME]',
-          'E-poçta: [Email]',
-          'Saýt: [Website domain]',
+          'World Prime Online',
+          'E-poçta: worldprimeonline@gmail.com',
+          'Saýt: https://www.wpotranslations.org/',
         ],
       },
     ],
@@ -498,9 +495,9 @@ export const legalDocs: LegalDocs = {
   terms: {
     slug: 'terms',
     title: 'Hyzmat Şertleri',
-    metaTitle: 'Hyzmat Şertleri — [SERVICE NAME]',
-    metaDescription: '[SERVICE NAME] platformasynyň ulanyş düzgünleri.',
-    effectiveDate: '[Publication date]',
+    metaTitle: 'Hyzmat Şertleri — World Prime Online',
+    metaDescription: 'World Prime Online platformasynyň ulanyş düzgünleri.',
+    effectiveDate: '2026-05-26',
     sections: [
       {
         id: 'acceptance',
@@ -574,9 +571,9 @@ export const legalDocs: LegalDocs = {
         id: 'contacts',
         heading: '9. Habarlaşmak',
         body: [
-          '[SOLE PROPRIETOR NAME / COMPANY NAME]',
-          'E-poçta: [Email]',
-          'Saýt: [Website domain]',
+          'World Prime Online',
+          'E-poçta: worldprimeonline@gmail.com',
+          'Saýt: https://www.wpotranslations.org/',
         ],
       },
     ],
@@ -585,15 +582,15 @@ export const legalDocs: LegalDocs = {
   partners: {
     slug: 'partners',
     title: 'Hyzmatdaşlyk Şertleri',
-    metaTitle: 'Hyzmatdaşlyk Şertleri — [SERVICE NAME]',
-    metaDescription: '[SERVICE NAME] platformasy bilen hyzmatdaşlygyň şertleri.',
-    effectiveDate: '[Publication date]',
+    metaTitle: 'Hyzmatdaşlyk Şertleri — World Prime Online',
+    metaDescription: 'World Prime Online platformasy bilen hyzmatdaşlygyň şertleri.',
+    effectiveDate: '2026-05-26',
     sections: [
       {
         id: 'intro',
         heading: '1. Giriş',
         body: [
-          'Bu resminama [SERVICE NAME] platformasy bilen hünärmen hyzmatdaşlarynyň (mundan beýläk — Hyzmatdaş) gatnaşyklaryny kesgitleýär.',
+          'Bu resminama World Prime Online platformasy bilen hünärmen hyzmatdaşlarynyň (mundan beýläk — Hyzmatdaş) gatnaşyklaryny kesgitleýär.',
           LP,
         ],
       },
@@ -662,8 +659,8 @@ export const legalDocs: LegalDocs = {
         id: 'contacts',
         heading: '9. Hyzmatdaşlyk Baradaky Soraglar',
         body: [
-          'E-poçta: [Email]',
-          '[SOLE PROPRIETOR NAME / COMPANY NAME], [Legal address]',
+          'E-poçta: worldprimeonline@gmail.com',
+          'World Prime Online',
         ],
       },
     ],

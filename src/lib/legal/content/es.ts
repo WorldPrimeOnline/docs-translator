@@ -6,15 +6,15 @@ export const legalDocs: LegalDocs = {
   offer: {
     slug: 'offer',
     title: 'Oferta Pública de Servicios',
-    metaTitle: 'Contrato de Servicios — [SERVICE NAME]',
-    metaDescription: 'Condiciones de uso de los servicios de la plataforma [SERVICE NAME].',
-    effectiveDate: '[Publication date]',
+    metaTitle: 'Contrato de Servicios — World Prime Online',
+    metaDescription: 'Condiciones de uso de los servicios de la plataforma World Prime Online.',
+    effectiveDate: '2026-05-26',
     sections: [
       {
         id: 'general',
         heading: '1. Disposiciones Generales',
         body: [
-          'El presente documento constituye una oferta pública de [SERVICE NAME] (en adelante, el Proveedor) dirigida a los usuarios (en adelante, el Cliente) y establece los términos del contrato de servicios.',
+          'El presente documento constituye una oferta pública de World Prime Online (en adelante, el Proveedor) dirigida a los usuarios (en adelante, el Cliente) y establece los términos del contrato de servicios.',
           'El registro en la plataforma o su uso implica la aceptación plena e incondicional de esta Oferta.',
           LP,
         ],
@@ -23,10 +23,10 @@ export const legalDocs: LegalDocs = {
         id: 'definitions',
         heading: '2. Definiciones',
         body: [
-          '• Proveedor: [SOLE PROPRIETOR NAME / COMPANY NAME], IIN/BIN: [IIN/BIN].',
+          '• Proveedor: World Prime Online.',
           '• Cliente: cualquier persona que haya aceptado esta Oferta.',
           '• Servicio: servicios de traducción, localización y servicios lingüísticos conexos ofrecidos por el Proveedor.',
-          '• Plataforma: la plataforma web disponible en [Website domain].',
+          '• Plataforma: la plataforma web disponible en https://www.wpotranslations.org/.',
           '• Pedido: la especificación técnica de trabajo enviada por el Cliente.',
         ],
       },
@@ -156,12 +156,10 @@ export const legalDocs: LegalDocs = {
         id: 'contacts',
         heading: '16. Información de Contacto',
         body: [
-          'Empresa: [SOLE PROPRIETOR NAME / COMPANY NAME]',
-          'IIN/BIN: [IIN/BIN]',
-          'Dirección: [Legal address]',
-          'Correo electrónico: [Email]',
-          'Teléfono: [Phone]',
-          'Sitio web: [Website domain]',
+          'Empresa: World Prime Online',
+          '',
+          'Correo electrónico: worldprimeonline@gmail.com',
+          'Sitio web: https://www.wpotranslations.org/',
         ],
       },
     ],
@@ -170,15 +168,15 @@ export const legalDocs: LegalDocs = {
   privacy: {
     slug: 'privacy',
     title: 'Política de Privacidad',
-    metaTitle: 'Política de Privacidad — [SERVICE NAME]',
-    metaDescription: 'Cómo [SERVICE NAME] trata los datos personales de sus usuarios.',
-    effectiveDate: '[Publication date]',
+    metaTitle: 'Política de Privacidad — World Prime Online',
+    metaDescription: 'Cómo World Prime Online trata los datos personales de sus usuarios.',
+    effectiveDate: '2026-05-26',
     sections: [
       {
         id: 'general',
         heading: '1. Disposiciones Generales',
         body: [
-          'La presente Política de Privacidad explica cómo [SOLE PROPRIETOR NAME / COMPANY NAME] (en adelante, el Proveedor) recopila y trata los datos personales de los usuarios de la plataforma [SERVICE NAME].',
+          'La presente Política de Privacidad explica cómo World Prime Online (en adelante, el Proveedor) recopila y trata los datos personales de los usuarios de la plataforma World Prime Online.',
           'El uso de la plataforma implica la aceptación de los términos de esta Política.',
           LP,
         ],
@@ -244,7 +242,7 @@ export const legalDocs: LegalDocs = {
           '• Corregir datos inexactos.',
           '• Solicitar la supresión de datos en determinadas condiciones.',
           '• Limitar el tratamiento.',
-          'Para ejercer estos derechos, contacte con nosotros en [Email].',
+          'Para ejercer estos derechos, contacte con nosotros en worldprimeonline@gmail.com.',
         ],
       },
       {
@@ -283,8 +281,8 @@ export const legalDocs: LegalDocs = {
         id: 'contacts',
         heading: '12. Contacto',
         body: [
-          'Para consultas sobre privacidad: [Email]',
-          '[SOLE PROPRIETOR NAME / COMPANY NAME], [Legal address]',
+          'Para consultas sobre privacidad: worldprimeonline@gmail.com',
+          'World Prime Online',
         ],
       },
     ],
@@ -293,15 +291,15 @@ export const legalDocs: LegalDocs = {
   'personal-data-consent': {
     slug: 'personal-data-consent',
     title: 'Consentimiento para el Tratamiento de Datos Personales',
-    metaTitle: 'Consentimiento para el Tratamiento de Datos Personales — [SERVICE NAME]',
+    metaTitle: 'Consentimiento para el Tratamiento de Datos Personales — World Prime Online',
     metaDescription: 'Información sobre el consentimiento para el tratamiento de datos personales.',
-    effectiveDate: '[Publication date]',
+    effectiveDate: '2026-05-26',
     sections: [
       {
         id: 'intro',
         heading: '1. Introducción',
         body: [
-          'El presente documento regula el consentimiento para el tratamiento de datos personales de los usuarios por parte de [SOLE PROPRIETOR NAME / COMPANY NAME] (IIN/BIN: [IIN/BIN]).',
+          'El presente documento regula el consentimiento para el tratamiento de datos personales de los usuarios por parte de World Prime Online ().',
           LP,
         ],
       },
@@ -330,7 +328,7 @@ export const legalDocs: LegalDocs = {
         id: 'withdrawal',
         heading: '4. Revocación del Consentimiento',
         body: [
-          'Puede revocar su consentimiento en cualquier momento contactando con nosotros en [Email].',
+          'Puede revocar su consentimiento en cualquier momento contactando con nosotros en worldprimeonline@gmail.com.',
           'La revocación no afecta a la licitud del tratamiento efectuado antes de la misma.',
         ],
       },
@@ -339,16 +337,15 @@ export const legalDocs: LegalDocs = {
         heading: '5. Derechos',
         body: [
           'Tiene derecho de acceso, rectificación y supresión de sus datos.',
-          'Para ejercer estos derechos, puede contactar con nosotros en [Email].',
+          'Para ejercer estos derechos, puede contactar con nosotros en worldprimeonline@gmail.com.',
         ],
       },
       {
         id: 'contacts',
         heading: '6. Contacto',
         body: [
-          '[SOLE PROPRIETOR NAME / COMPANY NAME]',
-          'Correo electrónico: [Email]',
-          'Dirección: [Legal address]',
+          'World Prime Online',
+          'Correo electrónico: worldprimeonline@gmail.com',
         ],
       },
     ],
@@ -357,15 +354,15 @@ export const legalDocs: LegalDocs = {
   'refund-policy': {
     slug: 'refund-policy',
     title: 'Política de Reembolso',
-    metaTitle: 'Política de Reembolso — [SERVICE NAME]',
-    metaDescription: 'Condiciones de devolución en los servicios de [SERVICE NAME].',
-    effectiveDate: '[Publication date]',
+    metaTitle: 'Política de Reembolso — World Prime Online',
+    metaDescription: 'Condiciones de devolución en los servicios de World Prime Online.',
+    effectiveDate: '2026-05-26',
     sections: [
       {
         id: 'general',
         heading: '1. Disposiciones Generales',
         body: [
-          'La presente Política establece las condiciones de devolución y cambio de pagos en los servicios de la plataforma [SERVICE NAME].',
+          'La presente Política establece las condiciones de devolución y cambio de pagos en los servicios de la plataforma World Prime Online.',
           LP,
         ],
       },
@@ -394,7 +391,7 @@ export const legalDocs: LegalDocs = {
         id: 'process',
         heading: '4. Procedimiento de Reembolso',
         body: [
-          'La solicitud deberá presentarse en un plazo de 7 (siete) días hábiles a través de [Email], indicando el número de pedido.',
+          'La solicitud deberá presentarse en un plazo de 7 (siete) días hábiles a través de worldprimeonline@gmail.com, indicando el número de pedido.',
           'La solicitud será tramitada en un plazo de 5 (cinco) días hábiles.',
           'El reembolso aprobado se realizará en un plazo de 10 (diez) días hábiles mediante el método de pago original.',
         ],
@@ -419,8 +416,8 @@ export const legalDocs: LegalDocs = {
         id: 'contacts',
         heading: '7. Contacto',
         body: [
-          'Consultas sobre reembolsos: [Email]',
-          '[SOLE PROPRIETOR NAME / COMPANY NAME], [Legal address]',
+          'Consultas sobre reembolsos: worldprimeonline@gmail.com',
+          'World Prime Online',
         ],
       },
     ],
@@ -429,15 +426,15 @@ export const legalDocs: LegalDocs = {
   disclaimer: {
     slug: 'disclaimer',
     title: 'Aviso Legal',
-    metaTitle: 'Aviso Legal — [SERVICE NAME]',
-    metaDescription: 'Sobre las limitaciones y los derechos de los servicios de [SERVICE NAME].',
-    effectiveDate: '[Publication date]',
+    metaTitle: 'Aviso Legal — World Prime Online',
+    metaDescription: 'Sobre las limitaciones y los derechos de los servicios de World Prime Online.',
+    effectiveDate: '2026-05-26',
     sections: [
       {
         id: 'general',
         heading: '1. Situación General',
         body: [
-          '[SERVICE NAME] ofrece servicios de traducción y localización. El presente documento establece las limitaciones de los servicios y los supuestos de exclusión de responsabilidad del Proveedor.',
+          'World Prime Online ofrece servicios de traducción y localización. El presente documento establece las limitaciones de los servicios y los supuestos de exclusión de responsabilidad del Proveedor.',
           LP,
         ],
       },
@@ -454,7 +451,7 @@ export const legalDocs: LegalDocs = {
         id: 'no-legal-advice',
         heading: '3. Sin Asesoramiento Legal',
         body: [
-          '[SERVICE NAME] no presta asesoramiento legal, migratorio ni fiscal en el ámbito de sus servicios.',
+          'World Prime Online no presta asesoramiento legal, migratorio ni fiscal en el ámbito de sus servicios.',
           'Para cuestiones jurídicas, consulte con abogados especializados.',
         ],
       },
@@ -487,9 +484,9 @@ export const legalDocs: LegalDocs = {
         id: 'contacts',
         heading: '7. Contacto',
         body: [
-          '[SOLE PROPRIETOR NAME / COMPANY NAME]',
-          'Correo electrónico: [Email]',
-          'Sitio web: [Website domain]',
+          'World Prime Online',
+          'Correo electrónico: worldprimeonline@gmail.com',
+          'Sitio web: https://www.wpotranslations.org/',
         ],
       },
     ],
@@ -498,9 +495,9 @@ export const legalDocs: LegalDocs = {
   terms: {
     slug: 'terms',
     title: 'Condiciones de Uso',
-    metaTitle: 'Condiciones de Uso — [SERVICE NAME]',
-    metaDescription: 'Normas de uso de la plataforma [SERVICE NAME].',
-    effectiveDate: '[Publication date]',
+    metaTitle: 'Condiciones de Uso — World Prime Online',
+    metaDescription: 'Normas de uso de la plataforma World Prime Online.',
+    effectiveDate: '2026-05-26',
     sections: [
       {
         id: 'acceptance',
@@ -574,9 +571,9 @@ export const legalDocs: LegalDocs = {
         id: 'contacts',
         heading: '9. Contacto',
         body: [
-          '[SOLE PROPRIETOR NAME / COMPANY NAME]',
-          'Correo electrónico: [Email]',
-          'Sitio web: [Website domain]',
+          'World Prime Online',
+          'Correo electrónico: worldprimeonline@gmail.com',
+          'Sitio web: https://www.wpotranslations.org/',
         ],
       },
     ],
@@ -585,15 +582,15 @@ export const legalDocs: LegalDocs = {
   partners: {
     slug: 'partners',
     title: 'Condiciones de Colaboración',
-    metaTitle: 'Condiciones de Colaboración — [SERVICE NAME]',
-    metaDescription: 'Condiciones de colaboración con la plataforma [SERVICE NAME].',
-    effectiveDate: '[Publication date]',
+    metaTitle: 'Condiciones de Colaboración — World Prime Online',
+    metaDescription: 'Condiciones de colaboración con la plataforma World Prime Online.',
+    effectiveDate: '2026-05-26',
     sections: [
       {
         id: 'intro',
         heading: '1. Introducción',
         body: [
-          'El presente documento regula la relación entre la plataforma [SERVICE NAME] y los colaboradores profesionales (en adelante, el Colaborador).',
+          'El presente documento regula la relación entre la plataforma World Prime Online y los colaboradores profesionales (en adelante, el Colaborador).',
           LP,
         ],
       },
@@ -662,8 +659,8 @@ export const legalDocs: LegalDocs = {
         id: 'contacts',
         heading: '9. Consultas sobre Colaboración',
         body: [
-          'Correo electrónico: [Email]',
-          '[SOLE PROPRIETOR NAME / COMPANY NAME], [Legal address]',
+          'Correo electrónico: worldprimeonline@gmail.com',
+          'World Prime Online',
         ],
       },
     ],

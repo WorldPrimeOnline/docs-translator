@@ -6,15 +6,15 @@ export const legalDocs: LegalDocs = {
   offer: {
     slug: 'offer',
     title: 'Нийтийн Санал (Оферт)',
-    metaTitle: 'Үйлчилгээний Гэрээ — [SERVICE NAME]',
-    metaDescription: '[SERVICE NAME] платформын үйлчилгээг ашиглах нөхцөлүүд.',
-    effectiveDate: '[Publication date]',
+    metaTitle: 'Үйлчилгээний Гэрээ — World Prime Online',
+    metaDescription: 'World Prime Online платформын үйлчилгээг ашиглах нөхцөлүүд.',
+    effectiveDate: '2026-05-26',
     sections: [
       {
         id: 'general',
         heading: '1. Ерөнхий Заалтууд',
         body: [
-          'Энэ баримт бичиг нь [SERVICE NAME] платформын (цаашид — Гүйцэтгэгч) хэрэглэгчдэд (цаашид — Захиалагч) гаргасан санал бөгөөд үйлчилгээний гэрээний нөхцөлийг тодорхойлж байна.',
+          'Энэ баримт бичиг нь World Prime Online платформын (цаашид — Гүйцэтгэгч) хэрэглэгчдэд (цаашид — Захиалагч) гаргасан санал бөгөөд үйлчилгээний гэрээний нөхцөлийг тодорхойлж байна.',
           'Платформд бүртгүүлэх эсвэл платформыг ашиглах нь энэхүү Санлыг бүрэн хүлээн зөвшөөрч байгааг илэрхийлнэ.',
           LP,
         ],
@@ -23,10 +23,10 @@ export const legalDocs: LegalDocs = {
         id: 'definitions',
         heading: '2. Нэр Томьёо',
         body: [
-          '• Гүйцэтгэгч — [SOLE PROPRIETOR NAME / COMPANY NAME], ИНН/ОУБДТ: [IIN/BIN].',
+          '• Гүйцэтгэгч — World Prime Online.',
           '• Захиалагч — Санлыг хүлээн зөвшөөрсөн аливаа этгээд.',
           '• Үйлчилгээ — Гүйцэтгэгчийн санал болгож буй орчуулга, нутагшуулалт болон холбогдох үйлчилгээнүүд.',
-          '• Платформ — [Website domain] хаягаар байрлах веб-платформ.',
+          '• Платформ — https://www.wpotranslations.org/ хаягаар байрлах веб-платформ.',
           '• Захиалга — Захиалагчийн ажлын даалгавар.',
         ],
       },
@@ -157,12 +157,10 @@ export const legalDocs: LegalDocs = {
         id: 'contacts',
         heading: '16. Холбоо Барих',
         body: [
-          'Нэр: [SOLE PROPRIETOR NAME / COMPANY NAME]',
-          'ИНН/ОУБДТ: [IIN/BIN]',
-          'Хаяг: [Legal address]',
-          'И-мэйл: [Email]',
-          'Утас: [Phone]',
-          'Вебсайт: [Website domain]',
+          'Нэр: World Prime Online',
+          '',
+          'И-мэйл: worldprimeonline@gmail.com',
+          'Вебсайт: https://www.wpotranslations.org/',
         ],
       },
     ],
@@ -171,15 +169,15 @@ export const legalDocs: LegalDocs = {
   privacy: {
     slug: 'privacy',
     title: 'Нууцлалын Бодлого',
-    metaTitle: 'Нууцлалын Бодлого — [SERVICE NAME]',
-    metaDescription: '[SERVICE NAME] хэрэглэгчдийн хувийн мэдээллийг хэрхэн боловсруулдаг.',
-    effectiveDate: '[Publication date]',
+    metaTitle: 'Нууцлалын Бодлого — World Prime Online',
+    metaDescription: 'World Prime Online хэрэглэгчдийн хувийн мэдээллийг хэрхэн боловсруулдаг.',
+    effectiveDate: '2026-05-26',
     sections: [
       {
         id: 'general',
         heading: '1. Ерөнхий Заалтууд',
         body: [
-          'Энэхүү Нууцлалын Бодлого нь [SOLE PROPRIETOR NAME / COMPANY NAME] (цаашид — Гүйцэтгэгч) [SERVICE NAME] платформын хэрэглэгчдийн хувийн мэдээллийг хэрхэн цуглуулж, боловсруулдагийг тайлбарлана.',
+          'Энэхүү Нууцлалын Бодлого нь World Prime Online (цаашид — Гүйцэтгэгч) World Prime Online платформын хэрэглэгчдийн хувийн мэдээллийг хэрхэн цуглуулж, боловсруулдагийг тайлбарлана.',
           'Платформыг ашиглах нь энэхүү Бодлогын нөхцөлийг хүлээн зөвшөөрч байгааг илэрхийлнэ.',
           LP,
         ],
@@ -245,7 +243,7 @@ export const legalDocs: LegalDocs = {
           '• Буруу мэдээллийг засуулах.',
           '• Тодорхой нөхцөлд мэдээллийг устгуулах.',
           '• Боловсруулалтыг хязгаарлах.',
-          'Эдгээр эрхийг эдлэхийн тулд [Email] хаягаар холбоо барина уу.',
+          'Эдгээр эрхийг эдлэхийн тулд worldprimeonline@gmail.com хаягаар холбоо барина уу.',
         ],
       },
       {
@@ -284,8 +282,8 @@ export const legalDocs: LegalDocs = {
         id: 'contacts',
         heading: '12. Холбоо Барих',
         body: [
-          'Нууцлалын асуултын хувьд: [Email]',
-          '[SOLE PROPRIETOR NAME / COMPANY NAME], [Legal address]',
+          'Нууцлалын асуултын хувьд: worldprimeonline@gmail.com',
+          'World Prime Online',
         ],
       },
     ],
@@ -294,15 +292,15 @@ export const legalDocs: LegalDocs = {
   'personal-data-consent': {
     slug: 'personal-data-consent',
     title: 'Хувийн Мэдээлэл Боловсруулахад Зөвшөөрөл',
-    metaTitle: 'Хувийн Мэдээлэл Боловсруулахад Зөвшөөрөл — [SERVICE NAME]',
+    metaTitle: 'Хувийн Мэдээлэл Боловсруулахад Зөвшөөрөл — World Prime Online',
     metaDescription: 'Хувийн мэдээлэл боловсруулахад зөвшөөрөл олгох тухай мэдээлэл.',
-    effectiveDate: '[Publication date]',
+    effectiveDate: '2026-05-26',
     sections: [
       {
         id: 'intro',
         heading: '1. Танилцуулга',
         body: [
-          'Энэхүү баримт бичиг нь [SOLE PROPRIETOR NAME / COMPANY NAME] (ИНН/ОУБДТ: [IIN/BIN]) хэрэглэгчдийн хувийн мэдээлэл боловсруулахад зөвшөөрлийг зохицуулна.',
+          'Энэхүү баримт бичиг нь World Prime Online () хэрэглэгчдийн хувийн мэдээлэл боловсруулахад зөвшөөрлийг зохицуулна.',
           LP,
         ],
       },
@@ -331,7 +329,7 @@ export const legalDocs: LegalDocs = {
         id: 'withdrawal',
         heading: '4. Зөвшөөрлөө Татах',
         body: [
-          'Та зөвшөөрлөө хүссэн үедээ [Email] хаягаар татаж авч болно.',
+          'Та зөвшөөрлөө хүссэн үедээ worldprimeonline@gmail.com хаягаар татаж авч болно.',
           'Зөвшөөрлийг татах нь өмнө хийгдсэн үйлчилгээний хуулийн үндэслэлд нөлөөлөхгүй.',
         ],
       },
@@ -340,16 +338,15 @@ export const legalDocs: LegalDocs = {
         heading: '5. Эрхүүд',
         body: [
           'Та өөрийн мэдээлэлд нэвтрэх, засах, устгах эрхтэй.',
-          'Эдгээр эрхийг эдлэхийн тулд [Email] хаягаар холбоо барина уу.',
+          'Эдгээр эрхийг эдлэхийн тулд worldprimeonline@gmail.com хаягаар холбоо барина уу.',
         ],
       },
       {
         id: 'contacts',
         heading: '6. Холбоо Барих',
         body: [
-          '[SOLE PROPRIETOR NAME / COMPANY NAME]',
-          'И-мэйл: [Email]',
-          'Хаяг: [Legal address]',
+          'World Prime Online',
+          'И-мэйл: worldprimeonline@gmail.com',
         ],
       },
     ],
@@ -358,15 +355,15 @@ export const legalDocs: LegalDocs = {
   'refund-policy': {
     slug: 'refund-policy',
     title: 'Буцааж Олголтын Бодлого',
-    metaTitle: 'Буцааж Олголтын Бодлого — [SERVICE NAME]',
-    metaDescription: '[SERVICE NAME] үйлчилгээнд төлбөр буцаах нөхцөлүүд.',
-    effectiveDate: '[Publication date]',
+    metaTitle: 'Буцааж Олголтын Бодлого — World Prime Online',
+    metaDescription: 'World Prime Online үйлчилгээнд төлбөр буцаах нөхцөлүүд.',
+    effectiveDate: '2026-05-26',
     sections: [
       {
         id: 'general',
         heading: '1. Ерөнхий Заалтууд',
         body: [
-          'Энэхүү Бодлого нь [SERVICE NAME] платформын үйлчилгээнд төлбөр буцаах болон солих нөхцөлийг тогтооно.',
+          'Энэхүү Бодлого нь World Prime Online платформын үйлчилгээнд төлбөр буцаах болон солих нөхцөлийг тогтооно.',
           LP,
         ],
       },
@@ -395,7 +392,7 @@ export const legalDocs: LegalDocs = {
         id: 'process',
         heading: '4. Буцааж Олголтын Журам',
         body: [
-          '7 (долоо) ажлын хоногийн дотор [Email] хаягаар захиалгын дугаартай хамт хүсэлт гаргах ёстой.',
+          '7 (долоо) ажлын хоногийн дотор worldprimeonline@gmail.com хаягаар захиалгын дугаартай хамт хүсэлт гаргах ёстой.',
           'Хүсэлт гаргасны дараа 5 (тав) ажлын хоногт хянагдана.',
           'Зөвшөөрөгдсөн төлбөрийг 10 (арав) ажлын хоногт анхны аргаар буцаана.',
         ],
@@ -420,8 +417,8 @@ export const legalDocs: LegalDocs = {
         id: 'contacts',
         heading: '7. Холбоо Барих',
         body: [
-          'Буцааж олголтын асуулт: [Email]',
-          '[SOLE PROPRIETOR NAME / COMPANY NAME], [Legal address]',
+          'Буцааж олголтын асуулт: worldprimeonline@gmail.com',
+          'World Prime Online',
         ],
       },
     ],
@@ -430,15 +427,15 @@ export const legalDocs: LegalDocs = {
   disclaimer: {
     slug: 'disclaimer',
     title: 'Хариуцлагаас Татгалзсан Мэдэгдэл',
-    metaTitle: 'Хариуцлагаас Татгалзсан Мэдэгдэл — [SERVICE NAME]',
-    metaDescription: '[SERVICE NAME] үйлчилгээний хязгаарлалт болон эрхүүдийн тухай.',
-    effectiveDate: '[Publication date]',
+    metaTitle: 'Хариуцлагаас Татгалзсан Мэдэгдэл — World Prime Online',
+    metaDescription: 'World Prime Online үйлчилгээний хязгаарлалт болон эрхүүдийн тухай.',
+    effectiveDate: '2026-05-26',
     sections: [
       {
         id: 'general',
         heading: '1. Ерөнхий Байдал',
         body: [
-          '[SERVICE NAME] орчуулга болон нутагшуулалтын үйлчилгээ үзүүлнэ. Энэхүү баримт бичиг нь үйлчилгээний хязгаарлалт болон Гүйцэтгэгчийн хариуцлагаас татгалзсан заалтуудыг тодорхойлно.',
+          'World Prime Online орчуулга болон нутагшуулалтын үйлчилгээ үзүүлнэ. Энэхүү баримт бичиг нь үйлчилгээний хязгаарлалт болон Гүйцэтгэгчийн хариуцлагаас татгалзсан заалтуудыг тодорхойлно.',
           LP,
         ],
       },
@@ -455,7 +452,7 @@ export const legalDocs: LegalDocs = {
         id: 'no-legal-advice',
         heading: '3. Хуулийн Зөвлөгөө Байхгүй',
         body: [
-          '[SERVICE NAME] үйлчилгээний хүрээнд хуулийн, цагаачлалын, татварын зөвлөгөө өгдөггүй.',
+          'World Prime Online үйлчилгээний хүрээнд хуулийн, цагаачлалын, татварын зөвлөгөө өгдөггүй.',
           'Хуулийн асуудлаар мэргэжлийн хуульчдын зөвлөгөөг авах хэрэгтэй.',
         ],
       },
@@ -488,9 +485,9 @@ export const legalDocs: LegalDocs = {
         id: 'contacts',
         heading: '7. Холбоо Барих',
         body: [
-          '[SOLE PROPRIETOR NAME / COMPANY NAME]',
-          'И-мэйл: [Email]',
-          'Вебсайт: [Website domain]',
+          'World Prime Online',
+          'И-мэйл: worldprimeonline@gmail.com',
+          'Вебсайт: https://www.wpotranslations.org/',
         ],
       },
     ],
@@ -499,9 +496,9 @@ export const legalDocs: LegalDocs = {
   terms: {
     slug: 'terms',
     title: 'Үйлчилгээний Нөхцөлүүд',
-    metaTitle: 'Үйлчилгээний Нөхцөлүүд — [SERVICE NAME]',
-    metaDescription: '[SERVICE NAME] платформыг ашиглах дүрмүүд.',
-    effectiveDate: '[Publication date]',
+    metaTitle: 'Үйлчилгээний Нөхцөлүүд — World Prime Online',
+    metaDescription: 'World Prime Online платформыг ашиглах дүрмүүд.',
+    effectiveDate: '2026-05-26',
     sections: [
       {
         id: 'acceptance',
@@ -575,9 +572,9 @@ export const legalDocs: LegalDocs = {
         id: 'contacts',
         heading: '9. Холбоо Барих',
         body: [
-          '[SOLE PROPRIETOR NAME / COMPANY NAME]',
-          'И-мэйл: [Email]',
-          'Вебсайт: [Website domain]',
+          'World Prime Online',
+          'И-мэйл: worldprimeonline@gmail.com',
+          'Вебсайт: https://www.wpotranslations.org/',
         ],
       },
     ],
@@ -586,15 +583,15 @@ export const legalDocs: LegalDocs = {
   partners: {
     slug: 'partners',
     title: 'Хамтын Ажиллагааны Нөхцөлүүд',
-    metaTitle: 'Хамтын Ажиллагааны Нөхцөлүүд — [SERVICE NAME]',
-    metaDescription: '[SERVICE NAME] платформтой хамтран ажиллах нөхцөлүүд.',
-    effectiveDate: '[Publication date]',
+    metaTitle: 'Хамтын Ажиллагааны Нөхцөлүүд — World Prime Online',
+    metaDescription: 'World Prime Online платформтой хамтран ажиллах нөхцөлүүд.',
+    effectiveDate: '2026-05-26',
     sections: [
       {
         id: 'intro',
         heading: '1. Танилцуулга',
         body: [
-          'Энэхүү баримт бичиг нь [SERVICE NAME] платформ болон мэргэжлийн хамтрагч (цаашид — Хамтрагч) хоорондын харилцааг зохицуулна.',
+          'Энэхүү баримт бичиг нь World Prime Online платформ болон мэргэжлийн хамтрагч (цаашид — Хамтрагч) хоорондын харилцааг зохицуулна.',
           LP,
         ],
       },
@@ -663,8 +660,8 @@ export const legalDocs: LegalDocs = {
         id: 'contacts',
         heading: '9. Хамтын Ажиллагааны Асуулт',
         body: [
-          'И-мэйл: [Email]',
-          '[SOLE PROPRIETOR NAME / COMPANY NAME], [Legal address]',
+          'И-мэйл: worldprimeonline@gmail.com',
+          'World Prime Online',
         ],
       },
     ],

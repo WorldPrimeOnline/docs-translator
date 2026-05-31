@@ -9,14 +9,14 @@ export const legalDocs: LegalDocs = {
     title: 'Public Offer Agreement',
     metaTitle: 'Public Offer — WPO Translations',
     metaDescription: 'Public Offer Agreement for translation services provided by WPO Translations. Service levels, pricing, payment, and cancellation terms.',
-    effectiveDate: '[Publication date]',
+    effectiveDate: '2026-05-26',
     sections: [
       {
         id: 'provider',
         heading: '1. Provider Details',
         body: [
-          'This Public Offer Agreement (hereinafter "Agreement") is published by [SERVICE NAME], operated by [SOLE PROPRIETOR NAME / COMPANY NAME], registration number [IIN/BIN], registered address: [Legal address] (hereinafter "Provider").',
-          'Contact information: [Email], [Phone]. Website: [Website domain]. Publication date: [Publication date].',
+          'This Public Offer Agreement (hereinafter "Agreement") is published by World Prime Online (hereinafter "Provider").',
+          'Contact information: worldprimeonline@gmail.com. Website: https://www.wpotranslations.org/. Publication date: 2026-05-26.',
           'This Agreement constitutes a public offer under applicable law. By placing an order on the Platform, the Customer accepts all terms of this Agreement in full.',
         ],
       },
@@ -29,7 +29,7 @@ export const legalDocs: LegalDocs = {
           '• "Electronic Translation" — a translation delivered in electronic format without translator signature, Provider stamp, or notarization, unless otherwise selected by the Customer.',
           '• "Official Translation" — a translation reviewed by a human translator, containing the translator\'s signature and Provider stamp, available as a separately selected and paid option.',
           '• "Notarization" — a certification process arranged with a qualified translator and/or partner notary where such a service is available. Notarization is not automatic and is arranged separately.',
-          '• "Platform" — the website and services accessible at [Website domain].',
+          '• "Platform" — the website and services accessible at https://www.wpotranslations.org/.',
           '• "Order" — a request for a translation submitted by the Customer through the Platform.',
           '• "Translated Document" — the output PDF file delivered to the Customer upon completion of the Service.',
         ],
@@ -106,7 +106,7 @@ export const legalDocs: LegalDocs = {
         heading: '10. Fiscal Receipts',
         body: [
           'Where required by applicable law, the Provider issues fiscal receipts or equivalent payment confirmations for completed payments.',
-          'Customers may request a copy of their payment confirmation through the Platform account or by contacting the Provider at [Email].',
+          'Customers may request a copy of their payment confirmation through the Platform account or by contacting the Provider at worldprimeonline@gmail.com.',
         ],
       },
       {
@@ -169,7 +169,7 @@ export const legalDocs: LegalDocs = {
         id: 'personal-data',
         heading: '17. Personal Data',
         body: [
-          'The Provider processes personal data of the Customer in accordance with the Privacy Policy published at [Website domain]/legal/privacy.',
+          'The Provider processes personal data of the Customer in accordance with the Privacy Policy published at https://www.wpotranslations.org/legal/privacy.',
           'By accepting this Agreement, the Customer consents to the processing of their personal data for the purposes of providing the Service, processing payments, and communicating about the order.',
         ],
       },
@@ -178,7 +178,7 @@ export const legalDocs: LegalDocs = {
         heading: '18. Document Storage and Deletion',
         body: [
           'Uploaded documents and Translated Documents are stored on the Provider\'s servers for a maximum of 30 days from the date of translation completion.',
-          'After 30 days, all files are automatically and permanently deleted. The Customer may request earlier deletion through the Platform account settings or by contacting [Email].',
+          'After 30 days, all files are automatically and permanently deleted. The Customer may request earlier deletion through the Platform account settings or by contacting worldprimeonline@gmail.com.',
         ],
       },
       {
@@ -190,7 +190,7 @@ export const legalDocs: LegalDocs = {
         id: 'disputes',
         heading: '20. Dispute Resolution',
         body: [
-          'Any dispute arising from or related to this Agreement shall first be subject to pre-trial resolution. The Customer shall submit a written claim to the Provider at [Email]. The Provider shall respond within 30 calendar days.',
+          'Any dispute arising from or related to this Agreement shall first be subject to pre-trial resolution. The Customer shall submit a written claim to the Provider at worldprimeonline@gmail.com. The Provider shall respond within 30 calendar days.',
           'If the dispute cannot be resolved amicably, it shall be submitted to the competent court at the Provider\'s registered address, in accordance with applicable law.',
         ],
       },
@@ -198,11 +198,9 @@ export const legalDocs: LegalDocs = {
         id: 'contact',
         heading: '21. Contact Details',
         body: [
-          'Provider: [SERVICE NAME], operated by [SOLE PROPRIETOR NAME / COMPANY NAME]',
-          'Address: [Legal address]',
-          'Email: [Email]',
-          'Phone: [Phone]',
-          'Website: [Website domain]',
+          'Provider: World Prime Online',
+          'Email: worldprimeonline@gmail.com',
+          'Website: https://www.wpotranslations.org/',
         ],
       },
     ],
@@ -213,14 +211,14 @@ export const legalDocs: LegalDocs = {
     title: 'Privacy Policy',
     metaTitle: 'Privacy Policy — WPO Translations',
     metaDescription: 'How WPO Translations collects, processes, stores, and protects your personal data. Data retention, deletion, and your rights.',
-    effectiveDate: '[Publication date]',
+    effectiveDate: '2026-05-26',
     sections: [
       {
         id: 'controller',
         heading: '1. Data Controller',
         body: [
-          'This Privacy Policy describes how [SERVICE NAME], operated by [SOLE PROPRIETOR NAME / COMPANY NAME] ([IIN/BIN]), [Legal address] (hereinafter "Provider") processes personal data when you use the Platform at [Website domain].',
-          'Contact for privacy matters: [Email].',
+          'This Privacy Policy describes how World Prime Online (hereinafter "Provider") processes personal data when you use the Platform at https://www.wpotranslations.org/.',
+          'Contact for privacy matters: worldprimeonline@gmail.com.',
         ],
       },
       {
@@ -270,7 +268,7 @@ export const legalDocs: LegalDocs = {
         id: 'deletion',
         heading: '6. Deletion Request',
         body: [
-          'The Customer may request immediate deletion of their uploaded files before the 30-day retention period expires. Deletion requests can be submitted through the Platform account settings or by contacting [Email].',
+          'The Customer may request immediate deletion of their uploaded files before the 30-day retention period expires. Deletion requests can be submitted through the Platform account settings or by contacting worldprimeonline@gmail.com.',
           'Account deletion requests will result in the permanent deletion of all personal data associated with the account, subject to mandatory retention obligations.',
         ],
       },
@@ -313,7 +311,7 @@ export const legalDocs: LegalDocs = {
           '• Request deletion of personal data (subject to legal retention obligations).',
           '• Object to or restrict processing in certain circumstances.',
           '• Withdraw consent at any time without affecting the lawfulness of prior processing.',
-          'To exercise these rights, contact the Provider at [Email]. Requests will be addressed within 30 calendar days.',
+          'To exercise these rights, contact the Provider at worldprimeonline@gmail.com. Requests will be addressed within 30 calendar days.',
         ],
       },
       {
@@ -339,8 +337,8 @@ export const legalDocs: LegalDocs = {
         id: 'contact',
         heading: '14. Contact',
         body: [
-          'For privacy-related questions: [Email]',
-          'Provider: [SERVICE NAME], [Legal address]',
+          'For privacy-related questions: worldprimeonline@gmail.com',
+          'Provider: World Prime Online',
         ],
       },
     ],
@@ -351,13 +349,13 @@ export const legalDocs: LegalDocs = {
     title: 'Personal Data Processing Consent',
     metaTitle: 'Personal Data Consent — WPO Translations',
     metaDescription: 'Consent to the processing of personal data when using WPO Translations services.',
-    effectiveDate: '[Publication date]',
+    effectiveDate: '2026-05-26',
     sections: [
       {
         id: 'intro',
         heading: '1. Who This Consent Applies To',
         body: [
-          'This document describes the consent provided by the Customer to [SERVICE NAME], operated by [SOLE PROPRIETOR NAME / COMPANY NAME] ([IIN/BIN]), [Legal address] (hereinafter "Provider"), for the processing of personal data in connection with the use of the document translation service at [Website domain].',
+          'This document describes the consent provided by the Customer to World Prime Online (hereinafter "Provider"), for the processing of personal data in connection with the use of the document translation service at https://www.wpotranslations.org/.',
         ],
       },
       {
@@ -399,14 +397,14 @@ export const legalDocs: LegalDocs = {
         body: [
           'Uploaded source documents and translated files are automatically and permanently deleted 30 days after translation completion.',
           'Account data is retained until account deletion is requested.',
-          'The Customer may request earlier deletion at any time via the Platform account settings or by contacting [Email].',
+          'The Customer may request earlier deletion at any time via the Platform account settings or by contacting worldprimeonline@gmail.com.',
         ],
       },
       {
         id: 'withdrawal',
         heading: '6. Withdrawal of Consent',
         body: [
-          'The Customer may withdraw consent at any time by deleting their account or contacting the Provider at [Email]. Withdrawal of consent does not affect the lawfulness of processing carried out before the withdrawal.',
+          'The Customer may withdraw consent at any time by deleting their account or contacting the Provider at worldprimeonline@gmail.com. Withdrawal of consent does not affect the lawfulness of processing carried out before the withdrawal.',
           'Withdrawal of consent may prevent the Customer from using certain features of the Service.',
         ],
       },
@@ -423,14 +421,14 @@ export const legalDocs: LegalDocs = {
     title: 'Cancellation, Refund and Reprocessing Policy',
     metaTitle: 'Refund Policy — WPO Translations',
     metaDescription: 'WPO Translations refund, cancellation, and reprocessing rules. When refunds are available and how to request them.',
-    effectiveDate: '[Publication date]',
+    effectiveDate: '2026-05-26',
     sections: [
       {
         id: 'before-processing',
         heading: '1. Cancellation Before Processing Begins',
         body: [
           'The Customer may cancel an order and receive a full refund if the cancellation request is submitted before the Provider begins processing the uploaded document.',
-          'To cancel, the Customer should contact the Provider at [Email] as soon as possible after placing the order.',
+          'To cancel, the Customer should contact the Provider at worldprimeonline@gmail.com as soon as possible after placing the order.',
         ],
       },
       {
@@ -448,7 +446,7 @@ export const legalDocs: LegalDocs = {
         heading: '3. Reprocessing for Technical Errors',
         body: [
           'If the Translated Document is delivered but is demonstrably incomplete or severely corrupted due to a technical error attributable to the Provider, the Customer is entitled to reprocessing at no additional charge.',
-          'Reprocessing requests must be submitted within 7 days of document delivery by contacting [Email] with a description of the issue and the order reference.',
+          'Reprocessing requests must be submitted within 7 days of document delivery by contacting worldprimeonline@gmail.com with a description of the issue and the order reference.',
         ],
       },
       {
@@ -481,7 +479,7 @@ export const legalDocs: LegalDocs = {
         body: [
           'Approved refunds are processed through the same payment method used for the original transaction.',
           'Refunds are typically processed within 10 business days of approval. Processing time may vary depending on the payment provider.',
-          'To request a refund, contact [Email] with the order reference and a description of the issue.',
+          'To request a refund, contact worldprimeonline@gmail.com with the order reference and a description of the issue.',
         ],
       },
       {
@@ -497,7 +495,7 @@ export const legalDocs: LegalDocs = {
     title: 'Translation Status Disclaimer',
     metaTitle: 'Disclaimer — WPO Translations',
     metaDescription: 'Important disclaimer regarding the status and limitations of translations provided by WPO Translations.',
-    effectiveDate: '[Publication date]',
+    effectiveDate: '2026-05-26',
     sections: [
       {
         id: 'no-guarantee',
@@ -559,13 +557,13 @@ export const legalDocs: LegalDocs = {
     title: 'Website Terms of Use',
     metaTitle: 'Terms of Use — WPO Translations',
     metaDescription: 'Terms governing use of the WPO Translations website and platform.',
-    effectiveDate: '[Publication date]',
+    effectiveDate: '2026-05-26',
     sections: [
       {
         id: 'acceptance',
         heading: '1. Acceptance of Terms',
         body: [
-          'By accessing or using the Platform at [Website domain], you agree to be bound by these Website Terms of Use. If you do not agree, please do not use the Platform.',
+          'By accessing or using the Platform at https://www.wpotranslations.org/, you agree to be bound by these Website Terms of Use. If you do not agree, please do not use the Platform.',
           'These Terms apply to all visitors, registered users, and Customers.',
         ],
       },
@@ -605,7 +603,7 @@ export const legalDocs: LegalDocs = {
         heading: '5. Account Responsibility',
         body: [
           'The Customer is responsible for maintaining the confidentiality of their account credentials and for all activities that occur under their account.',
-          'The Customer must notify the Provider at [Email] immediately upon becoming aware of any unauthorized use of their account.',
+          'The Customer must notify the Provider at worldprimeonline@gmail.com immediately upon becoming aware of any unauthorized use of their account.',
           'The Provider reserves the right to suspend or terminate accounts that violate these Terms.',
         ],
       },
@@ -642,8 +640,8 @@ export const legalDocs: LegalDocs = {
         id: 'contact',
         heading: '10. Contact',
         body: [
-          'For questions about these Terms: [Email]',
-          'Provider: [SERVICE NAME], [Legal address]',
+          'For questions about these Terms: worldprimeonline@gmail.com',
+          'Provider: World Prime Online',
         ],
       },
     ],
@@ -654,13 +652,13 @@ export const legalDocs: LegalDocs = {
     title: 'Partner Terms',
     metaTitle: 'Partner Terms — WPO Translations',
     metaDescription: 'Terms for translators, notaries, agents, and referral partners working with WPO Translations.',
-    effectiveDate: '[Publication date]',
+    effectiveDate: '2026-05-26',
     sections: [
       {
         id: 'intro',
         heading: '1. Scope and Partner Definition',
         body: [
-          'These Partner Terms apply to any individual or entity who has entered into a separate partner agreement with [SERVICE NAME], operated by [SOLE PROPRIETOR NAME / COMPANY NAME] ([IIN/BIN]), [Legal address] (hereinafter "Provider").',
+          'These Partner Terms apply to any individual or entity who has entered into a separate partner agreement with World Prime Online (hereinafter "Provider").',
           '"Partner" includes certified translators, notaries, referral agents, immigration consultants, educational consultants, and other service providers who collaborate with the Provider under a written partner arrangement.',
         ],
       },
@@ -687,7 +685,7 @@ export const legalDocs: LegalDocs = {
         heading: '4. Referral Commission and Commercial Terms',
         body: [
           'Referral commission rates and commercial terms are set out in the individual partner agreement signed between the Partner and the Provider.',
-          'Commission terms: [Commission rate / referral terms placeholder — to be defined in individual agreement].',
+          'Commission terms: to be defined in the individual partner agreement.',
           'Payment of commissions is subject to the terms of the individual agreement and applicable law.',
         ],
       },
@@ -727,8 +725,8 @@ export const legalDocs: LegalDocs = {
         id: 'contact',
         heading: '9. Contact for Partner Inquiries',
         body: [
-          'For partnership inquiries and existing partner matters: [Email]',
-          'Provider: [SERVICE NAME], [Legal address]',
+          'For partnership inquiries and existing partner matters: worldprimeonline@gmail.com',
+          'Provider: World Prime Online',
         ],
       },
     ],
