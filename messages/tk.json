@@ -158,8 +158,8 @@
   },
   "dashboard": {
     "newTranslation": "Täze terjime",
-    "dropzone": "PDF-i şu ýere sürüň ýa-da görmek üçin basyň",
-    "dropzoneHint": "Diňe PDF · Maks 25 MB · Maks 50 sahypa",
+    "dropzone": "Faýllary goýuň ýa-da basyň",
+    "dropzoneHint": "PDF, DOCX, JPG, PNG · jemi 50 MB çenli",
     "sourceLanguage": "ÇEŞME DİL",
     "targetLanguage": "MAKSAT DİL",
     "documentType": "RESMINAMA GÖRNÜŞI",
@@ -228,7 +228,10 @@
     "outputFormat": "Faýl formaty",
     "formatPdf": "PDF",
     "formatHtml": "HTML",
-    "formatDocx": "Word (DOCX)"
+    "formatDocx": "Word (DOCX)",
+    "fileCount1": "faýl",
+    "fileCountN": "faýl",
+    "addMoreFiles": "Goşmak"
   },
   "auth": {
     "login": "Giriş",

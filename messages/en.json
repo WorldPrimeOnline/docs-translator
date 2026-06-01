@@ -158,8 +158,8 @@
   },
   "dashboard": {
     "newTranslation": "New Translation",
-    "dropzone": "Drop your PDF here, or click to browse",
-    "dropzoneHint": "PDF only · Max 25 MB · Max 50 pages",
+    "dropzone": "Drop files here or click to browse",
+    "dropzoneHint": "PDF, DOCX, JPG, PNG · up to 50 MB total",
     "sourceLanguage": "SOURCE LANGUAGE",
     "targetLanguage": "TARGET LANGUAGE",
     "documentType": "DOCUMENT TYPE",
@@ -228,7 +228,10 @@
     "outputFormat": "Output format",
     "formatPdf": "PDF",
     "formatHtml": "HTML",
-    "formatDocx": "Word (DOCX)"
+    "formatDocx": "Word (DOCX)",
+    "fileCount1": "file",
+    "fileCountN": "files",
+    "addMoreFiles": "Add more files"
   },
   "auth": {
     "login": "Sign in",

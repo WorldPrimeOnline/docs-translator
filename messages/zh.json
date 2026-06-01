@@ -158,8 +158,8 @@
   },
   "dashboard": {
     "newTranslation": "新建翻译",
-    "dropzone": "将 PDF 拖放至此处，或点击浏览",
-    "dropzoneHint": "仅支持 PDF · 最大 25 MB · 最多 50 页",
+    "dropzone": "拖放文件或点击浏览",
+    "dropzoneHint": "PDF、DOCX、JPG、PNG · 总计不超过 50 MB",
     "sourceLanguage": "源语言",
     "targetLanguage": "目标语言",
     "documentType": "文件类型",
@@ -228,7 +228,10 @@
     "outputFormat": "输出格式",
     "formatPdf": "PDF",
     "formatHtml": "HTML",
-    "formatDocx": "Word (DOCX)"
+    "formatDocx": "Word (DOCX)",
+    "fileCount1": "个文件",
+    "fileCountN": "个文件",
+    "addMoreFiles": "添加更多"
   },
   "auth": {
     "login": "登录",

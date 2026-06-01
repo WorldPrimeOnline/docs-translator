@@ -158,8 +158,8 @@
   },
   "dashboard": {
     "newTranslation": "Новый перевод",
-    "dropzone": "Перетащите PDF сюда или нажмите для выбора",
-    "dropzoneHint": "Только PDF · Макс. 25 МБ · Макс. 50 страниц",
+    "dropzone": "Перетащите файлы или нажмите для выбора",
+    "dropzoneHint": "PDF, DOCX, JPG, PNG · до 50 МБ суммарно",
     "sourceLanguage": "ИСХОДНЫЙ ЯЗЫК",
     "targetLanguage": "ЯЗЫК ПЕРЕВОДА",
     "documentType": "ТИП ДОКУМЕНТА",
@@ -228,7 +228,10 @@
     "outputFormat": "Формат файла",
     "formatPdf": "PDF",
     "formatHtml": "HTML",
-    "formatDocx": "Word (DOCX)"
+    "formatDocx": "Word (DOCX)",
+    "fileCount1": "файл",
+    "fileCountN": "файлов",
+    "addMoreFiles": "Добавить ещё"
   },
   "auth": {
     "login": "Войти",

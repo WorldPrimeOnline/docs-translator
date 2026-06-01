@@ -158,8 +158,8 @@
   },
   "dashboard": {
     "newTranslation": "새 번역",
-    "dropzone": "PDF를 여기에 놓거나 클릭하여 탐색",
-    "dropzoneHint": "PDF만 가능 · 최대 25 MB · 최대 50페이지",
+    "dropzone": "파일을 끌어다 놓거나 클릭하여 선택",
+    "dropzoneHint": "PDF, DOCX, JPG, PNG · 총 50 MB 이하",
     "sourceLanguage": "원본 언어",
     "targetLanguage": "번역 언어",
     "documentType": "문서 유형",
@@ -228,7 +228,10 @@
     "outputFormat": "출력 형식",
     "formatPdf": "PDF",
     "formatHtml": "HTML",
-    "formatDocx": "Word (DOCX)"
+    "formatDocx": "Word (DOCX)",
+    "fileCount1": "파일",
+    "fileCountN": "파일",
+    "addMoreFiles": "파일 추가"
   },
   "auth": {
     "login": "로그인",

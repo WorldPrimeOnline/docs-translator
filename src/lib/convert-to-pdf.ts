@@ -2,6 +2,17 @@ import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import sharp from 'sharp';
 import mammoth from 'mammoth';
 
+export async function mergePdfs(pdfBuffers: Buffer[]): Promise<Buffer> {
+  if (pdfBuffers.length === 1) return pdfBuffers[0]!;
+  const merged = await PDFDocument.create();
+  for (const buf of pdfBuffers) {
+    const doc = await PDFDocument.load(buf, { ignoreEncryption: true });
+    const pages = await merged.copyPages(doc, doc.getPageIndices());
+    pages.forEach((p) => merged.addPage(p));
+  }
+  return Buffer.from(await merged.save());
+}
+
 export async function convertToPdf(buffer: Buffer, mimeType: string): Promise<Buffer> {
   if (mimeType === 'application/pdf') return buffer;
 

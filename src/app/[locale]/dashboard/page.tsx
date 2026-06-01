@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { toast } from 'sonner';
-import { Upload, FileText, Download, AlertCircle, Loader2, Zap, Star } from 'lucide-react';
+import { Upload, FileText, FileImage, FileCode2, Download, AlertCircle, Loader2, Zap, Star, X } from 'lucide-react';
 import { SubscriptionModal } from '@/components/subscription-modal';
 import { createClient } from '@/lib/supabase/client';
 import { Link } from '@/i18n/navigation';
@@ -228,7 +228,7 @@ export default function DashboardPage() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [sourceLang, setSourceLang] = useState('auto');
   const [targetLang, setTargetLang] = useState('en');
@@ -321,13 +321,47 @@ export default function DashboardPage() {
     router.refresh();
   };
 
+  const ACCEPTED_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+  const ACCEPTED_EXT = ['.pdf', '.jpg', '.jpeg', '.png', '.docx'];
+
+  function isAccepted(f: File): boolean {
+    if (ACCEPTED_TYPES.includes(f.type)) return true;
+    const ext = '.' + (f.name.split('.').pop() ?? '').toLowerCase();
+    return ACCEPTED_EXT.includes(ext);
+  }
+
+  function addFiles(incoming: File[]) {
+    const accepted = incoming.filter(isAccepted);
+    const rejected = incoming.filter((f) => !isAccepted(f));
+    if (rejected.length > 0) toast.error(`Unsupported file type: ${rejected.map((f) => f.name).join(', ')}`);
+    if (accepted.length > 0) setFiles((prev) => [...prev, ...accepted]);
+  }
+
+  function removeFile(idx: number) {
+    setFiles((prev) => prev.filter((_, i) => i !== idx));
+  }
+
+  function formatBytes(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+  }
+
+  function fileIcon(f: File) {
+    if (f.type === 'application/pdf') return <FileText className="h-4 w-4 shrink-0 text-red-400" />;
+    if (f.type.startsWith('image/')) return <FileImage className="h-4 w-4 shrink-0 text-blue-400" />;
+    return <FileCode2 className="h-4 w-4 shrink-0 text-green-400" />;
+  }
+
+  const totalSize = files.reduce((s, f) => s + f.size, 0);
+
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
-    if (!file) { toast.error('Please select a PDF file'); return; }
+    if (files.length === 0) { toast.error('Please select at least one file'); return; }
 
     setUploading(true);
     const form = new FormData();
-    form.append('file', file);
+    for (const f of files) form.append('file', f);
     form.append('sourceLang', sourceLang);
     form.append('targetLang', targetLang);
     form.append('documentType', `${documentType}|${outputFormat}`);
@@ -350,16 +384,17 @@ export default function DashboardPage() {
     }
 
     setUploading(false);
-    setFile(null);
+    setFiles([]);
 
     if (data.paidViaSubscription) {
+      const firstName = files[0]?.name ?? 'document';
       setActiveJob({
         jobId: data.jobId,
         documentId: data.documentId,
         status: 'queued',
         progress: 0,
         errorMessage: null,
-        filename: file.name,
+        filename: files.length === 1 ? firstName : `${files.length} files`,
         paidViaSubscription: true,
         subscriptionPlan: data.subscriptionPlan,
         remainingDocs: data.remainingDocs,
@@ -375,12 +410,7 @@ export default function DashboardPage() {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    const dropped = e.dataTransfer.files[0];
-    if (dropped?.type === 'application/pdf') {
-      setFile(dropped);
-    } else {
-      toast.error('Please drop a PDF file');
-    }
+    addFiles(Array.from(e.dataTransfer.files));
   };
 
   const selectClass = 'rounded-md border border-white/10 bg-input px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring transition-colors hover:border-white/20';
@@ -422,11 +452,11 @@ export default function DashboardPage() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           {/* Drag-drop zone */}
           <div
-            className={`relative flex flex-col items-center justify-center rounded-lg border-2 border-dashed px-6 py-10 text-center transition-[border-color,background-color] duration-150 cursor-pointer ${
+            className={`relative flex flex-col items-center justify-center rounded-lg border-2 border-dashed px-6 py-8 text-center transition-[border-color,background-color] duration-150 cursor-pointer ${
               isDragging
                 ? 'border-primary/70 bg-[rgba(201,168,76,0.05)]'
-                : file
-                  ? 'border-primary/40 bg-primary/5'
+                : files.length > 0
+                  ? 'border-primary/30 bg-primary/[0.03]'
                   : 'border-white/15 hover:border-white/25 hover:bg-white/[0.03]'
             }`}
             onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
@@ -437,26 +467,47 @@ export default function DashboardPage() {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".pdf,application/pdf"
+              accept=".pdf,.jpg,.jpeg,.png,.docx,application/pdf,image/jpeg,image/png,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              multiple
               className="sr-only"
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              onChange={(e) => { if (e.target.files) addFiles(Array.from(e.target.files)); e.target.value = ''; }}
             />
-            {file ? (
-              <>
-                <FileText className="mb-2 h-8 w-8 text-primary" />
-                <p className="text-sm font-medium text-foreground">{file.name}</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {(file.size / 1024 / 1024).toFixed(2)} MB — click to change
-                </p>
-              </>
-            ) : (
-              <>
-                <Upload className="mb-3 h-8 w-8 text-muted-foreground" />
-                <p className="text-sm font-medium text-foreground">{t('dropzone')}</p>
-                <p className="mt-1 text-xs text-muted-foreground">{t('dropzoneHint')}</p>
-              </>
-            )}
+            <Upload className="mb-2 h-7 w-7 text-muted-foreground" />
+            <p className="text-sm font-medium text-foreground">{t('dropzone')}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{t('dropzoneHint')}</p>
           </div>
+
+          {/* File list */}
+          {files.length > 0 && (
+            <div className="rounded-md border border-white/10 bg-white/[0.02] overflow-hidden">
+              {files.map((f, i) => (
+                <div key={i} className="flex items-center gap-3 px-3 py-2 border-b border-white/5 last:border-b-0">
+                  {fileIcon(f)}
+                  <span className="flex-1 truncate text-xs text-foreground">{f.name}</span>
+                  <span className="shrink-0 text-xs text-muted-foreground">{formatBytes(f.size)}</span>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); removeFile(i); }}
+                    className="shrink-0 rounded p-0.5 text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+              <div className="flex items-center justify-between px-3 py-2 bg-white/[0.02] border-t border-white/5">
+                <span className="text-xs text-muted-foreground">
+                  {files.length} {files.length === 1 ? t('fileCount1') : t('fileCountN')} · {formatBytes(totalSize)}
+                </span>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+                  className="text-xs text-primary hover:opacity-80 transition-opacity"
+                >
+                  + {t('addMoreFiles')}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Selects */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -619,7 +670,7 @@ export default function DashboardPage() {
 
           <button
             type="submit"
-            disabled={uploading || !file || !consentChecked}
+            disabled={uploading || files.length === 0 || !consentChecked}
             className="inline-flex w-fit items-center justify-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-gold-dark disabled:pointer-events-none disabled:opacity-50"
           >
             {uploading ? (

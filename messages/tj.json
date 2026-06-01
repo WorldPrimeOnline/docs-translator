@@ -158,8 +158,8 @@
   },
   "dashboard": {
     "newTranslation": "Тарҷумаи нав",
-    "dropzone": "PDF-и худро ин ҷо гузоред ё барои интихоб клик кунед",
-    "dropzoneHint": "Танҳо PDF · Ҳадди аксар 25 МБ · Ҳадди аксар 50 саҳифа",
+    "dropzone": "Файлҳоро партоед ё клик кунед",
+    "dropzoneHint": "PDF, DOCX, JPG, PNG · то 50 МБ",
     "sourceLanguage": "ЗАБОНИ МАНБАЪ",
     "targetLanguage": "ЗАБОНИ ТАРҶУМА",
     "documentType": "НАМУДИ ҲУҶҶАТ",
@@ -228,7 +228,10 @@
     "outputFormat": "Формати файл",
     "formatPdf": "PDF",
     "formatHtml": "HTML",
-    "formatDocx": "Word (DOCX)"
+    "formatDocx": "Word (DOCX)",
+    "fileCount1": "файл",
+    "fileCountN": "файл",
+    "addMoreFiles": "Илова кардан"
   },
   "auth": {
     "login": "Воридшавӣ",

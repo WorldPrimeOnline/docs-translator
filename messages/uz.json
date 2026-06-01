@@ -158,8 +158,8 @@
   },
   "dashboard": {
     "newTranslation": "Yangi tarjima",
-    "dropzone": "PDF ni shu yerga tashlang yoki ko'rish uchun bosing",
-    "dropzoneHint": "Faqat PDF · Maks 25 MB · Maks 50 sahifa",
+    "dropzone": "Fayllarni tashlang yoki bosing",
+    "dropzoneHint": "PDF, DOCX, JPG, PNG · jami 50 MB gacha",
     "sourceLanguage": "MANBA TIL",
     "targetLanguage": "MAQSAD TIL",
     "documentType": "HUJJAT TURI",
@@ -228,7 +228,10 @@
     "outputFormat": "Fayl formati",
     "formatPdf": "PDF",
     "formatHtml": "HTML",
-    "formatDocx": "Word (DOCX)"
+    "formatDocx": "Word (DOCX)",
+    "fileCount1": "fayl",
+    "fileCountN": "fayl",
+    "addMoreFiles": "Ko'proq qo'shish"
   },
   "auth": {
     "login": "Kirish",

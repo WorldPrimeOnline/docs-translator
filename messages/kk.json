@@ -158,8 +158,8 @@
   },
   "dashboard": {
     "newTranslation": "Жаңа аударма",
-    "dropzone": "PDF-ті осюда тастаңыз немесе шолу үшін басыңыз",
-    "dropzoneHint": "Тек PDF · Макс. 25 МБ · Макс. 50 бет",
+    "dropzone": "Файлдарды жүктеңіз немесе шертіңіз",
+    "dropzoneHint": "PDF, DOCX, JPG, PNG · барлығы 50 МБ-қа дейін",
     "sourceLanguage": "БАСТАПҚЫ ТІЛ",
     "targetLanguage": "АУДАРМА ТІЛІ",
     "documentType": "ҚҰЖАТ ТҮРІ",
@@ -228,7 +228,10 @@
     "outputFormat": "Шығыс форматы",
     "formatPdf": "PDF",
     "formatHtml": "HTML",
-    "formatDocx": "Word (DOCX)"
+    "formatDocx": "Word (DOCX)",
+    "fileCount1": "файл",
+    "fileCountN": "файл",
+    "addMoreFiles": "Қосу"
   },
   "auth": {
     "login": "Кіру",

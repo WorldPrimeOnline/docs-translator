@@ -158,8 +158,8 @@
   },
   "dashboard": {
     "newTranslation": "Жаңы котормо",
-    "dropzone": "PDF ды бул жерге сүйрөңүз же кароо үчүн басыңыз",
-    "dropzoneHint": "PDF гана · Максималдуу 25 МБ · Максималдуу 50 барак",
+    "dropzone": "Файлдарды таштаңыз же басыңыз",
+    "dropzoneHint": "PDF, DOCX, JPG, PNG · жалпы 50 МБ чейин",
     "sourceLanguage": "БУЛАК ТИЛ",
     "targetLanguage": "МАКСАТ ТИЛ",
     "documentType": "ДОКУМЕНТ ТҮРҮ",
@@ -228,7 +228,10 @@
     "outputFormat": "Файл форматы",
     "formatPdf": "PDF",
     "formatHtml": "HTML",
-    "formatDocx": "Word (DOCX)"
+    "formatDocx": "Word (DOCX)",
+    "fileCount1": "файл",
+    "fileCountN": "файл",
+    "addMoreFiles": "Кошуу"
   },
   "auth": {
     "login": "Кирүү",

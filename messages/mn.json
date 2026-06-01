@@ -158,8 +158,8 @@
   },
   "dashboard": {
     "newTranslation": "Шинэ орчуулга",
-    "dropzone": "PDF-ийг энд чирэх эсвэл үзэхийн тулд дарах",
-    "dropzoneHint": "Зөвхөн PDF · Хамгийн ихдээ 25 МБ · Хамгийн ихдээ 50 хуудас",
+    "dropzone": "Файл оруулах эсвэл дарна уу",
+    "dropzoneHint": "PDF, DOCX, JPG, PNG · нийт 50 МБ хүртэл",
     "sourceLanguage": "ЭХ ХЭЛ",
     "targetLanguage": "ЗОРИЛТОТ ХЭЛ",
     "documentType": "БАРИМТ БИЧГИЙН ТӨРӨЛ",
@@ -228,7 +228,10 @@
     "outputFormat": "Файлын формат",
     "formatPdf": "PDF",
     "formatHtml": "HTML",
-    "formatDocx": "Word (DOCX)"
+    "formatDocx": "Word (DOCX)",
+    "fileCount1": "файл",
+    "fileCountN": "файл",
+    "addMoreFiles": "Нэмэх"
   },
   "auth": {
     "login": "Нэвтрэх",
