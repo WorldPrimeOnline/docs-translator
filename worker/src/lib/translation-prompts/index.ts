@@ -1,10 +1,11 @@
 import { buildBasePrompt } from './base';
 import { DOCUMENT_TYPE_PROMPTS } from './document-prompts';
 import { DOCUMENT_TYPE } from './types';
-import type { DocumentType, TranslationPromptParams, TranslationPromptResult } from './types';
+import type { DocumentType, OutputMode, TranslationPromptParams, TranslationPromptResult } from './types';
 
 export type { DocumentType, OutputMode, ServiceLevel, TranslationPromptParams, TranslationPromptResult } from './types';
 export { DOCUMENT_TYPE } from './types';
+export { OFFICIAL_VISUAL_ELEMENT_POLICY } from './base';
 
 const LEGACY_KEY_MAP: Record<string, DocumentType> = {
   passport: DOCUMENT_TYPE.passport_id,
@@ -21,16 +22,12 @@ export function normalizeDocumentType(raw: string): DocumentType {
 }
 
 export function buildTranslationPrompt(params: TranslationPromptParams): TranslationPromptResult {
-  const {
-    sourceLanguage,
-    targetLanguage,
-    documentType,
-    outputMode = documentType === DOCUMENT_TYPE.presentation
-      ? 'presentation_translation'
-      : 'clean_official_translation',
-  } = params;
+  const { sourceLanguage, targetLanguage, documentType } = params;
 
-  const basePrompt = buildBasePrompt(sourceLanguage, targetLanguage);
+  const outputMode: OutputMode = params.outputMode ??
+    (documentType === DOCUMENT_TYPE.presentation ? 'presentation_translation' : 'clean_official_translation');
+
+  const basePrompt = buildBasePrompt(sourceLanguage, targetLanguage, documentType, outputMode);
   const docExtension = DOCUMENT_TYPE_PROMPTS[documentType];
   const systemPrompt = `${basePrompt}\n\n---\n\n${docExtension}`;
 

@@ -17,6 +17,7 @@ export type DocumentType = (typeof DOCUMENT_TYPE)[keyof typeof DOCUMENT_TYPE];
 export type OutputMode =
   | 'clean_official_translation'
   | 'mirror_layout_translation'
+  | 'notarization_package'
   | 'presentation_translation';
 
 export type ServiceLevel =
