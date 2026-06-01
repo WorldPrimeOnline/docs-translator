@@ -245,7 +245,9 @@
     "resetPasswordBtn": "Нууц үг шинэчлэх",
     "resetPasswordSuccess": "Нууц үг шинэчлэгдлээ. Та одоо нэвтрэх боломжтой.",
     "newPassword": "Шинэ нууц үг",
-    "backToLogin": "Нэвтрэх хуудас руу буцах"
+    "backToLogin": "Нэвтрэх хуудас руу буцах",
+    "googleLogin": "Google-ээр үргэлжлүүлэх",
+    "orDivider": "эсвэл"
   },
   "disclaimer": "АЛБАН БУС ОРЧУУЛГА — ЗӨВХӨН МЭДЭЭЛЛИЙН ЗОРИУЛАЛТТАЙ",
   "documentsHub": {

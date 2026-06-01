@@ -245,7 +245,9 @@
     "resetPasswordBtn": "비밀번호 업데이트",
     "resetPasswordSuccess": "비밀번호가 업데이트되었습니다. 이제 로그인할 수 있습니다.",
     "newPassword": "새 비밀번호",
-    "backToLogin": "로그인으로 돌아가기"
+    "backToLogin": "로그인으로 돌아가기",
+    "googleLogin": "Google로 계속하기",
+    "orDivider": "또는"
   },
   "disclaimer": "비공식 번역 — 정보 제공 목적으로만 사용",
   "documentsHub": {

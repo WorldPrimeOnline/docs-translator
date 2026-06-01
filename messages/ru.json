@@ -245,7 +245,9 @@
     "resetPasswordBtn": "Обновить пароль",
     "resetPasswordSuccess": "Пароль обновлён. Теперь вы можете войти.",
     "newPassword": "Новый пароль",
-    "backToLogin": "Назад к входу"
+    "backToLogin": "Назад к входу",
+    "googleLogin": "Продолжить с Google",
+    "orDivider": "или"
   },
   "disclaimer": "НЕОФИЦИАЛЬНЫЙ ПЕРЕВОД — ТОЛЬКО ДЛЯ ИНФОРМАЦИОННЫХ ЦЕЛЕЙ",
   "documentsHub": {

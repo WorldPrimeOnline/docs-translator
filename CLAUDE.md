@@ -91,7 +91,7 @@ Landing pages are config-driven. Every vertical/document page instantiates `<Lan
 
 ### Payments
 
-TON-only today. Stripe is planned but not implemented — do not add Stripe code without being asked.
+TON-only today. `src/lib/stripe/` and `src/lib/polar/` are empty placeholder directories — neither is implemented. Do not add code to them without being asked.
 
 Pay-per-doc flow: `POST /api/payments/create-ton-payment` → user pays → `POST /api/payments/verify-ton-payment` (polls tonapi.io) → `POST /api/webhooks/ton` (tonconsole webhook, routes by memo UUID to subscription or job).
 
@@ -111,6 +111,8 @@ TON price fetched at upload time from CoinGecko (`src/lib/ton/price.ts`). Subscr
 | `ton_payments` | pay-per-doc TON transactions |
 | `subscriptions` | `plan`, `status`, `documents_used`, `documents_limit`, `expires_at` |
 
+Generated types at `src/types/supabase.ts`, re-exported from `src/types/index.ts`. Use `Tables<'tablename'>`, `TablesInsert<'tablename'>`, `TablesUpdate<'tablename'>` for typed DB access — do not inline raw object types.
+
 ### API surface
 
 | Method | Path | Purpose |
@@ -129,6 +131,10 @@ TON price fetched at upload time from CoinGecko (`src/lib/ton/price.ts`). Subscr
 | POST | `/api/webhooks/ton` | tonconsole webhook — activates payment/subscription |
 | GET | `/api/cron/cleanup` | Daily 02:00 UTC — deletes files older than 30 days (secured via `CRON_SECRET`) |
 
+### Email notifications
+
+Sent via Resend. Web app: `src/lib/email/resend.ts` + `src/lib/email/templates.ts`. Worker: `worker/src/lib/email.ts` — calls `sendTranslationReady` after a job completes. Requires `RESEND_API_KEY` (optional; silently skips if absent) and `SITE_URL` (worker env only; defaults to `https://wpotranslations.org`).
+
 ### Rate limiting
 
 **Middleware** (`src/middleware.ts`): in-memory per-IP limiter (per Vercel instance, not globally shared). Upload-adjacent paths: 10 req/min. Job-polling paths: 120 req/min.
@@ -146,11 +152,13 @@ Translation strings: `messages/{locale}.json`. All 11 locale files must be kept 
 
 ### env validation
 
-Web app: `src/lib/env.ts` (Zod, lazy-validated proxy)  
-Worker: `worker/src/lib/env.ts`  
-Do not add new env vars beyond those listed in `PROJECT_CONTEXT.md § 15`.
+Web app: `src/lib/env.ts` (Zod, lazy-validated proxy). Validated vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `R2_*`, `ANTHROPIC_API_KEY`, `MISTRAL_API_KEY`.
 
-`CRON_SECRET` is required on Vercel for the cleanup cron job but is omitted from §15 — it must be set in the Vercel dashboard and matched against the `Authorization: Bearer <secret>` header sent by the Vercel cron scheduler.
+Worker: `worker/src/lib/env.ts` (validates on startup, exits if invalid). Additional worker-only vars: `RESEND_API_KEY` (optional), `SITE_URL` (default: `https://wpotranslations.org`), `POLL_INTERVAL_MS` (default: 10000), `WORKER_CONCURRENCY` (default: 1).
+
+The following are **not** in the Zod schemas and are read via `process.env` directly in their respective handlers: `NEXT_PUBLIC_SITE_URL`, `CRON_SECRET`, `TONCONSOLE_WEBHOOK_SECRET`, `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN`.
+
+`CRON_SECRET` must be set in the Vercel dashboard — matched against `Authorization: Bearer <secret>` sent by the Vercel cron scheduler. Do not add new env vars beyond those listed in `PROJECT_CONTEXT.md § 15`.
 
 ### shadcn/ui
 

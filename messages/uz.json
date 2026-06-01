@@ -245,7 +245,9 @@
     "resetPasswordBtn": "Parolni yangilash",
     "resetPasswordSuccess": "Parol yangilandi. Endi tizimga kirishingiz mumkin.",
     "newPassword": "Yangi parol",
-    "backToLogin": "Kirishga qaytish"
+    "backToLogin": "Kirishga qaytish",
+    "googleLogin": "Google orqali davom eting",
+    "orDivider": "yoki"
   },
   "disclaimer": "NORASMIY TARJIMA — FAQAT MA'LUMOT OLISH UCHUN",
   "documentsHub": {

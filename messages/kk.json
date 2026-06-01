@@ -245,7 +245,9 @@
     "resetPasswordBtn": "Парольді жаңарту",
     "resetPasswordSuccess": "Пароль жаңартылды. Енді кіре аласыз.",
     "newPassword": "Жаңа пароль",
-    "backToLogin": "Кіруге оралу"
+    "backToLogin": "Кіруге оралу",
+    "googleLogin": "Google арқылы жалғастыру",
+    "orDivider": "немесе"
   },
   "disclaimer": "РЕСМИ ЕМЕС АУДАРМА — ТЕК АҚПАРАТТЫҚ МАҚСАТТА",
   "documentsHub": {

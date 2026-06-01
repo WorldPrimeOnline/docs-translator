@@ -245,7 +245,9 @@
     "resetPasswordBtn": "Навсозии парол",
     "resetPasswordSuccess": "Парол навсозӣ шуд. Ҳоло метавонед ворид шавед.",
     "newPassword": "Пароли нав",
-    "backToLogin": "Бозгашт ба вуруд"
+    "backToLogin": "Бозгашт ба вуруд",
+    "googleLogin": "Бо Google идома диҳед",
+    "orDivider": "ё"
   },
   "disclaimer": "ТАРҶУМАИ РАСМӢ НЕ — ТАНҲО БАРОИ ИТТИЛООТ",
   "documentsHub": {

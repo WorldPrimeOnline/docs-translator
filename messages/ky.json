@@ -245,7 +245,9 @@
     "resetPasswordBtn": "Сырсөздү жаңылоо",
     "resetPasswordSuccess": "Сырсөз жаңыланды. Эми кире аласыз.",
     "newPassword": "Жаңы сырсөз",
-    "backToLogin": "Кирүүгө кайтуу"
+    "backToLogin": "Кирүүгө кайтуу",
+    "googleLogin": "Google аркылуу улантуу",
+    "orDivider": "же"
   },
   "disclaimer": "РАСМИЙ ЭМЕС КОТОРМО — МААЛЫМАТ МАКСАТЫНДА ГАНА",
   "documentsHub": {

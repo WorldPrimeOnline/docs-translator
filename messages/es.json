@@ -245,7 +245,9 @@
     "resetPasswordBtn": "Actualizar contraseña",
     "resetPasswordSuccess": "Contraseña actualizada. Ahora puedes iniciar sesión.",
     "newPassword": "Nueva contraseña",
-    "backToLogin": "Volver al inicio de sesión"
+    "backToLogin": "Volver al inicio de sesión",
+    "googleLogin": "Continuar con Google",
+    "orDivider": "o"
   },
   "disclaimer": "TRADUCCIÓN NO OFICIAL — SOLO PARA FINES INFORMATIVOS",
   "documentsHub": {

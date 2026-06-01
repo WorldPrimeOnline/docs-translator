@@ -9,6 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
 import { AuthForm } from '@/components/auth-form';
+import { GoogleAuthButton } from '@/components/google-auth-button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { createClient } from '@/lib/supabase/client';
@@ -60,6 +61,7 @@ export default function SignupPage() {
       onSubmit={form.handleSubmit(onSubmit)}
       isLoading={isLoading}
       submitLabel={t('signupBtn')}
+      topSection={<GoogleAuthButton />}
       footer={
         <span>
           {t('hasAccount')}{' '}

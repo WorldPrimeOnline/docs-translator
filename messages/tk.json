@@ -245,7 +245,9 @@
     "resetPasswordBtn": "Paroly täzelemek",
     "resetPasswordSuccess": "Parol täzelendi. Indi ulgama girip bilersiňiz.",
     "newPassword": "Täze parol",
-    "backToLogin": "Girişe gaýtmak"
+    "backToLogin": "Girişe gaýtmak",
+    "googleLogin": "Google bilen dowam et",
+    "orDivider": "ýa-da"
   },
   "disclaimer": "RESMI DÄLJIK TERJIME — DIŇE MAGLUMAT ÜÇIN",
   "documentsHub": {

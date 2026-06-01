@@ -245,7 +245,9 @@
     "resetPasswordBtn": "Update password",
     "resetPasswordSuccess": "Password updated. You can now log in.",
     "newPassword": "New password",
-    "backToLogin": "Back to login"
+    "backToLogin": "Back to login",
+    "googleLogin": "Continue with Google",
+    "orDivider": "or"
   },
   "disclaimer": "UNOFFICIAL TRANSLATION — FOR INFORMATIONAL PURPOSES ONLY",
   "documentsHub": {

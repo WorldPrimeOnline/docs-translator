@@ -1,6 +1,7 @@
 'use client';
 
 import { Loader2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 
 interface AuthFormProps {
@@ -8,6 +9,7 @@ interface AuthFormProps {
   isLoading: boolean;
   submitLabel: string;
   footer?: React.ReactNode;
+  topSection?: React.ReactNode;
   children: React.ReactNode;
 }
 
@@ -16,13 +18,25 @@ export function AuthForm({
   isLoading,
   submitLabel,
   footer,
+  topSection,
   children,
 }: AuthFormProps) {
+  const t = useTranslations('auth');
+
   return (
     <div className="mx-auto flex w-full max-w-sm flex-col items-center gap-6">
       <Card className="w-full border-white/10 bg-card shadow-xl shadow-black/30">
-
         <CardContent>
+          {topSection && (
+            <>
+              {topSection}
+              <div className="my-4 flex items-center gap-3">
+                <div className="h-px flex-1 bg-white/10" />
+                <span className="text-xs text-muted-foreground">{t('orDivider')}</span>
+                <div className="h-px flex-1 bg-white/10" />
+              </div>
+            </>
+          )}
           <form onSubmit={onSubmit} className="flex flex-col gap-4">
             {children}
             <button
