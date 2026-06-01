@@ -51,23 +51,31 @@ export default function ResetPasswordPage() {
     }
 
     const supabase = createClient();
+
+    // PKCE auth code flow (current Supabase default)
+    const code = searchParams.get('code');
+    if (code) {
+      supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
+        if (error) setSessionError(error.message);
+        else setSessionReady(true);
+      });
+      return;
+    }
+
+    // Older token_hash flow
     const tokenHash = searchParams.get('token_hash');
     const type = searchParams.get('type');
-
     if (tokenHash && type === 'recovery') {
       supabase.auth
         .verifyOtp({ token_hash: tokenHash, type: 'recovery' })
         .then(({ error }) => {
-          if (error) {
-            setSessionError(error.message);
-          } else {
-            setSessionReady(true);
-          }
+          if (error) setSessionError(error.message);
+          else setSessionReady(true);
         });
       return;
     }
 
-    // Fallback: implicit flow — session arrives via hash fragment
+    // Implicit flow fallback — session arrives via hash fragment
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if ((event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') && session) {
         setSessionReady(true);
@@ -75,7 +83,6 @@ export default function ResetPasswordPage() {
       }
     });
 
-    // Also check if a session already exists
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         setSessionReady(true);
