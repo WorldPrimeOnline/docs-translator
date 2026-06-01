@@ -43,6 +43,8 @@ export const FIELD_VALUE_TRANSLATION_POLICY = `FIELD VALUE TRANSLATION POLICY:
 Translate BOTH field labels AND field values into the target language.
 Do NOT leave source-language field values untranslated unless they are protected.
 
+SOURCE LANGUAGE IN OUTPUT: When referencing the language pair inside the document (in translated headings, notes, or field labels), always state concrete language names — never write "source language", "исходный язык", or "auto" as a placeholder. Determine the source language from the document content and state it explicitly (e.g., "с английского языка на русский язык"). If detection is uncertain, state your best determination and add one neutral line: "Исходный язык определён автоматически." — never leave an unfilled-template-looking phrase.
+
 PROTECTED — keep exactly as written, never translate:
 Document numbers, passport numbers, ID numbers, application numbers, reference numbers, transaction numbers, bank account numbers, IBAN, SWIFT/BIC, tax numbers, phone numbers, email addresses, URLs, QR verification codes, barcode numbers, MRZ lines, official abbreviations and codes (KAZ, USA, THA, DTV, and similar ISO/official codes), currency codes (USD, EUR, KZT, THB, etc.), Latin-script personal names that represent the official identity spelling in the document.
 
@@ -56,11 +58,24 @@ Examples:
 - Multiple → Многократный (Multiple)
 - KAZ → KAZ [код гражданства / nationality code]
 - DTV → DTV (Destination Thailand Visa)
+- Sex/gender codes: "M" → "Мужской (M)" / "F" → "Женский (F)" — localize the word to the target language; keep the code.
+- Citizenship/country ISO codes: "KAZ" → "Казахстан (KAZ)" — translated country name + original code in parentheses; never drop the code.
+Do not leave a bare code as the only value when a human-readable meaning exists.
 
 NAMES HANDLING MATRIX:
 - Target language uses non-Latin script (Russian, Kazakh, Kyrgyz, Tajik, Mongolian, Chinese, Korean, etc.): preserve the official Latin spelling AND add the target-script transliteration. Format: Глеб (GLEB), Юденок (YUDENOK). Both forms go in the same field cell.
 - Target language is English, source text is Cyrillic: transliterate to Latin, optionally keep the original in parentheses. Example: Gleb Yudenok (Глеб Юденок).
 - If the source document already contains a passport-style Latin spelling, preserve it exactly — do not re-transliterate.
+
+MACHINE-READABLE STRINGS AND VERIFICATION CODES:
+When OCR yields bare machine-readable strings, verification codes, or MRZ-like lines with no field context (e.g. "44GK9DTMG20601113", "@CCP2vYUMrnNVYq3wHWJdgxLqK8Y="), do NOT leave them as floating naked lines. Group them under a labeled section in the target language:
+  RU: "Элементы электронной проверки:"
+  EN: "Electronic verification elements:"
+Followed by:
+  "Код проверки / машиночитаемые данные: <value exactly preserved>"
+  "[QR-код для проверки документа присутствует в исходном документе]" (or English equivalent)
+Preserve the string EXACTLY — it is a protected identifier; only add the surrounding label/context.
+If the string cannot be classified, label it neutrally: "[Машиночитаемая строка / код проверки]" / "[Machine-readable string / verification code]".
 
 VISUAL ELEMENT MARKERS — LOCALIZE TO TARGET LANGUAGE:
 Emit neutral element markers in the TARGET language of the translation, not in English.
@@ -87,6 +102,15 @@ English (EN) reference set:
 
 For other target languages, localize these markers naturally into the target language.
 Readable stamp/seal text: translate and emit in localized marker format — e.g., [печать: <переведённый текст>] or [stamp: <translated text>].
+
+VISUAL ELEMENTS — MUST SURFACE EXPLICITLY:
+When the document contains visual elements (coat of arms, photo, QR code, seals, logos, emblems), surface each as a clearly labeled marker — either inline at the location where it occurs OR in a dedicated "Визуальные элементы документа:" / "Document visual elements:" section. Do not silently drop any visual element.
+Examples: [Герб Королевства Таиланд] / [Coat of Arms of the Kingdom of Thailand], [Фотография заявителя] / [Applicant photo], [QR-код для проверки документа присутствует] / [QR code for document verification present].
+
+VISA AND OFFICIAL TERMINOLOGY — CONSERVATIVE HANDLING:
+For visa-specific remarks, official terms, and technical visa or permit categories, do NOT force a literal translation that could distort legal meaning. Keep the original term and add a parenthetical gloss in the target language.
+Example: "Workcation" → "Workcation (работа во время пребывания/отдыха)", NOT "Рабочий отпуск".
+Apply this caution to all official visa terminology, permit categories, and administrative status terms.
 
 SELF-CHECK BEFORE FINALIZING:
 After completing the translation, re-scan the output for any field value that is still in the source language. If it is protected: leave it as-is. If it is translatable: translate it now. Perform this check as part of the single translation response — do not request a second pass.`;
