@@ -213,14 +213,15 @@
       "th": "Тоӣ"
     },
     "docTypes": {
-      "passport": "Шиносномаи / ID",
-      "diploma": "Диплом / Транскрипт",
+      "passport_id": "Шиносномаи / ID",
+      "diploma_transcript": "Диплом / Транскрипт",
       "contract": "Шартнома",
       "bank_statement": "Хулосаи бонкӣ",
-      "medical": "Пӯшаи тиббӣ / Гувоҳнома",
-      "employment": "Шартномаи кор",
+      "medical_document": "Пӯшаи тиббӣ / Гувоҳнома",
+      "employment_document": "Шартномаи кор",
       "police_clearance": "Гувоҳномаи беҷиноятӣ",
       "driver_license": "Ҳуввияти ронанда",
+      "presentation": "Презентатсия / Питч-дек",
       "other": "Дигар"
     },
     "notarizedLabel": "Тарҷума барои нотариус / тасдиқи расмӣ",

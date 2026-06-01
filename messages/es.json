@@ -213,14 +213,15 @@
       "th": "Tailandés"
     },
     "docTypes": {
-      "passport": "Pasaporte / DNI",
-      "diploma": "Diploma / Expediente",
+      "passport_id": "Pasaporte / DNI",
+      "diploma_transcript": "Diploma / Expediente",
       "contract": "Contrato",
       "bank_statement": "Extracto bancario",
-      "medical": "Historial médico / Certificado",
-      "employment": "Contrato laboral / Libro de trabajo",
+      "medical_document": "Historial médico / Certificado",
+      "employment_document": "Contrato laboral / Libro de trabajo",
       "police_clearance": "Certificado de antecedentes penales",
       "driver_license": "Carné de conducir",
+      "presentation": "Presentación / Pitch Deck",
       "other": "Otro"
     },
     "notarizedLabel": "Traducción para notario / certificación oficial",

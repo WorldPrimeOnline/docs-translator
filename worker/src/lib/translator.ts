@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { env } from './env';
+import { buildTranslationPrompt, normalizeDocumentType } from './translation-prompts';
 
 const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
 
@@ -43,21 +44,21 @@ async function translateChunk(
 ): Promise<string> {
   let lastError: Error = new Error('Translation failed');
 
+  const docType = normalizeDocumentType(documentType);
+  const { systemPrompt, userPrompt } = buildTranslationPrompt({
+    sourceLanguage: sourceLang,
+    targetLanguage: targetLang,
+    documentType: docType,
+  });
+
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     if (attempt > 0) await sleep(1000 * 2 ** attempt);
     try {
       const response = await client.messages.create({
         model: MODEL,
         max_tokens: 8192,
-        system: `You are a professional document translator. Translate the following ${documentType} from ${sourceLang} to ${targetLang}.
-Rules:
-- Preserve ALL numbers, dates, document numbers exactly as-is
-- Transliterate names of people (do not translate them)
-- Preserve document structure and formatting
-- Output only the translated content in Markdown format
-- Do not add explanations or comments
-- CRITICAL: Preserve every image reference exactly as-is — keep ![alt](id) syntax unchanged, including the id inside parentheses`,
-        messages: [{ role: 'user', content: chunk }],
+        system: systemPrompt,
+        messages: [{ role: 'user', content: `${userPrompt}\n\n${chunk}` }],
       });
 
       const block = response.content[0];

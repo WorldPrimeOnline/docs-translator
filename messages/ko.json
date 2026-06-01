@@ -213,14 +213,15 @@
       "th": "태국어"
     },
     "docTypes": {
-      "passport": "여권 / 신분증",
-      "diploma": "졸업장 / 성적증명서",
+      "passport_id": "여권 / 신분증",
+      "diploma_transcript": "졸업장 / 성적증명서",
       "contract": "계약서",
       "bank_statement": "은행 거래내역서",
-      "medical": "의료 기록 / 증명서",
-      "employment": "고용 계약서 / 재직증명서",
+      "medical_document": "의료 기록 / 증명서",
+      "employment_document": "고용 계약서 / 재직증명서",
       "police_clearance": "범죄경력 증명서",
       "driver_license": "운전면허증",
+      "presentation": "프레젠테이션 / 피치덱",
       "other": "기타"
     },
     "notarizedLabel": "공증/공식 인증을 위한 번역",

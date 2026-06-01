@@ -213,14 +213,15 @@
       "th": "Taý dili"
     },
     "docTypes": {
-      "passport": "Pasport / ID kart",
-      "diploma": "Diplom / Transkript",
+      "passport_id": "Pasport / ID kart",
+      "diploma_transcript": "Diplom / Transkript",
       "contract": "Şertnama",
       "bank_statement": "Bank beýannamasy",
-      "medical": "Lukmançylyk ýazgysy / Şahadatnamasy",
-      "employment": "Zähmet şertnamasy / Zähmet depderçesi",
+      "medical_document": "Lukmançylyk ýazgysy / Şahadatnamasy",
+      "employment_document": "Zähmet şertnamasy / Zähmet depderçesi",
       "police_clearance": "Polisiýa arassaçylyk şahadatnamasy",
       "driver_license": "Sürüjilik şahadatnamasy",
+      "presentation": "Prezentasiýa / Pitch-dek",
       "other": "Beýleki"
     },
     "notarizedLabel": "Notarius / resmi tassyklama üçin terjime",

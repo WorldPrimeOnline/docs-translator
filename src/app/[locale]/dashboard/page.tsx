@@ -202,15 +202,16 @@ export default function DashboardPage() {
   ];
 
   const DOCUMENT_TYPES = [
-    { value: 'passport',        label: t('docTypes.passport')        },
-    { value: 'diploma',         label: t('docTypes.diploma')         },
-    { value: 'contract',        label: t('docTypes.contract')        },
-    { value: 'bank_statement',  label: t('docTypes.bank_statement')  },
-    { value: 'medical',         label: t('docTypes.medical')         },
-    { value: 'employment',      label: t('docTypes.employment')      },
-    { value: 'police_clearance',label: t('docTypes.police_clearance')},
-    { value: 'driver_license',  label: t('docTypes.driver_license')  },
-    { value: 'other',           label: t('docTypes.other')           },
+    { value: 'passport_id',        label: t('docTypes.passport_id')        },
+    { value: 'diploma_transcript', label: t('docTypes.diploma_transcript') },
+    { value: 'contract',           label: t('docTypes.contract')           },
+    { value: 'bank_statement',     label: t('docTypes.bank_statement')     },
+    { value: 'medical_document',   label: t('docTypes.medical_document')   },
+    { value: 'employment_document',label: t('docTypes.employment_document')},
+    { value: 'police_clearance',   label: t('docTypes.police_clearance')   },
+    { value: 'driver_license',     label: t('docTypes.driver_license')     },
+    { value: 'presentation',       label: t('docTypes.presentation')       },
+    { value: 'other',              label: t('docTypes.other')              },
   ];
 
   function statusLabel(status: JobStatus, progress: number): string {

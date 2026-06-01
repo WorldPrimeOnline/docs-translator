@@ -213,14 +213,15 @@
       "th": "泰语"
     },
     "docTypes": {
-      "passport": "护照 / 身份证",
-      "diploma": "文凭 / 成绩单",
+      "passport_id": "护照 / 身份证",
+      "diploma_transcript": "文凭 / 成绩单",
       "contract": "合同",
       "bank_statement": "银行流水",
-      "medical": "医疗记录 / 证明",
-      "employment": "劳动合同 / 工作证明",
+      "medical_document": "医疗记录 / 证明",
+      "employment_document": "劳动合同 / 工作证明",
       "police_clearance": "无犯罪记录证明",
       "driver_license": "驾驶证",
+      "presentation": "演示文稿 / 商业计划书",
       "other": "其他"
     },
     "notarizedLabel": "公证/官方认证翻译",

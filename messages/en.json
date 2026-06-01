@@ -215,14 +215,15 @@
       "th": "Thai"
     },
     "docTypes": {
-      "passport": "Passport / ID Card",
-      "diploma": "Diploma / Transcript",
+      "passport_id": "Passport / ID Card",
+      "diploma_transcript": "Diploma / Transcript",
       "contract": "Contract",
       "bank_statement": "Bank Statement",
-      "medical": "Medical Record / Certificate",
-      "employment": "Employment Contract / Labor Book",
+      "medical_document": "Medical Record / Certificate",
+      "employment_document": "Employment Contract / Labor Book",
       "police_clearance": "Police Clearance Certificate",
       "driver_license": "Driver's License",
+      "presentation": "Presentation / Pitch Deck",
       "other": "Other"
     },
     "outputFormat": "Output format",

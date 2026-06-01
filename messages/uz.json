@@ -213,14 +213,15 @@
       "th": "Tailand tili"
     },
     "docTypes": {
-      "passport": "Pasport / ID karta",
-      "diploma": "Diplom / Akademik ko'chirma",
+      "passport_id": "Pasport / ID karta",
+      "diploma_transcript": "Diplom / Akademik ko'chirma",
       "contract": "Shartnoma",
       "bank_statement": "Bank ko'chirmasi",
-      "medical": "Tibbiy yozuv / Guvohnoma",
-      "employment": "Mehnat shartnomasi / Mehnat daftarchasi",
+      "medical_document": "Tibbiy yozuv / Guvohnoma",
+      "employment_document": "Mehnat shartnomasi / Mehnat daftarchasi",
       "police_clearance": "Jinoiy javobgarlik yo'qligi guvohnomasi",
       "driver_license": "Haydovchilik guvohnomasi",
+      "presentation": "Taqdimot / Pitch deck",
       "other": "Boshqa"
     },
     "notarizedLabel": "Notarius / rasmiy tasdiqlash uchun tarjima",
