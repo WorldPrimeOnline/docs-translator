@@ -42,6 +42,14 @@ export default function ResetPasswordPage() {
 
   // Exchange token_hash for a session (PKCE flow, cross-device safe)
   useEffect(() => {
+    // Supabase may return error params when the link is expired/invalid
+    const urlError = searchParams.get('error');
+    const urlErrorDescription = searchParams.get('error_description');
+    if (urlError) {
+      setSessionError(urlErrorDescription ?? urlError);
+      return;
+    }
+
     const supabase = createClient();
     const tokenHash = searchParams.get('token_hash');
     const type = searchParams.get('type');
