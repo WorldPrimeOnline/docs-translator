@@ -30,7 +30,6 @@ const LANG_SRC: Record<string, { en: string; ru: string }> = {
   ky: { en: 'Kyrgyz', ru: 'кыргызского' },
   es: { en: 'Spanish', ru: 'испанского' },
   th: { en: 'Thai', ru: 'тайского' },
-  auto: { en: 'source language', ru: 'исходного языка' },
 };
 
 const LANG_TGT: Record<string, { en: string; ru: string }> = {
@@ -64,13 +63,28 @@ const DOC_TYPE_LABEL: Record<string, { en: string; ru: string }> = {
 type DisplayLang = 'en' | 'ru';
 function dl(targetLang: string): DisplayLang { return targetLang === 'ru' ? 'ru' : 'en'; }
 
+function isAutoSource(lang: string): boolean {
+  return !lang || lang === 'auto' || lang === 'auto-detect';
+}
+
 function translationHeader(meta: RenderMeta): string {
   const d = dl(meta.targetLang);
-  const src = LANG_SRC[meta.sourceLang]?.[d] ?? meta.sourceLang.toUpperCase();
   const tgt = LANG_TGT[meta.targetLang]?.[d] ?? meta.targetLang.toUpperCase();
+  if (isAutoSource(meta.sourceLang)) {
+    return d === 'ru'
+      ? `ПЕРЕВОД НА ${tgt.toUpperCase()} ЯЗЫК`
+      : `TRANSLATION INTO ${tgt.toUpperCase()}`;
+  }
+  const src = LANG_SRC[meta.sourceLang]?.[d] ?? meta.sourceLang.toUpperCase();
   return d === 'ru'
-    ? `ПЕРЕВОД С ${src.toUpperCase()} НА ${tgt.toUpperCase()} ЯЗЫК`
+    ? `ПЕРЕВОД С ${src.toUpperCase()} ЯЗЫКА НА ${tgt.toUpperCase()} ЯЗЫК`
     : `TRANSLATION FROM ${src.toUpperCase()} INTO ${tgt.toUpperCase()}`;
+}
+
+function autoSourceSubNote(meta: RenderMeta): string {
+  return meta.targetLang === 'ru'
+    ? 'Исходный язык определён автоматически.'
+    : 'Source language was detected automatically.';
 }
 
 function docTypeLabel(meta: RenderMeta): string {
@@ -91,7 +105,7 @@ function certificationRows(meta: RenderMeta): Array<[string, string]> {
   const iinBin = PROVIDER_IIN_BIN || '______________________';
   if (d === 'ru') {
     return [
-      [`Перевод выполнен с ${src} на ${tgt} язык.`, ''],
+      [`Перевод с ${src} языка на ${tgt} язык выполнен верно.`, ''],
       ['Переводчик:', '______________________'],
       ['Квалификация переводчика:', '______________________'],
       ['Подпись переводчика:', '______________________'],
@@ -102,7 +116,7 @@ function certificationRows(meta: RenderMeta): Array<[string, string]> {
     ];
   }
   return [
-    [`Translation performed from ${src} into ${tgt}.`, ''],
+    [`The translation from ${src} into ${tgt} is correct.`, ''],
     ['Translator:', '______________________'],
     ['Translator qualification:', '______________________'],
     ['Translator signature:', '______________________'],
@@ -145,6 +159,7 @@ const BUREAU_CSS = `
   .bureau-header { margin-bottom: 28px; padding-bottom: 14px; border-bottom: 2px solid #222; }
   .translation-title { font-size: 13pt; font-weight: 700; letter-spacing: 0.05em; margin-bottom: 4px; }
   .doc-type-label { font-size: 10pt; color: #444; margin-bottom: 8px; }
+  .auto-source-note { font-size: 8.5pt; color: #888; font-style: italic; margin-bottom: 4px; }
   .original-note { font-size: 9pt; color: #666; font-style: italic; }
   mark.marker { background: #f0f0f0; color: #444; font-family: monospace; font-style: italic; border-radius: 3px; padding: 1px 4px; font-size: 0.9em; }
   .certification-block { margin-top: 40px; padding-top: 16px; border-top: 2px solid #222; }
@@ -170,9 +185,13 @@ export async function renderToHtml(
   const showCert = !isPresentation && (sl === 'official_with_translator_signature_and_provider_stamp' || sl === 'notarization_through_partners');
   const showNotarNote = !isPresentation && sl === 'notarization_through_partners';
 
+  const autoNote = !isPresentation && isAutoSource(meta.sourceLang)
+    ? `<div class="auto-source-note">${autoSourceSubNote(meta)}</div>`
+    : '';
   const bureauHeaderHtml = isPresentation ? '' : `
   <div class="bureau-header">
     <div class="translation-title">${translationHeader(meta)}</div>
+    ${autoNote}
     <div class="doc-type-label">${docTypeLabel(meta)}</div>
     <div class="original-note">${originalCopyNote(meta)}</div>
   </div>`;

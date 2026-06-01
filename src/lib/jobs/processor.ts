@@ -46,8 +46,19 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
 
     if (!doc) throw new Error(`Document ${documentId} not found`);
 
-    // serviceLevel will be derived from jobs.notarized / jobs.bureau_stamp once those columns are added to the schema.
-    const serviceLevel = 'electronic' as const;
+    // Read notarized/bureau_stamp from jobs row. These columns exist per PROJECT_CONTEXT
+    // but may not appear in stale generated types — type-assert to bypass the check.
+    const { data: jobRow } = await supabaseServer
+      .from('jobs')
+      .select('*')
+      .eq('id', jobId)
+      .single();
+    type JobExtras = { notarized?: boolean | null; bureau_stamp?: boolean | null };
+    const jx = jobRow as (typeof jobRow & JobExtras) | null;
+    const serviceLevel =
+      jx?.notarized === true ? 'notarization_through_partners' as const :
+      jx?.bureau_stamp === true ? 'official_with_translator_signature_and_provider_stamp' as const :
+      'electronic' as const;
 
     const pdfBuffer = await downloadFile(doc.file_key);
     const { markdown, pageCount } = await extractTextFromPdf(pdfBuffer);
