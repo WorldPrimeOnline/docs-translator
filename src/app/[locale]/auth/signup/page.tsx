@@ -57,7 +57,6 @@ export default function SignupPage() {
 
   return (
     <AuthForm
-      title={t('signupTitle')}
       onSubmit={form.handleSubmit(onSubmit)}
       isLoading={isLoading}
       submitLabel={t('signupBtn')}

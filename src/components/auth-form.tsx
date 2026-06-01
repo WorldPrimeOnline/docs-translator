@@ -4,7 +4,6 @@ import { Loader2 } from 'lucide-react';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 
 interface AuthFormProps {
-  title: string;
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   isLoading: boolean;
   submitLabel: string;
@@ -13,7 +12,6 @@ interface AuthFormProps {
 }
 
 export function AuthForm({
-  title,
   onSubmit,
   isLoading,
   submitLabel,

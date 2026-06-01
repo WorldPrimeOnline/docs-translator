@@ -8,6 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
+import Link from 'next/link';
 import { AuthForm } from '@/components/auth-form';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -100,12 +101,12 @@ export default function ResetPasswordPage() {
         <p className="text-center text-sm text-red-400">
           {sessionError}
         </p>
-        <a
+        <Link
           href="/auth/forgot-password"
           className="text-sm text-foreground underline underline-offset-4 hover:opacity-80"
         >
           {t('forgotPassword')}
-        </a>
+        </Link>
       </div>
     );
   }
@@ -120,7 +121,6 @@ export default function ResetPasswordPage() {
 
   return (
     <AuthForm
-      title=""
       onSubmit={form.handleSubmit(onSubmit)}
       isLoading={isLoading}
       submitLabel={t('resetPasswordBtn')}

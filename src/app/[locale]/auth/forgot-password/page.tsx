@@ -61,7 +61,6 @@ export default function ForgotPasswordPage() {
 
   return (
     <AuthForm
-      title=""
       onSubmit={form.handleSubmit(onSubmit)}
       isLoading={isLoading}
       submitLabel={t('forgotPasswordBtn')}

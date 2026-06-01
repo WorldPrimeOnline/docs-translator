@@ -51,7 +51,6 @@ export default function LoginPage() {
 
   return (
     <AuthForm
-      title={t('loginTitle')}
       onSubmit={form.handleSubmit(onSubmit)}
       isLoading={isLoading}
       submitLabel={t('loginBtn')}
