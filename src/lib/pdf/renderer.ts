@@ -73,8 +73,17 @@ export async function renderToPdfBuffer(
   meta: RenderMeta,
   _images: Record<string, string> = {},
 ): Promise<Buffer> {
+  // pdf-lib uses WinAnsi (Helvetica) — only Latin chars are safe.
+  // Sanitize: replace chars outside WinAnsi range with '?'
+  function winAnsiSafe(s: string): string {
+    return s.replace(/[^\x20-\x7E\xA0-\xFF]/g, (ch) => {
+      const replacements: Record<string, string> = { '→': '->', '←': '<-', '↑': '^', '↓': 'v', '–': '-', '—': '-', '’': "'", '“': '"', '”': '"' };
+      return replacements[ch] ?? '?';
+    });
+  }
+
   // pdf-lib text renderer: strip image refs (can't position images in text flow)
-  const stripped = translatedMarkdown.replace(/!\[.*?\]\(.*?\)/g, '');
+  const stripped = winAnsiSafe(translatedMarkdown.replace(/!\[.*?\]\(.*?\)/g, ''));
 
   const pdfDoc = await PDFDocument.create();
   const regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica);

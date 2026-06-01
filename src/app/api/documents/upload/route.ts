@@ -210,9 +210,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           return NextResponse.json({ error: 'Failed to create job' }, { status: 500 });
         }
 
-        setTimeout(() => {
-          void processJob(job.id, doc.id);
-        }, 0);
+        // Web processor (Vercel) only handles HTML — no Puppeteer, WinAnsi font limits.
+        // For pdf/docx, leave the job queued so the Railway worker picks it up.
+        const [, outputFmt] = (documentType as string).split('|');
+        if (!outputFmt || outputFmt === 'html') {
+          setTimeout(() => {
+            void processJob(job.id, doc.id);
+          }, 0);
+        }
 
         const remainingDocs = sub.documents_limit - sub.documents_used - 1;
         return NextResponse.json({
