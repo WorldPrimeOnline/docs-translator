@@ -7,10 +7,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
+import { createClient } from '@supabase/supabase-js';
 import { AuthForm } from '@/components/auth-form';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { createBrowserClient } from '@supabase/ssr';
 
 const schema = z.object({
   email: z.string().email('Invalid email address'),
@@ -30,7 +30,8 @@ export default function ForgotPasswordPage() {
 
   const onSubmit = async (values: FormValues): Promise<void> => {
     setIsLoading(true);
-    const supabase = createBrowserClient(
+
+    const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       { auth: { flowType: 'implicit' } },
@@ -53,10 +54,7 @@ export default function ForgotPasswordPage() {
     return (
       <div className="mx-auto flex w-full max-w-sm flex-col items-center gap-4">
         <p className="text-center text-sm text-muted-foreground">{t('forgotPasswordSuccess')}</p>
-        <Link
-          href="/auth/login"
-          className="text-sm text-foreground underline underline-offset-4 hover:opacity-80"
-        >
+        <Link href="/auth/login" className="text-sm text-foreground underline underline-offset-4 hover:opacity-80">
           {t('backToLogin')}
         </Link>
       </div>
@@ -69,10 +67,7 @@ export default function ForgotPasswordPage() {
       isLoading={isLoading}
       submitLabel={t('forgotPasswordBtn')}
       footer={
-        <Link
-          href="/auth/login"
-          className="text-foreground underline underline-offset-4 hover:opacity-80"
-        >
+        <Link href="/auth/login" className="text-foreground underline underline-offset-4 hover:opacity-80">
           {t('backToLogin')}
         </Link>
       }

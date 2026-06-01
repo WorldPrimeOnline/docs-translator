@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useForm } from 'react-hook-form';
@@ -9,7 +9,7 @@ import { z } from 'zod';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { createBrowserClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 import { AuthForm } from '@/components/auth-form';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -26,14 +26,6 @@ const schema = z
 
 type FormValues = z.infer<typeof schema>;
 
-function makeSupabase() {
-  return createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { auth: { flowType: 'implicit' } },
-  );
-}
-
 export default function ResetPasswordPage() {
   const router = useRouter();
   const t = useTranslations('auth');
@@ -41,6 +33,13 @@ export default function ResetPasswordPage() {
   const [sessionReady, setSessionReady] = useState(false);
   const [sessionError, setSessionError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const supabaseRef = useRef(
+    createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { flowType: 'implicit', detectSessionInUrl: true } },
+    )
+  );
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -48,8 +47,9 @@ export default function ResetPasswordPage() {
   });
 
   useEffect(() => {
-    const supabase = makeSupabase();
+    const supabase = supabaseRef.current;
 
+    // onAuthStateChange must be set up before getSession to avoid missing the event
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if ((event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') && session) {
         setSessionReady(true);
@@ -57,6 +57,7 @@ export default function ResetPasswordPage() {
       }
     });
 
+    // Also handle case where session is already established
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         setSessionReady(true);
@@ -69,8 +70,7 @@ export default function ResetPasswordPage() {
 
   const onSubmit = async (values: FormValues): Promise<void> => {
     setIsLoading(true);
-    const supabase = makeSupabase();
-    const { error } = await supabase.auth.updateUser({ password: values.password });
+    const { error } = await supabaseRef.current.auth.updateUser({ password: values.password });
 
     if (error) {
       toast.error(error.message);
