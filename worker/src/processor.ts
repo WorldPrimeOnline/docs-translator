@@ -55,19 +55,15 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
 
     if (docErr || !doc) throw new Error(`Document ${documentId} not found`);
 
-    // Read notarized/bureau_stamp from jobs row. These columns exist per PROJECT_CONTEXT
-    // but may not appear in stale generated types — type-assert to bypass the check.
     const { data: jobRow } = await supabase
       .from('jobs')
       .select('*')
       .eq('id', jobId)
-      .single();
-    type JobExtras = { notarized?: boolean | null; bureau_stamp?: boolean | null };
-    const jx = jobRow as (typeof jobRow & JobExtras) | null;
+      .single<JobRow>();
     const serviceLevel =
-      jx?.notarized === true ? 'notarization_through_partners' as const :
-      jx?.bureau_stamp === true ? 'official_with_translator_signature_and_provider_stamp' as const :
-      'electronic' as const;
+      jobRow?.notarized === true
+        ? 'official_with_translator_signature_and_provider_stamp' as const
+        : 'electronic' as const;
 
     // ── 2. OCR ───────────────────────────────────────────────────────────────
     await updateJob(jobId, 'ocr_in_progress', 10);

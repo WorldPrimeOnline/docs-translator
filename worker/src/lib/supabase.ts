@@ -11,6 +11,7 @@ export interface JobRow {
   error_message: string | null;
   priority: number;
   payment_source: 'ton_payment' | 'subscription' | null;
+  notarized: boolean;
   started_at: string | null;
   completed_at: string | null;
   created_at: string;

@@ -78,6 +78,7 @@ export type Database = {
           progress_percent: number;
           priority: number;
           payment_source: 'ton_payment' | 'subscription' | null;
+          notarized: boolean;
           started_at: string | null;
           completed_at: string | null;
           created_at: string;
@@ -90,6 +91,7 @@ export type Database = {
           progress_percent?: number;
           priority?: number;
           payment_source?: 'ton_payment' | 'subscription' | null;
+          notarized?: boolean;
           started_at?: string | null;
           completed_at?: string | null;
           created_at?: string;
@@ -102,6 +104,7 @@ export type Database = {
           progress_percent?: number;
           priority?: number;
           payment_source?: 'ton_payment' | 'subscription' | null;
+          notarized?: boolean;
           started_at?: string | null;
           completed_at?: string | null;
           created_at?: string;

@@ -1,0 +1,2 @@
+ALTER TABLE public.jobs
+  ADD COLUMN IF NOT EXISTS notarized BOOLEAN NOT NULL DEFAULT false;

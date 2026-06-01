@@ -201,6 +201,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             progress_percent: 0,
             priority,
             payment_source: 'subscription',
+            notarized,
           })
           .select()
           .single();
