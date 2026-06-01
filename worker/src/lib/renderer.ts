@@ -80,12 +80,6 @@ function translationHeader(meta: RenderMeta): string {
     : `TRANSLATION FROM ${src.toUpperCase()} INTO ${tgt.toUpperCase()}`;
 }
 
-function autoSourceSubNote(meta: RenderMeta): string {
-  return meta.targetLang === 'ru'
-    ? 'Исходный язык определён автоматически.'
-    : 'Source language was detected automatically.';
-}
-
 function docTypeLabel(meta: RenderMeta): string {
   const d = dl(meta.targetLang);
   return DOC_TYPE_LABEL[meta.documentType]?.[d] ?? meta.documentType;
@@ -100,9 +94,12 @@ function originalCopyNote(meta: RenderMeta): string {
 function officialFooter(meta: RenderMeta): string {
   const d = dl(meta.targetLang);
   const tgtName = LANG_TGT[meta.targetLang]?.[d] ?? meta.targetLang;
-  const srcName = isAutoSource(meta.sourceLang)
-    ? (d === 'ru' ? 'определён автоматически' : 'auto-detected')
-    : (LANG_TGT[meta.sourceLang]?.[d] ?? meta.sourceLang);
+  if (isAutoSource(meta.sourceLang)) {
+    return d === 'ru'
+      ? `Перевод подготовлен сервисом World Prime Online. Дата подготовки: ${meta.translatedAt}. Целевой язык: ${tgtName}.`
+      : `Translation prepared by World Prime Online. Date: ${meta.translatedAt}. Target language: ${tgtName}.`;
+  }
+  const srcName = LANG_TGT[meta.sourceLang]?.[d] ?? meta.sourceLang;
   return d === 'ru'
     ? `Перевод подготовлен сервисом World Prime Online. Дата подготовки: ${meta.translatedAt}. Исходный язык: ${srcName}. Целевой язык: ${tgtName}.`
     : `Translation prepared by World Prime Online. Date: ${meta.translatedAt}. Source language: ${srcName}. Target language: ${tgtName}.`;
@@ -110,12 +107,14 @@ function officialFooter(meta: RenderMeta): string {
 
 function certificationRows(meta: RenderMeta): Array<[string, string]> {
   const d = dl(meta.targetLang);
-  const src = LANG_SRC[meta.sourceLang]?.[d] ?? meta.sourceLang;
   const tgt = LANG_TGT[meta.targetLang]?.[d] ?? meta.targetLang;
   const iinBin = PROVIDER_IIN_BIN || '______________________';
   if (d === 'ru') {
+    const firstLine = isAutoSource(meta.sourceLang)
+      ? `Перевод на ${tgt} язык выполнен верно.`
+      : `Перевод с ${LANG_SRC[meta.sourceLang]?.[d] ?? meta.sourceLang} языка на ${tgt} язык выполнен верно.`;
     return [
-      [`Перевод с ${src} языка на ${tgt} язык выполнен верно.`, ''],
+      [firstLine, ''],
       ['Переводчик:', '______________________'],
       ['Квалификация переводчика:', '______________________'],
       ['Подпись переводчика:', '______________________'],
@@ -125,8 +124,11 @@ function certificationRows(meta: RenderMeta): Array<[string, string]> {
       ['Дата:', '______________________'],
     ];
   }
+  const firstLine = isAutoSource(meta.sourceLang)
+    ? `The translation into ${tgt} is correct.`
+    : `The translation from ${LANG_SRC[meta.sourceLang]?.[d] ?? meta.sourceLang} into ${tgt} is correct.`;
   return [
-    [`The translation from ${src} into ${tgt} is correct.`, ''],
+    [firstLine, ''],
     ['Translator:', '______________________'],
     ['Translator qualification:', '______________________'],
     ['Translator signature:', '______________________'],
@@ -169,7 +171,6 @@ const BUREAU_CSS = `
   .bureau-header { margin-bottom: 28px; padding-bottom: 14px; border-bottom: 2px solid #222; }
   .translation-title { font-size: 13pt; font-weight: 700; letter-spacing: 0.05em; margin-bottom: 4px; }
   .doc-type-label { font-size: 10pt; color: #444; margin-bottom: 8px; }
-  .auto-source-note { font-size: 8.5pt; color: #888; font-style: italic; margin-bottom: 4px; }
   .original-note { font-size: 9pt; color: #666; font-style: italic; }
   mark.marker { background: #f0f0f0; color: #444; font-family: monospace; font-style: italic; border-radius: 3px; padding: 1px 4px; font-size: 0.9em; }
   .certification-block { margin-top: 40px; padding-top: 16px; border-top: 2px solid #222; }
@@ -196,13 +197,9 @@ export async function renderToHtml(
   const showCert = !isPresentation && (sl === 'official_with_translator_signature_and_provider_stamp' || sl === 'notarization_through_partners');
   const showNotarNote = !isPresentation && sl === 'notarization_through_partners';
 
-  const autoNote = !isPresentation && isAutoSource(meta.sourceLang)
-    ? `<div class="auto-source-note">${autoSourceSubNote(meta)}</div>`
-    : '';
   const bureauHeaderHtml = isPresentation ? '' : `
   <div class="bureau-header">
     <div class="translation-title">${translationHeader(meta)}</div>
-    ${autoNote}
     <div class="doc-type-label">${docTypeLabel(meta)}</div>
     <div class="original-note">${originalCopyNote(meta)}</div>
   </div>`;
@@ -221,7 +218,7 @@ export async function renderToHtml(
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Translation — ${meta.sourceLang} → ${meta.targetLang}</title>
+<title>Translation${isAutoSource(meta.sourceLang) ? '' : ` — ${meta.sourceLang}`} → ${meta.targetLang}</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   @page { size: A4; margin: 20mm 15mm 25mm 15mm; }

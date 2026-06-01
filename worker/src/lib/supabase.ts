@@ -26,6 +26,7 @@ export interface DocumentRow {
   target_language: string;
   document_type: string;
   status: string;
+  detected_source_language: string | null;
 }
 
 export interface TonPaymentRow {

@@ -36,6 +36,7 @@ export type Database = {
           target_language: string;
           document_type: string;
           status: 'uploading' | 'processing' | 'completed' | 'failed';
+          detected_source_language: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -49,6 +50,7 @@ export type Database = {
           target_language: string;
           document_type: string;
           status: 'uploading' | 'processing' | 'completed' | 'failed';
+          detected_source_language?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -62,6 +64,7 @@ export type Database = {
           target_language?: string;
           document_type?: string;
           status?: 'uploading' | 'processing' | 'completed' | 'failed';
+          detected_source_language?: string | null;
           created_at?: string;
           updated_at?: string;
         };

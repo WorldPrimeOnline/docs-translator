@@ -2,6 +2,7 @@ import { supabaseServer } from '@/lib/supabase/server';
 import { downloadFile, uploadFile } from '@/lib/r2/client';
 import { extractTextFromPdf } from '@/lib/ocr/mistral';
 import { translateDocument } from '@/lib/translation/translator';
+import { detectSourceLanguage } from '@/lib/translation/detect-language';
 import { renderToPdf, renderToPdfBuffer } from '@/lib/pdf/renderer';
 import { renderToDocx } from '@/lib/pdf/docx-renderer';
 import type { Tables } from '@/types';
@@ -86,11 +87,20 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
       provider: 'mistral',
     });
 
+    let resolvedSourceLang = doc.source_language;
+    if (doc.source_language === 'auto') {
+      const detected = await detectSourceLanguage(markdown);
+      if (detected) {
+        await supabaseServer.from('documents').update({ detected_source_language: detected }).eq('id', documentId);
+        resolvedSourceLang = detected;
+      }
+    }
+
     const { docType, outputFormat } = parseDocumentType(doc.document_type);
 
     const translatedMarkdown = await translateDocument(
       markdown,
-      doc.source_language,
+      resolvedSourceLang,
       doc.target_language,
       docType,
     );
@@ -99,7 +109,7 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
 
     const translatedAt = new Date().toISOString().split('T')[0] ?? new Date().toISOString();
     const renderMeta = {
-      sourceLang: doc.source_language,
+      sourceLang: resolvedSourceLang,
       targetLang: doc.target_language,
       documentType: docType,
       translatedAt,

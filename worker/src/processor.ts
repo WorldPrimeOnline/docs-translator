@@ -2,6 +2,7 @@ import { supabase, type JobRow, type DocumentRow } from './lib/supabase';
 import { downloadFile, uploadFile, getPresignedUrl } from './lib/r2';
 import { extractTextFromPdf } from './lib/ocr';
 import { translateDocument } from './lib/translator';
+import { detectSourceLanguage } from './lib/detect-language';
 import { renderToHtml } from './lib/renderer';
 import { generatePdfFromHtml } from './lib/pdf';
 import { renderToDocx } from './lib/docx-renderer';
@@ -104,15 +105,28 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
       provider: 'mistral',
     });
 
+    let resolvedSourceLang = doc.source_language;
+    if (doc.source_language === 'auto') {
+      console.log(`${tag} source_language=auto — running detection…`);
+      const detected = await detectSourceLanguage(markdown);
+      if (detected) {
+        console.log(`${tag} detected source language: ${detected}`);
+        await supabase.from('documents').update({ detected_source_language: detected }).eq('id', documentId);
+        resolvedSourceLang = detected;
+      } else {
+        console.warn(`${tag} language detection returned null — renderer will handle unknown source`);
+      }
+    }
+
     // ── 3. Translation ───────────────────────────────────────────────────────
     await updateJob(jobId, 'translation_in_progress', 50);
-    console.log(`${tag} translating ${doc.source_language} → ${doc.target_language}…`);
+    console.log(`${tag} translating ${resolvedSourceLang} → ${doc.target_language}…`);
 
     const { docType, outputFormat } = parseDocumentType(doc.document_type);
 
     const translatedMarkdown = await translateDocument(
       markdown,
-      doc.source_language,
+      resolvedSourceLang,
       doc.target_language,
       docType,
     );
@@ -123,7 +137,7 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
 
     const translatedAt = new Date().toISOString().split('T')[0] ?? new Date().toISOString();
     const renderMeta = {
-      sourceLang: doc.source_language,
+      sourceLang: resolvedSourceLang,
       targetLang: doc.target_language,
       documentType: docType,
       translatedAt,
