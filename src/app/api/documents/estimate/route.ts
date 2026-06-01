@@ -6,9 +6,7 @@ import { downloadFile } from '@/lib/r2/client';
 import { env } from '@/lib/env';
 import type { Database } from '@/types';
 
-const PRICE_PER_WORD = 5; // KZT per word
-const NOTARIZED_SURCHARGE = 5000; // KZT
-const BUREAU_STAMP_SURCHARGE = 2500; // KZT
+const PRICE_PER_WORD = 0.01; // USD per word
 
 async function getAuthUser() {
   const cookieStore = await cookies();
@@ -72,17 +70,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const user = await getAuthUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { documentId, jobId } = (await request.json()) as {
-      documentId?: string;
-      jobId?: string;
-    };
-    if (!documentId || !jobId) {
-      return NextResponse.json({ error: 'documentId and jobId are required' }, { status: 400 });
+    const { documentId } = (await request.json()) as { documentId?: string };
+    if (!documentId) {
+      return NextResponse.json({ error: 'documentId is required' }, { status: 400 });
     }
 
     const { data: doc } = await supabaseServer
       .from('documents')
-      .select('id, user_id, file_key, word_count, price_usd')
+      .select('id, user_id, file_key')
       .eq('id', documentId)
       .single();
 
@@ -90,33 +85,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'Document not found' }, { status: 404 });
     }
 
-    // Return cached estimate if already computed
-    if (doc.word_count !== null && doc.price_usd !== null) {
-      return NextResponse.json({ wordCount: doc.word_count, priceUsd: doc.price_usd });
-    }
-
-    const { data: job } = await supabaseServer
-      .from('jobs')
-      .select('country, notarized, bureau_stamp')
-      .eq('id', jobId)
-      .eq('document_id', documentId)
-      .single();
-
     const pdfBuffer = await downloadFile(doc.file_key);
     const markdown = await ocrWithRetry(pdfBuffer);
     const wordCount = countWords(markdown);
-
-    let priceUsd = wordCount * PRICE_PER_WORD;
-    if (job?.country === 'kazakhstan') {
-      if (job.notarized) priceUsd += NOTARIZED_SURCHARGE;
-      if (job.bureau_stamp) priceUsd += BUREAU_STAMP_SURCHARGE;
-    }
-    priceUsd = Math.round(priceUsd * 100) / 100;
-
-    await supabaseServer
-      .from('documents')
-      .update({ word_count: wordCount, price_usd: priceUsd })
-      .eq('id', documentId);
+    const priceUsd = Math.round(wordCount * PRICE_PER_WORD * 100) / 100;
 
     return NextResponse.json({ wordCount, priceUsd });
   } catch (err) {

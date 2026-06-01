@@ -211,7 +211,8 @@
       "de": "German",
       "fr": "French",
       "es": "Spanish",
-      "ar": "Arabic"
+      "ar": "Arabic",
+      "th": "Thai"
     },
     "docTypes": {
       "passport": "Passport / ID Card",

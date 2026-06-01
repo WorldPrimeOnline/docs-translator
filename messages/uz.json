@@ -209,7 +209,8 @@
       "de": "Nemis",
       "fr": "Frantsuz",
       "es": "Ispan",
-      "ar": "Arab"
+      "ar": "Arab",
+      "th": "Tailand tili"
     },
     "docTypes": {
       "passport": "Pasport / ID karta",

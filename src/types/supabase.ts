@@ -36,9 +36,6 @@ export type Database = {
           target_language: string;
           document_type: string;
           status: 'uploading' | 'processing' | 'completed' | 'failed';
-          word_count: number | null;
-          price_usd: number | null;
-          output_format: string;
           created_at: string;
           updated_at: string;
         };
@@ -52,9 +49,6 @@ export type Database = {
           target_language: string;
           document_type: string;
           status: 'uploading' | 'processing' | 'completed' | 'failed';
-          word_count?: number | null;
-          price_usd?: number | null;
-          output_format?: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -68,9 +62,6 @@ export type Database = {
           target_language?: string;
           document_type?: string;
           status?: 'uploading' | 'processing' | 'completed' | 'failed';
-          word_count?: number | null;
-          price_usd?: number | null;
-          output_format?: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -87,9 +78,6 @@ export type Database = {
           progress_percent: number;
           priority: number;
           payment_source: 'ton_payment' | 'subscription' | null;
-          country: string | null;
-          notarized: boolean;
-          bureau_stamp: boolean;
           started_at: string | null;
           completed_at: string | null;
           created_at: string;
@@ -102,9 +90,6 @@ export type Database = {
           progress_percent?: number;
           priority?: number;
           payment_source?: 'ton_payment' | 'subscription' | null;
-          country?: string | null;
-          notarized?: boolean;
-          bureau_stamp?: boolean;
           started_at?: string | null;
           completed_at?: string | null;
           created_at?: string;
@@ -117,9 +102,6 @@ export type Database = {
           progress_percent?: number;
           priority?: number;
           payment_source?: 'ton_payment' | 'subscription' | null;
-          country?: string | null;
-          notarized?: boolean;
-          bureau_stamp?: boolean;
           started_at?: string | null;
           completed_at?: string | null;
           created_at?: string;

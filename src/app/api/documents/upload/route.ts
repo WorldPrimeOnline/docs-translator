@@ -152,7 +152,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         source_language: sourceLang,
         target_language: targetLang,
         document_type: documentType,
-        output_format: outputFormat,
         status: 'processing',
       })
       .select()
@@ -190,9 +189,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             progress_percent: 0,
             priority,
             payment_source: 'subscription',
-            country: typeof country === 'string' ? country : null,
-            notarized,
-            bureau_stamp: bureauStamp,
           })
           .select()
           .single();
