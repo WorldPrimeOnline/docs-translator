@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -9,7 +9,7 @@ import { z } from 'zod';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase/client';
 import { AuthForm } from '@/components/auth-form';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -28,18 +28,12 @@ type FormValues = z.infer<typeof schema>;
 
 export default function ResetPasswordPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const t = useTranslations('auth');
 
   const [sessionReady, setSessionReady] = useState(false);
   const [sessionError, setSessionError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const supabaseRef = useRef(
-    createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { auth: { flowType: 'implicit', detectSessionInUrl: true } },
-    )
-  );
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -47,30 +41,43 @@ export default function ResetPasswordPage() {
   });
 
   useEffect(() => {
-    const supabase = supabaseRef.current;
+    const supabase = createClient();
 
-    // onAuthStateChange must be set up before getSession to avoid missing the event
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if ((event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') && session) {
-        setSessionReady(true);
-        subscription.unsubscribe();
-      }
-    });
+    // Error params from Supabase (expired/invalid link)
+    const urlError = searchParams.get('error');
+    if (urlError) {
+      setSessionError(searchParams.get('error_description') ?? urlError);
+      return;
+    }
 
-    // Also handle case where session is already established
+    // token_hash flow — works cross-browser, no PKCE verifier needed
+    // Requires email template: ?token_hash={{ .TokenHash }}&type=recovery
+    const tokenHash = searchParams.get('token_hash');
+    const type = searchParams.get('type');
+    if (tokenHash && type === 'recovery') {
+      supabase.auth
+        .verifyOtp({ token_hash: tokenHash, type: 'recovery' })
+        .then(({ error }) => {
+          if (error) setSessionError(error.message);
+          else setSessionReady(true);
+        });
+      return;
+    }
+
+    // Fallback: check existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         setSessionReady(true);
-        subscription.unsubscribe();
+      } else {
+        setSessionError('Invalid or expired reset link. Please request a new one.');
       }
     });
-
-    return () => subscription.unsubscribe();
-  }, []);
+  }, [searchParams]);
 
   const onSubmit = async (values: FormValues): Promise<void> => {
     setIsLoading(true);
-    const { error } = await supabaseRef.current.auth.updateUser({ password: values.password });
+    const supabase = createClient();
+    const { error } = await supabase.auth.updateUser({ password: values.password });
 
     if (error) {
       toast.error(error.message);
