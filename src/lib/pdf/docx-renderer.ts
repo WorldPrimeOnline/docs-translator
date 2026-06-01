@@ -96,22 +96,6 @@ export async function renderToDocx(
 ): Promise<Buffer> {
   const stripped = translatedMarkdown;
 
-  const disclaimer = new Paragraph({
-    children: [
-      new TextRun({
-        text: 'UNOFFICIAL TRANSLATION — FOR INFORMATIONAL PURPOSES ONLY',
-        bold: true,
-        color: '888888',
-        size: 18,
-      }),
-    ],
-    alignment: AlignmentType.CENTER,
-    spacing: { after: 120 },
-    border: {
-      bottom: { style: BorderStyle.SINGLE, size: 6, color: 'CCCCCC' },
-    },
-  });
-
   const header = new Paragraph({
     children: [
       new TextRun({
@@ -137,7 +121,7 @@ export async function renderToDocx(
           margin: { top: 1440, bottom: 1440, left: 1440, right: 1440 },
         },
       },
-      children: [disclaimer, header, ...contentParagraphs],
+      children: [header, ...contentParagraphs],
     }],
   });
 

@@ -47,7 +47,7 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
     if (!doc) throw new Error(`Document ${documentId} not found`);
 
     const pdfBuffer = await downloadFile(doc.file_key);
-    const { markdown, pageCount, images } = await extractTextFromPdf(pdfBuffer);
+    const { markdown, pageMarkdowns, pageCount, images } = await extractTextFromPdf(pdfBuffer);
 
     const ocrWordCount = markdown.trim().split(/\s+/).filter(Boolean).length;
     const ocrCharCount = markdown.length;
@@ -108,7 +108,7 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
       fileKey = `documents/${doc.user_id}/${documentId}/translated.docx`;
       contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
     } else {
-      fileBuffer = await renderToPdf(translatedMarkdown, renderMeta, images);
+      fileBuffer = await renderToPdf(translatedMarkdown, renderMeta, images, pageMarkdowns);
       fileKey = `documents/${doc.user_id}/${documentId}/translated.html`;
       contentType = 'text/html; charset=utf-8';
     }

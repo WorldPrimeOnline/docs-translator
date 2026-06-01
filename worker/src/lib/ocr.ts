@@ -2,7 +2,9 @@ import { env } from './env';
 
 interface MistralOcrImage {
   id: string;
-  image_base64: string;
+  image_base64?: string;
+  // Mistral may use alternate field names
+  [key: string]: unknown;
 }
 
 interface MistralOcrPage {
@@ -16,6 +18,7 @@ interface MistralOcrResponse {
 
 export interface OcrResult {
   markdown: string;
+  pageMarkdowns: string[];
   pageCount: number;
   images: Record<string, string>; // imageId → data URI
 }
@@ -26,6 +29,15 @@ const MAX_RETRIES = 3;
 function toDataUri(base64: string): string {
   const mime = base64.startsWith('iVBOR') ? 'image/png' : 'image/jpeg';
   return `data:${mime};base64,${base64}`;
+}
+
+function extractBase64(img: MistralOcrImage): string | undefined {
+  // Try known field names that Mistral may use
+  const candidate =
+    (img.image_base64 as string | undefined) ??
+    (img.base64 as string | undefined) ??
+    (img.data as string | undefined);
+  return candidate && candidate.length > 0 ? candidate : undefined;
 }
 
 function sleep(ms: number): Promise<void> {
@@ -66,18 +78,29 @@ export async function extractTextFromPdf(pdfBuffer: Buffer): Promise<OcrResult> 
 
     const data = (await res.json()) as MistralOcrResponse;
     const pages = data.pages ?? [];
-    const markdown = pages.map((p) => p.markdown).join('\n\n');
+    const pageMarkdowns = pages.map((p) => p.markdown);
+    const markdown = pageMarkdowns.join('\n\n');
 
     const images: Record<string, string> = {};
+    let totalImages = 0;
+    let extractedImages = 0;
+
     for (const page of pages) {
       for (const img of page.images ?? []) {
-        if (img.id && img.image_base64) {
-          images[img.id] = toDataUri(img.image_base64);
+        totalImages++;
+        const b64 = extractBase64(img);
+        if (img.id && b64) {
+          images[img.id] = toDataUri(b64);
+          extractedImages++;
+        } else {
+          console.warn(`[ocr] image "${img.id}" missing base64 — keys: ${Object.keys(img).join(',')}`);
         }
       }
     }
 
-    return { markdown, pageCount: pages.length, images };
+    console.log(`[ocr] ${pages.length} pages, ${totalImages} images found, ${extractedImages} with base64`);
+
+    return { markdown, pageMarkdowns, pageCount: pages.length, images };
   }
 
   throw lastError;

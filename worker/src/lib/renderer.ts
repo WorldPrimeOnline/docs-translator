@@ -12,7 +12,9 @@ function embedImages(markdown: string, images: Record<string, string>): string {
   if (Object.keys(images).length === 0) return markdown;
   return markdown.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_match, alt, id) => {
     const uri = images[id];
-    return uri ? `![${alt}](${uri})` : `![${alt}](${id})`;
+    if (uri) return `![${alt}](${uri})`;
+    // Fallback: render as a styled placeholder instead of broken img
+    return `<span class="img-ref">[img: ${id}]</span>`;
   });
 }
 
@@ -20,9 +22,23 @@ export async function renderToHtml(
   translatedMarkdown: string,
   meta: RenderMeta,
   images: Record<string, string> = {},
+  pageMarkdowns?: string[],
 ): Promise<string> {
-  const withImages = embedImages(translatedMarkdown, images);
-  const htmlBody = await marked.parse(withImages);
+  // Render per-page sections when available (preserves document page structure)
+  let contentHtml: string;
+  if (pageMarkdowns && pageMarkdowns.length > 1) {
+    const pageParts = await Promise.all(
+      pageMarkdowns.map(async (md) => {
+        const withImgs = embedImages(md, images);
+        const body = await marked.parse(withImgs);
+        return `<div class="page">${body}</div>`;
+      }),
+    );
+    contentHtml = pageParts.join('\n');
+  } else {
+    const withImgs = embedImages(translatedMarkdown, images);
+    contentHtml = `<div class="page">${await marked.parse(withImgs)}</div>`;
+  }
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -32,7 +48,7 @@ export async function renderToHtml(
 <title>Translation — ${meta.sourceLang} → ${meta.targetLang}</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  @page { size: A4; margin: 20mm 15mm; }
+  @page { size: A4; margin: 15mm; }
   body {
     font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 11pt;
@@ -43,30 +59,28 @@ export async function renderToHtml(
     font-size: 9pt;
     color: #888;
     text-align: center;
-    margin-bottom: 24px;
-    padding-bottom: 12px;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
     border-bottom: 1px solid #e0e0e0;
   }
-  .content h1 { font-size: 16pt; margin: 20px 0 10px; }
-  .content h2 { font-size: 13pt; margin: 16px 0 8px; }
-  .content h3 { font-size: 11pt; margin: 12px 0 6px; }
-  .content p  { margin: 8px 0; }
-  .content img { max-width: 100%; height: auto; display: block; margin: 8px 0; }
-  .content ul, .content ol { margin: 8px 0 8px 20px; }
-  .content li { margin: 3px 0; }
-  .content table { border-collapse: collapse; width: 100%; margin: 12px 0; }
-  .content th, .content td { border: 1px solid #ccc; padding: 6px 10px; text-align: left; }
-  .content th { background: #f4f4f4; font-weight: 600; }
-  .content code { font-family: monospace; background: #f4f4f4; padding: 1px 4px; border-radius: 3px; }
-  .content pre  { background: #f4f4f4; padding: 10px; border-radius: 4px; overflow-x: auto; margin: 8px 0; }
-  .footer {
-    margin-top: 40px;
-    padding-top: 12px;
-    border-top: 1px solid #e0e0e0;
-    font-size: 8pt;
-    color: #aaa;
-    text-align: center;
+  .page {
+    page-break-after: always;
+    padding: 8mm 0;
+    min-height: 240mm;
   }
+  .page:last-child { page-break-after: avoid; }
+  .page h1 { font-size: 18pt; margin: 16px 0 10px; }
+  .page h2 { font-size: 14pt; margin: 14px 0 8px; }
+  .page h3 { font-size: 12pt; margin: 10px 0 6px; }
+  .page p  { margin: 6px 0; }
+  .page ul, .page ol { margin: 6px 0 6px 20px; }
+  .page li { margin: 3px 0; }
+  .page table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+  .page th, .page td { border: 1px solid #ccc; padding: 5px 9px; text-align: left; }
+  .page th { background: #f4f4f4; font-weight: 600; }
+  .page img { max-width: 100%; height: auto; display: block; margin: 8px 0; }
+  .page code { font-family: monospace; background: #f4f4f4; padding: 1px 4px; border-radius: 3px; }
+  .img-ref { color: #aaa; font-style: italic; font-size: 9pt; }
 </style>
 </head>
 <body>
@@ -76,11 +90,7 @@ export async function renderToHtml(
     &nbsp;·&nbsp; ${meta.sourceLang} → ${meta.targetLang}
     &nbsp;·&nbsp; ${meta.documentType}
   </div>
-  <div class="content">${htmlBody}</div>
-  <div class="footer">
-    UNOFFICIAL TRANSLATION — FOR INFORMATIONAL PURPOSES ONLY.<br/>
-    This document is not a certified or notarized translation.
-  </div>
+  ${contentHtml}
 </body>
 </html>`;
 }

@@ -17,14 +17,26 @@ function embedImages(markdown: string, images: Record<string, string>): string {
   });
 }
 
-/** Produces an HTML buffer (despite the name — kept for backward compat). */
+/** Produces an HTML buffer with per-page sections and page breaks. */
 export async function renderToPdf(
   translatedMarkdown: string,
   meta: RenderMeta,
   images: Record<string, string> = {},
+  pageMarkdowns?: string[],
 ): Promise<Buffer> {
-  const withImages = embedImages(translatedMarkdown, images);
-  const htmlBody = await marked.parse(withImages);
+  let contentHtml: string;
+  if (pageMarkdowns && pageMarkdowns.length > 1) {
+    const parts = await Promise.all(
+      pageMarkdowns.map(async (md) => {
+        const body = await marked.parse(embedImages(md, images));
+        return `<div class="page">${body}</div>`;
+      }),
+    );
+    contentHtml = parts.join('\n');
+  } else {
+    const body = await marked.parse(embedImages(translatedMarkdown, images));
+    contentHtml = `<div class="page">${body}</div>`;
+  }
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -34,6 +46,7 @@ export async function renderToPdf(
 <title>Translation — ${meta.sourceLang} → ${meta.targetLang}</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  @page { size: A4; margin: 15mm; }
   body {
     font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 11pt;
@@ -41,26 +54,24 @@ export async function renderToPdf(
     color: #111;
     max-width: 800px;
     margin: 0 auto;
-    padding: 24px 32px;
+    padding: 16px 32px;
   }
-  .meta {
-    font-size: 9pt;
-    color: #888;
-    text-align: center;
-    margin-bottom: 32px;
-  }
-  .content h1, .content h2, .content h3 { margin: 16px 0 8px; }
-  .content p { margin: 8px 0; }
-  .content img { max-width: 100%; height: auto; display: block; margin: 8px 0; }
-  .content table { border-collapse: collapse; width: 100%; margin: 12px 0; }
-  .content th, .content td { border: 1px solid #ccc; padding: 6px 10px; text-align: left; }
-  .content th { background: #f2f2f2; }
+  .meta { font-size: 9pt; color: #888; text-align: center; margin-bottom: 20px; }
+  .page { page-break-after: always; padding: 4mm 0; }
+  .page:last-child { page-break-after: avoid; }
+  .page h1, .page h2, .page h3 { margin: 14px 0 7px; }
+  .page p { margin: 6px 0; }
+  .page img { max-width: 100%; height: auto; display: block; margin: 8px 0; }
+  .page table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+  .page th, .page td { border: 1px solid #ccc; padding: 5px 9px; text-align: left; }
+  .page th { background: #f2f2f2; }
+  .img-ref { color: #aaa; font-style: italic; font-size: 9pt; }
   @media print { body { padding: 0; } }
 </style>
 </head>
 <body>
-  <div class="meta">Translated ${meta.translatedAt} &nbsp;·&nbsp; ${meta.sourceLang} → ${meta.targetLang} &nbsp;·&nbsp; WPO Translations</div>
-  <div class="content">${htmlBody}</div>
+  <div class="meta">Translated ${meta.translatedAt} &nbsp;·&nbsp; ${meta.sourceLang} → ${meta.targetLang}</div>
+  ${contentHtml}
 </body>
 </html>`;
 

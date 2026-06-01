@@ -61,7 +61,7 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
     const pdfBuffer = await downloadFile(doc.file_key);
 
     console.log(`${tag} running OCR…`);
-    const { markdown, pageCount, images } = await extractTextFromPdf(pdfBuffer);
+    const { markdown, pageMarkdowns, pageCount, images } = await extractTextFromPdf(pdfBuffer);
     console.log(`${tag} OCR done — ${pageCount} pages, ${markdown.length} chars`);
 
     // OCR quality check — abort early rather than waste translation credits
@@ -133,14 +133,14 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
       console.log(`${tag} DOCX uploaded (${docxBuf.length} bytes) → ${translatedKey}`);
     } else if (outputFormat === 'html') {
       console.log(`${tag} generating HTML…`);
-      const html = await renderToHtml(translatedMarkdown, renderMeta, images);
+      const html = await renderToHtml(translatedMarkdown, renderMeta, images, pageMarkdowns);
       translatedKey = `${baseKey}/translated.html`;
       await uploadFile(translatedKey, Buffer.from(html, 'utf-8'), 'text/html; charset=utf-8');
       contentType = 'text/html';
       console.log(`${tag} HTML uploaded → ${translatedKey}`);
     } else {
       // pdf (default) — HTML with embedded images → Puppeteer → PDF
-      const html = await renderToHtml(translatedMarkdown, renderMeta, images);
+      const html = await renderToHtml(translatedMarkdown, renderMeta, images, pageMarkdowns);
       try {
         console.log(`${tag} generating PDF via Puppeteer…`);
         const pdfBuf = await generatePdfFromHtml(html);
