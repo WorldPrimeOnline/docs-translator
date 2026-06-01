@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -12,7 +12,6 @@ import Link from 'next/link';
 import { AuthForm } from '@/components/auth-form';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { createClient } from '@/lib/supabase/client';
 
 const schema = z
   .object({
@@ -28,7 +27,6 @@ type FormValues = z.infer<typeof schema>;
 
 export default function ResetPasswordPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const t = useTranslations('auth');
 
   const [sessionReady, setSessionReady] = useState(false);
@@ -42,47 +40,28 @@ export default function ResetPasswordPage() {
 
   // Exchange token_hash for a session (PKCE flow, cross-device safe)
   useEffect(() => {
-    // Supabase may return error params when the link is expired/invalid
-    const urlError = searchParams.get('error');
-    const urlErrorDescription = searchParams.get('error_description');
-    if (urlError) {
-      setSessionError(urlErrorDescription ?? urlError);
-      return;
-    }
+    // Use implicit flow client to match how the reset email was sent
+    const { createBrowserClient } = await import('@supabase/ssr');
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { flowType: 'implicit' } },
+    );
 
-    const supabase = createClient();
-
-    // PKCE auth code flow (current Supabase default)
-    const code = searchParams.get('code');
-    if (code) {
-      supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
-        if (error) setSessionError(error.message);
-        else setSessionReady(true);
-      });
-      return;
-    }
-
-    // Older token_hash flow
-    const tokenHash = searchParams.get('token_hash');
-    const type = searchParams.get('type');
-    if (tokenHash && type === 'recovery') {
-      supabase.auth
-        .verifyOtp({ token_hash: tokenHash, type: 'recovery' })
-        .then(({ error }) => {
-          if (error) setSessionError(error.message);
-          else setSessionReady(true);
-        });
-      return;
-    }
-
-    // Implicit flow fallback — session arrives via hash fragment
+    // Implicit flow: Supabase puts access_token in URL hash → auto-detected by client
+    // Listen for PASSWORD_RECOVERY event which fires when the hash is parsed
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if ((event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') && session) {
+      if (event === 'PASSWORD_RECOVERY' && session) {
+        setSessionReady(true);
+        subscription.unsubscribe();
+      }
+      if (event === 'SIGNED_IN' && session) {
         setSessionReady(true);
         subscription.unsubscribe();
       }
     });
 
+    // Also check existing session (same browser same tab)
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         setSessionReady(true);
@@ -95,7 +74,12 @@ export default function ResetPasswordPage() {
 
   const onSubmit = async (values: FormValues): Promise<void> => {
     setIsLoading(true);
-    const supabase = createClient();
+    const { createBrowserClient } = await import('@supabase/ssr');
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { flowType: 'implicit' } },
+    );
 
     const { error } = await supabase.auth.updateUser({ password: values.password });
 
