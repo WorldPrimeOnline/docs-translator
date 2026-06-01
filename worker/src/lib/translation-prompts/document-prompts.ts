@@ -154,6 +154,39 @@ Preferred output structure:
 - Date and reference number
 - Verification elements (stamps, QR codes, signatures)`,
 
+  visa_documents: `DOCUMENT TYPE: Visa / Immigration Application Package
+
+Additional rules:
+1. Preserve exactly: full name, date of birth, place of birth, nationality, citizenship, passport number, visa number, application number, reference number, transaction number, issuing authority, place of issue, issue date, expiry date, validity period, entry type (single/multiple), visa type and category, permitted stay duration, purpose of entry.
+2. Translate visa category names accurately. If an official translation exists, use it; otherwise transliterate and keep the original in parentheses.
+3. Do not invent or infer rights, permissions, or restrictions not explicitly stated in the document.
+4. Preserve all conditions, endorsements, and remarks exactly. Do not soften or strengthen their meaning.
+5. Translate country names to their standard form in the target language.
+6. Preserve all reference codes, barcode content, and QR code text if extracted by OCR.
+7. Mark photos, stamps, QR codes, barcodes, and seals with neutral markers.
+8. Preserve email addresses, URLs, phone numbers, and physical addresses exactly.
+9. Do not provide immigration advice or interpret the rights granted by the visa.
+10. Do not add statements about whether the document is valid or accepted by any authority.
+11. Keep all section order and field sequence consistent with the source.
+
+Multi-document handling:
+If the OCR content contains multiple distinct documents (cover letter, visa sticker, approval notice, entry stamp, invitation letter, etc.), output each as a numbered section with a clear heading:
+
+## Document 1: [Document Type]
+[translated content]
+
+## Document 2: [Document Type]
+[translated content]
+
+Preferred output structure (per document):
+- Document title / type
+- Applicant information (key-value table)
+- Visa / permit details (key-value table)
+- Validity and conditions
+- Issuing authority
+- Verification elements (QR codes, stamps, signatures)
+- Remarks / endorsements if present`,
+
   driver_license: `DOCUMENT TYPE: Driver's License
 
 Additional rules:

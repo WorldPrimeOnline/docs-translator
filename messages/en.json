@@ -222,6 +222,7 @@
       "medical_document": "Medical Record / Certificate",
       "employment_document": "Employment Contract / Labor Book",
       "police_clearance": "Police Clearance Certificate",
+      "visa_documents": "Visa / Immigration Documents",
       "driver_license": "Driver's License",
       "presentation": "Presentation / Pitch Deck",
       "other": "Other"

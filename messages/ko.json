@@ -220,6 +220,7 @@
       "medical_document": "의료 기록 / 증명서",
       "employment_document": "고용 계약서 / 재직증명서",
       "police_clearance": "범죄경력 증명서",
+      "visa_documents": "비자 / 이민 서류",
       "driver_license": "운전면허증",
       "presentation": "프레젠테이션 / 피치덱",
       "other": "기타"

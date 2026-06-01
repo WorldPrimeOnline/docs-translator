@@ -209,6 +209,7 @@ export default function DashboardPage() {
     { value: 'medical_document',   label: t('docTypes.medical_document')   },
     { value: 'employment_document',label: t('docTypes.employment_document')},
     { value: 'police_clearance',   label: t('docTypes.police_clearance')   },
+    { value: 'visa_documents',     label: t('docTypes.visa_documents')     },
     { value: 'driver_license',     label: t('docTypes.driver_license')     },
     { value: 'presentation',       label: t('docTypes.presentation')       },
     { value: 'other',              label: t('docTypes.other')              },

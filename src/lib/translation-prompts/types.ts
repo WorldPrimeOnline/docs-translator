@@ -6,6 +6,7 @@ export const DOCUMENT_TYPE = {
   medical_document: 'medical_document',
   employment_document: 'employment_document',
   police_clearance: 'police_clearance',
+  visa_documents: 'visa_documents',
   driver_license: 'driver_license',
   presentation: 'presentation',
   other: 'other',
