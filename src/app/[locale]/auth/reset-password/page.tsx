@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { createBrowserClient } from '@supabase/ssr';
 import { AuthForm } from '@/components/auth-form';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -25,6 +26,14 @@ const schema = z
 
 type FormValues = z.infer<typeof schema>;
 
+function makeSupabase() {
+  return createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { auth: { flowType: 'implicit' } },
+  );
+}
+
 export default function ResetPasswordPage() {
   const router = useRouter();
   const t = useTranslations('auth');
@@ -38,30 +47,16 @@ export default function ResetPasswordPage() {
     defaultValues: { password: '', confirmPassword: '' },
   });
 
-  // Exchange token_hash for a session (PKCE flow, cross-device safe)
   useEffect(() => {
-    // Use implicit flow client to match how the reset email was sent
-    const { createBrowserClient } = await import('@supabase/ssr');
-    const supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { auth: { flowType: 'implicit' } },
-    );
+    const supabase = makeSupabase();
 
-    // Implicit flow: Supabase puts access_token in URL hash → auto-detected by client
-    // Listen for PASSWORD_RECOVERY event which fires when the hash is parsed
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'PASSWORD_RECOVERY' && session) {
-        setSessionReady(true);
-        subscription.unsubscribe();
-      }
-      if (event === 'SIGNED_IN' && session) {
+      if ((event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') && session) {
         setSessionReady(true);
         subscription.unsubscribe();
       }
     });
 
-    // Also check existing session (same browser same tab)
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         setSessionReady(true);
@@ -70,17 +65,11 @@ export default function ResetPasswordPage() {
     });
 
     return () => subscription.unsubscribe();
-  }, [searchParams]);
+  }, []);
 
   const onSubmit = async (values: FormValues): Promise<void> => {
     setIsLoading(true);
-    const { createBrowserClient } = await import('@supabase/ssr');
-    const supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { auth: { flowType: 'implicit' } },
-    );
-
+    const supabase = makeSupabase();
     const { error } = await supabase.auth.updateUser({ password: values.password });
 
     if (error) {
@@ -97,13 +86,8 @@ export default function ResetPasswordPage() {
   if (sessionError) {
     return (
       <div className="mx-auto flex w-full max-w-sm flex-col items-center gap-4">
-        <p className="text-center text-sm text-red-400">
-          {sessionError}
-        </p>
-        <Link
-          href="/auth/forgot-password"
-          className="text-sm text-foreground underline underline-offset-4 hover:opacity-80"
-        >
+        <p className="text-center text-sm text-red-400">{sessionError}</p>
+        <Link href="/auth/forgot-password" className="text-sm text-foreground underline underline-offset-4 hover:opacity-80">
           {t('forgotPassword')}
         </Link>
       </div>

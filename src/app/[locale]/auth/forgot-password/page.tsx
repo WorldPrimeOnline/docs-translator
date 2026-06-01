@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { AuthForm } from '@/components/auth-form';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { createClient } from '@/lib/supabase/client';
+import { createBrowserClient } from '@supabase/ssr';
 
 const schema = z.object({
   email: z.string().email('Invalid email address'),
@@ -30,8 +30,6 @@ export default function ForgotPasswordPage() {
 
   const onSubmit = async (values: FormValues): Promise<void> => {
     setIsLoading(true);
-    // Use implicit flow so the token arrives in the URL hash — works cross-browser/device
-    const { createBrowserClient } = await import('@supabase/ssr');
     const supabase = createBrowserClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
