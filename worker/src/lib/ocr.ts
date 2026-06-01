@@ -1,7 +1,13 @@
 import { env } from './env';
 
+interface MistralOcrImage {
+  id: string;
+  image_base64: string;
+}
+
 interface MistralOcrPage {
   markdown: string;
+  images?: MistralOcrImage[];
 }
 
 interface MistralOcrResponse {
@@ -11,10 +17,16 @@ interface MistralOcrResponse {
 export interface OcrResult {
   markdown: string;
   pageCount: number;
+  images: Record<string, string>; // imageId → data URI
 }
 
 const MISTRAL_OCR_URL = 'https://api.mistral.ai/v1/ocr';
 const MAX_RETRIES = 3;
+
+function toDataUri(base64: string): string {
+  const mime = base64.startsWith('iVBOR') ? 'image/png' : 'image/jpeg';
+  return `data:${mime};base64,${base64}`;
+}
 
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
@@ -28,6 +40,7 @@ export async function extractTextFromPdf(pdfBuffer: Buffer): Promise<OcrResult> 
       type: 'document_url',
       document_url: `data:application/pdf;base64,${base64}`,
     },
+    include_image_base64: true,
   };
 
   let lastError: Error = new Error('OCR failed after all retries');
@@ -54,7 +67,17 @@ export async function extractTextFromPdf(pdfBuffer: Buffer): Promise<OcrResult> 
     const data = (await res.json()) as MistralOcrResponse;
     const pages = data.pages ?? [];
     const markdown = pages.map((p) => p.markdown).join('\n\n');
-    return { markdown, pageCount: pages.length };
+
+    const images: Record<string, string> = {};
+    for (const page of pages) {
+      for (const img of page.images ?? []) {
+        if (img.id && img.image_base64) {
+          images[img.id] = toDataUri(img.image_base64);
+        }
+      }
+    }
+
+    return { markdown, pageCount: pages.length, images };
   }
 
   throw lastError;

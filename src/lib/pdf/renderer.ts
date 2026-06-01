@@ -8,10 +8,23 @@ interface RenderMeta {
   translatedAt: string;
 }
 
+/** Substitute image IDs with data URIs so marked renders them as <img> tags. */
+function embedImages(markdown: string, images: Record<string, string>): string {
+  if (Object.keys(images).length === 0) return markdown;
+  return markdown.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_match, alt, id) => {
+    const uri = images[id];
+    return uri ? `![${alt}](${uri})` : `![${alt}](${id})`;
+  });
+}
+
 /** Produces an HTML buffer (despite the name — kept for backward compat). */
-export async function renderToPdf(translatedMarkdown: string, meta: RenderMeta): Promise<Buffer> {
-  const stripped = translatedMarkdown.replace(/!\[.*?\]\(.*?\)/g, '');
-  const htmlBody = await marked.parse(stripped);
+export async function renderToPdf(
+  translatedMarkdown: string,
+  meta: RenderMeta,
+  images: Record<string, string> = {},
+): Promise<Buffer> {
+  const withImages = embedImages(translatedMarkdown, images);
+  const htmlBody = await marked.parse(withImages);
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -38,6 +51,7 @@ export async function renderToPdf(translatedMarkdown: string, meta: RenderMeta):
   }
   .content h1, .content h2, .content h3 { margin: 16px 0 8px; }
   .content p { margin: 8px 0; }
+  .content img { max-width: 100%; height: auto; display: block; margin: 8px 0; }
   .content table { border-collapse: collapse; width: 100%; margin: 12px 0; }
   .content th, .content td { border: 1px solid #ccc; padding: 6px 10px; text-align: left; }
   .content th { background: #f2f2f2; }
@@ -54,8 +68,13 @@ export async function renderToPdf(translatedMarkdown: string, meta: RenderMeta):
 }
 
 /** Produces a real PDF buffer using pdf-lib (text-based, no Puppeteer). */
-export async function renderToPdfBuffer(translatedMarkdown: string, meta: RenderMeta): Promise<Buffer> {
-  const stripped = translatedMarkdown.replace(/!\[.*?\]\(.*?\)/g, '').replace(/!\[.*?]/g, '');
+export async function renderToPdfBuffer(
+  translatedMarkdown: string,
+  meta: RenderMeta,
+  _images: Record<string, string> = {},
+): Promise<Buffer> {
+  // pdf-lib text renderer: strip image refs (can't position images in text flow)
+  const stripped = translatedMarkdown.replace(/!\[.*?\]\(.*?\)/g, '');
 
   const pdfDoc = await PDFDocument.create();
   const regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica);

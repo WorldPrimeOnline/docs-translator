@@ -54,7 +54,8 @@ Rules:
 - Transliterate names of people (do not translate them)
 - Preserve document structure and formatting
 - Output only the translated content in Markdown format
-- Do not add explanations or comments`,
+- Do not add explanations or comments
+- CRITICAL: Preserve every image reference exactly as-is — keep ![alt](id) syntax unchanged, including the id inside parentheses`,
         messages: [{ role: 'user', content: chunk }],
       });
 
