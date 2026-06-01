@@ -14,7 +14,6 @@ export interface RenderMeta {
   serviceLevel?: ServiceLevel;
 }
 
-// Leave empty — filled in by the business when IIN/BIN is assigned.
 const PROVIDER_IIN_BIN = '';
 
 const LANG_SRC: Record<string, { en: string; ru: string }> = {
@@ -98,6 +97,17 @@ function originalCopyNote(meta: RenderMeta): string {
     : 'The translation was prepared based on the provided electronic copy of the document.';
 }
 
+function officialFooter(meta: RenderMeta): string {
+  const d = dl(meta.targetLang);
+  const tgtName = LANG_TGT[meta.targetLang]?.[d] ?? meta.targetLang;
+  const srcName = isAutoSource(meta.sourceLang)
+    ? (d === 'ru' ? 'определён автоматически' : 'auto-detected')
+    : (LANG_TGT[meta.sourceLang]?.[d] ?? meta.sourceLang);
+  return d === 'ru'
+    ? `Перевод подготовлен сервисом World Prime Online. Дата подготовки: ${meta.translatedAt}. Исходный язык: ${srcName}. Целевой язык: ${tgtName}.`
+    : `Translation prepared by World Prime Online. Date: ${meta.translatedAt}. Source language: ${srcName}. Target language: ${tgtName}.`;
+}
+
 function certificationRows(meta: RenderMeta): Array<[string, string]> {
   const d = dl(meta.targetLang);
   const src = LANG_SRC[meta.sourceLang]?.[d] ?? meta.sourceLang;
@@ -171,6 +181,7 @@ const BUREAU_CSS = `
   .cert-full { font-style: italic; }
   .notarization-note { margin-top: 16px; font-size: 9pt; color: #555; font-style: italic; border-left: 3px solid #bbb; padding-left: 10px; }
   .system-meta { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 8pt; color: #aaa; text-align: center; margin-bottom: 20px; padding-bottom: 8px; border-bottom: 1px solid #e8e8e8; }
+  .official-footer { margin-top: 28px; padding-top: 10px; border-top: 1px solid #ddd; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 8.5pt; color: #666; text-align: center; }
 `;
 
 export async function renderToHtml(
@@ -198,20 +209,30 @@ export async function renderToHtml(
 
   const certHtml = showCert ? buildCertificationBlockHtml(meta) : '';
   const notarHtml = showNotarNote ? `<div class="notarization-note">${notarizationNote(meta)}</div>` : '';
+  const footerHtml = isPresentation ? '' : `<div class="official-footer">${officialFooter(meta)}</div>`;
 
-  const systemMeta = meta.filename
-    ? `<strong>${meta.filename}</strong> &nbsp;·&nbsp; ${meta.translatedAt} &nbsp;·&nbsp; ${meta.sourceLang} → ${meta.targetLang}`
-    : `${meta.translatedAt} &nbsp;·&nbsp; ${meta.sourceLang} → ${meta.targetLang}`;
+  // system-meta kept for presentation only; official docs use bureau header + official footer
+  const systemMetaHtml = isPresentation
+    ? `<div class="system-meta">${meta.filename ? `<strong>${meta.filename}</strong> &nbsp;·&nbsp; ` : ''}${meta.translatedAt} &nbsp;·&nbsp; ${meta.sourceLang} → ${meta.targetLang}</div>`
+    : '';
 
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="${meta.targetLang}">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Translation — ${meta.sourceLang} → ${meta.targetLang}</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  @page { size: A4; margin: 20mm 15mm; }
+  @page { size: A4; margin: 20mm 15mm 25mm 15mm; }
+  @page {
+    @bottom-center {
+      content: counter(page) " / " counter(pages);
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      font-size: 9pt;
+      color: #888;
+    }
+  }
   body {
     font-family: "Times New Roman", Times, serif;
     font-size: 11pt;
@@ -229,7 +250,9 @@ export async function renderToHtml(
   p  { margin: 5px 0; }
   ul, ol { margin: 6px 0 6px 22px; }
   li { margin: 3px 0; }
-  table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+  table { border-collapse: collapse; width: 100%; margin: 10px 0; page-break-inside: avoid; break-inside: avoid; }
+  thead { display: table-header-group; }
+  tr { page-break-inside: avoid; break-inside: avoid; }
   th, td { border: 1px solid #bbb; padding: 5px 10px; text-align: left; vertical-align: top; }
   th { background: #f5f5f5; font-weight: 600; width: 40%; }
   td { width: 60%; }
@@ -240,11 +263,12 @@ export async function renderToHtml(
 </style>
 </head>
 <body>
-  <div class="system-meta">${systemMeta}</div>
+  ${systemMetaHtml}
   ${bureauHeaderHtml}
   <div class="content">${body}</div>
   ${certHtml}
   ${notarHtml}
+  ${footerHtml}
 </body>
 </html>`;
 }

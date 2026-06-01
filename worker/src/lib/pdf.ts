@@ -57,10 +57,18 @@ export async function generatePdfFromHtml(html: string): Promise<Buffer> {
       timeout: 30_000,
     });
 
+    const lang = await page.evaluate('document.documentElement.getAttribute("lang") || "en"') as string;
+    const pageLabel = lang === 'ru' ? 'Стр.' : 'Page';
+    const ofLabel = lang === 'ru' ? 'из' : 'of';
+    const footerTemplate = `<div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:9pt;color:#888;text-align:center;width:100%;padding:0 15mm;">${pageLabel} <span class="pageNumber"></span> ${ofLabel} <span class="totalPages"></span></div>`;
+
     const pdf = await page.pdf({
       format: 'A4',
       printBackground: true,
-      margin: { top: '20mm', bottom: '20mm', left: '15mm', right: '15mm' },
+      displayHeaderFooter: true,
+      headerTemplate: '<span></span>',
+      footerTemplate,
+      margin: { top: '20mm', bottom: '25mm', left: '15mm', right: '15mm' },
       timeout: 60_000,
     });
 

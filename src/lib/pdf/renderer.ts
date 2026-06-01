@@ -14,7 +14,6 @@ export interface RenderMeta {
   serviceLevel?: ServiceLevel;
 }
 
-// Leave empty — filled in by the business when IIN/BIN is assigned.
 const PROVIDER_IIN_BIN = '';
 
 const LANG_SRC: Record<string, { en: string; ru: string }> = {
@@ -98,6 +97,17 @@ function originalCopyNote(meta: RenderMeta): string {
     : 'The translation was prepared based on the provided electronic copy of the document.';
 }
 
+function officialFooter(meta: RenderMeta): string {
+  const d = dl(meta.targetLang);
+  const tgtName = LANG_TGT[meta.targetLang]?.[d] ?? meta.targetLang;
+  const srcName = isAutoSource(meta.sourceLang)
+    ? (d === 'ru' ? 'определён автоматически' : 'auto-detected')
+    : (LANG_TGT[meta.sourceLang]?.[d] ?? meta.sourceLang);
+  return d === 'ru'
+    ? `Перевод подготовлен сервисом World Prime Online. Дата подготовки: ${meta.translatedAt}. Исходный язык: ${srcName}. Целевой язык: ${tgtName}.`
+    : `Translation prepared by World Prime Online. Date: ${meta.translatedAt}. Source language: ${srcName}. Target language: ${tgtName}.`;
+}
+
 function certificationRows(meta: RenderMeta): Array<[string, string]> {
   const d = dl(meta.targetLang);
   const src = LANG_SRC[meta.sourceLang]?.[d] ?? meta.sourceLang;
@@ -171,6 +181,7 @@ const BUREAU_CSS = `
   .cert-full { font-style: italic; }
   .notarization-note { margin-top: 16px; font-size: 9pt; color: #555; font-style: italic; border-left: 3px solid #bbb; padding-left: 10px; }
   .system-meta { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 8pt; color: #aaa; text-align: center; margin-bottom: 20px; padding-bottom: 8px; border-bottom: 1px solid #e8e8e8; }
+  .official-footer { margin-top: 28px; padding-top: 10px; border-top: 1px solid #ddd; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 8.5pt; color: #666; text-align: center; }
 `;
 
 /** Produces an HTML buffer from the translated markdown. */
@@ -199,16 +210,30 @@ export async function renderToPdf(
 
   const certHtml = showCert ? buildCertificationBlockHtml(meta) : '';
   const notarHtml = showNotarNote ? `<div class="notarization-note">${notarizationNote(meta)}</div>` : '';
+  const footerHtml = isPresentation ? '' : `<div class="official-footer">${officialFooter(meta)}</div>`;
+
+  // system-meta is for presentation only — official docs use the bureau header + official footer
+  const systemMetaHtml = isPresentation
+    ? `<div class="system-meta">${meta.sourceLang} → ${meta.targetLang} &nbsp;·&nbsp; ${meta.documentType} &nbsp;·&nbsp; ${meta.translatedAt}</div>`
+    : '';
 
   const html = `<!DOCTYPE html>
-<html lang="en">
+<html lang="${meta.targetLang}">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Translation — ${meta.sourceLang} → ${meta.targetLang}</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  @page { size: A4; margin: 20mm 15mm; }
+  @page { size: A4; margin: 20mm 15mm 25mm 15mm; }
+  @page {
+    @bottom-center {
+      content: counter(page) " / " counter(pages);
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      font-size: 9pt;
+      color: #888;
+    }
+  }
   body {
     font-family: "Times New Roman", Times, serif;
     font-size: 11pt;
@@ -224,7 +249,9 @@ export async function renderToPdf(
   h2 { font-size: 12pt; margin: 16px 0 8px; }
   h3 { font-size: 11pt; margin: 12px 0 6px; }
   p { margin: 5px 0; }
-  table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+  table { border-collapse: collapse; width: 100%; margin: 10px 0; page-break-inside: avoid; break-inside: avoid; }
+  thead { display: table-header-group; }
+  tr { page-break-inside: avoid; break-inside: avoid; }
   th, td { border: 1px solid #bbb; padding: 5px 10px; text-align: left; vertical-align: top; }
   th { background: #f5f5f5; font-weight: 600; width: 40%; }
   td { width: 60%; }
@@ -237,11 +264,12 @@ export async function renderToPdf(
 </style>
 </head>
 <body>
-  <div class="system-meta">${meta.sourceLang} → ${meta.targetLang} &nbsp;·&nbsp; ${meta.documentType} &nbsp;·&nbsp; ${meta.translatedAt}</div>
+  ${systemMetaHtml}
   ${bureauHeaderHtml}
   <div class="content">${body}</div>
   ${certHtml}
   ${notarHtml}
+  ${footerHtml}
 </body>
 </html>`;
 
@@ -256,8 +284,16 @@ export async function renderToPdfBuffer(
   function winAnsiSafe(s: string): string {
     return s.replace(/[^\x20-\x7E\xA0-\xFF]/g, (ch) => {
       const replacements: Record<string, string> = {
-        '→': '->', '←': '<-', '↑': '^', '↓': 'v',
-        '–': '-', '—': '-', '‘': "'", '“': '"', '”': '"',
+        '→': '->',  // →
+        '←': '<-',  // ←
+        '↑': '^',   // ↑
+        '↓': 'v',   // ↓
+        '–': '-',   // –
+        '—': '-',   // —
+        '‘': "'",   // '
+        '’': "'",   // '
+        '“': '"',   // "
+        '”': '"',   // "
       };
       return replacements[ch] ?? '?';
     });
@@ -314,8 +350,7 @@ export async function renderToPdfBuffer(
   }
 
   if (!isPresentation) {
-    const header = winAnsiSafe(translationHeader(meta));
-    drawText(header, 11, boldFont);
+    drawText(winAnsiSafe(translationHeader(meta)), 11, boldFont);
     y -= 2;
     drawText(winAnsiSafe(docTypeLabel(meta)), 9, regularFont, rgb(0.3, 0.3, 0.3));
     y -= 2;
@@ -385,6 +420,14 @@ export async function renderToPdfBuffer(
   if (showNotarNote) {
     y -= 8;
     drawText(winAnsiSafe(notarizationNote(meta)), 8, regularFont, rgb(0.4, 0.4, 0.4));
+  }
+
+  if (!isPresentation) {
+    y -= 16;
+    ensureSpace(LINE_H * 2);
+    page.drawLine({ start: { x: MARGIN, y }, end: { x: PAGE_W - MARGIN, y }, thickness: 0.5, color: rgb(0.8, 0.8, 0.8) });
+    y -= 12;
+    drawText(winAnsiSafe(officialFooter(meta)), 8, regularFont, rgb(0.5, 0.5, 0.5));
   }
 
   const bytes = await pdfDoc.save();
