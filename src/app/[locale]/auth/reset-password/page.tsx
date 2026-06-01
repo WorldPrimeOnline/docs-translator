@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
 import { AuthForm } from '@/components/auth-form';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -26,13 +27,55 @@ type FormValues = z.infer<typeof schema>;
 
 export default function ResetPasswordPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const t = useTranslations('auth');
+
+  const [sessionReady, setSessionReady] = useState(false);
+  const [sessionError, setSessionError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { password: '', confirmPassword: '' },
   });
+
+  // Exchange token_hash for a session (PKCE flow, cross-device safe)
+  useEffect(() => {
+    const supabase = createClient();
+    const tokenHash = searchParams.get('token_hash');
+    const type = searchParams.get('type');
+
+    if (tokenHash && type === 'recovery') {
+      supabase.auth
+        .verifyOtp({ token_hash: tokenHash, type: 'recovery' })
+        .then(({ error }) => {
+          if (error) {
+            setSessionError(error.message);
+          } else {
+            setSessionReady(true);
+          }
+        });
+      return;
+    }
+
+    // Fallback: implicit flow — session arrives via hash fragment
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if ((event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') && session) {
+        setSessionReady(true);
+        subscription.unsubscribe();
+      }
+    });
+
+    // Also check if a session already exists
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setSessionReady(true);
+        subscription.unsubscribe();
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [searchParams]);
 
   const onSubmit = async (values: FormValues): Promise<void> => {
     setIsLoading(true);
@@ -50,6 +93,30 @@ export default function ResetPasswordPage() {
     router.push('/dashboard');
     router.refresh();
   };
+
+  if (sessionError) {
+    return (
+      <div className="mx-auto flex w-full max-w-sm flex-col items-center gap-4">
+        <p className="text-center text-sm text-red-400">
+          {sessionError}
+        </p>
+        <a
+          href="/auth/forgot-password"
+          className="text-sm text-foreground underline underline-offset-4 hover:opacity-80"
+        >
+          {t('forgotPassword')}
+        </a>
+      </div>
+    );
+  }
+
+  if (!sessionReady) {
+    return (
+      <div className="mx-auto flex w-full max-w-sm items-center justify-center py-10">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <AuthForm
