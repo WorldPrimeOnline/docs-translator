@@ -5,7 +5,7 @@ import type { DocumentType, OutputMode, TranslationPromptParams, TranslationProm
 
 export type { DocumentType, OutputMode, ServiceLevel, TranslationPromptParams, TranslationPromptResult } from './types';
 export { DOCUMENT_TYPE } from './types';
-export { OFFICIAL_VISUAL_ELEMENT_POLICY } from './base';
+export { OFFICIAL_VISUAL_ELEMENT_POLICY, FIELD_VALUE_TRANSLATION_POLICY } from './base';
 
 const LEGACY_KEY_MAP: Record<string, DocumentType> = {
   passport: DOCUMENT_TYPE.passport_id,

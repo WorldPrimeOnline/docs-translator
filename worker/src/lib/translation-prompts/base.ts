@@ -38,6 +38,59 @@ Do not recreate original stamps, seals, handwritten signatures, or official embl
 
 Do not claim that the translation is authentic, certified, notarized, or officially accepted by any authority. Do not provide legal, immigration, medical, financial, or notarial advice.`;
 
+export const FIELD_VALUE_TRANSLATION_POLICY = `FIELD VALUE TRANSLATION POLICY:
+
+Translate BOTH field labels AND field values into the target language.
+Do NOT leave source-language field values untranslated unless they are protected.
+
+PROTECTED — keep exactly as written, never translate:
+Document numbers, passport numbers, ID numbers, application numbers, reference numbers, transaction numbers, bank account numbers, IBAN, SWIFT/BIC, tax numbers, phone numbers, email addresses, URLs, QR verification codes, barcode numbers, MRZ lines, official abbreviations and codes (KAZ, USA, THA, DTV, and similar ISO/official codes), currency codes (USD, EUR, KZT, THB, etc.), Latin-script personal names that represent the official identity spelling in the document.
+
+TRANSLATABLE — must translate, do not leave in source language:
+Country names, city and place names, word/phrase field values, status words (Multiple, Single, Valid, Expired, Issued, Approved, Rejected), visa and document type descriptions, institution and authority names where an official translation is known, remarks, comments, explanatory text, footnotes, email body text, letter content, labels near QR codes or barcodes, readable stamp and seal text.
+
+FORMAT: where preserving the original alongside the translation adds official value, use "translated value (original)".
+Examples:
+- Kazakhstan → Казахстан (Kazakhstan)
+- Manila → Манила (Manila)
+- Multiple → Многократный (Multiple)
+- KAZ → KAZ [код гражданства / nationality code]
+- DTV → DTV (Destination Thailand Visa)
+
+NAMES HANDLING MATRIX:
+- Target language uses non-Latin script (Russian, Kazakh, Kyrgyz, Tajik, Mongolian, Chinese, Korean, etc.): preserve the official Latin spelling AND add the target-script transliteration. Format: Глеб (GLEB), Юденок (YUDENOK). Both forms go in the same field cell.
+- Target language is English, source text is Cyrillic: transliterate to Latin, optionally keep the original in parentheses. Example: Gleb Yudenok (Глеб Юденок).
+- If the source document already contains a passport-style Latin spelling, preserve it exactly — do not re-transliterate.
+
+VISUAL ELEMENT MARKERS — LOCALIZE TO TARGET LANGUAGE:
+Emit neutral element markers in the TARGET language of the translation, not in English.
+
+Russian (RU) reference set:
+[печать] / [круглая печать] / [банковская печать] / [печать учреждения] / [неразборчивая печать] / [печать: <текст>]
+[подпись] / [подпись директора] / [подпись врача] / [электронная подпись]
+[QR-код присутствует] / [QR: <содержимое>]
+[штрих-код: <номер>] / [штрих-код присутствует]
+[фото] / [фотография держателя] / [фотография заявителя]
+[логотип] / [логотип: <название>]
+[водяной знак: <текст>] / [водяной знак]
+[изображение] / [неразборчиво] / [текст обрезан] / [неясно]
+
+English (EN) reference set:
+[stamp] / [round stamp] / [bank stamp] / [institution stamp] / [illegible stamp] / [stamp: <text>]
+[signature] / [director signature] / [doctor signature] / [electronic signature]
+[QR code present] / [QR: <content>]
+[barcode: <number>] / [barcode present]
+[photo] / [holder photo] / [applicant photo]
+[logo] / [logo: <name>]
+[watermark: <text>] / [watermark]
+[image] / [illegible] / [text cut off] / [unclear]
+
+For other target languages, localize these markers naturally into the target language.
+Readable stamp/seal text: translate and emit in localized marker format — e.g., [печать: <переведённый текст>] or [stamp: <translated text>].
+
+SELF-CHECK BEFORE FINALIZING:
+After completing the translation, re-scan the output for any field value that is still in the source language. If it is protected: leave it as-is. If it is translatable: translate it now. Perform this check as part of the single translation response — do not request a second pass.`;
+
 function outputModeClause(outputMode: OutputMode): string {
   switch (outputMode) {
     case 'mirror_layout_translation':
@@ -89,6 +142,8 @@ STRUCTURE PRESERVATION — MANDATORY:
 - Do not rewrite prose into a different structure. Keep the original line order.
 
 ${OFFICIAL_VISUAL_ELEMENT_POLICY}
+
+${FIELD_VALUE_TRANSLATION_POLICY}
 
 ${outputModeClause(outputMode)}
 
