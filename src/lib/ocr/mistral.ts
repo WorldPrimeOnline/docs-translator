@@ -21,6 +21,13 @@ async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function stripImageRefs(markdown: string): string {
+  return markdown
+    .replace(/!\[[^\]]*\]\([^)]*\)\n?/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 export async function extractTextFromPdf(pdfBuffer: Buffer): Promise<OcrResult> {
   const base64 = pdfBuffer.toString('base64');
   const body = {
@@ -53,7 +60,7 @@ export async function extractTextFromPdf(pdfBuffer: Buffer): Promise<OcrResult> 
 
     const data = (await response.json()) as MistralOcrResponse;
     const pages = data.pages ?? [];
-    const pageMarkdowns = pages.map((p) => p.markdown);
+    const pageMarkdowns = pages.map((p) => stripImageRefs(p.markdown));
     const markdown = pageMarkdowns.join('\n\n');
 
     return { markdown, pageMarkdowns, pageCount: pages.length };

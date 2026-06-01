@@ -8,12 +8,16 @@ interface RenderMeta {
   translatedAt: string;
 }
 
+function cleanMarkdown(md: string): string {
+  return md.replace(/!\[[^\]]*\]\([^)]*\)/g, '').replace(/\n{3,}/g, '\n\n');
+}
+
 /** Produces an HTML buffer from the translated markdown. */
 export async function renderToPdf(
   translatedMarkdown: string,
   meta: RenderMeta,
 ): Promise<Buffer> {
-  const body = await marked.parse(translatedMarkdown);
+  const body = await marked.parse(cleanMarkdown(translatedMarkdown));
   const contentHtml = `<div class="page">${body}</div>`;
 
   const html = `<!DOCTYPE html>
@@ -24,26 +28,40 @@ export async function renderToPdf(
 <title>Translation — ${meta.sourceLang} → ${meta.targetLang}</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  @page { size: A4; margin: 15mm; }
+  @page { size: A4; margin: 20mm 15mm; }
   body {
-    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-family: "Times New Roman", Times, serif;
     font-size: 11pt;
-    line-height: 1.6;
+    line-height: 1.7;
     color: #111;
-    max-width: 800px;
+    max-width: 780px;
     margin: 0 auto;
-    padding: 16px 32px;
+    padding: 24px 40px;
   }
-  .meta { font-size: 9pt; color: #888; text-align: center; margin-bottom: 20px; border-bottom: 1px solid #e0e0e0; padding-bottom: 10px; }
+  img { display: none; }
+  .meta {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 8.5pt;
+    color: #999;
+    text-align: center;
+    margin-bottom: 24px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #ddd;
+  }
   .page { padding: 4mm 0; }
-  h1, h2, h3 { margin: 14px 0 7px; }
-  p { margin: 6px 0; }
+  h1 { font-size: 14pt; margin: 18px 0 10px; text-transform: uppercase; letter-spacing: 0.03em; }
+  h2 { font-size: 12pt; margin: 16px 0 8px; }
+  h3 { font-size: 11pt; margin: 12px 0 6px; }
+  p { margin: 5px 0; }
   table { border-collapse: collapse; width: 100%; margin: 10px 0; }
-  th, td { border: 1px solid #ccc; padding: 5px 9px; text-align: left; }
-  th { background: #f2f2f2; }
-  ul, ol { margin: 6px 0 6px 20px; }
+  th, td { border: 1px solid #bbb; padding: 5px 10px; text-align: left; vertical-align: top; }
+  th { background: #f5f5f5; font-weight: 600; width: 40%; }
+  td { width: 60%; }
+  ul, ol { margin: 6px 0 6px 22px; }
   li { margin: 3px 0; }
-  @media print { body { padding: 0; } }
+  strong { font-weight: 700; }
+  em { font-style: italic; }
+  @media print { body { padding: 0; max-width: 100%; } }
 </style>
 </head>
 <body>
