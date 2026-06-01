@@ -84,8 +84,8 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     }
   }
 
-  // 2. API & manifest routes: skip i18n
-  if (pathname.startsWith('/api/') || pathname.includes('tonconnect-manifest.json')) {
+  // 2. API, manifest, and auth callback routes: skip i18n
+  if (pathname.startsWith('/api/') || pathname.includes('tonconnect-manifest.json') || pathname === '/auth/callback') {
     let apiResponse = NextResponse.next({ request });
 
     const supabase = createServerClient(
