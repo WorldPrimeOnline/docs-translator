@@ -55,6 +55,9 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
 
     if (docErr || !doc) throw new Error(`Document ${documentId} not found`);
 
+    // serviceLevel will be derived from jobs.notarized / jobs.bureau_stamp once those columns are added to the schema.
+    const serviceLevel = 'electronic' as const;
+
     // ── 2. OCR ───────────────────────────────────────────────────────────────
     await updateJob(jobId, 'ocr_in_progress', 10);
     console.log(`${tag} downloading PDF from R2…`);
@@ -118,6 +121,7 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
       documentType: docType,
       translatedAt,
       filename: doc.filename,
+      serviceLevel,
     };
 
     const baseKey = `documents/${doc.user_id}/${documentId}`;
