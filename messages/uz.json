@@ -224,7 +224,11 @@
       "other": "Boshqa"
     },
     "notarizedLabel": "Notarius / rasmiy tasdiqlash uchun tarjima",
-    "notarizedDesc": "Hujjat notariusga yoki tasdiqlangan tarjimonga topshirish uchun tuziladi. Immigratsiya, universitet va yuridik jarayonlar uchun tavsiya etiladi."
+    "notarizedDesc": "Hujjat notariusga yoki tasdiqlangan tarjimonga topshirish uchun tuziladi. Immigratsiya, universitet va yuridik jarayonlar uchun tavsiya etiladi.",
+    "outputFormat": "Fayl formati",
+    "formatPdf": "PDF",
+    "formatHtml": "HTML",
+    "formatDocx": "Word (DOCX)"
   },
   "auth": {
     "login": "Kirish",

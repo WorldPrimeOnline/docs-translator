@@ -1,4 +1,5 @@
 import { marked } from 'marked';
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 
 interface RenderMeta {
   sourceLang: string;
@@ -7,6 +8,7 @@ interface RenderMeta {
   translatedAt: string;
 }
 
+/** Produces an HTML buffer (despite the name — kept for backward compat). */
 export async function renderToPdf(translatedMarkdown: string, meta: RenderMeta): Promise<Buffer> {
   const stripped = translatedMarkdown.replace(/!\[.*?\]\(.*?\)/g, '');
   const htmlBody = await marked.parse(stripped);
@@ -39,16 +41,117 @@ export async function renderToPdf(translatedMarkdown: string, meta: RenderMeta):
   .content table { border-collapse: collapse; width: 100%; margin: 12px 0; }
   .content th, .content td { border: 1px solid #ccc; padding: 6px 10px; text-align: left; }
   .content th { background: #f2f2f2; }
-  @media print {
-    body { padding: 0; }
-  }
+  @media print { body { padding: 0; } }
 </style>
 </head>
 <body>
-  <div class="meta">Translated ${meta.translatedAt} &nbsp;·&nbsp; ${meta.sourceLang} → ${meta.targetLang} &nbsp;·&nbsp; Docs Translator</div>
+  <div class="meta">Translated ${meta.translatedAt} &nbsp;·&nbsp; ${meta.sourceLang} → ${meta.targetLang} &nbsp;·&nbsp; WPO Translations</div>
   <div class="content">${htmlBody}</div>
 </body>
 </html>`;
 
   return Buffer.from(html, 'utf-8');
+}
+
+/** Produces a real PDF buffer using pdf-lib (text-based, no Puppeteer). */
+export async function renderToPdfBuffer(translatedMarkdown: string, meta: RenderMeta): Promise<Buffer> {
+  const stripped = translatedMarkdown.replace(/!\[.*?\]\(.*?\)/g, '').replace(/!\[.*?]/g, '');
+
+  const pdfDoc = await PDFDocument.create();
+  const regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+  const PAGE_W = 595;
+  const PAGE_H = 842;
+  const MARGIN = 56;
+  const LINE_H = 16;
+  const CONTENT_W = PAGE_W - MARGIN * 2;
+
+  let page = pdfDoc.addPage([PAGE_W, PAGE_H]);
+  let y = PAGE_H - MARGIN;
+
+  function newPage() {
+    page = pdfDoc.addPage([PAGE_W, PAGE_H]);
+    y = PAGE_H - MARGIN;
+  }
+
+  function ensureSpace(needed: number) {
+    if (y - needed < MARGIN) newPage();
+  }
+
+  function drawText(text: string, size: number, font: typeof regularFont, color = rgb(0.07, 0.07, 0.07)) {
+    const words = text.split(' ');
+    let line = '';
+    for (const word of words) {
+      const candidate = line ? `${line} ${word}` : word;
+      if (font.widthOfTextAtSize(candidate, size) > CONTENT_W) {
+        ensureSpace(LINE_H);
+        page.drawText(line, { x: MARGIN, y, size, font, color });
+        y -= LINE_H;
+        line = word;
+      } else {
+        line = candidate;
+      }
+    }
+    if (line) {
+      ensureSpace(LINE_H);
+      page.drawText(line, { x: MARGIN, y, size, font, color });
+      y -= LINE_H;
+    }
+  }
+
+  // Header
+  const headerText = `UNOFFICIAL TRANSLATION — FOR INFORMATIONAL PURPOSES ONLY`;
+  drawText(headerText, 8, regularFont, rgb(0.5, 0.5, 0.5));
+  y -= 4;
+  page.drawLine({ start: { x: MARGIN, y }, end: { x: PAGE_W - MARGIN, y }, thickness: 0.5, color: rgb(0.8, 0.8, 0.8) });
+  y -= 12;
+  drawText(`${meta.sourceLang.toUpperCase()} → ${meta.targetLang.toUpperCase()}  ·  ${meta.documentType}  ·  ${meta.translatedAt}`, 9, regularFont, rgb(0.4, 0.4, 0.4));
+  y -= 16;
+
+  // Content
+  for (const rawLine of stripped.split('\n')) {
+    const line = rawLine.trimEnd();
+
+    if (/^#{1}\s+/.test(line)) {
+      y -= 8;
+      ensureSpace(LINE_H * 2);
+      drawText(line.replace(/^#+\s+/, ''), 14, boldFont);
+      y -= 4;
+    } else if (/^#{2}\s+/.test(line)) {
+      y -= 4;
+      drawText(line.replace(/^#+\s+/, ''), 12, boldFont);
+      y -= 2;
+    } else if (/^#{3,}\s+/.test(line)) {
+      drawText(line.replace(/^#+\s+/, ''), 11, boldFont);
+    } else if (/^[-*+]\s+/.test(line)) {
+      const text = line.replace(/^[-*+]\s+/, '');
+      ensureSpace(LINE_H);
+      page.drawText('•', { x: MARGIN, y, size: 10, font: regularFont, color: rgb(0.07, 0.07, 0.07) });
+      const words = text.split(' ');
+      let l = '';
+      for (const w of words) {
+        const cand = l ? `${l} ${w}` : w;
+        if (regularFont.widthOfTextAtSize(cand, 10) > CONTENT_W - 14) {
+          ensureSpace(LINE_H);
+          page.drawText(l, { x: MARGIN + 14, y, size: 10, font: regularFont, color: rgb(0.07, 0.07, 0.07) });
+          y -= LINE_H;
+          l = w;
+        } else { l = cand; }
+      }
+      if (l) {
+        ensureSpace(LINE_H);
+        page.drawText(l, { x: MARGIN + 14, y, size: 10, font: regularFont, color: rgb(0.07, 0.07, 0.07) });
+        y -= LINE_H;
+      }
+    } else if (line.trim() === '' || line.startsWith('---')) {
+      y -= LINE_H / 2;
+    } else {
+      const clean = line.replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1').replace(/`([^`]+)`/g, '$1');
+      drawText(clean, 10, regularFont);
+    }
+  }
+
+  const bytes = await pdfDoc.save();
+  return Buffer.from(bytes);
 }

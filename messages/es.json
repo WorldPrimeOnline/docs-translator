@@ -224,7 +224,11 @@
       "other": "Otro"
     },
     "notarizedLabel": "Traducción para notario / certificación oficial",
-    "notarizedDesc": "El documento será estructurado y formateado para entregarlo a un notario o traductor certificado. Recomendado para trámites de inmigración, universitarios y legales."
+    "notarizedDesc": "El documento será estructurado y formateado para entregarlo a un notario o traductor certificado. Recomendado para trámites de inmigración, universitarios y legales.",
+    "outputFormat": "Formato de salida",
+    "formatPdf": "PDF",
+    "formatHtml": "HTML",
+    "formatDocx": "Word (DOCX)"
   },
   "auth": {
     "login": "Iniciar sesión",

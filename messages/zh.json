@@ -224,7 +224,11 @@
       "other": "其他"
     },
     "notarizedLabel": "公证/官方认证翻译",
-    "notarizedDesc": "文件将被结构化和格式化，以便移交给公证人或认证翻译员。建议用于移民、大学和法律工作流程。"
+    "notarizedDesc": "文件将被结构化和格式化，以便移交给公证人或认证翻译员。建议用于移民、大学和法律工作流程。",
+    "outputFormat": "输出格式",
+    "formatPdf": "PDF",
+    "formatHtml": "HTML",
+    "formatDocx": "Word (DOCX)"
   },
   "auth": {
     "login": "登录",

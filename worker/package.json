@@ -13,6 +13,7 @@
     "@aws-sdk/s3-request-presigner": "^3.1053.0",
     "@sparticuz/chromium": "^148.0.0",
     "@supabase/supabase-js": "^2.106.1",
+    "docx": "^9.7.1",
     "marked": "^18.0.4",
     "puppeteer-core": "^25.0.4",
     "resend": "^6.12.3",

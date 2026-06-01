@@ -224,7 +224,11 @@
       "police_clearance": "Police Clearance Certificate",
       "driver_license": "Driver's License",
       "other": "Other"
-    }
+    },
+    "outputFormat": "Output format",
+    "formatPdf": "PDF",
+    "formatHtml": "HTML",
+    "formatDocx": "Word (DOCX)"
   },
   "auth": {
     "login": "Sign in",

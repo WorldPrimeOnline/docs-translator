@@ -233,6 +233,7 @@ export default function DashboardPage() {
   const [sourceLang, setSourceLang] = useState('auto');
   const [targetLang, setTargetLang] = useState('en');
   const [documentType, setDocumentType] = useState('other');
+  const [outputFormat, setOutputFormat] = useState<'html' | 'pdf' | 'docx'>('pdf');
   const [notarized, setNotarized] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [consentChecked, setConsentChecked] = useState(false);
@@ -329,7 +330,7 @@ export default function DashboardPage() {
     form.append('file', file);
     form.append('sourceLang', sourceLang);
     form.append('targetLang', targetLang);
-    form.append('documentType', documentType);
+    form.append('documentType', `${documentType}|${outputFormat}`);
     form.append('notarized', String(notarized));
 
     const res = await fetch('/api/documents/upload', { method: 'POST', body: form });
@@ -458,7 +459,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Selects */}
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 {t('sourceLanguage')}
@@ -501,6 +502,21 @@ export default function DashboardPage() {
                 {DOCUMENT_TYPES.map((dt) => (
                   <option key={dt.value} value={dt.value}>{dt.label}</option>
                 ))}
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                {t('outputFormat')}
+              </label>
+              <select
+                value={outputFormat}
+                onChange={(e) => setOutputFormat(e.target.value as 'html' | 'pdf' | 'docx')}
+                className={selectClass}
+              >
+                <option value="pdf">{t('formatPdf')}</option>
+                <option value="html">{t('formatHtml')}</option>
+                <option value="docx">{t('formatDocx')}</option>
               </select>
             </div>
           </div>
@@ -712,7 +728,7 @@ export default function DashboardPage() {
                     {doc.filename}
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    {doc.source_language} → {doc.target_language} · {doc.document_type} ·{' '}
+                    {doc.source_language} → {doc.target_language} · {(doc.document_type ?? '').split('|')[0]} ·{' '}
                     {new Date(doc.created_at).toLocaleDateString()}
                   </span>
                 </div>

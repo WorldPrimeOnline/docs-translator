@@ -2,8 +2,17 @@ import { supabaseServer } from '@/lib/supabase/server';
 import { downloadFile, uploadFile } from '@/lib/r2/client';
 import { extractTextFromPdf } from '@/lib/ocr/mistral';
 import { translateDocument } from '@/lib/translation/translator';
-import { renderToPdf } from '@/lib/pdf/renderer';
+import { renderToPdf, renderToPdfBuffer } from '@/lib/pdf/renderer';
+import { renderToDocx } from '@/lib/pdf/docx-renderer';
 import type { Tables } from '@/types';
+
+type OutputFormat = 'html' | 'pdf' | 'docx';
+
+function parseDocumentType(raw: string): { docType: string; outputFormat: OutputFormat } {
+  const [docType, fmt] = raw.split('|');
+  const outputFormat: OutputFormat = (fmt === 'pdf' || fmt === 'docx') ? fmt : 'html';
+  return { docType: docType ?? raw, outputFormat };
+}
 
 type JobStatus = Tables<'jobs'>['status'];
 
@@ -67,30 +76,49 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
       provider: 'mistral',
     });
 
+    const { docType, outputFormat } = parseDocumentType(doc.document_type);
+
     const translatedMarkdown = await translateDocument(
       markdown,
       doc.source_language,
       doc.target_language,
-      doc.document_type,
+      docType,
     );
 
     await updateJob(jobId, 'pdf_rendering', 75);
 
     const translatedAt = new Date().toISOString().split('T')[0] ?? new Date().toISOString();
-    const pdfOut = await renderToPdf(translatedMarkdown, {
+    const renderMeta = {
       sourceLang: doc.source_language,
       targetLang: doc.target_language,
-      documentType: doc.document_type,
+      documentType: docType,
       translatedAt,
-    });
+    };
 
-    const translatedPdfKey = `documents/${doc.user_id}/${documentId}/translated.html`;
-    await uploadFile(translatedPdfKey, pdfOut, 'text/html; charset=utf-8');
+    let fileBuffer: Buffer;
+    let fileKey: string;
+    let contentType: string;
+
+    if (outputFormat === 'pdf') {
+      fileBuffer = await renderToPdfBuffer(translatedMarkdown, renderMeta);
+      fileKey = `documents/${doc.user_id}/${documentId}/translated.pdf`;
+      contentType = 'application/pdf';
+    } else if (outputFormat === 'docx') {
+      fileBuffer = await renderToDocx(translatedMarkdown, renderMeta);
+      fileKey = `documents/${doc.user_id}/${documentId}/translated.docx`;
+      contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    } else {
+      fileBuffer = await renderToPdf(translatedMarkdown, renderMeta);
+      fileKey = `documents/${doc.user_id}/${documentId}/translated.html`;
+      contentType = 'text/html; charset=utf-8';
+    }
+
+    await uploadFile(fileKey, fileBuffer, contentType);
 
     await supabaseServer.from('translations').insert({
       job_id: jobId,
       translated_markdown: translatedMarkdown,
-      translated_pdf_key: translatedPdfKey,
+      translated_pdf_key: fileKey,
     });
 
     await supabaseServer

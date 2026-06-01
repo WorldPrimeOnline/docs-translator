@@ -4,10 +4,18 @@ import { extractTextFromPdf } from './lib/ocr';
 import { translateDocument } from './lib/translator';
 import { renderToHtml } from './lib/renderer';
 import { generatePdfFromHtml } from './lib/pdf';
+import { renderToDocx } from './lib/docx-renderer';
 import { sendTranslationReady } from './lib/email';
 import { env } from './lib/env';
 
 type JobStatus = JobRow['status'];
+type OutputFormat = 'html' | 'pdf' | 'docx';
+
+function parseDocumentType(raw: string): { docType: string; outputFormat: OutputFormat } {
+  const [docType, fmt] = raw.split('|');
+  const outputFormat: OutputFormat = (fmt === 'pdf' || fmt === 'docx') ? fmt : 'html';
+  return { docType: docType ?? raw, outputFormat };
+}
 
 async function updateJob(
   jobId: string,
@@ -90,45 +98,63 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
     await updateJob(jobId, 'translation_in_progress', 50);
     console.log(`${tag} translating ${doc.source_language} → ${doc.target_language}…`);
 
+    const { docType, outputFormat } = parseDocumentType(doc.document_type);
+
     const translatedMarkdown = await translateDocument(
       markdown,
       doc.source_language,
       doc.target_language,
-      doc.document_type,
+      docType,
     );
-    console.log(`${tag} translation done — ${translatedMarkdown.length} chars`);
+    console.log(`${tag} translation done — ${translatedMarkdown.length} chars, format: ${outputFormat}`);
 
-    // ── 4. Render HTML template ──────────────────────────────────────────────
+    // ── 4. Render output in requested format ─────────────────────────────────
     await updateJob(jobId, 'pdf_rendering', 70);
 
     const translatedAt = new Date().toISOString().split('T')[0] ?? new Date().toISOString();
-    const html = await renderToHtml(translatedMarkdown, {
+    const renderMeta = {
       sourceLang: doc.source_language,
       targetLang: doc.target_language,
-      documentType: doc.document_type,
+      documentType: docType,
       translatedAt,
       filename: doc.filename,
-    });
+    };
 
-    // ── 5. Generate PDF via Puppeteer ────────────────────────────────────────
     const baseKey = `documents/${doc.user_id}/${documentId}`;
     let translatedKey: string;
     let contentType: string;
 
-    try {
-      console.log(`${tag} generating PDF via Puppeteer…`);
-      const pdfBuf = await generatePdfFromHtml(html);
-      translatedKey = `${baseKey}/translated.pdf`;
-      await uploadFile(translatedKey, pdfBuf, 'application/pdf');
-      contentType = 'application/pdf';
-      console.log(`${tag} PDF uploaded (${pdfBuf.length} bytes) → ${translatedKey}`);
-    } catch (pdfErr) {
-      // Fallback: save HTML if Puppeteer fails
-      const msg = pdfErr instanceof Error ? pdfErr.message : String(pdfErr);
-      console.error(`${tag} PDF generation failed (${msg}), falling back to HTML`);
+    if (outputFormat === 'docx') {
+      console.log(`${tag} generating DOCX…`);
+      const docxBuf = await renderToDocx(translatedMarkdown, renderMeta);
+      translatedKey = `${baseKey}/translated.docx`;
+      await uploadFile(translatedKey, docxBuf, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+      contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      console.log(`${tag} DOCX uploaded (${docxBuf.length} bytes) → ${translatedKey}`);
+    } else if (outputFormat === 'html') {
+      console.log(`${tag} generating HTML…`);
+      const html = await renderToHtml(translatedMarkdown, renderMeta);
       translatedKey = `${baseKey}/translated.html`;
       await uploadFile(translatedKey, Buffer.from(html, 'utf-8'), 'text/html; charset=utf-8');
       contentType = 'text/html';
+      console.log(`${tag} HTML uploaded → ${translatedKey}`);
+    } else {
+      // pdf (default)
+      const html = await renderToHtml(translatedMarkdown, renderMeta);
+      try {
+        console.log(`${tag} generating PDF via Puppeteer…`);
+        const pdfBuf = await generatePdfFromHtml(html);
+        translatedKey = `${baseKey}/translated.pdf`;
+        await uploadFile(translatedKey, pdfBuf, 'application/pdf');
+        contentType = 'application/pdf';
+        console.log(`${tag} PDF uploaded (${pdfBuf.length} bytes) → ${translatedKey}`);
+      } catch (pdfErr) {
+        const msg = pdfErr instanceof Error ? pdfErr.message : String(pdfErr);
+        console.error(`${tag} PDF generation failed (${msg}), falling back to HTML`);
+        translatedKey = `${baseKey}/translated.html`;
+        await uploadFile(translatedKey, Buffer.from(html, 'utf-8'), 'text/html; charset=utf-8');
+        contentType = 'text/html';
+      }
     }
 
     // ── 6. Persist translation record ────────────────────────────────────────

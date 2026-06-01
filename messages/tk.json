@@ -224,7 +224,11 @@
       "other": "Beýleki"
     },
     "notarizedLabel": "Notarius / resmi tassyklama üçin terjime",
-    "notarizedDesc": "Resminama notariusa ýa-da ygtyýarly terjimana tabşyrmak üçin düzülýär. Immigrasiýa, uniwersitet we hukuk meseleleri üçin maslahat berilýär."
+    "notarizedDesc": "Resminama notariusa ýa-da ygtyýarly terjimana tabşyrmak üçin düzülýär. Immigrasiýa, uniwersitet we hukuk meseleleri üçin maslahat berilýär.",
+    "outputFormat": "Faýl formaty",
+    "formatPdf": "PDF",
+    "formatHtml": "HTML",
+    "formatDocx": "Word (DOCX)"
   },
   "auth": {
     "login": "Giriş",
