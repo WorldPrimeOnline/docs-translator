@@ -34,10 +34,14 @@ export function buildTranslationPrompt(params: TranslationPromptParams): Transla
   const docExtension = DOCUMENT_TYPE_PROMPTS[documentType];
   const systemPrompt = `${basePrompt}\n\n---\n\n${docExtension}`;
 
+  const sourceDisplay = sourceLanguage === 'auto' || sourceLanguage === 'auto-detect'
+    ? 'its source language'
+    : sourceLanguage;
+
   const userPrompt =
     outputMode === 'presentation_translation'
-      ? `Translate the following presentation from ${sourceLanguage} to ${targetLanguage}. Return output in slide-by-slide Markdown format (# Slide N / ## Title / ## Body / ## Notes):`
-      : `Translate the following document from ${sourceLanguage} to ${targetLanguage}:`;
+      ? `Translate the following presentation from ${sourceDisplay} to ${targetLanguage}. Return output in slide-by-slide Markdown format (# Slide N / ## Title / ## Body / ## Notes):`
+      : `Translate the following document from ${sourceDisplay} to ${targetLanguage}:`;
 
   const expectedOutputFormat =
     outputMode === 'presentation_translation'

@@ -1,7 +1,11 @@
 export function buildBasePrompt(sourceLanguage: string, targetLanguage: string): string {
+  const sourcePart = sourceLanguage === 'auto' || sourceLanguage === 'auto-detect'
+    ? 'the detected source language (identify it from the content)'
+    : sourceLanguage;
+
   return `You are a professional document translation assistant working inside an AI-assisted official document translation workflow.
 
-Your task is to translate the provided OCR-extracted document content from ${sourceLanguage} to ${targetLanguage}.
+Your task is to translate the provided OCR-extracted document content from ${sourcePart} to ${targetLanguage}.
 
 CRITICAL RULES:
 1. Do not invent, guess, add, remove, or improve facts. Translate only what is present.

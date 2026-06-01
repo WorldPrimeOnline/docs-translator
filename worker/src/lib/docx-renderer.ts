@@ -3,10 +3,7 @@ import {
   Paragraph,
   TextRun,
   HeadingLevel,
-  AlignmentType,
   Packer,
-  BorderStyle,
-  ImageRun,
 } from 'docx';
 
 interface DocxMeta {
@@ -34,30 +31,12 @@ function parseInlineMarkdown(text: string): TextRun[] {
   return runs.length > 0 ? runs : [new TextRun({ text })];
 }
 
-function parseMarkdownToDocx(markdown: string, images: Record<string, string>): Paragraph[] {
+function parseMarkdownToDocx(markdown: string): Paragraph[] {
   const lines = markdown.split('\n');
   const paragraphs: Paragraph[] = [];
 
   for (const raw of lines) {
     const line = raw.trimEnd();
-
-    // Standalone image
-    const imgMatch = line.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
-    if (imgMatch) {
-      const [, , id] = imgMatch;
-      const uri = id ? images[id] : undefined;
-      if (uri) {
-        const base64 = uri.replace(/^data:[^;]+;base64,/, '');
-        const isJpeg = uri.startsWith('data:image/jpeg');
-        try {
-          paragraphs.push(new Paragraph({
-            children: [new ImageRun({ data: Buffer.from(base64, 'base64'), transformation: { width: 500, height: 280 }, type: isJpeg ? 'jpg' : 'png' })],
-            spacing: { after: 120 },
-          }));
-        } catch { /* skip */ }
-      }
-      continue;
-    }
 
     if (/^#{1}\s+/.test(line)) {
       paragraphs.push(new Paragraph({ text: line.replace(/^#+\s+/, ''), heading: HeadingLevel.HEADING_1, spacing: { before: 240, after: 120 } }));
@@ -70,7 +49,7 @@ function parseMarkdownToDocx(markdown: string, images: Record<string, string>): 
     } else if (line.trim() === '') {
       paragraphs.push(new Paragraph({ text: '', spacing: { after: 60 } }));
     } else {
-      const textLine = line.replace(/!\[([^\]]*)\]\([^)]+\)/g, '[$1]');
+      const textLine = line.replace(/!\[[^\]]*\]\([^)]+\)/g, '[image]');
       paragraphs.push(new Paragraph({ children: parseInlineMarkdown(textLine), spacing: { after: 80 } }));
     }
   }
@@ -81,7 +60,6 @@ function parseMarkdownToDocx(markdown: string, images: Record<string, string>): 
 export async function renderToDocx(
   translatedMarkdown: string,
   meta: DocxMeta,
-  images: Record<string, string> = {},
 ): Promise<Buffer> {
   const header = new Paragraph({
     children: [
@@ -94,7 +72,7 @@ export async function renderToDocx(
   const doc = new Document({
     sections: [{
       properties: { page: { margin: { top: 1440, bottom: 1440, left: 1440, right: 1440 } } },
-      children: [header, ...parseMarkdownToDocx(translatedMarkdown, images)],
+      children: [header, ...parseMarkdownToDocx(translatedMarkdown)],
     }],
   });
 

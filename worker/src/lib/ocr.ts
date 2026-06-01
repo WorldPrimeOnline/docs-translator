@@ -1,15 +1,7 @@
 import { env } from './env';
 
-interface MistralOcrImage {
-  id: string;
-  image_base64?: string;
-  // Mistral may use alternate field names
-  [key: string]: unknown;
-}
-
 interface MistralOcrPage {
   markdown: string;
-  images?: MistralOcrImage[];
 }
 
 interface MistralOcrResponse {
@@ -20,25 +12,10 @@ export interface OcrResult {
   markdown: string;
   pageMarkdowns: string[];
   pageCount: number;
-  images: Record<string, string>; // imageId → data URI
 }
 
 const MISTRAL_OCR_URL = 'https://api.mistral.ai/v1/ocr';
 const MAX_RETRIES = 3;
-
-function toDataUri(base64: string): string {
-  const mime = base64.startsWith('iVBOR') ? 'image/png' : 'image/jpeg';
-  return `data:${mime};base64,${base64}`;
-}
-
-function extractBase64(img: MistralOcrImage): string | undefined {
-  // Try known field names that Mistral may use
-  const candidate =
-    (img.image_base64 as string | undefined) ??
-    (img.base64 as string | undefined) ??
-    (img.data as string | undefined);
-  return candidate && candidate.length > 0 ? candidate : undefined;
-}
 
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
@@ -52,7 +29,6 @@ export async function extractTextFromPdf(pdfBuffer: Buffer): Promise<OcrResult> 
       type: 'document_url',
       document_url: `data:application/pdf;base64,${base64}`,
     },
-    include_image_base64: true,
   };
 
   let lastError: Error = new Error('OCR failed after all retries');
@@ -81,26 +57,8 @@ export async function extractTextFromPdf(pdfBuffer: Buffer): Promise<OcrResult> 
     const pageMarkdowns = pages.map((p) => p.markdown);
     const markdown = pageMarkdowns.join('\n\n');
 
-    const images: Record<string, string> = {};
-    let totalImages = 0;
-    let extractedImages = 0;
-
-    for (const page of pages) {
-      for (const img of page.images ?? []) {
-        totalImages++;
-        const b64 = extractBase64(img);
-        if (img.id && b64) {
-          images[img.id] = toDataUri(b64);
-          extractedImages++;
-        } else {
-          console.warn(`[ocr] image "${img.id}" missing base64 — keys: ${Object.keys(img).join(',')}`);
-        }
-      }
-    }
-
-    console.log(`[ocr] ${pages.length} pages, ${totalImages} images found, ${extractedImages} with base64`);
-
-    return { markdown, pageMarkdowns, pageCount: pages.length, images };
+    console.log(`[ocr] ${pages.length} pages, ${markdown.length} chars`);
+    return { markdown, pageMarkdowns, pageCount: pages.length };
   }
 
   throw lastError;
