@@ -12,6 +12,20 @@ import type { Database } from '@/types';
 const MAX_FILE_SIZE_EACH = 25 * 1024 * 1024;
 const MAX_TOTAL_SIZE   = 50 * 1024 * 1024;
 
+/**
+ * Extract client IP from request headers.
+ * Used for fraud prevention and payment dispute/chargeback evidence only.
+ * Disclosed in Privacy Policy (section: Types of Personal Data Processed).
+ */
+function getClientIp(req: NextRequest): string | null {
+  const forwarded = req.headers.get('x-forwarded-for');
+  if (forwarded) {
+    const first = forwarded.split(',')[0]?.trim();
+    if (first) return first;
+  }
+  return req.headers.get('x-real-ip')?.trim() ?? null;
+}
+
 const ALLOWED_MIME_TYPES: Record<string, string> = {
   'application/pdf': 'pdf',
   'image/jpeg': 'jpg',
@@ -152,6 +166,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       console.error('[upload] user upsert failed:', userUpsertError);
     }
 
+    const clientIp = getClientIp(request);
+
     console.log('[upload] inserting document record:', docId);
     const { data: doc, error: docError } = await supabaseServer
       .from('documents')
@@ -165,6 +181,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         target_language: targetLang,
         document_type: documentType,
         status: 'processing',
+        ip_address: clientIp,
       })
       .select()
       .single();

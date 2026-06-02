@@ -10,7 +10,7 @@ export interface JobRow {
   progress_percent: number;
   error_message: string | null;
   priority: number;
-  payment_source: 'ton_payment' | 'subscription' | null;
+  payment_source: 'card_payment' | 'subscription' | 'ton_payment' | null;
   notarized: boolean;
   started_at: string | null;
   completed_at: string | null;
@@ -29,7 +29,7 @@ export interface DocumentRow {
   detected_source_language: string | null;
 }
 
-export interface TonPaymentRow {
+export interface PaymentTransactionRow {
   id: string;
   job_id: string;
   status: string;

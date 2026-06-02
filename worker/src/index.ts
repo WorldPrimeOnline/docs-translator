@@ -1,5 +1,5 @@
 import { env } from './lib/env';
-import { supabase, type JobRow } from './lib/supabase';
+import { supabase, type JobRow, type PaymentTransactionRow } from './lib/supabase';
 import { processJob } from './processor';
 import { closeBrowser } from './lib/pdf';
 
@@ -37,19 +37,19 @@ function sleep(ms: number): Promise<void> {
  * Determine if a job is eligible for processing (i.e. payment received).
  *
  * - payment_source = 'subscription'  → eligible immediately
- * - payment_source = 'ton_payment'   → eligible when a completed ton_payment exists
- * - payment_source = null            → check ton_payments as fallback
+ * - payment_source = 'card_payment'  → eligible when a completed payment_transaction exists
+ * - payment_source = 'ton_payment'   → legacy; check payment_transactions as fallback
+ * - payment_source = null            → check payment_transactions as fallback
  */
 async function isEligible(job: JobRow): Promise<boolean> {
   if (job.payment_source === 'subscription') return true;
 
-  // Check ton_payments for this job
   const { data: payment } = await supabase
-    .from('ton_payments')
+    .from('payment_transactions')
     .select('status')
     .eq('job_id', job.id)
     .eq('status', 'completed')
-    .maybeSingle();
+    .maybeSingle<PaymentTransactionRow>();
 
   return !!payment;
 }

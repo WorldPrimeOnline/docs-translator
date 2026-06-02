@@ -1,20 +1,17 @@
 import { getTranslations } from 'next-intl/server';
+import { BUSINESS_PROFILE } from '@/lib/business-profile';
 
-// TODO (REQUIRED BEFORE PRODUCTION — Halyk Bank acquiring compliance):
-// Replace ALL placeholder SVG logos with official brand assets before going live.
+// TODO (REQUIRED BEFORE PRODUCTION — see public/payment-logos/README.md):
+// Replace ALL placeholder SVG logos with official brand assets.
+// The placeholder SVGs are text-only rectangles — they must NOT be used in production.
 //
-// Halyk ePay:   Obtain the official informer image from Halyk Bank's partner portal
-//               or https://epay.homebank.kz/.  The logo/informer MUST hyperlink to
-//               http://epay.homebank.kz/ as required by Halyk Bank internet acquiring terms.
-//
-// Visa:         Download the official merchant logo from
-//               https://usa.visa.com/run-your-business/merchant-logos.html
-//               (requires merchant account login).
-//
-// Mastercard:   Download the official acceptance mark from
-//               https://brand.mastercard.com/brandcenter/more-about-our-brands.html
+// Halyk ePay:  Get official informer from Halyk Bank partner portal.
+//              The logo MUST link to http://epay.homebank.kz/.
+// Visa:        https://usa.visa.com/run-your-business/merchant-logos.html
+// Mastercard:  https://brand.mastercard.com/brandcenter/more-about-our-brands.html
 
 function HalykEpayLogo() {
+  // TODO: Replace with official Halyk ePay informer asset (see public/payment-logos/README.md).
   return (
     <svg
       width="96"
@@ -33,6 +30,7 @@ function HalykEpayLogo() {
 }
 
 function VisaLogo() {
+  // TODO: Replace with official Visa Acceptance Mark (see public/payment-logos/README.md).
   return (
     <svg
       width="58"
@@ -50,6 +48,7 @@ function VisaLogo() {
 }
 
 function MastercardLogo() {
+  // TODO: Replace with official Mastercard Acceptance Mark (see public/payment-logos/README.md).
   return (
     <svg
       width="54"
@@ -70,6 +69,9 @@ function MastercardLogo() {
 
 export async function PaymentComplianceBlock() {
   const t = await getTranslations('paymentCompliance');
+
+  // Use pending wording until the gateway is live in production.
+  const processedByKey = BUSINESS_PROFILE.cardPaymentsActive ? 'processedBy' : 'processedByPending';
 
   return (
     <div className="border-t border-white/10 pt-6">
@@ -92,7 +94,7 @@ export async function PaymentComplianceBlock() {
           <MastercardLogo />
         </div>
         <p className="max-w-prose text-xs leading-relaxed text-muted-foreground">
-          {t('processedBy')}
+          {t(processedByKey)}
         </p>
         <p className="max-w-prose text-xs leading-relaxed text-muted-foreground">
           {t('threeDSecure')}
