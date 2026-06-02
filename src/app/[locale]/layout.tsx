@@ -26,7 +26,6 @@ export default async function LocaleLayout({
     notFound();
   }
 
-  // Enable static rendering for all locales
   setRequestLocale(locale);
 
   const messages = await getMessages();
@@ -40,27 +39,46 @@ export default async function LocaleLayout({
       {children}
       <footer className="border-t border-white/8 bg-navy">
         <div className="mx-auto max-w-6xl px-4 py-10">
-          {/* Top row: brand + legal links */}
-          <div className="flex flex-col gap-8 sm:flex-row sm:items-start sm:justify-between">
+          {/*
+           * 3-column footer grid:
+           *   Col 1 — brand + full provider identification (Halyk Bank requires visible company info)
+           *   Col 2 — legal document links
+           *   Col 3 — payment compliance (Halyk ePay, Visa, Mastercard, 3D Secure, VAT)
+           */}
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 md:grid-cols-[2fr_1fr_1.5fr]">
+
+            {/* ── Col 1: Brand + provider identification ─────────────────── */}
             <div className="flex flex-col gap-1.5">
               <WpoLogo size="sm" />
               <p className="text-xs text-muted-foreground">{tFooter('tagline')}</p>
-              {/* Provider identification — required for Halyk Bank internet acquiring */}
-              <div className="mt-2 flex flex-col gap-0.5 text-xs text-muted-foreground/70">
-                <span className="font-medium text-muted-foreground/90">{BUSINESS_PROFILE.legalName}</span>
-                <a href={`mailto:${BUSINESS_PROFILE.email}`} className="hover:text-foreground transition-colors">
+
+              {/* Provider ID block — required for Halyk Bank internet acquiring */}
+              <div className="mt-3 flex flex-col gap-1 text-xs text-muted-foreground/70">
+                <span className="font-semibold text-muted-foreground/90">{BUSINESS_PROFILE.legalName}</span>
+                <span className="text-muted-foreground/60">{BUSINESS_PROFILE.latinName}</span>
+                <span>{tContacts('iinBinLabel')}: {BUSINESS_PROFILE.iinBin}</span>
+                <a
+                  href={`mailto:${BUSINESS_PROFILE.email}`}
+                  className="transition-colors hover:text-foreground"
+                >
                   {BUSINESS_PROFILE.email}
                 </a>
-                <Link href="/contacts" className="text-primary/70 hover:text-primary transition-colors">
+                <span>{BUSINESS_PROFILE.phone}</span>
+                {BUSINESS_PROFILE.legalAddress !== 'TODO: Юридический / почтовый адрес' && (
+                  <span>{BUSINESS_PROFILE.legalAddress}</span>
+                )}
+                <Link href="/contacts" className="mt-1 text-primary/70 transition-colors hover:text-primary">
                   {tContacts('title')} →
                 </Link>
               </div>
             </div>
+
+            {/* ── Col 2: Legal document links ─────────────────────────────── */}
             <div className="flex flex-col gap-2">
               <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60">
                 {tLegal('footerHeading')}
               </p>
-              <nav className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm text-muted-foreground sm:grid-cols-1">
+              <nav className="flex flex-col gap-2 text-sm text-muted-foreground">
                 <Link href="/legal/offer" className="transition-colors hover:text-foreground">
                   {tLegal('offer')}
                 </Link>
@@ -87,14 +105,13 @@ export default async function LocaleLayout({
                 </Link>
               </nav>
             </div>
+
+            {/* ── Col 3: Payment compliance (inline, no detached second footer) */}
+            <PaymentComplianceBlock variant="footer-column" />
+
           </div>
 
-          {/* Payment compliance — Halyk ePay, Visa, Mastercard, 3D Secure */}
-          <div className="mt-8">
-            <PaymentComplianceBlock />
-          </div>
-
-          <div className="mt-6 border-t border-white/10 pt-6 text-center text-xs text-muted-foreground">
+          <div className="mt-8 border-t border-white/10 pt-6 text-center text-xs text-muted-foreground">
             <span>© 2026 WorldPrime Online. All rights reserved.</span>
           </div>
         </div>

@@ -10,7 +10,7 @@ export interface JobRow {
   progress_percent: number;
   error_message: string | null;
   priority: number;
-  payment_source: 'card_payment' | 'subscription' | 'ton_payment' | null;
+  payment_source: 'card_payment' | 'subscription' | null;
   notarized: boolean;
   started_at: string | null;
   completed_at: string | null;

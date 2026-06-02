@@ -2,8 +2,12 @@
 // Re-run after schema changes: supabase gen types --project-id qziwyakewuneokzdpoyf --schema public > src/types/supabase.ts
 // Requires: supabase login --token <YOUR_PAT>
 //
-// Manually updated for migrations 0008 (rename payments) and 0009 (ip capture).
-// Regenerate from Supabase after applying those migrations to production.
+// Manually updated to reflect the consolidated SQL migration (see APPLY_TO_SUPABASE.sql):
+//   - ton_payments renamed to payment_transactions; crypto columns dropped/renamed
+//   - wallet_links table dropped
+//   - ip_address added to documents + payment_transactions
+//   - subscriptions: crypto columns dropped/renamed
+// Regenerate from Supabase after applying that SQL to production.
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -40,7 +44,7 @@ export type Database = {
           document_type: string;
           status: 'uploading' | 'processing' | 'completed' | 'failed';
           detected_source_language: string | null;
-          /** Client IP at upload time — for fraud prevention and dispute handling only */
+          /** Client IP at upload time — fraud prevention and dispute/chargeback handling only */
           ip_address: string | null;
           created_at: string;
           updated_at: string;
@@ -87,7 +91,7 @@ export type Database = {
           error_message: string | null;
           progress_percent: number;
           priority: number;
-          payment_source: 'card_payment' | 'subscription' | 'ton_payment' | null;
+          payment_source: 'card_payment' | 'subscription' | null;
           notarized: boolean;
           started_at: string | null;
           completed_at: string | null;
@@ -100,7 +104,7 @@ export type Database = {
           error_message?: string | null;
           progress_percent?: number;
           priority?: number;
-          payment_source?: 'card_payment' | 'subscription' | 'ton_payment' | null;
+          payment_source?: 'card_payment' | 'subscription' | null;
           notarized?: boolean;
           started_at?: string | null;
           completed_at?: string | null;
@@ -113,7 +117,7 @@ export type Database = {
           error_message?: string | null;
           progress_percent?: number;
           priority?: number;
-          payment_source?: 'card_payment' | 'subscription' | 'ton_payment' | null;
+          payment_source?: 'card_payment' | 'subscription' | null;
           notarized?: boolean;
           started_at?: string | null;
           completed_at?: string | null;
@@ -181,25 +185,19 @@ export type Database = {
           { foreignKeyName: 'translations_job_id_fkey'; columns: ['job_id']; referencedRelation: 'jobs'; referencedColumns: ['id'] },
         ];
       };
-      // wallet_links table removed (migration 0008) — was crypto/TON-specific and unused.
       payment_transactions: {
         Row: {
           id: string;
           user_id: string;
           document_id: string;
           job_id: string;
-          /** Raw payment amount in provider units (nano-TON for legacy records, tiyn for KZT card payments) */
-          amount_raw: string;
-          amount_usd: number;
-          /** Exchange rate (USD per unit) at time of payment */
-          exchange_rate_usd: number;
+          /** Payment amount in the specified currency */
+          amount: number;
+          currency: string;
+          payment_provider: string;
           status: 'pending' | 'completed' | 'expired' | 'failed';
           provider_transaction_id: string | null;
-          /** Legacy field: TON wallet address for historical records only */
-          legacy_wallet_address: string | null;
-          currency_code: string;
-          provider: string;
-          /** Client IP at payment creation — for fraud prevention and dispute handling only */
+          /** Client IP at payment creation — fraud prevention and dispute handling only */
           ip_address: string | null;
           expires_at: string;
           created_at: string;
@@ -209,14 +207,11 @@ export type Database = {
           user_id: string;
           document_id: string;
           job_id: string;
-          amount_raw: number | string;
-          amount_usd: number;
-          exchange_rate_usd: number;
+          amount: number;
+          currency?: string;
+          payment_provider?: string;
           status?: 'pending' | 'completed' | 'expired' | 'failed';
           provider_transaction_id?: string | null;
-          legacy_wallet_address?: string | null;
-          currency_code?: string;
-          provider?: string;
           ip_address?: string | null;
           expires_at: string;
           created_at?: string;
@@ -224,7 +219,6 @@ export type Database = {
         Update: {
           status?: 'pending' | 'completed' | 'expired' | 'failed';
           provider_transaction_id?: string | null;
-          legacy_wallet_address?: string | null;
           ip_address?: string | null;
         };
         Relationships: [
@@ -241,9 +235,7 @@ export type Database = {
           status: 'pending' | 'active' | 'expired' | 'cancelled';
           documents_limit: number;
           documents_used: number;
-          amount_raw: string | null;
-          amount_usd: number | null;
-          exchange_rate_usd: number | null;
+          amount: number | null;
           provider_transaction_id: string | null;
           started_at: string | null;
           expires_at: string | null;
@@ -256,9 +248,7 @@ export type Database = {
           status?: 'pending' | 'active' | 'expired' | 'cancelled';
           documents_limit: number;
           documents_used?: number;
-          amount_raw?: number | string | null;
-          amount_usd?: number | null;
-          exchange_rate_usd?: number | null;
+          amount?: number | null;
           provider_transaction_id?: string | null;
           started_at?: string | null;
           expires_at?: string | null;

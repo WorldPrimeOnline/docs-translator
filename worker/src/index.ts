@@ -38,7 +38,6 @@ function sleep(ms: number): Promise<void> {
  *
  * - payment_source = 'subscription'  → eligible immediately
  * - payment_source = 'card_payment'  → eligible when a completed payment_transaction exists
- * - payment_source = 'ton_payment'   → legacy; check payment_transactions as fallback
  * - payment_source = null            → check payment_transactions as fallback
  */
 async function isEligible(job: JobRow): Promise<boolean> {
