@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { CheckCircle2 } from 'lucide-react';
 import type { PricingTier } from '@/lib/landing-pages/types';
+import { ServiceTermsBlock } from '@/components/payment/ServiceTermsBlock';
 
 interface Props {
   headline: string;
@@ -104,6 +105,9 @@ export async function PricingSection({ headline, subheadline, tiers, footnote }:
         {footnote && (
           <p className="mt-5 text-center text-[11px] text-muted-foreground/60">{tr(footnote)}</p>
         )}
+
+        {/* Delivery, cancellation, and VAT terms — required for acquiring compliance */}
+        <ServiceTermsBlock compact />
       </div>
     </section>
   );

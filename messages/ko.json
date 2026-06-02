@@ -640,7 +640,9 @@
   "footer": {
     "tagline": "AI 기반 전문 문서 번역",
     "tos": "서비스 약관",
-    "privacy": "개인정보 처리방침"
+    "privacy": "개인정보 처리방침",
+    "contacts": "Contacts",
+    "companyHeading": "Provider"
   },
   "subscription": {
     "choosePlan": "플랜 선택",
@@ -722,5 +724,39 @@
     "consentText": "<offerLink>서비스 계약</offerLink>, <privacyLink>개인정보 처리방침</privacyLink> 및 <consentLink>개인정보 수집 및 이용 동의</consentLink>을(를) 읽고 동의합니다.",
     "thirdPartyNotice": "번역 결과는 참고용입니다. 정부 기관, 영사관, 고용주 등 제3자의 수락 여부는 보장되지 않으며 해당 기관의 요건에 따라 다릅니다.",
     "notarizationNotice": "공증 또는 아포스티유는 기본 포함 사항이 아닙니다. 필요한 경우 해당 서비스 레벨을 선택하세요."
+  },
+  "paymentCompliance": {
+    "title": "Payments",
+    "processedBy": "Card payments are processed through Halyk Bank JSC internet acquiring service — Halyk ePay.",
+    "threeDSecure": "Card transactions may be authenticated with 3D Secure technology where required by the issuing bank or payment system.",
+    "acceptedMethods": "Accepted payment methods",
+    "deliveryCost": "Electronic delivery cost: 0 ₸ additional (included in document price).",
+    "vatStatus": "VAT: TODO — specify status (no VAT / VAT included / not applicable) before production."
+  },
+  "serviceTerms": {
+    "deliveryTitle": "Delivery",
+    "deliveryBody": "Translated documents are delivered electronically as PDF or DOCX files. Delivery time: from 2–5 minutes to 2 business days, depending on document type, volume, service level, and quality of the uploaded file.",
+    "officialNote": "Official translation with human translator review may take up to 5 business days.",
+    "notarizationNote": "Notarization through certified partners, where available, is a separate service and requires additional time.",
+    "cancellationTitle": "Cancellation & Refund",
+    "cancellationBody": "You may cancel an order before processing starts and receive a full refund. Once OCR or translation has started, the Refund Policy applies.",
+    "technicalFaultBody": "If the service cannot be delivered due to a technical fault on the Provider's side, a full refund or free reprocessing will be offered.",
+    "poorQualityBody": "Poor scan quality, incorrect language selection, or unreadable files may limit translation quality or require reprocessing, which may affect delivery time.",
+    "reprocessingTitle": "Reprocessing & Correction",
+    "reprocessingBody": "If the translation result contains a technical error attributable to the service, you may request free correction or reprocessing.",
+    "reprocessingQualityLimit": "Translation quality depends on source document quality. The Provider is not liable for inaccuracies caused by OCR errors on low-quality source files."
+  },
+  "contactsPage": {
+    "title": "Contacts",
+    "metaTitle": "Contact WPO Translations",
+    "metaDescription": "Provider contact details for WPO Translations. For disputes, refund requests, and data deletion inquiries.",
+    "providerHeading": "Service Provider",
+    "disputesNote": "For disputes, refund requests, and data deletion requests, use the contact details below.",
+    "legalNameLabel": "Legal name",
+    "iinBinLabel": "IIN / BIN",
+    "addressLabel": "Legal / Postal address",
+    "phoneLabel": "Phone",
+    "emailLabel": "Email",
+    "websiteLabel": "Website"
   }
 }

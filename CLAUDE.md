@@ -50,6 +50,12 @@ Auth guards live in middleware: unauthenticated users are redirected to `/{local
 
 `POST /api/documents/upload` accepts PDF, PNG, JPG, or DOCX (max 25 MB). Non-PDF files are converted to PDF in-process via `src/lib/convert-to-pdf.ts` (pdf-lib + sharp for images, mammoth for DOCX) before uploading to R2. Additional optional fields: `country`, `notarized`, `bureauStamp`, `outputFormat`.
 
+### document_type column encoding
+
+`documents.document_type` stores a compound string `"{type}:{format}"` (e.g., `"passport_id:pdf"`, `"diploma_transcript:docx"`). Both processors call `parseDocumentType()` to split on `:` — the suffix drives output: `pdf` → Puppeteer PDF, `docx` → DOCX renderer, anything else (or no suffix) → HTML. Do not write raw document type keys without checking whether an output format suffix is expected.
+
+Legacy key aliases (`passport` → `passport_id`, `diploma` → `diploma_transcript`, `medical` → `medical_document`, `employment` → `employment_document`) are normalised via `normalizeDocumentType()` in `src/lib/translation-prompts/index.ts`.
+
 ### Dual job processor architecture
 
 There are **two separate processors** — do not conflate them.
@@ -66,8 +72,9 @@ There are **two separate processors** — do not conflate them.
 - Full pipeline: OCR → translate → render HTML → **Puppeteer PDF** → upload `.pdf` to R2 → upsert `translations` → email
 - If Puppeteer fails, falls back to saving `.html`
 - On completion it upserts the `translations` row (handles race with the Vercel processor)
+- Supports DOCX output via `worker/src/lib/docx-renderer.ts` when the format suffix is `:docx`
 
-Both processors use `claude-sonnet-4-5-20250929` via `@anthropic-ai/sdk` (constant `MODEL` in each `translator.ts`).
+Both processors use `claude-sonnet-4-5-20250929` via `@anthropic-ai/sdk` (constant `MODEL` in each `translator.ts`). `src/lib/translation/detect-language.ts` has its own identical `MODEL` constant — update all three if changing the model.
 
 ### Job status flow
 
@@ -81,9 +88,25 @@ Each transition also updates `progress_percent` (0–100).
 
 Flat-rate TON prices (pay-per-doc, no OCR) live in `src/lib/ton/config.ts`: $4.39 for passport/driver_license, $4.99 otherwise.
 
+### Translation prompt system
+
+`src/lib/translation-prompts/` assembles per-request prompts from three layers:
+
+- **`base.ts`** — shared policies injected into every prompt: `OFFICIAL_VISUAL_ELEMENT_POLICY` (how to render stamps, signatures, QR codes, images) and `FIELD_VALUE_TRANSLATION_POLICY` (what to translate vs. protect verbatim, auto-source-language wording rules)
+- **`document-prompts.ts`** — `DOCUMENT_TYPE_PROMPTS` record keyed by `DocumentType`, each with extra document-specific rules
+- **`index.ts`** — `buildTranslationPrompt(params)` combines the above into `{ systemPrompt, userPrompt, expectedOutputFormat }`
+
+`OutputMode` options: `clean_official_translation` (default), `mirror_layout_translation`, `notarization_package`, `presentation_translation` (auto-selected when `documentType === 'presentation'`).
+
+`ServiceLevel` options: `electronic` (default), `official_with_translator_signature_and_provider_stamp`, `notarization_through_partners`.
+
+`DocumentType` values: `passport_id`, `diploma_transcript`, `contract`, `bank_statement`, `medical_document`, `employment_document`, `police_clearance`, `visa_documents`, `driver_license`, `presentation`, `other`.
+
 ### Landing page system
 
-Landing pages are config-driven. Every vertical/document page instantiates `<LandingPage config={...} />` (`src/components/landing/LandingPage.tsx`) with a typed `LandingPageConfig` object (`src/lib/landing-pages/types.ts`). Page-specific data lives in `src/lib/landing-pages/{thailand,kazakhstan,documents,shared}.ts`. Do not duplicate section components — extend the config type instead.
+Landing pages are config-driven. Every vertical/document page instantiates `<LandingPage config={...} />` (`src/components/landing/LandingPage.tsx`) with a typed `LandingPageConfig` object (`src/lib/landing-pages/types.ts`). Page-specific data lives in `src/lib/landing-pages/{kazakhstan,documents,shared}.ts`. Do not duplicate section components — extend the config type instead.
+
+Currently implemented verticals: **Kazakhstan** (`src/app/[locale]/kazakhstan/`) and **documents** (`src/app/[locale]/documents/`). The Thailand vertical is planned but not yet built — no `src/app/[locale]/thailand/` directory exists.
 
 ### Legal system
 
