@@ -1,5 +1,6 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import { BUSINESS_PROFILE } from '@/lib/business-profile';
 import { PaymentComplianceBlock } from '@/components/payment/PaymentComplianceBlock';
 import { ServiceTermsBlock } from '@/components/payment/ServiceTermsBlock';
@@ -34,6 +35,15 @@ export default async function ContactsPage({
 
       {/* Provider identification */}
       <div className="rounded-lg border border-white/10 bg-card p-6">
+        <div className="mb-6 flex justify-center">
+          <Image
+            src="/logo/logo.png"
+            alt="World Prime Online"
+            width={220}
+            height={110}
+            style={{ objectFit: 'contain' }}
+          />
+        </div>
         <h2 className="mb-5 text-base font-semibold text-foreground">{t('providerHeading')}</h2>
         <dl className="grid gap-4">
           <div className="grid grid-cols-[1fr_2fr] gap-3 text-sm sm:grid-cols-[180px_1fr]">

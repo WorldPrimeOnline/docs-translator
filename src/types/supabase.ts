@@ -19,16 +19,19 @@ export type Database = {
           id: string;
           email: string;
           created_at: string;
+          terms_accepted_at: string | null;
         };
         Insert: {
           id: string;
           email: string;
           created_at?: string;
+          terms_accepted_at?: string | null;
         };
         Update: {
           id?: string;
           email?: string;
           created_at?: string;
+          terms_accepted_at?: string | null;
         };
         Relationships: [];
       };

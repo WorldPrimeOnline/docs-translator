@@ -631,6 +631,7 @@
     "terms": "Condiciones de Uso",
     "partners": "Condiciones de Colaboración",
     "consentText": "He leído y acepto el <offerLink>Contrato de Servicios</offerLink>, la <privacyLink>Política de Privacidad</privacyLink> y el <consentLink>Consentimiento de Datos Personales</consentLink>.",
+    "termsAccepted": "Ya ha aceptado los términos",
     "thirdPartyNotice": "Los resultados de la traducción son de carácter orientativo. La aceptación por parte de terceros (organismos públicos, consulados, empleadores) no está garantizada y depende de sus requisitos.",
     "notarizationNotice": "La notarización o apostilla no está incluida por defecto. Si es necesario, seleccione el nivel de servicio correspondiente."
   },

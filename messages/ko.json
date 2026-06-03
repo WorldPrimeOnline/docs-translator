@@ -722,6 +722,7 @@
     "terms": "이용 약관",
     "partners": "파트너 약관",
     "consentText": "<offerLink>서비스 계약</offerLink>, <privacyLink>개인정보 처리방침</privacyLink> 및 <consentLink>개인정보 수집 및 이용 동의</consentLink>을(를) 읽고 동의합니다.",
+    "termsAccepted": "이미 약관에 동의하셨습니다",
     "thirdPartyNotice": "번역 결과는 참고용입니다. 정부 기관, 영사관, 고용주 등 제3자의 수락 여부는 보장되지 않으며 해당 기관의 요건에 따라 다릅니다.",
     "notarizationNotice": "공증 또는 아포스티유는 기본 포함 사항이 아닙니다. 필요한 경우 해당 서비스 레벨을 선택하세요."
   },

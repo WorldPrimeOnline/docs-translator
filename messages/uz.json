@@ -631,6 +631,7 @@
     "terms": "Foydalanish shartlari",
     "partners": "Hamkorlik shartlari",
     "consentText": "Men <offerLink>Oferta shartnomasi</offerLink>, <privacyLink>Maxfiylik siyosati</privacyLink> va <consentLink>Shaxsiy ma'lumotlarni qayta ishlashga rozilik</consentLink>ni o'qidim va roziman.",
+    "termsAccepted": "Siz allaqachon shartlarga rozilik bildirdingiz",
     "thirdPartyNotice": "Tarjima natijalari ma'lumotnoma sifatida taqdim etiladi. Uchinchi tomonlarning (davlat organlari, konsulliklar, ish beruvchilar) qabul qilishi kafolatlanmaydi.",
     "notarizationNotice": "Notarial tasdiqlash yoki apostil standart ravishda kiritilmagan. Zarur bo'lsa, tegishli xizmat darajasini tanlang."
   },

@@ -84,6 +84,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const user = await getAuthUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+    // Server-side terms acceptance check — cannot be bypassed via client devtools.
+    const { data: userRow } = await supabaseServer
+      .from('users')
+      .select('terms_accepted_at')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (!userRow?.terms_accepted_at) {
+      return NextResponse.json({ error: 'Terms not accepted' }, { status: 403 });
+    }
+
     const formData = await request.formData();
     const rawFiles = formData.getAll('file').filter((f): f is File => f instanceof File);
     const sourceLang = formData.get('sourceLang');

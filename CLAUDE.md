@@ -52,7 +52,7 @@ Auth guards live in middleware: unauthenticated users are redirected to `/{local
 
 ### document_type column encoding
 
-`documents.document_type` stores a compound string `"{type}:{format}"` (e.g., `"passport_id:pdf"`, `"diploma_transcript:docx"`). Both processors call `parseDocumentType()` to split on `:` — the suffix drives output: `pdf` → Puppeteer PDF, `docx` → DOCX renderer, anything else (or no suffix) → HTML. Do not write raw document type keys without checking whether an output format suffix is expected.
+`documents.document_type` stores a compound string `"{type}|{format}"` (e.g., `"passport_id|pdf"`, `"diploma_transcript|docx"`). Both processors call `parseDocumentType()` to split on `|` — the suffix drives output: `pdf` → Puppeteer PDF, `docx` → DOCX renderer, anything else (or no suffix) → HTML. Do not write raw document type keys without checking whether an output format suffix is expected.
 
 Legacy key aliases (`passport` → `passport_id`, `diploma` → `diploma_transcript`, `medical` → `medical_document`, `employment` → `employment_document`) are normalised via `normalizeDocumentType()` in `src/lib/translation-prompts/index.ts`.
 
@@ -61,7 +61,7 @@ Legacy key aliases (`passport` → `passport_id`, `diploma` → `diploma_transcr
 There are **two separate processors** — do not conflate them.
 
 **Web app processor** (`src/lib/jobs/processor.ts`):
-- Called via `setTimeout(() => void processJob(...), 0)` from the upload route for **subscription jobs only** (`payment_source: 'subscription'`)
+- Called via `setTimeout(() => void processJob(...), 0)` from the upload route for **subscription jobs with `html` output only** — jobs with `pdf` or `docx` output format are left queued for the Railway worker even on the subscription path
 - Runs on Vercel (no Puppeteer): OCR → translate → `renderToPdf` (which despite the name produces an HTML document, not a browser PDF) → saves `.html` to R2 → inserts into `translations`
 - Uses `src/lib/ocr/mistral.ts`, `src/lib/translation/translator.ts`, `src/lib/pdf/renderer.ts`
 
@@ -72,7 +72,7 @@ There are **two separate processors** — do not conflate them.
 - Full pipeline: OCR → translate → render HTML → **Puppeteer PDF** → upload `.pdf` to R2 → upsert `translations` → email
 - If Puppeteer fails, falls back to saving `.html`
 - On completion it upserts the `translations` row (handles race with the Vercel processor)
-- Supports DOCX output via `worker/src/lib/docx-renderer.ts` when the format suffix is `:docx`
+- Supports DOCX output via `worker/src/lib/docx-renderer.ts` when the format suffix is `|docx`
 
 Both processors use `claude-sonnet-4-5-20250929` via `@anthropic-ai/sdk` (constant `MODEL` in each `translator.ts`). `src/lib/translation/detect-language.ts` has its own identical `MODEL` constant — update all three if changing the model.
 
@@ -84,9 +84,7 @@ Each transition also updates `progress_percent` (0–100).
 
 ### Estimate API
 
-`POST /api/documents/estimate` — OCRs the already-uploaded PDF via Mistral, counts words, and returns a dynamic price. Caches result in `documents.word_count` / `documents.price_usd`. Pricing: `$0.01 × wordCount + $10 (notarized, KZ only) + $5 (bureau_stamp, KZ only)`.
-
-Flat-rate TON prices (pay-per-doc, no OCR) live in `src/lib/ton/config.ts`: $4.39 for passport/driver_license, $4.99 otherwise.
+`POST /api/documents/estimate` — OCRs the already-uploaded PDF via Mistral, counts words, and returns `{ wordCount, priceUsd }`. Pricing: `$0.01 × wordCount`. Result is not cached — the route re-OCRs on every call.
 
 ### Translation prompt system
 
@@ -108,19 +106,21 @@ Landing pages are config-driven. Every vertical/document page instantiates `<Lan
 
 Currently implemented verticals: **Kazakhstan** (`src/app/[locale]/kazakhstan/`) and **documents** (`src/app/[locale]/documents/`). The Thailand vertical is planned but not yet built — no `src/app/[locale]/thailand/` directory exists.
 
+Other locale-prefixed pages: `contacts` (`src/app/[locale]/contacts/`), `auth` (login/callback), `dashboard`, `legal`, `privacy` (alias), `tos` (alias).
+
 ### Legal system
 
 7 document types: `offer`, `privacy`, `personal-data-consent`, `refund-policy`, `disclaimer`, `terms`, `partners`. Types/slugs defined in `src/lib/legal/types.ts`. Content per locale in `src/lib/legal/content/{locale}.ts` (11 locales). Rendered at `[locale]/legal/[slug]` via `src/app/[locale]/legal/[slug]/page.tsx`. Aliases `/privacy` and `/tos` point to the appropriate slug.
 
 ### Payments
 
-TON-only today. `src/lib/stripe/` and `src/lib/polar/` are empty placeholder directories — neither is implemented. Do not add code to them without being asked.
+**Current state: subscription-only, no active payment gateway.** `src/lib/stripe/` and `src/lib/polar/` are empty placeholder directories. `POST /api/subscriptions/create` returns HTTP 503 ("temporarily unavailable"). The subscription modal shows a "coming soon" message.
 
-Pay-per-doc flow: `POST /api/payments/create-ton-payment` → user pays → `POST /api/payments/verify-ton-payment` (polls tonapi.io) → `POST /api/webhooks/ton` (tonconsole webhook, routes by memo UUID to subscription or job).
+**Planned gateway: Halyk Bank ePay** (card payments in KZT). Integration is pending — controlled by `BUSINESS_PROFILE.cardPaymentsActive` in `src/lib/business-profile.ts` (currently `false`). `src/components/payment/PaymentComplianceBlock.tsx` shows Halyk ePay and Mastercard logos with wording that switches based on that flag. Do not add code to the stripe/polar directories without being asked.
 
-Subscription flow: `POST /api/subscriptions/create` → user pays TON → webhook activates subscription → upload route calls `POST /api/subscriptions/use-document` to decrement quota.
+Subscription plans (KZT pricing): `SUBSCRIPTION_PLANS` in `src/lib/subscriptions/config.ts` — Basic 4990 KZT/mo (10 docs), Pro 12990 KZT/mo (40 docs). Duration: 30 days. `documents_used` is incremented atomically in the upload route before creating the job.
 
-TON price fetched at upload time from CoinGecko (`src/lib/ton/price.ts`). Subscription state: `subscriptions` table. Pay-per-doc state: `ton_payments` table.
+Subscription state: `subscriptions` table. The upload route is the only path that currently creates jobs — if the user has no active subscription it returns HTTP 402.
 
 ### Database tables (Supabase)
 
@@ -131,7 +131,7 @@ TON price fetched at upload time from CoinGecko (`src/lib/ton/price.ts`). Subscr
 | `jobs` | `status`, `progress_percent`, `priority`, `payment_source`, `country`, `notarized`, `bureau_stamp` |
 | `ocr_results` | `job_id`, `markdown`, `page_count`, `provider` |
 | `translations` | `job_id`, `translated_markdown`, `translated_pdf_key` |
-| `ton_payments` | pay-per-doc TON transactions |
+| `ton_payments` | legacy pay-per-doc TON transactions (payment gateway not active) |
 | `subscriptions` | `plan`, `status`, `documents_used`, `documents_limit`, `expires_at` |
 
 Generated types at `src/types/supabase.ts`, re-exported from `src/types/index.ts`. Use `Tables<'tablename'>`, `TablesInsert<'tablename'>`, `TablesUpdate<'tablename'>` for typed DB access — do not inline raw object types.
@@ -140,18 +140,13 @@ Generated types at `src/types/supabase.ts`, re-exported from `src/types/index.ts
 
 | Method | Path | Purpose |
 |---|---|---|
-| POST | `/api/documents/upload` | Upload + (for subscriptions) kick off web processor |
-| POST | `/api/documents/estimate` | OCR + word-count pricing, cached in `documents` |
+| POST | `/api/documents/upload` | Upload + (for subscription html jobs) kick off web processor |
+| POST | `/api/documents/estimate` | OCR + word-count pricing ($0.01/word), not cached |
 | GET | `/api/documents/[documentId]/download` | Presigned R2 URL for the translated file |
 | GET | `/api/jobs/[jobId]` | Job status polling (used by dashboard) |
-| GET | `/api/payments/ton-price` | Live TON/USD rate from CoinGecko |
-| POST | `/api/payments/create-ton-payment` | Create pending pay-per-doc TON payment |
-| POST | `/api/payments/verify-ton-payment` | Poll tonapi.io to confirm payment landed |
-| POST | `/api/payments/link-wallet` | Associate TON wallet address with user |
-| POST | `/api/subscriptions/create` | Create a pending subscription |
+| POST | `/api/subscriptions/create` | 503 placeholder — payment gateway not yet active |
 | GET | `/api/subscriptions/current` | Active subscription for the current user |
-| POST | `/api/subscriptions/use-document` | Decrement subscription quota by 1 |
-| POST | `/api/webhooks/ton` | tonconsole webhook — activates payment/subscription |
+| POST | `/api/subscriptions/use-document` | Check quota and decrement by 1 |
 | GET | `/api/cron/cleanup` | Daily 02:00 UTC — deletes files older than 30 days (secured via `CRON_SECRET`) |
 
 ### Email notifications

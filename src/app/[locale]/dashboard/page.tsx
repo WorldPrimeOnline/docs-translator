@@ -238,6 +238,8 @@ export default function DashboardPage() {
   const [outputFormat, setOutputFormat] = useState<'html' | 'pdf' | 'docx'>('pdf');
   const [notarized, setNotarized] = useState(false);
   const [uploading, setUploading] = useState(false);
+  // null = loading, true = already accepted in DB, false = not yet accepted
+  const [termsAccepted, setTermsAccepted] = useState<boolean | null>(null);
   const [consentChecked, setConsentChecked] = useState(false);
 
   const [activeJob, setActiveJob] = useState<ActiveJob | null>(null);
@@ -261,8 +263,19 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(async ({ data }) => {
       setUserEmail(data.session?.user.email ?? null);
+      const userId = data.session?.user.id;
+      if (userId) {
+        const { data: userRow } = await supabase
+          .from('users')
+          .select('terms_accepted_at')
+          .eq('id', userId)
+          .maybeSingle();
+        setTermsAccepted(!!userRow?.terms_accepted_at);
+      } else {
+        setTermsAccepted(false);
+      }
     });
     void loadDocuments();
     void loadSubscription();
@@ -362,6 +375,17 @@ export default function DashboardPage() {
     if (files.length === 0) { toast.error('Please select at least one file'); return; }
 
     setUploading(true);
+
+    // Persist terms acceptance on first use — server will verify this before processing upload.
+    if (!termsAccepted) {
+      const acceptRes = await fetch('/api/users/accept-terms', { method: 'POST' });
+      if (!acceptRes.ok) {
+        toast.error('Failed to save terms acceptance. Please try again.');
+        setUploading(false);
+        return;
+      }
+      setTermsAccepted(true);
+    }
     const form = new FormData();
     for (const f of files) form.append('file', f);
     form.append('sourceLang', sourceLang);
@@ -626,53 +650,59 @@ export default function DashboardPage() {
             </p>
           ) : null}
 
-          {/* Consent checkbox */}
-          <label className="flex cursor-pointer items-start gap-2.5">
-            <input
-              type="checkbox"
-              checked={consentChecked}
-              onChange={(e) => setConsentChecked(e.target.checked)}
-              className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
-            />
-            <span className="text-xs leading-relaxed text-muted-foreground">
-              {tLegal.rich('consentText', {
-                offerLink: (chunks) => (
-                  <Link
-                    href={{ pathname: '/legal/offer' }}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline underline-offset-2 transition-colors hover:text-foreground"
-                  >
-                    {chunks}
-                  </Link>
-                ),
-                privacyLink: (chunks) => (
-                  <Link
-                    href={{ pathname: '/legal/privacy' }}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline underline-offset-2 transition-colors hover:text-foreground"
-                  >
-                    {chunks}
-                  </Link>
-                ),
-                consentLink: (chunks) => (
-                  <Link
-                    href={{ pathname: '/legal/personal-data-consent' }}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline underline-offset-2 transition-colors hover:text-foreground"
-                  >
-                    {chunks}
-                  </Link>
-                ),
-              })}
-            </span>
-          </label>
+          {/* Consent block: checkbox on first use, indicator on repeat visits */}
+          {termsAccepted === false ? (
+            <label className="flex cursor-pointer items-start gap-2.5">
+              <input
+                type="checkbox"
+                checked={consentChecked}
+                onChange={(e) => setConsentChecked(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+              />
+              <span className="text-xs leading-relaxed text-muted-foreground">
+                {tLegal.rich('consentText', {
+                  offerLink: (chunks) => (
+                    <Link
+                      href={{ pathname: '/legal/offer' }}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline underline-offset-2 transition-colors hover:text-foreground"
+                    >
+                      {chunks}
+                    </Link>
+                  ),
+                  privacyLink: (chunks) => (
+                    <Link
+                      href={{ pathname: '/legal/privacy' }}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline underline-offset-2 transition-colors hover:text-foreground"
+                    >
+                      {chunks}
+                    </Link>
+                  ),
+                  consentLink: (chunks) => (
+                    <Link
+                      href={{ pathname: '/legal/personal-data-consent' }}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline underline-offset-2 transition-colors hover:text-foreground"
+                    >
+                      {chunks}
+                    </Link>
+                  ),
+                })}
+              </span>
+            </label>
+          ) : termsAccepted === true ? (
+            <p className="text-xs text-muted-foreground/60">
+              ✓ {tLegal('termsAccepted')}
+            </p>
+          ) : null}
 
           <button
             type="submit"
-            disabled={uploading || files.length === 0 || !consentChecked}
+            disabled={uploading || files.length === 0 || termsAccepted === null || (termsAccepted === false && !consentChecked)}
             className="inline-flex w-fit items-center justify-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-gold-dark disabled:pointer-events-none disabled:opacity-50"
           >
             {uploading ? (
