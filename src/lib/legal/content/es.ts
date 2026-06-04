@@ -15,6 +15,13 @@ export const legalDocs: LegalDocs = {
         heading: '1. Disposiciones Generales',
         body: [
           'El presente documento constituye una oferta pública de WorldPrimeOnline (en adelante, el Proveedor) dirigida a los usuarios (en adelante, el Cliente) y establece los términos del contrato de servicios.',
+          'Proveedor: IE WorldPrimeOnline',
+          'IIN/BIN: 840324300155',
+          'Dirección: Almaty, calle Kazybek bi 139/1',
+          'Correo electrónico: worldprimeonline@gmail.com',
+          'Teléfono: +7 707 222 28 58',
+          'Sitio web: https://www.wpotranslations.org/',
+          'IVA: no aplicable',
           'El registro en la plataforma o su uso implica la aceptación plena e incondicional de esta Oferta.',
           LP,
         ],

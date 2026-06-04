@@ -15,6 +15,13 @@ export const legalDocs: LegalDocs = {
         heading: '1. Umumy Düzgünler',
         body: [
           'Bu resminama WorldPrimeOnline platformasynyň (mundan beýläk — Ýerine ýetiriji) ulanyjylara (mundan beýläk — Müşderi) teklibidir we hyzmat şertnamasynyň düzgünlerini kesgitleýär.',
+          'Ýerine ýetiriji: IE WorldPrimeOnline',
+          'IIN/BIN: 840324300155',
+          'Salgy: Almaty, Kazybek bi köçesi 139/1',
+          'E-poçta: worldprimeonline@gmail.com',
+          'Telefon: +7 707 222 28 58',
+          'Saýt: https://www.wpotranslations.org/',
+          'GGH: göz öňünde tutulmaýar',
           'Platformany hasaba almak ýa-da platformany ulanmak şu Teklibi doly kabul etmegi aňladýar.',
           LP,
         ],
