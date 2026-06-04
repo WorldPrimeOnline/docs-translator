@@ -80,10 +80,10 @@ export const legalDocs: LegalDocs = {
         id: 'refund',
         heading: '7. Tölegleri Gaýtarmak',
         body: [
-          'Töleg gaýtarylmagy hyzmatyň doly ýerine ýetirilmändigini subut etmegi talap edýär.',
-          'Müşderiniň ýalňyşlyklary, nädogry beýan etmeleri ýa-da üçünji tarapyň ret etmegi gaýtarylmak üçin esas däldir.',
-          'Töleg gaýtarylmagy baradaky arzalar 7 (ýedi) iş gününiň dowamynda seredilýär.',
+          'Işlemek tölegi tassyklanandan soň derhal awtomatik başlap biler. OCR, terjime, PDF döretmek ýa-da terjimeçä/notariusa geçirmek başlanandan soň sargytdan ýüz öwürmek mümkin bolmaz.',
           'Doly gaýtarmak diňe hyzmat başlanmadyk halatynda amala aşyrylýar.',
+          'Ýerine ýetirijiniň tehniki ýalňyşlygy sebäpli resminama eltilip bilinmese, Ýerine ýetiriji mugt täzeden işläp biler. Täzeden işlemek mümkin bolmasa ýa-da ýalňyşlygy düzetmese — töleg gaýtarylýar.',
+          'Müşderiniň ýalňyşlyklary ýa-da üçünji tarapyň ret etmegi gaýtarylmak üçin esas däldir.',
         ],
       },
       {
@@ -384,7 +384,7 @@ export const legalDocs: LegalDocs = {
         body: [
           'Töleg şu ýagdaýlarda gaýtarylýar:',
           '• Hyzmat başlanmazdan öň bes edilse.',
-          '• Hyzmat ylalaşylan şertlere laýyk ýerine ýetirilmedik bolsa.',
+          '• Ýerine ýetirijiniň tehniki näsazlygy sebäpli resminama eltilip bilinmese (ilki täzeden işlemek, mümkin bolmasa — gaýtarmak).',
           '• Tehniki näsazlyk sebäpli töleg iki gezek alynan bolsa.',
         ],
       },

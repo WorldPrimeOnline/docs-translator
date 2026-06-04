@@ -121,8 +121,8 @@ export const legalDocs: LegalDocs = {
         heading: '11. Cancellation and Refund Rules',
         body: [
           '11.1 Before processing begins. The Customer may cancel an order and receive a full refund if cancellation is requested before the Provider begins processing the document. Once processing has started, cancellation may not be possible.',
-          '11.2 After processing begins. No refund is issued once the Provider has begun processing, unless the Provider fails to deliver the Translated Document due to a technical failure attributable to the Provider.',
-          '11.3 Technical errors. If the Translated Document cannot be delivered due to a technical error on the Provider\'s side, the Customer is entitled to reprocessing at no additional charge or a full refund.',
+          '11.2 After processing begins. Processing may begin automatically immediately after payment confirmation and order creation. Once OCR, AI processing, translation, PDF generation, or transfer to a translator or notary partner has commenced, order cancellation may not be possible. No refund is issued except as provided in clause 11.3.',
+          '11.3 Technical errors. If the Translated Document cannot be delivered or is delivered demonstrably incomplete or corrupted due to a technical error on the Provider\'s side, the Provider may perform reprocessing at no additional charge. A refund is provided if reprocessing is not possible, does not resolve the technical error, or the Translated Document cannot be delivered due to the Provider\'s fault.',
           '11.4 Poor document quality. The Provider is not responsible for translation quality where the source document is illegible, heavily damaged, or of insufficient scan quality for accurate OCR extraction. In such cases, no refund is issued.',
           '11.5 Incorrect input. The Provider is not responsible for incorrect translation output resulting from incorrect document type, language selection, or other erroneous input by the Customer.',
           '11.6 Refund method. Refunds are processed through the same payment method used for the original transaction, within 10 business days of approval.',
@@ -447,6 +447,7 @@ export const legalDocs: LegalDocs = {
         heading: '1. Cancellation Before Processing Begins',
         body: [
           'The Customer may cancel an order and receive a full refund if the cancellation request is submitted before the Provider begins processing the uploaded document.',
+          'Processing may begin automatically immediately after payment confirmation and order creation. Once OCR, AI processing, translation, PDF generation, or transfer to a translator or notary partner has commenced, order cancellation may not be possible.',
           'To cancel, the Customer should contact the Provider at worldprimeonline@gmail.com as soon as possible after placing the order.',
         ],
       },
@@ -454,9 +455,7 @@ export const legalDocs: LegalDocs = {
         id: 'after-processing',
         heading: '2. No Refund After Processing Begins',
         body: [
-          'Once the Provider begins processing the document (OCR extraction, translation, or PDF generation), no refund is issued unless:',
-          '• The Translated Document cannot be delivered due to a technical failure on the Provider\'s side.',
-          '• The output is demonstrably incomplete due to a system error.',
+          'Once the Provider begins processing the document (OCR, translation, PDF generation, or transfer to a translator or notary partner), no refund is issued except as provided in section 3.',
           'Dissatisfaction with translation quality, style, or terminology — where the source document was legible and the order inputs were correctly entered — does not entitle the Customer to a refund.',
         ],
       },
@@ -464,8 +463,9 @@ export const legalDocs: LegalDocs = {
         id: 'reprocessing',
         heading: '3. Reprocessing for Technical Errors',
         body: [
-          'If the Translated Document is delivered but is demonstrably incomplete or severely corrupted due to a technical error attributable to the Provider, the Customer is entitled to reprocessing at no additional charge.',
-          'Reprocessing requests must be submitted within 7 days of document delivery by contacting worldprimeonline@gmail.com with a description of the issue and the order reference.',
+          'If the Translated Document cannot be delivered or is delivered demonstrably incomplete or corrupted due to a technical error on the Provider\'s side, the Provider may perform reprocessing at no additional charge.',
+          'A refund is provided if reprocessing is not possible, does not resolve the technical error, or the Translated Document cannot be delivered due to the Provider\'s fault.',
+          'Requests must be submitted within 7 days of document delivery by contacting worldprimeonline@gmail.com with a description of the issue and the order reference.',
         ],
       },
       {

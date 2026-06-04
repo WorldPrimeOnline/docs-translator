@@ -80,10 +80,10 @@ export const legalDocs: LegalDocs = {
         id: 'refund',
         heading: '7. Devoluciones',
         body: [
-          'Para obtener un reembolso, el Cliente debe demostrar que el servicio no se ha prestado correctamente.',
-          'Los errores del Cliente, la información incorrecta o el rechazo de terceros no constituyen motivo de reembolso.',
-          'Las solicitudes de reembolso se tramitarán en 7 (siete) días hábiles.',
+          'El procesamiento puede iniciarse automáticamente justo después de confirmar el pago. Una vez iniciados el OCR, la traducción, la generación del PDF o la transferencia a un traductor o notario socio, puede no ser posible cancelar el pedido.',
           'El reembolso total solo se realizará si el servicio no ha sido iniciado.',
+          'En caso de error técnico imputable al Proveedor, este podrá efectuar un reprocesamiento gratuito. Si el reprocesamiento no es posible o no resuelve el error, se procederá al reembolso.',
+          'Los errores del Cliente, la información incorrecta o el rechazo de terceros no constituyen motivo de reembolso.',
         ],
       },
       {
@@ -384,7 +384,7 @@ export const legalDocs: LegalDocs = {
         body: [
           'Se procederá al reembolso en los siguientes supuestos:',
           '• Cancelación del pedido antes de que comience el servicio.',
-          '• Servicio prestado sin cumplir las condiciones pactadas.',
+          '• Error técnico imputable al Proveedor que impide la entrega del documento (primero se intenta el reprocesamiento; si no es posible, se reembolsa).',
           '• Cobro duplicado por error técnico.',
         ],
       },
