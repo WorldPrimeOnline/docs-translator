@@ -30,15 +30,15 @@ export async function TrustSection({ headline, mode = 'features' }: Props) {
   return (
     <section className="px-4 py-16 lg:py-20">
       <div className="mx-auto max-w-6xl">
-        <div className="mb-10 text-center">
-          <p className="mb-2.5 text-[10px] font-bold uppercase tracking-[0.15em] text-primary/70">
+        <div className="mb-12 text-center">
+          <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.15em] text-primary/70">
             {eyebrow}
           </p>
           <h2 className="text-2xl font-bold tracking-[-0.025em] text-foreground sm:text-[1.85rem]">
             {sectionHeadline}
           </h2>
           {mode === 'security' && (
-            <p className="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-muted-foreground">
+            <p className="mx-auto mt-5 max-w-lg text-sm leading-relaxed text-muted-foreground">
               {t('security.subtitle')}
             </p>
           )}

@@ -27,15 +27,15 @@ export async function PricingSection({ headline, subheadline, tiers, footnote }:
   return (
     <section className="border-y border-white/[0.07] bg-card px-4 py-16 lg:py-20">
       <div className="mx-auto max-w-[860px]">
-        <div className="mb-10 text-center">
-          <p className="mb-2.5 text-[10px] font-bold uppercase tracking-[0.15em] text-primary/70">
+        <div className="mb-12 text-center">
+          <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.15em] text-primary/70">
             {t('landing.pricingLabel')}
           </p>
           <h2 className="text-2xl font-bold tracking-[-0.025em] text-foreground sm:text-[1.85rem]">
             {headline}
           </h2>
           {subheadline && (
-            <p className="mt-3 text-sm text-muted-foreground">{subheadline}</p>
+            <p className="mt-5 text-sm text-muted-foreground">{subheadline}</p>
           )}
         </div>
 

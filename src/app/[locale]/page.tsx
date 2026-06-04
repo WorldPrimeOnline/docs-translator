@@ -211,8 +211,8 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
       <section className="border-y border-white/[0.07] bg-card px-4 py-16 lg:py-20">
         <div className="mx-auto max-w-6xl">
           {/* Header */}
-          <div className="mb-10max-w-2xl">
-            <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-primary/60">
+          <div className="mb-12 max-w-2xl">
+            <p className="mb-4 text-[11px] font-bold uppercase tracking-[0.14em] text-primary/60">
               {t('pain.label')}
             </p>
             <h2 className="text-3xl font-bold tracking-[-0.025em] text-foreground sm:text-4xl lg:text-[2.5rem]">
@@ -249,8 +249,8 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
       ═══════════════════════════════════════════ */}
       <section id="how-it-works" className="px-4 py-16 lg:py-20">
         <div className="mx-auto max-w-6xl">
-          <div className="mb-10text-center">
-            <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-primary/60">
+          <div className="mb-12 text-center">
+            <p className="mb-4 text-[11px] font-bold uppercase tracking-[0.14em] text-primary/60">
               {t('howItWorks.label')}
             </p>
             <h2 className="text-3xl font-bold tracking-[-0.025em] text-foreground sm:text-4xl">
@@ -293,14 +293,14 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
       ═══════════════════════════════════════════ */}
       <section id="documents" className="border-y border-white/[0.07] bg-card px-4 py-16 lg:py-20">
         <div className="mx-auto max-w-6xl">
-          <div className="mb-10text-center">
-            <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-primary/60">
+          <div className="mb-12 text-center">
+            <p className="mb-4 text-[11px] font-bold uppercase tracking-[0.14em] text-primary/60">
               {t('documents.label')}
             </p>
             <h2 className="text-3xl font-bold tracking-[-0.025em] text-foreground sm:text-4xl">
               {t('documents.title')}
             </h2>
-            <p className="mt-3 text-[15px] text-muted-foreground">{t('documents.subtitle')}</p>
+            <p className="mt-5 text-[15px] text-muted-foreground">{t('documents.subtitle')}</p>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -336,8 +336,8 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
       ═══════════════════════════════════════════ */}
       <section className="px-4 py-16 lg:py-20">
         <div className="mx-auto max-w-6xl">
-          <div className="mb-10text-center">
-            <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-primary/60">
+          <div className="mb-12 text-center">
+            <p className="mb-4 text-[11px] font-bold uppercase tracking-[0.14em] text-primary/60">
               {t('useCases.label')}
             </p>
             <h2 className="text-3xl font-bold tracking-[-0.025em] text-foreground sm:text-4xl">
@@ -371,9 +371,9 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
       <section className="border-y border-white/[0.07] bg-card px-4 py-16 lg:py-20">
         <div className="mx-auto max-w-6xl">
           {/* Header — left-aligned for variety */}
-          <div className="mb-10grid gap-6 lg:grid-cols-2 lg:items-end">
+          <div className="mb-12 grid gap-6 lg:grid-cols-2 lg:items-end">
             <div>
-              <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-primary/60">
+              <p className="mb-4 text-[11px] font-bold uppercase tracking-[0.14em] text-primary/60">
                 {t('security.label')}
               </p>
               <h2 className="text-3xl font-bold tracking-[-0.025em] text-foreground sm:text-4xl">
@@ -408,8 +408,8 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
       ═══════════════════════════════════════════ */}
       <section className="px-4 py-16 lg:py-20">
         <div className="mx-auto max-w-6xl">
-          <div className="mb-10text-center">
-            <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-primary/60">
+          <div className="mb-12 text-center">
+            <p className="mb-4 text-[11px] font-bold uppercase tracking-[0.14em] text-primary/60">
               {t('trust.label')}
             </p>
             <h2 className="text-3xl font-bold tracking-[-0.025em] text-foreground sm:text-4xl">
@@ -442,14 +442,14 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
       ═══════════════════════════════════════════ */}
       <section className="border-y border-white/[0.07] bg-card px-4 py-16 lg:py-20">
         <div className="mx-auto max-w-[900px]">
-          <div className="mb-10text-center">
-            <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-primary/60">
+          <div className="mb-12 text-center">
+            <p className="mb-4 text-[11px] font-bold uppercase tracking-[0.14em] text-primary/60">
               {t('pricing.label')}
             </p>
             <h2 className="text-3xl font-bold tracking-[-0.025em] text-foreground sm:text-4xl">
               {t('pricing.title')}
             </h2>
-            <p className="mt-3 text-[15px] text-muted-foreground">{t('pricing.subtitle')}</p>
+            <p className="mt-5 text-[15px] text-muted-foreground">{t('pricing.subtitle')}</p>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-3">
@@ -556,8 +556,8 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
       ═══════════════════════════════════════════ */}
       <section className="px-4 py-16 lg:py-20">
         <div className="mx-auto max-w-[680px]">
-          <div className="mb-10text-center">
-            <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-primary/60">
+          <div className="mb-12 text-center">
+            <p className="mb-4 text-[11px] font-bold uppercase tracking-[0.14em] text-primary/60">
               {t('faq.label')}
             </p>
             <h2 className="text-3xl font-bold tracking-[-0.025em] text-foreground sm:text-4xl">

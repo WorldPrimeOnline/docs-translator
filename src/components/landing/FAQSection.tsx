@@ -18,8 +18,8 @@ export function FAQSection({ headline, items }: Props) {
   return (
     <section className="px-4 py-16 lg:py-20">
       <div className="mx-auto max-w-[640px]">
-        <div className="mb-10 text-center">
-          <p className="mb-2.5 text-[10px] font-bold uppercase tracking-[0.15em] text-primary/70">
+        <div className="mb-12 text-center">
+          <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.15em] text-primary/70">
             {t('faqLabel')}
           </p>
           <h2 className="text-2xl font-bold tracking-[-0.025em] text-foreground sm:text-[1.85rem]">
