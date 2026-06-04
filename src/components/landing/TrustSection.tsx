@@ -28,9 +28,9 @@ export async function TrustSection({ headline, mode = 'features' }: Props) {
   const eyebrow = mode === 'security' ? t('security.label') : t('trust.label');
 
   return (
-    <section className="px-4 py-20">
-      <div className="mx-auto max-w-5xl">
-        <div className="mb-12 text-center">
+    <section className="px-4 py-16 lg:py-20">
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-10 text-center">
           <p className="mb-2.5 text-[10px] font-bold uppercase tracking-[0.15em] text-primary/70">
             {eyebrow}
           </p>

@@ -25,9 +25,9 @@ export async function PricingSection({ headline, subheadline, tiers, footnote }:
   const tr = (s: string): string => (PRICING_KEYS.has(s) ? tL(s as Parameters<typeof tL>[0]) : s);
 
   return (
-    <section className="border-y border-white/[0.07] bg-card px-4 py-20">
+    <section className="border-y border-white/[0.07] bg-card px-4 py-16 lg:py-20">
       <div className="mx-auto max-w-[860px]">
-        <div className="mb-14 text-center">
+        <div className="mb-10 text-center">
           <p className="mb-2.5 text-[10px] font-bold uppercase tracking-[0.15em] text-primary/70">
             {t('landing.pricingLabel')}
           </p>

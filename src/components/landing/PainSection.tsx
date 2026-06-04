@@ -10,13 +10,13 @@ interface Props {
 
 export function PainSection({ headline, points, sectionLabel, bridgeLabel }: Props) {
   return (
-    <section className="border-b border-white/[0.07] bg-card px-4 py-20">
-      <div className="mx-auto max-w-5xl">
-        <div className="mb-12 text-center">
+    <section className="border-b border-white/[0.07] bg-card px-4 py-16 lg:py-20">
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-10">
           <p className="mb-2.5 text-[10px] font-bold uppercase tracking-[0.15em] text-primary/70">
             {sectionLabel ?? 'The Problem'}
           </p>
-          <h2 className="mx-auto max-w-2xl text-2xl font-bold tracking-[-0.025em] text-foreground sm:text-[1.85rem]">
+          <h2 className="max-w-2xl text-2xl font-bold tracking-[-0.025em] text-foreground sm:text-[1.85rem]">
             {headline}
           </h2>
         </div>

@@ -13,7 +13,7 @@ export async function FinalCTASection({ headline, sub, cta, ctaHref = '/auth/sig
   const t = await getTranslations();
 
   return (
-    <section className="relative overflow-hidden border-t border-white/[0.07] px-4 py-28 text-center">
+    <section className="relative overflow-hidden border-t border-white/[0.07] px-4 py-20 text-center">
       {/* Background radial */}
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_70%_at_50%_50%,rgba(201,168,76,0.065),transparent)]" />
       {/* Subtle grid */}

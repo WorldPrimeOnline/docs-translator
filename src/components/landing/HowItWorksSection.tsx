@@ -34,9 +34,9 @@ export async function HowItWorksSection() {
   ];
 
   return (
-    <section id="how-it-works" className="border-y border-white/[0.07] bg-card px-4 py-20">
-      <div className="mx-auto max-w-5xl">
-        <div className="mb-14 text-center">
+    <section id="how-it-works" className="border-y border-white/[0.07] bg-card px-4 py-16 lg:py-20">
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-10 text-center">
           <p className="mb-2.5 text-[10px] font-bold uppercase tracking-[0.15em] text-primary/70">
             {t('howItWorks.label')}
           </p>
@@ -73,7 +73,7 @@ export async function HowItWorksSection() {
                 </div>
 
                 <h3 className="mb-1.5 text-sm font-semibold text-foreground">{step.title}</h3>
-                <p className="max-w-[200px] text-[13px] leading-relaxed text-muted-foreground">{step.desc}</p>
+                <p className="text-[13px] leading-relaxed text-muted-foreground">{step.desc}</p>
               </div>
             ))}
           </div>

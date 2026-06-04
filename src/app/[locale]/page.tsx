@@ -208,10 +208,10 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
       {/* ═══════════════════════════════════════════
           PAIN  —  why bureaus don't work
       ═══════════════════════════════════════════ */}
-      <section className="border-y border-white/[0.07] bg-card px-4 py-20 lg:py-28">
-        <div className="mx-auto max-w-5xl">
+      <section className="border-y border-white/[0.07] bg-card px-4 py-16 lg:py-20">
+        <div className="mx-auto max-w-6xl">
           {/* Header */}
-          <div className="mb-14 max-w-2xl">
+          <div className="mb-10max-w-2xl">
             <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-primary/60">
               {t('pain.label')}
             </p>
@@ -247,9 +247,9 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
       {/* ═══════════════════════════════════════════
           HOW IT WORKS  —  4-step connected flow
       ═══════════════════════════════════════════ */}
-      <section id="how-it-works" className="px-4 py-20 lg:py-28">
-        <div className="mx-auto max-w-5xl">
-          <div className="mb-14 text-center">
+      <section id="how-it-works" className="px-4 py-16 lg:py-20">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-10text-center">
             <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-primary/60">
               {t('howItWorks.label')}
             </p>
@@ -271,7 +271,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
               { n: '03', icon: CreditCard, title: t('howItWorks.payTitle'),    desc: t('howItWorks.payDesc') },
               { n: '04', icon: Download,   title: t('howItWorks.step3Title'), desc: t('howItWorks.step3Desc') },
             ].map((step) => (
-              <div key={step.n} className="flex flex-col items-center text-center">
+              <div key={step.n} className="flex flex-col items-center text-center lg:items-start lg:text-left">
                 <div className="relative mb-5">
                   <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/[0.1] bg-card shadow-lg">
                     <step.icon className="h-5 w-5 text-primary" />
@@ -281,7 +281,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
                   </span>
                 </div>
                 <h3 className="mb-2 text-[15px] font-semibold text-foreground">{step.title}</h3>
-                <p className="max-w-[180px] text-[13px] leading-relaxed text-muted-foreground">{step.desc}</p>
+                <p className="text-[13px] leading-relaxed text-muted-foreground">{step.desc}</p>
               </div>
             ))}
           </div>
@@ -291,9 +291,9 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
       {/* ═══════════════════════════════════════════
           DOCUMENTS  —  categorized
       ═══════════════════════════════════════════ */}
-      <section id="documents" className="border-y border-white/[0.07] bg-card px-4 py-20 lg:py-28">
-        <div className="mx-auto max-w-5xl">
-          <div className="mb-14 text-center">
+      <section id="documents" className="border-y border-white/[0.07] bg-card px-4 py-16 lg:py-20">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-10text-center">
             <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-primary/60">
               {t('documents.label')}
             </p>
@@ -334,9 +334,9 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
       {/* ═══════════════════════════════════════════
           USE CASES
       ═══════════════════════════════════════════ */}
-      <section className="px-4 py-20 lg:py-28">
-        <div className="mx-auto max-w-5xl">
-          <div className="mb-14 text-center">
+      <section className="px-4 py-16 lg:py-20">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-10text-center">
             <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-primary/60">
               {t('useCases.label')}
             </p>
@@ -368,10 +368,10 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
       {/* ═══════════════════════════════════════════
           SECURITY
       ═══════════════════════════════════════════ */}
-      <section className="border-y border-white/[0.07] bg-card px-4 py-20 lg:py-28">
-        <div className="mx-auto max-w-5xl">
+      <section className="border-y border-white/[0.07] bg-card px-4 py-16 lg:py-20">
+        <div className="mx-auto max-w-6xl">
           {/* Header — left-aligned for variety */}
-          <div className="mb-14 grid gap-6 lg:grid-cols-2 lg:items-end">
+          <div className="mb-10grid gap-6 lg:grid-cols-2 lg:items-end">
             <div>
               <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-primary/60">
                 {t('security.label')}
@@ -406,9 +406,9 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
       {/* ═══════════════════════════════════════════
           WHY WPO
       ═══════════════════════════════════════════ */}
-      <section className="px-4 py-20 lg:py-28">
-        <div className="mx-auto max-w-5xl">
-          <div className="mb-14 text-center">
+      <section className="px-4 py-16 lg:py-20">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-10text-center">
             <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-primary/60">
               {t('trust.label')}
             </p>
@@ -440,9 +440,9 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
       {/* ═══════════════════════════════════════════
           PRICING
       ═══════════════════════════════════════════ */}
-      <section className="border-y border-white/[0.07] bg-card px-4 py-20 lg:py-28">
+      <section className="border-y border-white/[0.07] bg-card px-4 py-16 lg:py-20">
         <div className="mx-auto max-w-[900px]">
-          <div className="mb-14 text-center">
+          <div className="mb-10text-center">
             <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-primary/60">
               {t('pricing.label')}
             </p>
@@ -554,9 +554,9 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
       {/* ═══════════════════════════════════════════
           FAQ
       ═══════════════════════════════════════════ */}
-      <section className="px-4 py-20 lg:py-28">
+      <section className="px-4 py-16 lg:py-20">
         <div className="mx-auto max-w-[680px]">
-          <div className="mb-14 text-center">
+          <div className="mb-10text-center">
             <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-primary/60">
               {t('faq.label')}
             </p>
@@ -589,7 +589,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
       {/* ═══════════════════════════════════════════
           FINAL CTA
       ═══════════════════════════════════════════ */}
-      <section className="relative overflow-hidden px-4 py-28 text-center lg:py-36">
+      <section className="relative overflow-hidden px-4 py-20 text-center lg:py-24">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_50%,rgba(201,168,76,0.07),transparent)]" />
 
         <div className="relative mx-auto max-w-[560px]">
