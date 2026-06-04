@@ -49,13 +49,14 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
     { icon: MapPin,       title: t('useCases.relocation'), desc: t('useCases.relocationDesc') },
   ];
 
-  const FAQ = [
-    { q: t('faq.q1'), a: t('faq.a1') },
-    { q: t('faq.q2'), a: t('faq.a2') },
-    { q: t('faq.q3'), a: t('faq.a3') },
-    { q: t('faq.q4'), a: t('faq.a4') },
-    { q: t('faq.q5'), a: t('faq.a5') },
-  ];
+  const faqRaw = t.raw('faq') as Record<string, string>;
+  const FAQ: { q: string; a: string }[] = [];
+  for (let i = 1; ; i++) {
+    const q = faqRaw[`q${i}`];
+    const a = faqRaw[`a${i}`];
+    if (!q || !a) break;
+    FAQ.push({ q, a });
+  }
 
   return (
     <div className="bg-background">
