@@ -298,6 +298,7 @@ export const legalDocs: LegalDocs = {
           '• Anthropic — AI translation processing.',
           '• Resend — email notification delivery.',
           '• Sentry — error monitoring (anonymized technical data only).',
+          '• Where the Official Translation or Notarization service level is selected, relevant document data may be shared with assigned translators, notaries, and other partners involved in providing the respective service, solely to the extent necessary to fulfil the order.',
           'All sub-processors are bound by data processing agreements and are prohibited from using Customer data for purposes other than providing the contracted service.',
         ],
       },

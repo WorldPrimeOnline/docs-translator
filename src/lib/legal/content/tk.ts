@@ -220,6 +220,7 @@ export const legalDocs: LegalDocs = {
           '• Hyzmaty ýerine ýetirýän hünärmenlere (gizlinlik borjy bilen).',
           '• Kanuny talap esasynda döwlet edaralaryna.',
           '• Tölegi işleýän bank we platforma hyzmatlara.',
+          '• Resmi terjime ýa-da notarial tassyklama derejesi saýlanan halatynda, degişli resminamanyň maglumatlary buýrugy ýerine ýetirmek üçin zerur bolan möçberde bellenen terjimeçilere, notariuslara we beýleki gatnaşyjy hyzmatdaşlara geçirilip bilner.',
         ],
       },
       {

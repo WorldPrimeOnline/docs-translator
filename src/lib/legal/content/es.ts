@@ -220,6 +220,7 @@ export const legalDocs: LegalDocs = {
           '• A especialistas que prestan el servicio (sujetos a obligación de confidencialidad).',
           '• A organismos públicos por requerimiento legal.',
           '• A servicios bancarios y de plataforma que procesan el pago.',
+          '• Cuando se seleccione el nivel de Traducción Oficial o Notarización, los datos relevantes del documento podrán compartirse con los traductores, notarios u otros socios participantes en la prestación del servicio correspondiente, exclusivamente en la medida necesaria para ejecutar el encargo.',
         ],
       },
       {
