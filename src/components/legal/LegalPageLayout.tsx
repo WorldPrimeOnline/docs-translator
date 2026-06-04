@@ -22,7 +22,7 @@ export function LegalPageLayout({ doc }: LegalPageLayoutProps) {
             Contents
           </p>
           <ol className="flex flex-col gap-1.5">
-            {doc.sections.map((section) => (
+            {doc.sections.filter((s) => s.id !== 'contact' && s.id !== 'contacts').map((section) => (
               <li key={section.id}>
                 <a
                   href={`#${section.id}`}
@@ -38,7 +38,7 @@ export function LegalPageLayout({ doc }: LegalPageLayoutProps) {
 
       {/* Sections */}
       <div className="flex flex-col gap-10">
-        {doc.sections.map((section) => (
+        {doc.sections.filter((s) => s.id !== 'contact' && s.id !== 'contacts').map((section) => (
           <section key={section.id} id={section.id}>
             <h2 className="mb-4 text-base font-semibold text-foreground sm:text-lg">
               {section.heading}

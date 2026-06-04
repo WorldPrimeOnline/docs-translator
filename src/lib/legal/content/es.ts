@@ -6,15 +6,15 @@ export const legalDocs: LegalDocs = {
   offer: {
     slug: 'offer',
     title: 'Oferta Pública de Servicios',
-    metaTitle: 'Contrato de Servicios — World Prime Online',
-    metaDescription: 'Condiciones de uso de los servicios de la plataforma World Prime Online.',
+    metaTitle: 'Contrato de Servicios — WorldPrimeOnline',
+    metaDescription: 'Condiciones de uso de los servicios de la plataforma WorldPrimeOnline.',
     effectiveDate: '2026-05-26',
     sections: [
       {
         id: 'general',
         heading: '1. Disposiciones Generales',
         body: [
-          'El presente documento constituye una oferta pública de World Prime Online (en adelante, el Proveedor) dirigida a los usuarios (en adelante, el Cliente) y establece los términos del contrato de servicios.',
+          'El presente documento constituye una oferta pública de WorldPrimeOnline (en adelante, el Proveedor) dirigida a los usuarios (en adelante, el Cliente) y establece los términos del contrato de servicios.',
           'El registro en la plataforma o su uso implica la aceptación plena e incondicional de esta Oferta.',
           LP,
         ],
@@ -23,7 +23,7 @@ export const legalDocs: LegalDocs = {
         id: 'definitions',
         heading: '2. Definiciones',
         body: [
-          '• Proveedor: World Prime Online.',
+          '• Proveedor: WorldPrimeOnline.',
           '• Cliente: cualquier persona que haya aceptado esta Oferta.',
           '• Servicio: servicios de traducción, localización y servicios lingüísticos conexos ofrecidos por el Proveedor.',
           '• Plataforma: la plataforma web disponible en https://www.wpotranslations.org/.',
@@ -156,8 +156,8 @@ export const legalDocs: LegalDocs = {
         id: 'contacts',
         heading: '16. Información de Contacto',
         body: [
-          'Empresa: World Prime Online',
-          '',
+          'WorldPrimeOnline',
+          'Dirección: Almaty, calle Kazybek bi 139/1',
           'Correo electrónico: worldprimeonline@gmail.com',
           'Sitio web: https://www.wpotranslations.org/',
         ],
@@ -168,15 +168,15 @@ export const legalDocs: LegalDocs = {
   privacy: {
     slug: 'privacy',
     title: 'Política de Privacidad',
-    metaTitle: 'Política de Privacidad — World Prime Online',
-    metaDescription: 'Cómo World Prime Online trata los datos personales de sus usuarios.',
+    metaTitle: 'Política de Privacidad — WorldPrimeOnline',
+    metaDescription: 'Cómo WorldPrimeOnline trata los datos personales de sus usuarios.',
     effectiveDate: '2026-05-26',
     sections: [
       {
         id: 'general',
         heading: '1. Disposiciones Generales',
         body: [
-          'La presente Política de Privacidad explica cómo World Prime Online (en adelante, el Proveedor) recopila y trata los datos personales de los usuarios de la plataforma World Prime Online.',
+          'La presente Política de Privacidad explica cómo WorldPrimeOnline (en adelante, el Proveedor) recopila y trata los datos personales de los usuarios de la plataforma WorldPrimeOnline.',
           'El uso de la plataforma implica la aceptación de los términos de esta Política.',
           LP,
         ],
@@ -281,8 +281,10 @@ export const legalDocs: LegalDocs = {
         id: 'contacts',
         heading: '12. Contacto',
         body: [
-          'Para consultas sobre privacidad: worldprimeonline@gmail.com',
-          'World Prime Online',
+          'WorldPrimeOnline',
+          'Dirección: Almaty, calle Kazybek bi 139/1',
+          'Correo electrónico: worldprimeonline@gmail.com',
+          'Sitio web: https://www.wpotranslations.org/',
         ],
       },
     ],
@@ -291,7 +293,7 @@ export const legalDocs: LegalDocs = {
   'personal-data-consent': {
     slug: 'personal-data-consent',
     title: 'Consentimiento para el Tratamiento de Datos Personales',
-    metaTitle: 'Consentimiento para el Tratamiento de Datos Personales — World Prime Online',
+    metaTitle: 'Consentimiento para el Tratamiento de Datos Personales — WorldPrimeOnline',
     metaDescription: 'Información sobre el consentimiento para el tratamiento de datos personales.',
     effectiveDate: '2026-05-26',
     sections: [
@@ -299,7 +301,7 @@ export const legalDocs: LegalDocs = {
         id: 'intro',
         heading: '1. Introducción',
         body: [
-          'El presente documento regula el consentimiento para el tratamiento de datos personales de los usuarios por parte de World Prime Online ().',
+          'El presente documento regula el consentimiento para el tratamiento de datos personales de los usuarios por parte de WorldPrimeOnline ().',
           LP,
         ],
       },
@@ -344,8 +346,10 @@ export const legalDocs: LegalDocs = {
         id: 'contacts',
         heading: '6. Contacto',
         body: [
-          'World Prime Online',
+          'WorldPrimeOnline',
+          'Dirección: Almaty, calle Kazybek bi 139/1',
           'Correo electrónico: worldprimeonline@gmail.com',
+          'Sitio web: https://www.wpotranslations.org/',
         ],
       },
     ],
@@ -354,15 +358,15 @@ export const legalDocs: LegalDocs = {
   'refund-policy': {
     slug: 'refund-policy',
     title: 'Política de Reembolso',
-    metaTitle: 'Política de Reembolso — World Prime Online',
-    metaDescription: 'Condiciones de devolución en los servicios de World Prime Online.',
+    metaTitle: 'Política de Reembolso — WorldPrimeOnline',
+    metaDescription: 'Condiciones de devolución en los servicios de WorldPrimeOnline.',
     effectiveDate: '2026-05-26',
     sections: [
       {
         id: 'general',
         heading: '1. Disposiciones Generales',
         body: [
-          'La presente Política establece las condiciones de devolución y cambio de pagos en los servicios de la plataforma World Prime Online.',
+          'La presente Política establece las condiciones de devolución y cambio de pagos en los servicios de la plataforma WorldPrimeOnline.',
           LP,
         ],
       },
@@ -416,8 +420,10 @@ export const legalDocs: LegalDocs = {
         id: 'contacts',
         heading: '7. Contacto',
         body: [
-          'Consultas sobre reembolsos: worldprimeonline@gmail.com',
-          'World Prime Online',
+          'WorldPrimeOnline',
+          'Dirección: Almaty, calle Kazybek bi 139/1',
+          'Correo electrónico: worldprimeonline@gmail.com',
+          'Sitio web: https://www.wpotranslations.org/',
         ],
       },
     ],
@@ -426,15 +432,15 @@ export const legalDocs: LegalDocs = {
   disclaimer: {
     slug: 'disclaimer',
     title: 'Aviso Legal',
-    metaTitle: 'Aviso Legal — World Prime Online',
-    metaDescription: 'Sobre las limitaciones y los derechos de los servicios de World Prime Online.',
+    metaTitle: 'Aviso Legal — WorldPrimeOnline',
+    metaDescription: 'Sobre las limitaciones y los derechos de los servicios de WorldPrimeOnline.',
     effectiveDate: '2026-05-26',
     sections: [
       {
         id: 'general',
         heading: '1. Situación General',
         body: [
-          'World Prime Online ofrece servicios de traducción y localización. El presente documento establece las limitaciones de los servicios y los supuestos de exclusión de responsabilidad del Proveedor.',
+          'WorldPrimeOnline ofrece servicios de traducción y localización. El presente documento establece las limitaciones de los servicios y los supuestos de exclusión de responsabilidad del Proveedor.',
           LP,
         ],
       },
@@ -451,7 +457,7 @@ export const legalDocs: LegalDocs = {
         id: 'no-legal-advice',
         heading: '3. Sin Asesoramiento Legal',
         body: [
-          'World Prime Online no presta asesoramiento legal, migratorio ni fiscal en el ámbito de sus servicios.',
+          'WorldPrimeOnline no presta asesoramiento legal, migratorio ni fiscal en el ámbito de sus servicios.',
           'Para cuestiones jurídicas, consulte con abogados especializados.',
         ],
       },
@@ -484,7 +490,8 @@ export const legalDocs: LegalDocs = {
         id: 'contacts',
         heading: '7. Contacto',
         body: [
-          'World Prime Online',
+          'WorldPrimeOnline',
+          'Dirección: Almaty, calle Kazybek bi 139/1',
           'Correo electrónico: worldprimeonline@gmail.com',
           'Sitio web: https://www.wpotranslations.org/',
         ],
@@ -495,8 +502,8 @@ export const legalDocs: LegalDocs = {
   terms: {
     slug: 'terms',
     title: 'Condiciones de Uso',
-    metaTitle: 'Condiciones de Uso — World Prime Online',
-    metaDescription: 'Normas de uso de la plataforma World Prime Online.',
+    metaTitle: 'Condiciones de Uso — WorldPrimeOnline',
+    metaDescription: 'Normas de uso de la plataforma WorldPrimeOnline.',
     effectiveDate: '2026-05-26',
     sections: [
       {
@@ -571,7 +578,8 @@ export const legalDocs: LegalDocs = {
         id: 'contacts',
         heading: '9. Contacto',
         body: [
-          'World Prime Online',
+          'WorldPrimeOnline',
+          'Dirección: Almaty, calle Kazybek bi 139/1',
           'Correo electrónico: worldprimeonline@gmail.com',
           'Sitio web: https://www.wpotranslations.org/',
         ],
@@ -582,15 +590,15 @@ export const legalDocs: LegalDocs = {
   partners: {
     slug: 'partners',
     title: 'Condiciones de Colaboración',
-    metaTitle: 'Condiciones de Colaboración — World Prime Online',
-    metaDescription: 'Condiciones de colaboración con la plataforma World Prime Online.',
+    metaTitle: 'Condiciones de Colaboración — WorldPrimeOnline',
+    metaDescription: 'Condiciones de colaboración con la plataforma WorldPrimeOnline.',
     effectiveDate: '2026-05-26',
     sections: [
       {
         id: 'intro',
         heading: '1. Introducción',
         body: [
-          'El presente documento regula la relación entre la plataforma World Prime Online y los colaboradores profesionales (en adelante, el Colaborador).',
+          'El presente documento regula la relación entre la plataforma WorldPrimeOnline y los colaboradores profesionales (en adelante, el Colaborador).',
           LP,
         ],
       },
@@ -659,8 +667,10 @@ export const legalDocs: LegalDocs = {
         id: 'contacts',
         heading: '9. Consultas sobre Colaboración',
         body: [
+          'WorldPrimeOnline',
+          'Dirección: Almaty, calle Kazybek bi 139/1',
           'Correo electrónico: worldprimeonline@gmail.com',
-          'World Prime Online',
+          'Sitio web: https://www.wpotranslations.org/',
         ],
       },
     ],

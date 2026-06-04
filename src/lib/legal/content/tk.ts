@@ -6,15 +6,15 @@ export const legalDocs: LegalDocs = {
   offer: {
     slug: 'offer',
     title: 'Jemgyýetçilik Teklibi (Oferta)',
-    metaTitle: 'Hyzmat Şertnamasy — World Prime Online',
-    metaDescription: 'World Prime Online platformasynyň hyzmatlaryny ulanmak şertleri.',
+    metaTitle: 'Hyzmat Şertnamasy — WorldPrimeOnline',
+    metaDescription: 'WorldPrimeOnline platformasynyň hyzmatlaryny ulanmak şertleri.',
     effectiveDate: '2026-05-26',
     sections: [
       {
         id: 'general',
         heading: '1. Umumy Düzgünler',
         body: [
-          'Bu resminama World Prime Online platformasynyň (mundan beýläk — Ýerine ýetiriji) ulanyjylara (mundan beýläk — Müşderi) teklibidir we hyzmat şertnamasynyň düzgünlerini kesgitleýär.',
+          'Bu resminama WorldPrimeOnline platformasynyň (mundan beýläk — Ýerine ýetiriji) ulanyjylara (mundan beýläk — Müşderi) teklibidir we hyzmat şertnamasynyň düzgünlerini kesgitleýär.',
           'Platformany hasaba almak ýa-da platformany ulanmak şu Teklibi doly kabul etmegi aňladýar.',
           LP,
         ],
@@ -23,7 +23,7 @@ export const legalDocs: LegalDocs = {
         id: 'definitions',
         heading: '2. Kesgitlemeler',
         body: [
-          '• Ýerine ýetiriji — World Prime Online, .',
+          '• Ýerine ýetiriji — WorldPrimeOnline, .',
           '• Müşderi — şu Teklibi kabul eden fiziki ýa-da ýuridik şahs.',
           '• Hyzmat — Ýerine ýetiriji tarapyndan hödürlenýän terjime, lokalizasiýa we degişli hyzmatlar.',
           '• Platforma — https://www.wpotranslations.org/ salgysynda ýerleşen web-platforma.',
@@ -156,8 +156,8 @@ export const legalDocs: LegalDocs = {
         id: 'contacts',
         heading: '16. Habarlaşmak',
         body: [
-          'Sag: World Prime Online',
-          '',
+          'WorldPrimeOnline',
+          'Salgy: Almaty, Kazybek bi köçesi 139/1',
           'E-poçta: worldprimeonline@gmail.com',
           'Saýt: https://www.wpotranslations.org/',
         ],
@@ -168,15 +168,15 @@ export const legalDocs: LegalDocs = {
   privacy: {
     slug: 'privacy',
     title: 'Gizlinlik Syýasaty',
-    metaTitle: 'Gizlinlik Syýasaty — World Prime Online',
-    metaDescription: 'World Prime Online tarapyndan şahsy maglumatlaryň nähili işlenilýändigi barada maglumat.',
+    metaTitle: 'Gizlinlik Syýasaty — WorldPrimeOnline',
+    metaDescription: 'WorldPrimeOnline tarapyndan şahsy maglumatlaryň nähili işlenilýändigi barada maglumat.',
     effectiveDate: '2026-05-26',
     sections: [
       {
         id: 'general',
         heading: '1. Umumy Düzgünler',
         body: [
-          'Bu Gizlinlik Syýasaty World Prime Online (mundan beýläk — Ýerine ýetiriji) tarapyndan World Prime Online platformasynyň ulanyjylarynyň şahsy maglumatlaryny nädip toplaýandygyny we işleýändigini düşündirýär.',
+          'Bu Gizlinlik Syýasaty WorldPrimeOnline (mundan beýläk — Ýerine ýetiriji) tarapyndan WorldPrimeOnline platformasynyň ulanyjylarynyň şahsy maglumatlaryny nädip toplaýandygyny we işleýändigini düşündirýär.',
           'Platformany ulanmak bilen siz şu Syýasatyň şertlerini kabul edýärsiňiz.',
           LP,
         ],
@@ -281,8 +281,10 @@ export const legalDocs: LegalDocs = {
         id: 'contacts',
         heading: '12. Habarlaşmak',
         body: [
-          'Gizlinlik baradaky soraglar üçin: worldprimeonline@gmail.com',
-          'World Prime Online',
+          'WorldPrimeOnline',
+          'Salgy: Almaty, Kazybek bi köçesi 139/1',
+          'E-poçta: worldprimeonline@gmail.com',
+          'Saýt: https://www.wpotranslations.org/',
         ],
       },
     ],
@@ -291,7 +293,7 @@ export const legalDocs: LegalDocs = {
   'personal-data-consent': {
     slug: 'personal-data-consent',
     title: 'Şahsy Maglumatlary Işlemegiň Razylyk Blanky',
-    metaTitle: 'Şahsy Maglumatlary Işlemäge Razylyk — World Prime Online',
+    metaTitle: 'Şahsy Maglumatlary Işlemäge Razylyk — WorldPrimeOnline',
     metaDescription: 'Şahsy maglumatlary işlemäge razylyk barada maglumat.',
     effectiveDate: '2026-05-26',
     sections: [
@@ -299,7 +301,7 @@ export const legalDocs: LegalDocs = {
         id: 'intro',
         heading: '1. Giriş',
         body: [
-          'Bu resminama World Prime Online () tarapyndan ulanyjylaryň şahsy maglumatlaryny işlemäge razylygy dolandyrýar.',
+          'Bu resminama WorldPrimeOnline () tarapyndan ulanyjylaryň şahsy maglumatlaryny işlemäge razylygy dolandyrýar.',
           LP,
         ],
       },
@@ -344,8 +346,10 @@ export const legalDocs: LegalDocs = {
         id: 'contacts',
         heading: '6. Habarlaşmak',
         body: [
-          'World Prime Online',
+          'WorldPrimeOnline',
+          'Salgy: Almaty, Kazybek bi köçesi 139/1',
           'E-poçta: worldprimeonline@gmail.com',
+          'Saýt: https://www.wpotranslations.org/',
         ],
       },
     ],
@@ -354,15 +358,15 @@ export const legalDocs: LegalDocs = {
   'refund-policy': {
     slug: 'refund-policy',
     title: 'Töleg Gaýtaryş Syýasaty',
-    metaTitle: 'Töleg Gaýtaryş Syýasaty — World Prime Online',
-    metaDescription: 'World Prime Online hyzmatlarynda tölegleri gaýtarmak şertleri.',
+    metaTitle: 'Töleg Gaýtaryş Syýasaty — WorldPrimeOnline',
+    metaDescription: 'WorldPrimeOnline hyzmatlarynda tölegleri gaýtarmak şertleri.',
     effectiveDate: '2026-05-26',
     sections: [
       {
         id: 'general',
         heading: '1. Umumy Düzgünler',
         body: [
-          'Bu Syýasat World Prime Online platformasynyň hyzmatlarynda tölegleri gaýtarmak we çalşyrmak şertlerini kesgitleýär.',
+          'Bu Syýasat WorldPrimeOnline platformasynyň hyzmatlarynda tölegleri gaýtarmak we çalşyrmak şertlerini kesgitleýär.',
           LP,
         ],
       },
@@ -416,8 +420,10 @@ export const legalDocs: LegalDocs = {
         id: 'contacts',
         heading: '7. Habarlaşmak',
         body: [
-          'Töleg gaýtaryş soraglary: worldprimeonline@gmail.com',
-          'World Prime Online',
+          'WorldPrimeOnline',
+          'Salgy: Almaty, Kazybek bi köçesi 139/1',
+          'E-poçta: worldprimeonline@gmail.com',
+          'Saýt: https://www.wpotranslations.org/',
         ],
       },
     ],
@@ -426,15 +432,15 @@ export const legalDocs: LegalDocs = {
   disclaimer: {
     slug: 'disclaimer',
     title: 'Jogapkärçilikden Ýüz Dönüş',
-    metaTitle: 'Jogapkärçilikden Ýüz Dönüş — World Prime Online',
-    metaDescription: 'World Prime Online hyzmatlarynyň çäkleri we hukuklary barada maglumat.',
+    metaTitle: 'Jogapkärçilikden Ýüz Dönüş — WorldPrimeOnline',
+    metaDescription: 'WorldPrimeOnline hyzmatlarynyň çäkleri we hukuklary barada maglumat.',
     effectiveDate: '2026-05-26',
     sections: [
       {
         id: 'general',
         heading: '1. Umumy Ýagdaý',
         body: [
-          'World Prime Online terjime we lokalizasiýa hyzmatlaryny hödürleýär. Şu resminama hyzmatyň çäklerini we Ýerine ýetirijiniň jogapkärçiliginden ýüz dönüşini kesgitleýär.',
+          'WorldPrimeOnline terjime we lokalizasiýa hyzmatlaryny hödürleýär. Şu resminama hyzmatyň çäklerini we Ýerine ýetirijiniň jogapkärçiliginden ýüz dönüşini kesgitleýär.',
           LP,
         ],
       },
@@ -451,7 +457,7 @@ export const legalDocs: LegalDocs = {
         id: 'no-legal-advice',
         heading: '3. Hukuk Maslahat Berilmeýär',
         body: [
-          'World Prime Online hyzmatynyň çäklerinde hukuk, göç ýa-da salgyt maslahatyny bermeýär.',
+          'WorldPrimeOnline hyzmatynyň çäklerinde hukuk, göç ýa-da salgyt maslahatyny bermeýär.',
           'Hukuk meseleleri üçin hünärli hukukçylaryň maslahatyna ýüz tutuň.',
         ],
       },
@@ -484,7 +490,8 @@ export const legalDocs: LegalDocs = {
         id: 'contacts',
         heading: '7. Habarlaşmak',
         body: [
-          'World Prime Online',
+          'WorldPrimeOnline',
+          'Salgy: Almaty, Kazybek bi köçesi 139/1',
           'E-poçta: worldprimeonline@gmail.com',
           'Saýt: https://www.wpotranslations.org/',
         ],
@@ -495,8 +502,8 @@ export const legalDocs: LegalDocs = {
   terms: {
     slug: 'terms',
     title: 'Hyzmat Şertleri',
-    metaTitle: 'Hyzmat Şertleri — World Prime Online',
-    metaDescription: 'World Prime Online platformasynyň ulanyş düzgünleri.',
+    metaTitle: 'Hyzmat Şertleri — WorldPrimeOnline',
+    metaDescription: 'WorldPrimeOnline platformasynyň ulanyş düzgünleri.',
     effectiveDate: '2026-05-26',
     sections: [
       {
@@ -571,7 +578,8 @@ export const legalDocs: LegalDocs = {
         id: 'contacts',
         heading: '9. Habarlaşmak',
         body: [
-          'World Prime Online',
+          'WorldPrimeOnline',
+          'Salgy: Almaty, Kazybek bi köçesi 139/1',
           'E-poçta: worldprimeonline@gmail.com',
           'Saýt: https://www.wpotranslations.org/',
         ],
@@ -582,15 +590,15 @@ export const legalDocs: LegalDocs = {
   partners: {
     slug: 'partners',
     title: 'Hyzmatdaşlyk Şertleri',
-    metaTitle: 'Hyzmatdaşlyk Şertleri — World Prime Online',
-    metaDescription: 'World Prime Online platformasy bilen hyzmatdaşlygyň şertleri.',
+    metaTitle: 'Hyzmatdaşlyk Şertleri — WorldPrimeOnline',
+    metaDescription: 'WorldPrimeOnline platformasy bilen hyzmatdaşlygyň şertleri.',
     effectiveDate: '2026-05-26',
     sections: [
       {
         id: 'intro',
         heading: '1. Giriş',
         body: [
-          'Bu resminama World Prime Online platformasy bilen hünärmen hyzmatdaşlarynyň (mundan beýläk — Hyzmatdaş) gatnaşyklaryny kesgitleýär.',
+          'Bu resminama WorldPrimeOnline platformasy bilen hünärmen hyzmatdaşlarynyň (mundan beýläk — Hyzmatdaş) gatnaşyklaryny kesgitleýär.',
           LP,
         ],
       },
@@ -659,8 +667,10 @@ export const legalDocs: LegalDocs = {
         id: 'contacts',
         heading: '9. Hyzmatdaşlyk Baradaky Soraglar',
         body: [
+          'WorldPrimeOnline',
+          'Salgy: Almaty, Kazybek bi köçesi 139/1',
           'E-poçta: worldprimeonline@gmail.com',
-          'World Prime Online',
+          'Saýt: https://www.wpotranslations.org/',
         ],
       },
     ],

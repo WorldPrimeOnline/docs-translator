@@ -10,7 +10,7 @@ export const legalDocs: LegalDocs = {
     metaDescription: "WPO Translations hujjat tarjima xizmatlari ommaviy ofertasi. Xizmat darajalari, narxlar, to'lov va qaytarish shartlari.",
     effectiveDate: '2026-05-26',
     sections: [
-      { id: 'provider', heading: '1. Ijrochi haqida ma\'lumot', body: ["Ushbu Ommaviy oferta shartnomasi (keyingi o'rinlarda «Shartnoma») World Prime Online tomonidan nashr etiladi, World Prime Online  (keyingi o'rinlarda «Ijrochi») tomonidan boshqariladi.", "Aloqa ma'lumotlari: worldprimeonline@gmail.com. Sayt: https://www.wpotranslations.org/. Nashr sanasi: 2026-05-26.", "Ushbu Shartnoma amaldagi qonunchilikka muvofiq ommaviy oferta hisoblanadi. Platformada buyurtma berish Shartnomaning barcha shartlarini to'liq va shartsiz qabul qilishni bildiradi."] },
+      { id: 'provider', heading: '1. Ijrochi haqida ma\'lumot', body: ["Ushbu Ommaviy oferta shartnomasi (keyingi o'rinlarda «Shartnoma») WorldPrimeOnline tomonidan nashr etiladi, WorldPrimeOnline  (keyingi o'rinlarda «Ijrochi») tomonidan boshqariladi.", "Aloqa ma'lumotlari: worldprimeonline@gmail.com", "Sayt: https://www.wpotranslations.org/", "Manzil: Olmaota sh., Kazybek bi ko'chasi 139/1", "Nashr sanasi: 2026-05-26", "Ushbu Shartnoma amaldagi qonunchilikka muvofiq ommaviy oferta hisoblanadi. Platformada buyurtma berish Shartnomaning barcha shartlarini to'liq va shartsiz qabul qilishni bildiradi."] },
       { id: 'definitions', heading: '2. Ta\'riflar', body: ["• «Buyurtmachi» — Platforma orqali buyurtma bergan har qanday jismoniy yoki yuridik shaxs.", "• «Xizmat» — Ijrochi tomonidan ko'rsatiladigan hujjat tarjimasi xizmatlari.", "• «Elektron tarjima» — Buyurtmachi alohida tanlamasa, tarjimon imzosi, Ijrochi muhri yoki notarial tasdiqlashsiz elektron formatda beriladigan tarjima.", "• «Rasmiy tarjima» — Inson-tarjimon tomonidan ko'rib chiqilgan, tarjimon imzosi va Ijrochi muhri mavjud tarjima; alohida tanlanadigan va to'lanadigan variant sifatida mavjud.", "• «Notarial tasdiq» — hamkor notarial jarayon mavjud bo'lgan joylarda sertifikatlangan tarjimon va/yoki hamkor notarius orqali tashkilashtirilgan qo'shimcha tasdiqlash jarayoni; avtomatik emas, alohida rasmiylashtiriladi.", "• «Platforma» — https://www.wpotranslations.org/ manzilida mavjud sayt va xizmatlar."] },
       { id: 'subject', heading: '3. Shartnoma predmeti', body: ["Ijrochi Buyurtmachi tanlagan xizmat darajasiga muvofiq hujjat tarjimasi xizmatlarini ko'rsatishga majburlanadi. Buyurtmachi ushbu xizmatlarni qabul qilish va Shartnoma shartlariga muvofiq to'lashga majburlanadi.", "Platforma ish jarayonida sun'iy intellekt yordamida qayta ishlashdan (OCR va mashina tarjimasi) foydalanadi. Inson-tarjimonning ishtiroki faqat aniq tanlangan va tasdiqlangan taqdirda ta'minlanadi."] },
       { id: 'service-levels', heading: '4. Xizmat darajalari', body: ["4.1 Elektron tarjima. Yuklangan hujjat AI yordamida tarjima qilinadi va PDF fayli shaklida yetkaziladi. Tarjimon imzosi, Ijrochi muhri yoki notarial tasdiq kiritilmaydi. Ma'lumot, ko'rib chiqish va tayyorlash maqsadida mo'ljallangan.", "4.2 Rasmiy tarjima (mavjud bo'lsa). Inson-tarjimon ko'rib chiqadi, tarjimon imzosi va Ijrochi muhri qo'yiladi. Buyurtma berish vaqtida aniq tanlanishi va Ijrochi tomonidan tasdiqlanishi kerak.", "4.3 Notarial tasdiq (mavjud bo'lsa). Ma'lum yurisdiksiyalarda sertifikatlangan tarjimon va/yoki hamkor notarius orqali tashkilashtiriladi. Avtomatik kiritilmaydi, alohida rasmiylashtiriladi."] },
@@ -30,7 +30,7 @@ export const legalDocs: LegalDocs = {
       { id: 'storage', heading: '18. Hujjatlarni saqlash va o\'chirish', body: ["Fayllar tarjima yakunlanganidan 30 kun saqlangandan so'ng avtomatik ravishda butunlay o'chiriladi."] },
       { id: 'lang-priority', heading: '19. Til ustuvorligi', body: [LP] },
       { id: 'disputes', heading: '20. Nizolarni hal qilish', body: ["Har qanday nizo muzokaralar orqali hal qilinadi. Buyurtmachi worldprimeonline@gmail.com manziliga yozma da'vo yuboradi, Ijrochi 30 kalendar kun ichida javob beradi."] },
-      { id: 'contact', heading: '21. Aloqa ma\'lumotlari', body: ['Ijrochi: World Prime Online', 'Manzil: ', 'Email: worldprimeonline@gmail.com', 'Telefon: ', 'Sayt: https://www.wpotranslations.org/'] },
+      { id: 'contact', heading: '21. Aloqa ma\'lumotlari', body: ['Ijrochi: IE WorldPrimeOnline', "Manzil: Olmaota sh., Kazybek bi ko'chasi 139/1", 'Email: worldprimeonline@gmail.com', 'Sayt: https://www.wpotranslations.org/'] },
     ],
   },
   privacy: {
@@ -40,7 +40,7 @@ export const legalDocs: LegalDocs = {
     metaDescription: "WPO Translations shaxsiy ma'lumotlarni qanday to'playdi, qayta ishlaydi, saqlaydi va himoya qiladi.",
     effectiveDate: '2026-05-26',
     sections: [
-      { id: 'controller', heading: "1. Ma'lumotlar operatori", body: ["World Prime Online. Maxfiylik bo'yicha aloqa: worldprimeonline@gmail.com."] },
+      { id: 'controller', heading: "1. Ma'lumotlar operatori", body: ["WorldPrimeOnline. Maxfiylik bo'yicha aloqa: worldprimeonline@gmail.com."] },
       { id: 'data-types', heading: "2. Qayta ishlanadigan shaxsiy ma'lumotlar turlari", body: ["• Hisob ma'lumotlari: elektron pochta manzili. • Yuklangan hujjatlar: tarjima uchun PDF fayllar. • Tarjima natijalari. • To'lov ma'lumotlari: tranzaksiya identifikatorlari va summalar. • Foydalanish ma'lumotlari."] },
       { id: 'purpose', heading: '3. Qayta ishlash maqsadlari', body: ["Tarjima xizmatini ko'rsatish, to'lovni qayta ishlash, hujjatlarni yetkazish, mijozlarni qo'llab-quvvatlash, xizmatni yaxshilash, qonuniy majburiyatlarni bajarish."] },
       { id: 'storage', heading: '4. Saqlash muddati (30 kun)', body: ["Fayllar tarjima yakunlanganidan 30 kun o'tgach avtomatik o'chiriladi. Hisob ma'lumotlari o'chirish so'rovigacha saqlanadi."] },
@@ -48,7 +48,7 @@ export const legalDocs: LegalDocs = {
       { id: 'third-parties', heading: '6. Uchinchi tomon protsessorlar', body: ["Supabase, Cloudflare R2, Mistral AI, Anthropic, Resend, Sentry subprotsessorlardan foydalaniladi."] },
       { id: 'rights', heading: '7. Sizning huquqlaringiz', body: ["Kirish, to'g'rilash, o'chirish, e'tiroz bildirish va rozilikni qaytarib olish huquqlari mavjud. So'rov worldprimeonline@gmail.com manziliga yuboriladi."] },
       { id: 'lang-priority', heading: '8. Til ustuvorligi', body: [LP] },
-      { id: 'contact', heading: '9. Aloqa', body: ['worldprimeonline@gmail.com'] },
+      { id: 'contact', heading: '9. Aloqa', body: ['Ijrochi: IE WorldPrimeOnline', "Manzil: Olmaota sh., Kazybek bi ko'chasi 139/1", 'Email: worldprimeonline@gmail.com', 'Sayt: https://www.wpotranslations.org/'] },
     ],
   },
   'personal-data-consent': {
@@ -58,7 +58,7 @@ export const legalDocs: LegalDocs = {
     metaDescription: "WPO Translations xizmatlaridan foydalanishda shaxsiy ma'lumotlarni qayta ishlashga rozilik.",
     effectiveDate: '2026-05-26',
     sections: [
-      { id: 'intro', heading: '1. Qo\'llanish doirasi', body: ["Ushbu hujjat Buyurtmachining World Prime Online Ijrochisiga https://www.wpotranslations.org/ tarjima xizmati bilan bog'liq shaxsiy ma'lumotlarni qayta ishlashga bergan roziligini tavsiflaydi."] },
+      { id: 'intro', heading: '1. Qo\'llanish doirasi', body: ["Ushbu hujjat Buyurtmachining WorldPrimeOnline Ijrochisiga https://www.wpotranslations.org/ tarjima xizmati bilan bog'liq shaxsiy ma'lumotlarni qayta ishlashga bergan roziligini tavsiflaydi."] },
       { id: 'what-data', heading: "2. Qayta ishlanadigan ma'lumotlar", body: ["• Elektron pochta manzili. • Yuklangan hujjatlar mazmuni. • Tarjima fayllari. • To'lov tranzaksiyalari ma'lumotlari. • Foydalanish metama'lumotlari."] },
       { id: 'purpose', heading: '3. Maqsadlar', body: ["Tarjima xizmatini ko'rsatish, to'lov, bildirishnomalar, mijozlarni qo'llab-quvvatlash, sifatni yaxshilash."] },
       { id: 'transfer', heading: "4. O'tkazish", body: ["Ma'lumotlar subprotsessorlarga va hamkorlarga (Rasmiy tarjima yoki Notarial tasdiq tanlanganda) o'tkazilishi mumkin."] },
@@ -113,7 +113,7 @@ export const legalDocs: LegalDocs = {
       { id: 'account', heading: '4. Hisob uchun javobgarlik', body: ["Buyurtmachi hisob ma'lumotlarining maxfiyligini saqlash uchun javobgar. Ruxsatsiz foydalanish aniqlanganda worldprimeonline@gmail.com ga xabar berishi kerak."] },
       { id: 'service-availability', heading: '5. Xizmat mavjudligi', body: ["Ijrochi platformaning mavjudligini ta'minlashga harakat qiladi, lekin uzluksiz kirishni kafolatlamaydi."] },
       { id: 'lang-priority', heading: '6. Til ustuvorligi', body: [LP] },
-      { id: 'contact', heading: '7. Aloqa', body: ['worldprimeonline@gmail.com'] },
+      { id: 'contact', heading: '7. Aloqa', body: ['Ijrochi: IE WorldPrimeOnline', "Manzil: Olmaota sh., Kazybek bi ko'chasi 139/1", 'Email: worldprimeonline@gmail.com', 'Sayt: https://www.wpotranslations.org/'] },
     ],
   },
   partners: {
@@ -123,14 +123,14 @@ export const legalDocs: LegalDocs = {
     metaDescription: "WPO Translations tarjimonlari, notariuslari, agentlari va referal hamkorlari uchun shartlar.",
     effectiveDate: '2026-05-26',
     sections: [
-      { id: 'intro', heading: '1. Qo\'llanish doirasi', body: ["Ushbu Hamkorlar shartlari World Prime Online Ijrochisi bilan alohida hamkorlik shartnomasi tuzgan har qanday shaxs yoki tashkilotga qo'llaniladi."] },
+      { id: 'intro', heading: '1. Qo\'llanish doirasi', body: ["Ushbu Hamkorlar shartlari WorldPrimeOnline Ijrochisi bilan alohida hamkorlik shartnomasi tuzgan har qanday shaxs yoki tashkilotga qo'llaniladi."] },
       { id: 'no-employment', heading: '2. Mustaqil pudratchi maqomi', body: ["Hamkorlar Ijrochining xodimi emas — mustaqil pudratchilardir va shaxsiy soliq, sug'urta va qonunchilikka muvofiqlik uchun javobgardir."] },
       { id: 'translator-responsibility', heading: '3. Tarjimon va notariusning javobgarligi', body: ["Tarjimon imzo qo'ygan tarjimaning aniqligi, to'liqligi va kasbiy sifati uchun shaxsan javobgar."] },
       { id: 'commission', heading: '4. Referal mukofoti', body: ["Stavkalar alohida hamkorlik shartnomasida belgilanadi. alohida shartnomada belgilanadi."] },
       { id: 'confidentiality', heading: '5. Mijoz ma\'lumotlarining maxfiyligi', body: ["Hamkorlar mijoz hujjatlarini faqat shartnomaviy xizmat maqsadida ishlatadi."] },
       { id: 'no-misleading', heading: '6. Chalg\'ituvchi da\'volar taqiqi', body: ["Hamkorlar: tasdiqlangan bo'lmasa tarjimani sertifikatlangan deb e'lon qila olmaydi; qabul qilinishini kafolatlay olmaydi."] },
       { id: 'lang-priority', heading: '7. Til ustuvorligi', body: [LP] },
-      { id: 'contact', heading: '8. Aloqa', body: ['worldprimeonline@gmail.com'] },
+      { id: 'contact', heading: '8. Aloqa', body: ['Ijrochi: IE WorldPrimeOnline', "Manzil: Olmaota sh., Kazybek bi ko'chasi 139/1", 'Email: worldprimeonline@gmail.com', 'Sayt: https://www.wpotranslations.org/'] },
     ],
   },
 };

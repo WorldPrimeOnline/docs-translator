@@ -2,8 +2,6 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import { BUSINESS_PROFILE } from '@/lib/business-profile';
-import { PaymentComplianceBlock } from '@/components/payment/PaymentComplianceBlock';
-import { ServiceTermsBlock } from '@/components/payment/ServiceTermsBlock';
 
 export async function generateMetadata({
   params,
@@ -87,13 +85,6 @@ export default async function ContactsPage({
         </dl>
       </div>
 
-      {/* Service delivery, cancellation, reprocessing terms */}
-      <ServiceTermsBlock />
-
-      {/* Payment compliance — Halyk ePay, Visa, Mastercard, 3D Secure */}
-      <div className="mt-8">
-        <PaymentComplianceBlock />
-      </div>
     </div>
   );
 }

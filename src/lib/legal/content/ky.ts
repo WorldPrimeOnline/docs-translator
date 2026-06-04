@@ -6,15 +6,15 @@ export const legalDocs: LegalDocs = {
   offer: {
     slug: 'offer',
     title: 'Жалпыга Арналган Сунуш (Оферта)',
-    metaTitle: 'Кызмат Келишими — World Prime Online',
-    metaDescription: 'World Prime Online платформасынын кызматтарын пайдалануу шарттары.',
+    metaTitle: 'Кызмат Келишими — WorldPrimeOnline',
+    metaDescription: 'WorldPrimeOnline платформасынын кызматтарын пайдалануу шарттары.',
     effectiveDate: '2026-05-26',
     sections: [
       {
         id: 'general',
         heading: '1. Жалпы Жоболор',
         body: [
-          'Бул документ World Prime Online платформасынын (мындан ары — Аткаруучу) колдонуучуларга (мындан ары — Буйруктчу) жарыялаган сунушу болуп саналат жана кызмат келишиминин шарттарын аныктайт.',
+          'Бул документ WorldPrimeOnline платформасынын (мындан ары — Аткаруучу) колдонуучуларга (мындан ары — Буйруктчу) жарыялаган сунушу болуп саналат жана кызмат келишиминин шарттарын аныктайт.',
           'Платформада каттоодон өтүү же платформаны пайдалануу ушул Сунушту толук кабыл алуу дегенди билдирет.',
           LP,
         ],
@@ -23,7 +23,7 @@ export const legalDocs: LegalDocs = {
         id: 'definitions',
         heading: '2. Аныктамалар',
         body: [
-          '• Аткаруучу — World Prime Online.',
+          '• Аткаруучу — WorldPrimeOnline.',
           '• Буйруктчу — ушул Сунушту кабыл алган каалаган жак.',
           '• Кызмат — Аткаруучу тарабынан сунушталган котормо, локализация жана тиешелүү кызматтар.',
           '• Платформа — https://www.wpotranslations.org/ дарегинде жайгашкан веб-платформа.',
@@ -156,8 +156,8 @@ export const legalDocs: LegalDocs = {
         id: 'contacts',
         heading: '16. Байланыш',
         body: [
-          'Аты-жөнү: World Prime Online',
-          '',
+          'WorldPrimeOnline',
+          'Дарек: Алматы ш., Казыбек Би көч. 139/1',
           'Электрондук почта: worldprimeonline@gmail.com',
           'Сайт: https://www.wpotranslations.org/',
         ],
@@ -168,15 +168,15 @@ export const legalDocs: LegalDocs = {
   privacy: {
     slug: 'privacy',
     title: 'Купуялуулук Саясаты',
-    metaTitle: 'Купуялуулук Саясаты — World Prime Online',
-    metaDescription: 'World Prime Online колдонуучулардын жеке маалыматтарын кантип иштетүү жөнүндө маалымат.',
+    metaTitle: 'Купуялуулук Саясаты — WorldPrimeOnline',
+    metaDescription: 'WorldPrimeOnline колдонуучулардын жеке маалыматтарын кантип иштетүү жөнүндө маалымат.',
     effectiveDate: '2026-05-26',
     sections: [
       {
         id: 'general',
         heading: '1. Жалпы Жоболор',
         body: [
-          'Бул Купуялуулук Саясаты World Prime Online (мындан ары — Аткаруучу) World Prime Online платформасынын колдонуучуларынын жеке маалыматтарын кантип чогултуп, иштетилерин түшүндүрөт.',
+          'Бул Купуялуулук Саясаты WorldPrimeOnline (мындан ары — Аткаруучу) WorldPrimeOnline платформасынын колдонуучуларынын жеке маалыматтарын кантип чогултуп, иштетилерин түшүндүрөт.',
           'Платформаны пайдалануу ушул Саясаттын шарттарын кабыл алуу дегенди билдирет.',
           LP,
         ],
@@ -281,8 +281,10 @@ export const legalDocs: LegalDocs = {
         id: 'contacts',
         heading: '12. Байланыш',
         body: [
-          'Купуялуулук боюнча суроолор үчүн: worldprimeonline@gmail.com',
-          'World Prime Online',
+          'WorldPrimeOnline',
+          'Дарек: Алматы ш., Казыбек Би көч. 139/1',
+          'Электрондук почта: worldprimeonline@gmail.com',
+          'Сайт: https://www.wpotranslations.org/',
         ],
       },
     ],
@@ -291,7 +293,7 @@ export const legalDocs: LegalDocs = {
   'personal-data-consent': {
     slug: 'personal-data-consent',
     title: 'Жеке Маалыматтарды Иштетүүгө Макулдук',
-    metaTitle: 'Жеке Маалыматтарды Иштетүүгө Макулдук — World Prime Online',
+    metaTitle: 'Жеке Маалыматтарды Иштетүүгө Макулдук — WorldPrimeOnline',
     metaDescription: 'Жеке маалыматтарды иштетүүгө макулдук берүү жөнүндө маалымат.',
     effectiveDate: '2026-05-26',
     sections: [
@@ -299,7 +301,7 @@ export const legalDocs: LegalDocs = {
         id: 'intro',
         heading: '1. Киришүү',
         body: [
-          'Бул документ World Prime Online () колдонуучулардын жеке маалыматтарын иштетүүгө макулдукту жөнгө салат.',
+          'Бул документ WorldPrimeOnline () колдонуучулардын жеке маалыматтарын иштетүүгө макулдукту жөнгө салат.',
           LP,
         ],
       },
@@ -344,8 +346,10 @@ export const legalDocs: LegalDocs = {
         id: 'contacts',
         heading: '6. Байланыш',
         body: [
-          'World Prime Online',
+          'WorldPrimeOnline',
+          'Дарек: Алматы ш., Казыбек Би көч. 139/1',
           'Электрондук почта: worldprimeonline@gmail.com',
+          'Сайт: https://www.wpotranslations.org/',
         ],
       },
     ],
@@ -354,15 +358,15 @@ export const legalDocs: LegalDocs = {
   'refund-policy': {
     slug: 'refund-policy',
     title: 'Акчаны Кайтаруу Саясаты',
-    metaTitle: 'Акчаны Кайтаруу Саясаты — World Prime Online',
-    metaDescription: 'World Prime Online кызматтарында төлөмдү кайтаруу шарттары.',
+    metaTitle: 'Акчаны Кайтаруу Саясаты — WorldPrimeOnline',
+    metaDescription: 'WorldPrimeOnline кызматтарында төлөмдү кайтаруу шарттары.',
     effectiveDate: '2026-05-26',
     sections: [
       {
         id: 'general',
         heading: '1. Жалпы Жоболор',
         body: [
-          'Бул Саясат World Prime Online платформасынын кызматтарында төлөмдү кайтаруу жана алмаштыруу шарттарын аныктайт.',
+          'Бул Саясат WorldPrimeOnline платформасынын кызматтарында төлөмдү кайтаруу жана алмаштыруу шарттарын аныктайт.',
           LP,
         ],
       },
@@ -416,8 +420,10 @@ export const legalDocs: LegalDocs = {
         id: 'contacts',
         heading: '7. Байланыш',
         body: [
-          'Акча кайтаруу суроолору: worldprimeonline@gmail.com',
-          'World Prime Online',
+          'WorldPrimeOnline',
+          'Дарек: Алматы ш., Казыбек Би көч. 139/1',
+          'Электрондук почта: worldprimeonline@gmail.com',
+          'Сайт: https://www.wpotranslations.org/',
         ],
       },
     ],
@@ -426,15 +432,15 @@ export const legalDocs: LegalDocs = {
   disclaimer: {
     slug: 'disclaimer',
     title: 'Жоопкерчиликтен Баш Тартуу',
-    metaTitle: 'Жоопкерчиликтен Баш Тартуу — World Prime Online',
-    metaDescription: 'World Prime Online кызматтарынын чектөөлөрү жана укуктары жөнүндө.',
+    metaTitle: 'Жоопкерчиликтен Баш Тартуу — WorldPrimeOnline',
+    metaDescription: 'WorldPrimeOnline кызматтарынын чектөөлөрү жана укуктары жөнүндө.',
     effectiveDate: '2026-05-26',
     sections: [
       {
         id: 'general',
         heading: '1. Жалпы Абал',
         body: [
-          'World Prime Online котормо жана локализация кызматтарын сунуштайт. Бул документ кызматтын чектөөлөрүн жана Аткаруучунун жоопкерчиликтен баш тартуу жоболорун аныктайт.',
+          'WorldPrimeOnline котормо жана локализация кызматтарын сунуштайт. Бул документ кызматтын чектөөлөрүн жана Аткаруучунун жоопкерчиликтен баш тартуу жоболорун аныктайт.',
           LP,
         ],
       },
@@ -451,7 +457,7 @@ export const legalDocs: LegalDocs = {
         id: 'no-legal-advice',
         heading: '3. Юридикалык Кеңеш Берилбейт',
         body: [
-          'World Prime Online кызматтын чегинде юридикалык, иммиграция же салык кеңеши берилбейт.',
+          'WorldPrimeOnline кызматтын чегинде юридикалык, иммиграция же салык кеңеши берилбейт.',
           'Юридикалык масelelер боюнча квалификациялуу юристтердин кеңешине кайрылыңыз.',
         ],
       },
@@ -484,7 +490,8 @@ export const legalDocs: LegalDocs = {
         id: 'contacts',
         heading: '7. Байланыш',
         body: [
-          'World Prime Online',
+          'WorldPrimeOnline',
+          'Дарек: Алматы ш., Казыбек Би көч. 139/1',
           'Электрондук почта: worldprimeonline@gmail.com',
           'Сайт: https://www.wpotranslations.org/',
         ],
@@ -495,8 +502,8 @@ export const legalDocs: LegalDocs = {
   terms: {
     slug: 'terms',
     title: 'Кызмат Шарттары',
-    metaTitle: 'Кызмат Шарттары — World Prime Online',
-    metaDescription: 'World Prime Online платформасын пайдалануу эрежелери.',
+    metaTitle: 'Кызмат Шарттары — WorldPrimeOnline',
+    metaDescription: 'WorldPrimeOnline платформасын пайдалануу эрежелери.',
     effectiveDate: '2026-05-26',
     sections: [
       {
@@ -571,7 +578,8 @@ export const legalDocs: LegalDocs = {
         id: 'contacts',
         heading: '9. Байланыш',
         body: [
-          'World Prime Online',
+          'WorldPrimeOnline',
+          'Дарек: Алматы ш., Казыбек Би көч. 139/1',
           'Электрондук почта: worldprimeonline@gmail.com',
           'Сайт: https://www.wpotranslations.org/',
         ],
@@ -582,15 +590,15 @@ export const legalDocs: LegalDocs = {
   partners: {
     slug: 'partners',
     title: 'Өнөктөштүк Шарттары',
-    metaTitle: 'Өнөктөштүк Шарттары — World Prime Online',
-    metaDescription: 'World Prime Online платформасы менен өнөктөштүктүн шарттары.',
+    metaTitle: 'Өнөктөштүк Шарттары — WorldPrimeOnline',
+    metaDescription: 'WorldPrimeOnline платформасы менен өнөктөштүктүн шарттары.',
     effectiveDate: '2026-05-26',
     sections: [
       {
         id: 'intro',
         heading: '1. Киришүү',
         body: [
-          'Бул документ World Prime Online платформасы менен кесипкөй өнөктөш (мындан ары — Өнөктөш) ортосундагы мамилелерди жөнгө салат.',
+          'Бул документ WorldPrimeOnline платформасы менен кесипкөй өнөктөш (мындан ары — Өнөктөш) ортосундагы мамилелерди жөнгө салат.',
           LP,
         ],
       },
@@ -659,8 +667,10 @@ export const legalDocs: LegalDocs = {
         id: 'contacts',
         heading: '9. Өнөктөштүк Суроолору',
         body: [
+          'WorldPrimeOnline',
+          'Дарек: Алматы ш., Казыбек Би көч. 139/1',
           'Электрондук почта: worldprimeonline@gmail.com',
-          'World Prime Online',
+          'Сайт: https://www.wpotranslations.org/',
         ],
       },
     ],

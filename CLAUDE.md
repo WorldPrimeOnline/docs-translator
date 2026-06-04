@@ -74,7 +74,7 @@ There are **two separate processors** — do not conflate them.
 - On completion it upserts the `translations` row (handles race with the Vercel processor)
 - Supports DOCX output via `worker/src/lib/docx-renderer.ts` when the format suffix is `|docx`
 
-Both processors use `claude-sonnet-4-5-20250929` via `@anthropic-ai/sdk` (constant `MODEL` in each `translator.ts`). `src/lib/translation/detect-language.ts` has its own identical `MODEL` constant — update all three if changing the model.
+Both processors use `claude-sonnet-4-5-20250929` via `@anthropic-ai/sdk` (constant `MODEL` in each `translator.ts`). There are **four** `MODEL` constants to update when changing the model: `src/lib/translation/translator.ts`, `src/lib/translation/detect-language.ts`, `worker/src/lib/translator.ts`, `worker/src/lib/detect-language.ts`.
 
 ### Job status flow
 
@@ -105,6 +105,10 @@ Each transition also updates `progress_percent` (0–100).
 Landing pages are config-driven. Every vertical/document page instantiates `<LandingPage config={...} />` (`src/components/landing/LandingPage.tsx`) with a typed `LandingPageConfig` object (`src/lib/landing-pages/types.ts`). Page-specific data lives in `src/lib/landing-pages/{kazakhstan,documents,shared}.ts`. Do not duplicate section components — extend the config type instead.
 
 Currently implemented verticals: **Kazakhstan** (`src/app/[locale]/kazakhstan/`) and **documents** (`src/app/[locale]/documents/`). The Thailand vertical is planned but not yet built — no `src/app/[locale]/thailand/` directory exists.
+
+Implemented sub-pages:
+- `kazakhstan/notarized-translation`, `kazakhstan/university-document-translation`
+- `documents/passport-translation`, `documents/diploma-translation`, `documents/bank-statement-translation`
 
 Other locale-prefixed pages: `contacts` (`src/app/[locale]/contacts/`), `auth` (login/callback), `dashboard`, `legal`, `privacy` (alias), `tos` (alias).
 

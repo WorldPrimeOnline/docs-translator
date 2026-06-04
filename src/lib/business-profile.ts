@@ -19,11 +19,10 @@ export interface BusinessProfile {
 }
 
 export const BUSINESS_PROFILE: BusinessProfile = {
-  legalName: 'ИП World Prime Online',
-  latinName: 'IE World Prime Online',
+  legalName: 'ИП WorldPrimeOnline',
+  latinName: 'IE WorldPrimeOnline',
   iinBin: '840324300155',
-  // TODO (REQUIRED — Halyk Bank acquiring compliance): provide legal / postal address.
-  legalAddress: 'TODO: Юридический / почтовый адрес',
+  legalAddress: 'г. Алматы, ул. Казыбек би 139/1',
   phone: '+77072222858',
   email: 'worldprimeonline@gmail.com',
   website: 'https://wpotranslations.org',
