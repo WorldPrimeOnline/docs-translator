@@ -19,9 +19,9 @@ import {
 } from './shared';
 
 export const kazakhstanConfig: LandingPageConfig = {
-  title: 'Document Translation for Kazakhstan — Study, Migration & Official Workflows — WPO Translations',
+  title: 'Перевод документов для Казахстана — WPO Translations',
   description:
-    'Online document translation for Kazakhstan: diplomas, birth certificates, contracts, and official documents for university applications, immigration, notary preparation, and international workflows.',
+    'Онлайн-перевод документов для Казахстана: дипломы, свидетельства, контракты и официальные документы для учёбы, миграции, нотариуса и международных процессов.',
 
   breadcrumb: [
     { label: 'WPO Translations', href: '/' },
@@ -63,6 +63,8 @@ export const kazakhstanConfig: LandingPageConfig = {
 
   pain: {
     headline: 'Document translation in Kazakhstan — common bottlenecks',
+    sectionLabel: 'ПРЕИМУЩЕСТВА',
+    bridgeLabel: 'WPO помогает',
     points: [
       {
         title: 'Translation bureaus charge per page and require physical presence',
@@ -84,13 +86,13 @@ export const kazakhstanConfig: LandingPageConfig = {
   },
 
   trust: {
-    headline: 'Transparent, private, and legally clear',
+    headline: 'Прозрачно, конфиденциально и юридически аккуратно',
     items: defaultTrustItems,
   },
 
   pricing: {
-    headline: 'Simple per-document pricing',
-    subheadline: 'No subscription. Pay only when you translate.',
+    headline: 'Простая цена за документ',
+    subheadline: 'Без подписки. Оплата только за выбранный перевод.',
     tiers: defaultPricingTiers,
     footnote: defaultPricingFootnote,
   },
@@ -127,11 +129,11 @@ export const kazakhstanConfig: LandingPageConfig = {
   },
 
   seoContent: {
-    headline: 'Document translation for Kazakhstan — when and how to use it',
+    headline: 'Перевод документов для Казахстана — когда и как использовать',
     paragraphs: [
-      'People in Kazakhstan frequently need translated documents for international university admissions, work visas, relocation, migration procedures, bank account opening abroad, and apostille workflows. The traditional path — visiting a certified translation bureau — is slow, expensive, and requires physical document handling.',
-      'WPO Online Translations provides a fast online alternative for the document preparation phase. Upload a scanned or digital PDF, select the language pair, and receive a clean translated PDF in minutes. The service is used by students preparing applications, families handling migration paperwork, and professional consultants who process multiple client documents.',
-      'Note: WPO translations are unofficial and for informational use only. They are not certified or notarized. For documents that legally require a certified translation — such as court filings, official immigration documents in some jurisdictions, or university enrollment — you will need to obtain a certified translation from a licensed translator or notary.',
+      'В Казахстане переводы документов часто нужны для поступления в зарубежные университеты, рабочих виз, релокации, миграционных процедур, открытия банковских счетов за границей и апостиля. Обычный путь через бюро переводов может требовать личного визита, ожидания и ручной передачи документов.',
+      'WorldPrimeOnline помогает подготовить перевод онлайн: загрузите документ, выберите языковую пару и уровень услуги, получите результат в электронном формате. Электронный перевод подходит для подготовки и ознакомления. Официальный перевод с проверкой переводчиком, подписью переводчика и печатью Исполнителя доступен как отдельный уровень услуги. Нотариальное удостоверение оформляется отдельно через партнёров, если такая услуга доступна.',
+      'Принятие перевода третьими лицами не гарантируется. Перед подачей документа в банк, университет, консульство, миграционный орган или нотариусу необходимо проверить требования принимающей стороны.',
     ],
   },
 
@@ -149,9 +151,9 @@ export const kazakhstanConfig: LandingPageConfig = {
 };
 
 export const kazakhstanNotarizedConfig: LandingPageConfig = {
-  title: 'Translation Draft for Notary Review — Kazakhstan — WPO Translations',
+  title: 'Перевод для нотариального удостоверения — Казахстан — WPO Translations',
   description:
-    'Get a clean, structured translation draft before visiting a notary in Kazakhstan. Faster notary appointments, fewer errors, lower overall cost. Russian and English document translation online.',
+    'Подготовьте перевод онлайн и оформите официальный перевод или нотариальное удостоверение через партнёрский процесс WPO. Для Казахстана.',
 
   breadcrumb: [
     { label: 'WPO Translations', href: '/' },
@@ -207,6 +209,8 @@ export const kazakhstanNotarizedConfig: LandingPageConfig = {
 
   pain: {
     headline: 'Notary translation appointments take longer than necessary',
+    sectionLabel: 'КАК ЭТО РАБОТАЕТ',
+    bridgeLabel: 'WPO помогает организовать процесс',
     points: [
       {
         title: 'Notaries start from scratch on every document',
@@ -390,6 +394,116 @@ export const kazakhstanUniversityConfig: LandingPageConfig = {
       name: 'Academic Document Translation — Kazakhstan — WPO Online Translations',
       description: 'Translate diplomas, transcripts, and academic certificates from Kazakhstan for international university applications.',
       provider: { '@type': 'Organization', name: 'WPO Online Translations', url: 'https://wpo.online' },
+      areaServed: 'Kazakhstan',
+      serviceType: 'Document Translation',
+    },
+  ],
+};
+
+export const kazakhstanCertifiedConfig: LandingPageConfig = {
+  title: 'Сертифицированный перевод документов в Казахстане — WPO Translations',
+  description:
+    'Официальный перевод с проверкой переводчиком, подписью переводчика и печатью Исполнителя. Для банков, университетов, миграции, визовых и официальных задач.',
+
+  breadcrumb: [
+    { label: 'WPO Translations', href: '/' },
+    { label: 'Казахстан', href: '/kazakhstan' },
+    { label: 'Сертифицированный перевод', href: '/kazakhstan/certified-translation' },
+  ],
+
+  hero: {
+    badge: 'Казахстан · Официальный перевод',
+    headline: 'Сертифицированный перевод',
+    accentLine: 'документов онлайн',
+    subheadline:
+      'Закажите официальный перевод с проверкой переводчиком, подписью переводчика и печатью Исполнителя. Для банков, университетов, миграции, визовых и официальных задач.',
+    ctaLabel: 'Заказать официальный перевод',
+    ctaHref: '/auth/signup',
+    trustLine: 'Принятие перевода третьими лицами не гарантируется и зависит от требований принимающей организации.',
+  },
+
+  docs: {
+    headline: 'Поддерживаемые документы',
+    sectionLabel: 'ДОКУМЕНТЫ',
+    items: [
+      { icon: GraduationCap, name: 'Диплом и транскрипт' },
+      { icon: FileHeart, name: 'Свидетельство о рождении и браке' },
+      { icon: IdCard, name: 'Паспорт и удостоверение личности' },
+      { icon: Landmark, name: 'Банковская выписка' },
+      { icon: Briefcase, name: 'Трудовой договор и справка' },
+      { icon: Shield, name: 'Справка об отсутствии судимости' },
+    ],
+  },
+
+  pain: {
+    headline: 'Официальный перевод — отдельный уровень услуги',
+    sectionLabel: 'ЧТО ВКЛЮЧЕНО',
+    bridgeLabel: 'WPO помогает',
+    points: [
+      {
+        title: 'Проверка переводчиком',
+        desc: 'Перевод проверяется человеком-переводчиком. При необходимости исправляются ошибки OCR, терминология и формат.',
+      },
+      {
+        title: 'Подпись переводчика',
+        desc: 'Итоговый документ может содержать подпись переводчика и блок переводчика.',
+      },
+      {
+        title: 'Печать Исполнителя',
+        desc: 'Для официального уровня в документ может быть добавлена печать Исполнителя.',
+      },
+      {
+        title: 'Без гарантии принятия',
+        desc: 'Банки, университеты, консульства и другие организации могут иметь собственные требования. Их нужно проверить заранее.',
+      },
+    ],
+  },
+
+  pricing: {
+    headline: 'Цены',
+    subheadline: 'Электронный перевод оплачивается по базовой цене. Официальный перевод является отдельным уровнем услуги.',
+    tiers: defaultPricingTiers,
+    footnote: defaultPricingFootnote,
+  },
+
+  faq: {
+    items: [
+      {
+        q: 'Это нотариальный перевод?',
+        a: 'Нет. Сертифицированный / официальный перевод WPO сам по себе не является нотариальным удостоверением. Нотариальное удостоверение оформляется отдельно через партнёрский процесс, если такая услуга доступна.',
+      },
+      {
+        q: 'Что входит в официальный перевод?',
+        a: 'Проверка переводчиком, подпись переводчика, печать Исполнителя, дата и блок переводчика, если такой уровень услуги доступен и выбран при оформлении заказа.',
+      },
+      {
+        q: 'Гарантируете ли вы принятие перевода?',
+        a: 'Нет. Принятие перевода зависит от требований конкретного банка, университета, консульства, миграционного органа, нотариуса или другой организации.',
+      },
+      {
+        q: 'Когда нужен официальный перевод?',
+        a: 'Обычно он нужен, когда принимающая сторона требует перевод с подписью переводчика, печатью исполнителя или дополнительным подтверждением, а обычного электронного перевода недостаточно.',
+      },
+      {
+        q: 'Можно ли потом добавить нотариальное удостоверение?',
+        a: 'В некоторых случаях да, если доступен партнёрский процесс для выбранного документа, языка и юрисдикции. Возможность и стоимость подтверждаются отдельно.',
+      },
+    ],
+  },
+
+  finalCta: {
+    headline: 'Нужен официальный перевод?',
+    sub: 'Загрузите документ, выберите официальный уровень услуги и проверьте итоговую стоимость до оплаты.',
+    cta: 'Начать перевод',
+  },
+
+  structuredData: [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'Service',
+      name: 'Сертифицированный перевод — Казахстан — WPO Translations',
+      description: 'Официальный перевод с проверкой переводчиком, подписью переводчика и печатью Исполнителя для Казахстана.',
+      provider: { '@type': 'Organization', name: 'WPO Translations', url: 'https://wpotranslations.org' },
       areaServed: 'Kazakhstan',
       serviceType: 'Document Translation',
     },

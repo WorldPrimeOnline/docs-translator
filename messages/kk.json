@@ -12,7 +12,8 @@
     "allDocTypes": "Барлық құжат түрлері",
     "passportTranslation": "Паспорт аудармасы",
     "bankStatement": "Банк үзінді-көшірмесі",
-    "diplomaTranslation": "Диплом аудармасы"
+    "diplomaTranslation": "Диплом аудармасы",
+    "certifiedTranslation": "Куәландырылған аударма"
   },
   "hero": {
     "title": "Professional Document Translation",

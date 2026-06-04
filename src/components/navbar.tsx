@@ -18,6 +18,7 @@ export function Navbar() {
       href: '/kazakhstan',
       children: [
         { label: t('kazakhstanOverview'), href: '/kazakhstan' },
+        { label: t('certifiedTranslation'), href: '/kazakhstan/certified-translation' },
         { label: t('translationForNotary'), href: '/kazakhstan/notarized-translation' },
       ],
     },

@@ -22,8 +22,8 @@ export async function HowItWorksSection() {
     {
       n: '03',
       icon: STEP_ICONS[2]!,
-      title: t('pricing.payg'),
-      desc: t('pricing.allPricesNote'),
+      title: t('howItWorks.payTitle'),
+      desc: t('howItWorks.payDesc'),
     },
     {
       n: '04',

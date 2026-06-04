@@ -35,7 +35,7 @@ export function LandingPage({ config }: Props) {
       <HeroSection {...hero} breadcrumb={breadcrumb} />
 
       {/* 2. Pain section */}
-      {pain && <PainSection headline={pain.headline} points={pain.points} />}
+      {pain && <PainSection headline={pain.headline} points={pain.points} sectionLabel={pain.sectionLabel} bridgeLabel={pain.bridgeLabel} />}
 
       {/* 3. How it works */}
       {howItWorks && <HowItWorksSection />}
@@ -45,6 +45,7 @@ export function LandingPage({ config }: Props) {
         <SupportedDocumentsSection
           headline={docs.headline}
           subheadline={docs.subheadline}
+          sectionLabel={docs.sectionLabel}
           items={docs.items}
         />
       )}

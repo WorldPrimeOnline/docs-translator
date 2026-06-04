@@ -12,7 +12,8 @@
     "allDocTypes": "Todos los tipos de documentos",
     "passportTranslation": "Traducción de pasaporte",
     "bankStatement": "Extracto bancario",
-    "diplomaTranslation": "Traducción de diploma"
+    "diplomaTranslation": "Traducción de diploma",
+    "certifiedTranslation": "Traducción certificada"
   },
   "hero": {
     "title": "Professional Document Translation",

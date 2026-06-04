@@ -12,7 +12,8 @@
     "allDocTypes": "All Document Types",
     "passportTranslation": "Passport Translation",
     "bankStatement": "Bank Statement",
-    "diplomaTranslation": "Diploma Translation"
+    "diplomaTranslation": "Diploma Translation",
+    "certifiedTranslation": "Certified Translation"
   },
   "hero": {
     "title": "Professional Document Translation",

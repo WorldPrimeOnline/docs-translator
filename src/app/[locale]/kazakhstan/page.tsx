@@ -29,8 +29,18 @@ export default async function KazakhstanPage({
       ctaSecondaryLabel: t('heroCtaSecondaryLabel'),
       trustLine: t('heroTrustLine'),
     },
+    pain: {
+      sectionLabel: t('painSectionLabel'),
+      bridgeLabel: t('painBridgeLabel'),
+      headline: t('painHeadline'),
+      points: kazakhstanConfig.pain!.points.map((_, i) => ({
+        title: t(`pain${i + 1}Title`),
+        desc: t(`pain${i + 1}Desc`),
+      })),
+    },
     docs: {
       ...kazakhstanConfig.docs,
+      sectionLabel: t('docsSectionLabel'),
       headline: t('docsHeadline'),
       subheadline: t('docsSubheadline'),
       items: kazakhstanConfig.docs!.items.map((item, i) => ({
@@ -38,12 +48,18 @@ export default async function KazakhstanPage({
         name: t(`docItem${i + 1}`),
       })),
     },
-    pain: {
-      headline: t('painHeadline'),
-      points: kazakhstanConfig.pain!.points.map((_, i) => ({
-        title: t(`pain${i + 1}Title`),
-        desc: t(`pain${i + 1}Desc`),
-      })),
+    trust: {
+      ...kazakhstanConfig.trust!,
+      headline: t('trustHeadline'),
+    },
+    pricing: {
+      ...kazakhstanConfig.pricing!,
+      headline: t('pricingHeadline'),
+      subheadline: t('pricingSubheadline'),
+    },
+    seoContent: {
+      headline: t('seoHeadline'),
+      paragraphs: [t('seoParagraph1'), t('seoParagraph2'), t('seoParagraph3')],
     },
     faq: {
       items: t.raw('faq') as Array<{ q: string; a: string }>,

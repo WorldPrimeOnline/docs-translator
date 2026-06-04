@@ -8,6 +8,7 @@ interface DocGroup {
 interface PropsFlat {
   headline: string;
   subheadline?: string;
+  sectionLabel?: string;
   items: SupportedDoc[];
   groups?: never;
 }
@@ -15,13 +16,14 @@ interface PropsFlat {
 interface PropsGrouped {
   headline: string;
   subheadline?: string;
+  sectionLabel?: string;
   items?: never;
   groups: DocGroup[];
 }
 
 type Props = PropsFlat | PropsGrouped;
 
-export function SupportedDocumentsSection({ headline, subheadline, items, groups }: Props) {
+export function SupportedDocumentsSection({ headline, subheadline, sectionLabel, items, groups }: Props) {
   const hasGroups = Boolean(groups);
 
   return (
@@ -29,7 +31,7 @@ export function SupportedDocumentsSection({ headline, subheadline, items, groups
       <div className="mx-auto max-w-5xl">
         <div className="mb-12 text-center">
           <p className="mb-2.5 text-[10px] font-bold uppercase tracking-[0.15em] text-primary/70">
-            Supported Documents
+            {sectionLabel ?? 'Supported Documents'}
           </p>
           <h2 className="text-2xl font-bold tracking-[-0.025em] text-foreground sm:text-[1.85rem]">
             {headline}

@@ -12,7 +12,8 @@
     "allDocTypes": "Бардык документ түрлөрү",
     "passportTranslation": "Паспорт котормосу",
     "bankStatement": "Банк көчүрмөсү",
-    "diplomaTranslation": "Диплом котормосу"
+    "diplomaTranslation": "Диплом котормосу",
+    "certifiedTranslation": "Күбөлөндүрүлгөн котормо"
   },
   "hero": {
     "title": "Professional Document Translation",

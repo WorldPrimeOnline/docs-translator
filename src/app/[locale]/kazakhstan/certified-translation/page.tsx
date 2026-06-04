@@ -1,26 +1,26 @@
 import type { Metadata } from 'next';
 import { setRequestLocale, getTranslations } from 'next-intl/server';
 import { LandingPage } from '@/components/landing/LandingPage';
-import { kazakhstanNotarizedConfig } from '@/lib/landing-pages/kazakhstan';
+import { kazakhstanCertifiedConfig } from '@/lib/landing-pages/kazakhstan';
 
 export const metadata: Metadata = {
-  title: kazakhstanNotarizedConfig.title,
-  description: kazakhstanNotarizedConfig.description,
+  title: kazakhstanCertifiedConfig.title,
+  description: kazakhstanCertifiedConfig.description,
 };
 
-export default async function KazakhstanNotarizedPage({
+export default async function KazakhstanCertifiedPage({
   params,
 }: {
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const t = await getTranslations('kazakhstanNotarized');
+  const t = await getTranslations('kazakhstanCertified');
 
   const config = {
-    ...kazakhstanNotarizedConfig,
+    ...kazakhstanCertifiedConfig,
     hero: {
-      ...kazakhstanNotarizedConfig.hero,
+      ...kazakhstanCertifiedConfig.hero,
       badge: t('heroBadge'),
       headline: t('heroHeadline'),
       accentLine: t('heroAccentLine'),
@@ -28,20 +28,12 @@ export default async function KazakhstanNotarizedPage({
       ctaLabel: t('heroCtaLabel'),
       trustLine: t('heroTrustLine'),
     },
-    docs: {
-      ...kazakhstanNotarizedConfig.docs,
-      sectionLabel: t('docsSectionLabel'),
-      headline: t('docsHeadline'),
-      items: kazakhstanNotarizedConfig.docs!.items.map((item, i) => ({
-        ...item,
-        name: t(`docItem${i + 1}`),
-      })),
-    },
     pain: {
+      ...kazakhstanCertifiedConfig.pain!,
       sectionLabel: t('painSectionLabel'),
       bridgeLabel: t('painBridgeLabel'),
       headline: t('painHeadline'),
-      points: kazakhstanNotarizedConfig.pain!.points.map((_, i) => ({
+      points: kazakhstanCertifiedConfig.pain!.points.map((_, i) => ({
         title: t(`pain${i + 1}Title`),
         desc: t(`pain${i + 1}Desc`),
       })),
@@ -50,7 +42,7 @@ export default async function KazakhstanNotarizedPage({
       items: t.raw('faq') as Array<{ q: string; a: string }>,
     },
     finalCta: {
-      ...kazakhstanNotarizedConfig.finalCta!,
+      ...kazakhstanCertifiedConfig.finalCta!,
       headline: t('finalCtaHeadline'),
       sub: t('finalCtaSub'),
       cta: t('finalCtaCta'),

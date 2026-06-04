@@ -12,7 +12,8 @@
     "allDocTypes": "Бүх баримт бичгийн төрлүүд",
     "passportTranslation": "Паспортын орчуулга",
     "bankStatement": "Банкны хуулга",
-    "diplomaTranslation": "Дипломын орчуулга"
+    "diplomaTranslation": "Дипломын орчуулга",
+    "certifiedTranslation": "Баталгаажуулсан орчуулга"
   },
   "hero": {
     "title": "Professional Document Translation",

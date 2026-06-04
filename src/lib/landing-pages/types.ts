@@ -71,6 +71,7 @@ export interface LandingPageConfig {
   docs?: {
     headline: string;
     subheadline?: string;
+    sectionLabel?: string;
     items: SupportedDoc[];
   };
 
@@ -78,6 +79,8 @@ export interface LandingPageConfig {
   pain?: {
     headline: string;
     points: PainPoint[];
+    sectionLabel?: string;
+    bridgeLabel?: string;
   };
 
   // Trust

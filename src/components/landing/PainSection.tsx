@@ -4,15 +4,17 @@ import type { PainPoint } from '@/lib/landing-pages/types';
 interface Props {
   headline: string;
   points: PainPoint[];
+  sectionLabel?: string;
+  bridgeLabel?: string;
 }
 
-export function PainSection({ headline, points }: Props) {
+export function PainSection({ headline, points, sectionLabel, bridgeLabel }: Props) {
   return (
     <section className="border-b border-white/[0.07] bg-card px-4 py-20">
       <div className="mx-auto max-w-5xl">
         <div className="mb-12 text-center">
           <p className="mb-2.5 text-[10px] font-bold uppercase tracking-[0.15em] text-primary/70">
-            The Problem
+            {sectionLabel ?? 'The Problem'}
           </p>
           <h2 className="mx-auto max-w-2xl text-2xl font-bold tracking-[-0.025em] text-foreground sm:text-[1.85rem]">
             {headline}
@@ -44,7 +46,7 @@ export function PainSection({ headline, points }: Props) {
           <div className="h-px flex-1 bg-gradient-to-r from-transparent to-white/[0.06]" />
           <div className="flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-xs font-medium text-primary">
             <Zap className="h-3 w-3" />
-            WPO solves this
+            {bridgeLabel ?? 'WPO solves this'}
           </div>
           <div className="h-px flex-1 bg-gradient-to-l from-transparent to-white/[0.06]" />
         </div>

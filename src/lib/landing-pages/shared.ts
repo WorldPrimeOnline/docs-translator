@@ -52,7 +52,7 @@ export const defaultTrustItems: TrustItem[] = [
 export const defaultPricingTiers: PricingTier[] = [
   {
     name: 'pricingPassport',
-    price: '$4.39',
+    price: '2 290 ₸',
     features: [
       'pricingFeaturePassportDoc',
       'pricingFeatureClaudeTranslation',
@@ -65,7 +65,7 @@ export const defaultPricingTiers: PricingTier[] = [
   },
   {
     name: 'pricingOtherDocs',
-    price: '$4.99',
+    price: '2 590 ₸',
     features: [
       'pricingFeatureDiplomas',
       'pricingFeatureBankMedical',

@@ -12,7 +12,8 @@
     "allDocTypes": "所有文件类型",
     "passportTranslation": "护照翻译",
     "bankStatement": "银行流水",
-    "diplomaTranslation": "文凭翻译"
+    "diplomaTranslation": "文凭翻译",
+    "certifiedTranslation": "经认证的翻译"
   },
   "hero": {
     "title": "Professional Document Translation",
