@@ -100,9 +100,6 @@ export default async function LocaleLayout({
                 <Link href="/legal/partners" className="transition-colors hover:text-foreground">
                   {tLegal('partners')}
                 </Link>
-                <Link href="/contacts" className="transition-colors hover:text-foreground">
-                  {tFooter('contacts')}
-                </Link>
               </nav>
             </div>
 

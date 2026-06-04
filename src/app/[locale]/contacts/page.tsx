@@ -42,7 +42,7 @@ export default async function ContactsPage({
             style={{ objectFit: 'contain' }}
           />
         </div>
-        <h2 className="mb-5 text-base font-semibold text-foreground">{t('providerHeading')}</h2>
+        <h2 className="mb-5 text-base font-semibold text-foreground font-[family-name:var(--font-inter)]">{t('providerHeading')}</h2>
         <dl className="grid gap-4">
           <div className="grid grid-cols-[1fr_2fr] gap-3 text-sm sm:grid-cols-[180px_1fr]">
             <dt className="text-muted-foreground">{t('legalNameLabel')}</dt>
