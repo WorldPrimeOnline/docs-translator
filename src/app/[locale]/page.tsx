@@ -217,7 +217,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
       {/* ═══════════════════════════════════════════
           PAIN  —  why bureaus don't work
       ═══════════════════════════════════════════ */}
-      <section className="px-4 py-20 lg:py-28">
+      <section className="border-y border-white/[0.07] bg-card px-4 py-20 lg:py-28">
         <div className="mx-auto max-w-5xl">
           {/* Header */}
           <div className="mb-14 max-w-2xl">
