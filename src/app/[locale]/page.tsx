@@ -73,7 +73,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
       {/* ═══════════════════════════════════════════
           HERO  —  two-column on desktop
       ═══════════════════════════════════════════ */}
-      <section className="relative overflow-hidden pt-14 pb-16 sm:pt-20 sm:pb-24 lg:pt-24 lg:pb-28">
+      <section className="relative overflow-hidden pt-7 pb-8 sm:pt-10 sm:pb-12 lg:pt-12 lg:pb-14">
         {/* Top glow */}
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_60%_at_60%_-10%,rgba(201,168,76,0.08),transparent)]" />
         {/* Bottom fade */}
@@ -121,15 +121,6 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
                 </a>
               </div>
 
-              {/* Trust signals */}
-              <div className="mt-7 flex flex-wrap gap-x-6 gap-y-2">
-                {[t('trust.speed'), t('trust.security'), t('trust.payment')].map((item) => (
-                  <span key={item} className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground/70">
-                    <CheckCircle2 className="h-3 w-3 text-primary/50 shrink-0" />
-                    {item}
-                  </span>
-                ))}
-              </div>
             </div>
 
             {/* ── RIGHT: Product mockup ── */}
@@ -234,7 +225,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
             {PAIN_ITEMS.map(({ icon: Icon, title, desc }, i) => (
               <div
                 key={title}
-                className="group relative overflow-hidden rounded-2xl border border-white/[0.07] bg-card p-6 transition-all duration-200 hover:border-white/[0.14] hover:-translate-y-0.5"
+                className="group relative overflow-hidden rounded-2xl border border-white/[0.07] bg-background/60 p-6 transition-all duration-200 hover:border-white/[0.14] hover:-translate-y-0.5"
               >
                 {/* Top accent */}
                 <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.07] to-transparent" />
@@ -256,7 +247,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
       {/* ═══════════════════════════════════════════
           HOW IT WORKS  —  4-step connected flow
       ═══════════════════════════════════════════ */}
-      <section id="how-it-works" className="border-y border-white/[0.07] bg-card px-4 py-20 lg:py-28">
+      <section id="how-it-works" className="px-4 py-20 lg:py-28">
         <div className="mx-auto max-w-5xl">
           <div className="mb-14 text-center">
             <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-primary/60">
@@ -282,7 +273,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
             ].map((step) => (
               <div key={step.n} className="flex flex-col items-center text-center">
                 <div className="relative mb-5">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/[0.1] bg-background shadow-lg">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/[0.1] bg-card shadow-lg">
                     <step.icon className="h-5 w-5 text-primary" />
                   </div>
                   <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground shadow">
@@ -300,7 +291,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
       {/* ═══════════════════════════════════════════
           DOCUMENTS  —  categorized
       ═══════════════════════════════════════════ */}
-      <section id="documents" className="px-4 py-20 lg:py-28">
+      <section id="documents" className="border-y border-white/[0.07] bg-card px-4 py-20 lg:py-28">
         <div className="mx-auto max-w-5xl">
           <div className="mb-14 text-center">
             <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-primary/60">
@@ -316,7 +307,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
             {DOC_CATEGORIES.map(({ label, items }) => (
               <div
                 key={label}
-                className="overflow-hidden rounded-2xl border border-white/[0.07] bg-card transition-all duration-200 hover:border-white/[0.13]"
+                className="overflow-hidden rounded-2xl border border-white/[0.07] bg-background/60 transition-all duration-200 hover:border-white/[0.13]"
               >
                 <div className="border-b border-white/[0.06] bg-white/[0.02] px-5 py-3">
                   <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary/60">{label}</p>
@@ -343,7 +334,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
       {/* ═══════════════════════════════════════════
           USE CASES
       ═══════════════════════════════════════════ */}
-      <section className="border-y border-white/[0.07] bg-card px-4 py-20 lg:py-28">
+      <section className="px-4 py-20 lg:py-28">
         <div className="mx-auto max-w-5xl">
           <div className="mb-14 text-center">
             <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-primary/60">
@@ -358,11 +349,11 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
             {USE_CASES.map(({ icon: Icon, title, desc }) => (
               <div
                 key={title}
-                className="group relative overflow-hidden rounded-2xl border border-white/[0.07] bg-background/60 p-6 transition-all duration-200 hover:border-primary/[0.2] hover:bg-background/90 hover:-translate-y-0.5"
+                className="group relative overflow-hidden rounded-2xl border border-white/[0.07] bg-card/60 p-6 transition-all duration-200 hover:border-primary/[0.2] hover:bg-card/90 hover:-translate-y-0.5"
               >
                 <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-b from-white/[0.025] to-transparent" />
                 <div className="relative">
-                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.07] bg-card">
+                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.07] bg-background">
                     <Icon className="h-[18px] w-[18px] text-primary/70" />
                   </div>
                   <h3 className="mb-2 text-[15px] font-semibold text-foreground">{title}</h3>
@@ -377,7 +368,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
       {/* ═══════════════════════════════════════════
           SECURITY
       ═══════════════════════════════════════════ */}
-      <section className="px-4 py-20 lg:py-28">
+      <section className="border-y border-white/[0.07] bg-card px-4 py-20 lg:py-28">
         <div className="mx-auto max-w-5xl">
           {/* Header — left-aligned for variety */}
           <div className="mb-14 grid gap-6 lg:grid-cols-2 lg:items-end">
@@ -398,7 +389,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
             {SECURITY_ITEMS.map(({ icon: Icon, title, desc }) => (
               <div
                 key={title}
-                className="relative overflow-hidden rounded-2xl border border-white/[0.07] bg-card p-6 transition-all duration-200 hover:border-white/[0.14]"
+                className="relative overflow-hidden rounded-2xl border border-white/[0.07] bg-background/60 p-6 transition-all duration-200 hover:border-white/[0.14]"
               >
                 <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
                 <div className="mb-4 flex h-9 w-9 items-center justify-center rounded-xl bg-background">
@@ -415,7 +406,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
       {/* ═══════════════════════════════════════════
           WHY WPO
       ═══════════════════════════════════════════ */}
-      <section className="border-y border-white/[0.07] bg-card px-4 py-20 lg:py-28">
+      <section className="px-4 py-20 lg:py-28">
         <div className="mx-auto max-w-5xl">
           <div className="mb-14 text-center">
             <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-primary/60">
@@ -430,7 +421,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
             {TRUST_ITEMS.map(({ icon: Icon, title, desc }) => (
               <div
                 key={title}
-                className="group relative overflow-hidden rounded-2xl border border-white/[0.07] bg-background/60 p-6 transition-all duration-200 hover:border-white/[0.14] hover:-translate-y-0.5"
+                className="group relative overflow-hidden rounded-2xl border border-white/[0.07] bg-card/60 p-6 transition-all duration-200 hover:border-white/[0.14] hover:-translate-y-0.5"
               >
                 <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-b from-white/[0.025] to-transparent" />
                 <div className="relative">
@@ -449,7 +440,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
       {/* ═══════════════════════════════════════════
           PRICING
       ═══════════════════════════════════════════ */}
-      <section className="px-4 py-20 lg:py-28">
+      <section className="border-y border-white/[0.07] bg-card px-4 py-20 lg:py-28">
         <div className="mx-auto max-w-[900px]">
           <div className="mb-14 text-center">
             <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-primary/60">
@@ -463,7 +454,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
 
           <div className="grid gap-4 sm:grid-cols-3">
             {/* PAYG */}
-            <div className="flex flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-card">
+            <div className="flex flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-background">
               <div className="border-b border-white/[0.06] px-7 py-6">
                 <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/60">
                   {t('pricing.payg')}
@@ -490,7 +481,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
             </div>
 
             {/* BASIC — highlighted */}
-            <div className="relative flex flex-col overflow-hidden rounded-2xl border border-primary/40 bg-card shadow-[0_0_60px_rgba(201,168,76,0.08)]">
+            <div className="relative flex flex-col overflow-hidden rounded-2xl border border-primary/40 bg-background shadow-[0_0_60px_rgba(201,168,76,0.08)]">
               {/* Top glow line */}
               <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
 
@@ -527,7 +518,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
             </div>
 
             {/* PRO */}
-            <div className="flex flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-card">
+            <div className="flex flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-background">
               <div className="border-b border-white/[0.06] px-7 py-6">
                 <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/60">
                   {t('pricing.pro')}
@@ -563,7 +554,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
       {/* ═══════════════════════════════════════════
           FAQ
       ═══════════════════════════════════════════ */}
-      <section className="border-y border-white/[0.07] bg-card px-4 py-20 lg:py-28">
+      <section className="px-4 py-20 lg:py-28">
         <div className="mx-auto max-w-[680px]">
           <div className="mb-14 text-center">
             <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-primary/60">
@@ -578,7 +569,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
             {FAQ.map(({ q, a }, i) => (
               <details
                 key={i}
-                className="group overflow-hidden rounded-2xl border border-white/[0.07] bg-background/60 transition-all open:border-white/[0.13] open:bg-background/90"
+                className="group overflow-hidden rounded-2xl border border-white/[0.07] bg-card/60 transition-all open:border-white/[0.13] open:bg-card/90"
               >
                 <summary className="flex cursor-pointer list-none select-none items-start justify-between gap-4 px-6 py-5 text-[15px] font-medium text-foreground/90 transition-colors hover:text-foreground">
                   <span className="leading-snug">{q}</span>
