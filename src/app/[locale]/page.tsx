@@ -13,12 +13,12 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
   const t = await getTranslations();
 
   const DOC_CATEGORIES = [
-    { label: 'Identity',    items: [{ icon: IdCard, label: t('documents.passport') }, { icon: Car, label: t('documents.driver') }] },
-    { label: 'Financial',   items: [{ icon: Landmark, label: t('documents.bank') }, { icon: Briefcase, label: t('documents.employment') }] },
-    { label: 'Education',   items: [{ icon: GraduationCap, label: t('documents.diploma') }, { icon: FileCheck, label: 'Transcript' }] },
-    { label: 'Legal',       items: [{ icon: FileHeart, label: t('documents.birth') }, { icon: Shield, label: t('documents.police') }] },
-    { label: 'Medical',     items: [{ icon: HeartPulse, label: t('documents.medical') }] },
-    { label: 'Other',       items: [{ icon: FileText, label: t('documents.other') }] },
+    { label: t('documents.catIdentity'),  items: [{ icon: IdCard, label: t('documents.passport') }, { icon: Car, label: t('documents.driver') }] },
+    { label: t('documents.catFinancial'), items: [{ icon: Landmark, label: t('documents.bank') }, { icon: Briefcase, label: t('documents.employment') }] },
+    { label: t('documents.catEducation'), items: [{ icon: GraduationCap, label: t('documents.diploma') }, { icon: FileCheck, label: t('documents.transcript') }] },
+    { label: t('documents.catLegal'),     items: [{ icon: FileHeart, label: t('documents.birth') }, { icon: Shield, label: t('documents.police') }] },
+    { label: t('documents.catMedical'),   items: [{ icon: HeartPulse, label: t('documents.medical') }] },
+    { label: t('documents.catOther'),     items: [{ icon: FileText, label: t('documents.other') }] },
   ];
 
   const TRUST_ITEMS = [
@@ -51,11 +51,20 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
 
   const faqRaw = t.raw('faq') as Record<string, string>;
   const FAQ: { q: string; a: string }[] = [];
-  for (let i = 1; ; i++) {
-    const q = faqRaw[`q${i}`];
-    const a = faqRaw[`a${i}`];
-    if (!q || !a) break;
-    FAQ.push({ q, a });
+  const homepageKeys = faqRaw['homepageKeys'];
+  if (homepageKeys) {
+    for (const idx of homepageKeys.split(',').map(Number)) {
+      const q = faqRaw[`q${idx}`];
+      const a = faqRaw[`a${idx}`];
+      if (q && a) FAQ.push({ q, a });
+    }
+  } else {
+    for (let i = 1; ; i++) {
+      const q = faqRaw[`q${i}`];
+      const a = faqRaw[`a${i}`];
+      if (!q || !a) break;
+      FAQ.push({ q, a });
+    }
   }
 
   return (
@@ -268,7 +277,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
             {[
               { n: '01', icon: Upload,     title: t('howItWorks.step1Title'), desc: t('howItWorks.step1Desc') },
               { n: '02', icon: FileCheck,  title: t('howItWorks.step2Title'), desc: t('howItWorks.step2Desc') },
-              { n: '03', icon: CreditCard, title: t('pricing.payg'),          desc: t('pricing.allPricesNote') },
+              { n: '03', icon: CreditCard, title: t('howItWorks.payTitle'),    desc: t('howItWorks.payDesc') },
               { n: '04', icon: Download,   title: t('howItWorks.step3Title'), desc: t('howItWorks.step3Desc') },
             ].map((step) => (
               <div key={step.n} className="flex flex-col items-center text-center">
