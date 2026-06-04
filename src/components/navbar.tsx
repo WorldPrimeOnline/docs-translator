@@ -19,7 +19,6 @@ export function Navbar() {
       children: [
         { label: t('kazakhstanOverview'), href: '/kazakhstan' },
         { label: t('translationForNotary'), href: '/kazakhstan/notarized-translation' },
-        { label: t('universityDocs'), href: '/kazakhstan/university-document-translation' },
       ],
     },
     {
@@ -28,8 +27,9 @@ export function Navbar() {
       children: [
         { label: t('allDocTypes'), href: '/documents' },
         { label: t('passportTranslation'), href: '/documents/passport-translation' },
-        { label: t('bankStatement'), href: '/documents/bank-statement-translation' },
         { label: t('diplomaTranslation'), href: '/documents/diploma-translation' },
+        { label: t('bankStatement'), href: '/documents/bank-statement-translation' },
+        { label: t('universityDocs'), href: '/kazakhstan/university-document-translation' },
       ],
     },
   ];
