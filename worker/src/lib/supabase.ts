@@ -3,6 +3,9 @@ import { env } from './env';
 
 // Minimal inline types for the tables the worker touches.
 // Keep in sync with src/types/supabase.ts in the Next.js app.
+//
+// IMPORTANT: Before deploying official translation workflow features,
+// run supabase/migrations/add_official_workflow_fields.sql in Supabase SQL editor.
 export interface JobRow {
   id: string;
   document_id: string;
@@ -15,6 +18,8 @@ export interface JobRow {
   started_at: string | null;
   completed_at: string | null;
   created_at: string;
+  /** Workflow status for official translation pipeline. Default: 'completed'. */
+  workflow_status?: string | null;
 }
 
 export interface DocumentRow {
@@ -27,6 +32,20 @@ export interface DocumentRow {
   document_type: string;
   status: string;
   detected_source_language: string | null;
+}
+
+export interface TranslationRow {
+  id: string;
+  job_id: string;
+  translated_markdown: string;
+  translated_pdf_key: string;
+  /** Key for translator review DOCX draft (official workflow). */
+  translated_docx_key?: string | null;
+  /** Key for preview PDF generated before human review (official workflow). */
+  translated_preview_pdf_key?: string | null;
+  /** QA report stored as JSON (official workflow). */
+  qa_report?: Record<string, unknown> | null;
+  created_at: string;
 }
 
 export interface PaymentTransactionRow {

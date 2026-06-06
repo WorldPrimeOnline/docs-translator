@@ -1,4 +1,5 @@
 import { env } from './env';
+import { extractVisualElementsFromOcr, type VisualElement } from './visual-elements';
 
 interface MistralOcrPage {
   markdown: string;
@@ -12,6 +13,7 @@ export interface OcrResult {
   markdown: string;
   pageMarkdowns: string[];
   pageCount: number;
+  visualElements: VisualElement[];
 }
 
 const MISTRAL_OCR_URL = 'https://api.mistral.ai/v1/ocr';
@@ -21,6 +23,10 @@ function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+/**
+ * Extract visual element metadata from a markdown image tag before stripping it.
+ * Returns alt text (without base64 payload) to feed into visual element extraction.
+ */
 function stripImageRefs(markdown: string): string {
   return markdown
     .replace(/!\[[^\]]*\]\([^)]*\)\n?/g, '')
@@ -61,11 +67,20 @@ export async function extractTextFromPdf(pdfBuffer: Buffer): Promise<OcrResult> 
 
     const data = (await res.json()) as MistralOcrResponse;
     const pages = data.pages ?? [];
-    const pageMarkdowns = pages.map((p) => stripImageRefs(p.markdown));
+
+    // Keep raw page markdowns (with images) for visual element extraction
+    const rawPageMarkdowns = pages.map((p) => p.markdown);
+
+    // Strip image refs after extracting visual elements
+    const pageMarkdowns = rawPageMarkdowns.map((md) => stripImageRefs(md));
     const markdown = pageMarkdowns.join('\n\n');
 
-    console.log(`[ocr] ${pages.length} pages, ${markdown.length} chars`);
-    return { markdown, pageMarkdowns, pageCount: pages.length };
+    // Extract visual elements from raw (pre-strip) per-page markdowns + joined
+    const rawJoined = rawPageMarkdowns.join('\n\n');
+    const visualElements = extractVisualElementsFromOcr(rawJoined, rawPageMarkdowns);
+
+    console.log(`[ocr] ${pages.length} pages, ${markdown.length} chars, ${visualElements.length} visual elements`);
+    return { markdown, pageMarkdowns, pageCount: pages.length, visualElements };
   }
 
   throw lastError;

@@ -6,7 +6,10 @@ import { detectSourceLanguage } from './lib/detect-language';
 import { renderToHtml } from './lib/renderer';
 import { generatePdfFromHtml } from './lib/pdf';
 import { renderToDocx } from './lib/docx-renderer';
-import { sendTranslationReady } from './lib/email';
+import { sendTranslationReady, sendDocumentReceivedForReview } from './lib/email';
+import { computeOutputPlan } from './lib/output-plan';
+import { mergeVisualElements, extractVisualElementsFromTranslated } from './lib/visual-elements';
+import { runQaChecks } from './lib/qa';
 import { env } from './lib/env';
 
 type JobStatus = JobRow['status'];
@@ -23,6 +26,7 @@ async function updateJob(
   status: JobStatus,
   progress: number,
   errorMessage?: string,
+  extra?: Record<string, unknown>,
 ): Promise<void> {
   const now = new Date().toISOString();
   await supabase
@@ -32,6 +36,7 @@ async function updateJob(
       progress_percent: progress,
       ...(errorMessage ? { error_message: errorMessage } : {}),
       ...(status === 'completed' || status === 'failed' ? { completed_at: now } : {}),
+      ...(extra ?? {}),
     })
     .eq('id', jobId);
 }
@@ -61,8 +66,12 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
       .select('*')
       .eq('id', jobId)
       .single<JobRow>();
+
+    // Compute output plan from notarized flag
+    const plan = computeOutputPlan(jobRow?.notarized);
+
     const serviceLevel =
-      jobRow?.notarized === true
+      plan.mode === 'translator_review_draft' || plan.mode === 'official_translation' || plan.mode === 'notarization_package'
         ? 'official_with_translator_signature_and_provider_stamp' as const
         : 'electronic' as const;
 
@@ -72,8 +81,8 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
     const pdfBuffer = await downloadFile(doc.file_key);
 
     console.log(`${tag} running OCR…`);
-    const { markdown, pageCount } = await extractTextFromPdf(pdfBuffer);
-    console.log(`${tag} OCR done — ${pageCount} pages, ${markdown.length} chars`);
+    const { markdown, pageCount, visualElements: ocrVisualElements } = await extractTextFromPdf(pdfBuffer);
+    console.log(`${tag} OCR done — ${pageCount} pages, ${markdown.length} chars, ${ocrVisualElements.length} visual elements`);
 
     // OCR quality check — abort early rather than waste translation credits
     const ocrWordCount = markdown.trim().split(/\s+/).filter(Boolean).length;
@@ -120,7 +129,7 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
 
     // ── 3. Translation ───────────────────────────────────────────────────────
     await updateJob(jobId, 'translation_in_progress', 50);
-    console.log(`${tag} translating ${resolvedSourceLang} → ${doc.target_language}…`);
+    console.log(`${tag} translating ${resolvedSourceLang} → ${doc.target_language}… [plan: ${plan.mode}]`);
 
     const { docType, outputFormat } = parseDocumentType(doc.document_type);
 
@@ -143,29 +152,129 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
       translatedAt,
       filename: doc.filename,
       serviceLevel,
+      outputMode: plan.mode,
     };
 
     const baseKey = `documents/${doc.user_id}/${documentId}`;
+
+    // Merge visual elements from OCR + translated markdown
+    const translatedVisualElements = extractVisualElementsFromTranslated(translatedMarkdown);
+    const allVisualElements = mergeVisualElements(ocrVisualElements, translatedVisualElements);
+
+    // ── 4a. Official / review mode ───────────────────────────────────────────
+    if (plan.mode === 'translator_review_draft') {
+      console.log(`${tag} [official mode] generating translator draft DOCX + preview PDF…`);
+
+      // Generate DOCX draft
+      const docxBuf = await renderToDocx(translatedMarkdown, renderMeta, allVisualElements);
+      const draftDocxKey = `${baseKey}/translator_draft.docx`;
+      await uploadFile(draftDocxKey, docxBuf, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+      console.log(`${tag} DOCX draft uploaded (${docxBuf.length} bytes) → ${draftDocxKey}`);
+
+      // Generate preview PDF (wrap in try/catch — not critical for the workflow)
+      let previewPdfKey: string | undefined;
+      try {
+        const html = await renderToHtml(translatedMarkdown, renderMeta, allVisualElements);
+
+        // Run QA checks
+        const qaReport = runQaChecks(html, plan.mode, pageCount);
+        console.log(`${tag} QA report:`, JSON.stringify(qaReport));
+        if (qaReport.warnings.length > 0) {
+          console.warn(`${tag} QA warnings:`, qaReport.warnings);
+        }
+
+        const pdfBuf = await generatePdfFromHtml(html);
+        previewPdfKey = `${baseKey}/preview.pdf`;
+        await uploadFile(previewPdfKey, pdfBuf, 'application/pdf');
+        console.log(`${tag} preview PDF uploaded (${pdfBuf.length} bytes) → ${previewPdfKey}`);
+      } catch (previewErr) {
+        const msg = previewErr instanceof Error ? previewErr.message : String(previewErr);
+        console.error(`${tag} preview PDF generation failed (non-fatal): ${msg}`);
+      }
+
+      // Upsert translation record with DOCX key as primary artifact + preview PDF key
+      await updateJob(jobId, 'pdf_rendering', 90, undefined, { workflow_status: 'awaiting_translator_review' });
+
+      const { data: existing } = await supabase
+        .from('translations')
+        .select('id')
+        .eq('job_id', jobId)
+        .maybeSingle();
+
+      if (existing) {
+        await supabase
+          .from('translations')
+          .update({
+            translated_pdf_key: draftDocxKey,
+            translated_docx_key: draftDocxKey,
+            translated_preview_pdf_key: previewPdfKey ?? null,
+          })
+          .eq('id', existing.id);
+      } else {
+        await supabase.from('translations').insert({
+          job_id: jobId,
+          translated_markdown: translatedMarkdown,
+          translated_pdf_key: draftDocxKey,
+          translated_docx_key: draftDocxKey,
+          translated_preview_pdf_key: previewPdfKey ?? null,
+        });
+      }
+
+      await supabase.from('documents').update({ status: 'completed' }).eq('id', documentId);
+      await updateJob(jobId, 'completed', 100, undefined, { workflow_status: 'awaiting_translator_review' });
+
+      console.log(`${tag} ✓ completed [translator_review_draft] — awaiting human review`);
+
+      // Send review email (no download URL for the draft)
+      if (env.RESEND_API_KEY) {
+        try {
+          const { data: authUser } = await supabase.auth.admin.getUserById(doc.user_id);
+          const userEmail = authUser.user?.email;
+          if (userEmail) {
+            await sendDocumentReceivedForReview({ to: userEmail, filename: doc.filename });
+            console.log(`${tag} review email sent to ${userEmail}`);
+          }
+        } catch (emailErr) {
+          const msg = emailErr instanceof Error ? emailErr.message : String(emailErr);
+          console.error(`${tag} review email send failed (non-fatal): ${msg}`);
+        }
+      }
+
+      return;
+    }
+
+    // ── 4b. Normal mode (translation_only) ───────────────────────────────────
     let translatedKey: string;
     let contentType: string;
+    let html: string | undefined;
 
     if (outputFormat === 'docx') {
       console.log(`${tag} generating DOCX…`);
-      const docxBuf = await renderToDocx(translatedMarkdown, renderMeta);
+      const docxBuf = await renderToDocx(translatedMarkdown, renderMeta, allVisualElements);
       translatedKey = `${baseKey}/translated.docx`;
       await uploadFile(translatedKey, docxBuf, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
       contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
       console.log(`${tag} DOCX uploaded (${docxBuf.length} bytes) → ${translatedKey}`);
     } else if (outputFormat === 'html') {
       console.log(`${tag} generating HTML…`);
-      const html = await renderToHtml(translatedMarkdown, renderMeta);
+      html = await renderToHtml(translatedMarkdown, renderMeta, allVisualElements);
       translatedKey = `${baseKey}/translated.html`;
       await uploadFile(translatedKey, Buffer.from(html, 'utf-8'), 'text/html; charset=utf-8');
       contentType = 'text/html';
       console.log(`${tag} HTML uploaded → ${translatedKey}`);
     } else {
       // pdf (default) — HTML → Puppeteer → PDF
-      const html = await renderToHtml(translatedMarkdown, renderMeta);
+      html = await renderToHtml(translatedMarkdown, renderMeta, allVisualElements);
+
+      // Run QA checks for normal mode
+      const qaReport = runQaChecks(html, plan.mode, pageCount);
+      if (!qaReport.ok) {
+        console.warn(`${tag} QA checks failed (non-fatal for translation_only):`, qaReport.errors);
+      }
+      if (qaReport.warnings.length > 0) {
+        console.warn(`${tag} QA warnings:`, qaReport.warnings);
+      }
+
       try {
         console.log(`${tag} generating PDF via Puppeteer…`);
         const pdfBuf = await generatePdfFromHtml(html);
@@ -182,10 +291,9 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
       }
     }
 
-    // ── 6. Persist translation record ────────────────────────────────────────
+    // ── 5. Persist translation record ────────────────────────────────────────
     await updateJob(jobId, 'pdf_rendering', 90);
 
-    // Upsert: if a record already exists (from Vercel's processJob race) update it
     const { data: existing } = await supabase
       .from('translations')
       .select('id')
@@ -205,7 +313,7 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
       });
     }
 
-    // ── 7. Mark done ─────────────────────────────────────────────────────────
+    // ── 6. Mark done ─────────────────────────────────────────────────────────
     await supabase
       .from('documents')
       .update({ status: 'completed' })
@@ -215,15 +323,13 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
 
     console.log(`${tag} ✓ completed (${contentType})`);
 
-    // ── 8. Send email notification ───────────────────────────────────────────
+    // ── 7. Send email notification ───────────────────────────────────────────
     if (env.RESEND_API_KEY) {
       try {
-        // Get user email from Supabase Auth
         const { data: authUser } = await supabase.auth.admin.getUserById(doc.user_id);
         const userEmail = authUser.user?.email;
 
         if (userEmail) {
-          // Presigned download URL valid for 7 days
           const downloadUrl = await getPresignedUrl(translatedKey, 7 * 24 * 3600);
           await sendTranslationReady({
             to: userEmail,

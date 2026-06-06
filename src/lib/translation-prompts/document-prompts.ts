@@ -12,6 +12,12 @@ Additional rules:
 6. If there is a photo, mark it as [photo].
 7. Do not create a document that resembles a replacement identity card. This is a translation layout only.
 
+PASSPORT/E-VISA RULES:
+- Preserve document numbers exactly.
+- Label MRZ: [машиночитаемая зона: <content>] for Russian, [MRZ: <content>] for English.
+- Preserve names per document spelling. Transliterate only if required by target language.
+- QR/barcode/verification codes must be labeled elements, never naked text.
+
 Preferred output structure:
 - Document title
 - Personal details (key-value table)
@@ -81,6 +87,11 @@ Additional rules:
 9. Do not provide financial advice.
 10. Do not infer source of funds or account status.
 
+BANK STATEMENT RULES:
+- Preserve all amounts, currencies, dates, balances, IBAN/account numbers, SWIFT/BIC, card masks.
+- Long transaction tables continue across pages.
+- Never summarize transactions unless the original is already summary-only.
+
 Preferred output structure:
 - Bank details
 - Account holder details
@@ -102,6 +113,15 @@ Additional rules:
 8. Preserve units exactly: mg, ml, mmol/L, g/L, IU, %, etc.
 9. If handwriting is unreadable, mark [illegible].
 10. Mark doctor signatures and stamps with neutral markers.
+
+MEDICAL DOCUMENT RULES:
+- Preserve internationally recognized test names exactly: Anti-TPO, Thyroglobulin Ab, Estradiol, FSH, LH, Prolactin, Testosterone, Progesterone.
+- Preserve units exactly: IU/mL, pg/mL, mIU/mL, ng/mL.
+- Preserve flags H, L, HH, LL, CL, CH exactly.
+- If Buddhist Era dates present and conversion is obvious, add translator note.
+- Do not silently normalize medical values or change decimal separators unless required.
+- Wide reference range tables must preserve all data.
+- Translate field labels, comments, notes. Do not translate test names.
 
 Preferred output structure:
 - Medical institution
