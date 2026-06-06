@@ -173,11 +173,14 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
 
       // Generate preview PDF (wrap in try/catch — not critical for the workflow)
       let previewPdfKey: string | undefined;
+      // Hoist qaReport so it can be persisted even if PDF generation fails
+      let savedQaReport: Record<string, unknown> | null = null;
       try {
         const html = await renderToHtml(translatedMarkdown, renderMeta, allVisualElements);
 
         // Run QA checks
         const qaReport = runQaChecks(html, plan.mode, pageCount);
+        savedQaReport = qaReport as unknown as Record<string, unknown>;
         console.log(`${tag} QA report:`, JSON.stringify(qaReport));
         if (qaReport.warnings.length > 0) {
           console.warn(`${tag} QA warnings:`, qaReport.warnings);
@@ -192,7 +195,9 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
         console.error(`${tag} preview PDF generation failed (non-fatal): ${msg}`);
       }
 
-      // Upsert translation record with DOCX key as primary artifact + preview PDF key
+      // Upsert translation record with DOCX key as primary artifact + preview PDF key + qa_report
+      // NOTE: translated_docx_key, translated_preview_pdf_key, qa_report columns require
+      // supabase/migrations/add_official_workflow_fields.sql to be applied in Supabase first.
       await updateJob(jobId, 'pdf_rendering', 90, undefined, { workflow_status: 'awaiting_translator_review' });
 
       const { data: existing } = await supabase
@@ -208,6 +213,7 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
             translated_pdf_key: draftDocxKey,
             translated_docx_key: draftDocxKey,
             translated_preview_pdf_key: previewPdfKey ?? null,
+            qa_report: savedQaReport,
           })
           .eq('id', existing.id);
       } else {
@@ -217,6 +223,7 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
           translated_pdf_key: draftDocxKey,
           translated_docx_key: draftDocxKey,
           translated_preview_pdf_key: previewPdfKey ?? null,
+          qa_report: savedQaReport,
         });
       }
 

@@ -49,7 +49,7 @@ export async function GET(
 
   const { data: job } = await supabaseServer
     .from('jobs')
-    .select('id')
+    .select('id, workflow_status')
     .eq('document_id', documentId)
     .eq('status', 'completed')
     .order('created_at', { ascending: false })
@@ -57,6 +57,15 @@ export async function GET(
     .single();
 
   if (!job) return NextResponse.json({ error: 'No completed translation found' }, { status: 404 });
+
+  // Block download if the job is still awaiting human translator review (official workflow).
+  // workflow_status is null for pre-migration rows — treat null as 'completed' for backward compat.
+  if (job.workflow_status === 'awaiting_translator_review') {
+    return NextResponse.json(
+      { error: 'Document is awaiting translator review and is not yet available for download.' },
+      { status: 403 },
+    );
+  }
 
   const { data: trans } = await supabaseServer
     .from('translations')
