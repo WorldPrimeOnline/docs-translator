@@ -99,6 +99,8 @@ export type Database = {
           started_at: string | null;
           completed_at: string | null;
           created_at: string;
+          /** Added by add_official_workflow_fields.sql migration. Default: 'completed' for pre-migration rows. */
+          workflow_status: string | null;
         };
         Insert: {
           id?: string;
@@ -112,6 +114,7 @@ export type Database = {
           started_at?: string | null;
           completed_at?: string | null;
           created_at?: string;
+          workflow_status?: string | null;
         };
         Update: {
           id?: string;
@@ -125,6 +128,7 @@ export type Database = {
           started_at?: string | null;
           completed_at?: string | null;
           created_at?: string;
+          workflow_status?: string | null;
         };
         Relationships: [
           { foreignKeyName: 'jobs_document_id_fkey'; columns: ['document_id']; referencedRelation: 'documents'; referencedColumns: ['id'] },
@@ -168,6 +172,12 @@ export type Database = {
           job_id: string;
           translated_markdown: string;
           translated_pdf_key: string;
+          /** Key for translator review DOCX draft. Added by add_official_workflow_fields.sql migration. */
+          translated_docx_key: string | null;
+          /** Key for preview PDF generated before human review. Added by add_official_workflow_fields.sql migration. */
+          translated_preview_pdf_key: string | null;
+          /** QA report stored as JSONB. Added by add_official_workflow_fields.sql migration. */
+          qa_report: Json | null;
           created_at: string;
         };
         Insert: {
@@ -175,6 +185,9 @@ export type Database = {
           job_id: string;
           translated_markdown: string;
           translated_pdf_key: string;
+          translated_docx_key?: string | null;
+          translated_preview_pdf_key?: string | null;
+          qa_report?: Json | null;
           created_at?: string;
         };
         Update: {
@@ -182,6 +195,9 @@ export type Database = {
           job_id?: string;
           translated_markdown?: string;
           translated_pdf_key?: string;
+          translated_docx_key?: string | null;
+          translated_preview_pdf_key?: string | null;
+          qa_report?: Json | null;
           created_at?: string;
         };
         Relationships: [
