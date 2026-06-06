@@ -39,7 +39,7 @@ function buildLocalePath(pathname: string, newLocale: LangCode): string {
   let clean = pathname;
   for (const loc of PREFIXED_LOCALES) {
     if (pathname.startsWith(`/${loc}/`)) {
-      clean = pathname.slice(loc.length + 1); // '/ru/dashboard' → 'dashboard'
+      clean = pathname.slice(loc.length + 2); // '/ru/dashboard' → 'dashboard'
       break;
     }
     if (pathname === `/${loc}`) {

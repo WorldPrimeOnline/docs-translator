@@ -107,8 +107,10 @@ Landing pages are config-driven. Every vertical/document page instantiates `<Lan
 Currently implemented verticals: **Kazakhstan** (`src/app/[locale]/kazakhstan/`) and **documents** (`src/app/[locale]/documents/`). The Thailand vertical is planned but not yet built — no `src/app/[locale]/thailand/` directory exists.
 
 Implemented sub-pages:
-- `kazakhstan/notarized-translation`, `kazakhstan/university-document-translation`
+- `kazakhstan/certified-translation`, `kazakhstan/notarized-translation`, `kazakhstan/university-document-translation`
 - `documents/passport-translation`, `documents/diploma-translation`, `documents/bank-statement-translation`
+
+Both `kazakhstan/` and `documents/` also have a root `page.tsx` (the vertical landing index).
 
 Other locale-prefixed pages: `contacts` (`src/app/[locale]/contacts/`), `auth` (login/callback), `dashboard`, `legal`, `privacy` (alias), `tos` (alias).
 
@@ -130,7 +132,7 @@ Subscription state: `subscriptions` table. The upload route is the only path tha
 
 | Table | Key columns |
 |---|---|
-| `users` | auth users |
+| `users` | auth users; `terms_accepted_at` — set by `POST /api/users/accept-terms` (dashboard shows acceptance gate until populated) |
 | `documents` | `file_key`, `source_language`, `target_language`, `document_type`, `output_format`, `status`, `word_count`, `price_usd` |
 | `jobs` | `status`, `progress_percent`, `priority`, `payment_source`, `country`, `notarized`, `bureau_stamp` |
 | `ocr_results` | `job_id`, `markdown`, `page_count`, `provider` |
@@ -152,6 +154,8 @@ Generated types at `src/types/supabase.ts`, re-exported from `src/types/index.ts
 | GET | `/api/subscriptions/current` | Active subscription for the current user |
 | POST | `/api/subscriptions/use-document` | Check quota and decrement by 1 |
 | GET | `/api/cron/cleanup` | Daily 02:00 UTC — deletes files older than 30 days (secured via `CRON_SECRET`) |
+| POST | `/api/users/accept-terms` | Records `terms_accepted_at` timestamp in users table; gate shown in dashboard before first upload |
+| GET | `/api/debug/env` | Dev-only env sanity check — not part of user-facing flows |
 
 ### Email notifications
 
