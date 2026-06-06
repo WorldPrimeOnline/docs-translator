@@ -35,6 +35,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxtst6 \
     && rm -rf /var/lib/apt/lists/*
 
+# Noto fonts for CJK, Thai, and multilingual official document rendering
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    fonts-noto \
+    fonts-noto-cjk \
+    fonts-noto-color-emoji \
+    fonts-thai-tlwg \
+  && rm -rf /var/lib/apt/lists/*
+
 # Do not let puppeteer download its own chrome — @sparticuz/chromium is used
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
