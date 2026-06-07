@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 const schema = z.object({
+  APP_ENV: z.enum(['production', 'staging', 'development']).default('production'),
   NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
   R2_ACCOUNT_ID: z.string().min(1),
@@ -13,6 +14,19 @@ const schema = z.object({
   WORKER_CONCURRENCY: z.coerce.number().default(1),
   RESEND_API_KEY: z.string().optional(),
   SITE_URL: z.string().url().default('https://wpotranslations.org'),
+  // Email safety
+  EMAILS_ENABLED: z
+    .string()
+    .default('true')
+    .transform((v) => v.toLowerCase() !== 'false'),
+  EMAIL_REDIRECT_ALL_TO: z.string().email().optional(),
+  // Payment safety
+  PAYMENTS_MODE: z.enum(['live', 'test']).default('live'),
+  // Feature flags
+  OFFICIAL_WORKFLOW_ENABLED: z
+    .string()
+    .default('true')
+    .transform((v) => v.toLowerCase() !== 'false'),
 });
 
 function load() {

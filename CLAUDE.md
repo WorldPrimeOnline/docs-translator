@@ -25,7 +25,14 @@ npm run build     # tsc → dist/
 npm run start     # node dist/index.js (production)
 ```
 
-There are no automated tests in this repo.
+### Tests (Jest, run from repo root)
+```bash
+npx jest                        # Run all tests
+npx jest src/lib/translation-workflow  # Run a specific directory
+npx jest --testPathPattern qa   # Run matching test file(s)
+```
+
+Tests live in `src/lib/translation-workflow/__tests__/` and `worker/src/lib/__tests__/`. Config: `jest.config.ts` at repo root — covers both `src/` and `worker/src/`.
 
 ---
 
@@ -48,7 +55,7 @@ Auth guards live in middleware: unauthenticated users are redirected to `/{local
 
 ### Upload flow
 
-`POST /api/documents/upload` accepts PDF, PNG, JPG, or DOCX (max 25 MB). Non-PDF files are converted to PDF in-process via `src/lib/convert-to-pdf.ts` (pdf-lib + sharp for images, mammoth for DOCX) before uploading to R2. Additional optional fields: `country`, `notarized`, `bureauStamp`, `outputFormat`.
+`POST /api/documents/upload` accepts one or more PDF, PNG, JPG, or DOCX files. Each file is capped at 25 MB; total payload at 50 MB. Multiple files are individually converted to PDF then merged via `mergePdfs()` in `src/lib/convert-to-pdf.ts` before uploading as a single R2 object. Additional optional fields: `country`, `notarized`, `bureauStamp`, `outputFormat`.
 
 ### document_type column encoding
 
@@ -69,10 +76,10 @@ There are **two separate processors** — do not conflate them.
 - Claims jobs atomically via `UPDATE WHERE status='queued'` — prevents double-processing
 - Polls Supabase every 10 s for unclaimed `status = 'queued'` jobs — handles both subscription and pay-per-doc
 - OCR quality gate: aborts early if extracted text is below minimum word/char threshold (saves translation credits)
-- Full pipeline: OCR → translate → render HTML → **Puppeteer PDF** → upload `.pdf` to R2 → upsert `translations` → email
+- Calls `computeOutputPlan(job.notarized)` to determine artifact path: `translation_only` (immediate PDF release) or `translator_review_draft` (DOCX + preview PDF, `workflow_status: awaiting_translator_review`)
+- Full pipeline: OCR (returns `{ markdown, pageCount, visualElements }`) → merge visual elements → translate → render HTML with visual-elements block → QA check → Puppeteer PDF or DOCX → upload to R2 → upsert `translations` (with `qa_report`) → email
 - If Puppeteer fails, falls back to saving `.html`
-- On completion it upserts the `translations` row (handles race with the Vercel processor)
-- Supports DOCX output via `worker/src/lib/docx-renderer.ts` when the format suffix is `|docx`
+- Supports DOCX output via `worker/src/lib/docx-renderer.ts` (also in web app at `src/lib/pdf/docx-renderer.ts`)
 
 Both processors use `claude-sonnet-4-5-20250929` via `@anthropic-ai/sdk` (constant `MODEL` in each `translator.ts`). There are **four** `MODEL` constants to update when changing the model: `src/lib/translation/translator.ts`, `src/lib/translation/detect-language.ts`, `worker/src/lib/translator.ts`, `worker/src/lib/detect-language.ts`.
 
@@ -85,6 +92,16 @@ Each transition also updates `progress_percent` (0–100).
 ### Estimate API
 
 `POST /api/documents/estimate` — OCRs the already-uploaded PDF via Mistral, counts words, and returns `{ wordCount, priceUsd }`. Pricing: `$0.01 × wordCount`. Result is not cached — the route re-OCRs on every call.
+
+### translation-workflow module
+
+`src/lib/translation-workflow/` (re-exported from its `index.ts`) drives all post-OCR logic. Its counterpart lives at `worker/src/lib/` with matching files.
+
+- **`types.ts`** — shared types: `OutputMode`, `OutputPlan`, `VisualElement`, `VisualElementKind`, `TranslationQaReport`
+- **`output-plan.ts`** — `computeOutputPlan(notarized)`: returns an `OutputPlan` that controls artifact generation. When `notarized=true`, mode is `translator_review_draft` — produces DOCX + preview PDF, sets `workflow_status: 'awaiting_translator_review'`, does NOT release to customer immediately. When `notarized=false/null`, mode is `translation_only` — produces final PDF and releases immediately.
+- **`visual-elements.ts`** — `extractVisualElementsFromTranslated(markdown)` and `mergeVisualElements(ocr, translated)` collect stamps, signatures, QR codes, MRZ lines, etc. detected by Mistral OCR and from markers in the translated markdown. Visual elements are passed to renderers for the visual-elements block.
+- **`visual-elements-block.ts`** — renders the collected visual elements into an HTML block appended to the translated document.
+- **`qa.ts`** — `runQaChecks(html, mode)` returns a `TranslationQaReport`: checks for forbidden technical terms (`Claude`, `Mistral`, `JSON`, `Markdown`, `renderer`, etc.), broken glyphs, table clipping risk, orphan headings, presence of translator/verification blocks. A `qa_report` JSON is stored in the `translations` table.
 
 ### Translation prompt system
 
@@ -134,9 +151,9 @@ Subscription state: `subscriptions` table. The upload route is the only path tha
 |---|---|
 | `users` | auth users; `terms_accepted_at` — set by `POST /api/users/accept-terms` (dashboard shows acceptance gate until populated) |
 | `documents` | `file_key`, `source_language`, `target_language`, `document_type`, `output_format`, `status`, `word_count`, `price_usd` |
-| `jobs` | `status`, `progress_percent`, `priority`, `payment_source`, `country`, `notarized`, `bureau_stamp` |
+| `jobs` | `status`, `progress_percent`, `priority`, `payment_source`, `country`, `notarized`, `bureau_stamp`, `workflow_status` |
 | `ocr_results` | `job_id`, `markdown`, `page_count`, `provider` |
-| `translations` | `job_id`, `translated_markdown`, `translated_pdf_key` |
+| `translations` | `job_id`, `translated_markdown`, `translated_pdf_key`, `translated_docx_key`, `translated_preview_pdf_key`, `qa_report` |
 | `ton_payments` | legacy pay-per-doc TON transactions (payment gateway not active) |
 | `subscriptions` | `plan`, `status`, `documents_used`, `documents_limit`, `expires_at` |
 

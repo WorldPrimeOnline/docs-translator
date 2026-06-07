@@ -29,6 +29,8 @@ export const metadata: Metadata = {
   },
 };
 
+const IS_STAGING = process.env.NEXT_PUBLIC_APP_ENV === 'staging';
+
 /**
  * Minimal root layout — only provides <html>/<body> wrappers.
  * Navbar, Footer, Toaster, and NextIntlClientProvider live in [locale]/layout.tsx.
@@ -45,6 +47,27 @@ export default async function RootLayout({
   return (
     <html lang={locale} suppressHydrationWarning>
       <body className={`${inter.variable} ${cormorant.variable} ${geistMono.variable} antialiased`}>
+        {IS_STAGING && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              zIndex: 9999,
+              background: '#b45309',
+              color: '#fff',
+              textAlign: 'center',
+              fontSize: '12px',
+              fontWeight: 600,
+              letterSpacing: '0.08em',
+              padding: '4px 0',
+              pointerEvents: 'none',
+            }}
+          >
+            STAGING MODE — test environment
+          </div>
+        )}
         {children}
       </body>
     </html>

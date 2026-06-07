@@ -1,14 +1,38 @@
 import { Resend } from 'resend';
+import { env } from './env';
 
 // Lazy — only instantiated when actually sending, so missing key doesn't crash startup
 let _resend: Resend | null = null;
 function getResend(): Resend {
   if (!_resend) {
-    const key = process.env.RESEND_API_KEY;
+    const key = env.RESEND_API_KEY;
     if (!key) throw new Error('RESEND_API_KEY is not set');
     _resend = new Resend(key);
   }
   return _resend;
+}
+
+// Returns { to, subject } after applying staging email safety rules:
+// - EMAILS_ENABLED=false  → returns null (caller must skip send)
+// - EMAIL_REDIRECT_ALL_TO → rewrites recipient, prefixes subject with [STAGING]
+function applyEmailSafetyPolicy(
+  intendedTo: string,
+  subject: string,
+): { to: string; subject: string } | null {
+  if (!env.EMAILS_ENABLED) {
+    console.log(`[email] suppressed (EMAILS_ENABLED=false) — intended recipient: ${intendedTo}`);
+    return null;
+  }
+
+  if (env.EMAIL_REDIRECT_ALL_TO) {
+    console.log(`[email] redirecting (EMAIL_REDIRECT_ALL_TO) — intended: ${intendedTo} → actual: ${env.EMAIL_REDIRECT_ALL_TO}`);
+    return {
+      to: env.EMAIL_REDIRECT_ALL_TO,
+      subject: `[STAGING] ${subject}`,
+    };
+  }
+
+  return { to: intendedTo, subject };
 }
 
 function generateEmailHtml({
@@ -178,10 +202,13 @@ export async function sendTranslationReady({
   downloadUrl: string;
   targetLanguage: string;
 }): Promise<void> {
+  const safe = applyEmailSafetyPolicy(to, `Your translation is ready — ${filename}`);
+  if (!safe) return;
+
   await getResend().emails.send({
     from: 'WPO Translations <noreply@wpotranslations.org>',
-    to,
-    subject: `Your translation is ready — ${filename}`,
+    to: safe.to,
+    subject: safe.subject,
     html: generateEmailHtml({ filename, downloadUrl, targetLanguage }),
   });
 }
@@ -193,10 +220,13 @@ export async function sendDocumentReceivedForReview({
   to: string;
   filename: string;
 }): Promise<void> {
+  const safe = applyEmailSafetyPolicy(to, `Document received for translator review — ${filename}`);
+  if (!safe) return;
+
   await getResend().emails.send({
     from: 'WPO Translations <noreply@wpotranslations.org>',
-    to,
-    subject: `Document received for translator review — ${filename}`,
+    to: safe.to,
+    subject: safe.subject,
     html: generateReviewEmailHtml({ filename }),
   });
 }

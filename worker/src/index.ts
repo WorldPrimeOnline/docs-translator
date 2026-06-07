@@ -117,7 +117,68 @@ async function pollOnce(): Promise<void> {
   }
 }
 
+function runStartupSafetyChecks(): void {
+  const supabaseHost = (() => {
+    try {
+      return new URL(env.NEXT_PUBLIC_SUPABASE_URL).hostname;
+    } catch {
+      return env.NEXT_PUBLIC_SUPABASE_URL;
+    }
+  })();
+
+  console.log('[worker:env] ─────────────────────────────────────────');
+  console.log(`[worker:env] APP_ENV              = ${env.APP_ENV}`);
+  console.log(`[worker:env] Supabase host        = ${supabaseHost}`);
+  console.log(`[worker:env] R2_BUCKET_NAME       = ${env.R2_BUCKET_NAME}`);
+  console.log(`[worker:env] EMAILS_ENABLED       = ${env.EMAILS_ENABLED}`);
+  console.log(`[worker:env] EMAIL_REDIRECT_ALL_TO = ${env.EMAIL_REDIRECT_ALL_TO ?? '(not set)'}`);
+  console.log(`[worker:env] PAYMENTS_MODE        = ${env.PAYMENTS_MODE}`);
+  console.log(`[worker:env] OFFICIAL_WORKFLOW    = ${env.OFFICIAL_WORKFLOW_ENABLED}`);
+  console.log('[worker:env] ─────────────────────────────────────────');
+
+  const isStaging = env.APP_ENV === 'staging';
+  const isProduction = env.APP_ENV === 'production';
+
+  // --- Staging guards ---
+  if (isStaging) {
+    if (env.PAYMENTS_MODE !== 'test') {
+      console.error('[worker:safety] FATAL: APP_ENV=staging but PAYMENTS_MODE is not "test". Refusing to start.');
+      process.exit(1);
+    }
+    // Heuristic: production bucket names won't contain "staging"
+    if (!env.R2_BUCKET_NAME.includes('staging')) {
+      console.error(
+        `[worker:safety] FATAL: APP_ENV=staging but R2_BUCKET_NAME="${env.R2_BUCKET_NAME}" does not look like a staging bucket.`,
+        'Expected a bucket name containing "staging" (e.g. wpo-staging-documents).',
+      );
+      process.exit(1);
+    }
+    if (env.EMAILS_ENABLED && !env.EMAIL_REDIRECT_ALL_TO) {
+      console.warn(
+        '[worker:safety] WARNING: APP_ENV=staging with EMAILS_ENABLED=true but no EMAIL_REDIRECT_ALL_TO set.',
+        'Real customer emails may be sent. Set EMAILS_ENABLED=false or provide EMAIL_REDIRECT_ALL_TO.',
+      );
+    }
+  }
+
+  // --- Production guards ---
+  if (isProduction) {
+    if (env.R2_BUCKET_NAME.includes('staging')) {
+      console.error(
+        `[worker:safety] FATAL: APP_ENV=production but R2_BUCKET_NAME="${env.R2_BUCKET_NAME}" looks like a staging bucket. Refusing to start.`,
+      );
+      process.exit(1);
+    }
+    if (env.PAYMENTS_MODE === 'test') {
+      console.warn(
+        '[worker:safety] WARNING: APP_ENV=production but PAYMENTS_MODE=test. Payments will not be processed in live mode.',
+      );
+    }
+  }
+}
+
 async function main(): Promise<void> {
+  runStartupSafetyChecks();
   console.log(
     `[worker] started — poll every ${env.POLL_INTERVAL_MS}ms, concurrency ${env.WORKER_CONCURRENCY}`,
   );

@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "jest",
+    "staging:check": "node scripts/staging-check.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",
