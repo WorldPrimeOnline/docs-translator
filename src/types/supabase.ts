@@ -2,12 +2,9 @@
 // Re-run after schema changes: supabase gen types --project-id qziwyakewuneokzdpoyf --schema public > src/types/supabase.ts
 // Requires: supabase login --token <YOUR_PAT>
 //
-// Manually updated to reflect the consolidated SQL migration (see APPLY_TO_SUPABASE.sql):
-//   - ton_payments renamed to payment_transactions; crypto columns dropped/renamed
-//   - wallet_links table dropped
-//   - ip_address added to documents + payment_transactions
-//   - subscriptions: crypto columns dropped/renamed
-// Regenerate from Supabase after applying that SQL to production.
+// Manually maintained to match the current target schema (see supabase/STAGING_INIT_ALL.sql).
+// Tables: users, documents, jobs, ocr_results, translations, payment_transactions, subscriptions
+// Excluded: payments (dead Stripe-era table), ton_payments (renamed), wallet_links (dropped)
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -216,10 +213,13 @@ export type Database = {
           payment_provider: string;
           status: 'pending' | 'completed' | 'expired' | 'failed';
           provider_transaction_id: string | null;
+          /** Raw JSON payload from payment provider webhook — for audit/dispute handling */
+          raw_payload: Json | null;
           /** Client IP at payment creation — fraud prevention and dispute handling only */
           ip_address: string | null;
           expires_at: string;
           created_at: string;
+          updated_at: string;
         };
         Insert: {
           id?: string;
@@ -231,19 +231,23 @@ export type Database = {
           payment_provider?: string;
           status?: 'pending' | 'completed' | 'expired' | 'failed';
           provider_transaction_id?: string | null;
+          raw_payload?: Json | null;
           ip_address?: string | null;
           expires_at: string;
           created_at?: string;
+          updated_at?: string;
         };
         Update: {
           status?: 'pending' | 'completed' | 'expired' | 'failed';
           provider_transaction_id?: string | null;
+          raw_payload?: Json | null;
           ip_address?: string | null;
+          updated_at?: string;
         };
         Relationships: [
-          { foreignKeyName: 'ton_payments_user_id_fkey'; columns: ['user_id']; referencedRelation: 'users'; referencedColumns: ['id'] },
-          { foreignKeyName: 'ton_payments_document_id_fkey'; columns: ['document_id']; referencedRelation: 'documents'; referencedColumns: ['id'] },
-          { foreignKeyName: 'ton_payments_job_id_fkey'; columns: ['job_id']; referencedRelation: 'jobs'; referencedColumns: ['id'] },
+          { foreignKeyName: 'payment_transactions_user_id_fkey'; columns: ['user_id']; referencedRelation: 'users'; referencedColumns: ['id'] },
+          { foreignKeyName: 'payment_transactions_document_id_fkey'; columns: ['document_id']; referencedRelation: 'documents'; referencedColumns: ['id'] },
+          { foreignKeyName: 'payment_transactions_job_id_fkey'; columns: ['job_id']; referencedRelation: 'jobs'; referencedColumns: ['id'] },
         ];
       };
       subscriptions: {
@@ -282,39 +286,6 @@ export type Database = {
         };
         Relationships: [
           { foreignKeyName: 'subscriptions_user_id_fkey'; columns: ['user_id']; referencedRelation: 'users'; referencedColumns: ['id'] },
-        ];
-      };
-      payments: {
-        Row: {
-          id: string;
-          user_id: string;
-          stripe_charge_id: string;
-          amount_cents: number;
-          document_id: string | null;
-          status: 'pending' | 'completed' | 'failed';
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          user_id: string;
-          stripe_charge_id: string;
-          amount_cents: number;
-          document_id?: string | null;
-          status: 'pending' | 'completed' | 'failed';
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          user_id?: string;
-          stripe_charge_id?: string;
-          amount_cents?: number;
-          document_id?: string | null;
-          status?: 'pending' | 'completed' | 'failed';
-          created_at?: string;
-        };
-        Relationships: [
-          { foreignKeyName: 'payments_user_id_fkey'; columns: ['user_id']; referencedRelation: 'users'; referencedColumns: ['id'] },
-          { foreignKeyName: 'payments_document_id_fkey'; columns: ['document_id']; referencedRelation: 'documents'; referencedColumns: ['id'] },
         ];
       };
     };

@@ -43,29 +43,17 @@ Go to: **Project → Settings → API**
 
 Open: **Project → SQL Editor**
 
-Run each file in order by copying its contents and clicking **Run**:
+For a **fresh staging project**, paste and run the single clean init file:
 
 ```
-supabase/migrations/0001_initial_schema.sql
-supabase/migrations/0002_auth_user_trigger.sql
-supabase/migrations/0003_ton_payments.sql
-supabase/migrations/0004_wallet_links.sql
-supabase/migrations/0005_subscriptions.sql
-supabase/migrations/0006_jobs_notarized.sql
-supabase/migrations/0007_documents_detected_source_language.sql
-supabase/migrations/0008_rename_payments.sql
-supabase/migrations/0009_add_ip_capture.sql
-supabase/migrations/0010_users_terms_accepted_at.sql
-supabase/migrations/0011_official_workflow_fields.sql
+supabase/STAGING_INIT_ALL.sql
 ```
 
-Then apply the consolidated payment migration (only if migrations 0008+ were not yet applied):
-```
-supabase/APPLY_TO_SUPABASE.sql
-```
+This creates the full target schema in one shot — no TON/crypto tables, no legacy columns.
 
-> **Note:** `0011_official_workflow_fields.sql` is idempotent (uses `IF NOT EXISTS`).
-> Safe to run even if the fields were added manually before.
+> Do NOT run individual `0003_ton_payments.sql` or `0004_wallet_links.sql` — those are
+> archived legacy files. Do NOT run `APPLY_TO_SUPABASE.sql` — that was a one-time
+> production migration script, now archived.
 
 ### B.4 Create a test user
 
