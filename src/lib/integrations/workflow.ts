@@ -1,5 +1,13 @@
 // Integration workflow orchestrator: Jira + Drive + Telegram + Audit log
-// Called by the upload route (post-upload) and the Jira webhook handler (stage transitions).
+//
+// Architecture:
+//  • WPO creates ONE Jira issue per order via REST API (initializeOrderIntegrations).
+//  • WPO updates that issue after AI draft is ready (transitionToTranslatorReview).
+//  • Jira Automation handles all subsequent transitions within Jira
+//    (assignee, security level, status) when translator/notary act.
+//  • Jira Automation sends a callback to /api/webhooks/jira for reverse sync:
+//    WPO only updates Supabase, writes audit, and sends Telegram/email notifications.
+//    The callback does NOT create a new issue or perform Jira API transitions.
 
 import { supabaseServer } from '../supabase/server';
 import {
@@ -270,31 +278,22 @@ export async function transitionToTranslatorReview(params: {
   }
 }
 
-// ─── 3. Translator done → certified: return to operator ──────────────────────
+// ─── 3–7. Jira → WPO reverse sync (Supabase update + audit + Telegram only)
+//
+// Jira Automation has already completed the Jira-side changes (assignee, security level,
+// status transition, comments). These functions only sync WPO's Supabase state and
+// send Telegram notifications. They must NOT call Jira API.
 
-export async function transitionCertifiedToOperator(params: {
+export async function syncTranslatorDoneCertified(params: {
   jobId: string;
   jiraIssueKey: string;
 }): Promise<void> {
   const tag = `[integration:${params.jobId.slice(0, 8)}]`;
-
   try {
-    const ids = await getResolvedIds();
-
-    if (ids?.operatorAccountId) {
-      await assignJiraIssue(params.jiraIssueKey, ids.operatorAccountId);
-    }
-    if (ids?.securityLevelOperatorId) {
-      await setJiraSecurityLevel(params.jiraIssueKey, ids.securityLevelOperatorId);
-    }
-    await transitionJiraIssue(params.jiraIssueKey, JIRA_PROJECT_CONFIG.transitionNames.toOperator);
-    await addJiraComment(params.jiraIssueKey, 'Translator review complete. Returned to operator for signature/stamp/final QA.');
-
     await updateJobIntegration(params.jobId, {
       jira_sync_status: 'operator_review',
       workflow_status: 'awaiting_signature_stamp',
     });
-
     await audit({
       jobId: params.jobId,
       actor: 'translator',
@@ -303,25 +302,24 @@ export async function transitionCertifiedToOperator(params: {
       newStatus: 'awaiting_signature_stamp',
       jiraIssueKey: params.jiraIssueKey,
     });
-
     void notifyOperatorTranslatorDone({
       jobId: params.jobId,
       jiraUrl: jiraUrl(params.jiraIssueKey),
       nextStep: 'operator_review',
     }).catch(() => undefined);
-
-    console.log(`${tag} ✓ certified returned to operator`);
+    console.log(`${tag} ✓ certified: Supabase synced, operator notified`);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error(`${tag} transitionCertifiedToOperator failed: ${msg}`);
+    console.error(`${tag} syncTranslatorDoneCertified failed: ${msg}`);
     await updateJobIntegration(params.jobId, { jira_sync_status: 'error', last_integration_error: msg });
     void notifyOperatorError({ jobId: params.jobId, error: msg, context: 'certified_to_operator' }).catch(() => undefined);
   }
 }
 
-// ─── 4. Translator done → notarization: forward to notary ────────────────────
+// Keep old export as alias for backward compat with tests/webhook
+export const transitionCertifiedToOperator = syncTranslatorDoneCertified;
 
-export async function transitionToNotary(params: {
+export async function syncTranslatorDoneNotarized(params: {
   jobId: string;
   jiraIssueKey: string;
   sourceLang: string;
@@ -331,32 +329,11 @@ export async function transitionToNotary(params: {
   driveUrl?: string | null;
 }): Promise<void> {
   const tag = `[integration:${params.jobId.slice(0, 8)}]`;
-
   try {
-    const ids = await getResolvedIds();
-
-    if (ids?.notaryAccountId) {
-      await assignJiraIssue(params.jiraIssueKey, ids.notaryAccountId);
-    }
-    if (ids?.securityLevelNotaryId) {
-      await setJiraSecurityLevel(params.jiraIssueKey, ids.securityLevelNotaryId);
-    }
-    await transitionJiraIssue(params.jiraIssueKey, JIRA_PROJECT_CONFIG.transitionNames.toNotary);
-    await addJiraComment(
-      params.jiraIssueKey,
-      [
-        'Translator review complete. Forwarded to notary.',
-        params.notaryCity ? `City: ${params.notaryCity}` : null,
-        params.fulfillmentMethod ? `Fulfillment: ${params.fulfillmentMethod}` : null,
-        params.driveUrl ? `Drive: ${params.driveUrl}` : null,
-      ].filter(Boolean).join('\n'),
-    );
-
     await updateJobIntegration(params.jobId, {
       jira_sync_status: 'notary_review',
       workflow_status: 'awaiting_notary_review',
     });
-
     await audit({
       jobId: params.jobId,
       actor: 'system',
@@ -365,7 +342,6 @@ export async function transitionToNotary(params: {
       newStatus: 'awaiting_notary_review',
       jiraIssueKey: params.jiraIssueKey,
     });
-
     const jUrl = jiraUrl(params.jiraIssueKey);
     void Promise.all([
       notifyNotaryNewAssignment({
@@ -379,41 +355,28 @@ export async function transitionToNotary(params: {
       }),
       notifyOperatorTranslatorDone({ jobId: params.jobId, jiraUrl: jUrl, nextStep: 'notary' }),
     ]).catch((e) => console.error(`${tag} Telegram failed:`, e));
-
-    console.log(`${tag} ✓ forwarded to notary`);
+    console.log(`${tag} ✓ notarized: Supabase synced, notary notified`);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error(`${tag} transitionToNotary failed: ${msg}`);
+    console.error(`${tag} syncTranslatorDoneNotarized failed: ${msg}`);
     await updateJobIntegration(params.jobId, { jira_sync_status: 'error', last_integration_error: msg });
     void notifyOperatorError({ jobId: params.jobId, error: msg, context: 'to_notary' }).catch(() => undefined);
   }
 }
 
-// ─── 5. Notary done → return to operator ─────────────────────────────────────
+// Keep old export as alias
+export const transitionToNotary = syncTranslatorDoneNotarized;
 
-export async function transitionNotaryToOperator(params: {
+export async function syncNotaryDone(params: {
   jobId: string;
   jiraIssueKey: string;
 }): Promise<void> {
   const tag = `[integration:${params.jobId.slice(0, 8)}]`;
-
   try {
-    const ids = await getResolvedIds();
-
-    if (ids?.operatorAccountId) {
-      await assignJiraIssue(params.jiraIssueKey, ids.operatorAccountId);
-    }
-    if (ids?.securityLevelOperatorId) {
-      await setJiraSecurityLevel(params.jiraIssueKey, ids.securityLevelOperatorId);
-    }
-    await transitionJiraIssue(params.jiraIssueKey, JIRA_PROJECT_CONFIG.transitionNames.toOperator);
-    await addJiraComment(params.jiraIssueKey, 'Notarization complete. Returned to operator for final QA / delivery.');
-
     await updateJobIntegration(params.jobId, {
       jira_sync_status: 'final_qa',
       workflow_status: 'awaiting_final_qa',
     });
-
     await audit({
       jobId: params.jobId,
       actor: 'notary',
@@ -422,14 +385,132 @@ export async function transitionNotaryToOperator(params: {
       newStatus: 'awaiting_final_qa',
       jiraIssueKey: params.jiraIssueKey,
     });
-
     void notifyOperatorNotaryDone({ jobId: params.jobId, jiraUrl: jiraUrl(params.jiraIssueKey) }).catch(() => undefined);
-
-    console.log(`${tag} ✓ notary done — returned to operator`);
+    console.log(`${tag} ✓ notary done: Supabase synced, operator notified`);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error(`${tag} transitionNotaryToOperator failed: ${msg}`);
+    console.error(`${tag} syncNotaryDone failed: ${msg}`);
     await updateJobIntegration(params.jobId, { jira_sync_status: 'error', last_integration_error: msg });
     void notifyOperatorError({ jobId: params.jobId, error: msg, context: 'notary_to_operator' }).catch(() => undefined);
+  }
+}
+
+// Keep old export as alias
+export const transitionNotaryToOperator = syncNotaryDone;
+
+export async function syncTranslatorDeclined(params: {
+  jobId: string;
+  jiraIssueKey: string;
+}): Promise<void> {
+  const tag = `[integration:${params.jobId.slice(0, 8)}]`;
+  try {
+    await updateJobIntegration(params.jobId, {
+      jira_sync_status: 'translator_declined',
+      workflow_status: 'translator_declined',
+    });
+    await audit({
+      jobId: params.jobId,
+      actor: 'translator',
+      source: 'jira_webhook',
+      action: 'translator_declined',
+      newStatus: 'translator_declined',
+      jiraIssueKey: params.jiraIssueKey,
+    });
+    void notifyOperatorError({
+      jobId: params.jobId,
+      error: 'Translator declined the assignment',
+      context: 'translator_declined',
+    }).catch(() => undefined);
+    console.log(`${tag} ✓ translator declined: Supabase synced, operator notified`);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`${tag} syncTranslatorDeclined failed: ${msg}`);
+  }
+}
+
+export async function syncNotaryDeclined(params: {
+  jobId: string;
+  jiraIssueKey: string;
+}): Promise<void> {
+  const tag = `[integration:${params.jobId.slice(0, 8)}]`;
+  try {
+    await updateJobIntegration(params.jobId, {
+      jira_sync_status: 'notary_declined',
+      workflow_status: 'notary_declined',
+    });
+    await audit({
+      jobId: params.jobId,
+      actor: 'notary',
+      source: 'jira_webhook',
+      action: 'notary_declined',
+      newStatus: 'notary_declined',
+      jiraIssueKey: params.jiraIssueKey,
+    });
+    void notifyOperatorError({
+      jobId: params.jobId,
+      error: 'Notary declined the assignment',
+      context: 'notary_declined',
+    }).catch(() => undefined);
+    console.log(`${tag} ✓ notary declined: Supabase synced, operator notified`);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`${tag} syncNotaryDeclined failed: ${msg}`);
+  }
+}
+
+export async function syncReadyForDelivery(params: {
+  jobId: string;
+  jiraIssueKey: string;
+}): Promise<void> {
+  const tag = `[integration:${params.jobId.slice(0, 8)}]`;
+  try {
+    await updateJobIntegration(params.jobId, {
+      jira_sync_status: 'ready_for_delivery',
+      workflow_status: 'ready_for_delivery',
+    });
+    await audit({
+      jobId: params.jobId,
+      actor: 'operator',
+      source: 'jira_webhook',
+      action: 'ready_for_delivery',
+      newStatus: 'ready_for_delivery',
+      jiraIssueKey: params.jiraIssueKey,
+    });
+    // Customer delivery email is triggered separately by the operator or an automated email flow.
+    console.log(`${tag} ✓ ready for delivery: Supabase synced`);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`${tag} syncReadyForDelivery failed: ${msg}`);
+  }
+}
+
+export async function syncJobTerminated(params: {
+  jobId: string;
+  jiraIssueKey: string;
+  reason: 'failed' | 'canceled';
+}): Promise<void> {
+  const tag = `[integration:${params.jobId.slice(0, 8)}]`;
+  try {
+    await updateJobIntegration(params.jobId, {
+      jira_sync_status: params.reason,
+      workflow_status: params.reason,
+    });
+    await audit({
+      jobId: params.jobId,
+      actor: 'system',
+      source: 'jira_webhook',
+      action: `job_${params.reason}`,
+      newStatus: params.reason,
+      jiraIssueKey: params.jiraIssueKey,
+    });
+    void notifyOperatorError({
+      jobId: params.jobId,
+      error: `Job ${params.reason} via Jira`,
+      context: `job_${params.reason}`,
+    }).catch(() => undefined);
+    console.log(`${tag} ✓ job ${params.reason}: Supabase synced`);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`${tag} syncJobTerminated(${params.reason}) failed: ${msg}`);
   }
 }

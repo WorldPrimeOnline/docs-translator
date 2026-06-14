@@ -1,23 +1,48 @@
+// Jira → WPO reverse-sync webhook.
+//
+// Purpose: sync WPO Supabase state and send Telegram/email notifications
+// when Jira Automation fires at key workflow milestones.
+//
+// Architecture reminder:
+//  • WPO creates the Jira issue via REST API on order creation.
+//  • Jira Automation handles all Jira-side transitions (assignee, security level, status).
+//  • This endpoint is for SYNC ONLY — it never creates a new Jira issue
+//    and never calls Jira transitions in response to an inbound callback.
+
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { supabaseServer } from '@/lib/supabase/server';
 import {
-  transitionCertifiedToOperator,
-  transitionToNotary,
-  transitionNotaryToOperator,
+  syncTranslatorDoneCertified,
+  syncTranslatorDoneNotarized,
+  syncNotaryDone,
+  syncTranslatorDeclined,
+  syncNotaryDeclined,
+  syncReadyForDelivery,
+  syncJobTerminated,
 } from '@/lib/integrations/workflow';
 
 // ─── Payload schema ───────────────────────────────────────────────────────────
-// Jira Automation sends a POST with a custom payload configured in the automation rule.
-// Required fields: eventId (idempotency), event, issueKey, jobId
+
 const JiraWebhookSchema = z.object({
   /** Unique ID for this event — used for idempotency */
   eventId: z.string().min(1),
-  /** e.g. "TRANSLATOR_DONE", "NOTARY_DONE" */
-  event: z.enum(['TRANSLATOR_DONE', 'NOTARY_DONE']),
+  /**
+   * Event name sent by Jira Automation.
+   * Configure your Jira Automation rules to send these values.
+   */
+  event: z.enum([
+    'TRANSLATOR_DONE',      // translator completed the translation
+    'TRANSLATOR_DECLINED',  // translator declined / returned the assignment
+    'NOTARY_DONE',          // notary completed the notarization
+    'NOTARY_DECLINED',      // notary declined / returned the assignment
+    'JOB_FAILED',           // job marked failed in Jira
+    'JOB_CANCELED',         // job canceled
+    'READY_FOR_DELIVERY',   // operator approved — ready for customer delivery
+  ]),
   /** Jira issue key, e.g. "WPO-42" */
   issueKey: z.string().min(1),
-  /** WPO job ID (UUID) stored in the Jira issue description */
+  /** WPO job ID (UUID) stored in the Jira issue — used to locate the Supabase row */
   jobId: z.string().uuid(),
   /** Optional correlation ID for tracing */
   correlationId: z.string().optional(),
@@ -25,7 +50,7 @@ const JiraWebhookSchema = z.object({
 
 type JiraWebhookPayload = z.infer<typeof JiraWebhookSchema>;
 
-// Simple in-process idempotency guard — survives single instance restarts via Supabase audit log
+// Simple in-process idempotency guard (survives single-instance restarts via Supabase audit log)
 const processedEventIds = new Set<string>();
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -85,7 +110,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Job not found' }, { status: 404 });
   }
 
-  // Verify issue matches
+  // Verify the Jira issue key matches what we have on record
   if (job.jira_issue_key && job.jira_issue_key !== issueKey) {
     return NextResponse.json(
       { error: 'issueKey does not match job record' },
@@ -93,7 +118,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  // ── 6. Validate allowed transition ─────────────────────────────────────────
+  // ── 6. Validate allowed event for this job's service level ─────────────────
   const serviceLevel = job.service_level ?? (job.notarized ? 'notarization_through_partners' : 'electronic');
 
   if (event === 'NOTARY_DONE' && serviceLevel !== 'notarization_through_partners') {
@@ -102,8 +127,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       { status: 422 },
     );
   }
+  if (event === 'NOTARY_DECLINED' && serviceLevel !== 'notarization_through_partners') {
+    return NextResponse.json(
+      { error: 'NOTARY_DECLINED event received for non-notarization job' },
+      { status: 422 },
+    );
+  }
 
-  // ── 7. Insert idempotency record before executing (prevents double-fire) ────
+  // ── 7. Write idempotency record before executing ────────────────────────────
   await supabaseServer.from('job_audit_log').insert({
     job_id: jobId,
     actor: 'webhook',
@@ -116,37 +147,64 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   processedEventIds.add(eventId);
 
-  // ── 8. Execute transition ───────────────────────────────────────────────────
+  // ── 8. Sync WPO state (Supabase + audit + Telegram) ────────────────────────
+  // Jira Automation has already handled the Jira-side changes.
+  // These functions ONLY update Supabase and send notifications.
   try {
-    if (event === 'TRANSLATOR_DONE') {
-      if (serviceLevel === 'notarization_through_partners') {
-        // Load document for language info
-        const { data: docRow } = await supabaseServer
-          .from('documents')
-          .select('source_language, target_language')
-          .eq('id', job.document_id ?? '')
-          .maybeSingle();
+    switch (event) {
+      case 'TRANSLATOR_DONE': {
+        if (serviceLevel === 'notarization_through_partners') {
+          // Load document for language pair (needed for notary notification)
+          const { data: docRow } = await supabaseServer
+            .from('documents')
+            .select('source_language, target_language')
+            .eq('id', job.document_id ?? '')
+            .maybeSingle();
 
-        await transitionToNotary({
-          jobId,
-          jiraIssueKey: issueKey,
-          sourceLang: docRow?.source_language ?? '',
-          targetLang: docRow?.target_language ?? '',
-          notaryCity: job.notary_city ?? null,
-          fulfillmentMethod: job.fulfillment_method ?? null,
-          driveUrl: job.google_drive_folder_url,
-        });
-      } else {
-        await transitionCertifiedToOperator({ jobId, jiraIssueKey: issueKey });
+          await syncTranslatorDoneNotarized({
+            jobId,
+            jiraIssueKey: issueKey,
+            sourceLang: docRow?.source_language ?? '',
+            targetLang: docRow?.target_language ?? '',
+            notaryCity: job.notary_city ?? null,
+            fulfillmentMethod: job.fulfillment_method ?? null,
+            driveUrl: job.google_drive_folder_url,
+          });
+        } else {
+          await syncTranslatorDoneCertified({ jobId, jiraIssueKey: issueKey });
+        }
+        break;
       }
-    } else if (event === 'NOTARY_DONE') {
-      await transitionNotaryToOperator({ jobId, jiraIssueKey: issueKey });
+
+      case 'TRANSLATOR_DECLINED':
+        await syncTranslatorDeclined({ jobId, jiraIssueKey: issueKey });
+        break;
+
+      case 'NOTARY_DONE':
+        await syncNotaryDone({ jobId, jiraIssueKey: issueKey });
+        break;
+
+      case 'NOTARY_DECLINED':
+        await syncNotaryDeclined({ jobId, jiraIssueKey: issueKey });
+        break;
+
+      case 'JOB_FAILED':
+        await syncJobTerminated({ jobId, jiraIssueKey: issueKey, reason: 'failed' });
+        break;
+
+      case 'JOB_CANCELED':
+        await syncJobTerminated({ jobId, jiraIssueKey: issueKey, reason: 'canceled' });
+        break;
+
+      case 'READY_FOR_DELIVERY':
+        await syncReadyForDelivery({ jobId, jiraIssueKey: issueKey });
+        break;
     }
 
     return NextResponse.json({ ok: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error('[jira-webhook] transition failed:', message);
+    console.error('[jira-webhook] sync failed:', message);
     // 500 → Jira Automation will retry
     return NextResponse.json({ error: message }, { status: 500 });
   }
