@@ -6,6 +6,7 @@ import { detectSourceLanguage } from '@/lib/translation/detect-language';
 import { renderToPdf, renderToPdfBuffer } from '@/lib/pdf/renderer';
 import { renderToDocx } from '@/lib/pdf/docx-renderer';
 import type { Tables } from '@/types';
+import type { ServiceLevel } from '@/lib/translation-prompts/types';
 
 type OutputFormat = 'html' | 'pdf' | 'docx';
 
@@ -52,10 +53,10 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
       .select('*')
       .eq('id', jobId)
       .single();
-    const serviceLevel =
-      jobRow?.notarized === true
-        ? 'official_with_translator_signature_and_provider_stamp' as const
-        : 'electronic' as const;
+    // Prefer service_level column; fall back to legacy notarized boolean for old rows
+    const serviceLevel: ServiceLevel =
+      (jobRow?.service_level as ServiceLevel | null | undefined) ??
+      (jobRow?.notarized === true ? 'official_with_translator_signature_and_provider_stamp' : 'electronic');
 
     const pdfBuffer = await downloadFile(doc.file_key);
     const { markdown, pageCount } = await extractTextFromPdf(pdfBuffer);

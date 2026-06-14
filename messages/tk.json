@@ -243,7 +243,34 @@
     "formatDocx": "Word (DOCX)",
     "fileCount1": "faýl",
     "fileCountN": "faýl",
-    "addMoreFiles": "Goşmak"
+    "addMoreFiles": "Goşmak",
+    "serviceLevel": {
+      "label": "HYZMAT DEREJESI",
+      "certified": {
+        "label": "Tassyklanan terjime",
+        "desc": "Terjime hünärmen terjimeçi tarapyndan barlanýar, gol çekilýär we WPO möhüri bilen tassyklanýar. Notariat resminamasy ýok."
+      },
+      "notarization": {
+        "label": "Notariat tassyklamaly terjime",
+        "desc": "Terjime terjimeçi tarapyndan barlanýar we gol çekilýär, WPO möhüri bilen tassyklanýar, soňra terjimeçiniň goluni tassyklamak üçin hyzmatdaş notariusa iberilýär."
+      }
+    },
+    "notary": {
+      "city": "ŞÄHER",
+      "cityPlaceholder": "Şäheri saýlaň",
+      "citiesNotConfigured": "Notariat hyzmaty siziň sebitiňizde heniz elýeterli däl. Biz bilen habarlaşyň.",
+      "fulfillment": "ALMAK ýa-da ELTIP BERMEK",
+      "pickup": "Almak",
+      "delivery": "Eltip bermek",
+      "phone": "TELEFON BELGISI",
+      "phonePlaceholder": "+7 (___) ___-__-__",
+      "address": "ELTIP BERIŞ SALGYSY",
+      "addressPlaceholder": "Köçe, bina, öý",
+      "cityRequired": "Şäheri saýlaň",
+      "fulfillmentRequired": "Almak ýa-da eltip bermegi saýlaň",
+      "phoneRequired": "Eltip bermek üçin telefon belgisi zerur",
+      "addressRequired": "Eltip bermek üçin salgy zerur"
+    }
   },
   "auth": {
     "login": "Giriş",

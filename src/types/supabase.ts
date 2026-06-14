@@ -92,12 +92,30 @@ export type Database = {
           progress_percent: number;
           priority: number;
           payment_source: 'card_payment' | 'subscription' | null;
+          /** @deprecated Use service_level instead. Kept for backward compat. */
           notarized: boolean;
           started_at: string | null;
           completed_at: string | null;
           created_at: string;
-          /** Added by add_official_workflow_fields.sql migration. Default: 'completed' for pre-migration rows. */
+          /** Workflow status for official translation pipeline. Default: 'completed' for pre-migration rows. */
           workflow_status: string | null;
+          /** Primary service level field. Supersedes notarized boolean. */
+          service_level: 'electronic' | 'official_with_translator_signature_and_provider_stamp' | 'notarization_through_partners' | null;
+          notary_city: string | null;
+          fulfillment_method: 'pickup' | 'delivery' | null;
+          /** Stored server-side only. Never synced to Jira/Telegram. */
+          delivery_phone: string | null;
+          /** Stored server-side only. Never synced to Jira/Telegram. */
+          delivery_address: string | null;
+          jira_issue_id: string | null;
+          jira_issue_key: string | null;
+          jira_issue_url: string | null;
+          google_drive_folder_id: string | null;
+          google_drive_folder_url: string | null;
+          jira_sync_status: string | null;
+          drive_sync_status: string | null;
+          last_integration_error: string | null;
+          last_synced_at: string | null;
         };
         Insert: {
           id?: string;
@@ -112,6 +130,20 @@ export type Database = {
           completed_at?: string | null;
           created_at?: string;
           workflow_status?: string | null;
+          service_level?: 'electronic' | 'official_with_translator_signature_and_provider_stamp' | 'notarization_through_partners' | null;
+          notary_city?: string | null;
+          fulfillment_method?: 'pickup' | 'delivery' | null;
+          delivery_phone?: string | null;
+          delivery_address?: string | null;
+          jira_issue_id?: string | null;
+          jira_issue_key?: string | null;
+          jira_issue_url?: string | null;
+          google_drive_folder_id?: string | null;
+          google_drive_folder_url?: string | null;
+          jira_sync_status?: string | null;
+          drive_sync_status?: string | null;
+          last_integration_error?: string | null;
+          last_synced_at?: string | null;
         };
         Update: {
           id?: string;
@@ -126,9 +158,55 @@ export type Database = {
           completed_at?: string | null;
           created_at?: string;
           workflow_status?: string | null;
+          service_level?: 'electronic' | 'official_with_translator_signature_and_provider_stamp' | 'notarization_through_partners' | null;
+          notary_city?: string | null;
+          fulfillment_method?: 'pickup' | 'delivery' | null;
+          delivery_phone?: string | null;
+          delivery_address?: string | null;
+          jira_issue_id?: string | null;
+          jira_issue_key?: string | null;
+          jira_issue_url?: string | null;
+          google_drive_folder_id?: string | null;
+          google_drive_folder_url?: string | null;
+          jira_sync_status?: string | null;
+          drive_sync_status?: string | null;
+          last_integration_error?: string | null;
+          last_synced_at?: string | null;
         };
         Relationships: [
           { foreignKeyName: 'jobs_document_id_fkey'; columns: ['document_id']; referencedRelation: 'documents'; referencedColumns: ['id'] },
+        ];
+      };
+      job_audit_log: {
+        Row: {
+          id: string;
+          job_id: string;
+          actor: string;
+          source: string;
+          action: string;
+          previous_status: string | null;
+          new_status: string | null;
+          jira_issue_key: string | null;
+          correlation_id: string | null;
+          metadata: Json | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          job_id: string;
+          actor: string;
+          source: string;
+          action: string;
+          previous_status?: string | null;
+          new_status?: string | null;
+          jira_issue_key?: string | null;
+          correlation_id?: string | null;
+          metadata?: Json | null;
+          created_at?: string;
+        };
+        Update: Record<string, never>;
+        Relationships: [
+          { foreignKeyName: 'job_audit_log_job_id_fkey'; columns: ['job_id']; referencedRelation: 'jobs'; referencedColumns: ['id'] },
         ];
       };
       ocr_results: {

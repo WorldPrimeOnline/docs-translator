@@ -27,6 +27,27 @@ const schema = z.object({
     .string()
     .default('true')
     .transform((v) => v.toLowerCase() !== 'false'),
+  // Jira integration (all optional — integrations gracefully skip if absent)
+  JIRA_BASE_URL: z.string().url().optional(),
+  JIRA_USER_EMAIL: z.string().email().optional(),
+  JIRA_API_TOKEN: z.string().optional(),
+  JIRA_PROJECT_KEY: z.string().optional(),
+  JIRA_TRANSLATOR_ACCOUNT_ID: z.string().optional(),
+  JIRA_OPERATOR_ACCOUNT_ID: z.string().optional(),
+  JIRA_NOTARY_ACCOUNT_ID: z.string().optional(),
+  JIRA_SECURITY_LEVEL_TRANSLATOR_ID: z.string().optional(),
+  JIRA_SECURITY_LEVEL_OPERATOR_ID: z.string().optional(),
+  JIRA_SECURITY_LEVEL_NOTARY_ID: z.string().optional(),
+  JIRA_TRANSITION_MAP_JSON: z.string().optional(),
+  JIRA_WEBHOOK_SECRET: z.string().optional(),
+  // Google Drive integration (optional)
+  GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON: z.string().optional(),
+  GOOGLE_DRIVE_ROOT_FOLDER_ID: z.string().optional(),
+  // Telegram notifications (optional)
+  TELEGRAM_BOT_TOKEN: z.string().optional(),
+  TELEGRAM_OPERATOR_CHAT_ID: z.string().optional(),
+  TELEGRAM_TRANSLATOR_CHAT_ID: z.string().optional(),
+  TELEGRAM_NOTARY_CHAT_ID: z.string().optional(),
 });
 
 function load() {

@@ -8,9 +8,17 @@ import { Upload, FileText, FileImage, FileCode2, Download, AlertCircle, Loader2,
 import { SubscriptionModal } from '@/components/subscription-modal';
 import { createClient } from '@/lib/supabase/client';
 import { Link } from '@/i18n/navigation';
+import { NOTARY_CITIES } from '@/lib/notary/cities';
 import type { Tables } from '@/types';
 
 type Document = Tables<'documents'>;
+
+type ServiceLevel =
+  | 'electronic'
+  | 'official_with_translator_signature_and_provider_stamp'
+  | 'notarization_through_partners';
+
+type FulfillmentMethod = 'pickup' | 'delivery';
 
 type JobStatus =
   | 'queued'
@@ -182,10 +190,51 @@ function SubscriptionCard({
   );
 }
 
+// Service level radio card component
+function ServiceLevelCard({
+  value,
+  current,
+  label,
+  description,
+  onChange,
+}: {
+  value: ServiceLevel;
+  current: ServiceLevel;
+  label: string;
+  description: string;
+  onChange: (v: ServiceLevel) => void;
+}) {
+  const selected = current === value;
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(selected ? 'electronic' : value)}
+      className={`flex w-full items-start gap-3 rounded-lg border px-4 py-3.5 text-left transition-all duration-150 ${
+        selected
+          ? 'border-primary/40 bg-primary/5'
+          : 'border-white/10 bg-transparent hover:border-white/20 hover:bg-white/[0.02]'
+      }`}
+    >
+      <span
+        className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors ${
+          selected ? 'border-primary bg-primary' : 'border-white/30 bg-transparent'
+        }`}
+      >
+        {selected && <span className="h-2 w-2 rounded-full bg-primary-foreground" />}
+      </span>
+      <span className="flex flex-col gap-0.5">
+        <span className="text-sm font-medium text-foreground">{label}</span>
+        <span className="text-xs leading-relaxed text-muted-foreground">{description}</span>
+      </span>
+    </button>
+  );
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const t = useTranslations('dashboard');
   const tLegal = useTranslations('legal');
+  const locale = useLocale();
 
   const LANGUAGES = [
     { value: 'auto', label: t('langs.auto') },
@@ -202,17 +251,17 @@ export default function DashboardPage() {
   ];
 
   const DOCUMENT_TYPES = [
-    { value: 'passport_id',        label: t('docTypes.passport_id')        },
-    { value: 'diploma_transcript', label: t('docTypes.diploma_transcript') },
-    { value: 'contract',           label: t('docTypes.contract')           },
-    { value: 'bank_statement',     label: t('docTypes.bank_statement')     },
-    { value: 'medical_document',   label: t('docTypes.medical_document')   },
-    { value: 'employment_document',label: t('docTypes.employment_document')},
-    { value: 'police_clearance',   label: t('docTypes.police_clearance')   },
-    { value: 'visa_documents',     label: t('docTypes.visa_documents')     },
-    { value: 'driver_license',     label: t('docTypes.driver_license')     },
-    { value: 'presentation',       label: t('docTypes.presentation')       },
-    { value: 'other',              label: t('docTypes.other')              },
+    { value: 'passport_id',        label: t('docTypes.passport_id')         },
+    { value: 'diploma_transcript', label: t('docTypes.diploma_transcript')  },
+    { value: 'contract',           label: t('docTypes.contract')            },
+    { value: 'bank_statement',     label: t('docTypes.bank_statement')      },
+    { value: 'medical_document',   label: t('docTypes.medical_document')    },
+    { value: 'employment_document',label: t('docTypes.employment_document') },
+    { value: 'police_clearance',   label: t('docTypes.police_clearance')    },
+    { value: 'visa_documents',     label: t('docTypes.visa_documents')      },
+    { value: 'driver_license',     label: t('docTypes.driver_license')      },
+    { value: 'presentation',       label: t('docTypes.presentation')        },
+    { value: 'other',              label: t('docTypes.other')               },
   ];
 
   function statusLabel(status: JobStatus, progress: number): string {
@@ -236,9 +285,17 @@ export default function DashboardPage() {
   const [targetLang, setTargetLang] = useState('en');
   const [documentType, setDocumentType] = useState('other');
   const [outputFormat, setOutputFormat] = useState<'html' | 'pdf' | 'docx'>('pdf');
-  const [notarized, setNotarized] = useState(false);
+
+  // Service level — replaces old `notarized` boolean
+  const [serviceLevel, setServiceLevel] = useState<ServiceLevel>('electronic');
+
+  // Notary delivery fields — only shown for notarization_through_partners
+  const [notaryCity, setNotaryCity] = useState('');
+  const [fulfillmentMethod, setFulfillmentMethod] = useState<FulfillmentMethod | ''>('');
+  const [deliveryPhone, setDeliveryPhone] = useState('');
+  const [deliveryAddress, setDeliveryAddress] = useState('');
+
   const [uploading, setUploading] = useState(false);
-  // null = loading, true = already accepted in DB, false = not yet accepted
   const [termsAccepted, setTermsAccepted] = useState<boolean | null>(null);
   const [consentChecked, setConsentChecked] = useState(false);
 
@@ -249,6 +306,29 @@ export default function DashboardPage() {
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // When switching away from notarization, clear all delivery fields
+  const handleServiceLevelChange = (newLevel: ServiceLevel) => {
+    setServiceLevel(newLevel);
+    if (newLevel !== 'notarization_through_partners') {
+      setNotaryCity('');
+      setFulfillmentMethod('');
+      setDeliveryPhone('');
+      setDeliveryAddress('');
+    }
+  };
+
+  // When switching fulfillment method, clear delivery fields if switching to pickup
+  const handleFulfillmentMethodChange = (method: FulfillmentMethod) => {
+    setFulfillmentMethod(method);
+    if (method === 'pickup') {
+      setDeliveryPhone('');
+      setDeliveryAddress('');
+    }
+  };
+
+  const isNotarization = serviceLevel === 'notarization_through_partners';
+  const isDelivery = isNotarization && fulfillmentMethod === 'delivery';
 
   const loadSubscription = useCallback(async (): Promise<void> => {
     try {
@@ -370,13 +450,26 @@ export default function DashboardPage() {
 
   const totalSize = files.reduce((s, f) => s + f.size, 0);
 
+  const isFormValid =
+    files.length > 0 &&
+    termsAccepted !== null &&
+    (termsAccepted === true || consentChecked) &&
+    (!isNotarization ||
+      (notaryCity.length > 0 &&
+        fulfillmentMethod !== '' &&
+        (!isDelivery || (deliveryPhone.length > 0 && deliveryAddress.length > 0))));
+
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
+    if (!isFormValid) return;
     if (files.length === 0) { toast.error('Please select at least one file'); return; }
+    if (isNotarization && !notaryCity) { toast.error(t('notary.cityRequired')); return; }
+    if (isNotarization && !fulfillmentMethod) { toast.error(t('notary.fulfillmentRequired')); return; }
+    if (isDelivery && !deliveryPhone) { toast.error(t('notary.phoneRequired')); return; }
+    if (isDelivery && !deliveryAddress) { toast.error(t('notary.addressRequired')); return; }
 
     setUploading(true);
 
-    // Persist terms acceptance on first use — server will verify this before processing upload.
     if (!termsAccepted) {
       const acceptRes = await fetch('/api/users/accept-terms', { method: 'POST' });
       if (!acceptRes.ok) {
@@ -386,12 +479,22 @@ export default function DashboardPage() {
       }
       setTermsAccepted(true);
     }
+
     const form = new FormData();
     for (const f of files) form.append('file', f);
     form.append('sourceLang', sourceLang);
     form.append('targetLang', targetLang);
     form.append('documentType', `${documentType}|${outputFormat}`);
-    form.append('notarized', String(notarized));
+    form.append('serviceLevel', serviceLevel);
+
+    if (isNotarization) {
+      form.append('notaryCity', notaryCity);
+      if (fulfillmentMethod) form.append('fulfillmentMethod', fulfillmentMethod);
+      if (isDelivery) {
+        form.append('deliveryPhone', deliveryPhone);
+        form.append('deliveryAddress', deliveryAddress);
+      }
+    }
 
     const res = await fetch('/api/documents/upload', { method: 'POST', body: form });
     const data = (await res.json()) as {
@@ -440,6 +543,7 @@ export default function DashboardPage() {
   };
 
   const selectClass = 'rounded-md border border-white/10 bg-input px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring transition-colors hover:border-white/20';
+  const inputClass = 'rounded-md border border-white/10 bg-input px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring transition-colors hover:border-white/20 w-full';
 
   const useSubscription = subscription && subscription.documentsUsed < subscription.documentsLimit;
 
@@ -598,32 +702,119 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Notarized option */}
-          <button
-            type="button"
-            onClick={() => setNotarized((v) => !v)}
-            className={`flex w-full items-start gap-3 rounded-lg border px-4 py-3.5 text-left transition-all duration-150 ${
-              notarized
-                ? 'border-primary/40 bg-primary/5'
-                : 'border-white/10 bg-transparent hover:border-white/20 hover:bg-white/[0.02]'
-            }`}
-          >
-            <span
-              className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors ${
-                notarized ? 'border-primary bg-primary' : 'border-white/30 bg-transparent'
-              }`}
-            >
-              {notarized && (
-                <svg className="h-2.5 w-2.5 text-primary-foreground" fill="none" viewBox="0 0 10 10">
-                  <path d="M1.5 5l2.5 2.5 4.5-4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
+          {/* Service level selection */}
+          <div className="flex flex-col gap-2">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              {t('serviceLevel.label')}
+            </p>
+            <div className="flex flex-col gap-2">
+              <ServiceLevelCard
+                value="official_with_translator_signature_and_provider_stamp"
+                current={serviceLevel}
+                label={t('serviceLevel.certified.label')}
+                description={t('serviceLevel.certified.desc')}
+                onChange={handleServiceLevelChange}
+              />
+              <ServiceLevelCard
+                value="notarization_through_partners"
+                current={serviceLevel}
+                label={t('serviceLevel.notarization.label')}
+                description={t('serviceLevel.notarization.desc')}
+                onChange={handleServiceLevelChange}
+              />
+            </div>
+          </div>
+
+          {/* Notary delivery fields — shown only for notarization */}
+          {isNotarization && (
+            <div className="flex flex-col gap-4 rounded-lg border border-white/10 bg-white/[0.02] p-4">
+              {/* City select */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  {t('notary.city')} <span className="text-red-400">*</span>
+                </label>
+                {NOTARY_CITIES.length > 0 ? (
+                  <select
+                    value={notaryCity}
+                    onChange={(e) => setNotaryCity(e.target.value)}
+                    className={selectClass}
+                    required
+                  >
+                    <option value="">{t('notary.cityPlaceholder')}</option>
+                    {NOTARY_CITIES.map((c) => (
+                      <option key={c.value} value={c.value}>
+                        {c.label[locale] ?? c.label['en'] ?? c.value}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <p className="text-xs text-amber-400">{t('notary.citiesNotConfigured')}</p>
+                )}
+              </div>
+
+              {/* Fulfillment method */}
+              <div className="flex flex-col gap-1.5">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  {t('notary.fulfillment')} <span className="text-red-400">*</span>
+                </p>
+                <div className="flex gap-2">
+                  {(['pickup', 'delivery'] as FulfillmentMethod[]).map((method) => (
+                    <button
+                      key={method}
+                      type="button"
+                      onClick={() => handleFulfillmentMethodChange(method)}
+                      className={`flex flex-1 items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm transition-all duration-150 ${
+                        fulfillmentMethod === method
+                          ? 'border-primary/40 bg-primary/5 text-foreground font-medium'
+                          : 'border-white/10 bg-transparent text-muted-foreground hover:border-white/20 hover:text-foreground'
+                      }`}
+                    >
+                      <span
+                        className={`flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border transition-colors ${
+                          fulfillmentMethod === method ? 'border-primary bg-primary' : 'border-white/30'
+                        }`}
+                      >
+                        {fulfillmentMethod === method && <span className="h-1.5 w-1.5 rounded-full bg-primary-foreground" />}
+                      </span>
+                      {method === 'pickup' ? t('notary.pickup') : t('notary.delivery')}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Delivery fields */}
+              {isDelivery && (
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      {t('notary.phone')} <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      value={deliveryPhone}
+                      onChange={(e) => setDeliveryPhone(e.target.value)}
+                      placeholder={t('notary.phonePlaceholder')}
+                      className={inputClass}
+                      required={isDelivery}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      {t('notary.address')} <span className="text-red-400">*</span>
+                    </label>
+                    <textarea
+                      value={deliveryAddress}
+                      onChange={(e) => setDeliveryAddress(e.target.value)}
+                      placeholder={t('notary.addressPlaceholder')}
+                      className={`${inputClass} min-h-[80px] resize-none`}
+                      required={isDelivery}
+                      rows={3}
+                    />
+                  </div>
+                </div>
               )}
-            </span>
-            <span className="flex flex-col gap-0.5">
-              <span className="text-sm font-medium text-foreground">{t('notarizedLabel')}</span>
-              <span className="text-xs leading-relaxed text-muted-foreground">{t('notarizedDesc')}</span>
-            </span>
-          </button>
+            </div>
+          )}
 
           {/* Subscription hint */}
           {subscription && subscription.documentsUsed >= subscription.documentsLimit ? (
@@ -637,8 +828,7 @@ export default function DashboardPage() {
                   className="underline underline-offset-2 hover:text-amber-300"
                 >
                   {t('upgradeToPro')}
-                </button>{' '}
-                or continue with pay-per-document below.
+                </button>
               </p>
             </div>
           ) : subscription ? (
@@ -650,7 +840,7 @@ export default function DashboardPage() {
             </p>
           ) : null}
 
-          {/* Consent block: checkbox on first use, indicator on repeat visits */}
+          {/* Consent block */}
           {termsAccepted === false ? (
             <label className="flex cursor-pointer items-start gap-2.5">
               <input
@@ -662,47 +852,24 @@ export default function DashboardPage() {
               <span className="text-xs leading-relaxed text-muted-foreground">
                 {tLegal.rich('consentText', {
                   offerLink: (chunks) => (
-                    <Link
-                      href={{ pathname: '/legal/offer' }}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="underline underline-offset-2 transition-colors hover:text-foreground"
-                    >
-                      {chunks}
-                    </Link>
+                    <Link href={{ pathname: '/legal/offer' }} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 transition-colors hover:text-foreground">{chunks}</Link>
                   ),
                   privacyLink: (chunks) => (
-                    <Link
-                      href={{ pathname: '/legal/privacy' }}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="underline underline-offset-2 transition-colors hover:text-foreground"
-                    >
-                      {chunks}
-                    </Link>
+                    <Link href={{ pathname: '/legal/privacy' }} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 transition-colors hover:text-foreground">{chunks}</Link>
                   ),
                   consentLink: (chunks) => (
-                    <Link
-                      href={{ pathname: '/legal/personal-data-consent' }}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="underline underline-offset-2 transition-colors hover:text-foreground"
-                    >
-                      {chunks}
-                    </Link>
+                    <Link href={{ pathname: '/legal/personal-data-consent' }} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 transition-colors hover:text-foreground">{chunks}</Link>
                   ),
                 })}
               </span>
             </label>
           ) : termsAccepted === true ? (
-            <p className="text-xs text-muted-foreground/60">
-              ✓ {tLegal('termsAccepted')}
-            </p>
+            <p className="text-xs text-muted-foreground/60">✓ {tLegal('termsAccepted')}</p>
           ) : null}
 
           <button
             type="submit"
-            disabled={uploading || files.length === 0 || termsAccepted === null || (termsAccepted === false && !consentChecked)}
+            disabled={uploading || !isFormValid}
             className="inline-flex w-fit items-center justify-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-gold-dark disabled:pointer-events-none disabled:opacity-50"
           >
             {uploading ? (

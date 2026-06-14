@@ -243,7 +243,34 @@
     "formatDocx": "Word (DOCX)",
     "fileCount1": "fayl",
     "fileCountN": "fayl",
-    "addMoreFiles": "Ko'proq qo'shish"
+    "addMoreFiles": "Ko'proq qo'shish",
+    "serviceLevel": {
+      "label": "XIZMAT DARAJASI",
+      "certified": {
+        "label": "Tasdiqlangan tarjima",
+        "desc": "Tarjima malakali tarjimon tomonidan tekshiriladi, imzolanadi va WPO muhri bilan tasdiqlanadi. Notarial tasdiqsiz."
+      },
+      "notarization": {
+        "label": "Notarial tasdiqlangan tarjima",
+        "desc": "Tarjima tekshiriladi va imzolanadi, WPO muhri bilan tasdiqlanadi, keyin tarjimon imzosini tasdiqlash uchun hamkor notariusga yuboriladi."
+      }
+    },
+    "notary": {
+      "city": "SHAHAR",
+      "cityPlaceholder": "Shaharni tanlang",
+      "citiesNotConfigured": "Notarial xizmat sizning hududingizda hali mavjud emas. Biz bilan bog'laning.",
+      "fulfillment": "OLIB KETISH YOKI YETKAZIB BERISH",
+      "pickup": "Olib ketish",
+      "delivery": "Yetkazib berish",
+      "phone": "TELEFON RAQAMI",
+      "phonePlaceholder": "+7 (___) ___-__-__",
+      "address": "YETKAZIB BERISH MANZILI",
+      "addressPlaceholder": "Ko'cha, bino, xonadon",
+      "cityRequired": "Iltimos, shaharni tanlang",
+      "fulfillmentRequired": "Olib ketish yoki yetkazib berishni tanlang",
+      "phoneRequired": "Yetkazib berish uchun telefon raqami kerak",
+      "addressRequired": "Yetkazib berish uchun manzil kerak"
+    }
   },
   "auth": {
     "login": "Kirish",

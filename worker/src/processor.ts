@@ -7,10 +7,11 @@ import { renderToHtml } from './lib/renderer';
 import { generatePdfFromHtml } from './lib/pdf';
 import { renderToDocx } from './lib/docx-renderer';
 import { sendTranslationReady, sendDocumentReceivedForReview } from './lib/email';
-import { computeOutputPlan } from './lib/output-plan';
+import { computeOutputPlan, type ServiceLevel } from './lib/output-plan';
 import { mergeVisualElements, extractVisualElementsFromTranslated } from './lib/visual-elements';
 import { runQaChecks } from './lib/qa';
 import { env } from './lib/env';
+import { triggerTranslatorReview } from './lib/integrations';
 
 type JobStatus = JobRow['status'];
 type OutputFormat = 'html' | 'pdf' | 'docx';
@@ -67,13 +68,11 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
       .eq('id', jobId)
       .single<JobRow>();
 
-    // Compute output plan from notarized flag
-    const plan = computeOutputPlan(jobRow?.notarized);
+    // Prefer service_level column; fall back to legacy notarized boolean for old rows
+    const resolvedServiceLevel = jobRow?.service_level ?? (jobRow?.notarized ? 'notarization_through_partners' : 'electronic');
+    const plan = computeOutputPlan(resolvedServiceLevel);
 
-    const serviceLevel =
-      plan.mode === 'translator_review_draft' || plan.mode === 'official_translation' || plan.mode === 'notarization_package'
-        ? 'official_with_translator_signature_and_provider_stamp' as const
-        : 'electronic' as const;
+    const serviceLevel = resolvedServiceLevel;
 
     // ── 2. OCR ───────────────────────────────────────────────────────────────
     await updateJob(jobId, 'ocr_in_progress', 10);
@@ -161,8 +160,8 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
     const translatedVisualElements = extractVisualElementsFromTranslated(translatedMarkdown);
     const allVisualElements = mergeVisualElements(ocrVisualElements, translatedVisualElements);
 
-    // ── 4a. Official / review mode ───────────────────────────────────────────
-    if (plan.mode === 'translator_review_draft') {
+    // ── 4a. Official / review mode (certified + notarization both produce translator draft) ──
+    if (plan.mode === 'translator_review_draft' || plan.mode === 'notarization_package') {
       console.log(`${tag} [official mode] generating translator draft DOCX + preview PDF…`);
 
       // Generate DOCX draft
@@ -230,7 +229,23 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
       await supabase.from('documents').update({ status: 'completed' }).eq('id', documentId);
       await updateJob(jobId, 'completed', 100, undefined, { workflow_status: 'awaiting_translator_review' });
 
-      console.log(`${tag} ✓ completed [translator_review_draft] — awaiting human review`);
+      console.log(`${tag} ✓ completed [${plan.mode}] — awaiting human review`);
+
+      // Trigger Jira/Telegram integration: move issue to translator (fire-and-forget)
+      if (jobRow?.jira_issue_key) {
+        void triggerTranslatorReview({
+          jobId,
+          jiraIssueKey: jobRow.jira_issue_key,
+          serviceLevel: resolvedServiceLevel as ServiceLevel,
+          sourceLang: doc.source_language,
+          targetLang: doc.target_language,
+          documentType: docType,
+          driveUrl: jobRow.google_drive_folder_url,
+        }).catch((e) => {
+          const m = e instanceof Error ? e.message : String(e);
+          console.error(`${tag} integration trigger failed (non-fatal): ${m}`);
+        });
+      }
 
       // Send review email (no download URL for the draft)
       if (env.RESEND_API_KEY) {
