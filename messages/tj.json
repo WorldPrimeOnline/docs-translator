@@ -276,7 +276,32 @@
       "phoneRequired": "Барои таҳвил рақами телефон лозим аст",
       "addressRequired": "Барои таҳвил суроға лозим аст"
     },
-    "inReview": "Дар баррасӣ"
+    "inReview": "Дар баррасӣ",
+    "activeOrders": "Фармоишҳои фаъол",
+    "historyOrders": "Таърихи тарҷума",
+    "closeTabOk": "Шумо метавонед ин варақро пӯшед — фармоиши шумо коркард мешавад",
+    "noActiveOrders": "Фармоишҳои фаъол вуҷуд надорад",
+    "stages": {
+      "uploaded": "Бор карда шуд",
+      "ocr": "Шинохти матн",
+      "translating": "Тарҷума мешавад",
+      "rendering": "Тайёр кардани ҳуҷҷат",
+      "done": "Тамом шуд",
+      "aiProcessing": "Коркарди AI",
+      "sentToTranslator": "Ба тарҷумон фиристода шуд",
+      "translatorReview": "Санҷиши тарҷумон",
+      "signatureStamp": "Имзо ва муҳр",
+      "sentToNotary": "Ба нотариус фиристода шуд",
+      "notaryReview": "Тасдиқи нотариалӣ",
+      "readyForDelivery": "Барои таҳвил омода аст"
+    },
+    "order": {
+      "created": "Сохта шуд",
+      "updated": "Навсозӣ шуд",
+      "serviceElectronic": "Электронӣ",
+      "serviceCertified": "Тасдиқшуда",
+      "serviceNotarized": "Нотариалӣ"
+    }
   },
   "auth": {
     "login": "Воридшавӣ",

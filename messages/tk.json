@@ -276,7 +276,32 @@
       "phoneRequired": "Eltip bermek üçin telefon belgisi zerur",
       "addressRequired": "Eltip bermek üçin salgy zerur"
     },
-    "inReview": "Seredilýär"
+    "inReview": "Seredilýär",
+    "activeOrders": "Işjeň buýurmalar",
+    "historyOrders": "Terjime taryhy",
+    "closeTabOk": "Bu goýmagy ýapyp bilersiňiz — buýurmaňyz işlenilýär",
+    "noActiveOrders": "Işjeň buýurmalar ýok",
+    "stages": {
+      "uploaded": "Ýüklendi",
+      "ocr": "Teksti tanamak",
+      "translating": "Terjime edilýär",
+      "rendering": "Resminama taýýarlanýar",
+      "done": "Taýyn",
+      "aiProcessing": "AI işlemek",
+      "sentToTranslator": "Terjimeçä iberildi",
+      "translatorReview": "Terjimeçi barlagy",
+      "signatureStamp": "Gol çekmek we möhür",
+      "sentToNotary": "Notariusa iberildi",
+      "notaryReview": "Notarial tassyklama",
+      "readyForDelivery": "Gowşurmaga taýyn"
+    },
+    "order": {
+      "created": "Döredildi",
+      "updated": "Täzelendi",
+      "serviceElectronic": "Elektron",
+      "serviceCertified": "Tassyklanan",
+      "serviceNotarized": "Notarial"
+    }
   },
   "auth": {
     "login": "Giriş",

@@ -113,6 +113,11 @@ let _cache: ResolvedJiraIds | null = null;
 let _resolving = false;
 
 export async function resolveJiraIds(baseUrl: string, email: string, token: string): Promise<ResolvedJiraIds> {
+  // Invalidate cache if projectKey changed (e.g. env var set after first cold start)
+  if (_cache && _cache.projectKey !== JIRA_PROJECT_CONFIG.projectKey) {
+    console.log('[jira-resolver] projectKey changed — invalidating cache');
+    _cache = null;
+  }
   if (_cache) return _cache;
   if (_resolving) {
     // Return empty shell during concurrent resolution (avoids duplicate requests)

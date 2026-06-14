@@ -276,7 +276,32 @@
       "phoneRequired": "Жеткізу үшін телефон нөмірі қажет",
       "addressRequired": "Жеткізу үшін мекенжай қажет"
     },
-    "inReview": "Тексерілуде"
+    "inReview": "Тексерілуде",
+    "activeOrders": "Белсенді тапсырыстар",
+    "historyOrders": "Аударма тарихы",
+    "closeTabOk": "Бұл қосымшаны жабуға болады — тапсырысыңыз өңделуде",
+    "noActiveOrders": "Белсенді тапсырыстар жоқ",
+    "stages": {
+      "uploaded": "Жүктелді",
+      "ocr": "Мәтінді тану",
+      "translating": "Аударылуда",
+      "rendering": "Құжат жасалуда",
+      "done": "Дайын",
+      "aiProcessing": "AI өңдеу",
+      "sentToTranslator": "Аудармашыға жіберілді",
+      "translatorReview": "Аудармашы тексеруі",
+      "signatureStamp": "Қол қою және мөр",
+      "sentToNotary": "Нотариусқа жіберілді",
+      "notaryReview": "Нотариалдық куәландыру",
+      "readyForDelivery": "Берілуге дайын"
+    },
+    "order": {
+      "created": "Жасалды",
+      "updated": "Жаңартылды",
+      "serviceElectronic": "Электрондық",
+      "serviceCertified": "Куәландырылған",
+      "serviceNotarized": "Нотариалдық"
+    }
   },
   "auth": {
     "login": "Кіру",

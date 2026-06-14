@@ -276,7 +276,32 @@
       "phoneRequired": "Жеткирүү үчүн телефон керек",
       "addressRequired": "Жеткирүү үчүн дарек керек"
     },
-    "inReview": "Каралуда"
+    "inReview": "Каралуда",
+    "activeOrders": "Активдүү заказдар",
+    "historyOrders": "Котормо тарыхы",
+    "closeTabOk": "Бул өтмөктү жапсаңыз болот — заказыңыз иштетилүүдө",
+    "noActiveOrders": "Активдүү заказдар жок",
+    "stages": {
+      "uploaded": "Жүктөлдү",
+      "ocr": "Текстти тааныу",
+      "translating": "Котормо жасалууда",
+      "rendering": "Документ даярдалууда",
+      "done": "Даяр",
+      "aiProcessing": "AI иштетүү",
+      "sentToTranslator": "Котормочуга жөнөтүлдү",
+      "translatorReview": "Котормочунун текшерүүсү",
+      "signatureStamp": "Кол коюу жана мөөр",
+      "sentToNotary": "Нотариуска жөнөтүлдү",
+      "notaryReview": "Нотариалдык күбөлөндүрүү",
+      "readyForDelivery": "Берилүүгө даяр"
+    },
+    "order": {
+      "created": "Түзүлдү",
+      "updated": "Жаңыртылды",
+      "serviceElectronic": "Электрондук",
+      "serviceCertified": "Күбөлөндүрүлгөн",
+      "serviceNotarized": "Нотариалдык"
+    }
   },
   "auth": {
     "login": "Кирүү",

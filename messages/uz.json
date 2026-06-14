@@ -276,7 +276,32 @@
       "phoneRequired": "Yetkazib berish uchun telefon raqami kerak",
       "addressRequired": "Yetkazib berish uchun manzil kerak"
     },
-    "inReview": "Ko'rib chiqilmoqda"
+    "inReview": "Ko'rib chiqilmoqda",
+    "activeOrders": "Faol buyurtmalar",
+    "historyOrders": "Tarjima tarixi",
+    "closeTabOk": "Ushbu sahifani yopishingiz mumkin — buyurtmangiz ishlanmoqda",
+    "noActiveOrders": "Faol buyurtmalar yo'q",
+    "stages": {
+      "uploaded": "Yuklandi",
+      "ocr": "Matn tanish",
+      "translating": "Tarjimon",
+      "rendering": "Hujjat tayyorlanmoqda",
+      "done": "Tayyor",
+      "aiProcessing": "AI ishlov berish",
+      "sentToTranslator": "Tarjimonga yuborildi",
+      "translatorReview": "Tarjimon tekshiruvi",
+      "signatureStamp": "Imzo va muhr",
+      "sentToNotary": "Notariusga yuborildi",
+      "notaryReview": "Notarial tasdiqlash",
+      "readyForDelivery": "Topshirishga tayyor"
+    },
+    "order": {
+      "created": "Yaratildi",
+      "updated": "Yangilandi",
+      "serviceElectronic": "Elektronik",
+      "serviceCertified": "Tasdiqlangan",
+      "serviceNotarized": "Notarial"
+    }
   },
   "auth": {
     "login": "Kirish",

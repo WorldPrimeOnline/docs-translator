@@ -9,7 +9,6 @@ import { processJob } from '@/lib/jobs/processor';
 import { SUBSCRIPTION_PLANS } from '@/lib/subscriptions/config';
 import { deriveBackcompatBooleans } from '@/lib/translation-workflow/output-plan';
 import { isValidNotaryCity } from '@/lib/notary/cities';
-import { initializeOrderIntegrations } from '@/lib/integrations/workflow';
 import type { Database } from '@/types';
 import type { ServiceLevel } from '@/lib/translation-prompts/types';
 
@@ -327,24 +326,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           metadata: { serviceLevel, notaryCity: notaryCity ?? null, fulfillmentMethod: fulfillmentMethod ?? null },
         }).then(({ error: e }) => { if (e) console.error('[upload] audit insert failed:', e.message); });
 
-        // Initialize Jira + Drive integrations for certified/notarized orders (fire-and-forget)
-        if (serviceLevel !== 'electronic') {
-          const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://wpotranslations.org';
-          void initializeOrderIntegrations({
-            jobId: job.id,
-            serviceLevel: serviceLevel as ServiceLevel,
-            sourceLang,
-            targetLang,
-            documentType,
-            notaryCity: notaryCity ?? null,
-            fulfillmentMethod: fulfillmentMethod as 'pickup' | 'delivery' | undefined,
-            siteUrl,
-            sourceFileKey: fileKey,
-          }).catch((err) => {
-            const msg = err instanceof Error ? err.message : String(err);
-            console.error('[upload] integration init failed (non-fatal):', msg);
-          });
-        }
+        // Integration init (Jira + Drive) is handled by the Railway worker before OCR.
+        // Running it here on Vercel is unreliable because the serverless function may be
+        // killed after the HTTP response is sent. The worker is a long-running process.
 
         // ONLY electronic + html goes through the web processor.
         // Certified/notarized jobs (any output format) must stay queued for Railway worker

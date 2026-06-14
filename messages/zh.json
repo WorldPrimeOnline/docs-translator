@@ -276,7 +276,32 @@
       "phoneRequired": "配送需填写电话号码",
       "addressRequired": "配送需填写地址"
     },
-    "inReview": "审核中"
+    "inReview": "审核中",
+    "activeOrders": "进行中的订单",
+    "historyOrders": "翻译历史",
+    "closeTabOk": "您可以关闭此标签页——您的订单正在处理中",
+    "noActiveOrders": "暂无进行中的订单",
+    "stages": {
+      "uploaded": "已上传",
+      "ocr": "文字识别",
+      "translating": "翻译中",
+      "rendering": "生成文档",
+      "done": "已完成",
+      "aiProcessing": "AI处理",
+      "sentToTranslator": "已发送给翻译员",
+      "translatorReview": "翻译员审核",
+      "signatureStamp": "签名与盖章",
+      "sentToNotary": "已发送给公证人",
+      "notaryReview": "公证认证",
+      "readyForDelivery": "准备交付"
+    },
+    "order": {
+      "created": "创建时间",
+      "updated": "更新时间",
+      "serviceElectronic": "电子版",
+      "serviceCertified": "认证翻译",
+      "serviceNotarized": "公证翻译"
+    }
   },
   "auth": {
     "login": "登录",

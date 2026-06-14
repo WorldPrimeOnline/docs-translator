@@ -276,7 +276,32 @@
       "phoneRequired": "Se requiere teléfono para la entrega",
       "addressRequired": "Se requiere dirección para la entrega"
     },
-    "inReview": "En revisión"
+    "inReview": "En revisión",
+    "activeOrders": "Pedidos activos",
+    "historyOrders": "Historial de traducciones",
+    "closeTabOk": "Puede cerrar esta pestaña — su pedido está siendo procesado",
+    "noActiveOrders": "No hay pedidos activos",
+    "stages": {
+      "uploaded": "Subido",
+      "ocr": "Reconocimiento de texto",
+      "translating": "Traduciendo",
+      "rendering": "Generando documento",
+      "done": "Completado",
+      "aiProcessing": "Procesamiento IA",
+      "sentToTranslator": "Enviado al traductor",
+      "translatorReview": "Revisión del traductor",
+      "signatureStamp": "Firma y sello",
+      "sentToNotary": "Enviado al notario",
+      "notaryReview": "Certificación notarial",
+      "readyForDelivery": "Listo para entregar"
+    },
+    "order": {
+      "created": "Creado",
+      "updated": "Actualizado",
+      "serviceElectronic": "Electrónico",
+      "serviceCertified": "Certificado",
+      "serviceNotarized": "Notarizado"
+    }
   },
   "auth": {
     "login": "Iniciar sesión",

@@ -276,7 +276,32 @@
       "phoneRequired": "배달에는 전화번호가 필요합니다",
       "addressRequired": "배달에는 주소가 필요합니다"
     },
-    "inReview": "검토 중"
+    "inReview": "검토 중",
+    "activeOrders": "진행 중인 주문",
+    "historyOrders": "번역 기록",
+    "closeTabOk": "이 탭을 닫아도 됩니다 — 주문이 처리 중입니다",
+    "noActiveOrders": "진행 중인 주문 없음",
+    "stages": {
+      "uploaded": "업로드됨",
+      "ocr": "텍스트 인식",
+      "translating": "번역 중",
+      "rendering": "문서 생성",
+      "done": "완료",
+      "aiProcessing": "AI 처리",
+      "sentToTranslator": "번역가에게 전달됨",
+      "translatorReview": "번역가 검토",
+      "signatureStamp": "서명 및 도장",
+      "sentToNotary": "공증인에게 전달됨",
+      "notaryReview": "공증 인증",
+      "readyForDelivery": "배송 준비 완료"
+    },
+    "order": {
+      "created": "생성됨",
+      "updated": "업데이트됨",
+      "serviceElectronic": "전자",
+      "serviceCertified": "공인",
+      "serviceNotarized": "공증"
+    }
   },
   "auth": {
     "login": "로그인",

@@ -1,58 +1,66 @@
 // Non-secret Jira project configuration.
-// These are project-specific constants, not credentials — commit freely.
+// Values are read from env vars at runtime so operators can configure without
+// code changes. Set these in Vercel Preview/Production environment variables.
 //
-// HOW TO FILL IN:
-//   1. Deploy to staging (JIRA_BASE_URL + JIRA_EMAIL + JIRA_API_TOKEN must be set)
-//   2. Call GET /api/admin/jira-discover?secret=<CRON_SECRET>
-//   3. Use the returned JSON to fill in the values below
-//   4. Commit the updated file
-//
-// Leave values empty to disable the relevant Jira step gracefully.
+// Required env vars:
+//   JIRA_PROJECT_KEY          — e.g. "WPO"
+//   JIRA_ISSUE_TYPE_NAME      — e.g. "Task" (default)
+//   JIRA_OPERATOR_QUERY       — email or display name of operator user
+//   JIRA_TRANSLATOR_QUERY     — email or display name of translator user
+//   JIRA_NOTARY_QUERY         — email or display name of notary user
+//   JIRA_SECURITY_LEVEL_OPERATOR   — security level name for operator stage
+//   JIRA_SECURITY_LEVEL_TRANSLATOR — security level name for translator stage
+//   JIRA_SECURITY_LEVEL_NOTARY     — security level name for notary stage
+//   JIRA_TRANSITION_TO_TRANSLATOR  — transition name (default: "In Progress")
+//   JIRA_TRANSITION_TO_OPERATOR    — transition name (default: "Done")
+//   JIRA_TRANSITION_TO_NOTARY      — transition name (default: "In Review")
 
 export interface JiraProjectConfig {
-  /** Jira project key, e.g. "WPO" */
   projectKey: string;
-  /** Issue type name to use for translation orders, e.g. "Task" */
   issueTypeName: string;
-  /** Display names or emails to search users by (case-insensitive) */
   userQuery: {
     operator: string;
     translator: string;
     notary: string;
   };
-  /** Jira security level names (exact, case-sensitive) */
   securityLevelNames: {
     operator: string;
     translator: string;
     notary: string;
   };
-  /** Jira workflow transition names (exact, case-sensitive) */
   transitionNames: {
-    /** Transition that moves issue to "in progress" / translator stage */
     toTranslator: string;
-    /** Transition that moves issue back to operator */
     toOperator: string;
-    /** Transition that moves issue to notary stage */
     toNotary: string;
   };
 }
 
-export const JIRA_PROJECT_CONFIG: JiraProjectConfig = {
-  projectKey: '',
-  issueTypeName: 'Task',
-  userQuery: {
-    operator: '',
-    translator: '',
-    notary: '',
+function getConfig(): JiraProjectConfig {
+  return {
+    projectKey: process.env.JIRA_PROJECT_KEY ?? '',
+    issueTypeName: process.env.JIRA_ISSUE_TYPE_NAME ?? 'Task',
+    userQuery: {
+      operator: process.env.JIRA_OPERATOR_QUERY ?? '',
+      translator: process.env.JIRA_TRANSLATOR_QUERY ?? '',
+      notary: process.env.JIRA_NOTARY_QUERY ?? '',
+    },
+    securityLevelNames: {
+      operator: process.env.JIRA_SECURITY_LEVEL_OPERATOR ?? '',
+      translator: process.env.JIRA_SECURITY_LEVEL_TRANSLATOR ?? '',
+      notary: process.env.JIRA_SECURITY_LEVEL_NOTARY ?? '',
+    },
+    transitionNames: {
+      toTranslator: process.env.JIRA_TRANSITION_TO_TRANSLATOR ?? 'In Progress',
+      toOperator: process.env.JIRA_TRANSITION_TO_OPERATOR ?? 'Done',
+      toNotary: process.env.JIRA_TRANSITION_TO_NOTARY ?? 'In Review',
+    },
+  };
+}
+
+// Read fresh from env every call so Railway/Vercel env changes take effect
+// without redeployment (e.g. when first setting up the project key).
+export const JIRA_PROJECT_CONFIG: JiraProjectConfig = new Proxy({} as JiraProjectConfig, {
+  get(_target, prop: keyof JiraProjectConfig) {
+    return getConfig()[prop];
   },
-  securityLevelNames: {
-    operator: '',
-    translator: '',
-    notary: '',
-  },
-  transitionNames: {
-    toTranslator: 'In Progress',
-    toOperator: 'Done',
-    toNotary: 'In Review',
-  },
-};
+});

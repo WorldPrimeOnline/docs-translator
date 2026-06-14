@@ -301,7 +301,32 @@
       "phoneRequired": "Укажите номер телефона для доставки",
       "addressRequired": "Укажите адрес доставки"
     },
-    "inReview": "На проверке"
+    "inReview": "На проверке",
+    "activeOrders": "Активные заказы",
+    "historyOrders": "История переводов",
+    "closeTabOk": "Вы можете закрыть вкладку — ваш заказ обрабатывается",
+    "noActiveOrders": "Нет активных заказов",
+    "stages": {
+      "uploaded": "Загружено",
+      "ocr": "Распознавание текста",
+      "translating": "Перевод",
+      "rendering": "Формирование документа",
+      "done": "Готово",
+      "aiProcessing": "AI-обработка",
+      "sentToTranslator": "Передано переводчику",
+      "translatorReview": "Проверка переводчиком",
+      "signatureStamp": "Подпись и печать",
+      "sentToNotary": "Передано нотариусу",
+      "notaryReview": "Нотариальное удостоверение",
+      "readyForDelivery": "Готово к выдаче"
+    },
+    "order": {
+      "created": "Создан",
+      "updated": "Обновлён",
+      "serviceElectronic": "Электронный",
+      "serviceCertified": "Заверенный",
+      "serviceNotarized": "Нотариально удостоверенный"
+    }
   },
   "auth": {
     "login": "Войти",

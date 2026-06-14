@@ -11,7 +11,7 @@ import { computeOutputPlan, type ServiceLevel } from './lib/output-plan';
 import { mergeVisualElements, extractVisualElementsFromTranslated } from './lib/visual-elements';
 import { runQaChecks } from './lib/qa';
 import { env } from './lib/env';
-import { triggerTranslatorReview } from './lib/integrations';
+import { initializeOrderIntegrations, triggerTranslatorReview } from './lib/integrations';
 
 type JobStatus = JobRow['status'];
 type OutputFormat = 'html' | 'pdf' | 'docx';
@@ -73,6 +73,36 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
     const plan = computeOutputPlan(resolvedServiceLevel);
 
     const serviceLevel = resolvedServiceLevel;
+
+    // ── 1b. Integration init (certified/notarized only) ─────────────────────
+    // Must run BEFORE we change status so the worker is the durable executor,
+    // not a fire-and-forget Vercel request that gets killed after HTTP response.
+    let integrationResult = {
+      jiraIssueKey: jobRow?.jira_issue_key ?? null,
+      jiraIssueUrl: jobRow?.jira_issue_url ?? null,
+      driveFolderId: jobRow?.google_drive_folder_id ?? null,
+      driveUrl: jobRow?.google_drive_folder_url ?? null,
+      aiDraftFolderId: null as string | null,
+      sourceFolderId: null as string | null,
+    };
+
+    if (serviceLevel !== 'electronic') {
+      try {
+        integrationResult = await initializeOrderIntegrations({
+          jobId,
+          serviceLevel: resolvedServiceLevel as typeof serviceLevel,
+          sourceLang: doc.source_language,
+          targetLang: doc.target_language,
+          documentType: doc.document_type,
+          notaryCity: jobRow?.notary_city ?? null,
+          fulfillmentMethod: jobRow?.fulfillment_method ?? null,
+          sourceFileKey: doc.file_key,
+        });
+      } catch (initErr) {
+        const initMsg = initErr instanceof Error ? initErr.message : String(initErr);
+        console.error(`${tag} integration init failed (non-fatal, continuing with OCR): ${initMsg}`);
+      }
+    }
 
     // ── 2. OCR ───────────────────────────────────────────────────────────────
     await updateJob(jobId, 'ocr_in_progress', 10);
@@ -233,20 +263,27 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
 
       console.log(`${tag} ✓ completed [${plan.mode}] — awaiting human review`);
 
-      // Trigger Jira/Telegram integration: move issue to translator (fire-and-forget)
-      if (jobRow?.jira_issue_key) {
-        void triggerTranslatorReview({
-          jobId,
-          jiraIssueKey: jobRow.jira_issue_key,
-          serviceLevel: resolvedServiceLevel as ServiceLevel,
-          sourceLang: doc.source_language,
-          targetLang: doc.target_language,
-          documentType: docType,
-          driveUrl: jobRow.google_drive_folder_url,
-        }).catch((e) => {
+      // Trigger Jira/Drive integration: move issue to translator + upload draft to Drive
+      if (integrationResult.jiraIssueKey) {
+        try {
+          await triggerTranslatorReview({
+            jobId,
+            jiraIssueKey: integrationResult.jiraIssueKey,
+            serviceLevel: resolvedServiceLevel as ServiceLevel,
+            sourceLang: doc.source_language,
+            targetLang: doc.target_language,
+            documentType: docType,
+            driveUrl: integrationResult.driveUrl,
+            driveFolderId: integrationResult.driveFolderId,
+            draftFileKey: draftDocxKey,
+            draftFileName: 'ai_draft.docx',
+          });
+        } catch (e) {
           const m = e instanceof Error ? e.message : String(e);
-          console.error(`${tag} integration trigger failed (non-fatal): ${m}`);
-        });
+          console.error(`${tag} triggerTranslatorReview failed (non-fatal): ${m}`);
+        }
+      } else {
+        console.warn(`${tag} no Jira issue key — skipping translator review transition`);
       }
 
       // Send review email (no download URL for the draft)

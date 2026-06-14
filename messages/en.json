@@ -276,7 +276,32 @@
     "fileCount1": "file",
     "fileCountN": "files",
     "addMoreFiles": "Add more files",
-    "inReview": "In Review"
+    "inReview": "In Review",
+    "activeOrders": "Active Orders",
+    "historyOrders": "Translation History",
+    "closeTabOk": "You can close this tab — your order is being processed",
+    "noActiveOrders": "No active orders",
+    "stages": {
+      "uploaded": "Uploaded",
+      "ocr": "Text Recognition",
+      "translating": "Translating",
+      "rendering": "Generating Document",
+      "done": "Completed",
+      "aiProcessing": "AI Processing",
+      "sentToTranslator": "Sent to Translator",
+      "translatorReview": "Translator Review",
+      "signatureStamp": "Signature & Stamp",
+      "sentToNotary": "Sent to Notary",
+      "notaryReview": "Notary Certification",
+      "readyForDelivery": "Ready for Delivery"
+    },
+    "order": {
+      "created": "Created",
+      "updated": "Updated",
+      "serviceElectronic": "Electronic",
+      "serviceCertified": "Certified",
+      "serviceNotarized": "Notarized"
+    }
   },
   "auth": {
     "login": "Sign in",

@@ -276,7 +276,32 @@
       "phoneRequired": "Хүргэлтэд утасны дугаар шаардлагатай",
       "addressRequired": "Хүргэлтэд хаяг шаардлагатай"
     },
-    "inReview": "Хянагдаж байна"
+    "inReview": "Хянагдаж байна",
+    "activeOrders": "Идэвхтэй захиалгууд",
+    "historyOrders": "Орчуулгын түүх",
+    "closeTabOk": "Энэ табыг хааж болно — таны захиалга боловсруулагдаж байна",
+    "noActiveOrders": "Идэвхтэй захиалга байхгүй",
+    "stages": {
+      "uploaded": "Байршуулсан",
+      "ocr": "Текст таних",
+      "translating": "Орчуулж байна",
+      "rendering": "Баримт бичиг үүсгэж байна",
+      "done": "Дууссан",
+      "aiProcessing": "AI боловсруулалт",
+      "sentToTranslator": "Орчуулагчид илгээсэн",
+      "translatorReview": "Орчуулагчийн шалгалт",
+      "signatureStamp": "Гарын үсэг ба тамга",
+      "sentToNotary": "Нотариусд илгээсэн",
+      "notaryReview": "Нотариатын баталгаажуулалт",
+      "readyForDelivery": "Хүргэхэд бэлэн"
+    },
+    "order": {
+      "created": "Үүссэн",
+      "updated": "Шинэчилсэн",
+      "serviceElectronic": "Цахим",
+      "serviceCertified": "Баталгаажуулсан",
+      "serviceNotarized": "Нотариатын"
+    }
   },
   "auth": {
     "login": "Нэвтрэх",
