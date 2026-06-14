@@ -4,4 +4,4 @@ Disallow: /dashboard
 Disallow: /api/
 Disallow: /auth/
 
-Sitemap: https://docs-translator.vercel.app/sitemap.xml
+Sitemap: https://wpotranslations.org/sitemap.xml
