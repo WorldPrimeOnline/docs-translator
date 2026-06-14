@@ -235,8 +235,6 @@
       "presentation": "프레젠테이션 / 피치덱",
       "other": "기타"
     },
-    "notarizedLabel": "공증/공식 인증을 위한 번역",
-    "notarizedDesc": "공증인 또는 인증 번역사에게 전달하기 위해 문서가 구조화 및 포맷됩니다. 이민, 대학, 법률 절차에 권장합니다.",
     "outputFormat": "출력 형식",
     "formatPdf": "PDF",
     "formatHtml": "HTML",

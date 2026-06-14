@@ -199,8 +199,6 @@
     "jobTitle": "Translation in progress",
     "subBannerTitle": "Translate faster with a subscription",
     "subBannerDesc": "From 4 990 ₸/мес — 10 documents, no per-doc payments",
-    "notarizedLabel": "Translation for notary / official certification",
-    "notarizedDesc": "Output will be structured and formatted for handover to a notary or certified translator. Recommended for immigration, university, and legal workflows.",
     "usingPlanSub": "Using your {plan} plan · {remaining} doc{s} remaining — no payment required",
     "serviceLevel": {
       "label": "SERVICE LEVEL",
