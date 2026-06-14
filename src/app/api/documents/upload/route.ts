@@ -339,6 +339,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             notaryCity: notaryCity ?? null,
             fulfillmentMethod: fulfillmentMethod as 'pickup' | 'delivery' | undefined,
             siteUrl,
+            sourceFileKey: fileKey,
           }).catch((err) => {
             const msg = err instanceof Error ? err.message : String(err);
             console.error('[upload] integration init failed (non-fatal):', msg);

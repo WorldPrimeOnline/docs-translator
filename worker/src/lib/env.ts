@@ -29,19 +29,19 @@ const schema = z.object({
     .transform((v) => v.toLowerCase() !== 'false'),
   // Jira integration (all optional — integrations gracefully skip if absent)
   JIRA_BASE_URL: z.string().url().optional(),
-  JIRA_USER_EMAIL: z.string().email().optional(),
+  JIRA_EMAIL: z.string().email().optional(),
   JIRA_API_TOKEN: z.string().optional(),
-  JIRA_PROJECT_KEY: z.string().optional(),
-  JIRA_TRANSLATOR_ACCOUNT_ID: z.string().optional(),
-  JIRA_OPERATOR_ACCOUNT_ID: z.string().optional(),
-  JIRA_NOTARY_ACCOUNT_ID: z.string().optional(),
-  JIRA_SECURITY_LEVEL_TRANSLATOR_ID: z.string().optional(),
-  JIRA_SECURITY_LEVEL_OPERATOR_ID: z.string().optional(),
-  JIRA_SECURITY_LEVEL_NOTARY_ID: z.string().optional(),
-  JIRA_TRANSITION_MAP_JSON: z.string().optional(),
   JIRA_WEBHOOK_SECRET: z.string().optional(),
+  // Transition name (not ID) — must match Jira workflow transition name exactly
+  JIRA_TRANSITION_TO_TRANSLATOR: z.string().default('In Progress'),
+  // User queries (email or display name) — used to look up accountId via Jira API
+  JIRA_TRANSLATOR_QUERY: z.string().optional(),
+  // Security level names (not IDs) — looked up via Jira API
+  JIRA_SECURITY_LEVEL_TRANSLATOR_NAME: z.string().optional(),
   // Google Drive integration (optional)
-  GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON: z.string().optional(),
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+  GOOGLE_REFRESH_TOKEN: z.string().optional(),
   GOOGLE_DRIVE_ROOT_FOLDER_ID: z.string().optional(),
   // Telegram notifications (optional)
   TELEGRAM_BOT_TOKEN: z.string().optional(),

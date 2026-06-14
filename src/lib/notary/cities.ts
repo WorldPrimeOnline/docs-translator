@@ -1,17 +1,25 @@
-// Centralized notary city configuration.
-// TODO: populate this list — owner must provide supported cities before enabling notarization_through_partners.
-// Each entry: { value: string (slug), label: Record<locale, string> }
-
 export interface NotaryCity {
   value: string;
   label: Record<string, string>;
 }
 
 export const NOTARY_CITIES: NotaryCity[] = [
-  // Cities will be added here once confirmed by business owner.
-  // Example format:
-  // { value: 'almaty',  label: { en: 'Almaty',  ru: 'Алматы',  kk: 'Алматы' } },
-  // { value: 'astana',  label: { en: 'Astana',  ru: 'Астана',  kk: 'Астана' } },
+  {
+    value: 'almaty',
+    label: {
+      en: 'Almaty',
+      ru: 'Алматы',
+      kk: 'Алматы',
+      zh: '阿拉木图',
+      ko: '알마티',
+      es: 'Almaty',
+      tj: 'Алматы',
+      uz: 'Almati',
+      tk: 'Almatı',
+      mn: 'Алматы',
+      ky: 'Алматы',
+    },
+  },
 ];
 
 export function getNotaryCityLabel(value: string, locale: string): string {

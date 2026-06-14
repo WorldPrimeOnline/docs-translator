@@ -1,97 +1,141 @@
 /**
- * Worker-local integration helpers for Jira and Telegram.
- * Called after the AI draft is ready to notify the translator.
+ * Worker-local integration helpers: Jira transitions + Drive upload + Telegram.
+ * Called after the AI draft is ready to move the Jira issue to the translator stage.
  * Keep in sync with src/lib/integrations/workflow.ts in the web app.
+ *
+ * Jira credentials come from env vars: JIRA_BASE_URL, JIRA_EMAIL, JIRA_API_TOKEN
+ * Transition names (not IDs) come from env vars: JIRA_TRANSITION_TO_TRANSLATOR (default: "In Progress")
+ * User queries come from env vars: JIRA_TRANSLATOR_QUERY (email or display name)
  */
 
 import { supabase } from './supabase';
 import type { ServiceLevel } from './output-plan';
 
-function getJiraHeaders(): Headers | null {
+// ─── Jira helpers ─────────────────────────────────────────────────────────────
+
+function getJiraAuth(): { baseUrl: string; authHeader: string } | null {
+  const baseUrl = process.env.JIRA_BASE_URL;
+  const email = process.env.JIRA_EMAIL;
   const token = process.env.JIRA_API_TOKEN;
-  const email = process.env.JIRA_USER_EMAIL;
-  if (!token || !email) return null;
-  const h = new Headers();
-  h.set('Authorization', `Basic ${Buffer.from(`${email}:${token}`).toString('base64')}`);
-  h.set('Content-Type', 'application/json');
-  h.set('Accept', 'application/json');
-  return h;
+  if (!baseUrl || !email || !token) return null;
+  return {
+    baseUrl: baseUrl.replace(/\/$/, ''),
+    authHeader: 'Basic ' + Buffer.from(`${email}:${token}`).toString('base64'),
+  };
 }
 
-async function assignJiraIssue(issueKey: string, accountId: string): Promise<void> {
-  const baseUrl = process.env.JIRA_BASE_URL;
-  const headers = getJiraHeaders();
-  if (!baseUrl || !headers) return;
-  const res = await fetch(`${baseUrl}/rest/api/3/issue/${issueKey}/assignee`, {
-    method: 'PUT',
-    headers,
-    body: JSON.stringify({ accountId }),
-  });
-  if (!res.ok) console.error(`[integrations] assignJiraIssue failed: ${res.status}`);
-}
-
-async function setJiraSecurityLevel(issueKey: string, securityLevelId: string): Promise<void> {
-  const baseUrl = process.env.JIRA_BASE_URL;
-  const headers = getJiraHeaders();
-  if (!baseUrl || !headers) return;
-  const res = await fetch(`${baseUrl}/rest/api/3/issue/${issueKey}`, {
-    method: 'PUT',
-    headers,
-    body: JSON.stringify({ fields: { security: { id: securityLevelId } } }),
-  });
-  if (!res.ok) console.error(`[integrations] setJiraSecurityLevel failed: ${res.status}`);
-}
-
-function getTransitionId(name: string): string | null {
-  const raw = process.env.JIRA_TRANSITION_MAP_JSON;
-  if (!raw) return null;
+async function jiraFetch(path: string, options: RequestInit = {}): Promise<Response | null> {
+  const auth = getJiraAuth();
+  if (!auth) return null;
   try {
-    const map = JSON.parse(raw) as Record<string, string>;
-    return map[name] ?? null;
-  } catch {
+    return fetch(`${auth.baseUrl}/rest/api/3${path}`, {
+      ...options,
+      headers: {
+        Authorization: auth.authHeader,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        ...(options.headers as Record<string, string> ?? {}),
+      },
+    });
+  } catch (e) {
+    console.error(`[worker-jira] fetch ${path} error:`, e instanceof Error ? e.message : e);
     return null;
   }
 }
 
-async function transitionJiraIssue(issueKey: string, transitionName: string): Promise<void> {
-  const baseUrl = process.env.JIRA_BASE_URL;
-  const headers = getJiraHeaders();
-  if (!baseUrl || !headers) return;
-  const transitionId = getTransitionId(transitionName);
-  if (!transitionId) {
-    console.warn(`[integrations] No transition ID for "${transitionName}" — skipping transition`);
-    return;
-  }
-  const res = await fetch(`${baseUrl}/rest/api/3/issue/${issueKey}/transitions`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ transition: { id: transitionId } }),
-  });
-  if (!res.ok) console.error(`[integrations] transitionJiraIssue(${transitionName}) failed: ${res.status}`);
+async function resolveUserAccountId(query: string): Promise<string | null> {
+  if (!query) return null;
+  const res = await jiraFetch(`/users/search?query=${encodeURIComponent(query)}&maxResults=10`);
+  if (!res?.ok) return null;
+  const users = (await res.json()) as { accountId: string; displayName: string; emailAddress?: string }[];
+  if (!users.length) return null;
+  const exact = users.find(
+    (u) =>
+      u.emailAddress?.toLowerCase() === query.toLowerCase() ||
+      u.displayName.toLowerCase() === query.toLowerCase(),
+  );
+  return exact?.accountId ?? users[0]!.accountId;
 }
 
-async function addJiraComment(issueKey: string, body: string): Promise<void> {
-  const baseUrl = process.env.JIRA_BASE_URL;
-  const headers = getJiraHeaders();
-  if (!baseUrl || !headers) return;
-  const res = await fetch(`${baseUrl}/rest/api/3/issue/${issueKey}/comment`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ body: { version: 1, type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: body }] }] } }),
-  });
-  if (!res.ok) console.error(`[integrations] addJiraComment failed: ${res.status}`);
+async function resolveSecurityLevelId(issueKey: string, levelName: string): Promise<string | null> {
+  if (!levelName) return null;
+  // Derive project key from issue key (e.g. "WPO-42" → "WPO")
+  const projectKey = issueKey.split('-')[0];
+  if (!projectKey) return null;
+  const res = await jiraFetch(`/project/${projectKey}/securitylevel`);
+  if (!res?.ok) return null;
+  const data = (await res.json()) as { levels: { id: string; name: string }[] };
+  return data.levels.find((l) => l.name.toLowerCase() === levelName.toLowerCase())?.id ?? null;
 }
+
+async function resolveTransitionId(issueKey: string, transitionName: string): Promise<string | null> {
+  const res = await jiraFetch(`/issue/${issueKey}/transitions`);
+  if (!res?.ok) return null;
+  const data = (await res.json()) as { transitions: { id: string; name: string }[] };
+  const found = data.transitions.find((t) => t.name.toLowerCase() === transitionName.toLowerCase());
+  if (!found) {
+    console.warn(
+      `[worker-jira] Transition "${transitionName}" not available for ${issueKey}. Available: ` +
+        data.transitions.map((t) => t.name).join(', '),
+    );
+  }
+  return found?.id ?? null;
+}
+
+async function assignJiraIssue(issueKey: string, accountId: string): Promise<void> {
+  const res = await jiraFetch(`/issue/${issueKey}/assignee`, {
+    method: 'PUT',
+    body: JSON.stringify({ accountId }),
+  });
+  if (res && !res.ok) console.error(`[worker-jira] assign ${issueKey} failed: ${res.status}`);
+}
+
+async function setJiraSecurityLevel(issueKey: string, levelId: string): Promise<void> {
+  const res = await jiraFetch(`/issue/${issueKey}`, {
+    method: 'PUT',
+    body: JSON.stringify({ fields: { security: { id: levelId } } }),
+  });
+  if (res && !res.ok) console.error(`[worker-jira] setSecurityLevel ${issueKey} failed: ${res.status}`);
+}
+
+async function transitionJiraIssue(issueKey: string, transitionName: string): Promise<void> {
+  const transitionId = await resolveTransitionId(issueKey, transitionName);
+  if (!transitionId) return;
+  const res = await jiraFetch(`/issue/${issueKey}/transitions`, {
+    method: 'POST',
+    body: JSON.stringify({ transition: { id: transitionId } }),
+  });
+  if (res && !res.ok) console.error(`[worker-jira] transition "${transitionName}" failed: ${res.status}`);
+}
+
+async function addJiraComment(issueKey: string, text: string): Promise<void> {
+  const res = await jiraFetch(`/issue/${issueKey}/comment`, {
+    method: 'POST',
+    body: JSON.stringify({
+      body: { version: 1, type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text }] }] },
+    }),
+  });
+  if (res && !res.ok) console.error(`[worker-jira] comment on ${issueKey} failed: ${res.status}`);
+}
+
+// ─── Telegram helper ──────────────────────────────────────────────────────────
 
 async function sendTelegram(chatId: string, text: string): Promise<void> {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) return;
-  const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' }),
-  });
-  if (!res.ok) console.error(`[integrations] Telegram sendMessage failed: ${res.status}`);
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' }),
+    });
+    if (!res.ok) console.error(`[worker-telegram] sendMessage failed: ${res.status}`);
+  } catch (e) {
+    console.error('[worker-telegram] sendMessage threw:', e instanceof Error ? e.message : e);
+  }
 }
+
+// ─── Public API ───────────────────────────────────────────────────────────────
 
 export async function triggerTranslatorReview(params: {
   jobId: string;
@@ -102,21 +146,33 @@ export async function triggerTranslatorReview(params: {
   documentType: string;
   driveUrl?: string | null;
 }): Promise<void> {
-  const tag = `[integrations:${params.jobId.slice(0, 8)}]`;
-  console.log(`${tag} triggering translator review`);
+  const auth = getJiraAuth();
+  const tag = `[worker-integration:${params.jobId.slice(0, 8)}]`;
+
+  if (!auth) {
+    console.log(`${tag} Jira not configured — skipping translator review transition`);
+    return;
+  }
+
+  const toTranslatorName = process.env.JIRA_TRANSITION_TO_TRANSLATOR ?? 'In Progress';
+  const translatorQuery = process.env.JIRA_TRANSLATOR_QUERY ?? '';
+  const translatorSecLevelName = process.env.JIRA_SECURITY_LEVEL_TRANSLATOR_NAME ?? '';
 
   try {
-    const translatorAccountId = process.env.JIRA_TRANSLATOR_ACCOUNT_ID;
-    const securityLevelId = process.env.JIRA_SECURITY_LEVEL_TRANSLATOR_ID;
-    const baseUrl = process.env.JIRA_BASE_URL;
+    const [translatorAccountId, translatorSecLevelId] = await Promise.all([
+      translatorQuery ? resolveUserAccountId(translatorQuery) : Promise.resolve(null),
+      translatorSecLevelName
+        ? resolveSecurityLevelId(params.jiraIssueKey, translatorSecLevelName)
+        : Promise.resolve(null),
+    ]);
 
     if (translatorAccountId) {
       await assignJiraIssue(params.jiraIssueKey, translatorAccountId);
     }
-    if (securityLevelId) {
-      await setJiraSecurityLevel(params.jiraIssueKey, securityLevelId);
+    if (translatorSecLevelId) {
+      await setJiraSecurityLevel(params.jiraIssueKey, translatorSecLevelId);
     }
-    await transitionJiraIssue(params.jiraIssueKey, 'TO_TRANSLATOR');
+    await transitionJiraIssue(params.jiraIssueKey, toTranslatorName);
     await addJiraComment(params.jiraIssueKey, 'AI draft ready. Assigned for translator review.');
 
     await supabase
@@ -125,23 +181,22 @@ export async function triggerTranslatorReview(params: {
       .eq('id', params.jobId);
 
     // Notify translator
-    const translatorChatId = process.env.TELEGRAM_TRANSLATOR_CHAT_ID;
-    if (translatorChatId) {
-      const jiraUrl = baseUrl ? `${baseUrl}/browse/${params.jiraIssueKey}` : null;
-      const driveInfo = params.driveUrl ? `\nDrive: ${params.driveUrl}` : '';
-      const jiraInfo = jiraUrl ? `\nJira: <a href="${jiraUrl}">${params.jiraIssueKey}</a>` : '';
-      const msg = [
-        `📋 <b>New translation assignment</b>`,
-        `Job: <code>${params.jobId.slice(0, 8)}</code>`,
-        `${params.sourceLang.toUpperCase()} → ${params.targetLang.toUpperCase()} | ${params.documentType}`,
-        `Level: ${params.serviceLevel}`,
-        driveInfo,
-        jiraInfo,
-      ].filter(Boolean).join('\n');
-      await sendTelegram(translatorChatId, msg);
+    const chatId = process.env.TELEGRAM_TRANSLATOR_CHAT_ID;
+    if (chatId) {
+      const jiraUrl = `${auth.baseUrl}/browse/${params.jiraIssueKey}`;
+      await sendTelegram(
+        chatId,
+        [
+          `📋 <b>New Translation Assignment</b>`,
+          `Job: <code>${params.jobId.slice(0, 8)}</code>`,
+          `${params.sourceLang.toUpperCase()} → ${params.targetLang.toUpperCase()} | ${params.documentType.split('|')[0]}`,
+          `Jira: <a href="${jiraUrl}">${params.jiraIssueKey}</a>`,
+          params.driveUrl ? `Drive: ${params.driveUrl}` : null,
+        ].filter(Boolean).join('\n'),
+      );
     }
 
-    console.log(`${tag} ✓ translator review triggered`);
+    console.log(`${tag} ✓ translator review triggered (${params.jiraIssueKey})`);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`${tag} triggerTranslatorReview failed: ${msg}`);

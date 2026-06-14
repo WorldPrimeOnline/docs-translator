@@ -1,6 +1,9 @@
-// Google Drive integration using service account credentials.
+// Google Drive integration via OAuth2 refresh-token flow.
+// Required env vars: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN,
+//                    GOOGLE_DRIVE_ROOT_FOLDER_ID
+//
 // Root folder is pre-shared with operator/translator/notary — no per-subfolder permissions set here.
-// Required env vars: GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON, GOOGLE_DRIVE_ROOT_FOLDER_ID
+// Access token is cached in memory; refresh token is never logged.
 
 export interface DriveFolder {
   folderId: string;
@@ -24,9 +27,18 @@ export const DRIVE_SUBFOLDER_NAMES = {
   final: '06_FINAL',
 } as const;
 
-type AccessToken = { token: string; expiresAt: number };
+type AccessTokenCache = { token: string; expiresAt: number };
 
-let _cachedToken: AccessToken | null = null;
+let _cachedToken: AccessTokenCache | null = null;
+
+function isDriveConfigured(): boolean {
+  return !!(
+    process.env.GOOGLE_CLIENT_ID &&
+    process.env.GOOGLE_CLIENT_SECRET &&
+    process.env.GOOGLE_REFRESH_TOKEN &&
+    process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID
+  );
+}
 
 async function getAccessToken(): Promise<string> {
   const now = Date.now();
@@ -34,81 +46,41 @@ async function getAccessToken(): Promise<string> {
     return _cachedToken.token;
   }
 
-  const credJson = process.env.GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON;
-  if (!credJson) throw new Error('GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON not set');
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
 
-  const creds = JSON.parse(credJson) as {
-    client_email: string;
-    private_key: string;
-  };
-
-  // Build JWT for service account
-  const header = { alg: 'RS256', typ: 'JWT' };
-  const iat = Math.floor(now / 1000);
-  const payload = {
-    iss: creds.client_email,
-    scope: 'https://www.googleapis.com/auth/drive',
-    aud: 'https://oauth2.googleapis.com/token',
-    exp: iat + 3600,
-    iat,
-  };
-
-  const encode = (obj: unknown) =>
-    Buffer.from(JSON.stringify(obj)).toString('base64url');
-
-  const unsigned = `${encode(header)}.${encode(payload)}`;
-
-  // Import private key and sign
-  const keyData = creds.private_key
-    .replace(/-----BEGIN PRIVATE KEY-----/, '')
-    .replace(/-----END PRIVATE KEY-----/, '')
-    .replace(/\s/g, '');
-
-  const keyBuffer = Buffer.from(keyData, 'base64');
-  const cryptoKey = await crypto.subtle.importKey(
-    'pkcs8',
-    keyBuffer,
-    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
-    false,
-    ['sign'],
-  );
-
-  const signature = await crypto.subtle.sign(
-    'RSASSA-PKCS1-v1_5',
-    cryptoKey,
-    Buffer.from(unsigned),
-  );
-
-  const jwt = `${unsigned}.${Buffer.from(signature).toString('base64url')}`;
-
-  const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'urn:ietf:params:oauth2:grant_type:jwt-bearer',
-      assertion: jwt,
-    }),
-  });
-
-  if (!tokenRes.ok) {
-    const t = await tokenRes.text().catch(() => '');
-    throw new Error(`Google OAuth token failed: ${tokenRes.status} ${t.slice(0, 200)}`);
+  if (!clientId || !clientSecret || !refreshToken) {
+    throw new Error('Google OAuth credentials not configured (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET / GOOGLE_REFRESH_TOKEN)');
   }
 
-  const { access_token, expires_in } = (await tokenRes.json()) as {
+  const body = new URLSearchParams({
+    grant_type: 'refresh_token',
+    refresh_token: refreshToken,
+    client_id: clientId,
+    client_secret: clientSecret,
+  });
+
+  const res = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body,
+  });
+
+  if (!res.ok) {
+    throw new Error(`Google OAuth token refresh failed: ${res.status} — check credentials`);
+  }
+
+  const { access_token, expires_in } = (await res.json()) as {
     access_token: string;
     expires_in: number;
   };
 
-  _cachedToken = { token: access_token, expires_at: now + expires_in * 1000 } as unknown as AccessToken;
   _cachedToken = { token: access_token, expiresAt: now + expires_in * 1000 };
   return access_token;
 }
 
-async function driveApiFetch(
-  path: string,
-  options: RequestInit = {},
-): Promise<Response> {
+async function driveApiFetch(path: string, options: RequestInit = {}): Promise<Response> {
   const token = await getAccessToken();
   return fetch(`https://www.googleapis.com/drive/v3${path}`, {
     ...options,
@@ -129,12 +101,10 @@ async function createFolder(name: string, parentId: string): Promise<string> {
       parents: [parentId],
     }),
   });
-
   if (!res.ok) {
     const t = await res.text().catch(() => '');
     throw new Error(`Drive createFolder "${name}" failed: ${res.status} ${t.slice(0, 200)}`);
   }
-
   const data = (await res.json()) as { id: string };
   return data.id;
 }
@@ -156,13 +126,14 @@ async function getOrCreateFolder(name: string, parentId: string): Promise<string
 }
 
 export async function createOrderFolder(jobId: string): Promise<DriveFolder | null> {
-  const rootFolderId = process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID;
-  if (!rootFolderId || !process.env.GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON) {
+  if (!isDriveConfigured()) {
     console.log('[drive] Google Drive not configured — skipping folder creation');
     return null;
   }
 
+  const rootFolderId = process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID!;
   const folderName = `WPO-${jobId.slice(0, 8)}`;
+
   const mainId = await getOrCreateFolder(folderName, rootFolderId);
 
   const [source, aiDraft, translatorResult, signatureStamp, notary, final] = await Promise.all([
@@ -187,25 +158,19 @@ export async function uploadFileToDrive(
   buffer: Buffer,
   mimeType: string,
 ): Promise<string> {
-  const token = await getAccessToken();
+  if (!isDriveConfigured()) return '';
 
-  // Multipart upload
-  const boundary = `boundary_${Date.now()}`;
+  const token = await getAccessToken();
+  const boundary = `wpo_boundary_${Date.now()}`;
   const metadata = JSON.stringify({ name: filename, parents: [folderId] });
 
-  const body = [
-    `--${boundary}`,
-    'Content-Type: application/json; charset=UTF-8',
-    '',
-    metadata,
-    `--${boundary}`,
-    `Content-Type: ${mimeType}`,
-    '',
-    '',
-  ].join('\r\n');
+  const bodyParts = [
+    `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n`,
+    `--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n`,
+  ];
 
   const bodyBuf = Buffer.concat([
-    Buffer.from(body, 'utf-8'),
+    Buffer.from(bodyParts.join(''), 'utf-8'),
     buffer,
     Buffer.from(`\r\n--${boundary}--`, 'utf-8'),
   ]);
@@ -217,7 +182,6 @@ export async function uploadFileToDrive(
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': `multipart/related; boundary=${boundary}`,
-        'Content-Length': String(bodyBuf.length),
       },
       body: bodyBuf,
     },
@@ -230,4 +194,9 @@ export async function uploadFileToDrive(
 
   const data = (await res.json()) as { id: string };
   return data.id;
+}
+
+/** Check if Drive is configured (does not verify credentials). */
+export function isDriveEnabled(): boolean {
+  return isDriveConfigured();
 }

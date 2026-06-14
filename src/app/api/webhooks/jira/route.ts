@@ -77,7 +77,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // ── 5. Load job ─────────────────────────────────────────────────────────────
   const { data: job, error: jobErr } = await supabaseServer
     .from('jobs')
-    .select('id, service_level, notarized, jira_issue_key, google_drive_folder_url')
+    .select('id, service_level, notarized, jira_issue_key, google_drive_folder_url, notary_city, fulfillment_method, document_id')
     .eq('id', jobId)
     .maybeSingle();
 
@@ -124,7 +124,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         const { data: docRow } = await supabaseServer
           .from('documents')
           .select('source_language, target_language')
-          .eq('id', (await supabaseServer.from('jobs').select('document_id').eq('id', jobId).single()).data?.document_id ?? '')
+          .eq('id', job.document_id ?? '')
           .maybeSingle();
 
         await transitionToNotary({
@@ -132,6 +132,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           jiraIssueKey: issueKey,
           sourceLang: docRow?.source_language ?? '',
           targetLang: docRow?.target_language ?? '',
+          notaryCity: job.notary_city ?? null,
+          fulfillmentMethod: job.fulfillment_method ?? null,
           driveUrl: job.google_drive_folder_url,
         });
       } else {

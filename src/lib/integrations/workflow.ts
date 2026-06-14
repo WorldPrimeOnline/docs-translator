@@ -1,6 +1,5 @@
 // Integration workflow orchestrator: Jira + Drive + Telegram + Audit log
-// Called by the worker (via HTTP or import) after AI draft is ready,
-// and by the Jira webhook handler for subsequent stage transitions.
+// Called by the upload route (post-upload) and the Jira webhook handler (stage transitions).
 
 import { supabaseServer } from '../supabase/server';
 import {
@@ -10,8 +9,11 @@ import {
   transitionJiraIssue,
   addJiraComment,
 } from '../jira/client';
-import { getJiraConfig } from '../jira/config';
-import { createOrderFolder } from '../google-drive/client';
+import { getJiraCredentials } from '../jira/config';
+import { resolveJiraIds } from '../jira/resolver';
+import { JIRA_PROJECT_CONFIG } from '../jira/project-config';
+import { createOrderFolder, uploadFileToDrive } from '../google-drive/client';
+import { downloadFile } from '../r2/client';
 import {
   notifyOperatorNewOrder,
   notifyTranslatorNewAssignment,
@@ -21,8 +23,9 @@ import {
   notifyOperatorError,
 } from '../telegram/client';
 import type { ServiceLevel } from '../translation-prompts/types';
+import type { Json } from '@/types/supabase';
 
-// ─── Audit log ────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 async function audit(params: {
   jobId: string;
@@ -44,15 +47,12 @@ async function audit(params: {
     new_status: params.newStatus ?? null,
     jira_issue_key: params.jiraIssueKey ?? null,
     correlation_id: params.correlationId ?? null,
-    metadata: (params.metadata ?? null) as import('@/types/supabase').Json | null,
+    metadata: (params.metadata ?? null) as Json | null,
   });
   if (error) console.error('[audit] insert failed:', error.message);
 }
 
-async function updateJobIntegration(
-  jobId: string,
-  fields: Record<string, unknown>,
-): Promise<void> {
+async function updateJobIntegration(jobId: string, fields: Record<string, unknown>): Promise<void> {
   const { error } = await supabaseServer
     .from('jobs')
     .update({ ...fields, last_synced_at: new Date().toISOString() })
@@ -60,7 +60,19 @@ async function updateJobIntegration(
   if (error) console.error('[integration] job update failed:', error.message);
 }
 
-// ─── 1. Post-upload: create Jira issue + Drive folder ────────────────────────
+async function getResolvedIds() {
+  const creds = getJiraCredentials();
+  if (!creds || !JIRA_PROJECT_CONFIG.projectKey) return null;
+  return resolveJiraIds(creds.baseUrl, creds.email, creds.apiToken);
+}
+
+function jiraUrl(issueKey: string): string | null {
+  const creds = getJiraCredentials();
+  if (!creds) return null;
+  return `${creds.baseUrl}/browse/${issueKey}`;
+}
+
+// ─── 1. Post-upload: create Drive folder + upload source + create Jira issue ──
 
 export async function initializeOrderIntegrations(params: {
   jobId: string;
@@ -71,6 +83,8 @@ export async function initializeOrderIntegrations(params: {
   notaryCity?: string | null;
   fulfillmentMethod?: 'pickup' | 'delivery' | null;
   siteUrl: string;
+  /** R2 key of the source PDF — uploaded to Drive 01_SOURCE if provided */
+  sourceFileKey?: string | null;
 }): Promise<void> {
   if (
     params.serviceLevel !== 'official_with_translator_signature_and_provider_stamp' &&
@@ -81,14 +95,17 @@ export async function initializeOrderIntegrations(params: {
 
   const wpoUrl = `${params.siteUrl}/dashboard`;
   const tag = `[integration:${params.jobId.slice(0, 8)}]`;
-  console.log(`${tag} initializing Jira + Drive for ${params.serviceLevel}`);
+  console.log(`${tag} initializing Drive + Jira for ${params.serviceLevel}`);
 
-  // Create Drive folder (non-blocking error)
+  // ── 1a. Create Drive folder ────────────────────────────────────────────────
   let driveUrl: string | null = null;
+  let sourceFolderId: string | null = null;
+
   try {
     const folder = await createOrderFolder(params.jobId);
     if (folder) {
       driveUrl = folder.folderUrl;
+      sourceFolderId = folder.subfolders.source;
       await updateJobIntegration(params.jobId, {
         google_drive_folder_id: folder.folderId,
         google_drive_folder_url: folder.folderUrl,
@@ -99,21 +116,31 @@ export async function initializeOrderIntegrations(params: {
         actor: 'system',
         source: 'upload',
         action: 'drive_folder_created',
-        metadata: { folderId: folder.folderId, folderUrl: folder.folderUrl },
+        metadata: { folderId: folder.folderId },
       });
-      console.log(`${tag} Drive folder created: ${folder.folderUrl}`);
+      console.log(`${tag} Drive folder: ${folder.folderUrl}`);
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`${tag} Drive folder creation failed: ${msg}`);
-    await updateJobIntegration(params.jobId, {
-      drive_sync_status: 'error',
-      last_integration_error: msg,
-    });
-    await notifyOperatorError({ jobId: params.jobId, error: msg, context: 'drive_folder_creation' }).catch(() => undefined);
+    await updateJobIntegration(params.jobId, { drive_sync_status: 'error', last_integration_error: msg });
+    void notifyOperatorError({ jobId: params.jobId, error: msg, context: 'drive_folder_creation' }).catch(() => undefined);
   }
 
-  // Create Jira issue (non-blocking error)
+  // ── 1b. Upload source PDF to Drive 01_SOURCE ───────────────────────────────
+  if (sourceFolderId && params.sourceFileKey) {
+    try {
+      const pdfBuf = await downloadFile(params.sourceFileKey);
+      await uploadFileToDrive(sourceFolderId, 'source.pdf', pdfBuf, 'application/pdf');
+      console.log(`${tag} source uploaded to Drive 01_SOURCE`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`${tag} source Drive upload failed (non-fatal): ${msg}`);
+      await updateJobIntegration(params.jobId, { last_integration_error: msg });
+    }
+  }
+
+  // ── 1c. Create Jira issue ─────────────────────────────────────────────────
   try {
     const issue = await createJiraIssue({
       jobId: params.jobId,
@@ -139,12 +166,11 @@ export async function initializeOrderIntegrations(params: {
         source: 'upload',
         action: 'jira_issue_created',
         jiraIssueKey: issue.issueKey,
-        metadata: { issueKey: issue.issueKey, issueUrl: issue.issueUrl },
+        metadata: { issueKey: issue.issueKey },
       });
-      console.log(`${tag} Jira issue created: ${issue.issueKey}`);
+      console.log(`${tag} Jira issue: ${issue.issueKey}`);
 
-      // Notify operator
-      await notifyOperatorNewOrder({
+      void notifyOperatorNewOrder({
         jobId: params.jobId,
         serviceLevel: params.serviceLevel,
         sourceLang: params.sourceLang,
@@ -160,37 +186,56 @@ export async function initializeOrderIntegrations(params: {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`${tag} Jira issue creation failed: ${msg}`);
-    await updateJobIntegration(params.jobId, {
-      jira_sync_status: 'error',
-      last_integration_error: msg,
-    });
-    await notifyOperatorError({ jobId: params.jobId, error: msg, context: 'jira_issue_creation' }).catch(() => undefined);
+    await updateJobIntegration(params.jobId, { jira_sync_status: 'error', last_integration_error: msg });
+    void notifyOperatorError({ jobId: params.jobId, error: msg, context: 'jira_issue_creation' }).catch(() => undefined);
   }
 }
 
-// ─── 2. After AI draft ready: open issue to translator ───────────────────────
+// ─── 2. Upload AI draft to Drive 02_AI_DRAFT + move issue to translator ───────
 
 export async function transitionToTranslatorReview(params: {
   jobId: string;
+  jiraIssueKey: string;
   serviceLevel: ServiceLevel;
   sourceLang: string;
   targetLang: string;
   documentType: string;
   driveUrl?: string | null;
-  jiraIssueKey: string;
+  /** R2 key of the AI draft artifact */
+  draftFileKey?: string | null;
+  draftFileName?: string | null;
+  /** Subfolder ID for 02_AI_DRAFT if available */
+  aiDraftFolderId?: string | null;
 }): Promise<void> {
-  const cfg = getJiraConfig();
   const tag = `[integration:${params.jobId.slice(0, 8)}]`;
-  console.log(`${tag} transitioning to translator review`);
 
+  // Upload draft to Drive 02_AI_DRAFT
+  if (params.draftFileKey && params.aiDraftFolderId) {
+    try {
+      const buf = await downloadFile(params.draftFileKey);
+      const name = params.draftFileName ?? 'ai_draft.docx';
+      const mime = name.endsWith('.docx')
+        ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        : 'text/html';
+      await uploadFileToDrive(params.aiDraftFolderId, name, buf, mime);
+      console.log(`${tag} AI draft uploaded to Drive 02_AI_DRAFT`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`${tag} AI draft Drive upload failed (non-fatal): ${msg}`);
+    }
+  }
+
+  // Jira transitions
   try {
-    if (cfg?.translatorAccountId) {
-      await assignJiraIssue(params.jiraIssueKey, cfg.translatorAccountId);
+    const ids = await getResolvedIds();
+
+    if (ids?.translatorAccountId) {
+      await assignJiraIssue(params.jiraIssueKey, ids.translatorAccountId);
     }
-    if (cfg?.securityLevelTranslatorId) {
-      await setJiraSecurityLevel(params.jiraIssueKey, cfg.securityLevelTranslatorId);
+    if (ids?.securityLevelTranslatorId) {
+      await setJiraSecurityLevel(params.jiraIssueKey, ids.securityLevelTranslatorId);
     }
-    await transitionJiraIssue(params.jiraIssueKey, 'TO_TRANSLATOR');
+    await transitionJiraIssue(params.jiraIssueKey, JIRA_PROJECT_CONFIG.transitionNames.toTranslator);
     await addJiraComment(params.jiraIssueKey, 'AI draft ready. Assigned for translator review.');
 
     await updateJobIntegration(params.jobId, {
@@ -203,19 +248,16 @@ export async function transitionToTranslatorReview(params: {
       actor: 'system',
       source: 'worker',
       action: 'assigned_to_translator',
-      previousStatus: 'awaiting_translator_review',
       newStatus: 'awaiting_translator_review',
       jiraIssueKey: params.jiraIssueKey,
     });
 
-    // Notify translator
-    const jiraUrl = cfg ? `${cfg.baseUrl}/browse/${params.jiraIssueKey}` : null;
-    await notifyTranslatorNewAssignment({
+    void notifyTranslatorNewAssignment({
       jobId: params.jobId,
       sourceLang: params.sourceLang,
       targetLang: params.targetLang,
       documentType: params.documentType,
-      jiraUrl,
+      jiraUrl: jiraUrl(params.jiraIssueKey),
       driveUrl: params.driveUrl,
     }).catch((e) => console.error(`${tag} translator Telegram failed:`, e));
 
@@ -223,11 +265,8 @@ export async function transitionToTranslatorReview(params: {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`${tag} transitionToTranslatorReview failed: ${msg}`);
-    await updateJobIntegration(params.jobId, {
-      jira_sync_status: 'error',
-      last_integration_error: msg,
-    });
-    await notifyOperatorError({ jobId: params.jobId, error: msg, context: 'transition_to_translator' }).catch(() => undefined);
+    await updateJobIntegration(params.jobId, { jira_sync_status: 'error', last_integration_error: msg });
+    void notifyOperatorError({ jobId: params.jobId, error: msg, context: 'transition_to_translator' }).catch(() => undefined);
   }
 }
 
@@ -237,17 +276,18 @@ export async function transitionCertifiedToOperator(params: {
   jobId: string;
   jiraIssueKey: string;
 }): Promise<void> {
-  const cfg = getJiraConfig();
   const tag = `[integration:${params.jobId.slice(0, 8)}]`;
 
   try {
-    if (cfg?.operatorAccountId) {
-      await assignJiraIssue(params.jiraIssueKey, cfg.operatorAccountId);
+    const ids = await getResolvedIds();
+
+    if (ids?.operatorAccountId) {
+      await assignJiraIssue(params.jiraIssueKey, ids.operatorAccountId);
     }
-    if (cfg?.securityLevelOperatorId) {
-      await setJiraSecurityLevel(params.jiraIssueKey, cfg.securityLevelOperatorId);
+    if (ids?.securityLevelOperatorId) {
+      await setJiraSecurityLevel(params.jiraIssueKey, ids.securityLevelOperatorId);
     }
-    await transitionJiraIssue(params.jiraIssueKey, 'TO_OPERATOR');
+    await transitionJiraIssue(params.jiraIssueKey, JIRA_PROJECT_CONFIG.transitionNames.toOperator);
     await addJiraComment(params.jiraIssueKey, 'Translator review complete. Returned to operator for signature/stamp/final QA.');
 
     await updateJobIntegration(params.jobId, {
@@ -264,19 +304,18 @@ export async function transitionCertifiedToOperator(params: {
       jiraIssueKey: params.jiraIssueKey,
     });
 
-    const jiraUrl = cfg ? `${cfg.baseUrl}/browse/${params.jiraIssueKey}` : null;
-    await notifyOperatorTranslatorDone({
+    void notifyOperatorTranslatorDone({
       jobId: params.jobId,
-      jiraUrl,
+      jiraUrl: jiraUrl(params.jiraIssueKey),
       nextStep: 'operator_review',
     }).catch(() => undefined);
 
-    console.log(`${tag} ✓ certified order returned to operator`);
+    console.log(`${tag} ✓ certified returned to operator`);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`${tag} transitionCertifiedToOperator failed: ${msg}`);
     await updateJobIntegration(params.jobId, { jira_sync_status: 'error', last_integration_error: msg });
-    await notifyOperatorError({ jobId: params.jobId, error: msg, context: 'certified_to_operator' }).catch(() => undefined);
+    void notifyOperatorError({ jobId: params.jobId, error: msg, context: 'certified_to_operator' }).catch(() => undefined);
   }
 }
 
@@ -291,17 +330,18 @@ export async function transitionToNotary(params: {
   fulfillmentMethod?: string | null;
   driveUrl?: string | null;
 }): Promise<void> {
-  const cfg = getJiraConfig();
   const tag = `[integration:${params.jobId.slice(0, 8)}]`;
 
   try {
-    if (cfg?.notaryAccountId) {
-      await assignJiraIssue(params.jiraIssueKey, cfg.notaryAccountId);
+    const ids = await getResolvedIds();
+
+    if (ids?.notaryAccountId) {
+      await assignJiraIssue(params.jiraIssueKey, ids.notaryAccountId);
     }
-    if (cfg?.securityLevelNotaryId) {
-      await setJiraSecurityLevel(params.jiraIssueKey, cfg.securityLevelNotaryId);
+    if (ids?.securityLevelNotaryId) {
+      await setJiraSecurityLevel(params.jiraIssueKey, ids.securityLevelNotaryId);
     }
-    await transitionJiraIssue(params.jiraIssueKey, 'TO_NOTARY');
+    await transitionJiraIssue(params.jiraIssueKey, JIRA_PROJECT_CONFIG.transitionNames.toNotary);
     await addJiraComment(
       params.jiraIssueKey,
       [
@@ -326,27 +366,26 @@ export async function transitionToNotary(params: {
       jiraIssueKey: params.jiraIssueKey,
     });
 
-    const jiraUrl = cfg ? `${cfg.baseUrl}/browse/${params.jiraIssueKey}` : null;
-
-    await Promise.all([
+    const jUrl = jiraUrl(params.jiraIssueKey);
+    void Promise.all([
       notifyNotaryNewAssignment({
         jobId: params.jobId,
         sourceLang: params.sourceLang,
         targetLang: params.targetLang,
         notaryCity: params.notaryCity,
         fulfillmentMethod: params.fulfillmentMethod,
-        jiraUrl,
+        jiraUrl: jUrl,
         driveUrl: params.driveUrl,
       }),
-      notifyOperatorTranslatorDone({ jobId: params.jobId, jiraUrl, nextStep: 'notary' }),
-    ]).catch((e) => console.error(`${tag} Telegram notifications failed:`, e));
+      notifyOperatorTranslatorDone({ jobId: params.jobId, jiraUrl: jUrl, nextStep: 'notary' }),
+    ]).catch((e) => console.error(`${tag} Telegram failed:`, e));
 
     console.log(`${tag} ✓ forwarded to notary`);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`${tag} transitionToNotary failed: ${msg}`);
     await updateJobIntegration(params.jobId, { jira_sync_status: 'error', last_integration_error: msg });
-    await notifyOperatorError({ jobId: params.jobId, error: msg, context: 'to_notary' }).catch(() => undefined);
+    void notifyOperatorError({ jobId: params.jobId, error: msg, context: 'to_notary' }).catch(() => undefined);
   }
 }
 
@@ -356,17 +395,18 @@ export async function transitionNotaryToOperator(params: {
   jobId: string;
   jiraIssueKey: string;
 }): Promise<void> {
-  const cfg = getJiraConfig();
   const tag = `[integration:${params.jobId.slice(0, 8)}]`;
 
   try {
-    if (cfg?.operatorAccountId) {
-      await assignJiraIssue(params.jiraIssueKey, cfg.operatorAccountId);
+    const ids = await getResolvedIds();
+
+    if (ids?.operatorAccountId) {
+      await assignJiraIssue(params.jiraIssueKey, ids.operatorAccountId);
     }
-    if (cfg?.securityLevelOperatorId) {
-      await setJiraSecurityLevel(params.jiraIssueKey, cfg.securityLevelOperatorId);
+    if (ids?.securityLevelOperatorId) {
+      await setJiraSecurityLevel(params.jiraIssueKey, ids.securityLevelOperatorId);
     }
-    await transitionJiraIssue(params.jiraIssueKey, 'TO_OPERATOR');
+    await transitionJiraIssue(params.jiraIssueKey, JIRA_PROJECT_CONFIG.transitionNames.toOperator);
     await addJiraComment(params.jiraIssueKey, 'Notarization complete. Returned to operator for final QA / delivery.');
 
     await updateJobIntegration(params.jobId, {
@@ -383,14 +423,13 @@ export async function transitionNotaryToOperator(params: {
       jiraIssueKey: params.jiraIssueKey,
     });
 
-    const jiraUrl = cfg ? `${cfg.baseUrl}/browse/${params.jiraIssueKey}` : null;
-    await notifyOperatorNotaryDone({ jobId: params.jobId, jiraUrl }).catch(() => undefined);
+    void notifyOperatorNotaryDone({ jobId: params.jobId, jiraUrl: jiraUrl(params.jiraIssueKey) }).catch(() => undefined);
 
     console.log(`${tag} ✓ notary done — returned to operator`);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`${tag} transitionNotaryToOperator failed: ${msg}`);
     await updateJobIntegration(params.jobId, { jira_sync_status: 'error', last_integration_error: msg });
-    await notifyOperatorError({ jobId: params.jobId, error: msg, context: 'notary_to_operator' }).catch(() => undefined);
+    void notifyOperatorError({ jobId: params.jobId, error: msg, context: 'notary_to_operator' }).catch(() => undefined);
   }
 }
