@@ -8,31 +8,155 @@ Always read `PROJECT_CONTEXT.md` at the start of every session. It is the author
 
 ---
 
+## Branch and Environment Rules
+
+### Branch map
+
+| Branch | Environment | Deployed to |
+|---|---|---|
+| `main` | Production | Vercel Production + Railway production worker |
+| `staging` | Staging | Vercel Preview + Railway staging worker |
+| `feature/*` | Local dev | — |
+| `hotfix/*` | Local dev | — |
+
+### Mandatory pre-task check
+
+Before making any change, always run and report all three:
+
+```bash
+git branch --show-current
+git status --short
+git log -1 --oneline
+```
+
+### `main` is off-limits
+
+- Never work directly on `main`.
+- Never commit to `main`.
+- Never push to `main`.
+- Never merge anything into `main`.
+- Never deploy or promote to production unless the user explicitly says:
+  > `Разрешаю продвигать staging в production`
+  or gives an equally explicit production approval in any language.
+
+### Normal feature workflow
+
+```bash
+git checkout staging
+git pull origin staging
+git checkout -b feature/<short-task-name>
+# make changes
+npm run typecheck && npm run lint && npm test && npm run build
+git commit -m "feat: ..."
+git push origin feature/<short-task-name>
+# open PR → staging (not main)
+```
+
+### Staging rules
+
+- Code merged into `staging` deploys to the Vercel Preview staging site and the Railway staging worker.
+- Staging must point to the **staging** Supabase project and **staging** R2 bucket. Never point staging at production resources.
+- A successful staging build does not constitute approval. Wait for explicit manual acceptance.
+
+### Production promotion (requires explicit approval)
+
+Only after the user says `Разрешаю продвигать staging в production` (or equivalent). Before promoting, report:
+
+1. Commits being promoted (`git log main..staging --oneline`)
+2. Changed files (`git diff main..staging --name-only`)
+3. Database migrations that will be applied
+4. New or changed environment variable names (names only — never print values)
+5. Identified risks
+6. Rollback plan
+7. Test results
+
+Prefer a PR from `staging` → `main`. Do not include unrelated or untested changes.
+
+### Hotfix workflow
+
+```bash
+git checkout main
+git pull origin main
+git checkout -b hotfix/<short-name>
+# minimal fix, test
+# open PR → main (with explicit approval)
+# after merge to main, also cherry-pick into staging:
+git checkout staging && git cherry-pick <commit>
+```
+
+### Database migrations
+
+- Apply and test new migrations on staging Supabase first.
+- Production migration is only allowed during an approved production promotion.
+- Never edit an already-applied production migration — create a new forward migration instead.
+- Before running any migration, identify and flag destructive operations: `DROP`, `DELETE`, column type changes, `NOT NULL` additions.
+
+### Environment variables
+
+- Never print or commit secret values — report variable names only.
+- Label each variable by target:
+  - **Vercel Preview** (staging web)
+  - **Vercel Production** (production web)
+  - **Railway staging** (staging worker)
+  - **Railway production** (production worker)
+- Fail or warn if staging config references production Supabase URLs or production R2 bucket names, and vice versa.
+
+### Ambiguous instructions
+
+If the user says "deploy", "release", "push it", or "make it live" without specifying staging or production, **ask before acting**.
+
+### End-of-task report
+
+After every task, report:
+
+- Current branch
+- Files changed
+- Commands run and their results
+- Test results
+- Commit hash (if created)
+- Where the change should be merged next
+- Any required manual action in Vercel, Railway, Supabase, R2, or payment systems
+
+See `docs/DEPLOYMENT_WORKFLOW.md` for the canonical workflow reference.
+
+---
+
 ## Commands
 
 ### Web app (`/`)
 ```bash
-npm run dev       # Start Next.js dev server
-npm run build     # Production build
-npm run lint      # ESLint
+npm run dev          # Start Next.js dev server
+npm run build        # Production build
+npm run lint         # ESLint
+npm run typecheck    # tsc --noEmit (type check without emitting)
+npm run staging:check  # Validate env vars against expected list (reads .env.local)
 ```
 
 ### Worker (`/worker`)
 ```bash
 cd worker
-npm run dev       # tsx watch src/index.ts (hot-reload)
-npm run build     # tsc → dist/
-npm run start     # node dist/index.js (production)
+npm run dev          # tsx watch src/index.ts (hot-reload)
+npm run build        # tsc → dist/
+npm run start        # node dist/index.js (production)
+npm run typecheck    # tsc --noEmit
+npm run staging:check  # Validate worker env vars (reads worker/.env)
 ```
 
 ### Tests (Jest, run from repo root)
 ```bash
-npx jest                        # Run all tests
-npx jest src/lib/translation-workflow  # Run a specific directory
-npx jest --testPathPattern qa   # Run matching test file(s)
+npm test                                     # Run all tests
+npx jest src/lib/translation-workflow        # Run a specific directory
+npx jest --testPathPattern qa                # Run matching test file(s)
 ```
 
-Tests live in `src/lib/translation-workflow/__tests__/` and `worker/src/lib/__tests__/`. Config: `jest.config.ts` at repo root — covers both `src/` and `worker/src/`.
+Tests live in `src/lib/translation-workflow/__tests__/` and `worker/src/lib/__tests__/`. Config: `jest.config.ts` at repo root — covers both `src/` and `worker/src/`. Test files must match `**/__tests__/**/*.test.ts`.
+
+### Helper scripts
+```bash
+bash scripts/check-i18n.sh   # Grep locale pages/components for hardcoded strings not wrapped in t()
+```
+
+Reference env files: `.env.example` and `.env.staging.example` (web); `worker/.env.example` and `worker/.env.staging.example` (worker). Use these as checklists when configuring new environments.
 
 ---
 
