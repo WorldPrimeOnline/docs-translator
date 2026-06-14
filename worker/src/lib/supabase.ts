@@ -3,9 +3,6 @@ import { env } from './env';
 
 // Minimal inline types for the tables the worker touches.
 // Keep in sync with src/types/supabase.ts in the Next.js app.
-//
-// IMPORTANT: Before deploying official translation workflow features,
-// run supabase/migrations/add_official_workflow_fields.sql in Supabase SQL editor.
 export interface JobRow {
   id: string;
   document_id: string;
@@ -14,12 +11,27 @@ export interface JobRow {
   error_message: string | null;
   priority: number;
   payment_source: 'card_payment' | 'subscription' | null;
+  /** Legacy boolean — prefer service_level. */
   notarized: boolean;
+  service_level: 'electronic' | 'official_with_translator_signature_and_provider_stamp' | 'notarization_through_partners' | null;
+  notary_city: string | null;
+  fulfillment_method: 'pickup' | 'delivery' | null;
+  delivery_phone: string | null;
+  delivery_address: string | null;
   started_at: string | null;
   completed_at: string | null;
   created_at: string;
-  /** Workflow status for official translation pipeline. Default: 'completed'. */
-  workflow_status?: string | null;
+  workflow_status: string | null;
+  // Integration fields
+  jira_issue_id: string | null;
+  jira_issue_key: string | null;
+  jira_issue_url: string | null;
+  google_drive_folder_id: string | null;
+  google_drive_folder_url: string | null;
+  jira_sync_status: string | null;
+  drive_sync_status: string | null;
+  last_integration_error: string | null;
+  last_synced_at: string | null;
 }
 
 export interface DocumentRow {

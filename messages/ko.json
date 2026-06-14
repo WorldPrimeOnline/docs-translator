@@ -235,15 +235,40 @@
       "presentation": "프레젠테이션 / 피치덱",
       "other": "기타"
     },
-    "notarizedLabel": "공증/공식 인증을 위한 번역",
-    "notarizedDesc": "공증인 또는 인증 번역사에게 전달하기 위해 문서가 구조화 및 포맷됩니다. 이민, 대학, 법률 절차에 권장합니다.",
     "outputFormat": "출력 형식",
     "formatPdf": "PDF",
     "formatHtml": "HTML",
     "formatDocx": "Word (DOCX)",
     "fileCount1": "파일",
     "fileCountN": "파일",
-    "addMoreFiles": "파일 추가"
+    "addMoreFiles": "파일 추가",
+    "serviceLevel": {
+      "label": "서비스 수준",
+      "certified": {
+        "label": "공인 번역",
+        "desc": "자격을 갖춘 번역가가 번역을 검토하고 서명하며 WPO 직인을 날인합니다. 공증 미포함."
+      },
+      "notarization": {
+        "label": "공인 번역 + 공증",
+        "desc": "번역가가 번역을 검토·서명하고 WPO 직인을 날인한 후, 파트너 공증인에게 전달하여 번역가 서명을 공증합니다."
+      }
+    },
+    "notary": {
+      "city": "도시",
+      "cityPlaceholder": "도시 선택",
+      "citiesNotConfigured": "해당 지역에서는 아직 공증 서비스를 이용할 수 없습니다. 문의해 주세요.",
+      "fulfillment": "픽업 또는 배달",
+      "pickup": "픽업",
+      "delivery": "배달",
+      "phone": "전화번호",
+      "phonePlaceholder": "+7 (___) ___-__-__",
+      "address": "배달 주소",
+      "addressPlaceholder": "도로명, 건물, 호수",
+      "cityRequired": "도시를 선택해 주세요",
+      "fulfillmentRequired": "픽업 또는 배달을 선택해 주세요",
+      "phoneRequired": "배달에는 전화번호가 필요합니다",
+      "addressRequired": "배달에는 주소가 필요합니다"
+    }
   },
   "auth": {
     "login": "로그인",

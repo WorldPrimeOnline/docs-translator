@@ -199,9 +199,34 @@
     "jobTitle": "Translation in progress",
     "subBannerTitle": "Translate faster with a subscription",
     "subBannerDesc": "From 4 990 ₸/мес — 10 documents, no per-doc payments",
-    "notarizedLabel": "Translation for notary / official certification",
-    "notarizedDesc": "Output will be structured and formatted for handover to a notary or certified translator. Recommended for immigration, university, and legal workflows.",
     "usingPlanSub": "Using your {plan} plan · {remaining} doc{s} remaining — no payment required",
+    "serviceLevel": {
+      "label": "SERVICE LEVEL",
+      "certified": {
+        "label": "Certified translation",
+        "desc": "Translation is reviewed by a qualified human translator, signed by the translator, and stamped with the WPO seal. No notarization."
+      },
+      "notarization": {
+        "label": "Certified translation with notarization",
+        "desc": "Translation is reviewed and signed by a translator, stamped with the WPO seal, then forwarded to a partner notary to certify the translator's signature."
+      }
+    },
+    "notary": {
+      "city": "CITY",
+      "cityPlaceholder": "Select city",
+      "citiesNotConfigured": "Notarization service is not yet available in your area. Contact us for availability.",
+      "fulfillment": "PICKUP OR DELIVERY",
+      "pickup": "Pickup",
+      "delivery": "Delivery",
+      "phone": "PHONE NUMBER",
+      "phonePlaceholder": "+7 (___) ___-__-__",
+      "address": "DELIVERY ADDRESS",
+      "addressPlaceholder": "Street, building, apartment",
+      "cityRequired": "Please select a city",
+      "fulfillmentRequired": "Please select pickup or delivery",
+      "phoneRequired": "Phone number is required for delivery",
+      "addressRequired": "Delivery address is required for delivery"
+    },
     "status": {
       "queued": "Queued — waiting to start…",
       "ocr": "Extracting text… ({pct}%)",

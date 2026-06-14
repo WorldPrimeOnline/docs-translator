@@ -235,15 +235,40 @@
       "presentation": "演示文稿 / 商业计划书",
       "other": "其他"
     },
-    "notarizedLabel": "公证/官方认证翻译",
-    "notarizedDesc": "文件将被结构化和格式化，以便移交给公证人或认证翻译员。建议用于移民、大学和法律工作流程。",
     "outputFormat": "输出格式",
     "formatPdf": "PDF",
     "formatHtml": "HTML",
     "formatDocx": "Word (DOCX)",
     "fileCount1": "个文件",
     "fileCountN": "个文件",
-    "addMoreFiles": "添加更多"
+    "addMoreFiles": "添加更多",
+    "serviceLevel": {
+      "label": "服务级别",
+      "certified": {
+        "label": "认证翻译",
+        "desc": "翻译由合格译员审核、签字，并加盖WPO印章。不含公证。"
+      },
+      "notarization": {
+        "label": "认证翻译（含公证）",
+        "desc": "翻译由译员审核、签字，加盖WPO印章，随后转交合作公证机构对译员签名进行公证。"
+      }
+    },
+    "notary": {
+      "city": "城市",
+      "cityPlaceholder": "选择城市",
+      "citiesNotConfigured": "公证服务暂未在您所在地区提供，请联系我们了解情况。",
+      "fulfillment": "自取或配送",
+      "pickup": "自取",
+      "delivery": "配送",
+      "phone": "电话号码",
+      "phonePlaceholder": "+7 (___) ___-__-__",
+      "address": "送达地址",
+      "addressPlaceholder": "街道、楼号、房间号",
+      "cityRequired": "请选择城市",
+      "fulfillmentRequired": "请选择自取或配送",
+      "phoneRequired": "配送需填写电话号码",
+      "addressRequired": "配送需填写地址"
+    }
   },
   "auth": {
     "login": "登录",

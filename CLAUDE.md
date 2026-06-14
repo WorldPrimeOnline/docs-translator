@@ -117,7 +117,7 @@ After every task, report:
 - Where the change should be merged next
 - Any required manual action in Vercel, Railway, Supabase, R2, or payment systems
 
-See `docs/DEPLOYMENT_WORKFLOW.md` for the canonical workflow reference.
+See `docs/DEPLOYMENT_WORKFLOW.md` for the canonical workflow reference. Additional staging/migration references in `docs/`: `STAGING_SETUP.md`, `STAGING_ENV_VARS.md`, `STAGING_QA_CHECKLIST.md`, `MIGRATION_AUDIT.md`.
 
 ---
 
@@ -278,7 +278,6 @@ Subscription state: `subscriptions` table. The upload route is the only path tha
 | `jobs` | `status`, `progress_percent`, `priority`, `payment_source`, `country`, `notarized`, `bureau_stamp`, `workflow_status` |
 | `ocr_results` | `job_id`, `markdown`, `page_count`, `provider` |
 | `translations` | `job_id`, `translated_markdown`, `translated_pdf_key`, `translated_docx_key`, `translated_preview_pdf_key`, `qa_report` |
-| `ton_payments` | legacy pay-per-doc TON transactions (payment gateway not active) |
 | `subscriptions` | `plan`, `status`, `documents_used`, `documents_limit`, `expires_at` |
 
 Generated types at `src/types/supabase.ts`, re-exported from `src/types/index.ts`. Use `Tables<'tablename'>`, `TablesInsert<'tablename'>`, `TablesUpdate<'tablename'>` for typed DB access — do not inline raw object types.
@@ -323,7 +322,7 @@ Web app: `src/lib/env.ts` (Zod, lazy-validated proxy). Validated vars: `NEXT_PUB
 
 Worker: `worker/src/lib/env.ts` (validates on startup, exits if invalid). Additional worker-only vars: `RESEND_API_KEY` (optional), `SITE_URL` (default: `https://wpotranslations.org`), `POLL_INTERVAL_MS` (default: 10000), `WORKER_CONCURRENCY` (default: 1).
 
-The following are **not** in the Zod schemas and are read via `process.env` directly in their respective handlers: `NEXT_PUBLIC_SITE_URL`, `CRON_SECRET`, `TONCONSOLE_WEBHOOK_SECRET`, `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN`.
+The following are **not** in the Zod schemas and are read via `process.env` directly in their respective handlers: `NEXT_PUBLIC_SITE_URL`, `CRON_SECRET`, `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN`.
 
 `CRON_SECRET` must be set in the Vercel dashboard — matched against `Authorization: Bearer <secret>` sent by the Vercel cron scheduler. Do not add new env vars beyond those listed in `PROJECT_CONTEXT.md § 15`.
 
