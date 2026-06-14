@@ -58,11 +58,24 @@ export async function GET(
 
   if (!job) return NextResponse.json({ error: 'No completed translation found' }, { status: 404 });
 
-  // Block download if the job is still awaiting human translator review (official workflow).
-  // workflow_status is null for pre-migration rows — treat null as 'completed' for backward compat.
-  if (job.workflow_status === 'awaiting_translator_review') {
+  // Block download for certified/notarized jobs still in the human-review pipeline.
+  // null workflow_status = electronic job (always downloadable).
+  // 'ready_for_delivery' = operator approved — downloadable.
+  // Everything else = some human-review stage is still in progress.
+  if (job.workflow_status !== null && job.workflow_status !== 'ready_for_delivery') {
+    const statusMessages: Record<string, string> = {
+      awaiting_translator_review: 'Document is being reviewed by a certified translator.',
+      awaiting_signature_stamp: 'Document is awaiting translator signature and provider stamp.',
+      awaiting_notary_review: 'Document is being processed by a notary.',
+      awaiting_final_qa: 'Document is awaiting final quality check.',
+      translator_declined: 'Translator assignment was declined. Please contact support.',
+      notary_declined: 'Notary assignment was declined. Please contact support.',
+    };
     return NextResponse.json(
-      { error: 'Document is awaiting translator review and is not yet available for download.' },
+      {
+        error: statusMessages[job.workflow_status ?? '']
+          ?? 'Document is not yet available for download — please check back later.',
+      },
       { status: 403 },
     );
   }

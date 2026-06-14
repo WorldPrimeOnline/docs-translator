@@ -207,7 +207,14 @@
       "translating": "번역 중… ({pct}%)",
       "rendering": "PDF 생성 중… ({pct}%)",
       "completed": "완료됨",
-      "failed": "실패"
+      "failed": "실패",
+      "awaitingTranslatorReview": "번역가에게 전송됨 — 검토 대기 중",
+      "awaitingSignatureStamp": "번역가 서명 및 도장 대기 중",
+      "awaitingNotaryReview": "공증인에게 전송됨 — 공증 대기 중",
+      "awaitingFinalQa": "최종 품질 검사 대기 중",
+      "readyForDelivery": "배송 준비 완료",
+      "translatorDeclined": "번역가가 거절했습니다 — 지원팀에 문의하세요",
+      "notaryDeclined": "공증인이 거절했습니다 — 지원팀에 문의하세요"
     },
     "langs": {
       "auto": "자동 감지",
@@ -268,7 +275,8 @@
       "fulfillmentRequired": "픽업 또는 배달을 선택해 주세요",
       "phoneRequired": "배달에는 전화번호가 필요합니다",
       "addressRequired": "배달에는 주소가 필요합니다"
-    }
+    },
+    "inReview": "검토 중"
   },
   "auth": {
     "login": "로그인",

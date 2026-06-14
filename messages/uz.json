@@ -207,7 +207,14 @@
       "translating": "Tarjima qilinmoqda… ({pct}%)",
       "rendering": "PDF tayyorlanmoqda… ({pct}%)",
       "completed": "Bajarildi",
-      "failed": "Xato"
+      "failed": "Xato",
+      "awaitingTranslatorReview": "Tarjimonga yuborildi — ko'rib chiqish kutilmoqda",
+      "awaitingSignatureStamp": "Tarjimon imzosi va muhrini kutmoqda",
+      "awaitingNotaryReview": "Notariusga yuborildi — tasdiqlash kutilmoqda",
+      "awaitingFinalQa": "Yakuniy sifat tekshiruvi kutilmoqda",
+      "readyForDelivery": "Topshirishga tayyor",
+      "translatorDeclined": "Tarjimon rad etdi — qo'llab-quvvatlash bilan bog'laning",
+      "notaryDeclined": "Notarius rad etdi — qo'llab-quvvatlash bilan bog'laning"
     },
     "langs": {
       "auto": "Avtomatik aniqlash",
@@ -268,7 +275,8 @@
       "fulfillmentRequired": "Olib ketish yoki yetkazib berishni tanlang",
       "phoneRequired": "Yetkazib berish uchun telefon raqami kerak",
       "addressRequired": "Yetkazib berish uchun manzil kerak"
-    }
+    },
+    "inReview": "Ko'rib chiqilmoqda"
   },
   "auth": {
     "login": "Kirish",

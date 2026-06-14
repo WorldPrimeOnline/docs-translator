@@ -39,6 +39,8 @@ interface ActiveJob {
   paidViaSubscription?: boolean;
   subscriptionPlan?: string;
   remainingDocs?: number;
+  workflowStatus?: string | null;
+  serviceLevel?: string;
 }
 
 interface SubscriptionInfo {
@@ -58,6 +60,13 @@ function StatusBadge({ status }: { status: string }) {
         <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-400">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
           {t('completed')}
+        </span>
+      );
+    case 'in_review':
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-400">
+          <span className="h-1.5 w-1.5 animate-badge-pulse rounded-full bg-amber-400" />
+          {t('inReview')}
         </span>
       );
     case 'failed':
@@ -264,7 +273,18 @@ export default function DashboardPage() {
     { value: 'other',              label: t('docTypes.other')               },
   ];
 
-  function statusLabel(status: JobStatus, progress: number): string {
+  function statusLabel(status: JobStatus, progress: number, workflowStatus?: string | null): string {
+    if (status === 'completed' && workflowStatus) {
+      switch (workflowStatus) {
+        case 'awaiting_translator_review': return t('status.awaitingTranslatorReview');
+        case 'awaiting_signature_stamp':   return t('status.awaitingSignatureStamp');
+        case 'awaiting_notary_review':     return t('status.awaitingNotaryReview');
+        case 'awaiting_final_qa':          return t('status.awaitingFinalQa');
+        case 'ready_for_delivery':         return t('status.readyForDelivery');
+        case 'translator_declined':        return t('status.translatorDeclined');
+        case 'notary_declined':            return t('status.notaryDeclined');
+      }
+    }
     switch (status) {
       case 'queued':               return t('status.queued');
       case 'ocr_in_progress':      return t('status.ocr',      { pct: progress });
@@ -399,6 +419,8 @@ export default function DashboardPage() {
       status: JobStatus;
       progress: number;
       errorMessage: string | null;
+      workflowStatus: string | null;
+      serviceLevel: string;
     };
     setActiveJob((prev) => (prev ? { ...prev, ...data } : prev));
   }
@@ -901,7 +923,7 @@ export default function DashboardPage() {
                 {activeJob.filename || t('jobTitle')}
               </h3>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                {statusLabel(activeJob.status, activeJob.progress)}
+                {statusLabel(activeJob.status, activeJob.progress, activeJob.workflowStatus)}
               </p>
               {activeJob.paidViaSubscription && activeJob.status !== 'completed' && activeJob.status !== 'failed' && (
                 <p className="mt-1 flex items-center gap-1 text-xs text-primary">
@@ -915,7 +937,15 @@ export default function DashboardPage() {
                 </p>
               )}
             </div>
-            <StatusBadge status={activeJob.status} />
+            <StatusBadge
+              status={
+                activeJob.status === 'completed' &&
+                activeJob.workflowStatus &&
+                activeJob.workflowStatus !== 'ready_for_delivery'
+                  ? 'in_review'
+                  : activeJob.status
+              }
+            />
           </div>
 
           {activeJob.status !== 'completed' && activeJob.status !== 'failed' && (
@@ -934,7 +964,16 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {activeJob.status === 'completed' && (
+          {activeJob.status === 'completed' && !activeJob.workflowStatus && (
+            <a
+              href={`/api/documents/${activeJob.documentId}/download`}
+              className="mt-4 inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-gold-dark"
+            >
+              <Download className="h-4 w-4" />
+              {t('downloadTranslation')}
+            </a>
+          )}
+          {activeJob.status === 'completed' && activeJob.workflowStatus === 'ready_for_delivery' && (
             <a
               href={`/api/documents/${activeJob.documentId}/download`}
               className="mt-4 inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-gold-dark"

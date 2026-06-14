@@ -207,7 +207,14 @@
       "translating": "Traduciendo… ({pct}%)",
       "rendering": "Generando PDF… ({pct}%)",
       "completed": "Completado",
-      "failed": "Error"
+      "failed": "Error",
+      "awaitingTranslatorReview": "Enviado al traductor — esperando revisión",
+      "awaitingSignatureStamp": "Esperando firma y sello del traductor",
+      "awaitingNotaryReview": "Enviado al notario — esperando certificación",
+      "awaitingFinalQa": "Esperando verificación final de calidad",
+      "readyForDelivery": "Listo para entrega",
+      "translatorDeclined": "El traductor rechazó — contacte con soporte",
+      "notaryDeclined": "El notario rechazó — contacte con soporte"
     },
     "langs": {
       "auto": "Detectar automáticamente",
@@ -268,7 +275,8 @@
       "fulfillmentRequired": "Seleccione recogida o entrega",
       "phoneRequired": "Se requiere teléfono para la entrega",
       "addressRequired": "Se requiere dirección para la entrega"
-    }
+    },
+    "inReview": "En revisión"
   },
   "auth": {
     "login": "Iniciar sesión",

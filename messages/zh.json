@@ -207,7 +207,14 @@
       "translating": "翻译中… ({pct}%)",
       "rendering": "生成 PDF 中… ({pct}%)",
       "completed": "已完成",
-      "failed": "失败"
+      "failed": "失败",
+      "awaitingTranslatorReview": "已发送给译者——等待审核",
+      "awaitingSignatureStamp": "等待译者签名和盖章",
+      "awaitingNotaryReview": "已发送给公证人——等待公证",
+      "awaitingFinalQa": "等待最终质量检查",
+      "readyForDelivery": "准备交付",
+      "translatorDeclined": "译者已拒绝——请联系支持",
+      "notaryDeclined": "公证人已拒绝——请联系支持"
     },
     "langs": {
       "auto": "自动检测",
@@ -268,7 +275,8 @@
       "fulfillmentRequired": "请选择自取或配送",
       "phoneRequired": "配送需填写电话号码",
       "addressRequired": "配送需填写地址"
-    }
+    },
+    "inReview": "审核中"
   },
   "auth": {
     "login": "登录",

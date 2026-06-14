@@ -234,7 +234,14 @@
       "translating": "Translating… ({pct}%)",
       "rendering": "Rendering PDF… ({pct}%)",
       "completed": "Completed",
-      "failed": "Failed"
+      "failed": "Failed",
+      "awaitingTranslatorReview": "Sent to translator — awaiting review",
+      "awaitingSignatureStamp": "Awaiting translator signature and stamp",
+      "awaitingNotaryReview": "Sent to notary — awaiting certification",
+      "awaitingFinalQa": "Awaiting final quality check",
+      "readyForDelivery": "Ready for delivery",
+      "translatorDeclined": "Translator declined — please contact support",
+      "notaryDeclined": "Notary declined — please contact support"
     },
     "langs": {
       "auto": "Auto-detect",
@@ -268,7 +275,8 @@
     "formatDocx": "Word (DOCX)",
     "fileCount1": "file",
     "fileCountN": "files",
-    "addMoreFiles": "Add more files"
+    "addMoreFiles": "Add more files",
+    "inReview": "In Review"
   },
   "auth": {
     "login": "Sign in",

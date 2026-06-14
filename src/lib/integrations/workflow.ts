@@ -464,10 +464,28 @@ export async function syncReadyForDelivery(params: {
 }): Promise<void> {
   const tag = `[integration:${params.jobId.slice(0, 8)}]`;
   try {
+    // Lookup document_id to release the document to the customer
+    const { data: jobRow } = await supabaseServer
+      .from('jobs')
+      .select('document_id')
+      .eq('id', params.jobId)
+      .single();
+
     await updateJobIntegration(params.jobId, {
       jira_sync_status: 'ready_for_delivery',
       workflow_status: 'ready_for_delivery',
     });
+
+    // Release: move documents.status from 'in_review' → 'completed' so the
+    // dashboard shows the download button.
+    if (jobRow?.document_id) {
+      const { error } = await supabaseServer
+        .from('documents')
+        .update({ status: 'completed' })
+        .eq('id', jobRow.document_id);
+      if (error) console.error(`${tag} document release failed:`, error.message);
+    }
+
     await audit({
       jobId: params.jobId,
       actor: 'operator',
@@ -476,8 +494,7 @@ export async function syncReadyForDelivery(params: {
       newStatus: 'ready_for_delivery',
       jiraIssueKey: params.jiraIssueKey,
     });
-    // Customer delivery email is triggered separately by the operator or an automated email flow.
-    console.log(`${tag} ✓ ready for delivery: Supabase synced`);
+    console.log(`${tag} ✓ ready for delivery: document released, Supabase synced`);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`${tag} syncReadyForDelivery failed: ${msg}`);

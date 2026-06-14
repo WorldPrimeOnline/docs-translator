@@ -207,7 +207,14 @@
       "translating": "Которулууда… ({pct}%)",
       "rendering": "PDF даярдалууда… ({pct}%)",
       "completed": "Аяктаган",
-      "failed": "Ишке ашкан жок"
+      "failed": "Ишке ашкан жок",
+      "awaitingTranslatorReview": "Котормочуга жиберилди — каралышын күтүүдө",
+      "awaitingSignatureStamp": "Котормочунун колу жана мөөрүн күтүүдө",
+      "awaitingNotaryReview": "Нотариуска жиберилди — күбөлөндүрүүнү күтүүдө",
+      "awaitingFinalQa": "Акыркы сапат текшерүүсүн күтүүдө",
+      "readyForDelivery": "Берүүгө даяр",
+      "translatorDeclined": "Котормочу баш тартты — колдоо кызматына кайрылыңыз",
+      "notaryDeclined": "Нотариус баш тартты — колдоо кызматына кайрылыңыз"
     },
     "langs": {
       "auto": "Автоматтык аныктоо",
@@ -268,7 +275,8 @@
       "fulfillmentRequired": "Алуу же жеткирүүнү тандаңыз",
       "phoneRequired": "Жеткирүү үчүн телефон керек",
       "addressRequired": "Жеткирүү үчүн дарек керек"
-    }
+    },
+    "inReview": "Каралуда"
   },
   "auth": {
     "login": "Кирүү",

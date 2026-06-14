@@ -232,7 +232,14 @@
       "translating": "Переводится… ({pct}%)",
       "rendering": "Создание PDF… ({pct}%)",
       "completed": "Завершено",
-      "failed": "Ошибка"
+      "failed": "Ошибка",
+      "awaitingTranslatorReview": "Передано переводчику — ожидает проверки",
+      "awaitingSignatureStamp": "Ожидает подписи и печати переводчика",
+      "awaitingNotaryReview": "Передано нотариусу — ожидает удостоверения",
+      "awaitingFinalQa": "Ожидает финальной проверки качества",
+      "readyForDelivery": "Готово к выдаче",
+      "translatorDeclined": "Переводчик отказался — обратитесь в поддержку",
+      "notaryDeclined": "Нотариус отказался — обратитесь в поддержку"
     },
     "langs": {
       "auto": "Автоопределение",
@@ -293,7 +300,8 @@
       "fulfillmentRequired": "Выберите самовывоз или доставку",
       "phoneRequired": "Укажите номер телефона для доставки",
       "addressRequired": "Укажите адрес доставки"
-    }
+    },
+    "inReview": "На проверке"
   },
   "auth": {
     "login": "Войти",

@@ -207,7 +207,14 @@
       "translating": "Terjime edilýär… ({pct}%)",
       "rendering": "PDF taýarlanýar… ({pct}%)",
       "completed": "Tamamlandy",
-      "failed": "Şowsuz"
+      "failed": "Şowsuz",
+      "awaitingTranslatorReview": "Terjimeçä iberildi — seredilmegine garaşylýar",
+      "awaitingSignatureStamp": "Terjimeçiniň goly we möhürine garaşylýar",
+      "awaitingNotaryReview": "Notariusa iberildi — tassyklanmagyna garaşylýar",
+      "awaitingFinalQa": "Jemleýji hil barlagyna garaşylýar",
+      "readyForDelivery": "Gowşurmaga taýyn",
+      "translatorDeclined": "Terjimeçi ret etdi — goldaw bilen habarlaşyň",
+      "notaryDeclined": "Notarius ret etdi — goldaw bilen habarlaşyň"
     },
     "langs": {
       "auto": "Awtomatik anykla",
@@ -268,7 +275,8 @@
       "fulfillmentRequired": "Almak ýa-da eltip bermegi saýlaň",
       "phoneRequired": "Eltip bermek üçin telefon belgisi zerur",
       "addressRequired": "Eltip bermek üçin salgy zerur"
-    }
+    },
+    "inReview": "Seredilýär"
   },
   "auth": {
     "login": "Giriş",

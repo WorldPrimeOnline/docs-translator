@@ -38,6 +38,26 @@ async function updateJob(
 
 export async function processJob(jobId: string, documentId: string): Promise<void> {
   try {
+    // Load job metadata BEFORE claiming (changing status to ocr_in_progress).
+    // If service_level is not electronic, leave the job queued so the Railway worker can claim it.
+    const { data: jobRow } = await supabaseServer
+      .from('jobs')
+      .select('*')
+      .eq('id', jobId)
+      .single();
+
+    // Prefer service_level column; fall back to legacy notarized boolean for old rows
+    const serviceLevel: ServiceLevel =
+      (jobRow?.service_level as ServiceLevel | null | undefined) ??
+      (jobRow?.notarized === true ? 'official_with_translator_signature_and_provider_stamp' : 'electronic');
+
+    if (serviceLevel !== 'electronic') {
+      // Certified/notarized jobs belong to the Railway worker's human-review pipeline.
+      // Do not process here — leave status as 'queued' so Railway worker can claim it.
+      console.error(`[processor] refusing to process ${serviceLevel} job ${jobId} in web processor — leaving queued for Railway worker`);
+      return;
+    }
+
     await updateJob(jobId, 'ocr_in_progress', 10);
 
     const { data: doc } = await supabaseServer
@@ -47,16 +67,6 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
       .single();
 
     if (!doc) throw new Error(`Document ${documentId} not found`);
-
-    const { data: jobRow } = await supabaseServer
-      .from('jobs')
-      .select('*')
-      .eq('id', jobId)
-      .single();
-    // Prefer service_level column; fall back to legacy notarized boolean for old rows
-    const serviceLevel: ServiceLevel =
-      (jobRow?.service_level as ServiceLevel | null | undefined) ??
-      (jobRow?.notarized === true ? 'official_with_translator_signature_and_provider_stamp' : 'electronic');
 
     const pdfBuffer = await downloadFile(doc.file_key);
     const { markdown, pageCount } = await extractTextFromPdf(pdfBuffer);

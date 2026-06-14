@@ -207,7 +207,14 @@
       "translating": "Аударылуда… ({pct}%)",
       "rendering": "PDF жасалуда… ({pct}%)",
       "completed": "Аяқталды",
-      "failed": "Қате"
+      "failed": "Қате",
+      "awaitingTranslatorReview": "Аудармашыға жіберілді — тексеруді күтуде",
+      "awaitingSignatureStamp": "Аудармашының қолы мен мөрін күтуде",
+      "awaitingNotaryReview": "Нотариусқа жіберілді — куәландыруды күтуде",
+      "awaitingFinalQa": "Түпкілікті сапа тексеруін күтуде",
+      "readyForDelivery": "Беруге дайын",
+      "translatorDeclined": "Аудармашы бас тартты — қолдауға хабарласыңыз",
+      "notaryDeclined": "Нотариус бас тартты — қолдауға хабарласыңыз"
     },
     "langs": {
       "auto": "Автоанықтау",
@@ -268,7 +275,8 @@
       "fulfillmentRequired": "Өзі алу немесе жеткізуді таңдаңыз",
       "phoneRequired": "Жеткізу үшін телефон нөмірі қажет",
       "addressRequired": "Жеткізу үшін мекенжай қажет"
-    }
+    },
+    "inReview": "Тексерілуде"
   },
   "auth": {
     "login": "Кіру",

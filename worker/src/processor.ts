@@ -226,7 +226,9 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
         });
       }
 
-      await supabase.from('documents').update({ status: 'completed' }).eq('id', documentId);
+      // Use 'in_review' (not 'completed') so the dashboard does not show a download button.
+      // documents.status is set to 'completed' only when the operator fires READY_FOR_DELIVERY.
+      await supabase.from('documents').update({ status: 'in_review' }).eq('id', documentId);
       await updateJob(jobId, 'completed', 100, undefined, { workflow_status: 'awaiting_translator_review' });
 
       console.log(`${tag} ✓ completed [${plan.mode}] — awaiting human review`);

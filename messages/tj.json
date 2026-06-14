@@ -207,7 +207,14 @@
       "translating": "Тарҷума мешавад… ({pct}%)",
       "rendering": "PDF сохта мешавад… ({pct}%)",
       "completed": "Анҷом ёфт",
-      "failed": "Хато"
+      "failed": "Хато",
+      "awaitingTranslatorReview": "Ба тарҷумон фиристода шуд — интизори баррасӣ",
+      "awaitingSignatureStamp": "Интизори имзо ва мӯҳри тарҷумон",
+      "awaitingNotaryReview": "Ба нотариус фиристода шуд — интизори тасдиқ",
+      "awaitingFinalQa": "Интизори санҷиши ниҳоии сифат",
+      "readyForDelivery": "Барои таҳвил омода аст",
+      "translatorDeclined": "Тарҷумон рад кард — бо дастгирӣ тамос гиред",
+      "notaryDeclined": "Нотариус рад кард — бо дастгирӣ тамос гиред"
     },
     "langs": {
       "auto": "Худкор муайян кардан",
@@ -268,7 +275,8 @@
       "fulfillmentRequired": "Гирифтан ё таҳвилро интихоб кунед",
       "phoneRequired": "Барои таҳвил рақами телефон лозим аст",
       "addressRequired": "Барои таҳвил суроға лозим аст"
-    }
+    },
+    "inReview": "Дар баррасӣ"
   },
   "auth": {
     "login": "Воридшавӣ",

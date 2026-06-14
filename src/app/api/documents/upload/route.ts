@@ -346,9 +346,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           });
         }
 
-        // Web processor handles html-format subscription jobs only
+        // ONLY electronic + html goes through the web processor.
+        // Certified/notarized jobs (any output format) must stay queued for Railway worker
+        // so they go through the human-review pipeline (workflow_status = awaiting_translator_review).
         const [, outputFmt] = (documentType as string).split('|');
-        if (!outputFmt || outputFmt === 'html') {
+        if (serviceLevel === 'electronic' && (!outputFmt || outputFmt === 'html')) {
           setTimeout(() => {
             void processJob(job.id, doc.id);
           }, 0);
