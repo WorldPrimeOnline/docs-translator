@@ -16,8 +16,8 @@ Always read `PROJECT_CONTEXT.md` at the start of every session. It is the author
 |---|---|---|
 | `main` | Production | Vercel Production + Railway production worker |
 | `staging` | Staging | Vercel Preview + Railway staging worker |
-| `feature/*` | Local dev | — |
-| `hotfix/*` | Local dev | — |
+
+`feature/*` and `hotfix/*` branches are **not used** unless the user explicitly requests one.
 
 ### Mandatory pre-task check
 
@@ -29,6 +29,21 @@ git status --short
 git log -1 --oneline
 ```
 
+### Normal workflow — commit directly to `staging`
+
+All regular changes go directly to `staging`:
+
+```bash
+git checkout staging
+git pull origin staging
+# make changes
+npm run typecheck && npm run lint && npm test && npm run build
+git commit -m "feat: ..."
+git push origin staging
+```
+
+Do **not** create `feature/*` or `hotfix/*` branches unless the user explicitly asks.
+
 ### `main` is off-limits
 
 - Never work directly on `main`.
@@ -39,22 +54,9 @@ git log -1 --oneline
   > `Разрешаю продвигать staging в production`
   or gives an equally explicit production approval in any language.
 
-### Normal feature workflow
-
-```bash
-git checkout staging
-git pull origin staging
-git checkout -b feature/<short-task-name>
-# make changes
-npm run typecheck && npm run lint && npm test && npm run build
-git commit -m "feat: ..."
-git push origin feature/<short-task-name>
-# open PR → staging (not main)
-```
-
 ### Staging rules
 
-- Code merged into `staging` deploys to the Vercel Preview staging site and the Railway staging worker.
+- Code pushed to `staging` deploys to the Vercel Preview staging site and the Railway staging worker.
 - Staging must point to the **staging** Supabase project and **staging** R2 bucket. Never point staging at production resources.
 - A successful staging build does not constitute approval. Wait for explicit manual acceptance.
 
@@ -70,9 +72,9 @@ Only after the user says `Разрешаю продвигать staging в produ
 6. Rollback plan
 7. Test results
 
-Prefer a PR from `staging` → `main`. Do not include unrelated or untested changes.
+Merge `staging` → `main` directly (fast-forward or merge commit). Do not include unrelated or untested changes.
 
-### Hotfix workflow
+### Hotfix workflow (only when explicitly requested)
 
 ```bash
 git checkout main
