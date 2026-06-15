@@ -8,20 +8,18 @@ import type { NextRequest } from 'next/server';
 jest.mock('@/lib/integrations/workflow', () => ({
   syncTranslatorDoneCertified: jest.fn().mockResolvedValue(undefined),
   syncTranslatorDoneNotarized: jest.fn().mockResolvedValue(undefined),
+  syncNotaryInProgress: jest.fn().mockResolvedValue(undefined),
   syncNotaryDone: jest.fn().mockResolvedValue(undefined),
   syncTranslatorDeclined: jest.fn().mockResolvedValue(undefined),
   syncNotaryDeclined: jest.fn().mockResolvedValue(undefined),
-  syncReadyForDelivery: jest.fn().mockResolvedValue(undefined),
+  syncOrderReady: jest.fn().mockResolvedValue(undefined),
+  syncOutForDelivery: jest.fn().mockResolvedValue(undefined),
+  syncDelivered: jest.fn().mockResolvedValue(undefined),
   syncJobTerminated: jest.fn().mockResolvedValue(undefined),
-  // aliases kept for compat
-  transitionCertifiedToOperator: jest.fn().mockResolvedValue(undefined),
-  transitionToNotary: jest.fn().mockResolvedValue(undefined),
-  transitionNotaryToOperator: jest.fn().mockResolvedValue(undefined),
+  syncInformational: jest.fn().mockResolvedValue(undefined),
 }));
 
 // Build a chainable Supabase mock.
-// select/eq/update keep persistent mockReturnValue(chainable) — never reset them.
-// Only mockMaybySingle / mockInsert / mockSingle are reset between tests.
 const mockMaybySingle = jest.fn();
 const mockSingle = jest.fn();
 const mockInsert = jest.fn();
@@ -56,11 +54,15 @@ jest.mock('@/lib/supabase/server', () => ({
 const mocks = jest.requireMock('@/lib/integrations/workflow') as {
   syncTranslatorDoneCertified: jest.Mock;
   syncTranslatorDoneNotarized: jest.Mock;
+  syncNotaryInProgress: jest.Mock;
   syncNotaryDone: jest.Mock;
   syncTranslatorDeclined: jest.Mock;
   syncNotaryDeclined: jest.Mock;
-  syncReadyForDelivery: jest.Mock;
+  syncOrderReady: jest.Mock;
+  syncOutForDelivery: jest.Mock;
+  syncDelivered: jest.Mock;
   syncJobTerminated: jest.Mock;
+  syncInformational: jest.Mock;
 };
 
 const WEBHOOK_SECRET = 'test-webhook-secret';
@@ -73,14 +75,14 @@ function makeReq(body: unknown, secret?: string): NextRequest {
     json: jest.fn().mockResolvedValue(body),
     headers: {
       get: (name: string) => {
-        if (name === 'x-jira-webhook-secret') return secret ?? null;
+        if (name === 'x-wpo-webhook-secret') return secret ?? null;
         return null;
       },
     },
   } as unknown as NextRequest;
 }
 
-function makeJobRow(serviceLevel: string, issueKey: string = ISSUE_KEY) {
+function makeJobRow(serviceLevel: string, issueKey: string = ISSUE_KEY, fulfillmentMethod = 'pickup') {
   return {
     id: JOB_ID,
     service_level: serviceLevel,
@@ -88,18 +90,18 @@ function makeJobRow(serviceLevel: string, issueKey: string = ISSUE_KEY) {
     jira_issue_key: issueKey,
     google_drive_folder_url: null,
     notary_city: 'almaty',
-    fulfillment_method: 'pickup',
+    fulfillment_method: fulfillmentMethod,
     document_id: DOC_ID,
   };
 }
 
 function payload(
-  event: string,
+  eventType: string,
   eventId: string,
   issueKey = ISSUE_KEY,
-  jobId = JOB_ID,
+  orderId = JOB_ID,
 ) {
-  return { eventId, event, issueKey, jobId };
+  return { eventId, eventType, issueKey, orderId };
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
@@ -136,9 +138,11 @@ describe('POST /api/webhooks/jira', () => {
       .mockResolvedValueOnce({ data: { source_language: 'kk', target_language: 'ru' }, error: null });
   }
 
+  // ── 1. Authentication & validation ────────────────────────────────────────
+
   describe('authentication & validation', () => {
-    it('returns 401 with wrong secret', async () => {
-      const res = await POST(makeReq(payload('TRANSLATOR_DONE', 'e-auth-1'), 'wrong'));
+    it('returns 401 with wrong x-wpo-webhook-secret', async () => {
+      const res = await POST(makeReq(payload('TRANSLATOR_COMPLETED', 'e-auth-1'), 'wrong'));
       expect(res.status).toBe(401);
     });
 
@@ -147,16 +151,23 @@ describe('POST /api/webhooks/jira', () => {
       expect(res.status).toBe(400);
     });
 
-    it('returns 400 for unknown event type', async () => {
+    it('returns 400 for unknown eventType', async () => {
       const res = await POST(makeReq(payload('UNKNOWN_EVENT', 'e-unk-1'), WEBHOOK_SECRET));
+      expect(res.status).toBe(400);
+    });
+
+    it('returns 400 when orderId is not a UUID', async () => {
+      const res = await POST(makeReq({ eventId: 'e-1', eventType: 'JOB_FAILED', issueKey: 'WPO-1', orderId: 'not-a-uuid' }, WEBHOOK_SECRET));
       expect(res.status).toBe(400);
     });
   });
 
+  // ── 2. Idempotency ────────────────────────────────────────────────────────
+
   describe('idempotency', () => {
-    it('skips already-processed event (audit log)', async () => {
+    it('skips already-processed event (audit log hit)', async () => {
       setupDb(true, makeJobRow('official_with_translator_signature_and_provider_stamp'));
-      const res = await POST(makeReq(payload('TRANSLATOR_DONE', 'e-idem-1'), WEBHOOK_SECRET));
+      const res = await POST(makeReq(payload('TRANSLATOR_COMPLETED', 'e-idem-1'), WEBHOOK_SECRET));
       const body = (await res.json()) as { ok: boolean; skipped: string };
       expect(res.status).toBe(200);
       expect(body.skipped).toBe('already_processed');
@@ -164,24 +175,28 @@ describe('POST /api/webhooks/jira', () => {
     });
   });
 
+  // ── 3. Event validation ───────────────────────────────────────────────────
+
   describe('event validation', () => {
-    it('rejects NOTARY_DONE for certified job (422)', async () => {
+    it('rejects NOTARY_COMPLETED for certified job (422)', async () => {
       setupDb(false, makeJobRow('official_with_translator_signature_and_provider_stamp'));
-      const res = await POST(makeReq(payload('NOTARY_DONE', 'e-val-1'), WEBHOOK_SECRET));
+      const res = await POST(makeReq(payload('NOTARY_COMPLETED', 'e-val-1'), WEBHOOK_SECRET));
       expect(res.status).toBe(422);
     });
 
     it('rejects when issueKey does not match job record (409)', async () => {
       setupDb(false, makeJobRow('official_with_translator_signature_and_provider_stamp', 'WPO-999'));
-      const res = await POST(makeReq(payload('TRANSLATOR_DONE', 'e-val-2'), WEBHOOK_SECRET));
+      const res = await POST(makeReq(payload('TRANSLATOR_COMPLETED', 'e-val-2'), WEBHOOK_SECRET));
       expect(res.status).toBe(409);
     });
   });
 
-  describe('TRANSLATOR_DONE — certified', () => {
+  // ── 4. TRANSLATOR_COMPLETED — certified ──────────────────────────────────
+
+  describe('TRANSLATOR_COMPLETED — certified', () => {
     it('calls syncTranslatorDoneCertified and returns 200', async () => {
       setupDb(false, makeJobRow('official_with_translator_signature_and_provider_stamp'));
-      const res = await POST(makeReq(payload('TRANSLATOR_DONE', 'e-cert-1'), WEBHOOK_SECRET));
+      const res = await POST(makeReq(payload('TRANSLATOR_COMPLETED', 'e-cert-1'), WEBHOOK_SECRET));
       expect(res.status).toBe(200);
       expect(mocks.syncTranslatorDoneCertified).toHaveBeenCalledWith({
         jobId: JOB_ID,
@@ -191,15 +206,19 @@ describe('POST /api/webhooks/jira', () => {
     });
   });
 
-  describe('TRANSLATOR_DONE — notarized', () => {
+  // ── 5. TRANSLATOR_COMPLETED — notarized ──────────────────────────────────
+
+  describe('TRANSLATOR_COMPLETED — notarized', () => {
     it('calls syncTranslatorDoneNotarized and returns 200', async () => {
       setupDb(false, makeJobRow('notarization_through_partners'));
-      const res = await POST(makeReq(payload('TRANSLATOR_DONE', 'e-not-1'), WEBHOOK_SECRET));
+      const res = await POST(makeReq(payload('TRANSLATOR_COMPLETED', 'e-not-1'), WEBHOOK_SECRET));
       expect(res.status).toBe(200);
       expect(mocks.syncTranslatorDoneNotarized).toHaveBeenCalled();
       expect(mocks.syncTranslatorDoneCertified).not.toHaveBeenCalled();
     });
   });
+
+  // ── 6. TRANSLATOR_DECLINED ────────────────────────────────────────────────
 
   describe('TRANSLATOR_DECLINED', () => {
     it('calls syncTranslatorDeclined and returns 200', async () => {
@@ -210,14 +229,35 @@ describe('POST /api/webhooks/jira', () => {
     });
   });
 
-  describe('NOTARY_DONE', () => {
+  // ── 7. NOTARY_IN_PROGRESS ─────────────────────────────────────────────────
+
+  describe('NOTARY_IN_PROGRESS', () => {
+    it('calls syncNotaryInProgress for notarization jobs', async () => {
+      setupDb(false, makeJobRow('notarization_through_partners'));
+      const res = await POST(makeReq(payload('NOTARY_IN_PROGRESS', 'e-nip-1'), WEBHOOK_SECRET));
+      expect(res.status).toBe(200);
+      expect(mocks.syncNotaryInProgress).toHaveBeenCalledWith({ jobId: JOB_ID, jiraIssueKey: ISSUE_KEY });
+    });
+
+    it('rejects NOTARY_IN_PROGRESS for certified job (422)', async () => {
+      setupDb(false, makeJobRow('official_with_translator_signature_and_provider_stamp'));
+      const res = await POST(makeReq(payload('NOTARY_IN_PROGRESS', 'e-nip-2'), WEBHOOK_SECRET));
+      expect(res.status).toBe(422);
+    });
+  });
+
+  // ── 8. NOTARY_COMPLETED ───────────────────────────────────────────────────
+
+  describe('NOTARY_COMPLETED', () => {
     it('calls syncNotaryDone for notarization jobs', async () => {
       setupDb(false, makeJobRow('notarization_through_partners'));
-      const res = await POST(makeReq(payload('NOTARY_DONE', 'e-ndone-1'), WEBHOOK_SECRET));
+      const res = await POST(makeReq(payload('NOTARY_COMPLETED', 'e-ndone-1'), WEBHOOK_SECRET));
       expect(res.status).toBe(200);
       expect(mocks.syncNotaryDone).toHaveBeenCalledWith({ jobId: JOB_ID, jiraIssueKey: ISSUE_KEY });
     });
   });
+
+  // ── 9. NOTARY_DECLINED ────────────────────────────────────────────────────
 
   describe('NOTARY_DECLINED', () => {
     it('calls syncNotaryDeclined for notarization jobs', async () => {
@@ -228,6 +268,71 @@ describe('POST /api/webhooks/jira', () => {
     });
   });
 
+  // ── 10. ORDER_READY — delivery path ──────────────────────────────────────
+
+  describe('ORDER_READY — delivery', () => {
+    it('calls syncOrderReady with fulfillmentMethod=delivery', async () => {
+      setupDb(false, makeJobRow('notarization_through_partners', ISSUE_KEY, 'delivery'));
+      const res = await POST(makeReq(payload('ORDER_READY', 'e-ord-del-1'), WEBHOOK_SECRET));
+      expect(res.status).toBe(200);
+      expect(mocks.syncOrderReady).toHaveBeenCalledWith({
+        jobId: JOB_ID,
+        jiraIssueKey: ISSUE_KEY,
+        fulfillmentMethod: 'delivery',
+      });
+    });
+  });
+
+  // ── 11. ORDER_READY — pickup path ─────────────────────────────────────────
+
+  describe('ORDER_READY — pickup', () => {
+    it('calls syncOrderReady with fulfillmentMethod=pickup', async () => {
+      setupDb(false, makeJobRow('notarization_through_partners', ISSUE_KEY, 'pickup'));
+      const res = await POST(makeReq(payload('ORDER_READY', 'e-ord-pick-1'), WEBHOOK_SECRET));
+      expect(res.status).toBe(200);
+      expect(mocks.syncOrderReady).toHaveBeenCalledWith({
+        jobId: JOB_ID,
+        jiraIssueKey: ISSUE_KEY,
+        fulfillmentMethod: 'pickup',
+      });
+    });
+  });
+
+  // ── 12. OUT_FOR_DELIVERY ──────────────────────────────────────────────────
+
+  describe('OUT_FOR_DELIVERY', () => {
+    it('calls syncOutForDelivery and returns 200', async () => {
+      setupDb(false, makeJobRow('notarization_through_partners', ISSUE_KEY, 'delivery'));
+      const res = await POST(makeReq(payload('OUT_FOR_DELIVERY', 'e-ofd-1'), WEBHOOK_SECRET));
+      expect(res.status).toBe(200);
+      expect(mocks.syncOutForDelivery).toHaveBeenCalledWith({ jobId: JOB_ID, jiraIssueKey: ISSUE_KEY });
+    });
+  });
+
+  // ── 13. DELIVERED ─────────────────────────────────────────────────────────
+
+  describe('DELIVERED', () => {
+    it('calls syncDelivered and returns 200', async () => {
+      setupDb(false, makeJobRow('notarization_through_partners', ISSUE_KEY, 'delivery'));
+      const res = await POST(makeReq(payload('DELIVERED', 'e-del-1'), WEBHOOK_SECRET));
+      expect(res.status).toBe(200);
+      expect(mocks.syncDelivered).toHaveBeenCalledWith({ jobId: JOB_ID, jiraIssueKey: ISSUE_KEY });
+    });
+  });
+
+  // ── 14. PICKED_UP ─────────────────────────────────────────────────────────
+
+  describe('PICKED_UP', () => {
+    it('calls syncDelivered (pickup path) and returns 200', async () => {
+      setupDb(false, makeJobRow('notarization_through_partners', ISSUE_KEY, 'pickup'));
+      const res = await POST(makeReq(payload('PICKED_UP', 'e-pick-1'), WEBHOOK_SECRET));
+      expect(res.status).toBe(200);
+      expect(mocks.syncDelivered).toHaveBeenCalledWith({ jobId: JOB_ID, jiraIssueKey: ISSUE_KEY });
+    });
+  });
+
+  // ── 15. JOB_FAILED ────────────────────────────────────────────────────────
+
   describe('JOB_FAILED', () => {
     it('calls syncJobTerminated with reason failed', async () => {
       setupDb(false, makeJobRow('official_with_translator_signature_and_provider_stamp'));
@@ -236,6 +341,8 @@ describe('POST /api/webhooks/jira', () => {
       expect(mocks.syncJobTerminated).toHaveBeenCalledWith({ jobId: JOB_ID, jiraIssueKey: ISSUE_KEY, reason: 'failed' });
     });
   });
+
+  // ── 16. JOB_CANCELED ──────────────────────────────────────────────────────
 
   describe('JOB_CANCELED', () => {
     it('calls syncJobTerminated with reason canceled', async () => {
@@ -246,12 +353,28 @@ describe('POST /api/webhooks/jira', () => {
     });
   });
 
-  describe('READY_FOR_DELIVERY', () => {
-    it('calls syncReadyForDelivery and returns 200', async () => {
+  // ── 17. Informational events ──────────────────────────────────────────────
+
+  describe('informational events', () => {
+    it('TRANSLATOR_ACCEPTED calls syncInformational', async () => {
       setupDb(false, makeJobRow('official_with_translator_signature_and_provider_stamp'));
-      const res = await POST(makeReq(payload('READY_FOR_DELIVERY', 'e-rfd-1'), WEBHOOK_SECRET));
+      const res = await POST(makeReq(payload('TRANSLATOR_ACCEPTED', 'e-inf-1'), WEBHOOK_SECRET));
       expect(res.status).toBe(200);
-      expect(mocks.syncReadyForDelivery).toHaveBeenCalledWith({ jobId: JOB_ID, jiraIssueKey: ISSUE_KEY });
+      expect(mocks.syncInformational).toHaveBeenCalled();
+    });
+
+    it('TRANSLATOR_IN_PROGRESS calls syncInformational', async () => {
+      setupDb(false, makeJobRow('official_with_translator_signature_and_provider_stamp'));
+      const res = await POST(makeReq(payload('TRANSLATOR_IN_PROGRESS', 'e-inf-2'), WEBHOOK_SECRET));
+      expect(res.status).toBe(200);
+      expect(mocks.syncInformational).toHaveBeenCalled();
+    });
+
+    it('NOTARY_ACCEPTED calls syncInformational (notarization job only)', async () => {
+      setupDb(false, makeJobRow('notarization_through_partners'));
+      const res = await POST(makeReq(payload('NOTARY_ACCEPTED', 'e-inf-3'), WEBHOOK_SECRET));
+      expect(res.status).toBe(200);
+      expect(mocks.syncInformational).toHaveBeenCalled();
     });
   });
 });

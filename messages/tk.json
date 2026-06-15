@@ -293,7 +293,14 @@
       "signatureStamp": "Gol çekmek we möhür",
       "sentToNotary": "Notariusa iberildi",
       "notaryReview": "Notarial tassyklama",
-      "readyForDelivery": "Gowşurmaga taýyn"
+      "readyForDelivery": "Gowşurmaga taýyn",
+      "translatorApproved": "Terjime barlandy",
+      "assignedToNotary": "Notariusa iberildi",
+      "notarizationInProgress": "Notariusda",
+      "notarized": "Notarius tamamlady",
+      "readyForPickup": "Almaga taýyn",
+      "outForDelivery": "Kurýere berildi",
+      "delivered": "Alyndy"
     },
     "order": {
       "created": "Döredildi",

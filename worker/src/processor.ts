@@ -96,6 +96,10 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
           documentType: doc.document_type,
           notaryCity: jobRow?.notary_city ?? null,
           fulfillmentMethod: jobRow?.fulfillment_method ?? null,
+          deliveryPhone: jobRow?.delivery_phone ?? null,
+          deliveryAddress: jobRow?.delivery_address ?? null,
+          paymentSource: jobRow?.payment_source ?? null,
+          customerId: doc.user_id,
           sourceFileKey: doc.file_key,
         });
       } catch (initErr) {

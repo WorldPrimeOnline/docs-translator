@@ -293,7 +293,14 @@
       "signatureStamp": "Кол коюу жана мөөр",
       "sentToNotary": "Нотариуска жөнөтүлдү",
       "notaryReview": "Нотариалдык күбөлөндүрүү",
-      "readyForDelivery": "Берилүүгө даяр"
+      "readyForDelivery": "Берилүүгө даяр",
+      "translatorApproved": "Котормо текшерилди",
+      "assignedToNotary": "Нотариуска берилди",
+      "notarizationInProgress": "Нотариуста",
+      "notarized": "Нотариус аяктады",
+      "readyForPickup": "Алып кетүүгө даяр",
+      "outForDelivery": "Курьерге берилди",
+      "delivered": "Алынды"
     },
     "order": {
       "created": "Түзүлдү",

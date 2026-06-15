@@ -44,7 +44,7 @@ export async function GET(): Promise<NextResponse> {
   const { data: jobs } = await supabaseServer
     .from('jobs')
     .select(
-      'id, document_id, status, progress_percent, error_message, workflow_status, service_level, created_at',
+      'id, document_id, status, progress_percent, error_message, workflow_status, service_level, fulfillment_method, created_at',
     )
     .in('document_id', docIds)
     .order('created_at', { ascending: false });
@@ -70,6 +70,7 @@ export async function GET(): Promise<NextResponse> {
           progressPercent: job.progress_percent,
           workflowStatus: job.workflow_status ?? null,
           serviceLevel: job.service_level ?? 'electronic',
+          fulfillmentMethod: (job.fulfillment_method as 'pickup' | 'delivery' | null) ?? null,
         })
       : null;
 
@@ -82,6 +83,7 @@ export async function GET(): Promise<NextResponse> {
       documentType: doc.document_type,
       documentStatus: doc.status,
       serviceLevel: job?.service_level ?? 'electronic',
+      fulfillmentMethod: (job?.fulfillment_method as 'pickup' | 'delivery' | null) ?? null,
       jobStatus: job?.status ?? null,
       workflowStatus: job?.workflow_status ?? null,
       progressPercent: state?.progressPercent ?? 0,

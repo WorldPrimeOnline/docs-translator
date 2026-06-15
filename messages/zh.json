@@ -293,7 +293,14 @@
       "signatureStamp": "签名与盖章",
       "sentToNotary": "已发送给公证人",
       "notaryReview": "公证认证",
-      "readyForDelivery": "准备交付"
+      "readyForDelivery": "准备交付",
+      "translatorApproved": "翻译已审核",
+      "assignedToNotary": "转交公证人",
+      "notarizationInProgress": "公证中",
+      "notarized": "公证完成",
+      "readyForPickup": "准备自取",
+      "outForDelivery": "快递中",
+      "delivered": "已收到"
     },
     "order": {
       "created": "创建时间",

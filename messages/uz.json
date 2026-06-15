@@ -293,7 +293,14 @@
       "signatureStamp": "Imzo va muhr",
       "sentToNotary": "Notariusga yuborildi",
       "notaryReview": "Notarial tasdiqlash",
-      "readyForDelivery": "Topshirishga tayyor"
+      "readyForDelivery": "Topshirishga tayyor",
+      "translatorApproved": "Tarjima tasdiqlandi",
+      "assignedToNotary": "Notariusga yuborildi",
+      "notarizationInProgress": "Notariusda",
+      "notarized": "Notarius yakunladi",
+      "readyForPickup": "Olib ketishga tayyor",
+      "outForDelivery": "Kurierga topshirildi",
+      "delivered": "Qabul qilindi"
     },
     "order": {
       "created": "Yaratildi",

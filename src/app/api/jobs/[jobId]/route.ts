@@ -44,7 +44,7 @@ export async function GET(
 
   const { data: job, error } = await supabaseServer
     .from('jobs')
-    .select('status, progress_percent, error_message, document_id, workflow_status, service_level')
+    .select('status, progress_percent, error_message, document_id, workflow_status, service_level, fulfillment_method')
     .eq('id', jobId)
     .single();
 
@@ -66,5 +66,6 @@ export async function GET(
     errorMessage: job.error_message,
     workflowStatus: job.workflow_status ?? null,
     serviceLevel: job.service_level ?? 'electronic',
+    fulfillmentMethod: (job.fulfillment_method as 'pickup' | 'delivery' | null) ?? null,
   });
 }

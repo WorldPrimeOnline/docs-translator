@@ -27,6 +27,7 @@ interface OrderEntry {
   documentType: string;
   documentStatus: string;
   serviceLevel: string;
+  fulfillmentMethod: 'pickup' | 'delivery' | null;
   jobStatus: string | null;
   workflowStatus: string | null;
   progressPercent: number;
@@ -521,6 +522,7 @@ export default function DashboardPage() {
             errorMessage: string | null;
             workflowStatus: string | null;
             serviceLevel: string;
+            fulfillmentMethod: 'pickup' | 'delivery' | null;
           };
         }),
       );
@@ -545,11 +547,13 @@ export default function DashboardPage() {
             progressPercent: data.progress,
             workflowStatus: data.workflowStatus,
             serviceLevel: data.serviceLevel,
+            fulfillmentMethod: data.fulfillmentMethod ?? null,
           });
           next[idx] = {
             ...next[idx]!,
             jobStatus: data.status,
             workflowStatus: data.workflowStatus,
+            fulfillmentMethod: data.fulfillmentMethod ?? null,
             progressPercent: state.progressPercent,
             errorMessage: data.errorMessage,
             customerStatus: state.customerStatus,

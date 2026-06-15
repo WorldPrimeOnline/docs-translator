@@ -46,7 +46,7 @@ export const legalDocs: LegalDocs = {
       { id: 'legal-basis', heading: '4. 处理的法律依据', body: ['处理基于客户同意（在注册和下订单时提供）、履行客户与服务商之间的合同，以及服务商在运营和改善服务方面的合法利益。'] },
       { id: 'storage', heading: '5. 存储期限与30天文件保留', body: ['上传源文件和翻译文件在翻译完成30天后自动永久删除。账户信息保留至客户删除账户。付款记录按适用财务和税务法规保留。'] },
       { id: 'deletion', heading: '6. 删除请求', body: ['客户可通过账户设置或联系worldprimeonline@gmail.com申请在30天保留期届满前删除上传文件。账户删除请求将导致与账户相关的所有个人数据被永久删除。'] },
-      { id: 'third-parties', heading: '7. 第三方处理方', body: ['服务商使用以下子处理方：Supabase（数据库和认证）、Cloudflare R2（加密文件存储）、Mistral AI（OCR）、Anthropic（AI翻译）、Resend（邮件通知）、Sentry（错误监控，仅匿名技术数据）。所有子处理方均禁止将客户数据用于合同服务以外的目的。', '• 若选择官方翻译或公证服务级别，相关文件数据可能在完成订单所必要的范围内与指定译员、公证人及其他参与提供相应服务的合作方共享。'] },
+      { id: 'third-parties', heading: '7. 第三方处理方', body: ['服务商使用以下子处理方：Supabase（数据库和认证）、Cloudflare R2（加密文件存储）、Mistral AI（OCR）、Anthropic（AI翻译）、Resend（邮件通知）、Atlassian（Jira Cloud，官方及公证订单管理）、Sentry（错误监控，仅匿名技术数据）。所有子处理方均禁止将客户数据用于合同服务以外的目的。', '• 若选择官方翻译或公证服务级别，相关文件数据可能在完成订单所必要的范围内与指定译员、公证人及其他参与提供相应服务的合作方共享。'] },
       { id: 'security', heading: '8. 安全措施', body: ['上传文件和翻译文件以加密方式静态存储，传输数据受TLS保护，文件访问权限限于经认证的客户账户。'] },
       { id: 'cross-border', heading: '9. 跨境数据传输', body: ['部分子处理方可能在客户居住国以外处理数据。在此情况下，服务商确保按适用数据保护法律建立适当保障措施。'] },
       { id: 'rights', heading: '10. 您的权利', body: ['依据适用法律，客户有权：访问个人数据；更正不准确数据；请求删除数据；在特定情况下反对或限制处理；随时撤回同意。请联系worldprimeonline@gmail.com行使权利，请求将在30个日历日内处理。'] },

@@ -23,6 +23,7 @@ import {
 } from './google-drive';
 import { downloadFile } from './r2';
 import type { ServiceLevel } from './output-plan';
+import { buildJiraIssueFields } from './jira/order-fields';
 
 // ─── Jira helpers ─────────────────────────────────────────────────────────────
 
@@ -64,12 +65,16 @@ function serviceLevelLabel(level: ServiceLevel): string {
 
 async function createJiraIssue(params: {
   jobId: string;
+  customerId: string | null;
   serviceLevel: ServiceLevel;
   sourceLang: string;
   targetLang: string;
   documentType: string;
   notaryCity?: string | null;
-  fulfillmentMethod?: string | null;
+  fulfillmentMethod?: 'pickup' | 'delivery' | null;
+  deliveryPhone?: string | null;
+  deliveryAddress?: string | null;
+  paymentSource?: 'card_payment' | 'subscription' | null;
   driveUrl?: string | null;
   wpoUrl: string;
   createdAt?: string;
@@ -81,19 +86,33 @@ async function createJiraIssue(params: {
   }
 
   const projectKey = process.env.JIRA_PROJECT_KEY ?? 'WO';
-  const docType = params.documentType.split('|')[0] ?? params.documentType;
 
+  // Safe description (no PII, no document content)
   const descLines: string[] = [
     `Job ID: ${params.jobId}`,
     `Service: ${serviceLevelLabel(params.serviceLevel)}`,
     `Languages: ${params.sourceLang} → ${params.targetLang}`,
-    `Document type: ${docType}`,
+    `Document type: ${params.documentType.split('|')[0] ?? params.documentType}`,
     params.notaryCity ? `Notary city: ${params.notaryCity}` : null,
     params.fulfillmentMethod ? `Fulfillment: ${params.fulfillmentMethod}` : null,
     params.driveUrl ? `Drive: ${params.driveUrl}` : null,
     `WPO order: ${params.wpoUrl}`,
     params.createdAt ? `Created: ${params.createdAt}` : null,
   ].filter((x): x is string => x !== null);
+
+  const customFields = buildJiraIssueFields({
+    orderId: params.jobId,
+    customerId: params.customerId,
+    sourceLang: params.sourceLang,
+    targetLang: params.targetLang,
+    documentType: params.documentType,
+    serviceLevel: params.serviceLevel,
+    paymentSource: params.paymentSource ?? null,
+    fulfillmentMethod: params.fulfillmentMethod ?? null,
+    deliveryPhone: params.deliveryPhone ?? null,
+    deliveryAddress: params.deliveryAddress ?? null,
+    driveUrl: params.driveUrl ?? null,
+  });
 
   const body = {
     fields: {
@@ -108,6 +127,7 @@ async function createJiraIssue(params: {
           content: [{ type: 'text', text }],
         })),
       },
+      ...customFields,
     },
   };
 
@@ -179,7 +199,12 @@ export async function initializeOrderIntegrations(params: {
   targetLang: string;
   documentType: string;
   notaryCity?: string | null;
-  fulfillmentMethod?: string | null;
+  fulfillmentMethod?: 'pickup' | 'delivery' | null;
+  deliveryPhone?: string | null;
+  deliveryAddress?: string | null;
+  paymentSource?: 'card_payment' | 'subscription' | null;
+  /** Supabase user ID (documents.user_id) — stored in Jira customfield_10074 */
+  customerId?: string | null;
   /** R2 key of the source PDF — uploaded to Drive 01_SOURCE if provided */
   sourceFileKey?: string | null;
 }): Promise<InitResult> {
@@ -274,12 +299,16 @@ export async function initializeOrderIntegrations(params: {
         const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.SITE_URL ?? 'https://wpotranslations.org';
         const issue = await createJiraIssue({
           jobId: params.jobId,
+          customerId: params.customerId ?? null,
           serviceLevel: params.serviceLevel,
           sourceLang: params.sourceLang,
           targetLang: params.targetLang,
           documentType: params.documentType,
           notaryCity: params.notaryCity,
-          fulfillmentMethod: params.fulfillmentMethod,
+          fulfillmentMethod: params.fulfillmentMethod ?? null,
+          deliveryPhone: params.deliveryPhone ?? null,
+          deliveryAddress: params.deliveryAddress ?? null,
+          paymentSource: params.paymentSource ?? null,
           driveUrl,
           wpoUrl: `${siteUrl}/dashboard`,
           createdAt: new Date().toISOString(),

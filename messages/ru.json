@@ -318,7 +318,14 @@
       "signatureStamp": "Подпись и печать",
       "sentToNotary": "Передано нотариусу",
       "notaryReview": "Нотариальное удостоверение",
-      "readyForDelivery": "Готово к выдаче"
+      "readyForDelivery": "Готово к выдаче",
+      "translatorApproved": "Перевод проверен",
+      "assignedToNotary": "Передаём нотариусу",
+      "notarizationInProgress": "У нотариуса",
+      "notarized": "Нотариус завершил",
+      "readyForPickup": "Готово к самовывозу",
+      "outForDelivery": "Передано курьеру",
+      "delivered": "Получено"
     },
     "order": {
       "created": "Создан",

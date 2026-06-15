@@ -293,7 +293,14 @@
       "signatureStamp": "Имзо ва муҳр",
       "sentToNotary": "Ба нотариус фиристода шуд",
       "notaryReview": "Тасдиқи нотариалӣ",
-      "readyForDelivery": "Барои таҳвил омода аст"
+      "readyForDelivery": "Барои таҳвил омода аст",
+      "translatorApproved": "Тарҷума тафтиш шуд",
+      "assignedToNotary": "Ба нотариус фиристода шуд",
+      "notarizationInProgress": "Назди нотариус",
+      "notarized": "Нотариус анҷом дод",
+      "readyForPickup": "Барои гирифтан омода аст",
+      "outForDelivery": "Ба курер дода шуд",
+      "delivered": "Гирифта шуд"
     },
     "order": {
       "created": "Сохта шуд",

@@ -293,7 +293,14 @@
       "signatureStamp": "Signature & Stamp",
       "sentToNotary": "Sent to Notary",
       "notaryReview": "Notary Certification",
-      "readyForDelivery": "Ready for Delivery"
+      "readyForDelivery": "Ready for Delivery",
+      "translatorApproved": "Translation Verified",
+      "assignedToNotary": "Forwarded to Notary",
+      "notarizationInProgress": "Notarization in Progress",
+      "notarized": "Notarization Completed",
+      "readyForPickup": "Ready for Pickup",
+      "outForDelivery": "Out for Delivery",
+      "delivered": "Delivered"
     },
     "order": {
       "created": "Created",

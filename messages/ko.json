@@ -293,7 +293,14 @@
       "signatureStamp": "서명 및 도장",
       "sentToNotary": "공증인에게 전달됨",
       "notaryReview": "공증 인증",
-      "readyForDelivery": "배송 준비 완료"
+      "readyForDelivery": "배송 준비 완료",
+      "translatorApproved": "번역 확인 완료",
+      "assignedToNotary": "공증인에게 전달",
+      "notarizationInProgress": "공증 진행 중",
+      "notarized": "공증 완료",
+      "readyForPickup": "픽업 준비 완료",
+      "outForDelivery": "배달 중",
+      "delivered": "수령 완료"
     },
     "order": {
       "created": "생성됨",

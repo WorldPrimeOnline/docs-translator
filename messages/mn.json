@@ -293,7 +293,14 @@
       "signatureStamp": "Гарын үсэг ба тамга",
       "sentToNotary": "Нотариусд илгээсэн",
       "notaryReview": "Нотариатын баталгаажуулалт",
-      "readyForDelivery": "Хүргэхэд бэлэн"
+      "readyForDelivery": "Хүргэхэд бэлэн",
+      "translatorApproved": "Орчуулга шалгасан",
+      "assignedToNotary": "Нотариусд шилжүүлсэн",
+      "notarizationInProgress": "Нотариусд байна",
+      "notarized": "Нотариус дуусгасан",
+      "readyForPickup": "Авахад бэлэн",
+      "outForDelivery": "Курьерт шилжүүлсэн",
+      "delivered": "Авсан"
     },
     "order": {
       "created": "Үүссэн",

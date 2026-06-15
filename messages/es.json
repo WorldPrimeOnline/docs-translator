@@ -293,7 +293,14 @@
       "signatureStamp": "Firma y sello",
       "sentToNotary": "Enviado al notario",
       "notaryReview": "Certificación notarial",
-      "readyForDelivery": "Listo para entregar"
+      "readyForDelivery": "Listo para entregar",
+      "translatorApproved": "Traducción verificada",
+      "assignedToNotary": "Enviado al notario",
+      "notarizationInProgress": "En proceso notarial",
+      "notarized": "Notarización completada",
+      "readyForPickup": "Listo para recoger",
+      "outForDelivery": "En camino",
+      "delivered": "Entregado"
     },
     "order": {
       "created": "Creado",

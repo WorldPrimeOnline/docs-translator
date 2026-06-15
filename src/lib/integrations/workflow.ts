@@ -269,15 +269,15 @@ export async function syncTranslatorDoneCertified(params: {
   const tag = `[integration:${params.jobId.slice(0, 8)}]`;
   try {
     await updateJobIntegration(params.jobId, {
-      jira_sync_status: 'operator_review',
-      workflow_status: 'awaiting_signature_stamp',
+      jira_sync_status: 'translator_approved',
+      workflow_status: 'translator_approved',
     });
     await audit({
       jobId: params.jobId,
       actor: 'translator',
       source: 'jira_webhook',
       action: 'translator_completed_certified',
-      newStatus: 'awaiting_signature_stamp',
+      newStatus: 'translator_approved',
       jiraIssueKey: params.jiraIssueKey,
     });
     void notifyOperatorTranslatorDone({
@@ -309,15 +309,15 @@ export async function syncTranslatorDoneNotarized(params: {
   const tag = `[integration:${params.jobId.slice(0, 8)}]`;
   try {
     await updateJobIntegration(params.jobId, {
-      jira_sync_status: 'notary_review',
-      workflow_status: 'awaiting_notary_review',
+      jira_sync_status: 'assigned_to_notary',
+      workflow_status: 'assigned_to_notary',
     });
     await audit({
       jobId: params.jobId,
       actor: 'system',
       source: 'jira_webhook',
       action: 'forwarded_to_notary',
-      newStatus: 'awaiting_notary_review',
+      newStatus: 'assigned_to_notary',
       jiraIssueKey: params.jiraIssueKey,
     });
     const jUrl = jiraUrl(params.jiraIssueKey);
@@ -352,15 +352,15 @@ export async function syncNotaryDone(params: {
   const tag = `[integration:${params.jobId.slice(0, 8)}]`;
   try {
     await updateJobIntegration(params.jobId, {
-      jira_sync_status: 'final_qa',
-      workflow_status: 'awaiting_final_qa',
+      jira_sync_status: 'notarized',
+      workflow_status: 'notarized',
     });
     await audit({
       jobId: params.jobId,
       actor: 'notary',
       source: 'jira_webhook',
       action: 'notary_completed',
-      newStatus: 'awaiting_final_qa',
+      newStatus: 'notarized',
       jiraIssueKey: params.jiraIssueKey,
     });
     void notifyOperatorNotaryDone({ jobId: params.jobId, jiraUrl: jiraUrl(params.jiraIssueKey) }).catch(() => undefined);
@@ -528,5 +528,125 @@ export async function syncInformational(params: {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`${tag} syncInformational(${params.event}) failed: ${msg}`);
+  }
+}
+
+export async function syncNotaryInProgress(params: {
+  jobId: string;
+  jiraIssueKey: string;
+}): Promise<void> {
+  const tag = `[integration:${params.jobId.slice(0, 8)}]`;
+  try {
+    await updateJobIntegration(params.jobId, {
+      jira_sync_status: 'notarization_in_progress',
+      workflow_status: 'notarization_in_progress',
+    });
+    await audit({
+      jobId: params.jobId,
+      actor: 'notary',
+      source: 'jira_webhook',
+      action: 'notary_in_progress',
+      newStatus: 'notarization_in_progress',
+      jiraIssueKey: params.jiraIssueKey,
+    });
+    console.log(`${tag} ✓ notary in progress: Supabase synced`);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`${tag} syncNotaryInProgress failed: ${msg}`);
+  }
+}
+
+export async function syncOrderReady(params: {
+  jobId: string;
+  jiraIssueKey: string;
+  fulfillmentMethod: 'pickup' | 'delivery' | null;
+}): Promise<void> {
+  const tag = `[integration:${params.jobId.slice(0, 8)}]`;
+  const isDelivery = params.fulfillmentMethod === 'delivery';
+  const newStatus = isDelivery ? 'ready_for_delivery' : 'ready_for_pickup';
+  try {
+    // Lookup document_id to release to the customer when ready
+    const { data: jobRow } = await supabaseServer
+      .from('jobs')
+      .select('document_id')
+      .eq('id', params.jobId)
+      .single();
+
+    await updateJobIntegration(params.jobId, {
+      jira_sync_status: newStatus,
+      workflow_status: newStatus,
+    });
+
+    if (jobRow?.document_id) {
+      const { error } = await supabaseServer
+        .from('documents')
+        .update({ status: 'completed' })
+        .eq('id', jobRow.document_id);
+      if (error) console.error(`${tag} document release failed:`, error.message);
+    }
+
+    await audit({
+      jobId: params.jobId,
+      actor: 'operator',
+      source: 'jira_webhook',
+      action: isDelivery ? 'ready_for_delivery' : 'ready_for_pickup',
+      newStatus,
+      jiraIssueKey: params.jiraIssueKey,
+    });
+    console.log(`${tag} ✓ order ready (${newStatus}): document released, Supabase synced`);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`${tag} syncOrderReady failed: ${msg}`);
+    await updateJobIntegration(params.jobId, { jira_sync_status: 'error', last_integration_error: msg });
+  }
+}
+
+export async function syncOutForDelivery(params: {
+  jobId: string;
+  jiraIssueKey: string;
+}): Promise<void> {
+  const tag = `[integration:${params.jobId.slice(0, 8)}]`;
+  try {
+    await updateJobIntegration(params.jobId, {
+      jira_sync_status: 'out_for_delivery',
+      workflow_status: 'out_for_delivery',
+    });
+    await audit({
+      jobId: params.jobId,
+      actor: 'operator',
+      source: 'jira_webhook',
+      action: 'out_for_delivery',
+      newStatus: 'out_for_delivery',
+      jiraIssueKey: params.jiraIssueKey,
+    });
+    console.log(`${tag} ✓ out for delivery: Supabase synced`);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`${tag} syncOutForDelivery failed: ${msg}`);
+  }
+}
+
+export async function syncDelivered(params: {
+  jobId: string;
+  jiraIssueKey: string;
+}): Promise<void> {
+  const tag = `[integration:${params.jobId.slice(0, 8)}]`;
+  try {
+    await updateJobIntegration(params.jobId, {
+      jira_sync_status: 'delivered',
+      workflow_status: 'delivered',
+    });
+    await audit({
+      jobId: params.jobId,
+      actor: 'operator',
+      source: 'jira_webhook',
+      action: 'delivered',
+      newStatus: 'delivered',
+      jiraIssueKey: params.jiraIssueKey,
+    });
+    console.log(`${tag} ✓ delivered: Supabase synced`);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`${tag} syncDelivered failed: ${msg}`);
   }
 }
