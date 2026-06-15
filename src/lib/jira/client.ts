@@ -159,12 +159,17 @@ export async function createJiraIssue(
     return null;
   }
 
+  const envLabel = (process.env.NEXT_PUBLIC_APP_ENV ?? 'production') === 'staging'
+    ? 'wpo-staging'
+    : 'wpo-production';
+
   const body = {
     fields: {
       project: { key: JIRA_PROJECT_CONFIG.projectKey },
       issuetype: { name: JIRA_ISSUE_TYPE },
       summary: params.jobId,
       description: buildDescription(params),
+      labels: [envLabel],
       ...buildCustomFields(params),
     },
   };

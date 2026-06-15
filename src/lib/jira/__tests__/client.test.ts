@@ -202,3 +202,25 @@ it('10: description includes Drive URL and WPO order URL', async () => {
   expect(descText).toContain(BASE_PARAMS.driveUrl!);
   expect(descText).toContain(BASE_PARAMS.wpoUrl);
 });
+
+// ── Test 11 ───────────────────────────────────────────────────────────────────
+it('11: adds wpo-staging label when NEXT_PUBLIC_APP_ENV=staging', async () => {
+  process.env.NEXT_PUBLIC_APP_ENV = 'staging';
+  mockFetchOk();
+  await createJiraIssue(BASE_PARAMS);
+
+  const fields = parsedBody().fields as Record<string, unknown>;
+  expect(fields.labels).toEqual(['wpo-staging']);
+  delete process.env.NEXT_PUBLIC_APP_ENV;
+});
+
+// ── Test 12 ───────────────────────────────────────────────────────────────────
+it('12: adds wpo-production label when NEXT_PUBLIC_APP_ENV=production (default)', async () => {
+  process.env.NEXT_PUBLIC_APP_ENV = 'production';
+  mockFetchOk();
+  await createJiraIssue(BASE_PARAMS);
+
+  const fields = parsedBody().fields as Record<string, unknown>;
+  expect(fields.labels).toEqual(['wpo-production']);
+  delete process.env.NEXT_PUBLIC_APP_ENV;
+});

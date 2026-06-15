@@ -114,6 +114,10 @@ async function createJiraIssue(params: {
     driveUrl: params.driveUrl ?? null,
   });
 
+  const envLabel = (process.env.APP_ENV ?? 'production') === 'staging'
+    ? 'wpo-staging'
+    : 'wpo-production';
+
   const body = {
     fields: {
       project: { key: projectKey },
@@ -127,6 +131,7 @@ async function createJiraIssue(params: {
           content: [{ type: 'text', text }],
         })),
       },
+      labels: [envLabel],
       ...customFields,
     },
   };

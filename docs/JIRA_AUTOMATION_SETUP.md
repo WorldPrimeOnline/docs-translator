@@ -6,15 +6,61 @@ Jira Automation rules for WPO order reverse-sync.
 
 WPO creates one Jira issue per order (via Railway worker). Jira Automation handles all Jira-side transitions. This document describes the rules that send callbacks to WPO so Supabase `workflow_status` stays in sync.
 
-All rules call the same WPO endpoint:
+### Environment routing via labels
+
+Every Jira issue created by WPO is automatically tagged with an environment label:
+
+| `APP_ENV` (Railway worker) | Label added to issue |
+|---|---|
+| `staging` | `wpo-staging` |
+| `production` (default) | `wpo-production` |
+
+Each Automation rule must add a **JQL condition** on the label so staging and production events are routed to the correct endpoint. **Never mix staging and production callbacks in the same rule.**
+
+---
+
+## Staging rules
+
+**Condition** (add to every staging rule):
 
 ```
-POST https://wpotranslations.org/api/webhooks/jira
+labels = wpo-staging
 ```
 
-**Auth header**: `x-wpo-webhook-secret: <value of JIRA_WEBHOOK_SECRET env var>`
+**Callback URL**:
 
-**Content-type**: `application/json`
+```
+https://docs-translator-git-staging-world-prime-online-s-projects.vercel.app/api/webhooks/jira
+```
+
+**Auth headers**:
+
+```
+x-wpo-webhook-secret: <staging JIRA_WEBHOOK_SECRET>
+x-vercel-protection-bypass: <Vercel Deployment Protection bypass secret>
+```
+
+---
+
+## Production rules
+
+**Condition** (add to every production rule):
+
+```
+labels = wpo-production
+```
+
+**Callback URL**:
+
+```
+https://www.wpotranslations.org/api/webhooks/jira
+```
+
+**Auth header**:
+
+```
+x-wpo-webhook-secret: <production JIRA_WEBHOOK_SECRET>
+```
 
 ---
 
@@ -38,6 +84,8 @@ Every rule sends this JSON body (all fields required unless noted):
 ---
 
 ## Rules
+
+Create each rule in **two copies** — one for staging (condition: `labels = wpo-staging`) and one for production (condition: `labels = wpo-production`). Keep staging rules enabled; enable production rules only after production deployment is confirmed.
 
 ### 1. TRANSLATOR_ACCEPTED
 
@@ -110,8 +158,8 @@ Every rule sends this JSON body (all fields required unless noted):
 **Trigger**: Issue transitioned to status `Ready`  
 **eventType**: `ORDER_READY`  
 **Effect in WPO**:
-- `fulfillment_method = delivery`: `workflow_status → ready_for_delivery`, releases download
-- `fulfillment_method = pickup`: `workflow_status → ready_for_pickup`, releases download
+- `fulfillment_method = delivery`: `workflow_status → ready_for_delivery`
+- `fulfillment_method = pickup`: `workflow_status → ready_for_pickup`
 
 ---
 
@@ -119,7 +167,7 @@ Every rule sends this JSON body (all fields required unless noted):
 
 **Trigger**: Issue transitioned to status `Out For Delivery`  
 **eventType**: `OUT_FOR_DELIVERY`  
-**Effect in WPO**: `workflow_status → out_for_delivery`
+**Effect in WPO**: `workflow_status → out_for_delivery` (not terminal — customer sees active status)
 
 ---
 
@@ -135,7 +183,7 @@ Every rule sends this JSON body (all fields required unless noted):
 
 **Trigger**: Issue transitioned to status `Picked Up`  
 **eventType**: `PICKED_UP`  
-**Effect in WPO**: `workflow_status → delivered` (terminal, pickup path)
+**Effect in WPO**: `workflow_status → picked_up` (terminal, pickup path)
 
 ---
 
@@ -159,6 +207,7 @@ Every rule sends this JSON body (all fields required unless noted):
 
 - The webhook secret is in `JIRA_WEBHOOK_SECRET` (Vercel env var). Never commit the value.
 - WPO verifies `x-wpo-webhook-secret` on every request; requests without a matching header return 401.
+- Staging Preview URL also requires `x-vercel-protection-bypass` (Vercel Deployment Protection bypass secret — set in Vercel → Settings → Deployment Protection).
 - Delivery phone (`customfield_10075`) and address (`customfield_10076`) are never included in `summary` or `description` — they are restricted Jira fields visible only to operators.
 - Do not include document content, IIN, passport numbers, or payment credentials in any Jira field or Automation rule payload.
 
