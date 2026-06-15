@@ -26,6 +26,7 @@ import {
   syncOrderReady,
   syncOutForDelivery,
   syncDelivered,
+  syncPickedUp,
   syncJobTerminated,
   syncInformational,
 } from '@/lib/integrations/workflow';
@@ -130,7 +131,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // ── 5. Load job ─────────────────────────────────────────────────────────────
   const { data: job, error: jobErr } = await supabaseServer
     .from('jobs')
-    .select('id, service_level, notarized, jira_issue_key, google_drive_folder_url, notary_city, fulfillment_method, document_id')
+    .select('id, service_level, notarized, jira_issue_key, google_drive_folder_url, notary_city, fulfillment_method, document_id, workflow_status')
     .eq('id', jobId)
     .maybeSingle();
 
@@ -171,8 +172,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   processedEventIds.add(eventId);
 
+  const previousWorkflowStatus = job.workflow_status ?? null;
+
   // ── 8. Sync WPO state ───────────────────────────────────────────────────────
   try {
+    let result: { applied: boolean } = { applied: true };
+
     switch (eventType) {
       // Informational only — write audit, no workflow_status change
       case 'TRANSLATOR_ACCEPTED':
@@ -188,7 +193,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             .select('source_language, target_language')
             .eq('id', job.document_id ?? '')
             .maybeSingle();
-          await syncTranslatorDoneNotarized({
+          result = await syncTranslatorDoneNotarized({
             jobId,
             jiraIssueKey: issueKey,
             sourceLang: docRow?.source_language ?? '',
@@ -198,7 +203,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             driveUrl: job.google_drive_folder_url,
           });
         } else {
-          await syncTranslatorDoneCertified({ jobId, jiraIssueKey: issueKey });
+          result = await syncTranslatorDoneCertified({ jobId, jiraIssueKey: issueKey });
         }
         break;
       }
@@ -208,11 +213,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         break;
 
       case 'NOTARY_IN_PROGRESS':
-        await syncNotaryInProgress({ jobId, jiraIssueKey: issueKey });
+        result = await syncNotaryInProgress({ jobId, jiraIssueKey: issueKey });
         break;
 
       case 'NOTARY_COMPLETED':
-        await syncNotaryDone({ jobId, jiraIssueKey: issueKey });
+        result = await syncNotaryDone({ jobId, jiraIssueKey: issueKey });
         break;
 
       case 'NOTARY_DECLINED':
@@ -220,16 +225,24 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         break;
 
       case 'ORDER_READY':
-        await syncOrderReady({ jobId, jiraIssueKey: issueKey, fulfillmentMethod: job.fulfillment_method ?? null });
+        result = await syncOrderReady({
+          jobId,
+          jiraIssueKey: issueKey,
+          fulfillmentMethod: job.fulfillment_method ?? null,
+          serviceLevel: job.service_level ?? null,
+        });
         break;
 
       case 'OUT_FOR_DELIVERY':
-        await syncOutForDelivery({ jobId, jiraIssueKey: issueKey });
+        result = await syncOutForDelivery({ jobId, jiraIssueKey: issueKey });
         break;
 
       case 'DELIVERED':
+        result = await syncDelivered({ jobId, jiraIssueKey: issueKey });
+        break;
+
       case 'PICKED_UP':
-        await syncDelivered({ jobId, jiraIssueKey: issueKey });
+        result = await syncPickedUp({ jobId, jiraIssueKey: issueKey });
         break;
 
       case 'JOB_FAILED':
@@ -241,7 +254,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         break;
     }
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({
+      ok: true,
+      eventType,
+      orderId: jobId,
+      previousWorkflowStatus,
+      transitionApplied: result.applied,
+      reasonIfIgnored: result.applied ? null : 'backward_transition_rejected',
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error('[jira-webhook] sync failed:', message);

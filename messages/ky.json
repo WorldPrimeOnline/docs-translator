@@ -214,7 +214,16 @@
       "awaitingFinalQa": "Акыркы сапат текшерүүсүн күтүүдө",
       "readyForDelivery": "Берүүгө даяр",
       "translatorDeclined": "Котормочу баш тартты — колдоо кызматына кайрылыңыз",
-      "notaryDeclined": "Нотариус баш тартты — колдоо кызматына кайрылыңыз"
+      "notaryDeclined": "Нотариус баш тартты — колдоо кызматына кайрылыңыз",
+      "translatorApproved": "Котормо текшерилди — оператор күтүүдө",
+      "assignedToNotary": "Котормо текшерилди — нотариуска жиберилүүдө",
+      "notarizationInProgress": "Нотариуста иштелүүдө",
+      "notarized": "Нотариалдык күбөлөндүрүү аяктады",
+      "readyForPickup": "Өзү алып кетүүгө даяр",
+      "outForDelivery": "Курьерге берилди",
+      "delivered": "Буйрутма жеткирилди",
+      "pickedUp": "Буйрутма берилди",
+      "operatorProcessing": "Оператор иштеп жатат"
     },
     "langs": {
       "auto": "Автоматтык аныктоо",
@@ -300,7 +309,8 @@
       "notarized": "Нотариус аяктады",
       "readyForPickup": "Алып кетүүгө даяр",
       "outForDelivery": "Курьерге берилди",
-      "delivered": "Алынды"
+      "delivered": "Алынды",
+      "pickedUp": "Берилди"
     },
     "order": {
       "created": "Түзүлдү",

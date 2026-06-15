@@ -214,7 +214,16 @@
       "awaitingFinalQa": "Yakuniy sifat tekshiruvi kutilmoqda",
       "readyForDelivery": "Topshirishga tayyor",
       "translatorDeclined": "Tarjimon rad etdi — qo'llab-quvvatlash bilan bog'laning",
-      "notaryDeclined": "Notarius rad etdi — qo'llab-quvvatlash bilan bog'laning"
+      "notaryDeclined": "Notarius rad etdi — qo'llab-quvvatlash bilan bog'laning",
+      "translatorApproved": "Tarjima tasdiqlandi — operator kutmoqda",
+      "assignedToNotary": "Tarjima tasdiqlandi — notariusga yuborilmoqda",
+      "notarizationInProgress": "Notariusda bajarilmoqda",
+      "notarized": "Notarial tasdiq yakunlandi",
+      "readyForPickup": "O'z-o'ziga olishga tayyor",
+      "outForDelivery": "Kuryerga topshirildi",
+      "delivered": "Buyurtma yetkazildi",
+      "pickedUp": "Buyurtma berildi",
+      "operatorProcessing": "Operator tomonidan qayta ishlanmoqda"
     },
     "langs": {
       "auto": "Avtomatik aniqlash",
@@ -300,7 +309,8 @@
       "notarized": "Notarius yakunladi",
       "readyForPickup": "Olib ketishga tayyor",
       "outForDelivery": "Kurierga topshirildi",
-      "delivered": "Qabul qilindi"
+      "delivered": "Qabul qilindi",
+      "pickedUp": "Berildi"
     },
     "order": {
       "created": "Yaratildi",

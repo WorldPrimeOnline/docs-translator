@@ -214,7 +214,16 @@
       "awaitingFinalQa": "Эцсийн чанарын шалгалтыг хүлээж байна",
       "readyForDelivery": "Хүргэлтэд бэлэн",
       "translatorDeclined": "Орчуулагч татгалзсан — дэмжлэгтэй холбоо барина уу",
-      "notaryDeclined": "Нотариус татгалзсан — дэмжлэгтэй холбоо барина уу"
+      "notaryDeclined": "Нотариус татгалзсан — дэмжлэгтэй холбоо барина уу",
+      "translatorApproved": "Орчуулга шалгагдсан — оператор хүлээж байна",
+      "assignedToNotary": "Орчуулга шалгагдсан — нотариуст илгээж байна",
+      "notarizationInProgress": "Нотариуст хийгдэж байна",
+      "notarized": "Нотариалын баталгаажуулалт дууссан",
+      "readyForPickup": "Өөрөө авахад бэлэн",
+      "outForDelivery": "Курьерт хүлээлгэн өгсөн",
+      "delivered": "Захиалга хүргэгдсэн",
+      "pickedUp": "Захиалга авагдсан",
+      "operatorProcessing": "Оператор боловсруулж байна"
     },
     "langs": {
       "auto": "Автомат илрүүлэх",
@@ -300,7 +309,8 @@
       "notarized": "Нотариус дуусгасан",
       "readyForPickup": "Авахад бэлэн",
       "outForDelivery": "Курьерт шилжүүлсэн",
-      "delivered": "Авсан"
+      "delivered": "Авсан",
+      "pickedUp": "Авагдсан"
     },
     "order": {
       "created": "Үүссэн",

@@ -214,7 +214,16 @@
       "awaitingFinalQa": "等待最终质量检查",
       "readyForDelivery": "准备交付",
       "translatorDeclined": "译者已拒绝——请联系支持",
-      "notaryDeclined": "公证人已拒绝——请联系支持"
+      "notaryDeclined": "公证人已拒绝——请联系支持",
+      "translatorApproved": "翻译已核实 — 等待操作员",
+      "assignedToNotary": "翻译已核实 — 转交公证人",
+      "notarizationInProgress": "公证进行中",
+      "notarized": "公证已完成",
+      "readyForPickup": "准备自提",
+      "outForDelivery": "已转交快递员",
+      "delivered": "订单已送达",
+      "pickedUp": "订单已取件",
+      "operatorProcessing": "操作员正在处理"
     },
     "langs": {
       "auto": "自动检测",
@@ -300,7 +309,8 @@
       "notarized": "公证完成",
       "readyForPickup": "准备自取",
       "outForDelivery": "快递中",
-      "delivered": "已收到"
+      "delivered": "已收到",
+      "pickedUp": "已取件"
     },
     "order": {
       "created": "创建时间",

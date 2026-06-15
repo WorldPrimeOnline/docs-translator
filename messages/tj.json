@@ -214,7 +214,16 @@
       "awaitingFinalQa": "Интизори санҷиши ниҳоии сифат",
       "readyForDelivery": "Барои таҳвил омода аст",
       "translatorDeclined": "Тарҷумон рад кард — бо дастгирӣ тамос гиред",
-      "notaryDeclined": "Нотариус рад кард — бо дастгирӣ тамос гиред"
+      "notaryDeclined": "Нотариус рад кард — бо дастгирӣ тамос гиред",
+      "translatorApproved": "Тарҷума тасдиқ шуд — операторро интизор аст",
+      "assignedToNotary": "Тарҷума тасдиқ шуд — ба нотариус мефиристем",
+      "notarizationInProgress": "Дар нотариус дар кор аст",
+      "notarized": "Тасдиқи нотариалӣ анҷом ёфт",
+      "readyForPickup": "Барои гирифтан тайёр аст",
+      "outForDelivery": "Ба курьер дода шуд",
+      "delivered": "Фармоиш расонида шуд",
+      "pickedUp": "Фармоиш дода шуд",
+      "operatorProcessing": "Оператор коркард мекунад"
     },
     "langs": {
       "auto": "Худкор муайян кардан",
@@ -300,7 +309,8 @@
       "notarized": "Нотариус анҷом дод",
       "readyForPickup": "Барои гирифтан омода аст",
       "outForDelivery": "Ба курер дода шуд",
-      "delivered": "Гирифта шуд"
+      "delivered": "Гирифта шуд",
+      "pickedUp": "Дода шуд"
     },
     "order": {
       "created": "Сохта шуд",

@@ -239,7 +239,16 @@
       "awaitingFinalQa": "Ожидает финальной проверки качества",
       "readyForDelivery": "Готово к выдаче",
       "translatorDeclined": "Переводчик отказался — обратитесь в поддержку",
-      "notaryDeclined": "Нотариус отказался — обратитесь в поддержку"
+      "notaryDeclined": "Нотариус отказался — обратитесь в поддержку",
+      "translatorApproved": "Перевод проверен — ожидает оператора",
+      "assignedToNotary": "Перевод проверен — передаём нотариусу",
+      "notarizationInProgress": "В работе у нотариуса",
+      "notarized": "Нотариальное удостоверение завершено",
+      "readyForPickup": "Готово к самовывозу",
+      "outForDelivery": "Заказ передан курьеру",
+      "delivered": "Заказ доставлен",
+      "pickedUp": "Заказ выдан",
+      "operatorProcessing": "Заказ обрабатывается оператором"
     },
     "langs": {
       "auto": "Автоопределение",
@@ -325,7 +334,8 @@
       "notarized": "Нотариус завершил",
       "readyForPickup": "Готово к самовывозу",
       "outForDelivery": "Передано курьеру",
-      "delivered": "Получено"
+      "delivered": "Получено",
+      "pickedUp": "Выдано"
     },
     "order": {
       "created": "Создан",

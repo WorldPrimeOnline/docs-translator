@@ -56,7 +56,7 @@ function StatusBadge({ customerStatus }: { customerStatus: string | null }) {
   const t = useTranslations('dashboard');
   const status = customerStatus ?? 'queued';
 
-  if (status === 'completed' || status === 'ready_for_delivery') {
+  if (status === 'completed' || status === 'delivered' || status === 'picked_up' || status === 'ready_for_delivery') {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-400">
         <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
@@ -80,12 +80,19 @@ function StatusBadge({ customerStatus }: { customerStatus: string | null }) {
       </span>
     );
   }
-  // Human review stages
+  // Human review / physical delivery stages
   if (
     status === 'awaiting_translator_review' ||
     status === 'awaiting_signature_stamp' ||
     status === 'awaiting_notary_review' ||
-    status === 'awaiting_final_qa'
+    status === 'awaiting_final_qa' ||
+    status === 'translator_approved' ||
+    status === 'assigned_to_notary' ||
+    status === 'notarization_in_progress' ||
+    status === 'notarized' ||
+    status === 'ready_for_pickup' ||
+    status === 'out_for_delivery' ||
+    status === 'operator_processing'
   ) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-400">
@@ -180,7 +187,16 @@ function useStatusLabel() {
       case 'awaiting_signature_stamp':   return t('status.awaitingSignatureStamp');
       case 'awaiting_notary_review':     return t('status.awaitingNotaryReview');
       case 'awaiting_final_qa':          return t('status.awaitingFinalQa');
+      case 'translator_approved':        return t('status.translatorApproved');
+      case 'assigned_to_notary':         return t('status.assignedToNotary');
+      case 'notarization_in_progress':   return t('status.notarizationInProgress');
+      case 'notarized':                  return t('status.notarized');
       case 'ready_for_delivery':         return t('status.readyForDelivery');
+      case 'ready_for_pickup':           return t('status.readyForPickup');
+      case 'out_for_delivery':           return t('status.outForDelivery');
+      case 'delivered':                  return t('status.delivered');
+      case 'picked_up':                  return t('status.pickedUp');
+      case 'operator_processing':        return t('status.operatorProcessing');
       case 'translator_declined':        return t('status.translatorDeclined');
       case 'notary_declined':            return t('status.notaryDeclined');
       case 'completed':            return t('status.completed');
@@ -196,11 +212,8 @@ function ActiveOrderCard({ entry, locale }: { entry: OrderEntry; locale: string 
   const t = useTranslations('dashboard');
   const statusLabel = useStatusLabel();
 
-  const isHumanStage =
-    entry.customerStatus === 'awaiting_translator_review' ||
-    entry.customerStatus === 'awaiting_signature_stamp' ||
-    entry.customerStatus === 'awaiting_notary_review' ||
-    entry.customerStatus === 'awaiting_final_qa';
+  const AI_STAGES = new Set(['queued', 'ocr_in_progress', 'translation_in_progress', 'pdf_rendering', 'completed', 'failed']);
+  const isHumanStage = !AI_STAGES.has(entry.customerStatus ?? '');
 
   const serviceLevelLabel =
     entry.serviceLevel === 'notarization_through_partners'
@@ -576,13 +589,11 @@ export default function DashboardPage() {
   // Derive stable boolean signals for the interval effect so it only restarts when the
   // boolean VALUE changes (true↔false), not on every setOrders call.
   const hasActive = orders.some((o) => !o.isTerminal);
+  // Poll at 20s for any non-terminal order waiting on a human (translator/notary/courier).
+  // Poll at 3s for active AI processing stages to show progress quickly.
+  const AI_POLLING_STATUSES = new Set(['queued', 'ocr_in_progress', 'translation_in_progress', 'pdf_rendering']);
   const hasHumanStage = orders.some(
-    (o) =>
-      !o.isTerminal &&
-      (o.customerStatus === 'awaiting_translator_review' ||
-        o.customerStatus === 'awaiting_signature_stamp' ||
-        o.customerStatus === 'awaiting_notary_review' ||
-        o.customerStatus === 'awaiting_final_qa'),
+    (o) => !o.isTerminal && !AI_POLLING_STATUSES.has(o.customerStatus ?? ''),
   );
 
   // Start/stop polling — restarts ONLY when active status or stage type changes, not every poll

@@ -49,7 +49,7 @@ export async function GET(
 
   const { data: job } = await supabaseServer
     .from('jobs')
-    .select('id, workflow_status')
+    .select('id, workflow_status, service_level, fulfillment_method')
     .eq('document_id', documentId)
     .eq('status', 'completed')
     .order('created_at', { ascending: false })
@@ -58,27 +58,39 @@ export async function GET(
 
   if (!job) return NextResponse.json({ error: 'No completed translation found' }, { status: 404 });
 
-  // Block download for certified/notarized jobs still in the human-review pipeline.
-  // null workflow_status = electronic job (always downloadable).
-  // 'ready_for_delivery' = operator approved — downloadable.
-  // Everything else = some human-review stage is still in progress.
-  if (job.workflow_status !== null && job.workflow_status !== 'ready_for_delivery') {
-    const statusMessages: Record<string, string> = {
-      awaiting_translator_review: 'Document is being reviewed by a certified translator.',
-      awaiting_signature_stamp: 'Document is awaiting translator signature and provider stamp.',
-      awaiting_notary_review: 'Document is being processed by a notary.',
-      awaiting_final_qa: 'Document is awaiting final quality check.',
-      translator_declined: 'Translator assignment was declined. Please contact support.',
-      notary_declined: 'Notary assignment was declined. Please contact support.',
-    };
+  // ── Download gating by service level ──────────────────────────────────────
+  //
+  // Notarized physical orders (delivery or pickup): NEVER allow electronic download.
+  // The final product is a physical notarized document — no digital file for the customer.
+  if (job.service_level === 'notarization_through_partners') {
     return NextResponse.json(
-      {
-        error: statusMessages[job.workflow_status ?? '']
-          ?? 'Document is not yet available for download — please check back later.',
-      },
+      { error: 'Physical notarized document. Your order will be delivered or available for pickup — no electronic download.' },
       { status: 403 },
     );
   }
+
+  // Certified orders: allow download only once operator has approved (ready_for_delivery or delivered).
+  if (job.service_level === 'official_with_translator_signature_and_provider_stamp') {
+    const certifiedAllowed = new Set(['ready_for_delivery', 'delivered']);
+    if (!certifiedAllowed.has(job.workflow_status ?? '')) {
+      const statusMessages: Record<string, string> = {
+        awaiting_translator_review: 'Document is being reviewed by a certified translator.',
+        translator_approved: 'Translation verified — awaiting operator stamp.',
+        awaiting_signature_stamp: 'Document is awaiting translator signature and provider stamp.',
+        translator_declined: 'Translator assignment was declined. Please contact support.',
+      };
+      return NextResponse.json(
+        {
+          error: statusMessages[job.workflow_status ?? '']
+            ?? 'Document is not yet approved for download — please check back later.',
+        },
+        { status: 403 },
+      );
+    }
+  }
+
+  // Electronic orders: job.status === 'completed' is sufficient (guaranteed by the query above).
+  // workflow_status is typically null or 'completed' for electronic jobs.
 
   const { data: trans } = await supabaseServer
     .from('translations')

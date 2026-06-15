@@ -214,7 +214,16 @@
       "awaitingFinalQa": "Jemleýji hil barlagyna garaşylýar",
       "readyForDelivery": "Gowşurmaga taýyn",
       "translatorDeclined": "Terjimeçi ret etdi — goldaw bilen habarlaşyň",
-      "notaryDeclined": "Notarius ret etdi — goldaw bilen habarlaşyň"
+      "notaryDeclined": "Notarius ret etdi — goldaw bilen habarlaşyň",
+      "translatorApproved": "Terjime tassyklandy — operator garaşylýar",
+      "assignedToNotary": "Terjime tassyklandy — notariusa iberilýär",
+      "notarizationInProgress": "Notariusda işlenýär",
+      "notarized": "Notarial tassyklama tamamlandy",
+      "readyForPickup": "Öz-özüň almak üçin taýyn",
+      "outForDelivery": "Kurýere berildi",
+      "delivered": "Sargyt eltildi",
+      "pickedUp": "Sargyt berildi",
+      "operatorProcessing": "Operator tarapyndan işlenýär"
     },
     "langs": {
       "auto": "Awtomatik anykla",
@@ -300,7 +309,8 @@
       "notarized": "Notarius tamamlady",
       "readyForPickup": "Almaga taýyn",
       "outForDelivery": "Kurýere berildi",
-      "delivered": "Alyndy"
+      "delivered": "Alyndy",
+      "pickedUp": "Berildi"
     },
     "order": {
       "created": "Döredildi",

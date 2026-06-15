@@ -241,7 +241,16 @@
       "awaitingFinalQa": "Awaiting final quality check",
       "readyForDelivery": "Ready for delivery",
       "translatorDeclined": "Translator declined — please contact support",
-      "notaryDeclined": "Notary declined — please contact support"
+      "notaryDeclined": "Notary declined — please contact support",
+      "translatorApproved": "Translation verified — awaiting operator",
+      "assignedToNotary": "Translation verified — forwarding to notary",
+      "notarizationInProgress": "In progress at notary",
+      "notarized": "Notarization completed",
+      "readyForPickup": "Ready for pickup",
+      "outForDelivery": "Transferred to courier",
+      "delivered": "Order delivered",
+      "pickedUp": "Order picked up",
+      "operatorProcessing": "Being processed by operator"
     },
     "langs": {
       "auto": "Auto-detect",
@@ -300,7 +309,8 @@
       "notarized": "Notarization Completed",
       "readyForPickup": "Ready for Pickup",
       "outForDelivery": "Out for Delivery",
-      "delivered": "Delivered"
+      "delivered": "Delivered",
+      "pickedUp": "Picked Up"
     },
     "order": {
       "created": "Created",

@@ -6,15 +6,16 @@ import type { NextRequest } from 'next/server';
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
 jest.mock('@/lib/integrations/workflow', () => ({
-  syncTranslatorDoneCertified: jest.fn().mockResolvedValue(undefined),
-  syncTranslatorDoneNotarized: jest.fn().mockResolvedValue(undefined),
-  syncNotaryInProgress: jest.fn().mockResolvedValue(undefined),
-  syncNotaryDone: jest.fn().mockResolvedValue(undefined),
+  syncTranslatorDoneCertified: jest.fn().mockResolvedValue({ applied: true }),
+  syncTranslatorDoneNotarized: jest.fn().mockResolvedValue({ applied: true }),
+  syncNotaryInProgress: jest.fn().mockResolvedValue({ applied: true }),
+  syncNotaryDone: jest.fn().mockResolvedValue({ applied: true }),
   syncTranslatorDeclined: jest.fn().mockResolvedValue(undefined),
   syncNotaryDeclined: jest.fn().mockResolvedValue(undefined),
-  syncOrderReady: jest.fn().mockResolvedValue(undefined),
-  syncOutForDelivery: jest.fn().mockResolvedValue(undefined),
-  syncDelivered: jest.fn().mockResolvedValue(undefined),
+  syncOrderReady: jest.fn().mockResolvedValue({ applied: true }),
+  syncOutForDelivery: jest.fn().mockResolvedValue({ applied: true }),
+  syncDelivered: jest.fn().mockResolvedValue({ applied: true }),
+  syncPickedUp: jest.fn().mockResolvedValue({ applied: true }),
   syncJobTerminated: jest.fn().mockResolvedValue(undefined),
   syncInformational: jest.fn().mockResolvedValue(undefined),
 }));
@@ -61,6 +62,7 @@ const mocks = jest.requireMock('@/lib/integrations/workflow') as {
   syncOrderReady: jest.Mock;
   syncOutForDelivery: jest.Mock;
   syncDelivered: jest.Mock;
+  syncPickedUp: jest.Mock;
   syncJobTerminated: jest.Mock;
   syncInformational: jest.Mock;
 };
@@ -92,6 +94,7 @@ function makeJobRow(serviceLevel: string, issueKey: string = ISSUE_KEY, fulfillm
     notary_city: 'almaty',
     fulfillment_method: fulfillmentMethod,
     document_id: DOC_ID,
+    workflow_status: null,
   };
 }
 
@@ -279,6 +282,7 @@ describe('POST /api/webhooks/jira', () => {
         jobId: JOB_ID,
         jiraIssueKey: ISSUE_KEY,
         fulfillmentMethod: 'delivery',
+        serviceLevel: 'notarization_through_partners',
       });
     });
   });
@@ -294,6 +298,7 @@ describe('POST /api/webhooks/jira', () => {
         jobId: JOB_ID,
         jiraIssueKey: ISSUE_KEY,
         fulfillmentMethod: 'pickup',
+        serviceLevel: 'notarization_through_partners',
       });
     });
   });
@@ -323,11 +328,12 @@ describe('POST /api/webhooks/jira', () => {
   // ── 14. PICKED_UP ─────────────────────────────────────────────────────────
 
   describe('PICKED_UP', () => {
-    it('calls syncDelivered (pickup path) and returns 200', async () => {
+    it('calls syncPickedUp (pickup path) and returns 200', async () => {
       setupDb(false, makeJobRow('notarization_through_partners', ISSUE_KEY, 'pickup'));
       const res = await POST(makeReq(payload('PICKED_UP', 'e-pick-1'), WEBHOOK_SECRET));
       expect(res.status).toBe(200);
-      expect(mocks.syncDelivered).toHaveBeenCalledWith({ jobId: JOB_ID, jiraIssueKey: ISSUE_KEY });
+      expect(mocks.syncPickedUp).toHaveBeenCalledWith({ jobId: JOB_ID, jiraIssueKey: ISSUE_KEY });
+      expect(mocks.syncDelivered).not.toHaveBeenCalled();
     });
   });
 
