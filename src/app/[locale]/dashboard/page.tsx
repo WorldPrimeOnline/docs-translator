@@ -444,6 +444,8 @@ export default function DashboardPage() {
   const [ordersLoaded, setOrdersLoaded] = useState(false);
 
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const ordersRef = useRef<OrderEntry[]>([]);
+  const seenTerminalIds = useRef<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const activeOrders = orders.filter((o) => o.isActive && !o.isTerminal);
@@ -493,18 +495,25 @@ export default function DashboardPage() {
     void loadSubscription();
   }, [loadOrders, loadSubscription]);
 
+  // Keep ordersRef in sync so pollActiveJobs can read current orders without closing over state
+  useEffect(() => { ordersRef.current = orders; }, [orders]);
+
   // ─── Polling: poll all active (non-terminal) jobs ─────────────────────────────
 
   const pollActiveJobs = useCallback(async (): Promise<void> => {
-    const current = orders;
+    // Read via ref — no dependency on orders state; callback is stable across renders
+    const current = ordersRef.current;
     const polling = current.filter((o) => !o.isTerminal);
     if (!polling.length) return;
+
+    let needFullReload = false;
 
     try {
       const results = await Promise.allSettled(
         polling.map(async (o) => {
           if (!o.jobId) return null;
           const res = await fetch(`/api/jobs/${o.jobId}`);
+          if (res.status === 404) return { gone: true } as const;
           if (!res.ok) return null;
           return (await res.json()) as {
             status: string;
@@ -516,11 +525,18 @@ export default function DashboardPage() {
         }),
       );
 
+      polling.forEach((_, i) => {
+        const r = results[i];
+        if (r?.status === 'fulfilled' && r.value && 'gone' in r.value && r.value.gone) {
+          needFullReload = true;
+        }
+      });
+
       setOrders((prev) => {
         const next = [...prev];
         polling.forEach((o, i) => {
           const r = results[i];
-          if (r?.status !== 'fulfilled' || !r.value) return;
+          if (r?.status !== 'fulfilled' || !r.value || 'gone' in r.value) return;
           const data = r.value;
           const idx = next.findIndex((x) => x.documentId === o.documentId);
           if (idx < 0) return;
@@ -548,46 +564,49 @@ export default function DashboardPage() {
     } catch (e) {
       console.error('[dashboard] poll error:', e);
     }
-  }, [orders]);
 
-  // Start/stop polling based on whether any active (non-terminal) jobs exist
+    // A 404 means the job ID is stale; reload the full list to get authoritative server state
+    if (needFullReload) void loadOrders();
+  }, [loadOrders]);
+
+  // Derive stable boolean signals for the interval effect so it only restarts when the
+  // boolean VALUE changes (true↔false), not on every setOrders call.
+  const hasActive = orders.some((o) => !o.isTerminal);
+  const hasHumanStage = orders.some(
+    (o) =>
+      !o.isTerminal &&
+      (o.customerStatus === 'awaiting_translator_review' ||
+        o.customerStatus === 'awaiting_signature_stamp' ||
+        o.customerStatus === 'awaiting_notary_review' ||
+        o.customerStatus === 'awaiting_final_qa'),
+  );
+
+  // Start/stop polling — restarts ONLY when active status or stage type changes, not every poll
   useEffect(() => {
-    const hasActive = orders.some((o) => !o.isTerminal);
-
     if (!hasActive) {
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current);
-        pollIntervalRef.current = null;
-      }
+      if (pollIntervalRef.current) { clearInterval(pollIntervalRef.current); pollIntervalRef.current = null; }
       return;
     }
 
-    // Determine poll interval based on what's active
-    const hasHumanStage = orders.some(
-      (o) =>
-        !o.isTerminal &&
-        (o.customerStatus === 'awaiting_translator_review' ||
-          o.customerStatus === 'awaiting_signature_stamp' ||
-          o.customerStatus === 'awaiting_notary_review' ||
-          o.customerStatus === 'awaiting_final_qa'),
-    );
-    const interval = hasHumanStage ? 20_000 : 3_000;
-
+    const ms = hasHumanStage ? 20_000 : 3_000;
     if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-    pollIntervalRef.current = setInterval(() => { void pollActiveJobs(); }, interval);
+    pollIntervalRef.current = setInterval(() => { void pollActiveJobs(); }, ms);
 
     return () => {
-      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+      if (pollIntervalRef.current) { clearInterval(pollIntervalRef.current); pollIntervalRef.current = null; }
     };
-  }, [orders, pollActiveJobs]);
+  }, [hasActive, hasHumanStage, pollActiveJobs]);
 
-  // When a job flips to terminal, reload full list + subscription
+  // When a new job flips to terminal/completed, reload once — tracked per-job so it never fires twice
   useEffect(() => {
-    const hasNewTerminal = orders.some((o) => o.isTerminal && o.jobStatus === 'completed');
-    if (hasNewTerminal && ordersLoaded) {
-      void loadOrders();
-      void loadSubscription();
-    }
+    if (!ordersLoaded) return;
+    const newlyDone = orders.filter(
+      (o) => o.isTerminal && o.jobStatus === 'completed' && o.jobId && !seenTerminalIds.current.has(o.jobId),
+    );
+    if (!newlyDone.length) return;
+    newlyDone.forEach((o) => { if (o.jobId) seenTerminalIds.current.add(o.jobId); });
+    void loadOrders();
+    void loadSubscription();
   }, [orders, ordersLoaded, loadOrders, loadSubscription]);
 
   // ─── Auth ──────────────────────────────────────────────────────────────────────

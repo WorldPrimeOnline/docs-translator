@@ -75,7 +75,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
       request.headers.get('x-real-ip') ??
       'unknown';
 
-    const limit = pathname.startsWith('/api/jobs/') ? MAX_REQUESTS_JOBS : MAX_REQUESTS;
+    const limit = pathname.startsWith('/api/jobs') ? MAX_REQUESTS_JOBS : MAX_REQUESTS;
     if (isRateLimited(ip, limit)) {
       return new NextResponse(JSON.stringify({ error: 'Too many requests' }), {
         status: 429,

@@ -236,7 +236,14 @@ export async function initializeOrderIntegrations(params: {
       const chatId = process.env.TELEGRAM_OPERATOR_CHAT_ID ?? process.env.TELEGRAM_TRANSLATOR_CHAT_ID;
       if (chatId) await sendTelegram(chatId, `⚠️ Drive folder creation failed\nJob: ${params.jobId.slice(0, 8)}\n${msg}`).catch(() => undefined);
     }
-  } else if (driveFolderId) {
+  } else if (!driveFolderId) {
+    // Drive env vars not set — record the misconfiguration so the operator can see it
+    const msg = 'Google Drive not configured — set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN, GOOGLE_DRIVE_ROOT_FOLDER_ID on Railway';
+    console.error(`${tag} ${msg}`);
+    await updateJobIntegration(params.jobId, { drive_sync_status: 'error', last_integration_error: msg });
+    const chatId = process.env.TELEGRAM_OPERATOR_CHAT_ID ?? process.env.TELEGRAM_TRANSLATOR_CHAT_ID;
+    if (chatId) await sendTelegram(chatId, `⚠️ ${msg}\nJob: ${params.jobId.slice(0, 8)}`).catch(() => undefined);
+  } else {
     aiDraftFolderId = await getSubfolderId(driveFolderId, DRIVE_SUBFOLDER_NAMES.aiDraft).catch(() => null);
     sourceFolderId = await getSubfolderId(driveFolderId, DRIVE_SUBFOLDER_NAMES.source).catch(() => null);
   }
@@ -255,53 +262,62 @@ export async function initializeOrderIntegrations(params: {
 
   // ── 3. Create Jira issue ───────────────────────────────────────────────────
   if (!jiraIssueKey) {
-    try {
-      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.SITE_URL ?? 'https://wpotranslations.org';
-      const issue = await createJiraIssue({
-        jobId: params.jobId,
-        serviceLevel: params.serviceLevel,
-        sourceLang: params.sourceLang,
-        targetLang: params.targetLang,
-        documentType: params.documentType,
-        notaryCity: params.notaryCity,
-        fulfillmentMethod: params.fulfillmentMethod,
-        driveUrl,
-        wpoUrl: `${siteUrl}/dashboard`,
-        createdAt: new Date().toISOString(),
-      });
-
-      if (issue) {
-        jiraIssueKey = issue.issueKey;
-        jiraIssueUrl = issue.issueUrl;
-        await updateJobIntegration(params.jobId, {
-          jira_issue_id: issue.issueId,
-          jira_issue_key: issue.issueKey,
-          jira_issue_url: issue.issueUrl,
-          jira_sync_status: 'created',
-        });
-        console.log(`${tag} ✓ Jira issue created: ${issue.issueKey}`);
-
-        const auth = getJiraAuth();
-        const chatId = process.env.TELEGRAM_OPERATOR_CHAT_ID ?? process.env.TELEGRAM_TRANSLATOR_CHAT_ID;
-        if (chatId) {
-          await sendTelegram(
-            chatId,
-            [
-              `📋 <b>New Order</b> — ${serviceLevelLabel(params.serviceLevel)}`,
-              `Job: <code>${params.jobId.slice(0, 8)}</code>`,
-              `${params.sourceLang.toUpperCase()} → ${params.targetLang.toUpperCase()} | ${params.documentType.split('|')[0]}`,
-              issue.issueKey && auth ? `Jira: <a href="${auth.baseUrl}/browse/${issue.issueKey}">${issue.issueKey}</a>` : null,
-              driveUrl ? `Drive: ${driveUrl}` : null,
-            ].filter(Boolean).join('\n'),
-          ).catch(() => undefined);
-        }
-      }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.error(`${tag} Jira issue creation failed: ${msg}`);
+    if (!getJiraAuth()) {
+      // Credentials missing — record the misconfiguration so the operator can see it in Supabase
+      const msg = 'Jira credentials not configured — set JIRA_BASE_URL, JIRA_EMAIL, JIRA_API_TOKEN on Railway';
+      console.error(`${tag} ${msg}`);
       await updateJobIntegration(params.jobId, { jira_sync_status: 'error', last_integration_error: msg });
       const chatId = process.env.TELEGRAM_OPERATOR_CHAT_ID ?? process.env.TELEGRAM_TRANSLATOR_CHAT_ID;
-      if (chatId) await sendTelegram(chatId, `⚠️ Jira issue creation failed\nJob: ${params.jobId.slice(0, 8)}\n${msg}`).catch(() => undefined);
+      if (chatId) await sendTelegram(chatId, `⚠️ ${msg}\nJob: ${params.jobId.slice(0, 8)}`).catch(() => undefined);
+    } else {
+      try {
+        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.SITE_URL ?? 'https://wpotranslations.org';
+        const issue = await createJiraIssue({
+          jobId: params.jobId,
+          serviceLevel: params.serviceLevel,
+          sourceLang: params.sourceLang,
+          targetLang: params.targetLang,
+          documentType: params.documentType,
+          notaryCity: params.notaryCity,
+          fulfillmentMethod: params.fulfillmentMethod,
+          driveUrl,
+          wpoUrl: `${siteUrl}/dashboard`,
+          createdAt: new Date().toISOString(),
+        });
+
+        if (issue) {
+          jiraIssueKey = issue.issueKey;
+          jiraIssueUrl = issue.issueUrl;
+          await updateJobIntegration(params.jobId, {
+            jira_issue_id: issue.issueId,
+            jira_issue_key: issue.issueKey,
+            jira_issue_url: issue.issueUrl,
+            jira_sync_status: 'created',
+          });
+          console.log(`${tag} ✓ Jira issue created: ${issue.issueKey}`);
+
+          const auth = getJiraAuth();
+          const chatId = process.env.TELEGRAM_OPERATOR_CHAT_ID ?? process.env.TELEGRAM_TRANSLATOR_CHAT_ID;
+          if (chatId) {
+            await sendTelegram(
+              chatId,
+              [
+                `📋 <b>New Order</b> — ${serviceLevelLabel(params.serviceLevel)}`,
+                `Job: <code>${params.jobId.slice(0, 8)}</code>`,
+                `${params.sourceLang.toUpperCase()} → ${params.targetLang.toUpperCase()} | ${params.documentType.split('|')[0]}`,
+                issue.issueKey && auth ? `Jira: <a href="${auth.baseUrl}/browse/${issue.issueKey}">${issue.issueKey}</a>` : null,
+                driveUrl ? `Drive: ${driveUrl}` : null,
+              ].filter(Boolean).join('\n'),
+            ).catch(() => undefined);
+          }
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error(`${tag} Jira issue creation failed: ${msg}`);
+        await updateJobIntegration(params.jobId, { jira_sync_status: 'error', last_integration_error: msg });
+        const chatId = process.env.TELEGRAM_OPERATOR_CHAT_ID ?? process.env.TELEGRAM_TRANSLATOR_CHAT_ID;
+        if (chatId) await sendTelegram(chatId, `⚠️ Jira issue creation failed\nJob: ${params.jobId.slice(0, 8)}\n${msg}`).catch(() => undefined);
+      }
     }
   }
 
