@@ -1,16 +1,16 @@
 /**
  * Worker integration helpers: Drive folder creation + Jira issue creation +
- * translator review transition + Telegram notifications.
+ * translator review notification + Telegram.
  *
  * initializeOrderIntegrations — runs BEFORE OCR, creates Drive folder + Jira issue.
- * triggerTranslatorReview     — runs AFTER AI draft, uploads draft + Jira transition.
+ * triggerTranslatorReview     — runs AFTER AI draft, uploads draft to Drive 02_AI_DRAFT.
  *
- * All Jira credentials come from env: JIRA_BASE_URL, JIRA_EMAIL, JIRA_API_TOKEN.
- * All project config comes from env:  JIRA_PROJECT_KEY, JIRA_ISSUE_TYPE_NAME,
- *   JIRA_OPERATOR_QUERY, JIRA_TRANSLATOR_QUERY, JIRA_NOTARY_QUERY,
- *   JIRA_SECURITY_LEVEL_TRANSLATOR_NAME, JIRA_TRANSITION_TO_TRANSLATOR.
- * Drive config from env: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET,
- *   GOOGLE_REFRESH_TOKEN, GOOGLE_DRIVE_ROOT_FOLDER_ID.
+ * Jira credentials: JIRA_BASE_URL, JIRA_EMAIL, JIRA_API_TOKEN.
+ * Jira project config: JIRA_PROJECT_KEY (default: WO), JIRA_ISSUE_TYPE_NAME (default: Заказ).
+ * Drive config: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN, GOOGLE_DRIVE_ROOT_FOLDER_ID.
+ *
+ * All Jira-internal transitions (assignee, security level, status, notifications) are
+ * handled by Jira Automation — WPO does NOT call those APIs.
  */
 
 import { supabase } from './supabase';
@@ -56,82 +56,10 @@ async function jiraFetch(path: string, options: RequestInit = {}): Promise<Respo
   }
 }
 
-async function resolveUserAccountId(query: string): Promise<string | null> {
-  if (!query) return null;
-  const res = await jiraFetch(`/users/search?query=${encodeURIComponent(query)}&maxResults=10`);
-  if (!res?.ok) return null;
-  const users = (await res.json()) as { accountId: string; displayName: string; emailAddress?: string }[];
-  if (!users.length) return null;
-  const exact = users.find(
-    (u) =>
-      u.emailAddress?.toLowerCase() === query.toLowerCase() ||
-      u.displayName.toLowerCase() === query.toLowerCase(),
-  );
-  return (exact ?? users[0])!.accountId;
-}
-
-async function resolveSecurityLevelId(projectKey: string, levelName: string): Promise<string | null> {
-  if (!levelName || !projectKey) return null;
-  const res = await jiraFetch(`/project/${projectKey}/securitylevel`);
-  if (!res?.ok) return null;
-  const data = (await res.json()) as { levels: { id: string; name: string }[] };
-  return data.levels.find((l) => l.name.toLowerCase() === levelName.toLowerCase())?.id ?? null;
-}
-
-async function resolveTransitionId(issueKey: string, transitionName: string): Promise<string | null> {
-  const res = await jiraFetch(`/issue/${issueKey}/transitions`);
-  if (!res?.ok) return null;
-  const data = (await res.json()) as { transitions: { id: string; name: string }[] };
-  const found = data.transitions.find((t) => t.name.toLowerCase() === transitionName.toLowerCase());
-  if (!found) {
-    console.warn(
-      `[worker-jira] Transition "${transitionName}" not available for ${issueKey}. Available: ` +
-        data.transitions.map((t) => t.name).join(', '),
-    );
-  }
-  return found?.id ?? null;
-}
-
-async function assignJiraIssue(issueKey: string, accountId: string): Promise<void> {
-  const res = await jiraFetch(`/issue/${issueKey}/assignee`, {
-    method: 'PUT',
-    body: JSON.stringify({ accountId }),
-  });
-  if (res && !res.ok) console.error(`[worker-jira] assign ${issueKey} failed: ${res.status}`);
-}
-
-async function setJiraSecurityLevel(issueKey: string, levelId: string): Promise<void> {
-  const res = await jiraFetch(`/issue/${issueKey}`, {
-    method: 'PUT',
-    body: JSON.stringify({ fields: { security: { id: levelId } } }),
-  });
-  if (res && !res.ok) console.error(`[worker-jira] setSecurityLevel ${issueKey} failed: ${res.status}`);
-}
-
-async function transitionJiraIssue(issueKey: string, transitionName: string): Promise<void> {
-  const transitionId = await resolveTransitionId(issueKey, transitionName);
-  if (!transitionId) return;
-  const res = await jiraFetch(`/issue/${issueKey}/transitions`, {
-    method: 'POST',
-    body: JSON.stringify({ transition: { id: transitionId } }),
-  });
-  if (res && !res.ok) console.error(`[worker-jira] transition "${transitionName}" failed: ${res.status}`);
-}
-
-async function addJiraComment(issueKey: string, text: string): Promise<void> {
-  const res = await jiraFetch(`/issue/${issueKey}/comment`, {
-    method: 'POST',
-    body: JSON.stringify({
-      body: { version: 1, type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text }] }] },
-    }),
-  });
-  if (res && !res.ok) console.error(`[worker-jira] comment on ${issueKey} failed: ${res.status}`);
-}
-
 function serviceLevelLabel(level: ServiceLevel): string {
-  if (level === 'notarization_through_partners') return 'Notarization';
-  if (level === 'official_with_translator_signature_and_provider_stamp') return 'Certified';
-  return 'Electronic';
+  if (level === 'notarization_through_partners') return 'notarized';
+  if (level === 'official_with_translator_signature_and_provider_stamp') return 'certified';
+  return 'electronic';
 }
 
 async function createJiraIssue(params: {
@@ -144,47 +72,42 @@ async function createJiraIssue(params: {
   fulfillmentMethod?: string | null;
   driveUrl?: string | null;
   wpoUrl: string;
+  createdAt?: string;
 }): Promise<{ issueKey: string; issueId: string; issueUrl: string } | null> {
   const auth = getJiraAuth();
-  const projectKey = process.env.JIRA_PROJECT_KEY;
-  if (!auth || !projectKey) {
-    console.log('[worker-jira] Jira not configured (missing JIRA_BASE_URL/EMAIL/API_TOKEN/PROJECT_KEY)');
+  if (!auth) {
+    console.log('[worker-jira] Jira not configured — skipping issue creation');
     return null;
   }
 
-  const issueTypeName = process.env.JIRA_ISSUE_TYPE_NAME ?? 'Task';
-  const label = serviceLevelLabel(params.serviceLevel);
+  const projectKey = process.env.JIRA_PROJECT_KEY ?? 'WO';
+  const issueTypeName = process.env.JIRA_ISSUE_TYPE_NAME ?? 'Заказ';
   const docType = params.documentType.split('|')[0] ?? params.documentType;
-  const summary = `WPO-${params.jobId.slice(0, 8)} | ${params.sourceLang.toUpperCase()} → ${params.targetLang.toUpperCase()} | ${docType} | ${label}`;
 
-  const descriptionLines = [
-    `WPO Job ID: ${params.jobId}`,
-    `Service Level: ${params.serviceLevel}`,
+  const descLines: string[] = [
+    `Job ID: ${params.jobId}`,
+    `Service: ${serviceLevelLabel(params.serviceLevel)}`,
     `Languages: ${params.sourceLang} → ${params.targetLang}`,
-    `Document Type: ${docType}`,
-    params.notaryCity ? `City: ${params.notaryCity}` : null,
+    `Document type: ${docType}`,
+    params.notaryCity ? `Notary city: ${params.notaryCity}` : null,
     params.fulfillmentMethod ? `Fulfillment: ${params.fulfillmentMethod}` : null,
     params.driveUrl ? `Drive: ${params.driveUrl}` : null,
-    `WPO Order: ${params.wpoUrl}`,
-  ].filter(Boolean).join('\n');
+    `WPO order: ${params.wpoUrl}`,
+    params.createdAt ? `Created: ${params.createdAt}` : null,
+  ].filter((x): x is string => x !== null);
 
-  // Resolve operator account for initial assignment
-  const operatorQuery = process.env.JIRA_OPERATOR_QUERY ?? '';
-  let operatorAccountId: string | null = null;
-  if (operatorQuery) {
-    operatorAccountId = await resolveUserAccountId(operatorQuery).catch(() => null);
-  }
-
-  const body: Record<string, unknown> = {
+  const body = {
     fields: {
       project: { key: projectKey },
       issuetype: { name: issueTypeName },
-      summary,
-      ...(operatorAccountId ? { assignee: { accountId: operatorAccountId } } : {}),
+      summary: params.jobId,
       description: {
         type: 'doc',
         version: 1,
-        content: [{ type: 'paragraph', content: [{ type: 'text', text: descriptionLines }] }],
+        content: descLines.map((text) => ({
+          type: 'paragraph',
+          content: [{ type: 'text', text }],
+        })),
       },
     },
   };
@@ -264,7 +187,7 @@ export async function initializeOrderIntegrations(params: {
   const tag = `[worker-integration:${params.jobId.slice(0, 8)}]`;
   console.log(`${tag} initializeOrderIntegrations — ${params.serviceLevel}`);
 
-  // Check if already initialized
+  // Check if already initialized (idempotency guard)
   const { data: existing } = await supabase
     .from('jobs')
     .select('jira_issue_key, jira_issue_url, google_drive_folder_id, google_drive_folder_url')
@@ -311,7 +234,6 @@ export async function initializeOrderIntegrations(params: {
       const msg = err instanceof Error ? err.message : String(err);
       console.error(`${tag} Drive folder creation failed: ${msg}`);
       await updateJobIntegration(params.jobId, { drive_sync_status: 'error', last_integration_error: msg });
-      // Notify operator
       const chatId = process.env.TELEGRAM_OPERATOR_CHAT_ID ?? process.env.TELEGRAM_TRANSLATOR_CHAT_ID;
       if (chatId) await sendTelegram(chatId, `⚠️ Drive folder creation failed\nJob: ${params.jobId.slice(0, 8)}\n${msg}`).catch(() => undefined);
     }
@@ -346,6 +268,7 @@ export async function initializeOrderIntegrations(params: {
         fulfillmentMethod: params.fulfillmentMethod,
         driveUrl,
         wpoUrl: `${siteUrl}/dashboard`,
+        createdAt: new Date().toISOString(),
       });
 
       if (issue) {
@@ -359,10 +282,9 @@ export async function initializeOrderIntegrations(params: {
         });
         console.log(`${tag} ✓ Jira issue created: ${issue.issueKey}`);
 
-        // Notify operator
+        const auth = getJiraAuth();
         const chatId = process.env.TELEGRAM_OPERATOR_CHAT_ID ?? process.env.TELEGRAM_TRANSLATOR_CHAT_ID;
         if (chatId) {
-          const auth = getJiraAuth();
           await sendTelegram(
             chatId,
             [
@@ -388,12 +310,12 @@ export async function initializeOrderIntegrations(params: {
 }
 
 /**
- * After AI draft is generated: upload to Drive 02_AI_DRAFT + assign Jira to translator.
- * Called by the worker after rendering the DOCX/PDF draft.
+ * After AI draft is generated: upload to Drive 02_AI_DRAFT.
+ * Jira Automation handles all subsequent Jira-side steps (assign, transition, notify).
  */
 export async function triggerTranslatorReview(params: {
   jobId: string;
-  jiraIssueKey: string;
+  jiraIssueKey?: string | null;
   serviceLevel: ServiceLevel;
   sourceLang: string;
   targetLang: string;
@@ -404,7 +326,6 @@ export async function triggerTranslatorReview(params: {
   draftFileKey?: string | null;
   draftFileName?: string | null;
 }): Promise<void> {
-  const auth = getJiraAuth();
   const tag = `[worker-integration:${params.jobId.slice(0, 8)}]`;
 
   // ── 1. Upload AI draft to Drive 02_AI_DRAFT ───────────────────────────────
@@ -426,57 +347,29 @@ export async function triggerTranslatorReview(params: {
     }
   }
 
-  // ── 2. Jira: assign to translator + security level + transition ────────────
-  if (!auth) {
-    console.log(`${tag} Jira not configured — skipping translator review transition`);
-    return;
+  // ── 2. Update Supabase + notify translator ────────────────────────────────
+  await updateJobIntegration(params.jobId, {
+    jira_sync_status: 'translator_review',
+  });
+
+  const chatId = process.env.TELEGRAM_TRANSLATOR_CHAT_ID;
+  if (chatId) {
+    const auth = getJiraAuth();
+    const jiraLink =
+      params.jiraIssueKey && auth
+        ? `\nJira: <a href="${auth.baseUrl}/browse/${params.jiraIssueKey}">${params.jiraIssueKey}</a>`
+        : '';
+    await sendTelegram(
+      chatId,
+      [
+        `📋 <b>New Translation Assignment</b>`,
+        `Job: <code>${params.jobId.slice(0, 8)}</code>`,
+        `${params.sourceLang.toUpperCase()} → ${params.targetLang.toUpperCase()} | ${params.documentType.split('|')[0]}`,
+        jiraLink || null,
+        params.driveUrl ? `Drive: ${params.driveUrl}` : null,
+      ].filter(Boolean).join('\n'),
+    ).catch(() => undefined);
   }
 
-  const toTranslatorName = process.env.JIRA_TRANSITION_TO_TRANSLATOR ?? 'In Progress';
-  const translatorQuery = process.env.JIRA_TRANSLATOR_QUERY ?? '';
-  const translatorSecLevelName = process.env.JIRA_SECURITY_LEVEL_TRANSLATOR_NAME ?? '';
-  const projectKey = process.env.JIRA_PROJECT_KEY ?? params.jiraIssueKey.split('-')[0] ?? '';
-
-  try {
-    const [translatorAccountId, translatorSecLevelId] = await Promise.all([
-      translatorQuery ? resolveUserAccountId(translatorQuery) : Promise.resolve(null),
-      translatorSecLevelName && projectKey
-        ? resolveSecurityLevelId(projectKey, translatorSecLevelName)
-        : Promise.resolve(null),
-    ]);
-
-    if (translatorAccountId) await assignJiraIssue(params.jiraIssueKey, translatorAccountId);
-    if (translatorSecLevelId) await setJiraSecurityLevel(params.jiraIssueKey, translatorSecLevelId);
-    await transitionJiraIssue(params.jiraIssueKey, toTranslatorName);
-    await addJiraComment(params.jiraIssueKey, 'AI draft ready. Assigned for translator review.');
-
-    await updateJobIntegration(params.jobId, {
-      jira_sync_status: 'translator_review',
-    });
-
-    // Notify translator
-    const chatId = process.env.TELEGRAM_TRANSLATOR_CHAT_ID;
-    if (chatId) {
-      const jiraUrl = `${auth.baseUrl}/browse/${params.jiraIssueKey}`;
-      await sendTelegram(
-        chatId,
-        [
-          `📋 <b>New Translation Assignment</b>`,
-          `Job: <code>${params.jobId.slice(0, 8)}</code>`,
-          `${params.sourceLang.toUpperCase()} → ${params.targetLang.toUpperCase()} | ${params.documentType.split('|')[0]}`,
-          `Jira: <a href="${jiraUrl}">${params.jiraIssueKey}</a>`,
-          params.driveUrl ? `Drive: ${params.driveUrl}` : null,
-        ].filter(Boolean).join('\n'),
-      ).catch(() => undefined);
-    }
-
-    console.log(`${tag} ✓ translator review triggered (${params.jiraIssueKey})`);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error(`${tag} triggerTranslatorReview Jira steps failed: ${msg}`);
-    await updateJobIntegration(params.jobId, { jira_sync_status: 'error', last_integration_error: msg });
-    // Don't throw — let the main pipeline continue; operator is notified via Telegram
-    const chatId = process.env.TELEGRAM_OPERATOR_CHAT_ID ?? process.env.TELEGRAM_TRANSLATOR_CHAT_ID;
-    if (chatId) await sendTelegram(chatId, `⚠️ Translator review transition failed\nJob: ${params.jobId.slice(0, 8)}\n${msg}`).catch(() => undefined);
-  }
+  console.log(`${tag} ✓ translator review triggered — Jira Automation handles assignment`);
 }

@@ -2,24 +2,15 @@
 //
 // Architecture:
 //  • WPO creates ONE Jira issue per order via REST API (initializeOrderIntegrations).
-//  • WPO updates that issue after AI draft is ready (transitionToTranslatorReview).
-//  • Jira Automation handles all subsequent transitions within Jira
-//    (assignee, security level, status) when translator/notary act.
+//  • Jira Automation handles ALL subsequent transitions within Jira
+//    (assignee, security level, status transitions, notifications).
 //  • Jira Automation sends a callback to /api/webhooks/jira for reverse sync:
 //    WPO only updates Supabase, writes audit, and sends Telegram/email notifications.
 //    The callback does NOT create a new issue or perform Jira API transitions.
 
 import { supabaseServer } from '../supabase/server';
-import {
-  createJiraIssue,
-  assignJiraIssue,
-  setJiraSecurityLevel,
-  transitionJiraIssue,
-  addJiraComment,
-} from '../jira/client';
+import { createJiraIssue } from '../jira/client';
 import { getJiraCredentials } from '../jira/config';
-import { resolveJiraIds } from '../jira/resolver';
-import { JIRA_PROJECT_CONFIG } from '../jira/project-config';
 import { createOrderFolder, uploadFileToDrive } from '../google-drive/client';
 import { downloadFile } from '../r2/client';
 import {
@@ -66,12 +57,6 @@ async function updateJobIntegration(jobId: string, fields: Record<string, unknow
     .update({ ...fields, last_synced_at: new Date().toISOString() })
     .eq('id', jobId);
   if (error) console.error('[integration] job update failed:', error.message);
-}
-
-async function getResolvedIds() {
-  const creds = getJiraCredentials();
-  if (!creds || !JIRA_PROJECT_CONFIG.projectKey) return null;
-  return resolveJiraIds(creds.baseUrl, creds.email, creds.apiToken);
 }
 
 function jiraUrl(issueKey: string): string | null {
@@ -160,6 +145,7 @@ export async function initializeOrderIntegrations(params: {
       fulfillmentMethod: params.fulfillmentMethod,
       driveUrl,
       wpoUrl,
+      createdAt: new Date().toISOString(),
     });
     if (issue) {
       await updateJobIntegration(params.jobId, {
@@ -199,7 +185,9 @@ export async function initializeOrderIntegrations(params: {
   }
 }
 
-// ─── 2. Upload AI draft to Drive 02_AI_DRAFT + move issue to translator ───────
+// ─── 2. Upload AI draft to Drive 02_AI_DRAFT ──────────────────────────────────
+// Jira Automation handles all subsequent Jira-side steps (assignee, transitions,
+// security level, notifications). WPO only uploads the file to Drive.
 
 export async function transitionToTranslatorReview(params: {
   jobId: string;
@@ -233,19 +221,9 @@ export async function transitionToTranslatorReview(params: {
     }
   }
 
-  // Jira transitions
+  // Update Supabase and send Telegram notification.
+  // All Jira-side transitions are handled by Jira Automation.
   try {
-    const ids = await getResolvedIds();
-
-    if (ids?.translatorAccountId) {
-      await assignJiraIssue(params.jiraIssueKey, ids.translatorAccountId);
-    }
-    if (ids?.securityLevelTranslatorId) {
-      await setJiraSecurityLevel(params.jiraIssueKey, ids.securityLevelTranslatorId);
-    }
-    await transitionJiraIssue(params.jiraIssueKey, JIRA_PROJECT_CONFIG.transitionNames.toTranslator);
-    await addJiraComment(params.jiraIssueKey, 'AI draft ready. Assigned for translator review.');
-
     await updateJobIntegration(params.jobId, {
       jira_sync_status: 'translator_review',
       workflow_status: 'awaiting_translator_review',
@@ -255,7 +233,7 @@ export async function transitionToTranslatorReview(params: {
       jobId: params.jobId,
       actor: 'system',
       source: 'worker',
-      action: 'assigned_to_translator',
+      action: 'ai_draft_ready_for_translator',
       newStatus: 'awaiting_translator_review',
       jiraIssueKey: params.jiraIssueKey,
     });
@@ -269,7 +247,7 @@ export async function transitionToTranslatorReview(params: {
       driveUrl: params.driveUrl,
     }).catch((e) => console.error(`${tag} translator Telegram failed:`, e));
 
-    console.log(`${tag} ✓ transitioned to translator review`);
+    console.log(`${tag} ✓ AI draft ready — translator assignment handled by Jira Automation`);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`${tag} transitionToTranslatorReview failed: ${msg}`);
@@ -529,5 +507,26 @@ export async function syncJobTerminated(params: {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`${tag} syncJobTerminated(${params.reason}) failed: ${msg}`);
+  }
+}
+
+export async function syncInformational(params: {
+  jobId: string;
+  jiraIssueKey: string;
+  event: string;
+}): Promise<void> {
+  const tag = `[integration:${params.jobId.slice(0, 8)}]`;
+  try {
+    await audit({
+      jobId: params.jobId,
+      actor: 'jira_automation',
+      source: 'jira_webhook',
+      action: params.event.toLowerCase(),
+      jiraIssueKey: params.jiraIssueKey,
+    });
+    console.log(`${tag} ✓ informational event recorded: ${params.event}`);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`${tag} syncInformational(${params.event}) failed: ${msg}`);
   }
 }

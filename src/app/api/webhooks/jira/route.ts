@@ -20,6 +20,7 @@ import {
   syncNotaryDeclined,
   syncReadyForDelivery,
   syncJobTerminated,
+  syncInformational,
 } from '@/lib/integrations/workflow';
 
 // ─── Payload schema ───────────────────────────────────────────────────────────
@@ -32,13 +33,22 @@ const JiraWebhookSchema = z.object({
    * Configure your Jira Automation rules to send these values.
    */
   event: z.enum([
-    'TRANSLATOR_DONE',      // translator completed the translation
-    'TRANSLATOR_DECLINED',  // translator declined / returned the assignment
-    'NOTARY_DONE',          // notary completed the notarization
-    'NOTARY_DECLINED',      // notary declined / returned the assignment
-    'JOB_FAILED',           // job marked failed in Jira
-    'JOB_CANCELED',         // job canceled
-    'READY_FOR_DELIVERY',   // operator approved — ready for customer delivery
+    // Translator lifecycle
+    'TRANSLATOR_ACCEPTED',    // translator accepted the assignment
+    'TRANSLATOR_IN_PROGRESS', // translator has started working
+    'TRANSLATOR_COMPLETED',   // translator completed the translation (preferred)
+    'TRANSLATOR_DONE',        // backward-compat alias for TRANSLATOR_COMPLETED
+    'TRANSLATOR_DECLINED',    // translator declined / returned the assignment
+    // Notary lifecycle
+    'NOTARY_ACCEPTED',        // notary accepted the assignment
+    'NOTARY_IN_PROGRESS',     // notary has started working
+    'NOTARY_COMPLETED',       // notary completed the notarization (preferred)
+    'NOTARY_DONE',            // backward-compat alias for NOTARY_COMPLETED
+    'NOTARY_DECLINED',        // notary declined / returned the assignment
+    // Order terminal events
+    'JOB_FAILED',             // job marked failed in Jira
+    'JOB_CANCELED',           // job canceled
+    'READY_FOR_DELIVERY',     // operator approved — ready for customer delivery
   ]),
   /** Jira issue key, e.g. "WPO-42" */
   issueKey: z.string().min(1),
@@ -121,15 +131,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // ── 6. Validate allowed event for this job's service level ─────────────────
   const serviceLevel = job.service_level ?? (job.notarized ? 'notarization_through_partners' : 'electronic');
 
-  if (event === 'NOTARY_DONE' && serviceLevel !== 'notarization_through_partners') {
+  const isNotaryEvent = event === 'NOTARY_DONE' || event === 'NOTARY_COMPLETED' ||
+    event === 'NOTARY_ACCEPTED' || event === 'NOTARY_IN_PROGRESS' || event === 'NOTARY_DECLINED';
+  if (isNotaryEvent && serviceLevel !== 'notarization_through_partners') {
     return NextResponse.json(
-      { error: 'NOTARY_DONE event received for non-notarization job' },
-      { status: 422 },
-    );
-  }
-  if (event === 'NOTARY_DECLINED' && serviceLevel !== 'notarization_through_partners') {
-    return NextResponse.json(
-      { error: 'NOTARY_DECLINED event received for non-notarization job' },
+      { error: `${event} received for non-notarization job` },
       { status: 422 },
     );
   }
@@ -152,6 +158,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // These functions ONLY update Supabase and send notifications.
   try {
     switch (event) {
+      // Informational events — write audit only; no workflow_status change
+      case 'TRANSLATOR_ACCEPTED':
+      case 'TRANSLATOR_IN_PROGRESS':
+      case 'NOTARY_ACCEPTED':
+      case 'NOTARY_IN_PROGRESS':
+        await syncInformational({ jobId, jiraIssueKey: issueKey, event });
+        break;
+
+      case 'TRANSLATOR_COMPLETED':
       case 'TRANSLATOR_DONE': {
         if (serviceLevel === 'notarization_through_partners') {
           // Load document for language pair (needed for notary notification)
@@ -180,6 +195,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         await syncTranslatorDeclined({ jobId, jiraIssueKey: issueKey });
         break;
 
+      case 'NOTARY_COMPLETED':
       case 'NOTARY_DONE':
         await syncNotaryDone({ jobId, jiraIssueKey: issueKey });
         break;

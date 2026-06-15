@@ -263,27 +263,24 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
 
       console.log(`${tag} ✓ completed [${plan.mode}] — awaiting human review`);
 
-      // Trigger Jira/Drive integration: move issue to translator + upload draft to Drive
-      if (integrationResult.jiraIssueKey) {
-        try {
-          await triggerTranslatorReview({
-            jobId,
-            jiraIssueKey: integrationResult.jiraIssueKey,
-            serviceLevel: resolvedServiceLevel as ServiceLevel,
-            sourceLang: doc.source_language,
-            targetLang: doc.target_language,
-            documentType: docType,
-            driveUrl: integrationResult.driveUrl,
-            driveFolderId: integrationResult.driveFolderId,
-            draftFileKey: draftDocxKey,
-            draftFileName: 'ai_draft.docx',
-          });
-        } catch (e) {
-          const m = e instanceof Error ? e.message : String(e);
-          console.error(`${tag} triggerTranslatorReview failed (non-fatal): ${m}`);
-        }
-      } else {
-        console.warn(`${tag} no Jira issue key — skipping translator review transition`);
+      // Upload AI draft to Drive 02_AI_DRAFT and notify translator.
+      // Jira Automation handles assignment/transitions on the Jira side.
+      try {
+        await triggerTranslatorReview({
+          jobId,
+          jiraIssueKey: integrationResult.jiraIssueKey,
+          serviceLevel: resolvedServiceLevel as ServiceLevel,
+          sourceLang: doc.source_language,
+          targetLang: doc.target_language,
+          documentType: docType,
+          driveUrl: integrationResult.driveUrl,
+          driveFolderId: integrationResult.driveFolderId,
+          draftFileKey: draftDocxKey,
+          draftFileName: 'ai_draft.docx',
+        });
+      } catch (e) {
+        const m = e instanceof Error ? e.message : String(e);
+        console.error(`${tag} triggerTranslatorReview failed (non-fatal): ${m}`);
       }
 
       // Send review email (no download URL for the draft)
