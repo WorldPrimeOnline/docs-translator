@@ -193,7 +193,9 @@ function deriveCustomerStatus(
   if (jobStatus === 'completed') {
     if (!workflowStatus || serviceLevel === 'electronic') return 'completed';
     if (workflowStatus === 'awaiting_translator_review') return 'awaiting_translator_review';
-    // Unknown workflow_status on a completed job — safe fallback, never reset to translator stage
+    // Legacy: pre-workflow-update jobs had workflow_status='completed' set by the worker
+    // instead of 'awaiting_translator_review'. Treat as awaiting review for certified/notarized.
+    if (workflowStatus === 'completed') return 'awaiting_translator_review';
     console.warn('[customer-order-state] unknown workflow_status on completed job:', workflowStatus);
     return 'operator_processing';
   }
