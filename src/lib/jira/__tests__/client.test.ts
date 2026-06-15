@@ -21,7 +21,8 @@ jest.mock('../config', () => ({
 }));
 
 jest.mock('../project-config', () => ({
-  JIRA_PROJECT_CONFIG: { projectKey: 'WO', issueTypeName: 'Заказ' },
+  JIRA_PROJECT_CONFIG: { projectKey: 'WO' },
+  JIRA_ISSUE_TYPE: 'Заказ',
 }));
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports

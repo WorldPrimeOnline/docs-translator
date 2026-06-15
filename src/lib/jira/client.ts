@@ -1,6 +1,6 @@
 import type { ServiceLevel } from '../translation-prompts/types';
 import { getJiraCredentials, makeAuthHeader } from './config';
-import { JIRA_PROJECT_CONFIG } from './project-config';
+import { JIRA_PROJECT_CONFIG, JIRA_ISSUE_TYPE } from './project-config';
 
 export interface CreateIssueParams {
   jobId: string;
@@ -77,7 +77,7 @@ export async function createJiraIssue(
   const body = {
     fields: {
       project: { key: JIRA_PROJECT_CONFIG.projectKey },
-      issuetype: { name: JIRA_PROJECT_CONFIG.issueTypeName },
+      issuetype: { name: JIRA_ISSUE_TYPE },
       summary: params.jobId,
       description: buildDescription(params),
     },

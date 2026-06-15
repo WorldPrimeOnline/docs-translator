@@ -81,7 +81,6 @@ async function createJiraIssue(params: {
   }
 
   const projectKey = process.env.JIRA_PROJECT_KEY ?? 'WO';
-  const issueTypeName = process.env.JIRA_ISSUE_TYPE_NAME ?? 'Заказ';
   const docType = params.documentType.split('|')[0] ?? params.documentType;
 
   const descLines: string[] = [
@@ -99,7 +98,7 @@ async function createJiraIssue(params: {
   const body = {
     fields: {
       project: { key: projectKey },
-      issuetype: { name: issueTypeName },
+      issuetype: { name: 'Заказ' },
       summary: params.jobId,
       description: {
         type: 'doc',
