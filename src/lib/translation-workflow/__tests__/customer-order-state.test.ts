@@ -285,6 +285,31 @@ describe('Unknown workflow_status does not reset to translator stage', () => {
   });
 });
 
+describe('Legacy workflow_status="completed" on non-electronic jobs', () => {
+  it('notarized job with workflow_status=completed → awaiting_translator_review (not operator_processing)', () => {
+    // Old worker code set workflow_status='completed' instead of 'awaiting_translator_review'
+    const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'completed', serviceLevel: 'notarization_through_partners' });
+    expect(s.customerStatus).toBe('awaiting_translator_review');
+    expect(s.canDownload).toBe(false);
+    expect(s.isTerminal).toBe(false);
+  });
+
+  it('certified job with workflow_status=completed → awaiting_translator_review', () => {
+    const SL = 'official_with_translator_signature_and_provider_stamp';
+    const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'completed', serviceLevel: SL });
+    expect(s.customerStatus).toBe('awaiting_translator_review');
+    expect(s.canDownload).toBe(false);
+    expect(s.isTerminal).toBe(false);
+  });
+
+  it('electronic job with workflow_status=completed → still completed (electronic shortcut)', () => {
+    const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'completed', serviceLevel: 'electronic' });
+    expect(s.customerStatus).toBe('completed');
+    expect(s.canDownload).toBe(true);
+    expect(s.isTerminal).toBe(true);
+  });
+});
+
 describe('Standalone helpers', () => {
   it('isCustomerOrderTerminal: delivered is terminal', () => {
     expect(isCustomerOrderTerminal('delivered')).toBe(true);
