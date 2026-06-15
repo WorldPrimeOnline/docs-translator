@@ -422,7 +422,17 @@
     "pain3Title": "국제 대학 지원서는 정확한 영어 형식을 요구합니다",
     "pain3Desc": "카자흐스탄 학위를 평가하는 외국 대학은 구조적 맥락을 잃는 직역이 아닌, 깔끔하고 읽기 쉬운 영어 번역을 원합니다.",
     "pain4Title": "이민 및 아포스티유 절차는 동시에 많은 문서를 수반합니다",
-    "pain4Desc": "이주, 해외 취업 또는 외국 대학 입학 준비는 종종 5–10개의 문서를 동시에 번역해야 함을 의미합니다. 일정이 주요 제약 요인이 됩니다."
+    "pain4Desc": "이주, 해외 취업 또는 외국 대학 입학 준비는 종종 5–10개의 문서를 동시에 번역해야 함을 의미합니다. 일정이 주요 제약 요인이 됩니다.",
+    "painSectionLabel": "WHY WPO",
+    "painBridgeLabel": "WPO helps",
+    "docsSectionLabel": "SUPPORTED DOCUMENTS",
+    "trustHeadline": "Transparent, Confidential and Legally Accurate",
+    "pricingHeadline": "Simple Per-Document Pricing",
+    "pricingSubheadline": "No subscription. Pay only for the translation you choose.",
+    "seoHeadline": "Document Translation for Kazakhstan — When and How to Use",
+    "seoParagraph1": "In Kazakhstan, document translations are often needed for enrolling in foreign universities, work visas, relocation, immigration procedures, opening bank accounts abroad, and apostille. The traditional route through a translation bureau can require a personal visit, waiting time, and manual document handoff.",
+    "seoParagraph2": "WorldPrimeOnline helps prepare translations online: upload a document, choose a language pair and service level, and receive the result in electronic format. Electronic translation is suitable for preparation and reference. Official translation with translator review, translator signature, and Provider stamp is available as a separate service level. Notarial certification is arranged separately through partners where available.",
+    "seoParagraph3": "Acceptance of translations by third parties is not guaranteed. Before submitting a document to a bank, university, consulate, immigration authority, or notary, verify the requirements of the receiving party."
   },
   "kazakhstanNotarized": {
     "heroBadge": "카자흐스탄 · 공증 준비",
@@ -470,7 +480,10 @@
     "pain3Title": "여러 문서는 대기 시간을 배가시킵니다",
     "pain3Desc": "대학 또는 이민 패키지에는 종종 5–10개의 문서가 포함됩니다. 하나의 공증 세션 전에 모든 초안을 준비하면 전체 일정이 크게 단축됩니다.",
     "pain4Title": "준비가 부족한 고객은 예약 시간을 연장시킵니다",
-    "pain4Desc": "공증인과 비자 담당자에게 명확한 초안을 가져온 고객은 처리 속도가 더 빠릅니다. 번역 초안은 고객이 서명하는 내용을 이해하는 데도 도움이 됩니다."
+    "pain4Desc": "공증인과 비자 담당자에게 명확한 초안을 가져온 고객은 처리 속도가 더 빠릅니다. 번역 초안은 고객이 서명하는 내용을 이해하는 데도 도움이 됩니다.",
+    "painSectionLabel": "HOW IT WORKS",
+    "painBridgeLabel": "WPO helps organize the process",
+    "docsSectionLabel": "DOCUMENTS FOR NOTARY PROCESS"
   },
   "kazakhstanUniversity": {
     "heroBadge": "카자흐스탄 · 대학 지원",
@@ -845,5 +858,53 @@
     "phoneLabel": "Phone",
     "emailLabel": "Email",
     "websiteLabel": "Website"
+  },
+  "kazakhstanCertified": {
+    "heroBadge": "Kazakhstan · Official Translation",
+    "heroHeadline": "Certified Translation",
+    "heroAccentLine": "of Documents Online",
+    "heroSubheadline": "Order an official translation with translator review, translator signature, and Provider stamp. For banks, universities, migration, visa, and official purposes.",
+    "heroCtaLabel": "Order Official Translation",
+    "heroTrustLine": "Acceptance of the translation by third parties is not guaranteed and depends on the requirements of the receiving organization.",
+    "painSectionLabel": "WHAT'S INCLUDED",
+    "painBridgeLabel": "WPO helps",
+    "painHeadline": "Official Translation — a Separate Service Level",
+    "pain1Title": "Translator Review",
+    "pain1Desc": "The translation is reviewed by a human translator. OCR errors, terminology, and formatting are corrected as needed.",
+    "pain2Title": "Translator Signature",
+    "pain2Desc": "The final document may include a translator signature and translator block.",
+    "pain3Title": "Provider Stamp",
+    "pain3Desc": "For the official service level, a Provider stamp may be added to the document.",
+    "pain4Title": "No Acceptance Guarantee",
+    "pain4Desc": "Banks, universities, consulates, and other organizations may have their own requirements. These should be verified in advance.",
+    "finalCtaHeadline": "Need an Official Translation?",
+    "finalCtaSub": "Upload a document, choose the official service level, and review the final price before payment.",
+    "finalCtaCta": "Start Translation",
+    "faq": [
+      {
+        "q": "What does certified translation mean at WPO?",
+        "a": "At WPO, certified translation means the official service level: the translation is reviewed by a human translator and may include a translator signature, Provider stamp, date, and translator block. It does not automatically mean notarial certification or guaranteed acceptance by third parties."
+      },
+      {
+        "q": "How does certified translation differ from electronic translation?",
+        "a": "Electronic translation is performed automatically using OCR and AI, without a translator signature, Provider stamp, or notarial certification. Certified / official translation undergoes translator review and may include a translator signature and Provider stamp."
+      },
+      {
+        "q": "Is this a notarized translation?",
+        "a": "No. WPO certified / official translation is not notarial certification by itself. Notarization is arranged separately through a partner process, if this service is available for the selected document, language pair, and jurisdiction."
+      },
+      {
+        "q": "Do you guarantee that the translation will be accepted by a bank, university, or consulate?",
+        "a": "No. Acceptance of a translation depends on the requirements of the specific bank, university, consulate, immigration authority, notary, or other organization. Before using the translation for official purposes, the customer must independently verify the requirements of the receiving party."
+      },
+      {
+        "q": "When is an official translation needed?",
+        "a": "An official translation is usually needed when the receiving party requires a translation with translator review, translator signature, Provider stamp, or additional confirmation. If a standard electronic translation is insufficient, choose the official service level."
+      },
+      {
+        "q": "Can notarial certification be added later?",
+        "a": "In some cases yes, if a partner process is available for the selected document, language, and jurisdiction. Availability, timeline, and cost of notarization are confirmed separately."
+      }
+    ]
   }
 }

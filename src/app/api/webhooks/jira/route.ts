@@ -78,13 +78,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // ── 1. Authenticate ─────────────────────────────────────────────────────────
   const secret = process.env.JIRA_WEBHOOK_SECRET;
   const header = request.headers.get('x-wpo-webhook-secret');
-  console.log('[jira-webhook] auth-diag:', {
-    envSecretExists: !!secret,
-    envSecretLen: secret?.length ?? 0,
-    headerExists: !!header,
-    headerLen: header?.length ?? 0,
-    match: secret ? header === secret : 'env_not_set',
-  });
   if (secret) {
     if (header !== secret) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
