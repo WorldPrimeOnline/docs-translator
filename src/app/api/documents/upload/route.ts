@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { supabaseServer } from '@/lib/supabase/server';
@@ -6,16 +7,72 @@ import { uploadFile } from '@/lib/r2/client';
 import { convertToPdf, mergePdfs } from '@/lib/convert-to-pdf';
 import { processJob } from '@/lib/jobs/processor';
 import { SUBSCRIPTION_PLANS } from '@/lib/subscriptions/config';
+import { deriveBackcompatBooleans } from '@/lib/translation-workflow/output-plan';
+import { isValidNotaryCity } from '@/lib/notary/cities';
 import type { Database } from '@/types';
-
+import type { ServiceLevel } from '@/lib/translation-prompts/types';
 
 const MAX_FILE_SIZE_EACH = 25 * 1024 * 1024;
-const MAX_TOTAL_SIZE   = 50 * 1024 * 1024;
+const MAX_TOTAL_SIZE = 50 * 1024 * 1024;
+
+const VALID_SERVICE_LEVELS = [
+  'electronic',
+  'official_with_translator_signature_and_provider_stamp',
+  'notarization_through_partners',
+] as const;
+
+/**
+ * Zod schema for upload request validation.
+ * Parsed from FormData fields (all values are strings).
+ */
+const UploadFormSchema = z
+  .object({
+    sourceLang: z.string().min(1),
+    targetLang: z.string().min(1),
+    documentType: z.string().min(1),
+    serviceLevel: z.enum(VALID_SERVICE_LEVELS).default('electronic'),
+    notaryCity: z.string().optional(),
+    fulfillmentMethod: z.enum(['pickup', 'delivery']).optional(),
+    deliveryPhone: z.string().max(30).optional(),
+    deliveryAddress: z.string().max(500).optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.serviceLevel === 'notarization_through_partners') {
+      // City is required and must be in the configured list
+      if (!data.notaryCity) {
+        ctx.addIssue({ code: 'custom', path: ['notaryCity'], message: 'City is required for notarization orders' });
+      } else if (
+        // Only validate if cities list is populated
+        isValidNotaryCity !== undefined &&
+        typeof isValidNotaryCity === 'function' &&
+        // Skip validation if the list is empty (not yet configured)
+        // See src/lib/notary/cities.ts
+        (() => {
+          try { return isValidNotaryCity(data.notaryCity!); }
+          catch { return true; }
+        })() === false
+      ) {
+        ctx.addIssue({ code: 'custom', path: ['notaryCity'], message: 'City not supported for notarization' });
+      }
+
+      if (!data.fulfillmentMethod) {
+        ctx.addIssue({ code: 'custom', path: ['fulfillmentMethod'], message: 'Fulfillment method is required for notarization orders' });
+      }
+
+      if (data.fulfillmentMethod === 'delivery') {
+        if (!data.deliveryPhone) {
+          ctx.addIssue({ code: 'custom', path: ['deliveryPhone'], message: 'Phone is required for delivery' });
+        }
+        if (!data.deliveryAddress) {
+          ctx.addIssue({ code: 'custom', path: ['deliveryAddress'], message: 'Delivery address is required for delivery' });
+        }
+      }
+    }
+  });
 
 /**
  * Extract client IP from request headers.
  * Used for fraud prevention and payment dispute/chargeback evidence only.
- * Disclosed in Privacy Policy (section: Types of Personal Data Processed).
  */
 function getClientIp(req: NextRequest): string | null {
   const forwarded = req.headers.get('x-forwarded-for');
@@ -84,7 +141,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const user = await getAuthUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    // Server-side terms acceptance check — cannot be bypassed via client devtools.
     const { data: userRow } = await supabaseServer
       .from('users')
       .select('terms_accepted_at')
@@ -97,10 +153,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const formData = await request.formData();
     const rawFiles = formData.getAll('file').filter((f): f is File => f instanceof File);
-    const sourceLang = formData.get('sourceLang');
-    const targetLang = formData.get('targetLang');
-    const documentType = formData.get('documentType');
-    const notarized = formData.get('notarized') === 'true';
 
     if (rawFiles.length === 0)
       return NextResponse.json({ error: 'At least one file is required' }, { status: 400 });
@@ -117,15 +169,38 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (totalSize > MAX_TOTAL_SIZE)
       return NextResponse.json({ error: 'Total file size exceeds 50 MB limit' }, { status: 400 });
 
-    if (
-      typeof sourceLang !== 'string' ||
-      typeof targetLang !== 'string' ||
-      typeof documentType !== 'string'
-    )
+    // Parse and validate form fields
+    const parsed = UploadFormSchema.safeParse({
+      sourceLang: formData.get('sourceLang'),
+      targetLang: formData.get('targetLang'),
+      documentType: formData.get('documentType'),
+      serviceLevel: formData.get('serviceLevel') ?? 'electronic',
+      notaryCity: formData.get('notaryCity') ?? undefined,
+      fulfillmentMethod: formData.get('fulfillmentMethod') ?? undefined,
+      deliveryPhone: formData.get('deliveryPhone') ?? undefined,
+      deliveryAddress: formData.get('deliveryAddress') ?? undefined,
+    });
+
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'sourceLang, targetLang, documentType are required' },
+        { error: 'Validation failed', details: parsed.error.flatten() },
         { status: 400 },
       );
+    }
+
+    const {
+      sourceLang,
+      targetLang,
+      documentType,
+      serviceLevel,
+      notaryCity,
+      fulfillmentMethod,
+      deliveryPhone,
+      deliveryAddress,
+    } = parsed.data;
+
+    // Derive backward-compat booleans
+    const { notarized } = deriveBackcompatBooleans(serviceLevel as ServiceLevel);
 
     // Convert each file to PDF then merge
     const pdfParts = await Promise.all(
@@ -163,9 +238,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Ensure a public.users row exists — auth.users and public.users are separate tables.
-    // Without this, the FK on documents.user_id fails for users who signed up before
-    // the row was synced, or if no trigger is configured.
     console.log('[upload] upserting user:', user.id, user.email);
     const { error: userUpsertError } = await supabaseServer
       .from('users')
@@ -198,7 +270,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       .single();
 
     if (docError || !doc) {
-      console.error('[upload] document insert failed — code:', docError?.code, 'message:', docError?.message, 'details:', docError?.details, 'hint:', docError?.hint);
+      console.error('[upload] document insert failed — code:', docError?.code, 'message:', docError?.message);
       return NextResponse.json(
         { error: 'Failed to create document record', detail: docError?.message },
         { status: 500 },
@@ -230,6 +302,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             priority,
             payment_source: 'subscription',
             notarized,
+            service_level: serviceLevel,
+            notary_city: notaryCity ?? null,
+            fulfillment_method: fulfillmentMethod ?? null,
+            delivery_phone: deliveryPhone ?? null,
+            delivery_address: deliveryAddress ?? null,
           })
           .select()
           .single();
@@ -239,10 +316,25 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           return NextResponse.json({ error: 'Failed to create job' }, { status: 500 });
         }
 
-        // Web processor (Vercel) only handles HTML — no Puppeteer, WinAnsi font limits.
-        // For pdf/docx, leave the job queued so the Railway worker picks it up.
+        // Audit: job created
+        await supabaseServer.from('job_audit_log').insert({
+          job_id: job.id,
+          actor: user.id,
+          source: 'upload',
+          action: 'job_created',
+          new_status: 'queued',
+          metadata: { serviceLevel, notaryCity: notaryCity ?? null, fulfillmentMethod: fulfillmentMethod ?? null },
+        }).then(({ error: e }) => { if (e) console.error('[upload] audit insert failed:', e.message); });
+
+        // Integration init (Jira + Drive) is handled by the Railway worker before OCR.
+        // Running it here on Vercel is unreliable because the serverless function may be
+        // killed after the HTTP response is sent. The worker is a long-running process.
+
+        // ONLY electronic + html goes through the web processor.
+        // Certified/notarized jobs (any output format) must stay queued for Railway worker
+        // so they go through the human-review pipeline (workflow_status = awaiting_translator_review).
         const [, outputFmt] = (documentType as string).split('|');
-        if (!outputFmt || outputFmt === 'html') {
+        if (serviceLevel === 'electronic' && (!outputFmt || outputFmt === 'html')) {
           setTimeout(() => {
             void processJob(job.id, doc.id);
           }, 0);
@@ -255,6 +347,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           paidViaSubscription: true,
           subscriptionPlan: sub.plan,
           remainingDocs,
+          serviceLevel,
         });
       }
     }

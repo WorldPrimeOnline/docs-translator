@@ -81,7 +81,6 @@ export function runQaChecks(
 
   const requiresHumanReview =
     mode === 'translator_review_draft' ||
-    mode === 'official_translation' ||
     mode === 'notarization_package';
 
   const errors: string[] = [];
@@ -116,7 +115,6 @@ export function runQaChecks(
       ok = !hasBrokenGlyphs;
       break;
 
-    case 'official_translation':
     case 'notarization_package':
       if (!hasTranslatorBlock) {
         errors.push('Translator certification block missing — required for official translation.');

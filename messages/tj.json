@@ -207,7 +207,23 @@
       "translating": "Тарҷума мешавад… ({pct}%)",
       "rendering": "PDF сохта мешавад… ({pct}%)",
       "completed": "Анҷом ёфт",
-      "failed": "Хато"
+      "failed": "Хато",
+      "awaitingTranslatorReview": "Ба тарҷумон фиристода шуд — интизори баррасӣ",
+      "awaitingSignatureStamp": "Интизори имзо ва мӯҳри тарҷумон",
+      "awaitingNotaryReview": "Ба нотариус фиристода шуд — интизори тасдиқ",
+      "awaitingFinalQa": "Интизори санҷиши ниҳоии сифат",
+      "readyForDelivery": "Барои таҳвил омода аст",
+      "translatorDeclined": "Тарҷумон рад кард — бо дастгирӣ тамос гиред",
+      "notaryDeclined": "Нотариус рад кард — бо дастгирӣ тамос гиред",
+      "translatorApproved": "Тарҷума тасдиқ шуд — операторро интизор аст",
+      "assignedToNotary": "Тарҷума тасдиқ шуд — ба нотариус мефиристем",
+      "notarizationInProgress": "Дар нотариус дар кор аст",
+      "notarized": "Тасдиқи нотариалӣ анҷом ёфт",
+      "readyForPickup": "Барои гирифтан тайёр аст",
+      "outForDelivery": "Ба курьер дода шуд",
+      "delivered": "Фармоиш расонида шуд",
+      "pickedUp": "Фармоиш дода шуд",
+      "operatorProcessing": "Оператор коркард мекунад"
     },
     "langs": {
       "auto": "Худкор муайян кардан",
@@ -235,15 +251,74 @@
       "presentation": "Презентатсия / Питч-дек",
       "other": "Дигар"
     },
-    "notarizedLabel": "Тарҷума барои нотариус / тасдиқи расмӣ",
-    "notarizedDesc": "Ҳуҷҷат барои интиқол ба нотариус ё тарҷумони тасдиқшуда сохтор ва формат мегирад. Барои иммиграсия, донишгоҳ ва корҳои ҳуқуқӣ тавсия дода мешавад.",
     "outputFormat": "Формати файл",
     "formatPdf": "PDF",
     "formatHtml": "HTML",
     "formatDocx": "Word (DOCX)",
     "fileCount1": "файл",
     "fileCountN": "файл",
-    "addMoreFiles": "Илова кардан"
+    "addMoreFiles": "Илова кардан",
+    "serviceLevel": {
+      "label": "САТҲИ ХИДМАТРАСОНӢ",
+      "certified": {
+        "label": "Тарҷумаи тасдиқшуда",
+        "desc": "Тарҷума аз ҷониби тарҷумони баландихтисос тафтиш мешавад, имзо карда мешавад ва бо мӯҳри WPO тасдиқ мегардад. Бе нотариалӣ."
+      },
+      "notarization": {
+        "label": "Тарҷумаи тасдиқшуда бо нотариат",
+        "desc": "Тарҷума аз ҷониби тарҷумон тафтиш ва имзо карда мешавад, бо мӯҳри WPO тасдиқ мегардад, сипас барои тасдиқи имзои тарҷумон ба нотариуси ҳамкор фиристода мешавад."
+      }
+    },
+    "notary": {
+      "city": "ШАҲР",
+      "cityPlaceholder": "Шаҳрро интихоб кунед",
+      "citiesNotConfigured": "Хидмати нотариалӣ дар минтақаи шумо ҳанӯз дастрас нест. Бо мо тамос гиред.",
+      "fulfillment": "ГИРИФТАН ЁМО ТАҲВИЛ",
+      "pickup": "Гирифтан",
+      "delivery": "Таҳвил",
+      "phone": "РАҚАМИ ТЕЛЕФОН",
+      "phonePlaceholder": "+7 (___) ___-__-__",
+      "address": "СУРОҒАИ ТАҲВИЛ",
+      "addressPlaceholder": "Кӯча, бино, хона",
+      "cityRequired": "Лутфан шаҳрро интихоб кунед",
+      "fulfillmentRequired": "Гирифтан ё таҳвилро интихоб кунед",
+      "phoneRequired": "Барои таҳвил рақами телефон лозим аст",
+      "addressRequired": "Барои таҳвил суроға лозим аст"
+    },
+    "inReview": "Дар баррасӣ",
+    "activeOrders": "Фармоишҳои фаъол",
+    "historyOrders": "Таърихи тарҷума",
+    "closeTabOk": "Шумо метавонед ин варақро пӯшед — фармоиши шумо коркард мешавад",
+    "noActiveOrders": "Фармоишҳои фаъол вуҷуд надорад",
+    "stages": {
+      "uploaded": "Бор карда шуд",
+      "ocr": "Шинохти матн",
+      "translating": "Тарҷума мешавад",
+      "rendering": "Тайёр кардани ҳуҷҷат",
+      "done": "Тамом шуд",
+      "aiProcessing": "Коркарди AI",
+      "sentToTranslator": "Ба тарҷумон фиристода шуд",
+      "translatorReview": "Санҷиши тарҷумон",
+      "signatureStamp": "Имзо ва муҳр",
+      "sentToNotary": "Ба нотариус фиристода шуд",
+      "notaryReview": "Тасдиқи нотариалӣ",
+      "readyForDelivery": "Барои таҳвил омода аст",
+      "translatorApproved": "Тарҷума тафтиш шуд",
+      "assignedToNotary": "Ба нотариус фиристода шуд",
+      "notarizationInProgress": "Назди нотариус",
+      "notarized": "Нотариус анҷом дод",
+      "readyForPickup": "Барои гирифтан омода аст",
+      "outForDelivery": "Ба курер дода шуд",
+      "delivered": "Гирифта шуд",
+      "pickedUp": "Дода шуд"
+    },
+    "order": {
+      "created": "Сохта шуд",
+      "updated": "Навсозӣ шуд",
+      "serviceElectronic": "Электронӣ",
+      "serviceCertified": "Тасдиқшуда",
+      "serviceNotarized": "Нотариалӣ"
+    }
   },
   "auth": {
     "login": "Воридшавӣ",
@@ -327,7 +402,37 @@
         "q": "Апостил чист ва чӣ тавр ба тарҷума таъсир мерасонад?",
         "a": "Апостил мӯҳри расмӣест, ки аз ҷониби мақомоти давлатӣ ба ҳуҷҷат гузошта мешавад. WPO қадами тарҷумаро таъмин мекунад."
       }
-    ]
+    ],
+    "docsHeadline": "Supported document types",
+    "docsSubheadline": "All major document types used in study, migration, and official workflows",
+    "docItem1": "Diploma & Transcript",
+    "docItem2": "Birth & Marriage Certificate",
+    "docItem3": "Passport & National ID",
+    "docItem4": "Bank Statement",
+    "docItem5": "Employment Contract & Letter",
+    "docItem6": "Police Clearance Certificate",
+    "docItem7": "Medical Certificate",
+    "docItem8": "Migration & Residency Documents",
+    "docItem9": "Apostille-Related Documents",
+    "painHeadline": "Document translation in Kazakhstan — common bottlenecks",
+    "pain1Title": "Translation bureaus charge per page and require physical presence",
+    "pain1Desc": "Most certified translation offices in Kazakhstan require you to come in person with originals, wait several days, and pay significant per-page fees for what can be a 2-page diploma.",
+    "pain2Title": "Notary appointments need a complete translation draft in advance",
+    "pain2Desc": "Many notaries and certified translators in Kazakhstan work faster and more accurately when they have a clean first-pass translation to review, rather than starting from scratch.",
+    "pain3Title": "International university applications require precise English formatting",
+    "pain3Desc": "Foreign universities evaluating Kazakhstani diplomas want clean, readable English transcriptions — not literal word-for-word renderings that lose structural context.",
+    "pain4Title": "Migration and apostille workflows involve many documents at once",
+    "pain4Desc": "Preparing for relocation, work abroad, or foreign university admission often means translating 5–10 documents simultaneously. The timeline becomes the main constraint.",
+    "painSectionLabel": "WHY WPO",
+    "painBridgeLabel": "WPO helps",
+    "docsSectionLabel": "SUPPORTED DOCUMENTS",
+    "trustHeadline": "Transparent, Confidential and Legally Accurate",
+    "pricingHeadline": "Simple Per-Document Pricing",
+    "pricingSubheadline": "No subscription. Pay only for the translation you choose.",
+    "seoHeadline": "Document Translation for Kazakhstan — When and How to Use",
+    "seoParagraph1": "In Kazakhstan, document translations are often needed for enrolling in foreign universities, work visas, relocation, immigration procedures, opening bank accounts abroad, and apostille. The traditional route through a translation bureau can require a personal visit, waiting time, and manual document handoff.",
+    "seoParagraph2": "WorldPrimeOnline helps prepare translations online: upload a document, choose a language pair and service level, and receive the result in electronic format. Electronic translation is suitable for preparation and reference. Official translation with translator review, translator signature, and Provider stamp is available as a separate service level. Notarial certification is arranged separately through partners where available.",
+    "seoParagraph3": "Acceptance of translations by third parties is not guaranteed. Before submitting a document to a bank, university, consulate, immigration authority, or notary, verify the requirements of the receiving party."
   },
   "kazakhstanNotarized": {
     "heroBadge": "Қазоқистон · Омодагӣ барои нотариус",
@@ -356,7 +461,29 @@
         "q": "Оё ман метавонам ҳамчун нотариус ё мушовири муҳоҷират аз ин хидмат истифода барам?",
         "a": "Бале. Шумо метавонед ҳуҷҷатҳои муштарионро бор кунед."
       }
-    ]
+    ],
+    "docsHeadline": "Document types commonly prepared for notary review",
+    "docItem1": "Diploma & Academic Transcript",
+    "docItem2": "Birth Certificate",
+    "docItem3": "Marriage & Divorce Certificate",
+    "docItem4": "Passport & National ID",
+    "docItem5": "Police Clearance Certificate",
+    "docItem6": "Employment Contract",
+    "docItem7": "Bank Statement",
+    "docItem8": "Power of Attorney",
+    "docItem9": "Medical Document",
+    "painHeadline": "Notary translation appointments take longer than necessary",
+    "pain1Title": "Notaries start from scratch on every document",
+    "pain1Desc": "Without a pre-prepared draft, a notary or certified translator reads the original, dictates, and constructs the translation during the appointment — a slow, billable process.",
+    "pain2Title": "Errors in the first draft cost time and money to correct",
+    "pain2Desc": "Name transliterations, date formatting, and institution names are common error points. A pre-processed draft identifies these before the certified version is produced.",
+    "pain3Title": "Multiple documents multiply the wait time",
+    "pain3Desc": "University or migration packages often involve 5–10 documents. Preparing drafts for all of them before one notary session significantly reduces the overall timeline.",
+    "pain4Title": "Clients arrive unprepared, extending appointment duration",
+    "pain4Desc": "For notaries and visa agents, clients who arrive with a clear draft are faster to process. The translated draft also helps clients understand what they are signing.",
+    "painSectionLabel": "HOW IT WORKS",
+    "painBridgeLabel": "WPO helps organize the process",
+    "docsSectionLabel": "DOCUMENTS FOR NOTARY PROCESS"
   },
   "kazakhstanUniversity": {
     "heroBadge": "Қазоқистон · Дохилшавӣ ба донишгоҳ",
@@ -385,7 +512,25 @@
         "q": "Оё метавонед ҳуҷҷатҳоро барои арзёбии маълумотнома тарҷума кунед?",
         "a": "WPO тарҷумаҳои ғайрирасмиро барои омодагӣ таъмин мекунад. Талаботро бо ташкилоти арзёбии худ тасдиқ кунед."
       }
-    ]
+    ],
+    "docsHeadline": "Supported academic document types",
+    "docItem1": "Bachelor / Master Diploma",
+    "docItem2": "Academic Transcript",
+    "docItem3": "School Leaving Certificate (Attestat)",
+    "docItem4": "Grade Transcripts & Supplements",
+    "docItem5": "Birth Certificate (for enrollment)",
+    "docItem6": "Passport (for enrollment)",
+    "docItem7": "Research / Employment Certificate",
+    "docItem8": "Medical Certificate (for admission)",
+    "painHeadline": "University application translation — where it gets complicated",
+    "pain1Title": "International universities require precise academic terminology",
+    "pain1Desc": "A diploma from a Kazakhstani university contains specific field-of-study names, department names, and qualification titles that must be translated using internationally recognised terminology.",
+    "pain2Title": "Transcripts have structured tables — poorly formatted output gets rejected",
+    "pain2Desc": "Academic transcripts contain subject names, credit hours, and grades in tabular format. Generic translation tools convert them to unstructured text. WPO preserves the structure.",
+    "pain3Title": "Tight admission deadlines leave no time for agency delays",
+    "pain3Desc": "University application windows are narrow. Getting a translation in 2–5 minutes versus waiting days from a bureau can determine whether you submit on time.",
+    "pain4Title": "Education consultants need fast drafts for multiple clients at once",
+    "pain4Desc": "Agencies handling multiple university applications simultaneously need a scalable, fast translation tool — not a per-client bureau negotiation."
   },
   "passportTranslation": {
     "heroBadge": "Намуди ҳуҷҷат · Шиносномаи",
@@ -451,7 +596,25 @@
         "q": "Оё метавонам онро барои дархости иҷозатномаи касбӣ истифода барам?",
         "a": "Шӯроҳои бисёри иҷозатнома тарҷумаҳои тасдиқшударо талаб мекунанд. WPO тарҷумаҳои ғайрирасмиро барои омодагӣ таъмин мекунад."
       }
-    ]
+    ],
+    "docsHeadline": "Academic document types supported",
+    "docItem1": "Bachelor's Diploma",
+    "docItem2": "Master's Diploma",
+    "docItem3": "PhD / Doctoral Certificate",
+    "docItem4": "Academic Transcript",
+    "docItem5": "School Leaving Certificate",
+    "docItem6": "Diploma Supplement",
+    "docItem7": "Academic Reference Letter",
+    "docItem8": "Professional Certification",
+    "painHeadline": "Diploma translation challenges — what goes wrong",
+    "pain1Title": "Academic institution names must be translated with care",
+    "pain1Desc": "University and faculty names have official international forms. Incorrectly translating a university name raises immediate flags with reviewers.",
+    "pain2Title": "Qualification titles are not universal — context matters",
+    "pain2Desc": "A Russian 'specialist' degree is not simply a bachelor's degree. Credential evaluators expect accurate description of the qualification type, duration, and field.",
+    "pain3Title": "Transcripts are tables — not paragraphs",
+    "pain3Desc": "Academic transcripts contain structured course listings with credits, grades, and subject codes. Translation tools that flatten tables into prose produce unusable output.",
+    "pain4Title": "Tight deadlines for credential evaluation services",
+    "pain4Desc": "WES, ICAS, and other credential evaluation bodies often have document submission deadlines. Having a fast translation tool available means you can submit on time."
   },
   "bankStatementTranslation": {
     "heroBadge": "Намуди ҳуҷҷат · Хулосаи бонкӣ",
@@ -484,7 +647,23 @@
         "q": "Оё метавонед скриншотҳои бонкдории онлайн ё экспортҳои PDF-ро тарҷума кунед?",
         "a": "Бале. Ҳарду тарзи ҳуҷҷатҳои коғазӣ ва рақамӣ дастгирӣ мешаванд."
       }
-    ]
+    ],
+    "docsHeadline": "Bank and financial document types supported",
+    "docItem1": "Bank Statement (1–6 months)",
+    "docItem2": "Account Balance Certificate",
+    "docItem3": "Income Certificate from Employer",
+    "docItem4": "Tax Return Summary",
+    "docItem5": "Payslip / Salary Statement",
+    "docItem6": "Property or Asset Statement",
+    "painHeadline": "Why getting your bank statement translated is harder than it should be",
+    "pain1Title": "Visa consulates require English bank statements — most banks don't offer them",
+    "pain1Desc": "Banks in Russia, Kazakhstan, and many other countries issue statements only in their local language. Embassies and consulates reviewing visa applications typically require English translations.",
+    "pain2Title": "Numbers and amounts must be perfectly preserved — no rounding, no conversion",
+    "pain2Desc": "Bank statements used for visa or mortgage applications must show exact original amounts in original currency. Any conversion or rounding creates a discrepancy that can cause rejection.",
+    "pain3Title": "Transaction-level detail must be readable and structured",
+    "pain3Desc": "A bank statement with 50 transactions must remain a table — not a paragraph. Generic translation tools collapse structure into unformatted text.",
+    "pain4Title": "Tight visa deadlines make waiting 3–5 days for a bureau unacceptable",
+    "pain4Desc": "DTV, Schengen, and other visa applications have narrow windows. Getting your bank statement translated in minutes, not days, can determine whether your application is ready on time."
   },
   "tos": {
     "title": "Шартҳои хидматрасонӣ",
@@ -679,5 +858,53 @@
     "phoneLabel": "Phone",
     "emailLabel": "Email",
     "websiteLabel": "Website"
+  },
+  "kazakhstanCertified": {
+    "heroBadge": "Kazakhstan · Official Translation",
+    "heroHeadline": "Certified Translation",
+    "heroAccentLine": "of Documents Online",
+    "heroSubheadline": "Order an official translation with translator review, translator signature, and Provider stamp. For banks, universities, migration, visa, and official purposes.",
+    "heroCtaLabel": "Order Official Translation",
+    "heroTrustLine": "Acceptance of the translation by third parties is not guaranteed and depends on the requirements of the receiving organization.",
+    "painSectionLabel": "WHAT'S INCLUDED",
+    "painBridgeLabel": "WPO helps",
+    "painHeadline": "Official Translation — a Separate Service Level",
+    "pain1Title": "Translator Review",
+    "pain1Desc": "The translation is reviewed by a human translator. OCR errors, terminology, and formatting are corrected as needed.",
+    "pain2Title": "Translator Signature",
+    "pain2Desc": "The final document may include a translator signature and translator block.",
+    "pain3Title": "Provider Stamp",
+    "pain3Desc": "For the official service level, a Provider stamp may be added to the document.",
+    "pain4Title": "No Acceptance Guarantee",
+    "pain4Desc": "Banks, universities, consulates, and other organizations may have their own requirements. These should be verified in advance.",
+    "finalCtaHeadline": "Need an Official Translation?",
+    "finalCtaSub": "Upload a document, choose the official service level, and review the final price before payment.",
+    "finalCtaCta": "Start Translation",
+    "faq": [
+      {
+        "q": "What does certified translation mean at WPO?",
+        "a": "At WPO, certified translation means the official service level: the translation is reviewed by a human translator and may include a translator signature, Provider stamp, date, and translator block. It does not automatically mean notarial certification or guaranteed acceptance by third parties."
+      },
+      {
+        "q": "How does certified translation differ from electronic translation?",
+        "a": "Electronic translation is performed automatically using OCR and AI, without a translator signature, Provider stamp, or notarial certification. Certified / official translation undergoes translator review and may include a translator signature and Provider stamp."
+      },
+      {
+        "q": "Is this a notarized translation?",
+        "a": "No. WPO certified / official translation is not notarial certification by itself. Notarization is arranged separately through a partner process, if this service is available for the selected document, language pair, and jurisdiction."
+      },
+      {
+        "q": "Do you guarantee that the translation will be accepted by a bank, university, or consulate?",
+        "a": "No. Acceptance of a translation depends on the requirements of the specific bank, university, consulate, immigration authority, notary, or other organization. Before using the translation for official purposes, the customer must independently verify the requirements of the receiving party."
+      },
+      {
+        "q": "When is an official translation needed?",
+        "a": "An official translation is usually needed when the receiving party requires a translation with translator review, translator signature, Provider stamp, or additional confirmation. If a standard electronic translation is insufficient, choose the official service level."
+      },
+      {
+        "q": "Can notarial certification be added later?",
+        "a": "In some cases yes, if a partner process is available for the selected document, language, and jurisdiction. Availability, timeline, and cost of notarization are confirmed separately."
+      }
+    ]
   }
 }

@@ -5,38 +5,36 @@
 ```
 main        → Vercel Production  + Railway production worker
 staging     → Vercel Preview     + Railway staging worker
-feature/*   → local dev only
-hotfix/*    → local dev only
 ```
 
-`feature/*` branches are based on `staging`.
-`hotfix/*` branches are based on `main`.
+`feature/*` and `hotfix/*` branches are **not used** unless explicitly requested by the user.
 
 ---
 
-## Feature workflow
+## Normal workflow — commit directly to `staging`
+
+All regular changes go directly to `staging`:
 
 ```bash
 git checkout staging && git pull origin staging
-git checkout -b feature/<name>
 
-# develop, then verify:
+# make changes, then verify:
 npm run typecheck
 npm run lint
 npm test
 npm run build          # or cd worker && npm run build
 
-git push origin feature/<name>
-# open PR → staging
+git commit -m "feat: ..."
+git push origin staging
 ```
 
-Merge target: **`staging`**. Never target `main` for feature branches.
+Do **not** create `feature/*` or `hotfix/*` branches unless the user explicitly asks.
 
 ---
 
 ## Staging deployment
 
-Merging into `staging` triggers an automatic Vercel Preview deployment and redeploys the Railway staging worker via its `staging` branch watch.
+Pushing to `staging` triggers an automatic Vercel Preview deployment and redeploys the Railway staging worker via its `staging` branch watch.
 
 Staging must use:
 - Staging Supabase project (separate from production)
@@ -60,12 +58,12 @@ Steps:
 2. Identify any new database migrations and flag destructive operations.
 3. List new or changed environment variable **names** (never values).
 4. State risks and rollback plan.
-5. Open PR: `staging` → `main`.
+5. Merge `staging` → `main` directly (fast-forward or merge commit).
 6. After merge, verify Vercel Production deployment and Railway production worker.
 
 ---
 
-## Hotfix workflow
+## Hotfix workflow (only when explicitly requested)
 
 ```bash
 git checkout main && git pull origin main
@@ -73,7 +71,7 @@ git checkout -b hotfix/<name>
 
 # apply minimal fix, test
 git push origin hotfix/<name>
-# open PR → main (requires explicit approval)
+# merge to main (requires explicit approval)
 
 # after main merge, back-port to staging:
 git checkout staging
@@ -103,7 +101,7 @@ Flag before executing: `DROP TABLE`, `DROP COLUMN`, `DELETE`, column type change
 - Each variable belongs to exactly one target: Vercel Preview, Vercel Production, Railway staging, or Railway production.
 - Staging must not reference production Supabase URLs or production R2 bucket names.
 - Production must not reference staging resources.
-- Run `npm run staging:check` (web) or `npm run staging:check` from repo root with `--worker` flag to validate env completeness before deploying.
+- Run `npm run staging:check` (web) or `cd worker && npm run staging:check` to validate env completeness before deploying.
 
 ---
 

@@ -199,9 +199,34 @@
     "jobTitle": "Translation in progress",
     "subBannerTitle": "Translate faster with a subscription",
     "subBannerDesc": "From 4 990 ₸/мес — 10 documents, no per-doc payments",
-    "notarizedLabel": "Translation for notary / official certification",
-    "notarizedDesc": "Output will be structured and formatted for handover to a notary or certified translator. Recommended for immigration, university, and legal workflows.",
     "usingPlanSub": "Using your {plan} plan · {remaining} doc{s} remaining — no payment required",
+    "serviceLevel": {
+      "label": "SERVICE LEVEL",
+      "certified": {
+        "label": "Certified translation",
+        "desc": "Translation is reviewed by a qualified human translator, signed by the translator, and stamped with the WPO seal. No notarization."
+      },
+      "notarization": {
+        "label": "Certified translation with notarization",
+        "desc": "Translation is reviewed and signed by a translator, stamped with the WPO seal, then forwarded to a partner notary to certify the translator's signature."
+      }
+    },
+    "notary": {
+      "city": "CITY",
+      "cityPlaceholder": "Select city",
+      "citiesNotConfigured": "Notarization service is not yet available in your area. Contact us for availability.",
+      "fulfillment": "PICKUP OR DELIVERY",
+      "pickup": "Pickup",
+      "delivery": "Delivery",
+      "phone": "PHONE NUMBER",
+      "phonePlaceholder": "+7 (___) ___-__-__",
+      "address": "DELIVERY ADDRESS",
+      "addressPlaceholder": "Street, building, apartment",
+      "cityRequired": "Please select a city",
+      "fulfillmentRequired": "Please select pickup or delivery",
+      "phoneRequired": "Phone number is required for delivery",
+      "addressRequired": "Delivery address is required for delivery"
+    },
     "status": {
       "queued": "Queued — waiting to start…",
       "ocr": "Extracting text… ({pct}%)",
@@ -209,7 +234,23 @@
       "translating": "Translating… ({pct}%)",
       "rendering": "Rendering PDF… ({pct}%)",
       "completed": "Completed",
-      "failed": "Failed"
+      "failed": "Failed",
+      "awaitingTranslatorReview": "Sent to translator — awaiting review",
+      "awaitingSignatureStamp": "Awaiting translator signature and stamp",
+      "awaitingNotaryReview": "Sent to notary — awaiting certification",
+      "awaitingFinalQa": "Awaiting final quality check",
+      "readyForDelivery": "Ready for delivery",
+      "translatorDeclined": "Translator declined — please contact support",
+      "notaryDeclined": "Notary declined — please contact support",
+      "translatorApproved": "Translation verified — awaiting operator",
+      "assignedToNotary": "Translation verified — forwarding to notary",
+      "notarizationInProgress": "In progress at notary",
+      "notarized": "Notarization completed",
+      "readyForPickup": "Ready for pickup",
+      "outForDelivery": "Transferred to courier",
+      "delivered": "Order delivered",
+      "pickedUp": "Order picked up",
+      "operatorProcessing": "Being processed by operator"
     },
     "langs": {
       "auto": "Auto-detect",
@@ -243,7 +284,41 @@
     "formatDocx": "Word (DOCX)",
     "fileCount1": "file",
     "fileCountN": "files",
-    "addMoreFiles": "Add more files"
+    "addMoreFiles": "Add more files",
+    "inReview": "In Review",
+    "activeOrders": "Active Orders",
+    "historyOrders": "Translation History",
+    "closeTabOk": "You can close this tab — your order is being processed",
+    "noActiveOrders": "No active orders",
+    "stages": {
+      "uploaded": "Uploaded",
+      "ocr": "Text Recognition",
+      "translating": "Translating",
+      "rendering": "Generating Document",
+      "done": "Completed",
+      "aiProcessing": "AI Processing",
+      "sentToTranslator": "Sent to Translator",
+      "translatorReview": "Translator Review",
+      "signatureStamp": "Signature & Stamp",
+      "sentToNotary": "Sent to Notary",
+      "notaryReview": "Notary Certification",
+      "readyForDelivery": "Ready for Delivery",
+      "translatorApproved": "Translation Verified",
+      "assignedToNotary": "Forwarded to Notary",
+      "notarizationInProgress": "Notarization in Progress",
+      "notarized": "Notarization Completed",
+      "readyForPickup": "Ready for Pickup",
+      "outForDelivery": "Out for Delivery",
+      "delivered": "Delivered",
+      "pickedUp": "Picked Up"
+    },
+    "order": {
+      "created": "Created",
+      "updated": "Updated",
+      "serviceElectronic": "Electronic",
+      "serviceCertified": "Certified",
+      "serviceNotarized": "Notarized"
+    }
   },
   "auth": {
     "login": "Sign in",
@@ -347,7 +422,17 @@
         "q": "What is an apostille and does translation affect it?",
         "a": "An apostille is an official authentication stamp applied to a document by a government authority. The apostille applies to the original document. The translation is a separate step, often required after the apostille has been obtained. WPO provides the translation step; the apostille must be obtained from the relevant government authority."
       }
-    ]
+    ],
+    "painSectionLabel": "WHY WPO",
+    "painBridgeLabel": "WPO helps",
+    "docsSectionLabel": "SUPPORTED DOCUMENTS",
+    "trustHeadline": "Transparent, Confidential and Legally Accurate",
+    "pricingHeadline": "Simple Per-Document Pricing",
+    "pricingSubheadline": "No subscription. Pay only for the translation you choose.",
+    "seoHeadline": "Document Translation for Kazakhstan — When and How to Use",
+    "seoParagraph1": "In Kazakhstan, document translations are often needed for enrolling in foreign universities, work visas, relocation, immigration procedures, opening bank accounts abroad, and apostille. The traditional route through a translation bureau can require a personal visit, waiting time, and manual document handoff.",
+    "seoParagraph2": "WorldPrimeOnline helps prepare translations online: upload a document, choose a language pair and service level, and receive the result in electronic format. Electronic translation is suitable for preparation and reference. Official translation with translator review, translator signature, and Provider stamp is available as a separate service level. Notarial certification is arranged separately through partners where available.",
+    "seoParagraph3": "Acceptance of translations by third parties is not guaranteed. Before submitting a document to a bank, university, consulate, immigration authority, or notary, verify the requirements of the receiving party."
   },
   "kazakhstanNotarized": {
     "heroBadge": "Kazakhstan · Notary Preparation",
@@ -395,7 +480,10 @@
         "q": "Can I use this service as a notary or migration consultant?",
         "a": "Yes. You can upload client documents and receive translated drafts on their behalf. A dedicated partner workflow is in development."
       }
-    ]
+    ],
+    "painSectionLabel": "HOW IT WORKS",
+    "painBridgeLabel": "WPO helps organize the process",
+    "docsSectionLabel": "DOCUMENTS FOR NOTARY PROCESS"
   },
   "kazakhstanUniversity": {
     "heroBadge": "Kazakhstan · University Applications",
@@ -770,5 +858,53 @@
     "termsAccepted": "You have already agreed to the terms",
     "thirdPartyNotice": "Translation results are intended to assist you. Acceptance by third parties (government agencies, consulates, employers) is not guaranteed and depends on their requirements.",
     "notarizationNotice": "Notarization or apostille is not included by default. If required, please select the appropriate service level."
+  },
+  "kazakhstanCertified": {
+    "heroBadge": "Kazakhstan · Official Translation",
+    "heroHeadline": "Certified Translation",
+    "heroAccentLine": "of Documents Online",
+    "heroSubheadline": "Order an official translation with translator review, translator signature, and Provider stamp. For banks, universities, migration, visa, and official purposes.",
+    "heroCtaLabel": "Order Official Translation",
+    "heroTrustLine": "Acceptance of the translation by third parties is not guaranteed and depends on the requirements of the receiving organization.",
+    "painSectionLabel": "WHAT'S INCLUDED",
+    "painBridgeLabel": "WPO helps",
+    "painHeadline": "Official Translation — a Separate Service Level",
+    "pain1Title": "Translator Review",
+    "pain1Desc": "The translation is reviewed by a human translator. OCR errors, terminology, and formatting are corrected as needed.",
+    "pain2Title": "Translator Signature",
+    "pain2Desc": "The final document may include a translator signature and translator block.",
+    "pain3Title": "Provider Stamp",
+    "pain3Desc": "For the official service level, a Provider stamp may be added to the document.",
+    "pain4Title": "No Acceptance Guarantee",
+    "pain4Desc": "Banks, universities, consulates, and other organizations may have their own requirements. These should be verified in advance.",
+    "finalCtaHeadline": "Need an Official Translation?",
+    "finalCtaSub": "Upload a document, choose the official service level, and review the final price before payment.",
+    "finalCtaCta": "Start Translation",
+    "faq": [
+      {
+        "q": "What does certified translation mean at WPO?",
+        "a": "At WPO, certified translation means the official service level: the translation is reviewed by a human translator and may include a translator signature, Provider stamp, date, and translator block. It does not automatically mean notarial certification or guaranteed acceptance by third parties."
+      },
+      {
+        "q": "How does certified translation differ from electronic translation?",
+        "a": "Electronic translation is performed automatically using OCR and AI, without a translator signature, Provider stamp, or notarial certification. Certified / official translation undergoes translator review and may include a translator signature and Provider stamp."
+      },
+      {
+        "q": "Is this a notarized translation?",
+        "a": "No. WPO certified / official translation is not notarial certification by itself. Notarization is arranged separately through a partner process, if this service is available for the selected document, language pair, and jurisdiction."
+      },
+      {
+        "q": "Do you guarantee that the translation will be accepted by a bank, university, or consulate?",
+        "a": "No. Acceptance of a translation depends on the requirements of the specific bank, university, consulate, immigration authority, notary, or other organization. Before using the translation for official purposes, the customer must independently verify the requirements of the receiving party."
+      },
+      {
+        "q": "When is an official translation needed?",
+        "a": "An official translation is usually needed when the receiving party requires a translation with translator review, translator signature, Provider stamp, or additional confirmation. If a standard electronic translation is insufficient, choose the official service level."
+      },
+      {
+        "q": "Can notarial certification be added later?",
+        "a": "In some cases yes, if a partner process is available for the selected document, language, and jurisdiction. Availability, timeline, and cost of notarization are confirmed separately."
+      }
+    ]
   }
 }

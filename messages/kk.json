@@ -207,7 +207,23 @@
       "translating": "Аударылуда… ({pct}%)",
       "rendering": "PDF жасалуда… ({pct}%)",
       "completed": "Аяқталды",
-      "failed": "Қате"
+      "failed": "Қате",
+      "awaitingTranslatorReview": "Аудармашыға жіберілді — тексеруді күтуде",
+      "awaitingSignatureStamp": "Аудармашының қолы мен мөрін күтуде",
+      "awaitingNotaryReview": "Нотариусқа жіберілді — куәландыруды күтуде",
+      "awaitingFinalQa": "Түпкілікті сапа тексеруін күтуде",
+      "readyForDelivery": "Беруге дайын",
+      "translatorDeclined": "Аудармашы бас тартты — қолдауға хабарласыңыз",
+      "notaryDeclined": "Нотариус бас тартты — қолдауға хабарласыңыз",
+      "translatorApproved": "Аударма тексерілді — оператор күтілуде",
+      "assignedToNotary": "Аударма тексерілді — нотариусқа жіберіледі",
+      "notarizationInProgress": "Нотариуста орындалуда",
+      "notarized": "Нотариалдық куәландыру аяқталды",
+      "readyForPickup": "Өзі алуға дайын",
+      "outForDelivery": "Курьерге берілді",
+      "delivered": "Тапсырыс жеткізілді",
+      "pickedUp": "Тапсырыс берілді",
+      "operatorProcessing": "Оператор өңдеуде"
     },
     "langs": {
       "auto": "Автоанықтау",
@@ -235,15 +251,74 @@
       "presentation": "Презентация / Питч-дек",
       "other": "Басқа"
     },
-    "notarizedLabel": "Нотариус / ресми куәландыру үшін аударма",
-    "notarizedDesc": "Құжат нотариусқа немесе куәландырылған аудармашыға беру үшін құрылымдалады. Иммиграция, университет және заңдық мәселелер үшін ұсынылады.",
     "outputFormat": "Шығыс форматы",
     "formatPdf": "PDF",
     "formatHtml": "HTML",
     "formatDocx": "Word (DOCX)",
     "fileCount1": "файл",
     "fileCountN": "файл",
-    "addMoreFiles": "Қосу"
+    "addMoreFiles": "Қосу",
+    "serviceLevel": {
+      "label": "ҚЫЗМЕТ ДЕҢГЕЙІ",
+      "certified": {
+        "label": "Куәландырылған аударма",
+        "desc": "Аударманы білікті аудармашы тексеріп, қол қояды және WPO мөрімен растайды. Нотариалдық куәландырусыз."
+      },
+      "notarization": {
+        "label": "Нотариалдық куәландырумен куәландырылған аударма",
+        "desc": "Аударманы аудармашы тексеріп қол қояды, WPO мөрімен расталады, содан кейін аудармашының қолын куәландыру үшін серіктес нотариусқа жіберіледі."
+      }
+    },
+    "notary": {
+      "city": "ҚАЛА",
+      "cityPlaceholder": "Қаланы таңдаңыз",
+      "citiesNotConfigured": "Нотариалдық қызмет сіздің аймағыңызда әлі қолжетімді емес. Бізбен байланысыңыз.",
+      "fulfillment": "ӨЗІ АЛУ НЕМЕСЕ ЖЕТКІЗУ",
+      "pickup": "Өзі алу",
+      "delivery": "Жеткізу",
+      "phone": "ТЕЛЕФОН НӨМІРІ",
+      "phonePlaceholder": "+7 (___) ___-__-__",
+      "address": "ЖЕТКІЗУ МЕКЕНЖАЙЫ",
+      "addressPlaceholder": "Көше, үй, пәтер",
+      "cityRequired": "Қаланы таңдаңыз",
+      "fulfillmentRequired": "Өзі алу немесе жеткізуді таңдаңыз",
+      "phoneRequired": "Жеткізу үшін телефон нөмірі қажет",
+      "addressRequired": "Жеткізу үшін мекенжай қажет"
+    },
+    "inReview": "Тексерілуде",
+    "activeOrders": "Белсенді тапсырыстар",
+    "historyOrders": "Аударма тарихы",
+    "closeTabOk": "Бұл қосымшаны жабуға болады — тапсырысыңыз өңделуде",
+    "noActiveOrders": "Белсенді тапсырыстар жоқ",
+    "stages": {
+      "uploaded": "Жүктелді",
+      "ocr": "Мәтінді тану",
+      "translating": "Аударылуда",
+      "rendering": "Құжат жасалуда",
+      "done": "Дайын",
+      "aiProcessing": "AI өңдеу",
+      "sentToTranslator": "Аудармашыға жіберілді",
+      "translatorReview": "Аудармашы тексеруі",
+      "signatureStamp": "Қол қою және мөр",
+      "sentToNotary": "Нотариусқа жіберілді",
+      "notaryReview": "Нотариалдық куәландыру",
+      "readyForDelivery": "Берілуге дайын",
+      "translatorApproved": "Аудармасы тексерілді",
+      "assignedToNotary": "Нотариусқа жіберілді",
+      "notarizationInProgress": "Нотариус жұмысында",
+      "notarized": "Нотариус аяқтады",
+      "readyForPickup": "Алуға дайын",
+      "outForDelivery": "Курьерге берілді",
+      "delivered": "Алынды",
+      "pickedUp": "Берілді"
+    },
+    "order": {
+      "created": "Жасалды",
+      "updated": "Жаңартылды",
+      "serviceElectronic": "Электрондық",
+      "serviceCertified": "Куәландырылған",
+      "serviceNotarized": "Нотариалдық"
+    }
   },
   "auth": {
     "login": "Кіру",
@@ -347,7 +422,17 @@
     "pain3Title": "Халықаралық университет өтінімдері нақты ағылшын форматын талап етеді",
     "pain3Desc": "Қазақстандық дипломдарды бағалайтын шет елдік университеттер құрылымдық контексті жоғалтатын сөзбе-сөз аударманы емес, таза, оқуға ыңғайлы ағылшын транскрипцияларын қалайды.",
     "pain4Title": "Миграция және апостиль процестері бір уақытта көп құжатты талап етеді",
-    "pain4Desc": "Көшуге, шет елде жұмыс істеуге немесе шет елдік университетке түсуге дайындалу 5–10 құжатты бір мезгілде аударуды білдіруі мүмкін. Мерзім — негізгі шектеу."
+    "pain4Desc": "Көшуге, шет елде жұмыс істеуге немесе шет елдік университетке түсуге дайындалу 5–10 құжатты бір мезгілде аударуды білдіруі мүмкін. Мерзім — негізгі шектеу.",
+    "painSectionLabel": "WHY WPO",
+    "painBridgeLabel": "WPO helps",
+    "docsSectionLabel": "SUPPORTED DOCUMENTS",
+    "trustHeadline": "Transparent, Confidential and Legally Accurate",
+    "pricingHeadline": "Simple Per-Document Pricing",
+    "pricingSubheadline": "No subscription. Pay only for the translation you choose.",
+    "seoHeadline": "Document Translation for Kazakhstan — When and How to Use",
+    "seoParagraph1": "In Kazakhstan, document translations are often needed for enrolling in foreign universities, work visas, relocation, immigration procedures, opening bank accounts abroad, and apostille. The traditional route through a translation bureau can require a personal visit, waiting time, and manual document handoff.",
+    "seoParagraph2": "WorldPrimeOnline helps prepare translations online: upload a document, choose a language pair and service level, and receive the result in electronic format. Electronic translation is suitable for preparation and reference. Official translation with translator review, translator signature, and Provider stamp is available as a separate service level. Notarial certification is arranged separately through partners where available.",
+    "seoParagraph3": "Acceptance of translations by third parties is not guaranteed. Before submitting a document to a bank, university, consulate, immigration authority, or notary, verify the requirements of the receiving party."
   },
   "kazakhstanNotarized": {
     "heroBadge": "Қазақстан · Нотариалдық дайындық",
@@ -395,7 +480,10 @@
     "pain3Title": "Бірнеше құжат күту уақытын еселейді",
     "pain3Desc": "Университет немесе миграция пакеттерінде жиі 5–10 құжат болады. Бір нотариалды сессия алдында барлығына черновик дайындау жалпы мерзімді айтарлықтай қысқартады.",
     "pain4Title": "Дайындықсыз келетін клиенттер кездесу уақытын ұзартады",
-    "pain4Desc": "Нотариустар мен визалық агенттер үшін таза черновикпен келетін клиенттерді өңдеу жылдамырақ. Аударма черновигі клиенттерге не қол қойып жатқанын түсінуге де көмектеседі."
+    "pain4Desc": "Нотариустар мен визалық агенттер үшін таза черновикпен келетін клиенттерді өңдеу жылдамырақ. Аударма черновигі клиенттерге не қол қойып жатқанын түсінуге де көмектеседі.",
+    "painSectionLabel": "HOW IT WORKS",
+    "painBridgeLabel": "WPO helps organize the process",
+    "docsSectionLabel": "DOCUMENTS FOR NOTARY PROCESS"
   },
   "kazakhstanUniversity": {
     "heroBadge": "Қазақстан · Университетке түсу",
@@ -770,5 +858,53 @@
     "phoneLabel": "Phone",
     "emailLabel": "Email",
     "websiteLabel": "Website"
+  },
+  "kazakhstanCertified": {
+    "heroBadge": "Kazakhstan · Official Translation",
+    "heroHeadline": "Certified Translation",
+    "heroAccentLine": "of Documents Online",
+    "heroSubheadline": "Order an official translation with translator review, translator signature, and Provider stamp. For banks, universities, migration, visa, and official purposes.",
+    "heroCtaLabel": "Order Official Translation",
+    "heroTrustLine": "Acceptance of the translation by third parties is not guaranteed and depends on the requirements of the receiving organization.",
+    "painSectionLabel": "WHAT'S INCLUDED",
+    "painBridgeLabel": "WPO helps",
+    "painHeadline": "Official Translation — a Separate Service Level",
+    "pain1Title": "Translator Review",
+    "pain1Desc": "The translation is reviewed by a human translator. OCR errors, terminology, and formatting are corrected as needed.",
+    "pain2Title": "Translator Signature",
+    "pain2Desc": "The final document may include a translator signature and translator block.",
+    "pain3Title": "Provider Stamp",
+    "pain3Desc": "For the official service level, a Provider stamp may be added to the document.",
+    "pain4Title": "No Acceptance Guarantee",
+    "pain4Desc": "Banks, universities, consulates, and other organizations may have their own requirements. These should be verified in advance.",
+    "finalCtaHeadline": "Need an Official Translation?",
+    "finalCtaSub": "Upload a document, choose the official service level, and review the final price before payment.",
+    "finalCtaCta": "Start Translation",
+    "faq": [
+      {
+        "q": "What does certified translation mean at WPO?",
+        "a": "At WPO, certified translation means the official service level: the translation is reviewed by a human translator and may include a translator signature, Provider stamp, date, and translator block. It does not automatically mean notarial certification or guaranteed acceptance by third parties."
+      },
+      {
+        "q": "How does certified translation differ from electronic translation?",
+        "a": "Electronic translation is performed automatically using OCR and AI, without a translator signature, Provider stamp, or notarial certification. Certified / official translation undergoes translator review and may include a translator signature and Provider stamp."
+      },
+      {
+        "q": "Is this a notarized translation?",
+        "a": "No. WPO certified / official translation is not notarial certification by itself. Notarization is arranged separately through a partner process, if this service is available for the selected document, language pair, and jurisdiction."
+      },
+      {
+        "q": "Do you guarantee that the translation will be accepted by a bank, university, or consulate?",
+        "a": "No. Acceptance of a translation depends on the requirements of the specific bank, university, consulate, immigration authority, notary, or other organization. Before using the translation for official purposes, the customer must independently verify the requirements of the receiving party."
+      },
+      {
+        "q": "When is an official translation needed?",
+        "a": "An official translation is usually needed when the receiving party requires a translation with translator review, translator signature, Provider stamp, or additional confirmation. If a standard electronic translation is insufficient, choose the official service level."
+      },
+      {
+        "q": "Can notarial certification be added later?",
+        "a": "In some cases yes, if a partner process is available for the selected document, language, and jurisdiction. Availability, timeline, and cost of notarization are confirmed separately."
+      }
+    ]
   }
 }

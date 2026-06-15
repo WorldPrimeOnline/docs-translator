@@ -207,7 +207,23 @@
       "translating": "번역 중… ({pct}%)",
       "rendering": "PDF 생성 중… ({pct}%)",
       "completed": "완료됨",
-      "failed": "실패"
+      "failed": "실패",
+      "awaitingTranslatorReview": "번역가에게 전송됨 — 검토 대기 중",
+      "awaitingSignatureStamp": "번역가 서명 및 도장 대기 중",
+      "awaitingNotaryReview": "공증인에게 전송됨 — 공증 대기 중",
+      "awaitingFinalQa": "최종 품질 검사 대기 중",
+      "readyForDelivery": "배송 준비 완료",
+      "translatorDeclined": "번역가가 거절했습니다 — 지원팀에 문의하세요",
+      "notaryDeclined": "공증인이 거절했습니다 — 지원팀에 문의하세요",
+      "translatorApproved": "번역 확인 완료 — 담당자 대기 중",
+      "assignedToNotary": "번역 확인 완료 — 공증인에게 전달 중",
+      "notarizationInProgress": "공증 진행 중",
+      "notarized": "공증 완료",
+      "readyForPickup": "픽업 준비 완료",
+      "outForDelivery": "배달원에게 전달됨",
+      "delivered": "주문 배달 완료",
+      "pickedUp": "주문 수령 완료",
+      "operatorProcessing": "담당자가 처리 중"
     },
     "langs": {
       "auto": "자동 감지",
@@ -235,15 +251,74 @@
       "presentation": "프레젠테이션 / 피치덱",
       "other": "기타"
     },
-    "notarizedLabel": "공증/공식 인증을 위한 번역",
-    "notarizedDesc": "공증인 또는 인증 번역사에게 전달하기 위해 문서가 구조화 및 포맷됩니다. 이민, 대학, 법률 절차에 권장합니다.",
     "outputFormat": "출력 형식",
     "formatPdf": "PDF",
     "formatHtml": "HTML",
     "formatDocx": "Word (DOCX)",
     "fileCount1": "파일",
     "fileCountN": "파일",
-    "addMoreFiles": "파일 추가"
+    "addMoreFiles": "파일 추가",
+    "serviceLevel": {
+      "label": "서비스 수준",
+      "certified": {
+        "label": "공인 번역",
+        "desc": "자격을 갖춘 번역가가 번역을 검토하고 서명하며 WPO 직인을 날인합니다. 공증 미포함."
+      },
+      "notarization": {
+        "label": "공인 번역 + 공증",
+        "desc": "번역가가 번역을 검토·서명하고 WPO 직인을 날인한 후, 파트너 공증인에게 전달하여 번역가 서명을 공증합니다."
+      }
+    },
+    "notary": {
+      "city": "도시",
+      "cityPlaceholder": "도시 선택",
+      "citiesNotConfigured": "해당 지역에서는 아직 공증 서비스를 이용할 수 없습니다. 문의해 주세요.",
+      "fulfillment": "픽업 또는 배달",
+      "pickup": "픽업",
+      "delivery": "배달",
+      "phone": "전화번호",
+      "phonePlaceholder": "+7 (___) ___-__-__",
+      "address": "배달 주소",
+      "addressPlaceholder": "도로명, 건물, 호수",
+      "cityRequired": "도시를 선택해 주세요",
+      "fulfillmentRequired": "픽업 또는 배달을 선택해 주세요",
+      "phoneRequired": "배달에는 전화번호가 필요합니다",
+      "addressRequired": "배달에는 주소가 필요합니다"
+    },
+    "inReview": "검토 중",
+    "activeOrders": "진행 중인 주문",
+    "historyOrders": "번역 기록",
+    "closeTabOk": "이 탭을 닫아도 됩니다 — 주문이 처리 중입니다",
+    "noActiveOrders": "진행 중인 주문 없음",
+    "stages": {
+      "uploaded": "업로드됨",
+      "ocr": "텍스트 인식",
+      "translating": "번역 중",
+      "rendering": "문서 생성",
+      "done": "완료",
+      "aiProcessing": "AI 처리",
+      "sentToTranslator": "번역가에게 전달됨",
+      "translatorReview": "번역가 검토",
+      "signatureStamp": "서명 및 도장",
+      "sentToNotary": "공증인에게 전달됨",
+      "notaryReview": "공증 인증",
+      "readyForDelivery": "배송 준비 완료",
+      "translatorApproved": "번역 확인 완료",
+      "assignedToNotary": "공증인에게 전달",
+      "notarizationInProgress": "공증 진행 중",
+      "notarized": "공증 완료",
+      "readyForPickup": "픽업 준비 완료",
+      "outForDelivery": "배달 중",
+      "delivered": "수령 완료",
+      "pickedUp": "수령 완료"
+    },
+    "order": {
+      "created": "생성됨",
+      "updated": "업데이트됨",
+      "serviceElectronic": "전자",
+      "serviceCertified": "공인",
+      "serviceNotarized": "공증"
+    }
   },
   "auth": {
     "login": "로그인",
@@ -347,7 +422,17 @@
     "pain3Title": "국제 대학 지원서는 정확한 영어 형식을 요구합니다",
     "pain3Desc": "카자흐스탄 학위를 평가하는 외국 대학은 구조적 맥락을 잃는 직역이 아닌, 깔끔하고 읽기 쉬운 영어 번역을 원합니다.",
     "pain4Title": "이민 및 아포스티유 절차는 동시에 많은 문서를 수반합니다",
-    "pain4Desc": "이주, 해외 취업 또는 외국 대학 입학 준비는 종종 5–10개의 문서를 동시에 번역해야 함을 의미합니다. 일정이 주요 제약 요인이 됩니다."
+    "pain4Desc": "이주, 해외 취업 또는 외국 대학 입학 준비는 종종 5–10개의 문서를 동시에 번역해야 함을 의미합니다. 일정이 주요 제약 요인이 됩니다.",
+    "painSectionLabel": "WHY WPO",
+    "painBridgeLabel": "WPO helps",
+    "docsSectionLabel": "SUPPORTED DOCUMENTS",
+    "trustHeadline": "Transparent, Confidential and Legally Accurate",
+    "pricingHeadline": "Simple Per-Document Pricing",
+    "pricingSubheadline": "No subscription. Pay only for the translation you choose.",
+    "seoHeadline": "Document Translation for Kazakhstan — When and How to Use",
+    "seoParagraph1": "In Kazakhstan, document translations are often needed for enrolling in foreign universities, work visas, relocation, immigration procedures, opening bank accounts abroad, and apostille. The traditional route through a translation bureau can require a personal visit, waiting time, and manual document handoff.",
+    "seoParagraph2": "WorldPrimeOnline helps prepare translations online: upload a document, choose a language pair and service level, and receive the result in electronic format. Electronic translation is suitable for preparation and reference. Official translation with translator review, translator signature, and Provider stamp is available as a separate service level. Notarial certification is arranged separately through partners where available.",
+    "seoParagraph3": "Acceptance of translations by third parties is not guaranteed. Before submitting a document to a bank, university, consulate, immigration authority, or notary, verify the requirements of the receiving party."
   },
   "kazakhstanNotarized": {
     "heroBadge": "카자흐스탄 · 공증 준비",
@@ -395,7 +480,10 @@
     "pain3Title": "여러 문서는 대기 시간을 배가시킵니다",
     "pain3Desc": "대학 또는 이민 패키지에는 종종 5–10개의 문서가 포함됩니다. 하나의 공증 세션 전에 모든 초안을 준비하면 전체 일정이 크게 단축됩니다.",
     "pain4Title": "준비가 부족한 고객은 예약 시간을 연장시킵니다",
-    "pain4Desc": "공증인과 비자 담당자에게 명확한 초안을 가져온 고객은 처리 속도가 더 빠릅니다. 번역 초안은 고객이 서명하는 내용을 이해하는 데도 도움이 됩니다."
+    "pain4Desc": "공증인과 비자 담당자에게 명확한 초안을 가져온 고객은 처리 속도가 더 빠릅니다. 번역 초안은 고객이 서명하는 내용을 이해하는 데도 도움이 됩니다.",
+    "painSectionLabel": "HOW IT WORKS",
+    "painBridgeLabel": "WPO helps organize the process",
+    "docsSectionLabel": "DOCUMENTS FOR NOTARY PROCESS"
   },
   "kazakhstanUniversity": {
     "heroBadge": "카자흐스탄 · 대학 지원",
@@ -770,5 +858,53 @@
     "phoneLabel": "Phone",
     "emailLabel": "Email",
     "websiteLabel": "Website"
+  },
+  "kazakhstanCertified": {
+    "heroBadge": "Kazakhstan · Official Translation",
+    "heroHeadline": "Certified Translation",
+    "heroAccentLine": "of Documents Online",
+    "heroSubheadline": "Order an official translation with translator review, translator signature, and Provider stamp. For banks, universities, migration, visa, and official purposes.",
+    "heroCtaLabel": "Order Official Translation",
+    "heroTrustLine": "Acceptance of the translation by third parties is not guaranteed and depends on the requirements of the receiving organization.",
+    "painSectionLabel": "WHAT'S INCLUDED",
+    "painBridgeLabel": "WPO helps",
+    "painHeadline": "Official Translation — a Separate Service Level",
+    "pain1Title": "Translator Review",
+    "pain1Desc": "The translation is reviewed by a human translator. OCR errors, terminology, and formatting are corrected as needed.",
+    "pain2Title": "Translator Signature",
+    "pain2Desc": "The final document may include a translator signature and translator block.",
+    "pain3Title": "Provider Stamp",
+    "pain3Desc": "For the official service level, a Provider stamp may be added to the document.",
+    "pain4Title": "No Acceptance Guarantee",
+    "pain4Desc": "Banks, universities, consulates, and other organizations may have their own requirements. These should be verified in advance.",
+    "finalCtaHeadline": "Need an Official Translation?",
+    "finalCtaSub": "Upload a document, choose the official service level, and review the final price before payment.",
+    "finalCtaCta": "Start Translation",
+    "faq": [
+      {
+        "q": "What does certified translation mean at WPO?",
+        "a": "At WPO, certified translation means the official service level: the translation is reviewed by a human translator and may include a translator signature, Provider stamp, date, and translator block. It does not automatically mean notarial certification or guaranteed acceptance by third parties."
+      },
+      {
+        "q": "How does certified translation differ from electronic translation?",
+        "a": "Electronic translation is performed automatically using OCR and AI, without a translator signature, Provider stamp, or notarial certification. Certified / official translation undergoes translator review and may include a translator signature and Provider stamp."
+      },
+      {
+        "q": "Is this a notarized translation?",
+        "a": "No. WPO certified / official translation is not notarial certification by itself. Notarization is arranged separately through a partner process, if this service is available for the selected document, language pair, and jurisdiction."
+      },
+      {
+        "q": "Do you guarantee that the translation will be accepted by a bank, university, or consulate?",
+        "a": "No. Acceptance of a translation depends on the requirements of the specific bank, university, consulate, immigration authority, notary, or other organization. Before using the translation for official purposes, the customer must independently verify the requirements of the receiving party."
+      },
+      {
+        "q": "When is an official translation needed?",
+        "a": "An official translation is usually needed when the receiving party requires a translation with translator review, translator signature, Provider stamp, or additional confirmation. If a standard electronic translation is insufficient, choose the official service level."
+      },
+      {
+        "q": "Can notarial certification be added later?",
+        "a": "In some cases yes, if a partner process is available for the selected document, language, and jurisdiction. Availability, timeline, and cost of notarization are confirmed separately."
+      }
+    ]
   }
 }

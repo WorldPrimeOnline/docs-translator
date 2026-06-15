@@ -16,8 +16,8 @@ Always read `PROJECT_CONTEXT.md` at the start of every session. It is the author
 |---|---|---|
 | `main` | Production | Vercel Production + Railway production worker |
 | `staging` | Staging | Vercel Preview + Railway staging worker |
-| `feature/*` | Local dev | — |
-| `hotfix/*` | Local dev | — |
+
+`feature/*` and `hotfix/*` branches are **not used** unless the user explicitly requests one.
 
 ### Mandatory pre-task check
 
@@ -29,6 +29,21 @@ git status --short
 git log -1 --oneline
 ```
 
+### Normal workflow — commit directly to `staging`
+
+All regular changes go directly to `staging`:
+
+```bash
+git checkout staging
+git pull origin staging
+# make changes
+npm run typecheck && npm run lint && npm test && npm run build
+git commit -m "feat: ..."
+git push origin staging
+```
+
+Do **not** create `feature/*` or `hotfix/*` branches unless the user explicitly asks.
+
 ### `main` is off-limits
 
 - Never work directly on `main`.
@@ -39,22 +54,9 @@ git log -1 --oneline
   > `Разрешаю продвигать staging в production`
   or gives an equally explicit production approval in any language.
 
-### Normal feature workflow
-
-```bash
-git checkout staging
-git pull origin staging
-git checkout -b feature/<short-task-name>
-# make changes
-npm run typecheck && npm run lint && npm test && npm run build
-git commit -m "feat: ..."
-git push origin feature/<short-task-name>
-# open PR → staging (not main)
-```
-
 ### Staging rules
 
-- Code merged into `staging` deploys to the Vercel Preview staging site and the Railway staging worker.
+- Code pushed to `staging` deploys to the Vercel Preview staging site and the Railway staging worker.
 - Staging must point to the **staging** Supabase project and **staging** R2 bucket. Never point staging at production resources.
 - A successful staging build does not constitute approval. Wait for explicit manual acceptance.
 
@@ -70,9 +72,9 @@ Only after the user says `Разрешаю продвигать staging в produ
 6. Rollback plan
 7. Test results
 
-Prefer a PR from `staging` → `main`. Do not include unrelated or untested changes.
+Merge `staging` → `main` directly (fast-forward or merge commit). Do not include unrelated or untested changes.
 
-### Hotfix workflow
+### Hotfix workflow (only when explicitly requested)
 
 ```bash
 git checkout main
@@ -117,7 +119,7 @@ After every task, report:
 - Where the change should be merged next
 - Any required manual action in Vercel, Railway, Supabase, R2, or payment systems
 
-See `docs/DEPLOYMENT_WORKFLOW.md` for the canonical workflow reference.
+See `docs/DEPLOYMENT_WORKFLOW.md` for the canonical workflow reference. Additional staging/migration references in `docs/`: `STAGING_SETUP.md`, `STAGING_ENV_VARS.md`, `STAGING_QA_CHECKLIST.md`, `MIGRATION_AUDIT.md`.
 
 ---
 
@@ -269,17 +271,39 @@ Subscription plans (KZT pricing): `SUBSCRIPTION_PLANS` in `src/lib/subscriptions
 
 Subscription state: `subscriptions` table. The upload route is the only path that currently creates jobs — if the user has no active subscription it returns HTTP 402.
 
+### Integration orchestrator (Jira + Google Drive + Telegram)
+
+**Architecture principle:** WPO creates ONE Jira issue per order and then hands off — Jira Automation handles all internal transitions (assignee, security level, status, notifications). WPO never calls Jira API for transitions. Jira Automation sends callbacks to `/api/webhooks/jira` when statuses change; that route only updates Supabase and fires Telegram/email notifications.
+
+**Web app** (`src/lib/integrations/workflow.ts`) — `initializeOrderIntegrations(job)`:
+- Creates Google Drive order folder (if Drive is configured)
+- Creates one Jira issue via `src/lib/jira/client.ts` — issue type is hardcoded as `Заказ`
+- Sends Telegram operator notification
+- All steps are optional/no-op if their env vars are absent
+
+**Worker** (`worker/src/lib/integrations.ts`) — two phases:
+- `initializeOrderIntegrations()` — runs BEFORE OCR: creates Drive folder + Jira issue
+- `triggerTranslatorReview()` — runs AFTER AI draft: uploads draft PDF to Drive `02_AI_DRAFT` subfolder
+
+**Jira credentials** (all optional — integration silently skips if absent): `JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN`, `JIRA_WEBHOOK_SECRET`. Project configuration (project key, issue type name, field IDs) lives in `worker/src/lib/jira/` (not env vars).
+
+**Google Drive** (all optional): `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REFRESH_TOKEN`, `GOOGLE_DRIVE_ROOT_FOLDER_ID`. Logic in `src/lib/google-drive/client.ts` (web) and `worker/src/lib/google-drive.ts` (worker). Drive subfolders per order: `01_ORIGINAL`, `02_AI_DRAFT`, `03_TRANSLATED`, `04_NOTARY`.
+
+**Telegram** (all optional): `TELEGRAM_BOT_TOKEN`, `TELEGRAM_OPERATOR_CHAT_ID`, `TELEGRAM_TRANSLATOR_CHAT_ID`, `TELEGRAM_NOTARY_CHAT_ID`. Logic in `src/lib/telegram/client.ts` (web) and within `worker/src/lib/integrations.ts` (worker). Functions: `notifyOperatorNewOrder`, `notifyTranslatorNewAssignment`, `notifyNotaryNewAssignment`, `notifyOperatorTranslatorDone`, `notifyOperatorNotaryDone`, `notifyOperatorError`.
+
+**Notary cities** (`src/lib/notary/cities.ts`) — static registry of KZ cities where notarized-translation pickup/delivery is offered. Referenced by the notarized-translation landing page and job creation flow.
+
 ### Database tables (Supabase)
 
 | Table | Key columns |
 |---|---|
 | `users` | auth users; `terms_accepted_at` — set by `POST /api/users/accept-terms` (dashboard shows acceptance gate until populated) |
 | `documents` | `file_key`, `source_language`, `target_language`, `document_type`, `output_format`, `status`, `word_count`, `price_usd` |
-| `jobs` | `status`, `progress_percent`, `priority`, `payment_source`, `country`, `notarized`, `bureau_stamp`, `workflow_status` |
+| `jobs` | `status`, `progress_percent`, `priority`, `payment_source`, `country`, `notarized`, `bureau_stamp`, `workflow_status`, `service_level`, `jira_issue_key`, `last_synced_at` |
 | `ocr_results` | `job_id`, `markdown`, `page_count`, `provider` |
 | `translations` | `job_id`, `translated_markdown`, `translated_pdf_key`, `translated_docx_key`, `translated_preview_pdf_key`, `qa_report` |
-| `ton_payments` | legacy pay-per-doc TON transactions (payment gateway not active) |
 | `subscriptions` | `plan`, `status`, `documents_used`, `documents_limit`, `expires_at` |
+| `job_audit_log` | `job_id`, `actor`, `source`, `action`, `previous_status`, `new_status`, `jira_issue_key`, `correlation_id`, `metadata` — append-only log of all status transitions and integration events |
 
 Generated types at `src/types/supabase.ts`, re-exported from `src/types/index.ts`. Use `Tables<'tablename'>`, `TablesInsert<'tablename'>`, `TablesUpdate<'tablename'>` for typed DB access — do not inline raw object types.
 
@@ -296,6 +320,9 @@ Generated types at `src/types/supabase.ts`, re-exported from `src/types/index.ts
 | POST | `/api/subscriptions/use-document` | Check quota and decrement by 1 |
 | GET | `/api/cron/cleanup` | Daily 02:00 UTC — deletes files older than 30 days (secured via `CRON_SECRET`) |
 | POST | `/api/users/accept-terms` | Records `terms_accepted_at` timestamp in users table; gate shown in dashboard before first upload |
+| POST | `/api/webhooks/jira` | Inbound Jira Automation callbacks — updates Supabase job status and sends Telegram/email notifications; does NOT create Jira issues or call Jira API |
+| POST | `/api/webhooks/stripe` | Placeholder — not yet active |
+| POST | `/api/webhooks/polar` | Placeholder — not yet active |
 | GET | `/api/debug/env` | Dev-only env sanity check — not part of user-facing flows |
 
 ### Email notifications
@@ -323,7 +350,14 @@ Web app: `src/lib/env.ts` (Zod, lazy-validated proxy). Validated vars: `NEXT_PUB
 
 Worker: `worker/src/lib/env.ts` (validates on startup, exits if invalid). Additional worker-only vars: `RESEND_API_KEY` (optional), `SITE_URL` (default: `https://wpotranslations.org`), `POLL_INTERVAL_MS` (default: 10000), `WORKER_CONCURRENCY` (default: 1).
 
-The following are **not** in the Zod schemas and are read via `process.env` directly in their respective handlers: `NEXT_PUBLIC_SITE_URL`, `CRON_SECRET`, `TONCONSOLE_WEBHOOK_SECRET`, `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN`.
+Worker feature flags (all optional, default to safe/live behavior):
+- `APP_ENV` — `production | staging | development` (default: `production`)
+- `EMAILS_ENABLED` — set to `false` to suppress all Resend calls (useful on staging)
+- `EMAIL_REDIRECT_ALL_TO` — override recipient for every outgoing email (staging safety valve)
+- `PAYMENTS_MODE` — `live | test` (default: `live`)
+- `OFFICIAL_WORKFLOW_ENABLED` — set to `false` to disable the notarized/certified workflow path entirely
+
+The following are **not** in the Zod schemas and are read via `process.env` directly in their respective handlers: `NEXT_PUBLIC_SITE_URL`, `CRON_SECRET`, `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN`.
 
 `CRON_SECRET` must be set in the Vercel dashboard — matched against `Authorization: Bearer <secret>` sent by the Vercel cron scheduler. Do not add new env vars beyond those listed in `PROJECT_CONTEXT.md § 15`.
 

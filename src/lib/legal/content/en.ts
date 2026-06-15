@@ -297,6 +297,7 @@ export const legalDocs: LegalDocs = {
           '• Mistral AI — optical character recognition (OCR) for extracting text from PDF files.',
           '• Anthropic — AI translation processing.',
           '• Resend — email notification delivery.',
+          '• Atlassian (Jira Cloud) — operational management of official and notarized translation orders.',
           '• Sentry — error monitoring (anonymized technical data only).',
           '• Where the Official Translation or Notarization service level is selected, relevant document data may be shared with assigned translators, notaries, and other partners involved in providing the respective service, solely to the extent necessary to fulfil the order.',
           'All sub-processors are bound by data processing agreements and are prohibited from using Customer data for purposes other than providing the contracted service.',
@@ -406,7 +407,7 @@ export const legalDocs: LegalDocs = {
         id: 'transfer',
         heading: '4. Transfer to Processors and Partners',
         body: [
-          'The Provider may transfer personal data to third-party processors (Supabase, Cloudflare R2, Mistral AI, Anthropic, Resend) for the sole purpose of providing the Service. Where the Official Translation or Notarization service level is selected, relevant document data may be shared with the assigned translator or notary partner.',
+          'The Provider may transfer personal data to third-party processors (Supabase, Cloudflare R2, Mistral AI, Anthropic, Resend, Atlassian) for the sole purpose of providing the Service. Where the Official Translation or Notarization service level is selected, relevant document data may be shared with the assigned translator or notary partner.',
           'All processors are prohibited from using the data for any purpose other than providing the contracted service.',
         ],
       },

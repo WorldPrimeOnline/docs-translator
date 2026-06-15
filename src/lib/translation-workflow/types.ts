@@ -5,10 +5,12 @@ export type OutputMode =
   | 'official_translation'
   | 'notarization_package';
 
-// OutputPlan: computed from job flags, drives artifact generation
+// OutputPlan: computed from service_level, drives artifact generation
 export interface OutputPlan {
   mode: OutputMode;
   requiresHumanReview: boolean;
+  /** True only for notarization_through_partners — job proceeds to notary after translator review */
+  requiresNotaryReview: boolean;
   generateDocx: boolean;
   generatePreviewPdf: boolean;
   generateFinalPdf: boolean;
