@@ -462,6 +462,7 @@ export interface AstDocxOptions {
 
 export async function renderDocxFromAst(
   ast: TranslationDocumentAst,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _opts: AstDocxOptions = {},
 ): Promise<Buffer> {
   const lex = ast.renderLexicon;

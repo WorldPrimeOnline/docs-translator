@@ -37,3 +37,7 @@ export { getScriptRenderProfile, getCssFont } from './script-render-profile';
 export type { ScriptRenderProfile } from './script-render-profile';
 export { renderDocxFromAst } from './ast-to-docx';
 export type { AstDocxOptions } from './ast-to-docx';
+export { classifyBracketMarker, deduplicateVisualElements } from './visual-classifier';
+export type { DetectedVisualElement, VisualPosition, BoundingBox } from './visual-classifier';
+export { classifyVerificationItem } from './verification-classifier';
+export type { VerificationItemType } from './verification-classifier';

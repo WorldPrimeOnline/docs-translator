@@ -4,6 +4,17 @@
  */
 import type { OutputMode } from './output-plan';
 
+/**
+ * Advisory warning codes that may be added to TranslationQaReport.warnings.
+ * These are informational only — qa.ok === false is NEVER a blocker for translator handoff.
+ * The processor must always pass the document to the next stage regardless of QA result.
+ */
+export const QA_ADVISORY_CODES = {
+  SIGNATURE_COUNT_CHANGED: 'SIGNATURE_COUNT_CHANGED',
+  TABLE_ROW_COUNT: 'TABLE_ROW_COUNT',
+  PROTECTED_VALUE_CHANGED: 'PROTECTED_VALUE_CHANGED',
+} as const;
+
 export interface TranslationQaReport {
   ok: boolean;
   errors: string[];

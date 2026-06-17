@@ -47,6 +47,7 @@ function kvTableClass(profile: RenderingProfile): string {
   return profile === 'identity_document' ? 'kv-table kv-compact' : 'kv-table';
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function renderBlock(block: TranslationBlock, lex: DocumentRenderLexicon, profile: RenderingProfile, _isRtl: boolean): string {
   switch (block.type) {
     case 'heading': {
@@ -183,6 +184,7 @@ export interface AstRenderOptions {
   serviceLevel?: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function renderHtmlFromAst(ast: TranslationDocumentAst, _opts: AstRenderOptions = {}): string {
   const lex = ast.renderLexicon;
   const dir = ast.targetLanguage.direction;
