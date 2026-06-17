@@ -236,7 +236,11 @@
       "fr": "Frantsuz",
       "es": "Ispan",
       "ar": "Arab",
-      "th": "Tailand tili"
+      "th": "Tailand tili",
+      "kk": "Qozoq tili",
+      "uz": "O'zbek tili",
+      "it": "Italyan tili",
+      "tr": "Turk tili"
     },
     "docTypes": {
       "passport_id": "Pasport / ID karta",
