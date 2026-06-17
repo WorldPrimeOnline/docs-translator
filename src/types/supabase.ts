@@ -254,6 +254,8 @@ export type Database = {
           translated_preview_pdf_key: string | null;
           /** QA report stored as JSONB. Added by add_official_workflow_fields.sql migration. */
           qa_report: Json | null;
+          /** Structured translation AST (TranslationDocumentAst). Added by 0014_add_translated_ast.sql. Null for legacy jobs. */
+          translated_ast: Json | null;
           created_at: string;
         };
         Insert: {
@@ -264,6 +266,7 @@ export type Database = {
           translated_docx_key?: string | null;
           translated_preview_pdf_key?: string | null;
           qa_report?: Json | null;
+          translated_ast?: Json | null;
           created_at?: string;
         };
         Update: {
@@ -274,6 +277,7 @@ export type Database = {
           translated_docx_key?: string | null;
           translated_preview_pdf_key?: string | null;
           qa_report?: Json | null;
+          translated_ast?: Json | null;
           created_at?: string;
         };
         Relationships: [

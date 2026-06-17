@@ -10,6 +10,8 @@ import { sendTranslationReady, sendDocumentReceivedForReview } from './lib/email
 import { computeOutputPlan, type ServiceLevel } from './lib/output-plan';
 import { mergeVisualElements, extractVisualElementsFromTranslated } from './lib/visual-elements';
 import { runQaChecks } from './lib/qa';
+import { assessOcrQuality } from './lib/ast/script-quality';
+import { translateToAst } from './lib/ast/translator';
 import { env } from './lib/env';
 import { initializeOrderIntegrations, triggerTranslatorReview } from './lib/integrations';
 
@@ -117,23 +119,14 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
     const { markdown, pageCount, visualElements: ocrVisualElements } = await extractTextFromPdf(pdfBuffer);
     console.log(`${tag} OCR done — ${pageCount} pages, ${markdown.length} chars, ${ocrVisualElements.length} visual elements`);
 
-    // OCR quality check — abort early rather than waste translation credits
-    const ocrWordCount = markdown.trim().split(/\s+/).filter(Boolean).length;
-    const ocrCharCount = markdown.length;
+    // OCR quality check — script-aware, handles CJK/Thai/Arabic/Hebrew/Devanagari
+    const ocrQuality = assessOcrQuality(markdown, doc.source_language !== 'auto' ? doc.source_language : undefined);
+    console.log(`${tag} OCR quality: ${ocrQuality.pass ? 'pass' : 'fail'} — ${ocrQuality.wordCountEstimate} units, ${ocrQuality.charCount} chars, ${ocrQuality.scriptProfile.name} script, junk=${(ocrQuality.junkRatio * 100).toFixed(1)}%`);
 
-    if (ocrWordCount < 10 || ocrCharCount < 50) {
-      console.error(`${tag} OCR quality too low — ${ocrWordCount} words, ${ocrCharCount} chars`);
+    if (!ocrQuality.pass) {
+      console.error(`${tag} OCR quality too low — ${ocrQuality.failReason}`);
       await updateJob(jobId, 'failed', 0,
         'Document quality too low. Please upload a clearer scan with better lighting and resolution.');
-      await supabase.from('documents').update({ status: 'failed' }).eq('id', documentId);
-      return;
-    }
-
-    const nonLatinRatio = (markdown.match(/[^\x00-\x7FЀ-ӿ一-鿿]/g) ?? []).length / ocrCharCount;
-    if (nonLatinRatio > 0.3) {
-      console.error(`${tag} OCR junk ratio too high — ${(nonLatinRatio * 100).toFixed(1)}%`);
-      await updateJob(jobId, 'failed', 0,
-        'Document appears to be a low-quality scan. Please upload a higher resolution image.');
       await supabase.from('documents').update({ status: 'failed' }).eq('id', documentId);
       return;
     }
@@ -173,6 +166,23 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
       docType,
     );
     console.log(`${tag} translation done — ${translatedMarkdown.length} chars, format: ${outputFormat}`);
+
+    // Generate structured AST in background (non-blocking — failure does not abort the job)
+    let translatedAst: unknown = null;
+    try {
+      const astResult = await translateToAst({
+        ocrMarkdown: markdown,
+        sourceLanguage: resolvedSourceLang ?? 'auto',
+        targetLanguage: doc.target_language,
+        documentType: docType,
+        pageCount,
+      });
+      translatedAst = astResult.ast;
+      if (astResult.lexiconWarning) console.warn(`${tag} AST lexicon warning: ${astResult.lexiconWarning}`);
+      console.log(`${tag} AST generated — ${astResult.ast.blocks.length} blocks, profile: ${astResult.ast.renderingProfile}`);
+    } catch (astErr) {
+      console.error(`${tag} AST generation failed (non-fatal):`, astErr instanceof Error ? astErr.message : String(astErr));
+    }
 
     // ── 4. Render output in requested format ─────────────────────────────────
     await updateJob(jobId, 'pdf_rendering', 70);
@@ -247,6 +257,7 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
             translated_docx_key: draftDocxKey,
             translated_preview_pdf_key: previewPdfKey ?? null,
             qa_report: savedQaReport,
+            ...(translatedAst ? { translated_ast: translatedAst } : {}),
           })
           .eq('id', existing.id);
       } else {
@@ -257,6 +268,7 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
           translated_docx_key: draftDocxKey,
           translated_preview_pdf_key: previewPdfKey ?? null,
           qa_report: savedQaReport,
+          ...(translatedAst ? { translated_ast: translatedAst } : {}),
         });
       }
 
@@ -365,13 +377,17 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
     if (existing) {
       await supabase
         .from('translations')
-        .update({ translated_pdf_key: translatedKey })
+        .update({
+          translated_pdf_key: translatedKey,
+          ...(translatedAst ? { translated_ast: translatedAst } : {}),
+        })
         .eq('id', existing.id);
     } else {
       await supabase.from('translations').insert({
         job_id: jobId,
         translated_markdown: translatedMarkdown,
         translated_pdf_key: translatedKey,
+        ...(translatedAst ? { translated_ast: translatedAst } : {}),
       });
     }
 
