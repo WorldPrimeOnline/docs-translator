@@ -236,7 +236,11 @@
       "fr": "Fransuz",
       "es": "Ispan",
       "ar": "Arap",
-      "th": "Taý dili"
+      "th": "Taý dili",
+      "kk": "Gazak dili",
+      "uz": "Özbek dili",
+      "it": "Italýan dili",
+      "tr": "Türk dili"
     },
     "docTypes": {
       "passport_id": "Pasport / ID kart",

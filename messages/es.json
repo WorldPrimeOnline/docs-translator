@@ -236,7 +236,11 @@
       "fr": "Francés",
       "es": "Español",
       "ar": "Árabe",
-      "th": "Tailandés"
+      "th": "Tailandés",
+      "kk": "Kazajo",
+      "uz": "Uzbeko",
+      "it": "Italiano",
+      "tr": "Turco"
     },
     "docTypes": {
       "passport_id": "Pasaporte / DNI",

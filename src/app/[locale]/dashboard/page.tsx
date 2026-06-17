@@ -418,6 +418,10 @@ export default function DashboardPage() {
     { value: 'fr',   label: t('langs.fr')   },
     { value: 'es',   label: t('langs.es')   },
     { value: 'ar',   label: t('langs.ar')   },
+    { value: 'kk',   label: t('langs.kk')   },
+    { value: 'uz',   label: t('langs.uz')   },
+    { value: 'it',   label: t('langs.it')   },
+    { value: 'tr',   label: t('langs.tr')   },
   ];
 
   const DOCUMENT_TYPES = [

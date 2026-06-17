@@ -263,7 +263,11 @@
       "fr": "French",
       "es": "Spanish",
       "ar": "Arabic",
-      "th": "Thai"
+      "th": "Thai",
+      "kk": "Kazakh",
+      "uz": "Uzbek",
+      "it": "Italian",
+      "tr": "Turkish"
     },
     "docTypes": {
       "passport_id": "Passport / ID Card",
