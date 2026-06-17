@@ -1,7 +1,9 @@
 import { supabase, type JobRow, type DocumentRow } from './lib/supabase';
 import { downloadFile, uploadFile, getPresignedUrl } from './lib/r2';
 import { extractTextFromPdf } from './lib/ocr';
-import { translateDocument } from './lib/translator';
+import { translateDocument, retranslateWithCorrection } from './lib/translator';
+import { extractAndProtectValues, restoreProtectedValues } from './lib/protected-values';
+import { extractMarkdownTableShapes, compareMarkdownTableShapes, buildTableCorrectionPrompt } from './lib/table-shape';
 import { detectSourceLanguage } from './lib/detect-language';
 import { renderToHtml } from './lib/renderer';
 import { generatePdfFromHtml } from './lib/pdf';
@@ -159,12 +161,67 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
 
     const { docType, outputFormat } = parseDocumentType(doc.document_type);
 
-    const translatedMarkdown = await translateDocument(
-      markdown,
-      resolvedSourceLang,
-      doc.target_language,
-      docType,
-    );
+    let translatedMarkdown: string;
+
+    if (plan.mode === 'translator_review_draft' || plan.mode === 'notarization_package') {
+      // Official path: protect values → translate → table shape check → restore
+      const { protectedMarkdown, values: pvList } = extractAndProtectValues(markdown);
+      console.log(`${tag} [legacy-official] protected values: ${pvList.length}`);
+
+      const sourceShapes = extractMarkdownTableShapes(markdown);
+      console.log(`${tag} [legacy-official] source tables: ${sourceShapes.length}`);
+
+      let firstTranslation = await translateDocument(
+        protectedMarkdown,
+        resolvedSourceLang,
+        doc.target_language,
+        docType,
+      );
+
+      const translatedShapes = extractMarkdownTableShapes(firstTranslation);
+      const shapeMismatches = compareMarkdownTableShapes(sourceShapes, translatedShapes);
+      let usedTableRetry = false;
+
+      if (shapeMismatches.length > 0) {
+        console.warn(`${tag} [legacy-official] table structure mismatch — retrying (mismatched tables: ${shapeMismatches.length})`);
+        usedTableRetry = true;
+        try {
+          const correctionPrompt = buildTableCorrectionPrompt(shapeMismatches);
+          firstTranslation = await retranslateWithCorrection(
+            protectedMarkdown,
+            resolvedSourceLang,
+            doc.target_language,
+            docType,
+            correctionPrompt,
+          );
+        } catch (retryErr) {
+          const retryMsg = retryErr instanceof Error ? retryErr.message : String(retryErr);
+          console.warn(`${tag} [legacy-official] table retry failed (advisory, continuing): ${retryMsg}`);
+          usedTableRetry = false;
+        }
+      }
+      console.log(`${tag} [legacy-official] table structure retry: ${usedTableRetry}`);
+
+      const { restoredMarkdown, missingTokens, remainingTokens } = restoreProtectedValues(firstTranslation, pvList);
+      console.log(`${tag} [legacy-official] missing placeholders: ${missingTokens.length}`);
+      if (missingTokens.length > 0) {
+        console.warn(`${tag} [legacy-official] missing tokens (advisory): count=${missingTokens.length}`);
+      }
+      if (remainingTokens.length > 0) {
+        console.warn(`${tag} [legacy-official] unexpected remaining tokens: count=${remainingTokens.length}`);
+      }
+
+      translatedMarkdown = restoredMarkdown;
+    } else {
+      // Electronic path: unchanged
+      translatedMarkdown = await translateDocument(
+        markdown,
+        resolvedSourceLang,
+        doc.target_language,
+        docType,
+      );
+    }
+
     console.log(`${tag} translation done — ${translatedMarkdown.length} chars, format: ${outputFormat}`);
 
     // Generate structured AST in background (non-blocking — failure does not abort the job)

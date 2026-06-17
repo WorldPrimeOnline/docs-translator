@@ -93,18 +93,20 @@ function buildDocxTable(parsed: ParsedTable): Table {
     tableHeader: true,
   });
 
-  const dataRows = parsed.rows.map(
-    (row) =>
-      new TableRow({
-        children: row.map(
-          (cell) =>
-            new TableCell({
-              children: [new Paragraph({ children: parseInlineMarkdown(cell) })],
-              width: { size: colWidth, type: WidthType.DXA },
-            }),
-        ),
-      }),
-  );
+  const dataRows = parsed.rows.map((row) => {
+    const cells = [...row];
+    while (cells.length < colCount) cells.push('');
+    const normalized = cells.slice(0, colCount);
+    return new TableRow({
+      children: normalized.map(
+        (cell) =>
+          new TableCell({
+            children: [new Paragraph({ children: parseInlineMarkdown(cell) })],
+            width: { size: colWidth, type: WidthType.DXA },
+          }),
+      ),
+    });
+  });
 
   return new Table({
     rows: [headerRow, ...dataRows],
@@ -155,6 +157,12 @@ function parseMarkdownToDocx(markdown: string): DocxChild[] {
       }
     }
 
+    if (/^-{3,}$/.test(line.trim()) || /^\*{3,}$/.test(line.trim()) || /^_{3,}$/.test(line.trim())) {
+      children.push(new Paragraph({ text: '', spacing: { before: 80, after: 80 } }));
+      i++;
+      continue;
+    }
+
     if (/^#{1}\s+/.test(line)) {
       children.push(new Paragraph({ text: line.replace(/^#+\s+/, ''), heading: HeadingLevel.HEADING_1, spacing: { before: 240, after: 120 } }));
     } else if (/^#{2}\s+/.test(line)) {
@@ -188,18 +196,10 @@ export async function renderToDocx(
     meta.targetLang,
   );
 
-  const header = new Paragraph({
-    children: [
-      new TextRun({ text: `${meta.sourceLang.toUpperCase()} → ${meta.targetLang.toUpperCase()}`, bold: true, size: 24 }),
-      new TextRun({ text: `  |  ${meta.documentType}  |  ${meta.translatedAt}`, size: 18, color: '666666' }),
-    ],
-    spacing: { after: 200 },
-  });
-
   const doc = new Document({
     sections: [{
       properties: { page: { margin: { top: 1440, bottom: 1440, left: 1440, right: 1440 } } },
-      children: [header, ...parseMarkdownToDocx(finalMarkdown)],
+      children: [...parseMarkdownToDocx(finalMarkdown)],
     }],
   });
 

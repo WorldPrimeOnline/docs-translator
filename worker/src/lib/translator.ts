@@ -86,3 +86,31 @@ export async function translateDocument(
   );
   return results.join('\n\n');
 }
+
+export async function retranslateWithCorrection(
+  markdown: string,
+  sourceLang: string,
+  targetLang: string,
+  documentType: string,
+  correctionInstructions: string,
+): Promise<string> {
+  const docType = normalizeDocumentType(documentType);
+  const { systemPrompt, userPrompt } = buildTranslationPrompt({
+    sourceLanguage: sourceLang,
+    targetLanguage: targetLang,
+    documentType: docType,
+  });
+
+  const correctedSystemPrompt = `${systemPrompt}\n\n## CORRECTION REQUIRED\n${correctionInstructions}`;
+
+  const response = await client.messages.create({
+    model: MODEL,
+    max_tokens: 8192,
+    system: correctedSystemPrompt,
+    messages: [{ role: 'user', content: `${userPrompt}\n\n${markdown}` }],
+  });
+
+  const block = response.content[0];
+  if (block?.type !== 'text') throw new Error('Unexpected response type from Claude');
+  return block.text;
+}

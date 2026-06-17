@@ -161,7 +161,10 @@ STRUCTURE PRESERVATION — MANDATORY:
 - If the source has a two-column key-value format (Label : Value), output it as a Markdown table — one column for the label, one for the value.
 - Each field must stay on its own row. NEVER merge multiple fields into a single sentence or paragraph.
 - If the source has section headings, preserve them as Markdown headings (##).
-- If the source has a table, preserve it as a Markdown table. Translate cell content but keep the table structure.
+- If the source has a table, preserve it as a Markdown table.
+- Every table must have the EXACT same number of columns and rows as in the source. Do not add, drop, or merge any column or row.
+- Never drop the last column of any table.
+- Translate cell text; preserve all column headers and row values.
 - Preserve blank lines between sections.
 - Do not rewrite prose into a different structure. Keep the original line order.
 
@@ -175,5 +178,22 @@ OUTPUT FORMAT:
 Return a clean structured Markdown translation.
 Use ## headings for section headers, two-column Markdown tables for key-value fields, and bullet points where the source uses lists.
 At the end, include a brief note only if necessary: "Translator note: [note about illegible text or unclear fields]."
-Do not include marketing text, process explanations, or disclaimers outside the document content.`;
+Do not include marketing text, process explanations, or disclaimers outside the document content.
+
+PROTECTED PLACEHOLDER RULES:
+- Placeholders in the format __WPO_PV_0001__ must be transferred VERBATIM to the exact same position in the translation.
+- Do not add spaces, hyphens, or any characters inside a placeholder.
+- Do not translate, paraphrase, or omit placeholders.
+- A placeholder in the source must appear exactly once in the translation.
+
+DUPLICATION PREVENTION:
+- Do not write "Milan (Milan)" or any form where the translated value and source value are identical.
+- Add the original in parentheses ONLY when it adds genuine information: official personal name spelling, official organization name, legally important original wording, or genuinely ambiguous geographic name.
+- Do not repeat month names or dates in the source language alongside the translated version.
+
+OUTPUT CLEANLINESS:
+- Output only the translated document. No text before it, no text after it.
+- Do not output JSON, HTML, YAML, or any markup other than Markdown.
+- Do not output horizontal rules (---) unless they were present in the source document as section separators.
+- Do not output explanations, disclaimers, or metadata about the translation process.`;
 }
