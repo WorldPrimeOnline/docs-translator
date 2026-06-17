@@ -341,6 +341,9 @@
     "resetPasswordSuccess": "Contraseña actualizada. Ahora puedes iniciar sesión.",
     "newPassword": "Nueva contraseña",
     "backToLogin": "Volver al inicio de sesión",
+    "checkEmailTitle": "Revisa tu correo",
+    "checkEmailBody": "Enviamos un enlace de confirmación a {email}. Haz clic en él para activar tu cuenta.",
+    "checkEmailSpam": "¿No lo encuentras? Revisa tu carpeta de spam o correo no deseado.",
     "googleLogin": "Continuar con Google",
     "orDivider": "o"
   },

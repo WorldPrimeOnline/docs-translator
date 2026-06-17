@@ -341,6 +341,9 @@
     "resetPasswordSuccess": "비밀번호가 업데이트되었습니다. 이제 로그인할 수 있습니다.",
     "newPassword": "새 비밀번호",
     "backToLogin": "로그인으로 돌아가기",
+    "checkEmailTitle": "이메일을 확인하세요",
+    "checkEmailBody": "{email}로 확인 링크를 보냈습니다. 링크를 클릭하여 계정을 활성화하세요.",
+    "checkEmailSpam": "이메일이 보이지 않나요? 스팸 폴더를 확인해 보세요.",
     "googleLogin": "Google로 계속하기",
     "orDivider": "또는"
   },

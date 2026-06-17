@@ -341,6 +341,9 @@
     "resetPasswordSuccess": "Parol täzelendi. Indi ulgama girip bilersiňiz.",
     "newPassword": "Täze parol",
     "backToLogin": "Girişe gaýtmak",
+    "checkEmailTitle": "Poçtaňyzy barlaň",
+    "checkEmailBody": "{email} salgysyna tassyklama baglanyşygy iberildi. Hasabyňyzy işjeňleşdirmek üçin ony basyň.",
+    "checkEmailSpam": "Haty tapyp bilmedimi? Spam bukjasyny barlaň.",
     "googleLogin": "Google bilen dowam et",
     "orDivider": "ýa-da"
   },

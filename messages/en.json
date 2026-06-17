@@ -341,6 +341,9 @@
     "resetPasswordSuccess": "Password updated. You can now log in.",
     "newPassword": "New password",
     "backToLogin": "Back to login",
+    "checkEmailTitle": "Check your email",
+    "checkEmailBody": "We sent a confirmation link to {email}. Click it to activate your account.",
+    "checkEmailSpam": "Can't find it? Check your spam or junk folder.",
     "googleLogin": "Continue with Google",
     "orDivider": "or"
   },
