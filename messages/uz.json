@@ -341,6 +341,9 @@
     "resetPasswordSuccess": "Parol yangilandi. Endi tizimga kirishingiz mumkin.",
     "newPassword": "Yangi parol",
     "backToLogin": "Kirishga qaytish",
+    "checkEmailTitle": "Elektron pochtangizni tekshiring",
+    "checkEmailBody": "{email} manziliga tasdiqlash havolasi yuborildi. Hisobingizni faollashtirish uchun uni bosing.",
+    "checkEmailSpam": "Xat topolmadingizmi? Spam papkasini tekshiring.",
     "googleLogin": "Google orqali davom eting",
     "orDivider": "yoki"
   },

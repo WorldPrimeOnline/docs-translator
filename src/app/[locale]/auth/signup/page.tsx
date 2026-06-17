@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -28,9 +27,9 @@ const schema = z
 type FormValues = z.infer<typeof schema>;
 
 export default function SignupPage() {
-  const router = useRouter();
   const t = useTranslations('auth');
   const [isLoading, setIsLoading] = useState(false);
+  const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -41,9 +40,13 @@ export default function SignupPage() {
     setIsLoading(true);
     const supabase = createClient();
 
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin;
     const { error } = await supabase.auth.signUp({
       email: values.email,
       password: values.password,
+      options: {
+        emailRedirectTo: `${siteUrl}/auth/callback`,
+      },
     });
 
     if (error) {
@@ -52,9 +55,32 @@ export default function SignupPage() {
       return;
     }
 
-    toast.success('Check your email to confirm your account');
-    setTimeout(() => router.push('/auth/login'), 2000);
+    setSubmittedEmail(values.email);
   };
+
+  if (submittedEmail) {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-4">
+        <div className="w-full max-w-sm space-y-6 text-center">
+          <div className="space-y-2">
+            <h1 className="text-2xl font-semibold">{t('checkEmailTitle')}</h1>
+            <p className="text-muted-foreground text-sm">
+              {t('checkEmailBody', { email: submittedEmail })}
+            </p>
+          </div>
+          <p className="text-muted-foreground text-xs">
+            {t('checkEmailSpam')}
+          </p>
+          <Link
+            href="/auth/login"
+            className="text-foreground text-sm underline underline-offset-4 hover:opacity-80"
+          >
+            {t('backToLogin')}
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <AuthForm

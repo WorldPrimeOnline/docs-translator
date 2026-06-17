@@ -1,20 +1,33 @@
 // Telegram Bot API — server-side only.
-// Required env vars: TELEGRAM_BOT_TOKEN, TELEGRAM_OPERATOR_CHAT_ID
-// Optional: TELEGRAM_TRANSLATOR_CHAT_ID, TELEGRAM_NOTARY_CHAT_ID
+// Required env var: TELEGRAM_BOT_TOKEN
+// Legacy static chat-ID env vars kept for backward compatibility with existing notifications:
+//   TELEGRAM_OPERATOR_CHAT_ID, TELEGRAM_TRANSLATOR_CHAT_ID, TELEGRAM_NOTARY_CHAT_ID
+//
+// For dynamic per-assignee notifications use sendDirectMessage() / sendDirectMessageWithButtons().
 
-function getBot(): { token: string } | null {
-  const token = process.env.TELEGRAM_BOT_TOKEN;
-  return token ? { token } : null;
+export interface TelegramButton {
+  text: string;
+  url: string;
+}
+
+export interface SendMessageResult {
+  ok: boolean;
+  messageId: string | null;
+  error: string | null;
+}
+
+function getToken(): string | null {
+  return process.env.TELEGRAM_BOT_TOKEN ?? null;
 }
 
 async function sendMessage(chatId: string, text: string): Promise<void> {
-  const bot = getBot();
-  if (!bot) {
+  const token = getToken();
+  if (!token) {
     console.log('[telegram] TELEGRAM_BOT_TOKEN not set — skipping notification');
     return;
   }
 
-  const res = await fetch(`https://api.telegram.org/bot${bot.token}/sendMessage`, {
+  const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -30,6 +43,59 @@ async function sendMessage(chatId: string, text: string): Promise<void> {
     console.error(`[telegram] sendMessage to ${chatId} failed: ${res.status} ${t.slice(0, 200)}`);
   }
 }
+
+/**
+ * Send a message to a known chat ID with optional URL inline keyboard buttons.
+ * Returns a SendMessageResult so callers can log delivery outcome.
+ */
+export async function sendDirectMessageWithButtons(
+  chatId: string,
+  text: string,
+  buttons: TelegramButton[],
+): Promise<SendMessageResult> {
+  const token = getToken();
+  if (!token) {
+    return { ok: false, messageId: null, error: 'TELEGRAM_BOT_TOKEN not set' };
+  }
+
+  const body: Record<string, unknown> = {
+    chat_id: chatId,
+    text,
+    parse_mode: 'HTML',
+    disable_web_page_preview: true,
+  };
+
+  if (buttons.length > 0) {
+    body.reply_markup = {
+      inline_keyboard: buttons.map(btn => [{ text: btn.text, url: btn.url }]),
+    };
+  }
+
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      const t = await res.text().catch(() => '');
+      const errorMsg = `HTTP ${res.status}: ${t.slice(0, 200)}`;
+      console.error(`[telegram] sendDirectMessageWithButtons to ${chatId} failed: ${errorMsg}`);
+      return { ok: false, messageId: null, error: errorMsg };
+    }
+
+    const json = (await res.json()) as { ok: boolean; result?: { message_id: number } };
+    const messageId = json.result?.message_id?.toString() ?? null;
+    return { ok: true, messageId, error: null };
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    console.error(`[telegram] sendDirectMessageWithButtons to ${chatId} threw: ${errorMsg}`);
+    return { ok: false, messageId: null, error: errorMsg };
+  }
+}
+
+// ─── Legacy static-chat-ID notifications ──────────────────────────────────────
 
 export async function notifyOperatorNewOrder(params: {
   jobId: string;

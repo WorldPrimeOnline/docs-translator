@@ -3,7 +3,8 @@
 // Requires: supabase login --token <YOUR_PAT>
 //
 // Manually maintained to match the current target schema (see supabase/STAGING_INIT_ALL.sql).
-// Tables: users, documents, jobs, ocr_results, translations, payment_transactions, subscriptions
+// Tables: users, documents, jobs, ocr_results, translations, payment_transactions, subscriptions,
+//         job_audit_log, staff_profiles, notification_log
 // Excluded: payments (dead Stripe-era table), ton_payments (renamed), wallet_links (dropped)
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
@@ -364,6 +365,83 @@ export type Database = {
         };
         Relationships: [
           { foreignKeyName: 'subscriptions_user_id_fkey'; columns: ['user_id']; referencedRelation: 'users'; referencedColumns: ['id'] },
+        ];
+      };
+      staff_profiles: {
+        Row: {
+          id: string;
+          display_name: string;
+          jira_account_id: string;
+          telegram_chat_id: string;
+          telegram_username: string | null;
+          telegram_notifications_enabled: boolean;
+          role: 'operator' | 'translator' | 'notary_partner' | 'admin';
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          display_name: string;
+          jira_account_id: string;
+          telegram_chat_id: string;
+          telegram_username?: string | null;
+          telegram_notifications_enabled?: boolean;
+          role: 'operator' | 'translator' | 'notary_partner' | 'admin';
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          display_name?: string;
+          jira_account_id?: string;
+          telegram_chat_id?: string;
+          telegram_username?: string | null;
+          telegram_notifications_enabled?: boolean;
+          role?: 'operator' | 'translator' | 'notary_partner' | 'admin';
+          is_active?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      notification_log: {
+        Row: {
+          id: string;
+          event_id: string;
+          order_id: string;
+          jira_issue_key: string | null;
+          recipient_profile_id: string | null;
+          channel: string;
+          template: string;
+          status: 'pending' | 'sent' | 'failed' | 'skipped';
+          provider_message_id: string | null;
+          error: string | null;
+          created_at: string;
+          sent_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          event_id: string;
+          order_id: string;
+          jira_issue_key?: string | null;
+          recipient_profile_id?: string | null;
+          channel?: string;
+          template: string;
+          status?: 'pending' | 'sent' | 'failed' | 'skipped';
+          provider_message_id?: string | null;
+          error?: string | null;
+          created_at?: string;
+          sent_at?: string | null;
+        };
+        Update: {
+          status?: 'pending' | 'sent' | 'failed' | 'skipped';
+          provider_message_id?: string | null;
+          error?: string | null;
+          sent_at?: string | null;
+        };
+        Relationships: [
+          { foreignKeyName: 'notification_log_order_id_fkey'; columns: ['order_id']; referencedRelation: 'jobs'; referencedColumns: ['id'] },
+          { foreignKeyName: 'notification_log_recipient_profile_id_fkey'; columns: ['recipient_profile_id']; referencedRelation: 'staff_profiles'; referencedColumns: ['id'] },
         ];
       };
     };

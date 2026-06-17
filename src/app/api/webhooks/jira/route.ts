@@ -30,6 +30,7 @@ import {
   syncJobTerminated,
   syncInformational,
 } from '@/lib/integrations/workflow';
+import { handleAssigneeChanged } from '@/lib/notifications/assignee';
 
 // ─── Payload schema ───────────────────────────────────────────────────────────
 
@@ -38,6 +39,8 @@ const JiraWebhookSchema = z.object({
   eventId: z.string().min(1),
   /** Event name sent by Jira Automation rule (fixed string per rule). */
   eventType: z.enum([
+    // Assignee change — triggers personal Telegram notification
+    'ASSIGNEE_CHANGED',
     // Translator lifecycle
     'TRANSLATOR_ACCEPTED',    // informational
     'TRANSLATOR_IN_PROGRESS', // informational
@@ -67,6 +70,10 @@ const JiraWebhookSchema = z.object({
   occurredAt: z.string().optional(),
   /** Optional correlation ID for tracing */
   correlationId: z.string().optional(),
+  /** Present for ASSIGNEE_CHANGED: Jira accountId of the new assignee */
+  assigneeAccountId: z.string().optional(),
+  /** Present for ASSIGNEE_CHANGED: display name of the new assignee */
+  assigneeDisplayName: z.string().optional(),
 });
 
 type JiraWebhookPayload = z.infer<typeof JiraWebhookSchema>;
@@ -172,6 +179,46 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     let result: { applied: boolean } = { applied: true };
 
     switch (eventType) {
+      // ── Assignee changed: personal Telegram notification, no workflow change ──
+      case 'ASSIGNEE_CHANGED': {
+        if (!payload.assigneeAccountId) {
+          // Unassigned (no assignee in payload) — record no-op and return success
+          await supabaseServer.from('job_audit_log').insert({
+            job_id: jobId,
+            actor: 'webhook',
+            source: 'jira_webhook',
+            action: 'webhook_assignee_unassigned',
+            jira_issue_key: issueKey,
+            correlation_id: `${eventId}-noop`,
+            metadata: { eventType, issueKey, note: 'no assigneeAccountId — unassigned' },
+          });
+        } else {
+          // Load language data from the linked document
+          const { data: docRow } = await supabaseServer
+            .from('documents')
+            .select('source_language, target_language, document_type')
+            .eq('id', job.document_id ?? '')
+            .maybeSingle();
+
+          await handleAssigneeChanged({
+            jobId,
+            issueKey,
+            eventId,
+            jiraStatus: payload.jiraStatus,
+            assigneeAccountId: payload.assigneeAccountId,
+            assigneeDisplayName: payload.assigneeDisplayName,
+            driveUrl: job.google_drive_folder_url,
+            notaryCity: job.notary_city,
+            fulfillmentMethod: job.fulfillment_method,
+            sourceLang: docRow?.source_language ?? '',
+            targetLang: docRow?.target_language ?? '',
+            documentType: docRow?.document_type ?? '',
+            serviceLevel: job.service_level,
+          });
+        }
+        break;
+      }
+
       // Informational only — write audit, no workflow_status change
       case 'TRANSLATOR_ACCEPTED':
       case 'TRANSLATOR_IN_PROGRESS':

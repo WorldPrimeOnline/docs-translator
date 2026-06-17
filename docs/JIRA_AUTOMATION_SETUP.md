@@ -66,7 +66,7 @@ x-wpo-webhook-secret: <production JIRA_WEBHOOK_SECRET>
 
 ## Payload contract
 
-Every rule sends this JSON body (all fields required unless noted):
+### Standard payload (all lifecycle events)
 
 ```json
 {
@@ -79,6 +79,21 @@ Every rule sends this JSON body (all fields required unless noted):
 }
 ```
 
+### ASSIGNEE_CHANGED payload (extended)
+
+```json
+{
+  "eventId": "{{issue.id}}-{{issue.updated}}-ASSIGNEE_CHANGED",
+  "eventType": "ASSIGNEE_CHANGED",
+  "issueKey": "{{issue.key}}",
+  "orderId": "{{issue.fields.customfield_10073}}",
+  "assigneeAccountId": "{{issue.assignee.accountId}}",
+  "assigneeDisplayName": "{{issue.assignee.displayName}}",
+  "jiraStatus": "{{issue.fields.status.name}}",
+  "occurredAt": "{{now}}"
+}
+```
+
 `orderId` maps to `customfield_10073` (Order ID = Supabase job UUID).
 
 ---
@@ -86,6 +101,21 @@ Every rule sends this JSON body (all fields required unless noted):
 ## Rules
 
 Create each rule in **two copies** — one for staging (condition: `labels = wpo-staging`) and one for production (condition: `labels = wpo-production`). Keep staging rules enabled; enable production rules only after production deployment is confirmed.
+
+### 0. ASSIGNEE_CHANGED
+
+**Trigger**: Field value changed → Field: **Assignee**  
+**Conditions**:
+- Project = WO
+- Issue type = Заказ
+- Plus env label condition (`labels = wpo-staging` / `labels = wpo-production`)
+
+**eventType**: `ASSIGNEE_CHANGED`  
+**Effect in WPO**: Looks up assignee in `staff_profiles` by `jira_account_id`, sends personal Telegram message to the matched translator / notary / operator. No `workflow_status` change.
+
+**Important**: Only sends a message when `assigneeAccountId` is present (issue assigned to someone). Unassigned issues (empty assignee) are recorded as a no-op — no notification sent.
+
+---
 
 ### 1. TRANSLATOR_ACCEPTED
 

@@ -341,6 +341,9 @@
     "resetPasswordSuccess": "Сырсөз жаңыланды. Эми кире аласыз.",
     "newPassword": "Жаңы сырсөз",
     "backToLogin": "Кирүүгө кайтуу",
+    "checkEmailTitle": "Почтаңызды текшериңиз",
+    "checkEmailBody": "{email} дарегине тастыктоо шилтемесин жөнөттүк. Аккаунтту жандандыруу үчүн аны басыңыз.",
+    "checkEmailSpam": "Кат таппадыңызбы? Спам папкасын текшериңиз.",
     "googleLogin": "Google аркылуу улантуу",
     "orDivider": "же"
   },

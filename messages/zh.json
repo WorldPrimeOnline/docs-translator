@@ -341,6 +341,9 @@
     "resetPasswordSuccess": "密码已更新，您现在可以登录。",
     "newPassword": "新密码",
     "backToLogin": "返回登录",
+    "checkEmailTitle": "请查看您的邮箱",
+    "checkEmailBody": "我们已向 {email} 发送了确认链接。点击该链接以激活您的账户。",
+    "checkEmailSpam": "找不到邮件？请检查垃圾邮件文件夹。",
     "googleLogin": "使用 Google 继续",
     "orDivider": "或"
   },
