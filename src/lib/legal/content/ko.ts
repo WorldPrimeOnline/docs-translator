@@ -10,7 +10,7 @@ export const legalDocs: LegalDocs = {
     metaDescription: 'WPO Translations 문서 번역 서비스 공개 청약 계약. 서비스 수준, 가격, 결제 및 환불 조건.',
     effectiveDate: '2026-05-26',
     sections: [
-      { id: 'provider', heading: '1. 제공자 정보', body: ['본 공개 청약 계약(이하 "계약")은 WorldPrimeOnline이 게시하며, WorldPrimeOnline(등록번호: )이 운영하고, 등록 주소: (이하 "제공자")입니다.', '제공자: IE WorldPrimeOnline', 'IIN/BIN: 840324300155', '주소: 알마티, 카지벡비 가 139/1', 'Email: worldprimeonline@gmail.com', '전화: +7 707 222 28 58', '웹사이트: https://www.wpotranslations.org/', 'VAT: 해당 없음', '게시일: 2026-05-26', '본 계약은 적용 법률에 따른 공개 청약을 구성합니다. 플랫폼에서 주문을 완료함으로써 고객은 본 계약의 모든 조건을 전적으로 수락합니다.'] },
+      { id: 'provider', heading: '1. 제공자 정보', body: ['본 공개 청약 계약(이하 "계약")은 WorldPrimeOnline이 게시하며, WorldPrimeOnline(등록번호: )이 운영하고, 등록 주소: (이하 "제공자")입니다.', '제공자: IE WorldPrimeOnline', 'IIN/BIN: 840324300155', '주소: 알마티', 'Email: worldprimeonline@gmail.com', '전화: +7 701 136 63 76', '웹사이트: https://www.wpotranslations.org/', 'VAT: 해당 없음', '게시일: 2026-05-26', '본 계약은 적용 법률에 따른 공개 청약을 구성합니다. 플랫폼에서 주문을 완료함으로써 고객은 본 계약의 모든 조건을 전적으로 수락합니다.'] },
       { id: 'definitions', heading: '2. 정의', body: ['• "고객" — 플랫폼을 통해 주문을 완료한 개인 또는 법인.', '• "서비스" — 제공자가 제공하는 문서 번역 서비스.', '• "전자 번역" — 고객이 별도로 선택하지 않는 한 번역가 서명, 제공자 도장 또는 공증 없이 전자 형식으로 제공되는 번역.', '• "공식 번역" — 인간 번역가가 검토하고 번역가 서명과 제공자 도장이 포함된 번역으로, 별도 선택 및 결제 옵션으로 제공.', '• "공증" — 파트너 공증 절차가 있는 경우에만 인증된 번역가 및/또는 파트너 공증인과 함께 별도로 마련되는 추가 인증 절차.', '• "플랫폼" — https://www.wpotranslations.org/에서 접근 가능한 웹사이트 및 서비스.'] },
       { id: 'subject', heading: '3. 계약의 목적', body: ['제공자는 고객이 선택한 서비스 수준에 따라 문서 번역 서비스를 제공하는 것에 동의하고, 고객은 본 계약 조건에 따라 해당 서비스를 수락하고 대금을 지불하는 것에 동의합니다.', '플랫폼은 워크플로우의 일환으로 AI 지원 처리(광학 문자 인식 및 기계 번역)를 사용합니다. 인간 번역가의 참여는 명시적으로 선택하고 확인한 경우에만 제공됩니다.'] },
       { id: 'service-levels', heading: '4. 서비스 수준', body: ['4.1 전자 번역: AI 지원 OCR 및 기계 번역 도구를 사용하여 업로드된 문서를 번역하고 PDF 파일로 제공합니다. 번역가 서명, 제공자 도장 또는 공증이 포함되지 않습니다. 정보, 검토 및 준비 목적으로 사용됩니다.', '4.2 공식 번역(이용 가능한 경우): 인간 번역가가 번역 내용을 검토하며 번역가 서명과 제공자 도장이 포함됩니다. 주문 시 명시적으로 선택해야 하며 제공자의 확인이 필요합니다.', '4.3 공증(이용 가능한 경우): 특정 국가에서 인증된 번역가 및/또는 파트너 공증인을 통해 마련되는 추가 인증 절차입니다. 자동으로 포함되지 않으며 별도로 마련해야 하고 파트너 가용성에 따라 달라집니다.'] },
@@ -30,7 +30,7 @@ export const legalDocs: LegalDocs = {
       { id: 'storage', heading: '18. 문서 저장 및 삭제', body: ['업로드된 문서와 번역 문서는 번역 완료 후 최대 30일 동안 제공자 서버에 저장됩니다. 30일 후에는 자동으로 영구 삭제됩니다.'] },
       { id: 'lang-priority', heading: '19. 언어 우선순위', body: [LP] },
       { id: 'disputes', heading: '20. 분쟁 해결', body: ['본 계약과 관련하여 발생하는 분쟁은 먼저 사전 재판 해결의 대상이 됩니다. 고객은 worldprimeonline@gmail.com로 서면 청구를 제출하고 제공자는 30일력일 내에 응답합니다. 분쟁이 우호적으로 해결되지 않으면 제공자의 등록 주소 관할 법원에 제출됩니다.'] },
-      { id: 'contact', heading: '21. 연락처', body: ['제공자: IE WorldPrimeOnline', '주소: 알마티, 카지벡비 가 139/1', 'Email: worldprimeonline@gmail.com', '웹사이트: https://www.wpotranslations.org/'] },
+      { id: 'contact', heading: '21. 연락처', body: ['제공자: IE WorldPrimeOnline', '주소: 알마티', 'Email: worldprimeonline@gmail.com', '웹사이트: https://www.wpotranslations.org/'] },
     ],
   },
   privacy: {
@@ -53,7 +53,7 @@ export const legalDocs: LegalDocs = {
       { id: 'cookies', heading: '11. 쿠키', body: ['제공자는 인증(Supabase 관리)과 언어 기본 설정 저장(NEXT_LOCALE 쿠키)에 필요한 필수 쿠키만 사용합니다. 광고 또는 추적 쿠키는 사용되지 않습니다.'] },
       { id: 'changes', heading: '12. 방침 변경', body: ['제공자는 본 개인정보 처리방침을 업데이트할 수 있습니다. 중요한 변경 사항은 이메일 또는 플랫폼 공지를 통해 알립니다.'] },
       { id: 'lang-priority', heading: '13. 언어 우선순위', body: [LP] },
-      { id: 'contact', heading: '14. 연락처', body: ['제공자: IE WorldPrimeOnline', '주소: 알마티, 카지벡비 가 139/1', '연락처: worldprimeonline@gmail.com', '웹사이트: https://www.wpotranslations.org/'] },
+      { id: 'contact', heading: '14. 연락처', body: ['제공자: IE WorldPrimeOnline', '주소: 알마티', '연락처: worldprimeonline@gmail.com', '웹사이트: https://www.wpotranslations.org/'] },
     ],
   },
   'personal-data-consent': {
@@ -120,7 +120,7 @@ export const legalDocs: LegalDocs = {
       { id: 'service-availability', heading: '6. 서비스 가용성', body: ['제공자는 플랫폼 가용성을 유지하기 위해 합리적인 노력을 기울이지만 중단 없는 오류 없는 접근을 보장하지는 않습니다.'] },
       { id: 'changes', heading: '7. 약관 변경', body: ['제공자는 언제든지 본 약관을 업데이트할 수 있습니다. 변경 후 플랫폼 계속 사용은 업데이트된 약관 수락을 의미합니다.'] },
       { id: 'lang-priority', heading: '8. 언어 우선순위', body: [LP] },
-      { id: 'contact', heading: '9. 연락처', body: ['제공자: IE WorldPrimeOnline', '주소: 알마티, 카지벡비 가 139/1', '연락처: worldprimeonline@gmail.com', '웹사이트: https://www.wpotranslations.org/'] },
+      { id: 'contact', heading: '9. 연락처', body: ['제공자: IE WorldPrimeOnline', '주소: 알마티', '연락처: worldprimeonline@gmail.com', '웹사이트: https://www.wpotranslations.org/'] },
     ],
   },
   partners: {
@@ -138,7 +138,7 @@ export const legalDocs: LegalDocs = {
       { id: 'no-misleading', heading: '6. 오해를 불러일으키는 주장 금지', body: ['파트너는 번역의 성격, 상태 또는 범위를 과장하는 진술을 해서는 안 됩니다. 제공된 특정 서비스 수준에 대해 사실이 아닌 경우 전자 번역이 인증되거나 공증되었다고 주장해서는 안 됩니다.'] },
       { id: 'termination', heading: '7. 파트너십 종료', body: ['어느 당사자든 개별 파트너 계약의 통지 조항에 따라 파트너십 약정을 종료할 수 있습니다. 파트너가 본 약관을 위반하거나 사기 활동에 참여하거나 고객에게 해를 끼치는 경우 제공자는 즉시 플랫폼 접근을 정지하거나 종료할 수 있습니다.'] },
       { id: 'lang-priority', heading: '8. 언어 우선순위', body: [LP] },
-      { id: 'contact', heading: '9. 파트너 문의 연락처', body: ['제공자: IE WorldPrimeOnline', '주소: 알마티, 카지벡비 가 139/1', '연락처: worldprimeonline@gmail.com', '웹사이트: https://www.wpotranslations.org/'] },
+      { id: 'contact', heading: '9. 파트너 문의 연락처', body: ['제공자: IE WorldPrimeOnline', '주소: 알마티', '연락처: worldprimeonline@gmail.com', '웹사이트: https://www.wpotranslations.org/'] },
     ],
   },
 };

@@ -22,8 +22,8 @@ export const BUSINESS_PROFILE: BusinessProfile = {
   legalName: 'ИП WorldPrimeOnline',
   latinName: 'IE WorldPrimeOnline',
   iinBin: '840324300155',
-  legalAddress: 'г. Алматы, ул. Казыбек би 139/1',
-  phone: '+77072222858',
+  legalAddress: 'г. Алматы',
+  phone: '+77011366376',
   email: 'worldprimeonline@gmail.com',
   website: 'https://wpotranslations.org',
   // Set to true after Halyk ePay gateway credentials are added to env and integration is tested.

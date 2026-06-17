@@ -17,9 +17,9 @@ export const legalDocs: LegalDocs = {
           'Bu resminama WorldPrimeOnline platformasynyň (mundan beýläk — Ýerine ýetiriji) ulanyjylara (mundan beýläk — Müşderi) teklibidir we hyzmat şertnamasynyň düzgünlerini kesgitleýär.',
           'Ýerine ýetiriji: IE WorldPrimeOnline',
           'IIN/BIN: 840324300155',
-          'Salgy: Almaty, Kazybek bi köçesi 139/1',
+          'Salgy: Almaty',
           'E-poçta: worldprimeonline@gmail.com',
-          'Telefon: +7 707 222 28 58',
+          'Telefon: +7 701 136 63 76',
           'Saýt: https://www.wpotranslations.org/',
           'GGH: göz öňünde tutulmaýar',
           'Platformany hasaba almak ýa-da platformany ulanmak şu Teklibi doly kabul etmegi aňladýar.',
@@ -164,7 +164,7 @@ export const legalDocs: LegalDocs = {
         heading: '16. Habarlaşmak',
         body: [
           'WorldPrimeOnline',
-          'Salgy: Almaty, Kazybek bi köçesi 139/1',
+          'Salgy: Almaty',
           'E-poçta: worldprimeonline@gmail.com',
           'Saýt: https://www.wpotranslations.org/',
         ],
@@ -290,7 +290,7 @@ export const legalDocs: LegalDocs = {
         heading: '12. Habarlaşmak',
         body: [
           'WorldPrimeOnline',
-          'Salgy: Almaty, Kazybek bi köçesi 139/1',
+          'Salgy: Almaty',
           'E-poçta: worldprimeonline@gmail.com',
           'Saýt: https://www.wpotranslations.org/',
         ],
@@ -355,7 +355,7 @@ export const legalDocs: LegalDocs = {
         heading: '6. Habarlaşmak',
         body: [
           'WorldPrimeOnline',
-          'Salgy: Almaty, Kazybek bi köçesi 139/1',
+          'Salgy: Almaty',
           'E-poçta: worldprimeonline@gmail.com',
           'Saýt: https://www.wpotranslations.org/',
         ],
@@ -429,7 +429,7 @@ export const legalDocs: LegalDocs = {
         heading: '7. Habarlaşmak',
         body: [
           'WorldPrimeOnline',
-          'Salgy: Almaty, Kazybek bi köçesi 139/1',
+          'Salgy: Almaty',
           'E-poçta: worldprimeonline@gmail.com',
           'Saýt: https://www.wpotranslations.org/',
         ],
@@ -499,7 +499,7 @@ export const legalDocs: LegalDocs = {
         heading: '7. Habarlaşmak',
         body: [
           'WorldPrimeOnline',
-          'Salgy: Almaty, Kazybek bi köçesi 139/1',
+          'Salgy: Almaty',
           'E-poçta: worldprimeonline@gmail.com',
           'Saýt: https://www.wpotranslations.org/',
         ],
@@ -587,7 +587,7 @@ export const legalDocs: LegalDocs = {
         heading: '9. Habarlaşmak',
         body: [
           'WorldPrimeOnline',
-          'Salgy: Almaty, Kazybek bi köçesi 139/1',
+          'Salgy: Almaty',
           'E-poçta: worldprimeonline@gmail.com',
           'Saýt: https://www.wpotranslations.org/',
         ],
@@ -676,7 +676,7 @@ export const legalDocs: LegalDocs = {
         heading: '9. Hyzmatdaşlyk Baradaky Soraglar',
         body: [
           'WorldPrimeOnline',
-          'Salgy: Almaty, Kazybek bi köçesi 139/1',
+          'Salgy: Almaty',
           'E-poçta: worldprimeonline@gmail.com',
           'Saýt: https://www.wpotranslations.org/',
         ],

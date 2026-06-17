@@ -17,9 +17,9 @@ export const legalDocs: LegalDocs = {
           'Энэ баримт бичиг нь WorldPrimeOnline платформын (цаашид — Гүйцэтгэгч) хэрэглэгчдэд (цаашид — Захиалагч) гаргасан санал бөгөөд үйлчилгээний гэрээний нөхцөлийг тодорхойлж байна.',
           'Гүйцэтгэгч: WorldPrimeOnline',
           'ИИН/БИН: 840324300155',
-          'Хаяг: Алматы, Казыбек Би 139/1',
+          'Хаяг: Алматы',
           'И-мэйл: worldprimeonline@gmail.com',
-          'Утас: +7 707 222 28 58',
+          'Утас: +7 701 136 63 76',
           'Вебсайт: https://www.wpotranslations.org/',
           'НӨАТ: хамаарахгүй',
           'Платформд бүртгүүлэх эсвэл платформыг ашиглах нь энэхүү Санлыг бүрэн хүлээн зөвшөөрч байгааг илэрхийлнэ.',
@@ -165,7 +165,7 @@ export const legalDocs: LegalDocs = {
         heading: '16. Холбоо Барих',
         body: [
           'WorldPrimeOnline',
-          'Хаяг: Алматы, Казыбек Би 139/1',
+          'Хаяг: Алматы',
           'И-мэйл: worldprimeonline@gmail.com',
           'Вебсайт: https://www.wpotranslations.org/',
         ],
@@ -291,7 +291,7 @@ export const legalDocs: LegalDocs = {
         heading: '12. Холбоо Барих',
         body: [
           'WorldPrimeOnline',
-          'Хаяг: Алматы, Казыбек Би 139/1',
+          'Хаяг: Алматы',
           'И-мэйл: worldprimeonline@gmail.com',
           'Вебсайт: https://www.wpotranslations.org/',
         ],
@@ -356,7 +356,7 @@ export const legalDocs: LegalDocs = {
         heading: '6. Холбоо Барих',
         body: [
           'WorldPrimeOnline',
-          'Хаяг: Алматы, Казыбек Би 139/1',
+          'Хаяг: Алматы',
           'И-мэйл: worldprimeonline@gmail.com',
           'Вебсайт: https://www.wpotranslations.org/',
         ],
@@ -430,7 +430,7 @@ export const legalDocs: LegalDocs = {
         heading: '7. Холбоо Барих',
         body: [
           'WorldPrimeOnline',
-          'Хаяг: Алматы, Казыбек Би 139/1',
+          'Хаяг: Алматы',
           'И-мэйл: worldprimeonline@gmail.com',
           'Вебсайт: https://www.wpotranslations.org/',
         ],
@@ -500,7 +500,7 @@ export const legalDocs: LegalDocs = {
         heading: '7. Холбоо Барих',
         body: [
           'WorldPrimeOnline',
-          'Хаяг: Алматы, Казыбек Би 139/1',
+          'Хаяг: Алматы',
           'И-мэйл: worldprimeonline@gmail.com',
           'Вебсайт: https://www.wpotranslations.org/',
         ],
@@ -588,7 +588,7 @@ export const legalDocs: LegalDocs = {
         heading: '9. Холбоо Барих',
         body: [
           'WorldPrimeOnline',
-          'Хаяг: Алматы, Казыбек Би 139/1',
+          'Хаяг: Алматы',
           'И-мэйл: worldprimeonline@gmail.com',
           'Вебсайт: https://www.wpotranslations.org/',
         ],
@@ -677,7 +677,7 @@ export const legalDocs: LegalDocs = {
         heading: '9. Хамтын Ажиллагааны Асуулт',
         body: [
           'WorldPrimeOnline',
-          'Хаяг: Алматы, Казыбек Би 139/1',
+          'Хаяг: Алматы',
           'И-мэйл: worldprimeonline@gmail.com',
           'Вебсайт: https://www.wpotranslations.org/',
         ],
