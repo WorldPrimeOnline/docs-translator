@@ -1,3 +1,4 @@
+/** Worker-local copy. Keep in sync with src/lib/translation-ast/ast-renderer.ts. */
 import type {
   TranslationDocumentAst,
   TranslationBlock,

@@ -33,3 +33,7 @@ export type { TranslateToAstParams, TranslateToAstResult } from './translator';
 export { renderHtmlFromAst, astToMarkdown } from './ast-renderer';
 export type { AstRenderOptions } from './ast-renderer';
 export { TranslationDocumentAstSchema, TRANSLATION_AST_TOOL } from './tool-schema';
+export { getScriptRenderProfile, getCssFont } from './script-render-profile';
+export type { ScriptRenderProfile } from './script-render-profile';
+export { renderDocxFromAst } from './ast-to-docx';
+export type { AstDocxOptions } from './ast-to-docx';

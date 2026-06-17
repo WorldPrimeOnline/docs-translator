@@ -253,7 +253,8 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
         await supabase
           .from('translations')
           .update({
-            translated_pdf_key: draftDocxKey,
+            // translated_pdf_key holds a real PDF only — preview PDF or null
+            translated_pdf_key: previewPdfKey ?? null,
             translated_docx_key: draftDocxKey,
             translated_preview_pdf_key: previewPdfKey ?? null,
             qa_report: savedQaReport,
@@ -264,7 +265,7 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
         await supabase.from('translations').insert({
           job_id: jobId,
           translated_markdown: translatedMarkdown,
-          translated_pdf_key: draftDocxKey,
+          translated_pdf_key: previewPdfKey ?? null,
           translated_docx_key: draftDocxKey,
           translated_preview_pdf_key: previewPdfKey ?? null,
           qa_report: savedQaReport,
