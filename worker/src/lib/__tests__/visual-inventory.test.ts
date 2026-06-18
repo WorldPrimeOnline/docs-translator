@@ -170,8 +170,8 @@ describe('visual inventory — fixture regression: SML employment cert', () => {
   });
 });
 
-// ── Watermark visibleText ─────────────────────────────────────────────────────
-describe('watermark visibleText handling', () => {
+// ── Watermark visibleText fidelity ───────────────────────────────────────────
+describe('watermark visibleText fidelity', () => {
   const WATERMARK_ELEMENTS: DetectedVisualElement[] = [
     {
       id: 'v1', page: 1, kind: 'watermark', occurrenceIndex: 0, position: 'center',
@@ -181,23 +181,63 @@ describe('watermark visibleText handling', () => {
     },
   ];
 
-  test('visibleText is included in inventory block', () => {
+  test('visibleText is serialized as a separate field (not embedded in description)', () => {
     const { inventoryBlock } = serializeVisualInventory(WATERMARK_ELEMENTS, 'en');
-    expect(inventoryBlock).toContain('УЧЕБНЫЙ ОБРАЗЕЦ');
+    expect(inventoryBlock).toContain('visibleText=УЧЕБНЫЙ ОБРАЗЕЦ');
+    // Description should NOT embed the source text
+    expect(inventoryBlock).not.toContain('description=Diagonal watermark across the page with text');
   });
 
-  test('description enriched with visibleText', () => {
-    const { entries } = serializeVisualInventory(WATERMARK_ELEMENTS, 'en');
-    expect(entries[0]?.description).toContain('УЧЕБНЫЙ ОБРАЗЕЦ');
+  test('translatedText field placeholder is present in inventory', () => {
+    const { inventoryBlock } = serializeVisualInventory(WATERMARK_ELEMENTS, 'en');
+    expect(inventoryBlock).toContain('translatedText=');
   });
 
-  test('buildFinalVisualBlock shows watermark text', () => {
+  test('clean translatedText is used in final block', () => {
     const { inventoryBlock, entries } = serializeVisualInventory(WATERMARK_ELEMENTS, 'en');
-    const fullTranslation = inventoryBlock.replace('УЧЕБНЫЙ ОБРАЗЕЦ', 'TRAINING SAMPLE') + '\n\nBody.';
-    const { parsedEntries } = parseAndRemoveInventoryBlock(fullTranslation, entries);
+    // Simulate Claude filling translatedText= correctly — target only end-of-line placeholder
+    const withTranslation = inventoryBlock.replace(
+      /;\s*translatedText=\s*$/m,
+      '; translatedText=TRAINING SAMPLE',
+    );
+    const { parsedEntries } = parseAndRemoveInventoryBlock(withTranslation + '\n\nBody.', entries);
     const block = buildFinalVisualBlock(parsedEntries, 'en');
-    // The translated visible text should appear in the block
     expect(block).toContain('TRAINING SAMPLE');
+    expect(block).not.toContain('УЧЕБНЫЙ ОБРАЗЕЦ');
+  });
+
+  test('mixed-script translatedText (hallucination guard) falls back to visibleText', () => {
+    const { inventoryBlock, entries } = serializeVisualInventory(WATERMARK_ELEMENTS, 'en');
+    // Simulate Claude hallucinating a mixed-language blend
+    const withHallucination = inventoryBlock.replace(
+      /;\s*translatedText=\s*$/m,
+      '; translatedText=SAMPLE ҮЛГІЛІК ОБРАЗЕЦ',
+    );
+    const { parsedEntries } = parseAndRemoveInventoryBlock(
+      withHallucination + '\n\nBody.',
+      entries,
+    );
+    // translatedText must have been rejected; visibleText (source) should be used
+    const watermarkEntry = parsedEntries.find((e) => e.kind === 'watermark');
+    expect(watermarkEntry?.translatedText).toBeUndefined();
+    expect(watermarkEntry?.visibleText).toBe('УЧЕБНЫЙ ОБРАЗЕЦ');
+    const block = buildFinalVisualBlock(parsedEntries, 'en');
+    // The hallucinated blend must NOT appear
+    expect(block).not.toContain('ҮЛГІЛІК');
+    // Source text appears instead
+    expect(block).toContain('УЧЕБНЫЙ ОБРАЗЕЦ');
+  });
+
+  test('buildFinalVisualBlock falls back to visibleText when translatedText absent', () => {
+    const { inventoryBlock, entries } = serializeVisualInventory(WATERMARK_ELEMENTS, 'en');
+    // No translatedText filled in
+    const { parsedEntries } = parseAndRemoveInventoryBlock(
+      inventoryBlock + '\n\nBody.',
+      entries,
+    );
+    const block = buildFinalVisualBlock(parsedEntries, 'en');
+    // Falls back to original source text — no hallucinated text
+    expect(block).toContain('УЧЕБНЫЙ ОБРАЗЕЦ');
   });
 
   test('QR visibleText is NOT included in inventory (protected identifier)', () => {
@@ -207,7 +247,6 @@ describe('watermark visibleText handling', () => {
       confidence: 0.98, source: 'page_vision',
     };
     const { inventoryBlock, entries } = serializeVisualInventory([qrEl], 'en');
-    // QR visibleText should not appear in inventory (it's a protected identifier)
     expect(inventoryBlock).not.toContain('https://verify.gov.kz');
     expect(entries[0]?.visibleText).toBeUndefined();
   });

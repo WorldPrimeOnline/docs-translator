@@ -1,5 +1,14 @@
 import type { DetectedVisualElement } from './detected-visual-element';
 
+/**
+ * Returns true if the string mixes Latin and Cyrillic characters —
+ * a signal that the model has hallucinated a multi-language blend rather than
+ * producing a clean translation.
+ */
+function hasMixedLatinCyrillic(text: string): boolean {
+  return /[A-Za-z]/.test(text) && /[Ѐ-ӿ]/.test(text);
+}
+
 // Token format: __WPO_VIS_0001__
 function makeVisToken(index: number): string {
   return `__WPO_VIS_${String(index).padStart(4, '0')}__`;
@@ -23,43 +32,54 @@ export interface ParsedInventoryEntry {
   page: number;
   position: string;
   description: string;
+  /** Original source text from the document (OCR/vision confirmed). Never model-generated. */
   visibleText?: string;
+  /**
+   * Model-supplied translation of visibleText into the target language.
+   * Only set when the model was confident. May be absent; fall back to visibleText.
+   */
+  translatedText?: string;
 }
 
 /**
- * Build a concise base description for an element.
- * Uses visibleText to enrich descriptions for watermarks and stamps.
- * QR/barcode visibleText is withheld from Claude (protected identifier).
+ * Build a neutral structural description for an element.
+ * Does NOT embed visibleText — that is serialized as a separate field
+ * so the model never mixes source text with its own translation.
  */
 function buildSourceDescription(el: DetectedVisualElement): string {
-  const base = el.description ?? '';
+  const base = el.description?.trim() ?? '';
 
-  // For watermarks: append visibleText as a quoted value so Claude can translate it
-  if (el.kind === 'watermark' && el.visibleText) {
-    const text = el.visibleText.trim();
-    if (text && !base.toLowerCase().includes(text.toLowerCase())) {
-      return (base ? `${base} ` : 'Watermark') + `with text: "${text}"`;
-    }
-    return base || `Watermark with text: "${el.visibleText}"`;
+  if (el.kind === 'watermark') {
+    // Return description of shape/placement only, not the text content
+    return base || 'Diagonal watermark';
   }
 
-  // For stamps: append visibleText when present and description doesn't already contain it
-  if (el.kind === 'stamp' && el.visibleText) {
-    const text = el.visibleText.trim();
-    if (text && !base.toLowerCase().includes(text.toLowerCase())) {
-      return (base ? `${base} ` : 'Round company stamp') + `with text: "${text}"`;
-    }
-    return base || `Round company stamp with text: "${el.visibleText}"`;
+  if (el.kind === 'stamp') {
+    return base || 'Round company stamp';
   }
 
   return base;
 }
 
 /**
+ * Return the authoritative source text for an element (from textEvidence if available,
+ * otherwise from visibleText). Returns undefined for QR/barcode (protected identifiers).
+ */
+function getSourceText(el: DetectedVisualElement): string | undefined {
+  if (el.kind === 'qr' || el.kind === 'barcode') return undefined;
+  return el.textEvidence?.selectedSourceText ?? el.visibleText;
+}
+
+/**
  * Serialize detected visual elements into a protected Markdown block.
  * The block is prepended to the document before translation.
- * Claude is asked to translate description= values and preserve __WPO_VIS_NNNN__ tokens.
- * visibleText= is present in the line but marked as [preserve exactly].
+ *
+ * Source text and its translation are kept in separate fields:
+ *   visibleText= — ORIGINAL text from the source document (copy unchanged)
+ *   translatedText= — to be filled by Claude with a confident, single-language translation
+ *
+ * The model is instructed NEVER to add words, mix languages, or produce
+ * multiple variants in the translatedText= field.
  */
 export function serializeVisualInventory(
   elements: DetectedVisualElement[],
@@ -73,7 +93,7 @@ export function serializeVisualInventory(
     page: el.page,
     position: el.position,
     description: buildSourceDescription(el),
-    visibleText: (el.kind !== 'qr' && el.kind !== 'barcode') ? el.visibleText : undefined,
+    visibleText: getSourceText(el),
     element: el,
   }));
 
@@ -81,16 +101,22 @@ export function serializeVisualInventory(
     '<!-- WPO_VISUAL_BLOCK_START -->',
     '## VISUAL ELEMENTS OF THE SOURCE DOCUMENT',
     '',
-    `Translate the description= values to ${targetLanguage}. Preserve all __WPO_VIS_NNNN__ tokens exactly. Do not remove any token occurrence.`,
+    `Instructions:`,
+    `1. Translate description= values to ${targetLanguage}.`,
+    `2. For each element with visibleText=: copy that value UNCHANGED — it is exact original text.`,
+    `3. For each element with visibleText=: add translatedText= with your ${targetLanguage} translation of the visible text ONLY if you are fully confident. Use one consistent version. Do NOT mix languages or produce multiple variants. If uncertain, leave translatedText= empty.`,
+    `4. Preserve all __WPO_VIS_NNNN__ tokens exactly. Do not remove any token occurrence.`,
     '',
   ];
 
   for (const entry of entries) {
     const descPart = entry.description ? `; description=${entry.description}` : '';
-    // visibleText is included so Claude can translate descriptions that reference it,
-    // but Claude must NOT translate the visibleText= value itself (it is original text from document).
     const visPart = entry.visibleText ? `; visibleText=${entry.visibleText}` : '';
-    lines.push(`- ${entry.token}: kind=${entry.kind}; page=${entry.page}; position=${entry.position}${descPart}${visPart}`);
+    // Placeholder for translatedText — model fills this in
+    const transPart = entry.visibleText ? `; translatedText=` : '';
+    lines.push(
+      `- ${entry.token}: kind=${entry.kind}; page=${entry.page}; position=${entry.position}${descPart}${visPart}${transPart}`,
+    );
   }
 
   lines.push('', '---', '');
@@ -113,10 +139,11 @@ export function parseAndRemoveInventoryBlock(
 } {
   const lines = translatedMarkdown.split('\n');
 
-  // Regex to parse inventory lines:
-  // - __WPO_VIS_0001__: kind=logo; page=1; position=header[; description=...][; visibleText=...]
+  // Regex to parse inventory lines.
+  // Handles optional fields in order: description=, visibleText=, translatedText=
+  // All fields after position= are optional and captured by name via suffix parsing.
   const ENTRY_LINE_RE =
-    /^-\s*(__WPO_VIS_\d{4}__):\s*kind=([^;]+);\s*page=(\d+);\s*position=([^;]+?)(?:;\s*description=([^;]*))?(?:;\s*visibleText=(.*))?$/;
+    /^-\s*(__WPO_VIS_\d{4}__):\s*kind=([^;]+);\s*page=(\d+);\s*position=([^;]+?)(?:;\s*description=([^;]*))?(?:;\s*visibleText=([^;]*))?(?:;\s*translatedText=(.*))?$/;
 
   const inventoryLineIndices = new Set<number>();
   const parsedEntries: ParsedInventoryEntry[] = [];
@@ -137,6 +164,7 @@ export function parseAndRemoveInventoryBlock(
       inventoryLineIndices.add(i);
       const m = ENTRY_LINE_RE.exec(line.trim());
       if (m) {
+        const rawTranslated = m[7]?.trim() ?? '';
         parsedEntries.push({
           token: m[1]!,
           kind: m[2]!.trim(),
@@ -144,6 +172,9 @@ export function parseAndRemoveInventoryBlock(
           position: m[4]!.trim(),
           description: m[5]?.trim() ?? '',
           visibleText: m[6]?.trim() || undefined,
+          translatedText: rawTranslated && !hasMixedLatinCyrillic(rawTranslated)
+            ? rawTranslated
+            : undefined,
         });
       }
     }
@@ -333,30 +364,38 @@ const MAX_DESCRIPTION_LENGTH = 50;
 
 /**
  * Return a compact description for the final visual block table.
- * Truncates verbose descriptions to a kind-appropriate short form.
+ *
+ * For watermarks and stamps the text selection priority is:
+ *   1. translatedText (model-supplied, validated no-mixed-scripts)
+ *   2. visibleText (original source, always authentic)
+ *   3. Neutral kind description
+ *
+ * This ensures the model can never hallucinate multi-language blends into
+ * the final table: the mixed-script guard already rejected bad translatedText
+ * during parsing, so only clean text reaches here.
  */
 function compactDescription(entry: ParsedInventoryEntry): string {
   const desc = entry.description?.trim() ?? '';
 
+  if (entry.kind === 'watermark') {
+    if (entry.translatedText?.trim()) return `Watermark: "${entry.translatedText.trim()}"`;
+    if (entry.visibleText?.trim()) return `Watermark: "${entry.visibleText.trim()}"`;
+    // Fall back to neutral description (no embedded text)
+    if (desc.length > 0 && desc.length <= MAX_DESCRIPTION_LENGTH) return desc;
+    return COMPACT_FALLBACKS['watermark']!;
+  }
+
+  if (entry.kind === 'stamp') {
+    if (entry.translatedText?.trim()) return `Stamp: "${entry.translatedText.trim()}"`;
+    if (entry.visibleText?.trim() && entry.visibleText.length <= 40) {
+      return `Stamp: "${entry.visibleText.trim()}"`;
+    }
+    if (desc.length > 0 && desc.length <= MAX_DESCRIPTION_LENGTH) return desc;
+    return COMPACT_FALLBACKS['stamp']!;
+  }
+
   // If short enough, use as-is
   if (desc.length > 0 && desc.length <= MAX_DESCRIPTION_LENGTH) return desc;
-
-  // Watermarks: try to preserve the "with text: X" pattern
-  if (entry.kind === 'watermark') {
-    // Match quoted text pattern from either description or visibleText
-    const quoted = /"([^"]{1,40})"/.exec(desc) ?? /"([^"]{1,40})"/.exec(entry.visibleText ?? '');
-    if (quoted) return `Watermark: "${quoted[1]}"`;
-    if (entry.visibleText) return `Watermark: "${entry.visibleText}"`;
-    return 'Watermark';
-  }
-
-  // Stamps: try to preserve text if available
-  if (entry.kind === 'stamp') {
-    if (entry.visibleText && entry.visibleText.length <= 40) {
-      return `Stamp: "${entry.visibleText}"`;
-    }
-    return 'Round company stamp';
-  }
 
   // Other kinds: use compact fallback
   return COMPACT_FALLBACKS[entry.kind] ?? (desc.length > 0 ? desc.slice(0, MAX_DESCRIPTION_LENGTH) + '…' : '—');

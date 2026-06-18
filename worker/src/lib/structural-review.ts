@@ -10,27 +10,51 @@
  */
 
 const MODEL = 'claude-sonnet-4-5-20250929';
-const MAX_TOKENS = 1024;
+const MAX_TOKENS = 1536;
 
 export type StructuralCorrectionReason =
   | 'untranslated'
   | 'transliterated_instead_of_translated'
   | 'ocr_corruption'
   | 'wrong_target_language'
-  | 'broken_heading';
+  | 'broken_heading'
+  | 'spelling'
+  | 'unnatural_translation'
+  | 'entity_inconsistency'
+  | 'incorrect_acronym';
+
+export type StructuralSegmentType =
+  | 'title'
+  | 'heading'
+  | 'label'
+  | 'table_header'
+  | 'organization_name'
+  | 'bank_name'
+  | 'acronym';
 
 export interface StructuralTranslationCorrection {
   original: string;
   corrected: string;
   reason: StructuralCorrectionReason;
+  /** Identifies the kind of document element corrected. Optional for backward compatibility. */
+  segmentType?: StructuralSegmentType;
 }
 
 // Matches __WPO_PV_0001__ and __WPO_VIS_0001__ tokens
 const PROTECTED_TOKEN_RE = /__WPO_(?:PV|VIS)_\d{4}__/;
 
+// Values that look like organization/bank names (heuristic, language-agnostic legal-form prefixes)
+const LEGAL_FORM_RE =
+  /\b(LLP|LLC|JSC|PJSC|OJSC|Inc\.|Ltd\.|GmbH|S\.A\.|Bank|АО|ОАО|ЗАО|ТОО|ТОВ|ИП|ООО|Банк|Товарищество|Акционерное)/i;
+
+// Numbers, dates, codes — must NOT be reviewed
+const SKIP_VALUE_RE =
+  /^\d|^[A-Z]{2}\d{2}|[#№]\s*\d|\d{4}-\d{2}|\d{2}\.\d{2}\.\d{4}|@|https?:\/\//i;
+
 /**
- * Extract structural elements (headings, KV labels, table headers) from markdown.
- * These are the elements most likely to contain untranslated/transliterated fragments.
+ * Extract structural elements from markdown: headings, labels, table headers,
+ * and cell values that look like organization names or bank names.
+ * Numbers, codes, dates, protected tokens are excluded.
  */
 export function extractStructuralElements(markdown: string): string[] {
   const lines = markdown.split('\n');
@@ -67,6 +91,22 @@ export function extractStructuralElements(markdown: string): string[] {
         if (label.length > 1 && !PROTECTED_TOKEN_RE.test(label)) {
           elements.push(label);
         }
+        // Also extract the value if it looks like an organization or bank name
+        const value = cells[1] ?? '';
+        if (
+          value.length > 2 &&
+          !PROTECTED_TOKEN_RE.test(value) &&
+          !SKIP_VALUE_RE.test(value) &&
+          LEGAL_FORM_RE.test(value)
+        ) {
+          elements.push(value);
+        }
+      } else if (cells.length >= 3 && !isSeparator) {
+        // Multi-column table data row: extract first cell if it looks like a label or org name
+        const first = cells[0] ?? '';
+        if (first.length > 2 && !PROTECTED_TOKEN_RE.test(first) && !SKIP_VALUE_RE.test(first)) {
+          elements.push(first);
+        }
       }
     }
   }
@@ -80,17 +120,26 @@ export function extractStructuralElements(markdown: string): string[] {
   });
 }
 
+const VALID_REASONS = new Set<string>([
+  'untranslated', 'transliterated_instead_of_translated', 'ocr_corruption',
+  'wrong_target_language', 'broken_heading', 'spelling',
+  'unnatural_translation', 'entity_inconsistency', 'incorrect_acronym',
+]);
+
 function isValidCorrection(item: unknown): item is StructuralTranslationCorrection {
   if (typeof item !== 'object' || item === null) return false;
   const obj = item as Record<string, unknown>;
-  return (
-    typeof obj['original'] === 'string' &&
-    typeof obj['corrected'] === 'string' &&
-    typeof obj['reason'] === 'string' &&
-    obj['original'].length > 0 &&
-    obj['corrected'].length > 0 &&
-    obj['original'] !== obj['corrected']
-  );
+  if (
+    typeof obj['original'] !== 'string' ||
+    typeof obj['corrected'] !== 'string' ||
+    typeof obj['reason'] !== 'string'
+  ) return false;
+  if (!obj['original'].length || !obj['corrected'].length) return false;
+  if (obj['original'] === obj['corrected']) return false;
+  if (!VALID_REASONS.has(obj['reason'])) return false;
+  // Protected tokens must never appear in original
+  if (PROTECTED_TOKEN_RE.test(obj['original'] as string)) return false;
+  return true;
 }
 
 /**
@@ -136,23 +185,40 @@ export async function runStructuralReview(
   const srcName = LANG_DISPLAY[sourceLang] ?? sourceLang.toUpperCase();
 
   const systemPrompt =
-    `You are a translation quality reviewer specializing in document localization.` +
-    ` You will receive structural elements (headings, field labels, table headers) from a document` +
-    ` translated into ${tgtName} from ${srcName}.` +
-    ` Identify elements that contain words NOT in ${tgtName}, including:` +
-    ` source-language words left untranslated, phonetic transliterations of source-language words` +
-    ` written in the Latin alphabet, and OCR-corrupted sequences that appear as nonsense.` +
-    ` Do NOT flag: proper nouns (person names, organization names, city/country names),` +
-    ` codes (document numbers, reference codes, identifiers),` +
-    ` numbers, dates, currency amounts, email addresses, URLs,` +
-    ` standard international abbreviations (ID, IIN, BIN, IIK, IBAN, BIC, SWIFT, etc.),` +
-    ` or tokens matching __WPO_PV_*__ / __WPO_VIS_*__ patterns.`;
+    `You are a translation quality reviewer specializing in official document localization.` +
+    ` You receive structural elements (document titles, headings, field labels, table headers,` +
+    ` organization names, bank names) from a document translated into ${tgtName} from ${srcName}.` +
+    ` Identify and correct ONLY the following issues:\n` +
+    ` (1) untranslated — source-language words left in the text;\n` +
+    ` (2) transliterated_instead_of_translated — phonetic Latin transcription of source-language words;\n` +
+    ` (3) ocr_corruption — garbled sequences (e.g. "lIIC", "Centr" instead of "Center");\n` +
+    ` (4) wrong_target_language — text in a third language;\n` +
+    ` (5) broken_heading — structurally malformed title or heading;\n` +
+    ` (6) spelling — clear spelling error in a structural element;\n` +
+    ` (7) unnatural_translation — awkward calque that a ${tgtName} speaker would never write;\n` +
+    ` (8) entity_inconsistency — same organization/bank name spelled differently in the same document;\n` +
+    ` (9) incorrect_acronym — acronym that is wrong for the target language (e.g. IIC vs IIK).\n\n` +
+    ` STRICT EXCLUSIONS — do NOT flag or change:\n` +
+    ` - Person names, city names, country names;\n` +
+    ` - Amounts, numbers, account/document codes, dates;\n` +
+    ` - Email addresses and URLs;\n` +
+    ` - __WPO_PV_*__ and __WPO_VIS_*__ tokens;\n` +
+    ` - Organization names that are registered trademarks or brands (leave as-is unless there is a clear spelling error);\n` +
+    ` - Standard international abbreviations: IIN, BIN, IIK, IBAN, BIC, SWIFT, KZT, USD, etc.`;
+
+  const reasonValues =
+    `untranslated|transliterated_instead_of_translated|ocr_corruption|` +
+    `wrong_target_language|broken_heading|spelling|unnatural_translation|` +
+    `entity_inconsistency|incorrect_acronym`;
+  const segmentValues =
+    `title|heading|label|table_header|organization_name|bank_name|acronym`;
 
   const userPrompt =
     `Structural elements to review:\n` +
     elements.join('\n') +
     `\n\nReturn a JSON array of corrections. If nothing needs correction, return [].` +
-    ` Format: [{"original":"...","corrected":"...","reason":"untranslated|transliterated_instead_of_translated|ocr_corruption|wrong_target_language|broken_heading"}]`;
+    ` Format: [{"original":"...","corrected":"...","reason":"${reasonValues}","segmentType":"${segmentValues}"}]` +
+    ` Emit only corrections where you are highly confident. Do not guess.`;
 
   try {
     const response = await client.messages.create({

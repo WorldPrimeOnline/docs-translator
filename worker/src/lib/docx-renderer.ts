@@ -228,7 +228,17 @@ function parseMarkdownTable(lines: string[]): ParsedTable | null {
 
 interface TableOpts {
   compact?: boolean;
+  /**
+   * When true, apply keepNext to the last ORPHAN_GUARD_ROWS data rows to prevent
+   * a single row being stranded on a new page. Only safe for small KV tables.
+   */
+  antiOrphan?: boolean;
 }
+
+/** Maximum data rows for which anti-orphan keepNext is applied. */
+const SMALL_KV_TABLE_MAX_ROWS = 16;
+/** Number of trailing rows kept together to prevent orphan last row. */
+const ORPHAN_GUARD_ROWS = 2;
 
 function buildDocxTable(parsed: ParsedTable, opts: TableOpts = {}): Table {
   const colCount = parsed.headers.length;
@@ -239,6 +249,15 @@ function buildDocxTable(parsed: ParsedTable, opts: TableOpts = {}): Table {
     ? { top: 50, bottom: 50, left: 80, right: 80 }
     : { top: 80, bottom: 80, left: 120, right: 120 };
 
+  const applyAntiOrphan =
+    opts.antiOrphan === true &&
+    parsed.rows.length >= 2 &&
+    parsed.rows.length <= SMALL_KV_TABLE_MAX_ROWS;
+
+  const orphanGuardStart = applyAntiOrphan
+    ? Math.max(0, parsed.rows.length - ORPHAN_GUARD_ROWS)
+    : parsed.rows.length; // effectively disabled
+
   const headerRow = new TableRow({
     tableHeader: true,
     children: parsed.headers.map((h, idx) =>
@@ -247,6 +266,8 @@ function buildDocxTable(parsed: ParsedTable, opts: TableOpts = {}): Table {
           new Paragraph({
             children: [new TextRun({ text: h, bold: true, size: fontSize })],
             spacing: { before: 0, after: 0 },
+            // Keep header with first data row
+            keepNext: applyAntiOrphan,
           }),
         ],
         width: { size: colWidths[idx] ?? Math.floor(9000 / colCount), type: WidthType.DXA },
@@ -256,10 +277,12 @@ function buildDocxTable(parsed: ParsedTable, opts: TableOpts = {}): Table {
     ),
   });
 
-  const dataRows = parsed.rows.map((row) => {
+  const dataRows = parsed.rows.map((row, rowIdx) => {
     const cells = [...row];
     while (cells.length < colCount) cells.push('');
     const normalized = cells.slice(0, colCount);
+    // keepNext on rows in the anti-orphan guard zone (all but the very last)
+    const useKeepNext = applyAntiOrphan && rowIdx >= orphanGuardStart && rowIdx < parsed.rows.length - 1;
     return new TableRow({
       cantSplit: true,
       children: normalized.map((cell, idx) =>
@@ -268,6 +291,7 @@ function buildDocxTable(parsed: ParsedTable, opts: TableOpts = {}): Table {
             new Paragraph({
               children: parseInlineMarkdown(cell, fontSize),
               spacing: { before: 0, after: 0 },
+              keepNext: useKeepNext || undefined,
             }),
           ],
           width: { size: colWidths[idx] ?? Math.floor(9000 / colCount), type: WidthType.DXA },
@@ -390,7 +414,8 @@ function parseMarkdownToDocx(markdown: string): DocxChild[] {
         if (parsed) {
           const tableKind: LegacyTableKind = inVisualSection ? 'visual_elements' : 'unknown';
           const finalParsed = normalizeKvParsedTable(parsed, { kind: tableKind });
-          children.push(buildDocxTable(finalParsed, { compact: inVisualSection }));
+          const isKvTable = finalParsed.headers.length === 2 && !inVisualSection;
+          children.push(buildDocxTable(finalParsed, { compact: inVisualSection, antiOrphan: isKvTable }));
         } else {
           for (const tl of tableLines) {
             children.push(
@@ -425,6 +450,7 @@ function parseMarkdownToDocx(markdown: string): DocxChild[] {
           text: line.replace(/^#+\s+/, ''),
           heading: HeadingLevel.HEADING_2,
           spacing: { before: 200, after: 80 },
+          keepNext: true,
         }),
       );
     } else if (/^#{3,}\s+/.test(line)) {

@@ -1,5 +1,29 @@
 import type { VisualElement } from './visual-elements';
 
+// ─── Visual text evidence ─────────────────────────────────────────────────────
+
+export type VisualTextSelectionMethod =
+  | 'ocr_exact'
+  | 'vision_exact'
+  | 'ocr_vision_agreement'
+  | 'uncertain';
+
+/**
+ * Tracks the provenance of visible text found on a visual element.
+ * Separates the CONFIRMED SOURCE TEXT from its translation so the two
+ * are never mixed and the model cannot hallucinate source content.
+ */
+export interface VisualTextEvidence {
+  ocrText?: string;
+  visionText?: string;
+  /** The authoritative source text selected from OCR/vision evidence. */
+  selectedSourceText?: string;
+  /** Translation filled by the model — never guessed from source alone. */
+  translatedText?: string;
+  confidence: number;
+  selectionMethod: VisualTextSelectionMethod;
+}
+
 export type VisualElementKindExtended =
   | 'logo'
   | 'emblem'
@@ -38,7 +62,10 @@ export interface DetectedVisualElement {
   occurrenceIndex: number;
   position: VisualPosition;
   description?: string;
+  /** Raw visible text from OCR/vision. Use textEvidence.selectedSourceText when available. */
   visibleText?: string;
+  /** Structured evidence for the visible text on this element. Preferred over visibleText. */
+  textEvidence?: VisualTextEvidence;
   confidence: number;
   bbox?: BoundingBox;
   source: 'mistral_ocr' | 'markdown_marker' | 'page_vision' | 'regex';
