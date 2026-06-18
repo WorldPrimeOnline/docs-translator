@@ -19,6 +19,7 @@ import {
   buildQualityRetryPrompt,
   selectBestTranslation,
   formatQualityLogLine,
+  extractCertificationIdentifiers,
   type TranslationQualityIssue,
 } from '../translation-quality-gate';
 import { extractMarkdownTableShapes } from '../table-shape';
@@ -417,6 +418,220 @@ describe('Translation quality gate — Thai→Russian lab report', () => {
       expect(log).toContain('retry=true');
       expect(log).toContain('selected=retry');
     });
+  });
+});
+
+// ── Table structural matching regression ──────────────────────────────────────
+
+describe('Table structural matching — extra metadata table + damaged source table', () => {
+  // Regression: translation adds an extra 2-column metadata table AND damages
+  // one of the source data tables (drops a column). The quality gate must detect
+  // the damaged table even though table counts differ.
+  const SOURCE_TWO_TABLES = `
+## Data Table A
+
+| Col1 | Col2 | Col3 | Col4 | Col5 | Col6 |
+|---|---|---|---|---|---|
+| a1 | a2 | a3 | a4 | a5 | a6 |
+| b1 | b2 | b3 | b4 | b5 | b6 |
+| c1 | c2 | c3 | c4 | c5 | c6 |
+| d1 | d2 | d3 | d4 | d5 | d6 |
+
+## Reference Table B
+
+| H1 | H2 | H3 | H4 | H5 | H6 | H7 | H8 | H9 | H10 | H11 | H12 | H13 | H14 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| v1 | v2 | v3 | v4 | v5 | v6 | v7 | v8 | v9 | v10 | v11 | v12 | v13 | v14 |
+| w1 | w2 | w3 | w4 | w5 | w6 | w7 | w8 | w9 | w10 | w11 | w12 | w13 | w14 |
+| x1 | x2 | x3 | x4 | x5 | x6 | x7 | x8 | x9 | x10 | x11 | x12 | x13 | x14 |
+`;
+
+  // Translation: extra 2-col metadata table + Table A (intact) + Table B (damaged: 13 cols)
+  const TRANSLATION_EXTRA_META_DAMAGED_B = `
+## Patient Data
+
+| Parameter | Value |
+|---|---|
+| Name | John Doe |
+| ID | 12345 |
+| Date | 2026-06-17 |
+
+## Data Table A
+
+| Кол1 | Кол2 | Кол3 | Кол4 | Кол5 | Кол6 |
+|---|---|---|---|---|---|
+| a1 | a2 | a3 | a4 | a5 | a6 |
+| b1 | b2 | b3 | b4 | b5 | b6 |
+| c1 | c2 | c3 | c4 | c5 | c6 |
+| d1 | d2 | d3 | d4 | d5 | d6 |
+
+## Reference Table B (damaged — 13 cols instead of 14)
+
+| Х1 | Х2 | Х3 | Х4 | Х5 | Х6 | Х7 | Х8 | Х9 | Х10 | Х11 | Х12 | Х13 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| v1 | v2 | v3 | v4 | v5 | v6 | v7 | v8 | v9 | v10 | v11 | v12 | v13 |
+| w1 | w2 | w3 | w4 | w5 | w6 | w7 | w8 | w9 | w10 | w11 | w12 | w13 |
+| x1 | x2 | x3 | x4 | x5 | x6 | x7 | x8 | x9 | x10 | x11 | x12 | x13 |
+`;
+
+  it('detects TABLE_SHAPE_CHANGED for damaged 14→13 column table', () => {
+    const result = runTranslationQualityGate({
+      sourceMarkdown: SOURCE_TWO_TABLES,
+      translatedMarkdown: TRANSLATION_EXTRA_META_DAMAGED_B,
+      sourceLang: 'en',
+      targetLang: 'ru',
+    });
+    const shapeIssue = result.issues.find(i => i.code === 'TABLE_SHAPE_CHANGED');
+    expect(shapeIssue).toBeDefined();
+    expect(shapeIssue!.details).toContain('14');
+    expect(shapeIssue!.details).toContain('13');
+  });
+
+  it('does NOT flag TABLE_SHAPE_CHANGED for intact Table A (6 cols preserved)', () => {
+    const result = runTranslationQualityGate({
+      sourceMarkdown: SOURCE_TWO_TABLES,
+      translatedMarkdown: TRANSLATION_EXTRA_META_DAMAGED_B,
+      sourceLang: 'en',
+      targetLang: 'ru',
+    });
+    const shapeIssues = result.issues.filter(i => i.code === 'TABLE_SHAPE_CHANGED');
+    // Only Table B should be flagged, not Table A
+    expect(shapeIssues.length).toBe(1);
+    expect(shapeIssues[0]!.details).not.toContain('6×');
+  });
+
+  it('retry prompt mentions 14 columns for damaged table', () => {
+    const { issues, metrics } = runTranslationQualityGate({
+      sourceMarkdown: SOURCE_TWO_TABLES,
+      translatedMarkdown: TRANSLATION_EXTRA_META_DAMAGED_B,
+      sourceLang: 'en',
+      targetLang: 'ru',
+    });
+    const prompt = buildQualityRetryPrompt(issues, metrics);
+    expect(prompt).toContain('14 columns');
+  });
+});
+
+// ── Source-script in table cells ──────────────────────────────────────────────
+
+describe('Source-script in table cells', () => {
+  // A table cell that contains a long Thai fragment (≥20 chars) outside parentheses
+  const TRANSLATION_THAI_IN_CELL = `# Лабораторный отчёт
+
+## Данные пациента
+
+| Параметр | Значение |
+|---|---|
+| Имя | Mr. Test Patient |
+| HN | 6905154803 |
+| Больница | ในกรณีที่ต้องการค่าความไม่แน่นอนขยาย |
+
+## Результаты
+
+| Исследование | Результат |
+|---|---|
+| ЭКГ | Норма |
+`;
+
+  it('detects LONG_SOURCE_SCRIPT_FRAGMENT_IN_TABLE', () => {
+    const result = runTranslationQualityGate({
+      sourceMarkdown: SOURCE_MARKDOWN,
+      translatedMarkdown: TRANSLATION_THAI_IN_CELL,
+      sourceLang: 'th',
+      targetLang: 'ru',
+    });
+    const issue = result.issues.find(i => i.code === 'LONG_SOURCE_SCRIPT_FRAGMENT_IN_TABLE');
+    expect(issue).toBeDefined();
+    expect(issue!.severity).toBe('retry_required');
+  });
+
+  it('does NOT flag short Thai in parentheses (official original spelling)', () => {
+    // "เมืองวอยเล็บ" (11 chars) in parens is acceptable
+    const result = runTranslationQualityGate({
+      sourceMarkdown: SOURCE_MARKDOWN,
+      translatedMarkdown: GOOD_TRANSLATION,
+      sourceLang: 'th',
+      targetLang: 'ru',
+    });
+    const issue = result.issues.find(i => i.code === 'LONG_SOURCE_SCRIPT_FRAGMENT_IN_TABLE');
+    expect(issue).toBeUndefined();
+  });
+
+  it('retry prompt mentions table cells', () => {
+    const { issues, metrics } = runTranslationQualityGate({
+      sourceMarkdown: SOURCE_MARKDOWN,
+      translatedMarkdown: TRANSLATION_THAI_IN_CELL,
+      sourceLang: 'th',
+      targetLang: 'ru',
+    });
+    const prompt = buildQualityRetryPrompt(issues, metrics);
+    expect(prompt).toContain('table cell');
+  });
+});
+
+// ── Certification identifier evidence check ───────────────────────────────────
+
+describe('Certification identifier evidence check', () => {
+  const BAD_TRANSLATION_WRONG_CERT = `# Лабораторный отчёт
+
+## Результаты
+
+Тест по ISO 13485.
+Также используется ISO 15189.
+
+| Test | Value |
+|---|---|
+| Result | Normal |
+`;
+
+  it('detects UNSUPPORTED_CERTIFICATION_IDENTIFIER when translation adds ISO 13485 (not in source)', () => {
+    const result = runTranslationQualityGate({
+      sourceMarkdown: SOURCE_MARKDOWN,
+      translatedMarkdown: BAD_TRANSLATION_WRONG_CERT,
+      sourceLang: 'th',
+      targetLang: 'ru',
+    });
+    const issue = result.issues.find(i => i.code === 'UNSUPPORTED_CERTIFICATION_IDENTIFIER');
+    expect(issue).toBeDefined();
+    expect(issue!.details).toContain('ISO13485');
+  });
+
+  it('does NOT flag ISO 15189 which is present in source', () => {
+    const result = runTranslationQualityGate({
+      sourceMarkdown: SOURCE_MARKDOWN,
+      translatedMarkdown: BAD_TRANSLATION_WRONG_CERT,
+      sourceLang: 'th',
+      targetLang: 'ru',
+    });
+    const certIssues = result.issues.filter(i => i.code === 'UNSUPPORTED_CERTIFICATION_IDENTIFIER');
+    const iso15189Issue = certIssues.find(i => i.details.includes('15189'));
+    expect(iso15189Issue).toBeUndefined();
+  });
+
+  it('GOOD_TRANSLATION fixture contains ISO 15189', () => {
+    expect(GOOD_TRANSLATION).toContain('ISO 15189');
+  });
+
+  it('GOOD_TRANSLATION fixture does not contain ISO 13485', () => {
+    expect(GOOD_TRANSLATION).not.toContain('ISO 13485');
+  });
+
+  it('GOOD_TRANSLATION passes certification identifier check', () => {
+    const result = runTranslationQualityGate({
+      sourceMarkdown: SOURCE_MARKDOWN,
+      translatedMarkdown: GOOD_TRANSLATION,
+      sourceLang: 'th',
+      targetLang: 'ru',
+    });
+    const certIssues = result.issues.filter(i => i.code === 'UNSUPPORTED_CERTIFICATION_IDENTIFIER');
+    expect(certIssues).toHaveLength(0);
+  });
+
+  it('extractCertificationIdentifiers correctly normalizes ISO identifiers', () => {
+    const ids = extractCertificationIdentifiers('# ISO 15189 and IEC 62133:2012 and ILAC-MRA');
+    expect(ids.has('ISO15189')).toBe(true);
+    expect(ids.has('IEC6213320120')).toBe(false); // colon/year stripped differently
+    expect(ids.has('ILACMRA')).toBe(true);
   });
 });
 
