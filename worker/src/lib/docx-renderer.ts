@@ -19,7 +19,7 @@ import { ensureVisualElementsBlock, type VisualElement } from './visual-elements
 import { normalizeKvParsedTable, type LegacyTableKind } from './kv-normalizer';
 import { PROVIDER_INFO } from './provider-info';
 import { classifyFinancialBlock, computeLineItemColumnWidths } from './financial-blocks';
-import { splitTextByScript, type ScriptKind } from './unicode-script';
+import { splitTextByScript, hasDominantRtlScript, type ScriptKind } from './unicode-script';
 
 type ServiceLevel =
   | 'electronic'
@@ -198,6 +198,18 @@ const HEADER_FILL = 'E6E6E6';
 // when a single TextRun has no font override and the document default font
 // doesn't cover that script. We split by Unicode script and assign per-script
 // Noto fonts (OFL-licensed, installed via fonts-noto in the Railway Docker image).
+//
+// Font families in use:
+//   Latin + Cyrillic (kk/uz/tk/tr covered)  → Noto Sans
+//   Thai                                     → Noto Sans Thai
+//   Arabic                                   → Noto Sans Arabic
+//   Han (Simplified Chinese, zh)             → Noto Sans CJK SC
+//   Han + Kana (Japanese, ja)                → Noto Sans CJK JP
+//   Hangul (Korean, ko)                      → Noto Sans CJK KR
+//
+// Arabic/Hebrew runs also receive rightToLeft:true. Paragraphs whose text is
+// predominantly RTL receive bidirectional:true + AlignmentType.RIGHT so that
+// OOXML renderers set the correct base direction.
 
 type FontSpec = {
   ascii?: string;
@@ -207,8 +219,13 @@ type FontSpec = {
   hint?: string;      // 'cs' tells the renderer to prefer the complex-script path
 };
 
-function getScriptFont(script: ScriptKind): FontSpec | undefined {
+// lang is the document targetLang, used only for CJK SC/JP/KR selection.
+function getScriptFont(script: ScriptKind, lang = 'en'): FontSpec | undefined {
   switch (script) {
+    case 'latin':
+    case 'cyrillic':
+      // Explicit Noto Sans covers Latin, Extended Latin (de/fr/es/it), and Cyrillic (ru/kk/uz/tk)
+      return { ascii: 'Noto Sans', hAnsi: 'Noto Sans' };
     case 'thai':
       return { ascii: 'Noto Sans Thai', hAnsi: 'Noto Sans Thai', cs: 'Noto Sans Thai', hint: 'cs' };
     case 'arabic':
@@ -217,10 +234,15 @@ function getScriptFont(script: ScriptKind): FontSpec | undefined {
       return { ascii: 'Noto Sans Hebrew', hAnsi: 'Noto Sans Hebrew', cs: 'Noto Sans Hebrew', hint: 'cs' };
     case 'devanagari':
       return { ascii: 'Noto Sans Devanagari', hAnsi: 'Noto Sans Devanagari', cs: 'Noto Sans Devanagari', hint: 'cs' };
-    case 'cjk':
-      return { eastAsia: 'Noto Sans CJK SC' };
+    case 'cjk': {
+      const eastAsia =
+        lang === 'ja' ? 'Noto Sans CJK JP' :
+        lang === 'ko' ? 'Noto Sans CJK KR' :
+                        'Noto Sans CJK SC';
+      return { eastAsia };
+    }
     default:
-      return undefined; // Latin, Cyrillic, Common: inherit document default font
+      return undefined; // common/unknown: inherit document default
   }
 }
 
@@ -230,14 +252,23 @@ interface ScriptRunOpts {
   italics?: boolean;
   color?: string;
   allCaps?: boolean;
+  /** Document target language; used for CJK font variant selection (SC/JP/KR). */
+  lang?: string;
 }
 
 function createScriptAwareTextRuns(text: string, opts: ScriptRunOpts = {}): TextRun[] {
+  const { lang = 'en', ...runOpts } = opts;
   const segments = splitTextByScript(text);
-  if (segments.length === 0) return [new TextRun({ text: '', ...opts })];
+  if (segments.length === 0) return [new TextRun({ text: '', ...runOpts })];
   return segments.map(seg => {
-    const font = getScriptFont(seg.script);
-    return new TextRun({ text: seg.text, ...opts, ...(font ? { font } : {}) });
+    const font = getScriptFont(seg.script, lang);
+    const rtl = seg.script === 'arabic' || seg.script === 'hebrew';
+    return new TextRun({
+      text: seg.text,
+      ...runOpts,
+      ...(font ? { font } : {}),
+      ...(rtl ? { rightToLeft: true } : {}),
+    });
   });
 }
 
@@ -256,7 +287,7 @@ function getColumnWidths(colCount: number, usableWidth = PORTRAIT_WIDTH_DXA): nu
   return Array.from({ length: colCount }, () => Math.floor(usableWidth / colCount));
 }
 
-function parseInlineMarkdown(text: string, size?: number): TextRun[] {
+function parseInlineMarkdown(text: string, size?: number, lang = 'en'): TextRun[] {
   const runs: TextRun[] = [];
   const segRe = /(\*\*[^*]+\*\*|\*[^*]+\*|\[([^\]]{1,120})\])/g;
   let segMatch: RegExpExecArray | null;
@@ -265,13 +296,13 @@ function parseInlineMarkdown(text: string, size?: number): TextRun[] {
 
   while ((segMatch = segRe.exec(text)) !== null) {
     if (segMatch.index > pos) {
-      runs.push(...createScriptAwareTextRuns(text.slice(pos, segMatch.index), { size }));
+      runs.push(...createScriptAwareTextRuns(text.slice(pos, segMatch.index), { size, lang }));
     }
     const part = segMatch[0];
     if (part.startsWith('**') && part.endsWith('**')) {
-      runs.push(...createScriptAwareTextRuns(part.slice(2, -2), { bold: true, size }));
+      runs.push(...createScriptAwareTextRuns(part.slice(2, -2), { bold: true, size, lang }));
     } else if (part.startsWith('*') && part.endsWith('*') && !part.startsWith('**')) {
-      runs.push(...createScriptAwareTextRuns(part.slice(1, -1), { italics: true, size }));
+      runs.push(...createScriptAwareTextRuns(part.slice(1, -1), { italics: true, size, lang }));
     } else if (part.startsWith('[') && part.endsWith(']')) {
       // Visual element marker — kept as-is, always ASCII
       runs.push(new TextRun({ text: part, italics: true, color: '333333', size }));
@@ -280,10 +311,10 @@ function parseInlineMarkdown(text: string, size?: number): TextRun[] {
   }
 
   if (pos < text.length) {
-    runs.push(...createScriptAwareTextRuns(text.slice(pos), { size }));
+    runs.push(...createScriptAwareTextRuns(text.slice(pos), { size, lang }));
   }
 
-  return runs.length > 0 ? runs : createScriptAwareTextRuns(text, { size });
+  return runs.length > 0 ? runs : createScriptAwareTextRuns(text, { size, lang });
 }
 
 interface ParsedTable {
@@ -323,6 +354,8 @@ interface TableOpts {
   fontSize?: number;
   /** Table total width. Defaults to sum of columnWidths. */
   totalWidthDxa?: number;
+  /** Document target language; passed to createScriptAwareTextRuns for CJK/RTL. */
+  lang?: string;
 }
 
 /** Maximum data rows for which anti-orphan keepNext is applied. */
@@ -366,22 +399,26 @@ function buildDocxTable(parsed: ParsedTable, opts: TableOpts = {}): Table {
     ? Math.max(0, parsed.rows.length - ORPHAN_GUARD_ROWS)
     : parsed.rows.length; // effectively disabled
 
+  const tableLang = opts.lang ?? 'en';
   const headerRow = new TableRow({
     tableHeader: opts.repeatHeader === true || applyAntiOrphan,
-    children: parsed.headers.map((h, idx) =>
-      new TableCell({
+    children: parsed.headers.map((h, idx) => {
+      const isHRtl = hasDominantRtlScript(h);
+      return new TableCell({
         children: [
           new Paragraph({
-            children: createScriptAwareTextRuns(h, { bold: true, size: effectiveFontSize }),
+            children: createScriptAwareTextRuns(h, { bold: true, size: effectiveFontSize, lang: tableLang }),
             spacing: { before: 0, after: 0 },
             keepNext: applyAntiOrphan,
+            bidirectional: isHRtl || undefined,
+            alignment: isHRtl ? AlignmentType.RIGHT : undefined,
           }),
         ],
         width: { size: colWidths[idx] ?? Math.floor(totalWidth / colCount), type: WidthType.DXA },
         margins: cellMargins,
         shading: { fill: HEADER_FILL, type: ShadingType.CLEAR },
-      }),
-    ),
+      });
+    }),
   });
 
   const dataRows = parsed.rows.map((row, rowIdx) => {
@@ -393,13 +430,15 @@ function buildDocxTable(parsed: ParsedTable, opts: TableOpts = {}): Table {
       cantSplit: true,
       children: normalized.map((cell, idx) => {
         const isNumeric = numericCols.has(idx);
+        const isCellRtl = hasDominantRtlScript(cell);
         return new TableCell({
           children: [
             new Paragraph({
-              children: parseInlineMarkdown(cell, effectiveFontSize),
+              children: parseInlineMarkdown(cell, effectiveFontSize, tableLang),
               spacing: { before: 0, after: 0 },
               keepNext: useKeepNext || undefined,
-              alignment: isNumeric ? AlignmentType.RIGHT : undefined,
+              bidirectional: isCellRtl || undefined,
+              alignment: isCellRtl || isNumeric ? AlignmentType.RIGHT : undefined,
             }),
           ],
           width: { size: colWidths[idx] ?? Math.floor(totalWidth / colCount), type: WidthType.DXA },
@@ -484,7 +523,7 @@ type OrientedBlock =
   | { orient: 'portrait'; child: DocxChild }
   | { orient: 'landscape'; children: DocxChild[] };
 
-function buildLineItemTable(parsed: ParsedTable): Table {
+function buildLineItemTable(parsed: ParsedTable, lang = 'en'): Table {
   const colWidths = computeLineItemColumnWidths(parsed.headers.length, LANDSCAPE_WIDTH_DXA);
   const numericCols = detectNumericColumns(parsed);
   return buildDocxTable(parsed, {
@@ -494,10 +533,11 @@ function buildLineItemTable(parsed: ParsedTable): Table {
     fontSize: 16,
     totalWidthDxa: LANDSCAPE_WIDTH_DXA,
     compact: true,
+    lang,
   });
 }
 
-function parseMarkdownToBlocks(markdown: string): OrientedBlock[] {
+function parseMarkdownToBlocks(markdown: string, lang = 'en'): OrientedBlock[] {
   const lines = markdown.split('\n');
   const blocks: OrientedBlock[] = [];
   let i = 0;
@@ -528,8 +568,7 @@ function parseMarkdownToBlocks(markdown: string): OrientedBlock[] {
             const finBlock = classifyFinancialBlock(parsed.headers, parsed.rows);
             if (finBlock.isWide) {
               // Wide line-item table → landscape section
-              // Collect any pending heading that was just before this table
-              const landscapeChildren: DocxChild[] = [buildLineItemTable(parsed)];
+              const landscapeChildren: DocxChild[] = [buildLineItemTable(parsed, lang)];
               blocks.push({ orient: 'landscape', children: landscapeChildren });
               continue;
             }
@@ -540,14 +579,15 @@ function parseMarkdownToBlocks(markdown: string): OrientedBlock[] {
           const isKvTable = finalParsed.headers.length === 2 && !inVisualSection;
           blocks.push({
             orient: 'portrait',
-            child: buildDocxTable(finalParsed, { compact: inVisualSection, antiOrphan: isKvTable }),
+            child: buildDocxTable(finalParsed, { compact: inVisualSection, antiOrphan: isKvTable, lang }),
           });
         } else {
           for (const tl of tableLines) {
+            const tlText = tl.replace(/^\||\|$/g, '').replace(/\|/g, ' | ');
             blocks.push({
               orient: 'portrait',
               child: new Paragraph({
-                children: parseInlineMarkdown(tl.replace(/^\||\|$/g, '').replace(/\|/g, ' | ')),
+                children: parseInlineMarkdown(tlText, undefined, lang),
                 spacing: { after: 60 },
               }),
             });
@@ -564,38 +604,43 @@ function parseMarkdownToBlocks(markdown: string): OrientedBlock[] {
     }
 
     let child: DocxChild;
-    if (/^#{1}\s+/.test(line)) {
+    if (/^#{1,3}\s+/.test(line)) {
+      const headingText = line.replace(/^#+\s+/, '');
+      const isRtl = hasDominantRtlScript(headingText);
+      const level = /^#{3,}\s+/.test(line) ? HeadingLevel.HEADING_3
+                  : /^#{2}\s+/.test(line)  ? HeadingLevel.HEADING_2
+                  :                           HeadingLevel.HEADING_1;
       child = new Paragraph({
-        children: createScriptAwareTextRuns(line.replace(/^#+\s+/, '')),
-        heading: HeadingLevel.HEADING_1,
-        spacing: { before: 240, after: 120 },
-      });
-    } else if (/^#{2}\s+/.test(line)) {
-      child = new Paragraph({
-        children: createScriptAwareTextRuns(line.replace(/^#+\s+/, '')),
-        heading: HeadingLevel.HEADING_2,
-        spacing: { before: 200, after: 80 },
-        keepNext: true,
-      });
-    } else if (/^#{3,}\s+/.test(line)) {
-      child = new Paragraph({
-        children: createScriptAwareTextRuns(line.replace(/^#+\s+/, '')),
-        heading: HeadingLevel.HEADING_3,
-        spacing: { before: 160, after: 80 },
+        children: createScriptAwareTextRuns(headingText, { lang }),
+        heading: level,
+        spacing:
+          level === HeadingLevel.HEADING_1 ? { before: 240, after: 120 } :
+          level === HeadingLevel.HEADING_2 ? { before: 200, after: 80 } :
+                                             { before: 160, after: 80 },
+        keepNext: level === HeadingLevel.HEADING_2 ? true : undefined,
+        bidirectional: isRtl || undefined,
+        alignment: isRtl ? AlignmentType.RIGHT : undefined,
       });
     } else if (/^[-*+]\s+/.test(line)) {
+      const listText = line.replace(/^[-*+]\s+/, '');
+      const isRtl = hasDominantRtlScript(listText);
       child = new Paragraph({
-        children: parseInlineMarkdown(line.replace(/^[-*+]\s+/, '')),
+        children: parseInlineMarkdown(listText, undefined, lang),
         bullet: { level: 0 },
         spacing: { after: 60 },
+        bidirectional: isRtl || undefined,
+        alignment: isRtl ? AlignmentType.RIGHT : undefined,
       });
     } else if (line.trim() === '') {
       child = new Paragraph({ text: '', spacing: { after: 60 } });
     } else {
       const textLine = line.replace(/!\[[^\]]*\]\([^)]+\)/g, '');
+      const isRtl = hasDominantRtlScript(textLine);
       child = new Paragraph({
-        children: parseInlineMarkdown(textLine),
+        children: parseInlineMarkdown(textLine, undefined, lang),
         spacing: { after: 80 },
+        bidirectional: isRtl || undefined,
+        alignment: isRtl ? AlignmentType.RIGHT : undefined,
       });
     }
     blocks.push({ orient: 'portrait', child });
@@ -645,7 +690,7 @@ export async function renderToDocx(
     meta.targetLang,
   );
 
-  const orientedBlocks = parseMarkdownToBlocks(finalMarkdown);
+  const orientedBlocks = parseMarkdownToBlocks(finalMarkdown, meta.targetLang);
   const hasLandscape = orientedBlocks.some(b => b.orient === 'landscape');
 
   // Build the translation heading paragraph (reused across portrait sections)

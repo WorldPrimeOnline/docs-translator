@@ -115,3 +115,22 @@ export function splitTextByScript(text: string): ScriptSegment[] {
 
   return segments;
 }
+
+/**
+ * Returns true when the text is predominantly right-to-left (Arabic or Hebrew).
+ * Used to set paragraph bidirectional and alignment properties.
+ * "Dominant" means > 50% of non-common code points are RTL script.
+ */
+export function hasDominantRtlScript(text: string): boolean {
+  let rtlCount = 0;
+  let totalCount = 0;
+  for (const char of text) {
+    const cp = char.codePointAt(0) ?? 0;
+    const script = detectUnicodeScript(cp);
+    if (script !== 'common' && script !== 'unknown') {
+      totalCount++;
+      if (script === 'arabic' || script === 'hebrew') rtlCount++;
+    }
+  }
+  return totalCount > 0 && rtlCount / totalCount > 0.5;
+}
