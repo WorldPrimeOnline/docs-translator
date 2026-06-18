@@ -12,11 +12,10 @@ import {
   BorderStyle,
   AlignmentType,
   ShadingType,
-  PageNumberElement,
   SimpleField,
 } from 'docx';
 import { ensureVisualElementsBlock, type VisualElement } from './visual-elements';
-import { normalizeKvParsedTable } from './kv-normalizer';
+import { normalizeKvParsedTable, type LegacyTableKind } from './kv-normalizer';
 import { PROVIDER_INFO } from './provider-info';
 
 type ServiceLevel =
@@ -151,9 +150,9 @@ function buildTranslationFooter(meta: DocxMeta): Footer {
         alignment: AlignmentType.CENTER,
         children: [
           new TextRun({ text: labels.prefix, size: 16, color: '888888' }),
-          new PageNumberElement(), // current page number field
+          new SimpleField('PAGE'),
           new TextRun({ text: labels.sep, size: 16, color: '888888' }),
-          new SimpleField('NUMPAGES'), // total pages field
+          new SimpleField('NUMPAGES'),
         ],
       }),
     ],
@@ -389,8 +388,8 @@ function parseMarkdownToDocx(markdown: string): DocxChild[] {
         }
         const parsed = parseMarkdownTable(tableLines);
         if (parsed) {
-          // Normalize 4-col KV tables to 2-col before rendering
-          const finalParsed = normalizeKvParsedTable(parsed);
+          const tableKind: LegacyTableKind = inVisualSection ? 'visual_elements' : 'unknown';
+          const finalParsed = normalizeKvParsedTable(parsed, { kind: tableKind });
           children.push(buildDocxTable(finalParsed, { compact: inVisualSection }));
         } else {
           for (const tl of tableLines) {
