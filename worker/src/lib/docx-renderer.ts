@@ -172,6 +172,25 @@ const VISUAL_BLOCK_HEADING_TEXTS = new Set([
   'Descripción de elementos no textuales del documento original',
 ]);
 
+// ─── Print-safe table style ───────────────────────────────────────────────────
+//
+// BBBBBB at size=1 (≈0.125 pt) is invisible on B&W printers, toner-save mode,
+// and after scanning. Black borders at size≥4 (≥0.5 pt) survive all of these.
+//
+// Semantic tables (KV, financial, medical, visual-elements, certification) use
+// PRINT_SAFE_BORDERS. Layout tables (none currently) would use none/NONE borders.
+const PRINT_SAFE_BORDERS = {
+  top:              { style: BorderStyle.SINGLE, color: '000000', size: 6 },
+  bottom:           { style: BorderStyle.SINGLE, color: '000000', size: 6 },
+  left:             { style: BorderStyle.SINGLE, color: '000000', size: 6 },
+  right:            { style: BorderStyle.SINGLE, color: '000000', size: 6 },
+  insideHorizontal: { style: BorderStyle.SINGLE, color: '000000', size: 4 },
+  insideVertical:   { style: BorderStyle.SINGLE, color: '000000', size: 4 },
+} as const;
+
+// Header cell fill — dark enough to remain visible in grayscale print.
+const HEADER_FILL = 'E6E6E6';
+
 // ─── Table utilities ──────────────────────────────────────────────────────────
 
 /** Portrait usable width (DXA). Used for non-wide tables. */
@@ -309,7 +328,7 @@ function buildDocxTable(parsed: ParsedTable, opts: TableOpts = {}): Table {
         ],
         width: { size: colWidths[idx] ?? Math.floor(totalWidth / colCount), type: WidthType.DXA },
         margins: cellMargins,
-        shading: { fill: 'F5F5F5', type: ShadingType.CLEAR },
+        shading: { fill: HEADER_FILL, type: ShadingType.CLEAR },
       }),
     ),
   });
@@ -342,14 +361,7 @@ function buildDocxTable(parsed: ParsedTable, opts: TableOpts = {}): Table {
   return new Table({
     rows: [headerRow, ...dataRows],
     width: { size: totalWidth, type: WidthType.DXA },
-    borders: {
-      top: { style: BorderStyle.SINGLE, size: 1, color: 'BBBBBB' },
-      bottom: { style: BorderStyle.SINGLE, size: 1, color: 'BBBBBB' },
-      left: { style: BorderStyle.SINGLE, size: 1, color: 'BBBBBB' },
-      right: { style: BorderStyle.SINGLE, size: 1, color: 'BBBBBB' },
-      insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: 'BBBBBB' },
-      insideVertical: { style: BorderStyle.SINGLE, size: 1, color: 'BBBBBB' },
-    },
+    borders: PRINT_SAFE_BORDERS,
   });
 }
 
@@ -408,14 +420,7 @@ function buildCertificationTable(meta: DocxMeta): Table {
   return new Table({
     rows: docxRows,
     width: { size: 9000, type: WidthType.DXA },
-    borders: {
-      top: { style: BorderStyle.SINGLE, size: 1, color: 'BBBBBB' },
-      bottom: { style: BorderStyle.SINGLE, size: 1, color: 'BBBBBB' },
-      left: { style: BorderStyle.SINGLE, size: 1, color: 'BBBBBB' },
-      right: { style: BorderStyle.SINGLE, size: 1, color: 'BBBBBB' },
-      insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: 'BBBBBB' },
-      insideVertical: { style: BorderStyle.SINGLE, size: 1, color: 'BBBBBB' },
-    },
+    borders: PRINT_SAFE_BORDERS,
   });
 }
 
