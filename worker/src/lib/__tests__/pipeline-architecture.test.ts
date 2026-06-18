@@ -1,15 +1,14 @@
 /**
  * Architecture tests: confirm the official translation pipeline never uses
- * AST rendering functions as primary output, regardless of whether AST
- * generation succeeds or fails.
+ * document AST — neither for generation nor for rendering.
  *
  * These tests exercise the real processor with mocked external I/O and
  * verify the call graph:
  *   OCR → protect → translate → coverage-check → [retry?] → DOCX render → HTML/PDF render → upload
  *
- * renderDocxFromAst and renderHtmlFromAst must never be called.
- * translateToAst may be called in the background (advisory enrichment) but
- * the result must never gate DOCX/PDF delivery.
+ * translateToAst, renderDocxFromAst, and renderHtmlFromAst must NEVER be called
+ * anywhere in the official job processing path. translateToAst is not imported
+ * by processor.ts — a static source check enforces this at test time.
  */
 
 // ── Module mocks ─────────────────────────────────────────────────────────────
@@ -33,9 +32,8 @@ jest.mock('../translator', () => ({
   retranslateWithCorrection: jest.fn(),
 }));
 
-jest.mock('../ast/translator', () => ({
-  translateToAst: jest.fn().mockRejectedValue(new Error('AST disabled in arch tests')),
-}));
+// translateToAst is NOT mocked here because processor.ts no longer imports it.
+// The static source test below enforces this at the module level.
 
 // !! These are the critical architecture assertions: mock them so we can spy
 jest.mock('../ast/ast-renderer', () => ({
@@ -137,6 +135,8 @@ jest.mock('../structural-review', () => ({
 
 // ── Imports ───────────────────────────────────────────────────────────────────
 
+import fs from 'fs';
+import path from 'path';
 import { processJob } from '../../processor';
 
 const SIMPLE_MD = `
@@ -357,6 +357,37 @@ describe('failure matrix: official pipeline resilience', () => {
 });
 
 // ── Content coverage integration ──────────────────────────────────────────────
+
+// ── Static source assertions ──────────────────────────────────────────────────
+// Fail immediately if anyone re-adds AST to the processor at the import level.
+// Reading the source as text is intentional: we want the test to catch even
+// a commented-out import that could be uncommented by mistake.
+
+describe('static: processor.ts must not import or call document AST', () => {
+  let processorSource: string;
+  beforeAll(() => {
+    processorSource = fs.readFileSync(
+      path.resolve(__dirname, '../../processor.ts'),
+      'utf-8',
+    );
+  });
+
+  test('processor.ts does not import translateToAst', () => {
+    expect(processorSource).not.toMatch(/translateToAst/);
+  });
+
+  test('processor.ts does not import renderDocxFromAst', () => {
+    expect(processorSource).not.toMatch(/renderDocxFromAst/);
+  });
+
+  test('processor.ts does not import renderHtmlFromAst', () => {
+    expect(processorSource).not.toMatch(/renderHtmlFromAst/);
+  });
+
+  test('processor.ts does not reference TranslationDocumentAstSchema', () => {
+    expect(processorSource).not.toMatch(/TranslationDocumentAstSchema/);
+  });
+});
 
 describe('content coverage: retry on mismatch', () => {
   beforeEach(setup);

@@ -19,7 +19,6 @@ import { resolveDocumentType } from './lib/effective-document-type';
 import { validateTranslationScript, buildScriptCorrectionPrompt } from './lib/script-validator';
 import { runStructuralReview, applyStructuralCorrections } from './lib/structural-review';
 import { assessOcrQuality } from './lib/ast/script-quality';
-import { translateToAst } from './lib/ast/translator';
 import { checkContentCoverage } from './lib/content-coverage';
 import { checkSourceCompleteness } from './lib/source-completeness';
 import { env } from './lib/env';
@@ -412,25 +411,6 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
       }
     }
 
-    // Generate structured AST in background (non-blocking — failure does not abort the job)
-    let translatedAst: unknown = null;
-    try {
-      const astResult = await translateToAst({
-        ocrMarkdown: markdown,
-        sourceLanguage: resolvedSourceLang ?? 'auto',
-        targetLanguage: doc.target_language,
-        documentType: docType,
-        pageCount,
-      });
-      translatedAst = astResult.ast;
-      if (astResult.lexiconWarning) console.warn(`${tag} AST lexicon warning: ${astResult.lexiconWarning}`);
-      console.log(`${tag} AST generated — ${astResult.ast.blocks.length} blocks, profile: ${astResult.ast.renderingProfile}`);
-    } catch (astErr) {
-      const astMsg = astErr instanceof Error ? astErr.message : String(astErr);
-      // Compact: Zod errors are enormous — log only a one-liner
-      console.warn(`${tag} AST generation failed (non-fatal): ${astMsg.split('\n')[0]?.slice(0, 120) ?? astMsg.slice(0, 120)}`);
-    }
-
     // ── 4. Render output in requested format ─────────────────────────────────
     await updateJob(jobId, 'pdf_rendering', 70);
 
@@ -534,7 +514,6 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
             translated_docx_key: draftDocxKey,
             translated_preview_pdf_key: previewPdfKey ?? null,
             qa_report: mergedQaReport,
-            ...(translatedAst ? { translated_ast: translatedAst } : {}),
           })
           .eq('id', existing.id);
       } else {
@@ -545,7 +524,6 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
           translated_docx_key: draftDocxKey,
           translated_preview_pdf_key: previewPdfKey ?? null,
           qa_report: mergedQaReport,
-          ...(translatedAst ? { translated_ast: translatedAst } : {}),
         });
       }
 
@@ -661,7 +639,6 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
         .from('translations')
         .update({
           translated_pdf_key: translatedKey,
-          ...(translatedAst ? { translated_ast: translatedAst } : {}),
         })
         .eq('id', existing.id);
     } else {
@@ -669,7 +646,6 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
         job_id: jobId,
         translated_markdown: translatedMarkdown,
         translated_pdf_key: translatedKey,
-        ...(translatedAst ? { translated_ast: translatedAst } : {}),
       });
     }
 
