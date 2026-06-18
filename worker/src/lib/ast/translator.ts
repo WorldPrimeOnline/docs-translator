@@ -156,7 +156,12 @@ export async function translateToAst(
       return { ast, usedFallback: false, lexiconWarning };
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));
-      console.error(`[ast-translator] attempt ${attempt + 1} failed:`, lastError.message);
+      // ZodError.message is the full issues JSON — emit a one-liner instead
+      const zodIssues = (err as { issues?: unknown[] }).issues;
+      const compact = Array.isArray(zodIssues)
+        ? `ZodError: ${zodIssues.length} issue(s), first: ${JSON.stringify(zodIssues[0]).slice(0, 120)}`
+        : lastError.message.split('\n')[0]?.slice(0, 200) ?? lastError.message.slice(0, 200);
+      console.warn(`[ast-translator] attempt ${attempt + 1} failed: ${compact}`);
     }
   }
 
