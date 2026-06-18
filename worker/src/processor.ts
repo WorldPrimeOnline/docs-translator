@@ -20,6 +20,8 @@ import { validateTranslationScript, buildScriptCorrectionPrompt } from './lib/sc
 import { runStructuralReview, applyStructuralCorrections } from './lib/structural-review';
 import { assessOcrQuality } from './lib/ast/script-quality';
 import { translateToAst } from './lib/ast/translator';
+import { checkContentCoverage } from './lib/content-coverage';
+import { checkSourceCompleteness } from './lib/source-completeness';
 import { env } from './lib/env';
 import { initializeOrderIntegrations, triggerTranslatorReview } from './lib/integrations';
 
@@ -145,6 +147,12 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
     }
 
     await updateJob(jobId, 'ocr_completed', 40);
+
+    // ── Advisory: source-document completeness warnings ──────────────────────
+    const sourceWarnings = checkSourceCompleteness(markdown, pageCount);
+    if (sourceWarnings.length > 0) {
+      console.warn(`${tag} source warnings: ${sourceWarnings.map(w => w.code).join(',')}`);
+    }
 
     await supabase.from('ocr_results').insert({
       job_id: jobId,
@@ -302,6 +310,65 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
         } else {
           translatedMarkdown = restoredMarkdown;
         }
+
+        // ── 3h. Content coverage check (pre-render) ──────────────────────
+        const coverageResult = checkContentCoverage({
+          sourceMarkdown: markdown,
+          translatedMarkdown,
+          sourceShapes,
+          protectedValueCount: pvList.length,
+          inventoryEntryCount: inventoryEntries.length,
+        });
+        if (coverageResult.warnings.length > 0) {
+          console.warn(`${tag} coverage warnings: ${coverageResult.warnings.join('|')}`);
+        }
+        if (!coverageResult.passed) {
+          console.warn(`${tag} coverage errors: ${coverageResult.errors.join('|')}`);
+        }
+        if (coverageResult.retryNeeded && !usedTableRetry) {
+          console.warn(`${tag} [coverage] retry indicated by coverage check (table/heading issue)`);
+          // One targeted retry — only if we haven't already retried for table shape
+          try {
+            const retried = await retranslateWithCorrection(
+              markdownForTranslation,
+              resolvedSourceLang,
+              doc.target_language,
+              docType,
+              `Coverage check failed: ${coverageResult.errors.slice(0, 2).join('; ')}. ` +
+              `Ensure ALL headings and tables from the source are present in the translation.`,
+            );
+            // Re-parse inventory and rebuild
+            let retryBody = retried;
+            let retryInventory = parsedInventory;
+            if (inventoryEntries.length > 0) {
+              const inv = parseAndRemoveInventoryBlock(retried, inventoryEntries);
+              retryInventory = inv.parsedEntries;
+              retryBody = inv.cleanedMarkdown;
+            }
+            const { restoredMarkdown: retryRestored } = restoreProtectedValues(retryBody, pvList);
+            let retryFinal = retryRestored;
+            if (retryInventory.length > 0) {
+              retryFinal = retryRestored.trimEnd() + '\n\n' + buildFinalVisualBlock(retryInventory, doc.target_language);
+            }
+            const retryCheck = checkContentCoverage({
+              sourceMarkdown: markdown,
+              translatedMarkdown: retryFinal,
+              sourceShapes,
+              protectedValueCount: pvList.length,
+              inventoryEntryCount: inventoryEntries.length,
+            });
+            if (retryCheck.errors.length <= coverageResult.errors.length) {
+              translatedMarkdown = retryFinal;
+              console.log(`${tag} [coverage] retry applied: errors ${coverageResult.errors.length} → ${retryCheck.errors.length}`);
+            } else {
+              console.warn(`${tag} [coverage] retry did not improve coverage, keeping original`);
+            }
+          } catch (cvErr) {
+            console.warn(`${tag} [coverage] retry failed (advisory, continuing): ${cvErr instanceof Error ? cvErr.message : String(cvErr)}`);
+          }
+        } else if (coverageResult.fallbackNeeded) {
+          console.warn(`${tag} [coverage] fallback needed but not retrying — using available content with warning`);
+        }
       }
     } else {
       // Electronic path: unchanged
@@ -451,6 +518,11 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
         .eq('job_id', jobId)
         .maybeSingle();
 
+      // Merge source warnings into QA report so translators can see them
+      const mergedQaReport = savedQaReport
+        ? { ...savedQaReport, sourceWarnings: sourceWarnings.map(w => ({ code: w.code, message: w.message })) }
+        : (sourceWarnings.length > 0 ? { sourceWarnings: sourceWarnings.map(w => ({ code: w.code, message: w.message })) } : null);
+
       if (existing) {
         await supabase
           .from('translations')
@@ -459,7 +531,7 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
             translated_pdf_key: previewPdfKey ?? null,
             translated_docx_key: draftDocxKey,
             translated_preview_pdf_key: previewPdfKey ?? null,
-            qa_report: savedQaReport,
+            qa_report: mergedQaReport,
             ...(translatedAst ? { translated_ast: translatedAst } : {}),
           })
           .eq('id', existing.id);
@@ -470,7 +542,7 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
           translated_pdf_key: previewPdfKey ?? null,
           translated_docx_key: draftDocxKey,
           translated_preview_pdf_key: previewPdfKey ?? null,
-          qa_report: savedQaReport,
+          qa_report: mergedQaReport,
           ...(translatedAst ? { translated_ast: translatedAst } : {}),
         });
       }
@@ -480,7 +552,11 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
       await supabase.from('documents').update({ status: 'in_review' }).eq('id', documentId);
       await updateJob(jobId, 'completed', 100, undefined, { workflow_status: 'awaiting_translator_review' });
 
-      console.log(`${tag} ✓ completed [${plan.mode}] — awaiting human review`);
+      console.log(
+        `${tag} ✓ completed [${plan.mode}] ` +
+        `docx=${docxBuf.length}B ` +
+        `warnings=${sourceWarnings.length > 0 ? sourceWarnings.map(w => w.code).join(',') : 'none'}`,
+      );
 
       // Upload AI draft to Drive 02_AI_DRAFT and notify translator.
       // Jira Automation handles assignment/transitions on the Jira side.
@@ -496,6 +572,7 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
           driveFolderId: integrationResult.driveFolderId,
           draftFileKey: draftDocxKey,
           draftFileName: 'ai_draft.docx',
+          previewFileKey: previewPdfKey ?? null,
         });
       } catch (e) {
         const m = e instanceof Error ? e.message : String(e);
