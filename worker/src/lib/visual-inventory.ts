@@ -13,6 +13,7 @@ export interface InventoryEntry {
   page: number;
   position: string;
   description: string;
+  visibleText?: string;
   element: DetectedVisualElement;
 }
 
@@ -22,12 +23,43 @@ export interface ParsedInventoryEntry {
   page: number;
   position: string;
   description: string;
+  visibleText?: string;
+}
+
+/**
+ * Build a concise base description for an element.
+ * Uses visibleText to enrich descriptions for watermarks and stamps.
+ * QR/barcode visibleText is withheld from Claude (protected identifier).
+ */
+function buildSourceDescription(el: DetectedVisualElement): string {
+  const base = el.description ?? '';
+
+  // For watermarks: append visibleText as a quoted value so Claude can translate it
+  if (el.kind === 'watermark' && el.visibleText) {
+    const text = el.visibleText.trim();
+    if (text && !base.toLowerCase().includes(text.toLowerCase())) {
+      return (base ? `${base} ` : 'Watermark') + `with text: "${text}"`;
+    }
+    return base || `Watermark with text: "${el.visibleText}"`;
+  }
+
+  // For stamps: append visibleText when present and description doesn't already contain it
+  if (el.kind === 'stamp' && el.visibleText) {
+    const text = el.visibleText.trim();
+    if (text && !base.toLowerCase().includes(text.toLowerCase())) {
+      return (base ? `${base} ` : 'Round company stamp') + `with text: "${text}"`;
+    }
+    return base || `Round company stamp with text: "${el.visibleText}"`;
+  }
+
+  return base;
 }
 
 /**
  * Serialize detected visual elements into a protected Markdown block.
  * The block is prepended to the document before translation.
  * Claude is asked to translate description= values and preserve __WPO_VIS_NNNN__ tokens.
+ * visibleText= is present in the line but marked as [preserve exactly].
  */
 export function serializeVisualInventory(
   elements: DetectedVisualElement[],
@@ -40,7 +72,8 @@ export function serializeVisualInventory(
     kind: el.kind,
     page: el.page,
     position: el.position,
-    description: el.description ?? '',
+    description: buildSourceDescription(el),
+    visibleText: (el.kind !== 'qr' && el.kind !== 'barcode') ? el.visibleText : undefined,
     element: el,
   }));
 
@@ -54,7 +87,10 @@ export function serializeVisualInventory(
 
   for (const entry of entries) {
     const descPart = entry.description ? `; description=${entry.description}` : '';
-    lines.push(`- ${entry.token}: kind=${entry.kind}; page=${entry.page}; position=${entry.position}${descPart}`);
+    // visibleText is included so Claude can translate descriptions that reference it,
+    // but Claude must NOT translate the visibleText= value itself (it is original text from document).
+    const visPart = entry.visibleText ? `; visibleText=${entry.visibleText}` : '';
+    lines.push(`- ${entry.token}: kind=${entry.kind}; page=${entry.page}; position=${entry.position}${descPart}${visPart}`);
   }
 
   lines.push('', '---', '');
@@ -78,9 +114,9 @@ export function parseAndRemoveInventoryBlock(
   const lines = translatedMarkdown.split('\n');
 
   // Regex to parse inventory lines:
-  // - __WPO_VIS_0001__: kind=logo; page=1; position=header[; description=...]
+  // - __WPO_VIS_0001__: kind=logo; page=1; position=header[; description=...][; visibleText=...]
   const ENTRY_LINE_RE =
-    /^-\s*(__WPO_VIS_\d{4}__):\s*kind=([^;]+);\s*page=(\d+);\s*position=([^;]+?)(?:;\s*description=(.*))?$/;
+    /^-\s*(__WPO_VIS_\d{4}__):\s*kind=([^;]+);\s*page=(\d+);\s*position=([^;]+?)(?:;\s*description=([^;]*))?(?:;\s*visibleText=(.*))?$/;
 
   const inventoryLineIndices = new Set<number>();
   const parsedEntries: ParsedInventoryEntry[] = [];
@@ -107,6 +143,7 @@ export function parseAndRemoveInventoryBlock(
           page: parseInt(m[3]!, 10),
           position: m[4]!.trim(),
           description: m[5]?.trim() ?? '',
+          visibleText: m[6]?.trim() || undefined,
         });
       }
     }
@@ -121,7 +158,7 @@ export function parseAndRemoveInventoryBlock(
   const foundTokens = new Set(parsedEntries.map(e => e.token));
   const missingTokens = sourceEntries.map(e => e.token).filter(t => !foundTokens.has(t));
 
-  // Restore missing entries from source (with English description as fallback)
+  // Restore missing entries from source (with original descriptions and visibleText as fallback)
   for (const src of sourceEntries) {
     if (!foundTokens.has(src.token)) {
       parsedEntries.push({
@@ -130,6 +167,7 @@ export function parseAndRemoveInventoryBlock(
         page: src.page,
         position: src.position,
         description: src.description,
+        visibleText: src.visibleText,
       });
     }
   }
@@ -219,9 +257,57 @@ function kindLabelForLocale(kind: string, locale: string): string {
   return KIND_LABELS[locale]?.[kind] ?? KIND_LABELS['en']?.[kind] ?? kind;
 }
 
+// Compact per-kind description fallbacks (English base; other locales use translated description from Claude)
+const COMPACT_FALLBACKS: Partial<Record<string, string>> = {
+  logo: 'Company logo',
+  stamp: 'Round company stamp',
+  signature: 'Handwritten signature',
+  qr: 'QR code for document verification',
+  emblem: 'Official emblem',
+  photo: 'Document photo',
+  barcode: 'Barcode',
+  watermark: 'Watermark',
+  handwritten_note: 'Handwritten note',
+  electronic_approval: 'Electronic approval mark',
+  unknown_image: 'Image',
+};
+
+const MAX_DESCRIPTION_LENGTH = 50;
+
+/**
+ * Return a compact description for the final visual block table.
+ * Truncates verbose descriptions to a kind-appropriate short form.
+ */
+function compactDescription(entry: ParsedInventoryEntry): string {
+  const desc = entry.description?.trim() ?? '';
+
+  // If short enough, use as-is
+  if (desc.length > 0 && desc.length <= MAX_DESCRIPTION_LENGTH) return desc;
+
+  // Watermarks: try to preserve the "with text: X" pattern
+  if (entry.kind === 'watermark') {
+    // Match quoted text pattern from either description or visibleText
+    const quoted = /"([^"]{1,40})"/.exec(desc) ?? /"([^"]{1,40})"/.exec(entry.visibleText ?? '');
+    if (quoted) return `Watermark: "${quoted[1]}"`;
+    if (entry.visibleText) return `Watermark: "${entry.visibleText}"`;
+    return 'Watermark';
+  }
+
+  // Stamps: try to preserve text if available
+  if (entry.kind === 'stamp') {
+    if (entry.visibleText && entry.visibleText.length <= 40) {
+      return `Stamp: "${entry.visibleText}"`;
+    }
+    return 'Round company stamp';
+  }
+
+  // Other kinds: use compact fallback
+  return COMPACT_FALLBACKS[entry.kind] ?? (desc.length > 0 ? desc.slice(0, MAX_DESCRIPTION_LENGTH) + '…' : '—');
+}
+
 /**
  * Build the final visual-elements block from parsed inventory entries.
- * Uses static multi-locale labels. No LLM needed.
+ * Uses static multi-locale labels and compact descriptions.
  * The block heading includes <!-- WPO_VISUAL_BLOCK_START --> so ensureVisualElementsBlock
  * recognises it as already present.
  */
@@ -240,7 +326,7 @@ export function buildFinalVisualBlock(
 
   for (const entry of parsedEntries) {
     const kindLabel = kindLabelForLocale(entry.kind, targetLanguage);
-    const desc = entry.description || '—';
+    const desc = compactDescription(entry);
     block += `| ${entry.page} | ${kindLabel} | ${entry.position} | ${desc} |\n`;
   }
 

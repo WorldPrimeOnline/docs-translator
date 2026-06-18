@@ -23,6 +23,11 @@ import { initializeOrderIntegrations, triggerTranslatorReview } from './lib/inte
 type JobStatus = JobRow['status'];
 type OutputFormat = 'html' | 'pdf' | 'docx';
 
+/** Remove internal WPO HTML comment markers before passing markdown to renderers or storing. */
+function stripInternalMarkers(markdown: string): string {
+  return markdown.replace(/<!--\s*WPO_[A-Z_]+\s*-->/g, '').replace(/\n{3,}/g, '\n\n');
+}
+
 function parseDocumentType(raw: string): { docType: string; outputFormat: OutputFormat } {
   const [docType, fmt] = raw.split('|');
   const outputFormat: OutputFormat = (fmt === 'pdf' || fmt === 'docx') ? fmt : 'html';
@@ -269,7 +274,7 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
         console.log(`${tag} [legacy-official] table structure retry: ${usedTableRetry}`);
 
         // ── 3f. Restore protected values ─────────────────────────────────
-        const { restoredMarkdown, missingTokens, remainingTokens } = restoreProtectedValues(
+        const { restoredMarkdown, missingTokens, remainingTokens, forcedRestores } = restoreProtectedValues(
           translationBody,
           pvList,
         );
@@ -279,6 +284,9 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
         }
         if (remainingTokens.length > 0) {
           console.warn(`${tag} [legacy-official] unexpected remaining tokens: count=${remainingTokens.length}`);
+        }
+        if (forcedRestores.length > 0) {
+          console.warn(`${tag} [legacy-official] CONFUSABLE_RECOVERY: forced restores: count=${forcedRestores.length} tokens=${forcedRestores.map(r => r.split(':')[0]).join(',')}`);
         }
 
         // ── 3g. Append final visual block ────────────────────────────────
@@ -343,9 +351,13 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
     if (plan.mode === 'translator_review_draft' || plan.mode === 'notarization_package') {
       console.log(`${tag} [official mode] generating translator draft DOCX + preview PDF…`);
 
-      // Visual block already baked into translatedMarkdown — pass empty array to renderers
-      // so ensureVisualElementsBlock finds the WPO_VISUAL_BLOCK_START sentinel and skips
-      const docxBuf = await renderToDocx(translatedMarkdown, renderMeta, []);
+      // Strip internal WPO markers (<!-- WPO_VISUAL_BLOCK_START --> etc.) before rendering.
+      // The sentinel is used for dedup detection only — it must not appear in rendered output.
+      const markdownForRender = stripInternalMarkers(translatedMarkdown);
+
+      // Visual block already baked into markdownForRender — pass empty array to renderers
+      // so ensureVisualElementsBlock finds the heading and skips adding another block.
+      const docxBuf = await renderToDocx(markdownForRender, renderMeta, []);
       const draftDocxKey = `${baseKey}/translator_draft.docx`;
       await uploadFile(draftDocxKey, docxBuf, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
       console.log(`${tag} DOCX draft uploaded (${docxBuf.length} bytes) → ${draftDocxKey}`);
@@ -355,7 +367,7 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
       // Hoist qaReport so it can be persisted even if PDF generation fails
       let savedQaReport: Record<string, unknown> | null = null;
       try {
-        const html = await renderToHtml(translatedMarkdown, renderMeta, []);
+        const html = await renderToHtml(markdownForRender, renderMeta, []);
 
         // Run QA checks
         const qaReport = runQaChecks(html, plan.mode, pageCount);
@@ -400,7 +412,7 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
       } else {
         await supabase.from('translations').insert({
           job_id: jobId,
-          translated_markdown: translatedMarkdown,
+          translated_markdown: markdownForRender,
           translated_pdf_key: previewPdfKey ?? null,
           translated_docx_key: draftDocxKey,
           translated_preview_pdf_key: previewPdfKey ?? null,

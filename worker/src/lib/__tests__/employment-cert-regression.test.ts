@@ -1,4 +1,4 @@
-import { extractAndProtectValues, restoreProtectedValues } from '../protected-values';
+import { extractAndProtectValues, restoreProtectedValues, detectMixedScriptConfusables, normalizeConfusables } from '../protected-values';
 import { extractMarkdownTableShapes, compareMarkdownTableShapes } from '../table-shape';
 
 const FIXTURE_MARKDOWN = `
@@ -251,5 +251,103 @@ describe('visual-elements deduplication fix', () => {
     const elements = extractVisualElementsFromOcr(markdown, [markdown]);
     const logos = elements.filter(e => e.kind === 'logo');
     expect(logos).toHaveLength(1);
+  });
+});
+
+// ── Unicode confusable detection + BIC protection ────────────────────────────
+describe('detectMixedScriptConfusables', () => {
+  test('pure ASCII BIC → false', () => {
+    expect(detectMixedScriptConfusables('KCJBKZKX')).toBe(false);
+  });
+
+  test('mixed-script BIC (Cyrillic Х at end) → true', () => {
+    expect(detectMixedScriptConfusables('KCJBKZKХ')).toBe(true); // Х = Cyrillic HA
+  });
+
+  test('pure Cyrillic → false (no Latin present)', () => {
+    expect(detectMixedScriptConfusables('КЗКХ')).toBe(false);
+  });
+
+  test('Cyrillic В mixed with Latin B in a string → true', () => {
+    expect(detectMixedScriptConfusables('KCJВKZKX')).toBe(true);
+  });
+});
+
+describe('normalizeConfusables', () => {
+  test('normalizes Cyrillic confusables to Latin ASCII', () => {
+    // Cyrillic К, С, Ј, В, Х → Latin K, C, J, B, X
+    expect(normalizeConfusables('КCJВKZKХ')).toBe('KCJBKZKX');
+  });
+
+  test('pure ASCII unchanged', () => {
+    expect(normalizeConfusables('KCJBKZKX')).toBe('KCJBKZKX');
+  });
+});
+
+describe('BIC/SWIFT exact-value preservation', () => {
+  const BIC_MARKDOWN = `
+## Bank Details
+| Field | Value |
+|-------|-------|
+| IIK/IBAN | KZ559876543210123456 |
+| BIC/SWIFT | KCJBKZKX |
+`;
+
+  test('BIC KCJBKZKX is protected', () => {
+    const { values } = extractAndProtectValues(BIC_MARKDOWN);
+    const bic = values.find(v => v.type === 'bic_swift');
+    expect(bic).toBeDefined();
+    expect(bic!.original).toBe('KCJBKZKX');
+  });
+
+  test('IBAN KZ559876543210123456 is protected', () => {
+    const { values } = extractAndProtectValues(BIC_MARKDOWN);
+    const iban = values.find(v => v.original === 'KZ559876543210123456');
+    expect(iban).toBeDefined();
+    expect(iban!.type).toBe('bank_account');
+  });
+
+  test('round-trip preserves BIC exactly', () => {
+    const { protectedMarkdown, values } = extractAndProtectValues(BIC_MARKDOWN);
+    const { restoredMarkdown } = restoreProtectedValues(protectedMarkdown, values);
+    expect(restoredMarkdown).toContain('KCJBKZKX');
+    expect(restoredMarkdown).not.toContain('KСJВKZKХ'); // typical Cyrillic corruption pattern
+    expect(restoredMarkdown).not.toContain('KSЈВКZКХ'); // reported damaged form
+  });
+
+  test('confusable-scan restores BIC corrupted with Cyrillic confusables', () => {
+    // Simulate the case where BIC was NOT protected (regex miss) and Claude
+    // wrote a confusable-corrupted variant in the translation body
+    const { values } = extractAndProtectValues(BIC_MARKDOWN);
+    // Simulate translated body where BIC was corrupted
+    const corruptedBody = '| BIC/SWIFT | KСJВKZKХ |\n| IIK/IBAN | KZ559876543210123456 |';
+    const { restoredMarkdown, forcedRestores } = restoreProtectedValues(corruptedBody, values);
+    // The confusable scan should have fixed it
+    expect(restoredMarkdown).toContain('KCJBKZKX');
+    expect(restoredMarkdown).not.toContain('KСJВKZKХ');
+    expect(forcedRestores.length).toBeGreaterThanOrEqual(1);
+  });
+
+  test('token corrupted with Cyrillic is recovered', () => {
+    const { protectedMarkdown, values } = extractAndProtectValues(BIC_MARKDOWN);
+    // Simulate Claude replacing Latin P with Cyrillic Р inside the token
+    const bicPv = values.find(v => v.type === 'bic_swift')!;
+    const corruptedToken = bicPv.token.replace('P', 'Р'); // __WPO_РV_000N__
+    const corruptedMarkdown = protectedMarkdown.replace(bicPv.token, corruptedToken);
+    const { restoredMarkdown, forcedRestores } = restoreProtectedValues(corruptedMarkdown, values);
+    expect(restoredMarkdown).toContain('KCJBKZKX');
+    expect(forcedRestores.some(r => r.includes('token_confusable'))).toBe(true);
+  });
+});
+
+describe('fixture code values exact preservation', () => {
+  test('all fixture code values are preserved exactly after round-trip', () => {
+    const { protectedMarkdown, values } = extractAndProtectValues(FIXTURE_MARKDOWN);
+    const { restoredMarkdown } = restoreProtectedValues(protectedMarkdown, values);
+    // Key code values from fixture
+    expect(restoredMarkdown).toContain('KCJBKZKX');
+    expect(restoredMarkdown).toContain('KZ559876543210123456');
+    expect(restoredMarkdown).toContain('SML-2026-06-17-071');
+    expect(restoredMarkdown).toContain('SML-74-KZ-170626-Q8X5');
   });
 });

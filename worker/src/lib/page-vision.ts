@@ -45,17 +45,17 @@ const DETECT_VISUAL_ELEMENTS_TOOL: Anthropic.Tool = {
                     type: 'string',
                     enum: [
                       'header', 'upper_left', 'upper_right', 'center',
-                      'lower_left', 'lower_right', 'footer', 'unknown',
+                      'lower_left', 'lower_center', 'lower_right', 'footer', 'unknown',
                     ],
-                    description: 'Approximate position on the page',
+                    description: 'Approximate position on the page. Use lower_center for elements in the lower-middle area.',
                   },
                   description: {
                     type: 'string',
-                    description: 'Brief English description of what the element is or contains',
+                    description: 'One short factual sentence about the element type and shape only. Do not speculate about colors, materials, legal status, or artistic style. Do not include text already captured in visibleText.',
                   },
                   visibleText: {
                     type: 'string',
-                    description: 'Any text clearly readable within the element (stamp text, watermark text, etc.)',
+                    description: 'Exact text clearly readable within the element. Required for watermarks, stamps with readable text, handwritten notes. Omit field entirely if no text is legible.',
                   },
                   confidence: {
                     type: 'number',
@@ -145,10 +145,15 @@ export async function analyzeDocumentVisuals(
                 text:
                   `Analyze this ${pageCount}-page official document for non-text visual elements. ` +
                   `Report ONLY clearly visible elements: logos, stamps, signatures, QR codes, photos, watermarks, barcodes, emblems, handwritten notes, electronic approval marks. ` +
-                  `Report each distinct occurrence as a separate entry. ` +
-                  `If there are two signatures (e.g., director and accountant), report two separate signature entries with different positions. ` +
-                  `Do not report text content as visual elements. ` +
-                  `Do not invent elements that are not visible.`,
+                  `Rules for reporting:\n` +
+                  `- Report each distinct occurrence as a separate entry.\n` +
+                  `- If there are two signatures (e.g., director and accountant), report two separate signature entries with different positions.\n` +
+                  `- description: one short factual sentence. Do NOT speculate about colors, materials, artistic style, or legal status. Describe only what is objectively visible.\n` +
+                  `- visibleText: capture only text that is clearly legible within the element (e.g., stamp text, watermark text, handwritten text). If no text is clearly readable, omit the field entirely.\n` +
+                  `- Do not include text from outside the element in visibleText.\n` +
+                  `- Use lower_center (not center) for elements in the lower-middle area of the page.\n` +
+                  `- Do not report plain text content as visual elements.\n` +
+                  `- Do not invent elements that are not clearly visible.`,
               },
             ],
           },

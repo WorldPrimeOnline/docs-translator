@@ -169,3 +169,112 @@ describe('visual inventory — fixture regression: SML employment cert', () => {
     expect(tableRows.length).toBeGreaterThanOrEqual(7);
   });
 });
+
+// ── Watermark visibleText ─────────────────────────────────────────────────────
+describe('watermark visibleText handling', () => {
+  const WATERMARK_ELEMENTS: DetectedVisualElement[] = [
+    {
+      id: 'v1', page: 1, kind: 'watermark', occurrenceIndex: 0, position: 'center',
+      description: 'Diagonal watermark across the page',
+      visibleText: 'УЧЕБНЫЙ ОБРАЗЕЦ',
+      confidence: 0.9, source: 'page_vision',
+    },
+  ];
+
+  test('visibleText is included in inventory block', () => {
+    const { inventoryBlock } = serializeVisualInventory(WATERMARK_ELEMENTS, 'en');
+    expect(inventoryBlock).toContain('УЧЕБНЫЙ ОБРАЗЕЦ');
+  });
+
+  test('description enriched with visibleText', () => {
+    const { entries } = serializeVisualInventory(WATERMARK_ELEMENTS, 'en');
+    expect(entries[0]?.description).toContain('УЧЕБНЫЙ ОБРАЗЕЦ');
+  });
+
+  test('buildFinalVisualBlock shows watermark text', () => {
+    const { inventoryBlock, entries } = serializeVisualInventory(WATERMARK_ELEMENTS, 'en');
+    const fullTranslation = inventoryBlock.replace('УЧЕБНЫЙ ОБРАЗЕЦ', 'TRAINING SAMPLE') + '\n\nBody.';
+    const { parsedEntries } = parseAndRemoveInventoryBlock(fullTranslation, entries);
+    const block = buildFinalVisualBlock(parsedEntries, 'en');
+    // The translated visible text should appear in the block
+    expect(block).toContain('TRAINING SAMPLE');
+  });
+
+  test('QR visibleText is NOT included in inventory (protected identifier)', () => {
+    const qrEl: DetectedVisualElement = {
+      id: 'v1', page: 1, kind: 'qr', occurrenceIndex: 0, position: 'lower_right',
+      description: 'QR code', visibleText: 'https://verify.gov.kz?code=ABC123',
+      confidence: 0.98, source: 'page_vision',
+    };
+    const { inventoryBlock, entries } = serializeVisualInventory([qrEl], 'en');
+    // QR visibleText should not appear in inventory (it's a protected identifier)
+    expect(inventoryBlock).not.toContain('https://verify.gov.kz');
+    expect(entries[0]?.visibleText).toBeUndefined();
+  });
+});
+
+// ── lower_center position ─────────────────────────────────────────────────────
+describe('lower_center position support', () => {
+  const STAMP_ELEMENTS: DetectedVisualElement[] = [
+    {
+      id: 'v1', page: 1, kind: 'stamp', occurrenceIndex: 0, position: 'lower_center',
+      description: 'Round company stamp', confidence: 0.93, source: 'page_vision',
+    },
+  ];
+
+  test('lower_center is serialized in inventory', () => {
+    const { inventoryBlock } = serializeVisualInventory(STAMP_ELEMENTS, 'en');
+    expect(inventoryBlock).toContain('position=lower_center');
+  });
+
+  test('lower_center appears in final visual block', () => {
+    const { inventoryBlock, entries } = serializeVisualInventory(STAMP_ELEMENTS, 'en');
+    const fullTranslation = inventoryBlock + '\n\nBody.';
+    const { parsedEntries } = parseAndRemoveInventoryBlock(fullTranslation, entries);
+    const block = buildFinalVisualBlock(parsedEntries, 'en');
+    expect(block).toContain('lower_center');
+  });
+});
+
+// ── Internal marker stripping ─────────────────────────────────────────────────
+describe('WPO_VISUAL_BLOCK_START marker not in final rendered content', () => {
+  test('buildFinalVisualBlock output contains the sentinel (for dedup)', () => {
+    const entries = [{ token: '__WPO_VIS_0001__', kind: 'logo', page: 1, position: 'header', description: 'Logo' }];
+    const block = buildFinalVisualBlock(entries, 'en');
+    expect(block).toContain('WPO_VISUAL_BLOCK_START');
+  });
+
+  test('after stripInternalMarkers, sentinel is gone', () => {
+    const entries = [{ token: '__WPO_VIS_0001__', kind: 'logo', page: 1, position: 'header', description: 'Logo' }];
+    const block = buildFinalVisualBlock(entries, 'en');
+    const stripped = block.replace(/<!--\s*WPO_[A-Z_]+\s*-->/g, '');
+    expect(stripped).not.toContain('WPO_VISUAL_BLOCK_START');
+    // heading and table still present
+    expect(stripped).toContain('Description of non-text elements');
+    expect(stripped).toContain('Logo');
+  });
+});
+
+// ── Compact descriptions ──────────────────────────────────────────────────────
+describe('compact descriptions in buildFinalVisualBlock', () => {
+  test('long logo description is compacted', () => {
+    const entries = [{
+      token: '__WPO_VIS_0001__', kind: 'logo', page: 1, position: 'header',
+      description: 'Company logo depicting a stylized golden bridge over water with a blue circular background and ornate frame',
+    }];
+    const block = buildFinalVisualBlock(entries, 'en');
+    // The description column should not contain the full verbose text
+    expect(block).not.toContain('golden bridge over water');
+    // Should use compact fallback
+    expect(block).toContain('Company logo');
+  });
+
+  test('short description passes through unchanged', () => {
+    const entries = [{
+      token: '__WPO_VIS_0001__', kind: 'logo', page: 1, position: 'header',
+      description: 'Company logo',
+    }];
+    const block = buildFinalVisualBlock(entries, 'en');
+    expect(block).toContain('Company logo');
+  });
+});

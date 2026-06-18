@@ -19,6 +19,7 @@ export type VisualPosition =
   | 'upper_right'
   | 'center'
   | 'lower_left'
+  | 'lower_center'
   | 'lower_right'
   | 'footer'
   | 'unknown';
