@@ -17,6 +17,7 @@ import { serializeVisualInventory, parseAndRemoveInventoryBlock, buildFinalVisua
 import { runQaChecks } from './lib/qa';
 import { resolveDocumentType } from './lib/effective-document-type';
 import { validateTranslationScript, buildScriptCorrectionPrompt } from './lib/script-validator';
+import { runStructuralReview, applyStructuralCorrections } from './lib/structural-review';
 import { assessOcrQuality } from './lib/ast/script-quality';
 import { translateToAst } from './lib/ast/translator';
 import { env } from './lib/env';
@@ -387,7 +388,26 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
 
       // Strip internal WPO markers (<!-- WPO_VISUAL_BLOCK_START --> etc.) before rendering.
       // The sentinel is used for dedup detection only — it must not appear in rendered output.
-      const markdownForRender = stripInternalMarkers(translatedMarkdown);
+      let markdownForRender = stripInternalMarkers(translatedMarkdown);
+
+      // ── Structural translation review (untranslated/transliterated fragment detection) ──
+      // Catches phonetic-Latin transcriptions of source-language words that pass script-level
+      // detection (e.g. "COXPAHEH" in an English heading = transliterated "СОХРАНЕН").
+      try {
+        const structuralCorrections = await runStructuralReview(
+          markdownForRender,
+          doc.target_language,
+          resolvedSourceLang ?? 'auto',
+        );
+        if (structuralCorrections.length > 0) {
+          console.log(`${tag} [structural-review] applying ${structuralCorrections.length} correction(s): ${structuralCorrections.map(c => `"${c.original}"→"${c.corrected}"`).join(', ')}`);
+          markdownForRender = applyStructuralCorrections(markdownForRender, structuralCorrections);
+        } else {
+          console.log(`${tag} [structural-review] no corrections needed`);
+        }
+      } catch (reviewErr) {
+        console.warn(`${tag} [structural-review] failed (advisory, continuing):`, reviewErr instanceof Error ? reviewErr.message : reviewErr);
+      }
 
       // Visual block already baked into markdownForRender — pass empty array to renderers
       // so ensureVisualElementsBlock finds the heading and skips adding another block.

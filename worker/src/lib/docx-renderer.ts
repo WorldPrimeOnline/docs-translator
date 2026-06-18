@@ -1,5 +1,6 @@
 import {
   Document,
+  Footer,
   Paragraph,
   TextRun,
   HeadingLevel,
@@ -11,8 +12,12 @@ import {
   BorderStyle,
   AlignmentType,
   ShadingType,
+  PageNumberElement,
+  SimpleField,
 } from 'docx';
 import { ensureVisualElementsBlock, type VisualElement } from './visual-elements';
+import { normalizeKvParsedTable } from './kv-normalizer';
+import { PROVIDER_INFO } from './provider-info';
 
 type ServiceLevel =
   | 'electronic'
@@ -67,7 +72,15 @@ const LANG_TGT: Record<string, { en: string; ru: string }> = {
   th: { en: 'Thai', ru: 'тайский' },
 };
 
-const PROVIDER_IIN_BIN = '';
+// Footer page-counter labels per locale
+const FOOTER_LABELS: Record<string, { prefix: string; sep: string }> = {
+  en: { prefix: 'Translation page ', sep: ' of ' },
+  ru: { prefix: 'Стр. перевода ', sep: ' из ' },
+  kk: { prefix: 'Аударма беті ', sep: ' / ' },
+  zh: { prefix: '译文第 ', sep: '页，共' },
+  ko: { prefix: '번역 ', sep: '페이지 / ' },
+  es: { prefix: 'Página de traducción ', sep: ' de ' },
+};
 
 function dl(targetLang: string): 'en' | 'ru' { return targetLang === 'ru' ? 'ru' : 'en'; }
 function isAutoSource(lang: string): boolean { return !lang || lang === 'auto' || lang === 'auto-detect'; }
@@ -95,40 +108,60 @@ function certificationLabel(meta: DocxMeta): string {
 function certificationRows(meta: DocxMeta): Array<[string, string]> {
   const d = dl(meta.targetLang);
   const tgt = LANG_TGT[meta.targetLang]?.[d] ?? meta.targetLang;
-  const iinBin = PROVIDER_IIN_BIN || '______________________';
+  const providerName = d === 'ru' ? PROVIDER_INFO.legalNameRu : PROVIDER_INFO.legalNameEn;
+  const iinBin = PROVIDER_INFO.iinBin;
+
   if (d === 'ru') {
-    const firstLine = isAutoSource(meta.sourceLang)
-      ? `Перевод на ${tgt} язык выполнен верно.`
-      : `Перевод с ${LANG_SRC[meta.sourceLang]?.[d] ?? meta.sourceLang} языка на ${tgt} язык выполнен верно.`;
+    const certStmt = isAutoSource(meta.sourceLang)
+      ? `Подтверждаю, что данный перевод на ${tgt} язык является полным и точным.`
+      : `Подтверждаю, что данный перевод с ${LANG_SRC[meta.sourceLang]?.[d] ?? meta.sourceLang} языка на ${tgt} язык является полным и точным.`;
     return [
-      [firstLine, ''],
+      [certStmt, ''],
       ['Переводчик:', '______________________'],
       ['Квалификация переводчика:', '______________________'],
       ['Подпись переводчика:', '______________________'],
-      ['Исполнитель:', 'WorldPrimeOnline'],
+      ['Исполнитель:', providerName],
       ['ИИН/БИН:', iinBin],
       ['Печать Исполнителя:', '______________________'],
       ['Дата:', '______________________'],
     ];
   }
-  const firstLine = isAutoSource(meta.sourceLang)
-    ? `The translation into ${tgt} is correct.`
-    : `The translation from ${LANG_SRC[meta.sourceLang]?.[d] ?? meta.sourceLang} into ${tgt} is correct.`;
+  const certStmt = isAutoSource(meta.sourceLang)
+    ? `I certify that this translation into ${tgt} is complete and accurate.`
+    : `I certify that this translation from ${LANG_SRC[meta.sourceLang]?.[d] ?? meta.sourceLang} into ${tgt} is complete and accurate.`;
   return [
-    [firstLine, ''],
+    [certStmt, ''],
     ['Translator:', '______________________'],
     ['Translator qualification:', '______________________'],
     ['Translator signature:', '______________________'],
-    ['Provider:', 'WorldPrimeOnline'],
+    ['Provider:', providerName],
     ['IIN/BIN:', iinBin],
     ["Provider's stamp:", '______________________'],
     ['Date:', '______________________'],
   ];
 }
 
+// ─── Footer ───────────────────────────────────────────────────────────────────
+
+function buildTranslationFooter(meta: DocxMeta): Footer {
+  const labels = FOOTER_LABELS[meta.targetLang] ?? FOOTER_LABELS['en']!;
+  return new Footer({
+    children: [
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [
+          new TextRun({ text: labels.prefix, size: 16, color: '888888' }),
+          new PageNumberElement(), // current page number field
+          new TextRun({ text: labels.sep, size: 16, color: '888888' }),
+          new SimpleField('NUMPAGES'), // total pages field
+        ],
+      }),
+    ],
+  });
+}
+
 // ─── Visual block heading detection ──────────────────────────────────────────
 
-// Matches VISUAL_BLOCK_HEADING values from visual-inventory.ts (post-stripInternalMarkers)
 const VISUAL_BLOCK_HEADING_TEXTS = new Set([
   'Description of non-text elements in the original document',
   'Описание нетекстовых элементов оригинального документа',
@@ -141,8 +174,7 @@ const VISUAL_BLOCK_HEADING_TEXTS = new Set([
 // ─── Table utilities ──────────────────────────────────────────────────────────
 
 function getColumnWidths(colCount: number): number[] {
-  // 2-column key-value: label 30% / value 70%
-  if (colCount === 2) return [2700, 6300];
+  if (colCount === 2) return [2880, 6120]; // 32% / 68%
   return Array.from({ length: colCount }, () => Math.floor(9000 / colCount));
 }
 
@@ -203,12 +235,11 @@ function buildDocxTable(parsed: ParsedTable, opts: TableOpts = {}): Table {
   const colCount = parsed.headers.length;
   const colWidths = getColumnWidths(colCount);
   const isCompact = opts.compact === true;
-  const fontSize = isCompact ? 16 : 20; // half-points: 16=8pt, 20=10pt
+  const fontSize = isCompact ? 16 : 20;
   const cellMargins = isCompact
     ? { top: 50, bottom: 50, left: 80, right: 80 }
     : { top: 80, bottom: 80, left: 120, right: 120 };
 
-  // Header cells with per-column widths
   const headerRow = new TableRow({
     tableHeader: true,
     children: parsed.headers.map((h, idx) =>
@@ -231,7 +262,7 @@ function buildDocxTable(parsed: ParsedTable, opts: TableOpts = {}): Table {
     while (cells.length < colCount) cells.push('');
     const normalized = cells.slice(0, colCount);
     return new TableRow({
-      cantSplit: true, // prevent row from spanning pages
+      cantSplit: true,
       children: normalized.map((cell, idx) =>
         new TableCell({
           children: [
@@ -341,7 +372,6 @@ function parseMarkdownToDocx(markdown: string): DocxChild[] {
     const raw = lines[i] ?? '';
     const line = raw.trimEnd();
 
-    // Track section headings to detect the visual block
     if (/^#{1,3}\s+/.test(line)) {
       const headingText = line.replace(/^#+\s+/, '');
       inVisualSection = VISUAL_BLOCK_HEADING_TEXTS.has(headingText);
@@ -359,7 +389,9 @@ function parseMarkdownToDocx(markdown: string): DocxChild[] {
         }
         const parsed = parseMarkdownTable(tableLines);
         if (parsed) {
-          children.push(buildDocxTable(parsed, { compact: inVisualSection }));
+          // Normalize 4-col KV tables to 2-col before rendering
+          const finalParsed = normalizeKvParsedTable(parsed);
+          children.push(buildDocxTable(finalParsed, { compact: inVisualSection }));
         } else {
           for (const tl of tableLines) {
             children.push(
@@ -374,7 +406,6 @@ function parseMarkdownToDocx(markdown: string): DocxChild[] {
       }
     }
 
-    // Horizontal rule → thin spacer
     if (/^-{3,}$/.test(line.trim()) || /^\*{3,}$/.test(line.trim()) || /^_{3,}$/.test(line.trim())) {
       children.push(new Paragraph({ text: '', spacing: { before: 80, after: 80 } }));
       i++;
@@ -444,7 +475,6 @@ export async function renderToDocx(
     (sl === 'official_with_translator_signature_and_provider_stamp' ||
       sl === 'notarization_through_partners');
 
-  // Ensure visual elements block is present in markdown
   const finalMarkdown = ensureVisualElementsBlock(
     translatedMarkdown,
     visualElements ?? [],
@@ -452,11 +482,8 @@ export async function renderToDocx(
   );
 
   const bodyChildren = parseMarkdownToDocx(finalMarkdown);
-
-  // Build section children: translation heading + body + optional certification block
   const sectionChildren: DocxChild[] = [];
 
-  // Translation heading (always present for non-presentation docs)
   if (!isPresentation) {
     sectionChildren.push(
       new Paragraph({
@@ -464,7 +491,7 @@ export async function renderToDocx(
           new TextRun({
             text: translationHeadingText(meta),
             bold: true,
-            size: 28, // 14pt
+            size: 28,
             allCaps: true,
           }),
         ],
@@ -480,7 +507,6 @@ export async function renderToDocx(
   sectionChildren.push(...bodyChildren);
 
   if (showCert) {
-    // Section break before certification block
     sectionChildren.push(
       new Paragraph({
         text: '',
@@ -517,10 +543,10 @@ export async function renderToDocx(
       {
         properties: {
           page: {
-            // 20mm top/bottom, 18mm left/right (twips: 1mm ≈ 56.7)
             margin: { top: 1134, bottom: 1134, left: 1020, right: 1020 },
           },
         },
+        footers: { default: buildTranslationFooter(meta) },
         children: sectionChildren,
       },
     ],

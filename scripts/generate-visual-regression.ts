@@ -101,6 +101,8 @@ const renderMeta = {
   documentType: 'employment_document' as const,
   translatedAt: new Date().toISOString().split('T')[0] ?? '',
   filename: 'sml_employment_cert.pdf',
+  serviceLevel: 'official_with_translator_signature_and_provider_stamp' as const,
+  outputMode: 'translator_review_draft' as const,
 };
 
 /** Mimic stripInternalMarkers from processor.ts */
