@@ -40,7 +40,7 @@ export function computeOutputPlan(
       requiresHumanReview: true,
       requiresNotaryReview: true,
       generateDocx: true,
-      generatePreviewPdf: false,
+      generatePreviewPdf: true,
       generateFinalPdf: false,
       releaseToCustomerImmediately: false,
     };
@@ -52,7 +52,7 @@ export function computeOutputPlan(
       requiresHumanReview: true,
       requiresNotaryReview: false,
       generateDocx: true,
-      generatePreviewPdf: false,
+      generatePreviewPdf: true,
       generateFinalPdf: false,
       releaseToCustomerImmediately: false,
     };

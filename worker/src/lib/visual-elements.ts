@@ -13,15 +13,11 @@ export type VisualElementKind =
   | 'barcode'
   | 'stamp'
   | 'signature'
-  | 'electronic_signature'
-  | 'accreditation_mark'
-  | 'certification_mark'
   | 'watermark'
   | 'verification_string'
   | 'mrz'
   | 'handwritten_note'
   | 'electronic_approval'
-  | 'label'
   | 'unknown_image';
 
 export interface VisualElement {
@@ -123,27 +119,14 @@ function bracketKind(content: string): VisualElementKind | null {
   return null;
 }
 
-// Kinds that represent distinct real-world occurrences — never auto-merge across occurrences
-const NEVER_DEDUP_KINDS = new Set<VisualElementKind>(['signature', 'stamp', 'electronic_approval', 'photo']);
-
 function deduplicateElements(elements: VisualElement[]): VisualElement[] {
   const seen = new Set<string>();
   return elements.filter((el) => {
-    if (NEVER_DEDUP_KINDS.has(el.kind)) return true; // keep all occurrences
-    const key = `${el.kind}:${el.page ?? ''}:${el.text ?? ''}`;
+    const key = `${el.kind}:${el.text ?? ''}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
   });
-}
-
-function isVerificationUrl(url: string): boolean {
-  const lower = url.toLowerCase();
-  return (
-    /\/(verify|check|qr|validate|confirm|cert|document)[/?#]/.test(lower) ||
-    /[?&](code|token|verify|check|validate|doc|id)=/.test(lower) ||
-    /\/qr[/?#]?$/.test(lower)
-  );
 }
 
 export function extractVisualElementsFromOcr(
@@ -187,28 +170,24 @@ export function extractVisualElementsFromOcr(
     }
   }
 
-  // Verification URLs only — contact URLs (e.g. www.sml.kz) are silently skipped
+  // Verification URLs
   const urlRe = /https?:\/\/[^\s<>\[\]"]{10,}/g;
   let urlMatch: RegExpExecArray | null;
   while ((urlMatch = urlRe.exec(ocrMarkdown)) !== null) {
-    if (isVerificationUrl(urlMatch[0])) {
-      elements.push({
-        kind: 'verification_string',
-        text: urlMatch[0],
-        source: 'regex',
-      });
-    }
+    elements.push({
+      kind: 'verification_string',
+      text: urlMatch[0],
+      source: 'regex',
+    });
   }
   const wwwRe = /www\.[^\s<>\[\]"]{5,}/g;
   let wwwMatch: RegExpExecArray | null;
   while ((wwwMatch = wwwRe.exec(ocrMarkdown)) !== null) {
-    if (isVerificationUrl(wwwMatch[0])) {
-      elements.push({
-        kind: 'verification_string',
-        text: wwwMatch[0],
-        source: 'regex',
-      });
-    }
+    elements.push({
+      kind: 'verification_string',
+      text: wwwMatch[0],
+      source: 'regex',
+    });
   }
 
   // MRZ detection
@@ -259,15 +238,11 @@ const KIND_LABEL_RU: Record<VisualElementKind, string> = {
   barcode: 'Штрих-код',
   stamp: 'Печать',
   signature: 'Подпись',
-  electronic_signature: 'Электронная подпись',
-  accreditation_mark: 'Знак аккредитации',
-  certification_mark: 'Знак сертификации',
   watermark: 'Водяной знак',
   verification_string: 'Строка проверки',
   mrz: 'Машиночитаемая зона (MRZ)',
   handwritten_note: 'Рукописная пометка',
   electronic_approval: 'Электронное утверждение',
-  label: 'Ярлык',
   unknown_image: 'Изображение',
 };
 
@@ -279,15 +254,11 @@ const KIND_LABEL_EN: Record<VisualElementKind, string> = {
   barcode: 'Barcode',
   stamp: 'Stamp/Seal',
   signature: 'Signature',
-  electronic_signature: 'Electronic signature',
-  accreditation_mark: 'Accreditation mark',
-  certification_mark: 'Certification mark',
   watermark: 'Watermark',
   verification_string: 'Verification string',
   mrz: 'Machine-readable zone (MRZ)',
   handwritten_note: 'Handwritten note',
   electronic_approval: 'Electronic approval',
-  label: 'Label',
   unknown_image: 'Image',
 };
 
@@ -342,7 +313,6 @@ const VISUAL_ELEMENTS_HEADING_PATTERNS = [
   /description of non-text elements/i,
   /нетекстовые элементы/i,
   /visual elements/i,
-  /WPO_VISUAL_BLOCK_START/, // sentinel used by buildFinalVisualBlock (language-invariant)
 ];
 
 export function ensureVisualElementsBlock(

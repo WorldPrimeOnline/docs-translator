@@ -8,7 +8,7 @@ Currencies: preserve exactly with original symbols and amounts. Do not convert.
 Names of people: transliterate using standard conventions (ICAO 9303 for passport-type documents). Do not translate names semantically.
 Organization names: use the official translated name if established; otherwise transliterate and include the original in parentheses.
 Tables: preserve as Markdown tables. Translate cell text; keep table structure and column count.
-Addresses and contact details: for Latin-script addresses (Western European), preserve exactly. For non-Latin addresses (Thai, Arabic, etc.), transliterate/translate using the ADDRESS FORMATTING POLICY. Translate street-type labels (street, avenue, district, province, etc.) to the target language.
+Addresses and contact details: preserve exactly. Translate street-type labels (street, avenue, etc.) only when a standard target-language equivalent exists.
 
 Stamps and seals — use the most specific applicable marker:
 - [round stamp] — circular stamp, text unreadable or not extracted
@@ -159,17 +159,11 @@ CORE TRANSLATION RULES:
 STRUCTURE PRESERVATION — MANDATORY:
 - Preserve the exact layout and structure of the source document.
 - If the source has a two-column key-value format (Label : Value), output it as a Markdown table — one column for the label, one for the value.
-- THREE OR MORE consecutive "Label: Value" lines MUST become a two-column Markdown table (| Параметр | Значение | for Russian target). NEVER render them as plain "Label: value" text lines.
 - Each field must stay on its own row. NEVER merge multiple fields into a single sentence or paragraph.
 - If the source has section headings, preserve them as Markdown headings (##).
-- If the source has a table, preserve it as a Markdown table.
-- Every table must have the EXACT same number of columns and rows as in the source. Do not add, drop, or merge any column or row.
-- Never drop the last column of any table.
-- Translate cell text; preserve all column headers and row values.
+- If the source has a table, preserve it as a Markdown table. Translate cell content but keep the table structure.
 - Preserve blank lines between sections.
 - Do not rewrite prose into a different structure. Keep the original line order.
-- Translate EVERY paragraph completely. Do not leave any full paragraph, multi-sentence block, or label group in the source language.
-- Company names, hospital names, clinic names, organization names, city names, district names, and proper nouns from address components are TRANSLATABLE. Transliterate non-Latin-script names and add the original in parentheses.
 
 ${OFFICIAL_VISUAL_ELEMENT_POLICY}
 
@@ -181,55 +175,5 @@ OUTPUT FORMAT:
 Return a clean structured Markdown translation.
 Use ## headings for section headers, two-column Markdown tables for key-value fields, and bullet points where the source uses lists.
 At the end, include a brief note only if necessary: "Translator note: [note about illegible text or unclear fields]."
-Do not include marketing text, process explanations, or disclaimers outside the document content.
-
-PROTECTED PLACEHOLDER RULES:
-- Placeholders in the format __WPO_PV_0001__ must be transferred VERBATIM to the exact same position in the translation.
-- Do not add spaces, hyphens, or any characters inside a placeholder.
-- Do not translate, paraphrase, or omit placeholders.
-- A placeholder in the source must appear exactly once in the translation.
-
-VISUAL INVENTORY RULES:
-- The document may begin with a "## VISUAL ELEMENTS OF THE SOURCE DOCUMENT" block containing lines like: "- __WPO_VIS_0001__: kind=logo; page=1; position=header; description=..."
-- Translate the "description=..." values to the target language.
-- Preserve every __WPO_VIS_NNNN__ token exactly as written.
-- Preserve "kind=", "page=", "position=" field labels and values — do not translate them.
-- Do NOT remove any __WPO_VIS_NNNN__ line or its token.
-- Do NOT add new __WPO_VIS_NNNN__ lines.
-- Translate the inventory block heading (## VISUAL ELEMENTS OF THE SOURCE DOCUMENT) to the target language.
-
-DUPLICATION PREVENTION:
-- Do not write "Milan (Milan)" or any form where the translated value and source value are identical.
-- Add the original in parentheses ONLY when it adds genuine information: official personal name spelling, official organization name, legally important original wording, or genuinely ambiguous geographic name.
-- Do not repeat month names or dates in the source language alongside the translated version.
-
-PAGE AND CHUNK MARKER POLICY:
-- NEVER emit "Page N/M", "Страница N/M", "หน้า N/M", "Chunk N/M", or similar standalone page-numbering lines unless they are verbatim content of the source document (e.g., a footer that literally says "Page 1 of 2").
-- Do not add page breaks, section-number prefixes, or chunk indices to the translation output.
-- Source page footers that are plain text ("Page 1 of 2") must be preserved as inline text — NOT converted to DOCX field codes.
-- Translation page numbers are handled by the renderer via DOCX PAGE/NUMPAGES fields — do not emit them.
-
-LEGAL ENTITY NAMES:
-- NEVER convert a foreign legal entity form to a Russian/Kazakh equivalent unless the document explicitly states that form.
-  Forbidden examples: "ООО CP Axtra", "ТОО Makro", "АО Amazon" — these are fabricated.
-- If the source contains an official Latin-script legal name, preserve it exactly as written.
-  Example: "CP Axtra Public Company Limited" remains "CP Axtra Public Company Limited".
-- If no official translation is established: transliterate the name and preserve the original legal form in parentheses.
-  Example: "CP Axtra Паблик Компани Лимитед (CP Axtra Public Company Limited)".
-- Never drop the legal form suffix (Ltd, Inc, PLC, Co., Limited, Public Company Limited, etc.).
-
-ADDRESS FORMATTING POLICY:
-- Decompose an address into semantic components: building/house number, moo/village, subdistrict/tambon, district/amphoe, province, postal code, country.
-- Translate each component label (street, avenue, district, province) to the target language.
-- Do NOT output both a short abbreviation and a full form of the same component — choose one consistent form.
-  Forbidden: "Му 9 (Деревня 9)" or "ампхе / amphoe" — pick one register.
-- For Thai addresses, use: му N, тамбон [Name], ампхе [Name], провинция [Name] NNNNN, Таиланд.
-- For addresses of other countries, apply the same decompose-and-translate-labels approach.
-- When address text is partially illegible, keep the legible parts and mark illegible portions as [неразборчиво] / [illegible].
-
-OUTPUT CLEANLINESS:
-- Output only the translated document. No text before it, no text after it.
-- Do not output JSON, HTML, YAML, or any markup other than Markdown.
-- Do not output horizontal rules (---) unless they were present in the source document as section separators.
-- Do not output explanations, disclaimers, or metadata about the translation process.`;
+Do not include marketing text, process explanations, or disclaimers outside the document content.`;
 }

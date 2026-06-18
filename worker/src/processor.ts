@@ -1,8 +1,7 @@
 import { supabase, type JobRow, type DocumentRow } from './lib/supabase';
 import { downloadFile, uploadFile, getPresignedUrl } from './lib/r2';
 import { extractTextFromPdf } from './lib/ocr';
-import { translateDocument, retranslateWithCorrection } from './lib/translator';
-import { extractAndProtectValues, restoreProtectedValues } from './lib/protected-values';
+import { translateDocument } from './lib/translator';
 import { detectSourceLanguage } from './lib/detect-language';
 import { renderToHtml } from './lib/renderer';
 import { generatePdfFromHtml } from './lib/pdf';
@@ -10,30 +9,12 @@ import { renderToDocx } from './lib/docx-renderer';
 import { sendTranslationReady, sendDocumentReceivedForReview } from './lib/email';
 import { computeOutputPlan, type ServiceLevel } from './lib/output-plan';
 import { mergeVisualElements, extractVisualElementsFromTranslated } from './lib/visual-elements';
-import { analyzeDocumentVisuals } from './lib/page-vision';
-import { convertOcrElementsToDetected, mergeDetectedElements, convertDetectedToVisual, type DetectedVisualElement } from './lib/detected-visual-element';
 import { runQaChecks } from './lib/qa';
-import { resolveDocumentType } from './lib/effective-document-type';
-import { validateTranslationScript } from './lib/script-validator';
-import { runStructuralReview, applyStructuralCorrections } from './lib/structural-review';
-import { assessOcrQuality } from './lib/ast/script-quality';
-import { checkSourceCompleteness } from './lib/source-completeness';
-import {
-  runTranslationQualityGate,
-  buildQualityRetryPrompt,
-  selectBestTranslation,
-  formatQualityLogLine,
-} from './lib/translation-quality-gate';
 import { env } from './lib/env';
 import { initializeOrderIntegrations, triggerTranslatorReview } from './lib/integrations';
 
 type JobStatus = JobRow['status'];
 type OutputFormat = 'html' | 'pdf' | 'docx';
-
-/** Remove internal WPO HTML comment markers before passing markdown to renderers or storing. */
-function stripInternalMarkers(markdown: string): string {
-  return markdown.replace(/<!--\s*WPO_[A-Z_]+\s*-->/g, '').replace(/\n{3,}/g, '\n\n');
-}
 
 function parseDocumentType(raw: string): { docType: string; outputFormat: OutputFormat } {
   const [docType, fmt] = raw.split('|');
@@ -136,25 +117,28 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
     const { markdown, pageCount, visualElements: ocrVisualElements } = await extractTextFromPdf(pdfBuffer);
     console.log(`${tag} OCR done — ${pageCount} pages, ${markdown.length} chars, ${ocrVisualElements.length} visual elements`);
 
-    // OCR quality check — script-aware, handles CJK/Thai/Arabic/Hebrew/Devanagari
-    const ocrQuality = assessOcrQuality(markdown, doc.source_language !== 'auto' ? doc.source_language : undefined);
-    console.log(`${tag} OCR quality: ${ocrQuality.pass ? 'pass' : 'fail'} — ${ocrQuality.wordCountEstimate} units, ${ocrQuality.charCount} chars, ${ocrQuality.scriptProfile.name} script, junk=${(ocrQuality.junkRatio * 100).toFixed(1)}%`);
+    // OCR quality check — abort early rather than waste translation credits
+    const ocrWordCount = markdown.trim().split(/\s+/).filter(Boolean).length;
+    const ocrCharCount = markdown.length;
 
-    if (!ocrQuality.pass) {
-      console.error(`${tag} OCR quality too low — ${ocrQuality.failReason}`);
+    if (ocrWordCount < 10 || ocrCharCount < 50) {
+      console.error(`${tag} OCR quality too low — ${ocrWordCount} words, ${ocrCharCount} chars`);
       await updateJob(jobId, 'failed', 0,
         'Document quality too low. Please upload a clearer scan with better lighting and resolution.');
       await supabase.from('documents').update({ status: 'failed' }).eq('id', documentId);
       return;
     }
 
-    await updateJob(jobId, 'ocr_completed', 40);
-
-    // ── Advisory: source-document completeness warnings ──────────────────────
-    const sourceWarnings = checkSourceCompleteness(markdown, pageCount);
-    if (sourceWarnings.length > 0) {
-      console.warn(`${tag} source warnings: ${sourceWarnings.map(w => w.code).join(',')}`);
+    const nonLatinRatio = (markdown.match(/[^\x00-\x7FЀ-ӿ一-鿿]/g) ?? []).length / ocrCharCount;
+    if (nonLatinRatio > 0.3) {
+      console.error(`${tag} OCR junk ratio too high — ${(nonLatinRatio * 100).toFixed(1)}%`);
+      await updateJob(jobId, 'failed', 0,
+        'Document appears to be a low-quality scan. Please upload a higher resolution image.');
+      await supabase.from('documents').update({ status: 'failed' }).eq('id', documentId);
+      return;
     }
+
+    await updateJob(jobId, 'ocr_completed', 40);
 
     await supabase.from('ocr_results').insert({
       job_id: jobId,
@@ -180,148 +164,15 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
     await updateJob(jobId, 'translation_in_progress', 50);
     console.log(`${tag} translating ${resolvedSourceLang} → ${doc.target_language}… [plan: ${plan.mode}]`);
 
-    const { docType: rawDocType, outputFormat } = parseDocumentType(doc.document_type);
-    // Resolve effective type for 'other'/'generic_document' via OCR heuristics
-    const docType = resolveDocumentType(rawDocType, markdown);
+    const { docType, outputFormat } = parseDocumentType(doc.document_type);
 
-    let translatedMarkdown: string;
-
-    // Detected visual elements — populated in official path, used at render time
-    let detectedElements: DetectedVisualElement[] = [];
-
-    if (plan.mode === 'translator_review_draft' || plan.mode === 'notarization_package') {
-      // ── 3a. Visual analysis (official path only) ─────────────────────────
-      const t0Visual = Date.now();
-      try {
-        const visionElements = await analyzeDocumentVisuals(pdfBuffer, pageCount);
-        const ocrDetected = convertOcrElementsToDetected(ocrVisualElements);
-        detectedElements = mergeDetectedElements(ocrDetected, visionElements);
-        console.log(
-          `${tag} [visual] vision=${visionElements.length} ocr=${ocrDetected.length} ` +
-          `merged=${detectedElements.length} in ${Date.now() - t0Visual}ms`,
-        );
-      } catch (visionErr) {
-        const visionMsg = visionErr instanceof Error ? visionErr.message : String(visionErr);
-        console.warn(`${tag} PAGE_VISUAL_ANALYSIS_FAILED (non-fatal, using OCR elements): ${visionMsg}`);
-        detectedElements = convertOcrElementsToDetected(ocrVisualElements);
-        console.log(`${tag} [visual] fallback: ocr=${detectedElements.length} elements`);
-      }
-
-      // ── 3b. Protected values ──────────────────────────────────────────────
-      const { protectedMarkdown, values: pvList } = extractAndProtectValues(markdown);
-      console.log(`${tag} [legacy-official] protected values: ${pvList.length}`);
-
-      // ── 3c. Translate (protected OCR text only — no visual inventory injected) ──
-      const firstTranslation = await translateDocument(
-        protectedMarkdown,
-        resolvedSourceLang,
-        doc.target_language,
-        docType,
-      );
-
-      // ── 3d. Restore protected values after initial translation ───────────────
-      const {
-        restoredMarkdown: initialRestored,
-        missingTokens,
-        remainingTokens,
-        forcedRestores,
-      } = restoreProtectedValues(firstTranslation, pvList);
-      if (missingTokens.length > 0) {
-        console.warn(`${tag} [legacy-official] missing tokens: count=${missingTokens.length}`);
-      }
-      if (remainingTokens.length > 0) {
-        console.warn(`${tag} [legacy-official] unexpected remaining tokens: count=${remainingTokens.length}`);
-      }
-      if (forcedRestores.length > 0) {
-        console.warn(`${tag} [legacy-official] CONFUSABLE_RECOVERY: count=${forcedRestores.length}`);
-      }
-
-      // ── 3e. Unified translation quality gate ─────────────────────────────
-      const initialQuality = runTranslationQualityGate({
-        sourceMarkdown: markdown,
-        translatedMarkdown: initialRestored,
-        sourceLang: resolvedSourceLang ?? 'auto',
-        targetLang: doc.target_language,
-      });
-
-      let finalMarkdown = initialRestored;
-      let selectedResult: 'initial' | 'retry' | 'none' = 'initial';
-      let qualityRetryUsed = false;
-
-      if (initialQuality.hasRetryRequired) {
-        console.warn(
-          `${tag} [quality-gate] retry_required issues: ${initialQuality.issues.filter(i => i.severity === 'retry_required').map(i => i.code).join(',')}`,
-        );
-        try {
-          const retryPrompt = buildQualityRetryPrompt(initialQuality.issues, initialQuality.metrics);
-          const retryTranslation = await retranslateWithCorrection(
-            protectedMarkdown,
-            resolvedSourceLang,
-            doc.target_language,
-            docType,
-            retryPrompt,
-          );
-          const { restoredMarkdown: retryRestored } = restoreProtectedValues(retryTranslation, pvList);
-          const retryQuality = runTranslationQualityGate({
-            sourceMarkdown: markdown,
-            translatedMarkdown: retryRestored,
-            sourceLang: resolvedSourceLang ?? 'auto',
-            targetLang: doc.target_language,
-          });
-          qualityRetryUsed = true;
-
-          const best = selectBestTranslation(
-            { markdown: initialRestored, result: initialQuality },
-            { markdown: retryRestored, result: retryQuality },
-          );
-          finalMarkdown = best.markdown;
-          selectedResult = best.selectedFrom;
-          console.log(
-            `${tag} [quality-gate] retry applied: selected=${selectedResult} ` +
-            `initial_issues=${initialQuality.issues.length} retry_issues=${retryQuality.issues.length}`,
-          );
-          // Log final quality metrics
-          const finalQuality = best.selectedFrom === 'retry' ? retryQuality : initialQuality;
-          console.log(`${tag} ${formatQualityLogLine(finalQuality.metrics, finalQuality.issues, { retryUsed: true, selectedResult })}`);
-        } catch (retryErr) {
-          console.warn(
-            `${tag} [quality-gate] retry failed (advisory, using initial): ` +
-            `${retryErr instanceof Error ? retryErr.message : String(retryErr)}`,
-          );
-          console.log(`${tag} ${formatQualityLogLine(initialQuality.metrics, initialQuality.issues, { retryUsed: false, selectedResult: 'initial' })}`);
-        }
-      } else {
-        console.log(`${tag} ${formatQualityLogLine(initialQuality.metrics, initialQuality.issues, { retryUsed: false, selectedResult: 'none' })}`);
-      }
-
-      translatedMarkdown = finalMarkdown;
-    } else {
-      // Electronic path: unchanged
-      translatedMarkdown = await translateDocument(
-        markdown,
-        resolvedSourceLang,
-        doc.target_language,
-        docType,
-      );
-    }
-
+    const translatedMarkdown = await translateDocument(
+      markdown,
+      resolvedSourceLang,
+      doc.target_language,
+      docType,
+    );
     console.log(`${tag} translation done — ${translatedMarkdown.length} chars, format: ${outputFormat}`);
-
-    // ── Script validation (advisory, covers transliterated fragments and remaining source-script) ──
-    if (plan.mode === 'translator_review_draft' || plan.mode === 'notarization_package') {
-      const scriptIssues = validateTranslationScript(
-        translatedMarkdown,
-        doc.target_language,
-      );
-      if (scriptIssues.length > 0) {
-        // Log-only at this stage — quality gate already did the retry.
-        // Script validator catches finer-grained confusables the gate misses.
-        console.warn(
-          `${tag} [script-validator] unexpected script fragments: count=${scriptIssues.length} ` +
-          `samples=${scriptIssues.slice(0, 3).map(i => i.text).join(',')}`,
-        );
-      }
-    }
 
     // ── 4. Render output in requested format ─────────────────────────────────
     await updateJob(jobId, 'pdf_rendering', 70);
@@ -347,54 +198,39 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
     if (plan.mode === 'translator_review_draft' || plan.mode === 'notarization_package') {
       console.log(`${tag} [official mode] generating translator draft DOCX + preview PDF…`);
 
-      // Strip internal WPO markers (<!-- WPO_VISUAL_BLOCK_START --> etc.) before rendering.
-      // The sentinel is used for dedup detection only — it must not appear in rendered output.
-      let markdownForRender = stripInternalMarkers(translatedMarkdown);
-
-      // ── Structural translation review (untranslated/transliterated fragment detection) ──
-      // Catches phonetic-Latin transcriptions of source-language words that pass script-level
-      // detection (e.g. "COXPAHEH" in an English heading = transliterated "СОХРАНЕН").
-      try {
-        const structuralCorrections = await runStructuralReview(
-          markdownForRender,
-          doc.target_language,
-          resolvedSourceLang ?? 'auto',
-        );
-        if (structuralCorrections.length > 0) {
-          console.log(`${tag} [structural-review] applying ${structuralCorrections.length} correction(s): ${structuralCorrections.map(c => `"${c.original}"→"${c.corrected}"`).join(', ')}`);
-          markdownForRender = applyStructuralCorrections(markdownForRender, structuralCorrections);
-        } else {
-          console.log(`${tag} [structural-review] no corrections needed`);
-        }
-      } catch (reviewErr) {
-        console.warn(`${tag} [structural-review] failed (advisory, continuing):`, reviewErr instanceof Error ? reviewErr.message : reviewErr);
-      }
-
-      // Pass detectedElements directly — renderers append the visual block once at the bottom.
-      const rendererVisuals = convertDetectedToVisual(detectedElements);
-      const docxBuf = await renderToDocx(markdownForRender, renderMeta, rendererVisuals);
+      // Generate DOCX draft
+      const docxBuf = await renderToDocx(translatedMarkdown, renderMeta, allVisualElements);
       const draftDocxKey = `${baseKey}/translator_draft.docx`;
       await uploadFile(draftDocxKey, docxBuf, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
       console.log(`${tag} DOCX draft uploaded (${docxBuf.length} bytes) → ${draftDocxKey}`);
 
-      // Run QA checks on HTML (operator-facing report only — no PDF generated here)
+      // Generate preview PDF (wrap in try/catch — not critical for the workflow)
+      let previewPdfKey: string | undefined;
+      // Hoist qaReport so it can be persisted even if PDF generation fails
       let savedQaReport: Record<string, unknown> | null = null;
       try {
-        const html = await renderToHtml(markdownForRender, renderMeta, rendererVisuals);
+        const html = await renderToHtml(translatedMarkdown, renderMeta, allVisualElements);
+
+        // Run QA checks
         const qaReport = runQaChecks(html, plan.mode, pageCount);
         savedQaReport = qaReport as unknown as Record<string, unknown>;
         console.log(`${tag} QA report:`, JSON.stringify(qaReport));
         if (qaReport.warnings.length > 0) {
           console.warn(`${tag} QA warnings:`, qaReport.warnings);
         }
-      } catch (qaErr) {
-        const msg = qaErr instanceof Error ? qaErr.message : String(qaErr);
-        console.warn(`${tag} QA check failed (non-fatal): ${msg}`);
+
+        const pdfBuf = await generatePdfFromHtml(html);
+        previewPdfKey = `${baseKey}/preview.pdf`;
+        await uploadFile(previewPdfKey, pdfBuf, 'application/pdf');
+        console.log(`${tag} preview PDF uploaded (${pdfBuf.length} bytes) → ${previewPdfKey}`);
+      } catch (previewErr) {
+        const msg = previewErr instanceof Error ? previewErr.message : String(previewErr);
+        console.error(`${tag} preview PDF generation failed (non-fatal): ${msg}`);
       }
 
-      // Upsert translation record — DOCX is the only artifact for AI draft.
-      // translated_pdf_key and translated_preview_pdf_key stay null until the
-      // translator-approved final PDF is generated after human review.
+      // Upsert translation record with DOCX key as primary artifact + preview PDF key + qa_report
+      // NOTE: translated_docx_key, translated_preview_pdf_key, qa_report columns require
+      // supabase/migrations/add_official_workflow_fields.sql to be applied in Supabase first.
       await updateJob(jobId, 'pdf_rendering', 90, undefined, { workflow_status: 'awaiting_translator_review' });
 
       const { data: existing } = await supabase
@@ -403,29 +239,24 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
         .eq('job_id', jobId)
         .maybeSingle();
 
-      // Merge source warnings into QA report so translators can see them
-      const mergedQaReport = savedQaReport
-        ? { ...savedQaReport, sourceWarnings: sourceWarnings.map(w => ({ code: w.code, message: w.message })) }
-        : (sourceWarnings.length > 0 ? { sourceWarnings: sourceWarnings.map(w => ({ code: w.code, message: w.message })) } : null);
-
       if (existing) {
         await supabase
           .from('translations')
           .update({
-            translated_pdf_key: null,
+            translated_pdf_key: draftDocxKey,
             translated_docx_key: draftDocxKey,
-            translated_preview_pdf_key: null,
-            qa_report: mergedQaReport,
+            translated_preview_pdf_key: previewPdfKey ?? null,
+            qa_report: savedQaReport,
           })
           .eq('id', existing.id);
       } else {
         await supabase.from('translations').insert({
           job_id: jobId,
-          translated_markdown: markdownForRender,
-          translated_pdf_key: null,
+          translated_markdown: translatedMarkdown,
+          translated_pdf_key: draftDocxKey,
           translated_docx_key: draftDocxKey,
-          translated_preview_pdf_key: null,
-          qa_report: mergedQaReport,
+          translated_preview_pdf_key: previewPdfKey ?? null,
+          qa_report: savedQaReport,
         });
       }
 
@@ -434,11 +265,7 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
       await supabase.from('documents').update({ status: 'in_review' }).eq('id', documentId);
       await updateJob(jobId, 'completed', 100, undefined, { workflow_status: 'awaiting_translator_review' });
 
-      console.log(
-        `${tag} ✓ completed [${plan.mode}] ` +
-        `docx=${docxBuf.length}B ` +
-        `warnings=${sourceWarnings.length > 0 ? sourceWarnings.map(w => w.code).join(',') : 'none'}`,
-      );
+      console.log(`${tag} ✓ completed [${plan.mode}] — awaiting human review`);
 
       // Upload AI draft to Drive 02_AI_DRAFT and notify translator.
       // Jira Automation handles assignment/transitions on the Jira side.
@@ -538,9 +365,7 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
     if (existing) {
       await supabase
         .from('translations')
-        .update({
-          translated_pdf_key: translatedKey,
-        })
+        .update({ translated_pdf_key: translatedKey })
         .eq('id', existing.id);
     } else {
       await supabase.from('translations').insert({

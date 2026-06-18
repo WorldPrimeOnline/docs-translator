@@ -12,7 +12,7 @@ describe('computeOutputPlan — legacy boolean input (backward compat)', () => {
     expect(plan.requiresHumanReview).toBe(true);
     expect(plan.requiresNotaryReview).toBe(true);
     expect(plan.generateFinalPdf).toBe(false);
-    expect(plan.generatePreviewPdf).toBe(false);
+    expect(plan.generatePreviewPdf).toBe(true);
   });
 
   it('notarized=false → translation_only', () => {
@@ -49,7 +49,7 @@ describe('computeOutputPlan — ServiceLevel string input', () => {
     expect(plan.requiresHumanReview).toBe(true);
     expect(plan.requiresNotaryReview).toBe(false);
     expect(plan.generateDocx).toBe(true);
-    expect(plan.generatePreviewPdf).toBe(false);
+    expect(plan.generatePreviewPdf).toBe(true);
     expect(plan.generateFinalPdf).toBe(false);
     expect(plan.releaseToCustomerImmediately).toBe(false);
   });
@@ -60,7 +60,7 @@ describe('computeOutputPlan — ServiceLevel string input', () => {
     expect(plan.requiresHumanReview).toBe(true);
     expect(plan.requiresNotaryReview).toBe(true);
     expect(plan.generateDocx).toBe(true);
-    expect(plan.generatePreviewPdf).toBe(false);
+    expect(plan.generatePreviewPdf).toBe(true);
     expect(plan.generateFinalPdf).toBe(false);
     expect(plan.releaseToCustomerImmediately).toBe(false);
   });

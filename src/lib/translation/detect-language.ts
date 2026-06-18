@@ -4,9 +4,7 @@ import { env } from '@/lib/env';
 const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
 const MODEL = 'claude-sonnet-4-5-20250929';
 const MAX_RETRIES = 3;
-
-// BCP-47 code validation — accepts any valid 2-3 letter language tag
-const VALID_LANG_CODE = /^[a-z]{2,3}(-[a-z]{2,8})*$/;
+const ALLOWED_LANGS = new Set(['en', 'ru', 'zh', 'ko', 'kk', 'tj', 'uz', 'tk', 'mn', 'ky', 'es', 'th']);
 
 export async function detectSourceLanguage(ocrText: string): Promise<string | null> {
   const sample = ocrText.slice(0, 1500).trim();
@@ -18,19 +16,19 @@ export async function detectSourceLanguage(ocrText: string): Promise<string | nu
       const response = await client.messages.create({
         model: MODEL,
         max_tokens: 10,
-        system: 'Detect the dominant language of this document text. Reply with ONLY one lowercase BCP-47 language code (e.g. en, ru, zh, ar, he, th, hi, ja, ko, fr, de, es, it). No other text.',
+        system: 'Detect the dominant language of this document text. Reply with ONLY one lowercase ISO-639-1 code from this list: en ru zh ko kk tj uz tk mn ky es th. No other text.',
         messages: [{ role: 'user', content: sample }],
       });
       const block = response.content[0];
       if (block?.type !== 'text') throw new Error('Unexpected response type from Claude');
       const code = block.text.trim().toLowerCase();
-      return VALID_LANG_CODE.test(code) ? code : null;
+      return ALLOWED_LANGS.has(code) ? code : null;
     } catch (err) {
       lastErr = err;
       console.error(`[detect-language] attempt ${attempt + 1} failed:`, err instanceof Error ? err.message : String(err));
     }
   }
 
-  console.error('[detect-language] all retries exhausted', lastErr instanceof Error ? lastErr.message : String(lastErr));
+  console.error('[detect-language] all retries exhausted, returning null', lastErr instanceof Error ? lastErr.message : String(lastErr));
   return null;
 }
