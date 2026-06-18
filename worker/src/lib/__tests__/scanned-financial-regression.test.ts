@@ -571,3 +571,112 @@ describe('employment certificate regression', () => {
     expect(docxBuf.length).toBeGreaterThan(3000);
   });
 });
+
+// ── §9: Visual elements orchestration ────────────────────────────────────────
+
+import { buildVisualElementsBlock } from '../visual-elements';
+import { convertDetectedToVisual } from '../detected-visual-element';
+import type { DetectedVisualElement } from '../detected-visual-element';
+
+const LAB_DETECTED_ELEMENTS: DetectedVisualElement[] = [
+  {
+    id: 'det_1', page: 1, kind: 'logo', occurrenceIndex: 0,
+    position: 'header', description: 'Laboratory logo BRIA',
+    confidence: 0.95, source: 'page_vision',
+  },
+  {
+    id: 'det_2', page: 1, kind: 'barcode', occurrenceIndex: 0,
+    position: 'upper_right', description: 'Barcode',
+    visibleText: '2605151199', confidence: 0.90, source: 'page_vision',
+  },
+  {
+    id: 'det_3', page: 1, kind: 'accreditation_mark', occurrenceIndex: 0,
+    position: 'footer', description: 'ILAC-MRA accreditation mark',
+    visibleText: 'ILAC-MRA', confidence: 0.92, source: 'page_vision',
+  },
+  {
+    id: 'det_4', page: 1, kind: 'certification_mark', occurrenceIndex: 0,
+    position: 'footer', description: 'ISO 15189 / DMSC certification mark',
+    visibleText: 'ISO 15189', confidence: 0.88, source: 'page_vision',
+  },
+];
+
+describe('visual elements — laboratory report fixture', () => {
+  it('convertDetectedToVisual maps all four elements', () => {
+    const converted = convertDetectedToVisual(LAB_DETECTED_ELEMENTS);
+    expect(converted).toHaveLength(4);
+    expect(converted.map(e => e.kind)).toEqual(['logo', 'barcode', 'accreditation_mark', 'certification_mark']);
+  });
+
+  it('no stamp or signature classified for lab report', () => {
+    const converted = convertDetectedToVisual(LAB_DETECTED_ELEMENTS);
+    const kinds = converted.map(e => e.kind);
+    expect(kinds).not.toContain('stamp');
+    expect(kinds).not.toContain('signature');
+    expect(kinds).not.toContain('electronic_signature');
+    expect(kinds).not.toContain('electronic_approval');
+  });
+
+  it('visual block has exactly one heading', () => {
+    const visuals = convertDetectedToVisual(LAB_DETECTED_ELEMENTS);
+    const block = buildVisualElementsBlock(visuals, 'ru');
+    const headingMatches = (block.match(/^## /gm) ?? []).length;
+    expect(headingMatches).toBe(1);
+  });
+
+  it('visual block does not contain raw inventory tokens', () => {
+    const visuals = convertDetectedToVisual(LAB_DETECTED_ELEMENTS);
+    const block = buildVisualElementsBlock(visuals, 'ru');
+    expect(block).not.toContain('__WPO_VIS_');
+    expect(block).not.toMatch(/kind=/);
+    expect(block).not.toMatch(/position=/);
+    expect(block).not.toContain('page=');
+  });
+
+  it('visual block contains Знак аккредитации and Знак сертификации labels', () => {
+    const visuals = convertDetectedToVisual(LAB_DETECTED_ELEMENTS);
+    const block = buildVisualElementsBlock(visuals, 'ru');
+    expect(block).toContain('Знак аккредитации');
+    expect(block).toContain('Знак сертификации');
+  });
+
+  it('visual block is not empty when elements present', () => {
+    const visuals = convertDetectedToVisual(LAB_DETECTED_ELEMENTS);
+    const block = buildVisualElementsBlock(visuals, 'ru');
+    expect(block).not.toContain('Нет явно распознанных нетекстовых элементов');
+  });
+
+  it('empty element array produces fallback message', () => {
+    const block = buildVisualElementsBlock([], 'ru');
+    expect(block).toContain('Нет явно распознанных нетекстовых элементов');
+  });
+
+  it('DOCX with visual elements has no raw inventory text', async () => {
+    const visuals = convertDetectedToVisual(LAB_DETECTED_ELEMENTS);
+    const docxBuf = await renderToDocx(
+      '## Результаты анализа\n\n| Параметр | Значение |\n|---|---|\n| pH | 7.2 |',
+      {
+        sourceLang: 'en', targetLang: 'ru',
+        translatedAt: '2026-06-18', filename: 'lab.pdf',
+        serviceLevel: 'official_with_translator_signature_and_provider_stamp' as const,
+        documentType: 'other',
+      },
+      visuals,
+    );
+    const xml = await getDocxXml(docxBuf);
+    expect(xml).not.toContain('__WPO_VIS_');
+    expect(xml).not.toMatch(/kind=logo/);
+    expect(xml).not.toMatch(/position=header/);
+  });
+
+  it('processor.ts does not import visual-inventory for runtime use', () => {
+    const src = fs.readFileSync(
+      path.resolve(__dirname, '../../processor.ts'),
+      'utf-8',
+    );
+    expect(src).not.toContain('serializeVisualInventory');
+    expect(src).not.toContain('parseAndRemoveInventoryBlock');
+    expect(src).not.toContain('buildFinalVisualBlock');
+    expect(src).not.toContain("from './lib/visual-inventory'");
+  });
+});

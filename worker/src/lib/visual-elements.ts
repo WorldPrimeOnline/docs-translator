@@ -13,11 +13,15 @@ export type VisualElementKind =
   | 'barcode'
   | 'stamp'
   | 'signature'
+  | 'electronic_signature'
+  | 'accreditation_mark'
+  | 'certification_mark'
   | 'watermark'
   | 'verification_string'
   | 'mrz'
   | 'handwritten_note'
   | 'electronic_approval'
+  | 'label'
   | 'unknown_image';
 
 export interface VisualElement {
@@ -255,11 +259,15 @@ const KIND_LABEL_RU: Record<VisualElementKind, string> = {
   barcode: 'Штрих-код',
   stamp: 'Печать',
   signature: 'Подпись',
+  electronic_signature: 'Электронная подпись',
+  accreditation_mark: 'Знак аккредитации',
+  certification_mark: 'Знак сертификации',
   watermark: 'Водяной знак',
   verification_string: 'Строка проверки',
   mrz: 'Машиночитаемая зона (MRZ)',
   handwritten_note: 'Рукописная пометка',
   electronic_approval: 'Электронное утверждение',
+  label: 'Ярлык',
   unknown_image: 'Изображение',
 };
 
@@ -271,11 +279,15 @@ const KIND_LABEL_EN: Record<VisualElementKind, string> = {
   barcode: 'Barcode',
   stamp: 'Stamp/Seal',
   signature: 'Signature',
+  electronic_signature: 'Electronic signature',
+  accreditation_mark: 'Accreditation mark',
+  certification_mark: 'Certification mark',
   watermark: 'Watermark',
   verification_string: 'Verification string',
   mrz: 'Machine-readable zone (MRZ)',
   handwritten_note: 'Handwritten note',
   electronic_approval: 'Electronic approval',
+  label: 'Label',
   unknown_image: 'Image',
 };
 

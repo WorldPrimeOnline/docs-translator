@@ -32,10 +32,13 @@ export type VisualElementKindExtended =
   | 'barcode'
   | 'stamp'
   | 'signature'
+  | 'electronic_signature'    // Digital/electronic signature artifact (visual widget, not plain text)
+  | 'accreditation_mark'      // Round/oval mark from accreditation body (ILAC, DAkkS, etc.)
+  | 'certification_mark'      // ISO/standard certification mark (ISO 15189, ISO 17025, etc.)
   | 'watermark'
   | 'handwritten_note'
   | 'electronic_approval'
-  | 'label'          // Rectangular text label (e.g., "For Customer", "Copy", "Original")
+  | 'label'                   // Rectangular printed text label ("For Customer", "Copy", "Original")
   | 'unknown_image';
 
 export type VisualPosition =
@@ -150,4 +153,22 @@ export function mergeDetectedElements(
     kindPageCounters[key] = occ + 1;
     return { ...el, id: `det_${i + 1}`, occurrenceIndex: occ };
   });
+}
+
+/**
+ * Convert DetectedVisualElement[] to the simpler VisualElement[] format expected
+ * by the legacy renderers (renderToDocx / renderToHtml / buildVisualElementsBlock).
+ */
+export function convertDetectedToVisual(
+  detected: DetectedVisualElement[],
+): import('./visual-elements').VisualElement[] {
+  return detected.map(el => ({
+    page: el.page,
+    kind: el.kind as import('./visual-elements').VisualElementKind,
+    text: el.textEvidence?.selectedSourceText ?? el.visibleText,
+    description: el.description,
+    position: el.position,
+    confidence: el.confidence,
+    source: (el.source === 'page_vision' ? 'manual' : el.source) as 'mistral_ocr' | 'markdown_marker' | 'regex' | 'pdf_image_extraction' | 'manual',
+  }));
 }

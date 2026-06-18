@@ -36,12 +36,18 @@ const DETECT_VISUAL_ELEMENTS_TOOL: Anthropic.Tool = {
                     type: 'string',
                     enum: [
                       'logo', 'emblem', 'photo', 'qr', 'barcode',
-                      'stamp', 'signature', 'watermark', 'handwritten_note',
-                      'electronic_approval',
-                      'label',          // Rectangular text label: "For Customer", "Copy", etc.
-                      'unknown_image',
+                      'stamp', 'signature', 'electronic_signature',
+                      'accreditation_mark', 'certification_mark',
+                      'watermark', 'handwritten_note',
+                      'electronic_approval', 'label', 'unknown_image',
                     ],
-                    description: 'Type of visual element. Use "label" for rectangular printed text labels (e.g., "For Customer", "Original", "Copy"). Do not classify shadows or decorative borders.',
+                    description:
+                      'Type of visual element. Rules:\n' +
+                      '- "stamp": ONLY for ink/physical impression with organization name around the circumference, registration details, or overlapping a signature. A round printed logo on a letterhead is NOT a stamp.\n' +
+                      '- "accreditation_mark": round or oval mark issued by an accreditation body (ILAC-MRA, DAkkS, UKAS, A2LA, etc.). Has accreditation body name and a member-country mark. NOT a company stamp.\n' +
+                      '- "certification_mark": ISO/IEC standard compliance mark (ISO 15189, ISO 17025, ISO 9001, etc.) as a distinct graphical symbol.\n' +
+                      '- "electronic_signature": a visual digital-signature widget, certificate block, or e-sign image. Plain text such as "This report has been approved electronically" is NOT an electronic_signature — it is ordinary document text.\n' +
+                      '- "label": rectangular printed text label ("For Customer", "Original", "Copy"). Do not classify shadows or decorative borders as labels.',
                   },
                   position: {
                     type: 'string',
