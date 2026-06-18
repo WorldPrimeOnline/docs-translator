@@ -19,6 +19,7 @@ import { ensureVisualElementsBlock, type VisualElement } from './visual-elements
 import { normalizeKvParsedTable, type LegacyTableKind } from './kv-normalizer';
 import { PROVIDER_INFO } from './provider-info';
 import { classifyFinancialBlock, computeLineItemColumnWidths } from './financial-blocks';
+import { splitTextByScript, type ScriptKind } from './unicode-script';
 
 type ServiceLevel =
   | 'electronic'
@@ -191,6 +192,55 @@ const PRINT_SAFE_BORDERS = {
 // Header cell fill — dark enough to remain visible in grayscale print.
 const HEADER_FILL = 'E6E6E6';
 
+// ─── Script-aware font rendering ─────────────────────────────────────────────
+//
+// Mixed-script text (e.g. "Мыанг Войлеб (เมืองวอยเล็บ)") renders as squares
+// when a single TextRun has no font override and the document default font
+// doesn't cover that script. We split by Unicode script and assign per-script
+// Noto fonts (OFL-licensed, installed via fonts-noto in the Railway Docker image).
+
+type FontSpec = {
+  ascii?: string;
+  cs?: string;        // complex scripts: Thai, Arabic, Hebrew, Devanagari
+  eastAsia?: string;  // CJK
+  hAnsi?: string;
+  hint?: string;      // 'cs' tells the renderer to prefer the complex-script path
+};
+
+function getScriptFont(script: ScriptKind): FontSpec | undefined {
+  switch (script) {
+    case 'thai':
+      return { ascii: 'Noto Sans Thai', hAnsi: 'Noto Sans Thai', cs: 'Noto Sans Thai', hint: 'cs' };
+    case 'arabic':
+      return { ascii: 'Noto Sans Arabic', hAnsi: 'Noto Sans Arabic', cs: 'Noto Sans Arabic', hint: 'cs' };
+    case 'hebrew':
+      return { ascii: 'Noto Sans Hebrew', hAnsi: 'Noto Sans Hebrew', cs: 'Noto Sans Hebrew', hint: 'cs' };
+    case 'devanagari':
+      return { ascii: 'Noto Sans Devanagari', hAnsi: 'Noto Sans Devanagari', cs: 'Noto Sans Devanagari', hint: 'cs' };
+    case 'cjk':
+      return { eastAsia: 'Noto Sans CJK SC' };
+    default:
+      return undefined; // Latin, Cyrillic, Common: inherit document default font
+  }
+}
+
+interface ScriptRunOpts {
+  size?: number;
+  bold?: boolean;
+  italics?: boolean;
+  color?: string;
+  allCaps?: boolean;
+}
+
+function createScriptAwareTextRuns(text: string, opts: ScriptRunOpts = {}): TextRun[] {
+  const segments = splitTextByScript(text);
+  if (segments.length === 0) return [new TextRun({ text: '', ...opts })];
+  return segments.map(seg => {
+    const font = getScriptFont(seg.script);
+    return new TextRun({ text: seg.text, ...opts, ...(font ? { font } : {}) });
+  });
+}
+
 // ─── Table utilities ──────────────────────────────────────────────────────────
 
 /** Portrait usable width (DXA). Used for non-wide tables. */
@@ -215,24 +265,25 @@ function parseInlineMarkdown(text: string, size?: number): TextRun[] {
 
   while ((segMatch = segRe.exec(text)) !== null) {
     if (segMatch.index > pos) {
-      runs.push(new TextRun({ text: text.slice(pos, segMatch.index), size }));
+      runs.push(...createScriptAwareTextRuns(text.slice(pos, segMatch.index), { size }));
     }
     const part = segMatch[0];
     if (part.startsWith('**') && part.endsWith('**')) {
-      runs.push(new TextRun({ text: part.slice(2, -2), bold: true, size }));
+      runs.push(...createScriptAwareTextRuns(part.slice(2, -2), { bold: true, size }));
     } else if (part.startsWith('*') && part.endsWith('*') && !part.startsWith('**')) {
-      runs.push(new TextRun({ text: part.slice(1, -1), italics: true, size }));
+      runs.push(...createScriptAwareTextRuns(part.slice(1, -1), { italics: true, size }));
     } else if (part.startsWith('[') && part.endsWith(']')) {
+      // Visual element marker — kept as-is, always ASCII
       runs.push(new TextRun({ text: part, italics: true, color: '333333', size }));
     }
     pos = segMatch.index + part.length;
   }
 
   if (pos < text.length) {
-    runs.push(new TextRun({ text: text.slice(pos), size }));
+    runs.push(...createScriptAwareTextRuns(text.slice(pos), { size }));
   }
 
-  return runs.length > 0 ? runs : [new TextRun({ text, size })];
+  return runs.length > 0 ? runs : createScriptAwareTextRuns(text, { size });
 }
 
 interface ParsedTable {
@@ -321,7 +372,7 @@ function buildDocxTable(parsed: ParsedTable, opts: TableOpts = {}): Table {
       new TableCell({
         children: [
           new Paragraph({
-            children: [new TextRun({ text: h, bold: true, size: effectiveFontSize })],
+            children: createScriptAwareTextRuns(h, { bold: true, size: effectiveFontSize }),
             spacing: { before: 0, after: 0 },
             keepNext: applyAntiOrphan,
           }),
@@ -515,20 +566,20 @@ function parseMarkdownToBlocks(markdown: string): OrientedBlock[] {
     let child: DocxChild;
     if (/^#{1}\s+/.test(line)) {
       child = new Paragraph({
-        text: line.replace(/^#+\s+/, ''),
+        children: createScriptAwareTextRuns(line.replace(/^#+\s+/, '')),
         heading: HeadingLevel.HEADING_1,
         spacing: { before: 240, after: 120 },
       });
     } else if (/^#{2}\s+/.test(line)) {
       child = new Paragraph({
-        text: line.replace(/^#+\s+/, ''),
+        children: createScriptAwareTextRuns(line.replace(/^#+\s+/, '')),
         heading: HeadingLevel.HEADING_2,
         spacing: { before: 200, after: 80 },
         keepNext: true,
       });
     } else if (/^#{3,}\s+/.test(line)) {
       child = new Paragraph({
-        text: line.replace(/^#+\s+/, ''),
+        children: createScriptAwareTextRuns(line.replace(/^#+\s+/, '')),
         heading: HeadingLevel.HEADING_3,
         spacing: { before: 160, after: 80 },
       });
