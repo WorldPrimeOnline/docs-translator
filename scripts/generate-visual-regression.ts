@@ -158,11 +158,15 @@ async function main(): Promise<void> {
     ['No KSЈВКZКХ (reported damaged form)', !markdownForRender.includes('KSЈВКZКХ')],
     ['KZ559876543210123456 preserved', markdownForRender.includes('KZ559876543210123456')],
     ['SML-2026-06-17-071 preserved', markdownForRender.includes('SML-2026-06-17-071')],
+    ['N14720583 preserved', markdownForRender.includes('N14720583')],
     ['SML-74-KZ-170626-Q8X5 preserved', markdownForRender.includes('SML-74-KZ-170626-Q8X5')],
     ['No WPO_VISUAL_BLOCK_START in render input', !markdownForRender.includes('WPO_VISUAL_BLOCK_START')],
     ['No WPO_VISUAL_BLOCK_END in render input', !markdownForRender.includes('WPO_VISUAL_BLOCK_END')],
     ['Watermark TRAINING SAMPLE in visual block', markdownForRender.includes('TRAINING SAMPLE')],
-    ['Stamp lower_center in visual block', markdownForRender.includes('lower_center')],
+    // Position label must be human-readable, not raw enum (no underscores in position column)
+    ['Stamp shows "lower centre" (localized)', markdownForRender.includes('lower centre')],
+    ['No raw "lower_center" in output', !markdownForRender.includes('lower_center')],
+    ['No raw "upper_left" in output', !markdownForRender.includes('upper_left')],
     ['BIC not confusable-corrupted', !detectMixedScriptConfusables(
       markdownForRender.match(/KCJBKZKX|KСJВKZKХ|KSЈВКZКХ/)?.[0] ?? 'KCJBKZKX',
     )],

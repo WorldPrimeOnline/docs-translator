@@ -15,6 +15,8 @@ import { analyzeDocumentVisuals } from './lib/page-vision';
 import { convertOcrElementsToDetected, mergeDetectedElements } from './lib/detected-visual-element';
 import { serializeVisualInventory, parseAndRemoveInventoryBlock, buildFinalVisualBlock, type InventoryEntry, type ParsedInventoryEntry } from './lib/visual-inventory';
 import { runQaChecks } from './lib/qa';
+import { resolveDocumentType } from './lib/effective-document-type';
+import { validateTranslationScript, buildScriptCorrectionPrompt } from './lib/script-validator';
 import { assessOcrQuality } from './lib/ast/script-quality';
 import { translateToAst } from './lib/ast/translator';
 import { env } from './lib/env';
@@ -167,7 +169,9 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
     await updateJob(jobId, 'translation_in_progress', 50);
     console.log(`${tag} translating ${resolvedSourceLang} → ${doc.target_language}… [plan: ${plan.mode}]`);
 
-    const { docType, outputFormat } = parseDocumentType(doc.document_type);
+    const { docType: rawDocType, outputFormat } = parseDocumentType(doc.document_type);
+    // Resolve effective type for 'other'/'generic_document' via OCR heuristics
+    const docType = resolveDocumentType(rawDocType, markdown);
 
     let translatedMarkdown: string;
 
@@ -309,6 +313,36 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
     }
 
     console.log(`${tag} translation done — ${translatedMarkdown.length} chars, format: ${outputFormat}`);
+
+    // ── Unexpected-script validation (advisory, one targeted retry) ───────────
+    if (plan.mode === 'translator_review_draft' || plan.mode === 'notarization_package') {
+      const scriptIssues = validateTranslationScript(
+        translatedMarkdown,
+        doc.target_language,
+      );
+      if (scriptIssues.length > 0) {
+        console.warn(`${tag} [script-validator] unexpected script: count=${scriptIssues.length} fragments=${scriptIssues.slice(0, 5).map(i => i.text).join(',')}`);
+        try {
+          const correctionInstructions = buildScriptCorrectionPrompt(scriptIssues, doc.target_language);
+          const corrected = await retranslateWithCorrection(
+            translatedMarkdown,
+            resolvedSourceLang ?? 'auto',
+            doc.target_language,
+            docType,
+            correctionInstructions,
+          );
+          const remaining = validateTranslationScript(corrected, doc.target_language);
+          if (remaining.length < scriptIssues.length) {
+            translatedMarkdown = corrected;
+            console.log(`${tag} [script-validator] correction applied: issues ${scriptIssues.length} → ${remaining.length}`);
+          } else {
+            console.warn(`${tag} [script-validator] correction did not reduce issues (advisory), keeping original`);
+          }
+        } catch (err) {
+          console.warn(`${tag} [script-validator] correction failed (advisory):`, err instanceof Error ? err.message : err);
+        }
+      }
+    }
 
     // Generate structured AST in background (non-blocking — failure does not abort the job)
     let translatedAst: unknown = null;

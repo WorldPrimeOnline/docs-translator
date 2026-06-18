@@ -200,6 +200,63 @@ export function parseAndRemoveInventoryBlock(
   return { parsedEntries, cleanedMarkdown, missingTokens };
 }
 
+// ─── Position label localization ─────────────────────────────────────────────
+
+const POSITION_LABELS: Record<string, Record<string, string>> = {
+  en: {
+    header: 'header', footer: 'footer', center: 'centre',
+    upper_left: 'upper left', upper_right: 'upper right',
+    lower_left: 'lower left', lower_right: 'lower right',
+    lower_center: 'lower centre',
+    left_margin: 'left margin', right_margin: 'right margin',
+    full_page: 'full page',
+  },
+  ru: {
+    header: 'шапка', footer: 'нижний колонтитул', center: 'по центру',
+    upper_left: 'верхний левый', upper_right: 'верхний правый',
+    lower_left: 'нижний левый', lower_right: 'нижний правый',
+    lower_center: 'нижний центр',
+    left_margin: 'левое поле', right_margin: 'правое поле',
+    full_page: 'весь лист',
+  },
+  kk: {
+    header: 'жоғарғы бөлік', footer: 'төменгі бөлік', center: 'орта',
+    upper_left: 'жоғары сол', upper_right: 'жоғары оң',
+    lower_left: 'төмен сол', lower_right: 'төмен оң',
+    lower_center: 'төмен орта',
+    left_margin: 'сол жақ', right_margin: 'оң жақ',
+    full_page: 'бүкіл бет',
+  },
+  zh: {
+    header: '页眉', footer: '页脚', center: '居中',
+    upper_left: '左上', upper_right: '右上',
+    lower_left: '左下', lower_right: '右下',
+    lower_center: '下居中',
+    left_margin: '左边距', right_margin: '右边距',
+    full_page: '整页',
+  },
+  ko: {
+    header: '머리글', footer: '바닥글', center: '중앙',
+    upper_left: '좌상', upper_right: '우상',
+    lower_left: '좌하', lower_right: '우하',
+    lower_center: '하단 중앙',
+    left_margin: '왼쪽 여백', right_margin: '오른쪽 여백',
+    full_page: '전체 페이지',
+  },
+  es: {
+    header: 'encabezado', footer: 'pie de página', center: 'centro',
+    upper_left: 'superior izquierdo', upper_right: 'superior derecho',
+    lower_left: 'inferior izquierdo', lower_right: 'inferior derecho',
+    lower_center: 'inferior centro',
+    left_margin: 'margen izquierdo', right_margin: 'margen derecho',
+    full_page: 'página completa',
+  },
+};
+
+export function localizePosition(pos: string, locale: string): string {
+  return POSITION_LABELS[locale]?.[pos] ?? POSITION_LABELS['en']?.[pos] ?? pos.replace(/_/g, ' ');
+}
+
 // ─── Multi-locale static labels ──────────────────────────────────────────────
 
 const VISUAL_BLOCK_HEADING: Record<string, string> = {
@@ -327,7 +384,8 @@ export function buildFinalVisualBlock(
   for (const entry of parsedEntries) {
     const kindLabel = kindLabelForLocale(entry.kind, targetLanguage);
     const desc = compactDescription(entry);
-    block += `| ${entry.page} | ${kindLabel} | ${entry.position} | ${desc} |\n`;
+    const posLabel = localizePosition(entry.position, targetLanguage);
+    block += `| ${entry.page} | ${kindLabel} | ${posLabel} | ${desc} |\n`;
   }
 
   return block;

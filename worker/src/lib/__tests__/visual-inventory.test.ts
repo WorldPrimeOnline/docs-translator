@@ -227,12 +227,14 @@ describe('lower_center position support', () => {
     expect(inventoryBlock).toContain('position=lower_center');
   });
 
-  test('lower_center appears in final visual block', () => {
+  test('lower_center is localized to human-readable label in final visual block', () => {
     const { inventoryBlock, entries } = serializeVisualInventory(STAMP_ELEMENTS, 'en');
     const fullTranslation = inventoryBlock + '\n\nBody.';
     const { parsedEntries } = parseAndRemoveInventoryBlock(fullTranslation, entries);
     const block = buildFinalVisualBlock(parsedEntries, 'en');
-    expect(block).toContain('lower_center');
+    // Human-readable form — no raw enum value in rendered output
+    expect(block).toContain('lower centre');
+    expect(block).not.toContain('lower_center');
   });
 });
 

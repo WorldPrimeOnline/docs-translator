@@ -9,8 +9,21 @@ import {
   TableCell,
   WidthType,
   BorderStyle,
+  AlignmentType,
+  ShadingType,
 } from 'docx';
 import { ensureVisualElementsBlock, type VisualElement } from './visual-elements';
+
+type ServiceLevel =
+  | 'electronic'
+  | 'official_with_translator_signature_and_provider_stamp'
+  | 'notarization_through_partners';
+
+type OutputMode =
+  | 'translation_only'
+  | 'translator_review_draft'
+  | 'official_translation'
+  | 'notarization_package';
 
 export interface DocxMeta {
   sourceLang: string;
@@ -18,11 +31,123 @@ export interface DocxMeta {
   documentType: string;
   translatedAt: string;
   filename?: string;
+  serviceLevel?: ServiceLevel;
+  outputMode?: OutputMode;
 }
 
-function parseInlineMarkdown(text: string): TextRun[] {
+// ─── Language label dictionaries (kept in sync with renderer.ts) ─────────────
+
+const LANG_SRC: Record<string, { en: string; ru: string }> = {
+  en: { en: 'English', ru: 'английского' },
+  ru: { en: 'Russian', ru: 'русского' },
+  zh: { en: 'Chinese', ru: 'китайского' },
+  ko: { en: 'Korean', ru: 'корейского' },
+  kk: { en: 'Kazakh', ru: 'казахского' },
+  tj: { en: 'Tajik', ru: 'таджикского' },
+  uz: { en: 'Uzbek', ru: 'узбекского' },
+  tk: { en: 'Turkmen', ru: 'туркменского' },
+  mn: { en: 'Mongolian', ru: 'монгольского' },
+  ky: { en: 'Kyrgyz', ru: 'кыргызского' },
+  es: { en: 'Spanish', ru: 'испанского' },
+  th: { en: 'Thai', ru: 'тайского' },
+};
+
+const LANG_TGT: Record<string, { en: string; ru: string }> = {
+  en: { en: 'English', ru: 'английский' },
+  ru: { en: 'Russian', ru: 'русский' },
+  zh: { en: 'Chinese', ru: 'китайский' },
+  ko: { en: 'Korean', ru: 'корейский' },
+  kk: { en: 'Kazakh', ru: 'казахский' },
+  tj: { en: 'Tajik', ru: 'таджикский' },
+  uz: { en: 'Uzbek', ru: 'узбекский' },
+  tk: { en: 'Turkmen', ru: 'туркменский' },
+  mn: { en: 'Mongolian', ru: 'монгольский' },
+  ky: { en: 'Kyrgyz', ru: 'кыргызский' },
+  es: { en: 'Spanish', ru: 'испанский' },
+  th: { en: 'Thai', ru: 'тайский' },
+};
+
+const PROVIDER_IIN_BIN = '';
+
+function dl(targetLang: string): 'en' | 'ru' { return targetLang === 'ru' ? 'ru' : 'en'; }
+function isAutoSource(lang: string): boolean { return !lang || lang === 'auto' || lang === 'auto-detect'; }
+
+function translationHeadingText(meta: DocxMeta): string {
+  const d = dl(meta.targetLang);
+  const tgt = LANG_TGT[meta.targetLang]?.[d] ?? meta.targetLang.toUpperCase();
+  if (isAutoSource(meta.sourceLang)) {
+    return d === 'ru'
+      ? `ПЕРЕВОД НА ${tgt.toUpperCase()} ЯЗЫК`
+      : `TRANSLATION INTO ${tgt.toUpperCase()}`;
+  }
+  const src = LANG_SRC[meta.sourceLang]?.[d] ?? meta.sourceLang.toUpperCase();
+  return d === 'ru'
+    ? `ПЕРЕВОД С ${src.toUpperCase()} ЯЗЫКА НА ${tgt.toUpperCase()} ЯЗЫК`
+    : `TRANSLATION FROM ${src.toUpperCase()} INTO ${tgt.toUpperCase()}`;
+}
+
+function certificationLabel(meta: DocxMeta): string {
+  return meta.targetLang === 'ru'
+    ? 'СВЕДЕНИЯ О ПЕРЕВОДЧИКЕ И ИСПОЛНИТЕЛЕ'
+    : 'TRANSLATOR AND PROVIDER DETAILS';
+}
+
+function certificationRows(meta: DocxMeta): Array<[string, string]> {
+  const d = dl(meta.targetLang);
+  const tgt = LANG_TGT[meta.targetLang]?.[d] ?? meta.targetLang;
+  const iinBin = PROVIDER_IIN_BIN || '______________________';
+  if (d === 'ru') {
+    const firstLine = isAutoSource(meta.sourceLang)
+      ? `Перевод на ${tgt} язык выполнен верно.`
+      : `Перевод с ${LANG_SRC[meta.sourceLang]?.[d] ?? meta.sourceLang} языка на ${tgt} язык выполнен верно.`;
+    return [
+      [firstLine, ''],
+      ['Переводчик:', '______________________'],
+      ['Квалификация переводчика:', '______________________'],
+      ['Подпись переводчика:', '______________________'],
+      ['Исполнитель:', 'WorldPrimeOnline'],
+      ['ИИН/БИН:', iinBin],
+      ['Печать Исполнителя:', '______________________'],
+      ['Дата:', '______________________'],
+    ];
+  }
+  const firstLine = isAutoSource(meta.sourceLang)
+    ? `The translation into ${tgt} is correct.`
+    : `The translation from ${LANG_SRC[meta.sourceLang]?.[d] ?? meta.sourceLang} into ${tgt} is correct.`;
+  return [
+    [firstLine, ''],
+    ['Translator:', '______________________'],
+    ['Translator qualification:', '______________________'],
+    ['Translator signature:', '______________________'],
+    ['Provider:', 'WorldPrimeOnline'],
+    ['IIN/BIN:', iinBin],
+    ["Provider's stamp:", '______________________'],
+    ['Date:', '______________________'],
+  ];
+}
+
+// ─── Visual block heading detection ──────────────────────────────────────────
+
+// Matches VISUAL_BLOCK_HEADING values from visual-inventory.ts (post-stripInternalMarkers)
+const VISUAL_BLOCK_HEADING_TEXTS = new Set([
+  'Description of non-text elements in the original document',
+  'Описание нетекстовых элементов оригинального документа',
+  'Бастапқы құжаттың бейтекстік элементтерінің сипаттамасы',
+  '原始文件中非文本元素的说明',
+  '원본 문서의 비텍스트 요소 설명',
+  'Descripción de elementos no textuales del documento original',
+]);
+
+// ─── Table utilities ──────────────────────────────────────────────────────────
+
+function getColumnWidths(colCount: number): number[] {
+  // 2-column key-value: label 30% / value 70%
+  if (colCount === 2) return [2700, 6300];
+  return Array.from({ length: colCount }, () => Math.floor(9000 / colCount));
+}
+
+function parseInlineMarkdown(text: string, size?: number): TextRun[] {
   const runs: TextRun[] = [];
-  // First pass: split on bold/italic/marker
   const segRe = /(\*\*[^*]+\*\*|\*[^*]+\*|\[([^\]]{1,120})\])/g;
   let segMatch: RegExpExecArray | null;
   let pos = 0;
@@ -30,25 +155,24 @@ function parseInlineMarkdown(text: string): TextRun[] {
 
   while ((segMatch = segRe.exec(text)) !== null) {
     if (segMatch.index > pos) {
-      runs.push(new TextRun({ text: text.slice(pos, segMatch.index) }));
+      runs.push(new TextRun({ text: text.slice(pos, segMatch.index), size }));
     }
     const part = segMatch[0];
     if (part.startsWith('**') && part.endsWith('**')) {
-      runs.push(new TextRun({ text: part.slice(2, -2), bold: true }));
+      runs.push(new TextRun({ text: part.slice(2, -2), bold: true, size }));
     } else if (part.startsWith('*') && part.endsWith('*') && !part.startsWith('**')) {
-      runs.push(new TextRun({ text: part.slice(1, -1), italics: true }));
+      runs.push(new TextRun({ text: part.slice(1, -1), italics: true, size }));
     } else if (part.startsWith('[') && part.endsWith(']')) {
-      // Visual marker — render as italic
-      runs.push(new TextRun({ text: part, italics: true, color: '333333' }));
+      runs.push(new TextRun({ text: part, italics: true, color: '333333', size }));
     }
     pos = segMatch.index + part.length;
   }
 
   if (pos < text.length) {
-    runs.push(new TextRun({ text: text.slice(pos) }));
+    runs.push(new TextRun({ text: text.slice(pos), size }));
   }
 
-  return runs.length > 0 ? runs : [new TextRun({ text })];
+  return runs.length > 0 ? runs : [new TextRun({ text, size })];
 }
 
 interface ParsedTable {
@@ -58,39 +182,48 @@ interface ParsedTable {
 
 function parseMarkdownTable(lines: string[]): ParsedTable | null {
   if (lines.length < 2) return null;
-  // Header row
   const headerLine = lines[0];
   if (!headerLine?.includes('|')) return null;
-  // Separator row
   const sepLine = lines[1];
   if (!sepLine || !/^\|?[\s\-|:]+\|?$/.test(sepLine)) return null;
 
-  const parseRow = (line: string): string[] => {
-    return line
-      .replace(/^\||\|$/g, '')
-      .split('|')
-      .map((c) => c.trim());
-  };
+  const parseRow = (line: string): string[] =>
+    line.replace(/^\||\|$/g, '').split('|').map((c) => c.trim());
 
   const headers = parseRow(headerLine);
   const rows = lines.slice(2).map(parseRow);
   return { headers, rows };
 }
 
-function buildDocxTable(parsed: ParsedTable): Table {
-  const colCount = parsed.headers.length;
-  const colWidth = Math.floor(9000 / colCount);
+interface TableOpts {
+  compact?: boolean;
+}
 
+function buildDocxTable(parsed: ParsedTable, opts: TableOpts = {}): Table {
+  const colCount = parsed.headers.length;
+  const colWidths = getColumnWidths(colCount);
+  const isCompact = opts.compact === true;
+  const fontSize = isCompact ? 16 : 20; // half-points: 16=8pt, 20=10pt
+  const cellMargins = isCompact
+    ? { top: 50, bottom: 50, left: 80, right: 80 }
+    : { top: 80, bottom: 80, left: 120, right: 120 };
+
+  // Header cells with per-column widths
   const headerRow = new TableRow({
-    children: parsed.headers.map(
-      (h) =>
-        new TableCell({
-          children: [new Paragraph({ children: [new TextRun({ text: h, bold: true })] })],
-          width: { size: colWidth, type: WidthType.DXA },
-          shading: { fill: 'F5F5F5' },
-        }),
-    ),
     tableHeader: true,
+    children: parsed.headers.map((h, idx) =>
+      new TableCell({
+        children: [
+          new Paragraph({
+            children: [new TextRun({ text: h, bold: true, size: fontSize })],
+            spacing: { before: 0, after: 0 },
+          }),
+        ],
+        width: { size: colWidths[idx] ?? Math.floor(9000 / colCount), type: WidthType.DXA },
+        margins: cellMargins,
+        shading: { fill: 'F5F5F5', type: ShadingType.CLEAR },
+      }),
+    ),
   });
 
   const dataRows = parsed.rows.map((row) => {
@@ -98,12 +231,18 @@ function buildDocxTable(parsed: ParsedTable): Table {
     while (cells.length < colCount) cells.push('');
     const normalized = cells.slice(0, colCount);
     return new TableRow({
-      children: normalized.map(
-        (cell) =>
-          new TableCell({
-            children: [new Paragraph({ children: parseInlineMarkdown(cell) })],
-            width: { size: colWidth, type: WidthType.DXA },
-          }),
+      cantSplit: true, // prevent row from spanning pages
+      children: normalized.map((cell, idx) =>
+        new TableCell({
+          children: [
+            new Paragraph({
+              children: parseInlineMarkdown(cell, fontSize),
+              spacing: { before: 0, after: 0 },
+            }),
+          ],
+          width: { size: colWidths[idx] ?? Math.floor(9000 / colCount), type: WidthType.DXA },
+          margins: cellMargins,
+        }),
       ),
     });
   });
@@ -122,22 +261,96 @@ function buildDocxTable(parsed: ParsedTable): Table {
   });
 }
 
+// ─── Certification block ──────────────────────────────────────────────────────
+
+function buildCertificationTable(meta: DocxMeta): Table {
+  const rows = certificationRows(meta);
+  const docxRows = rows.map(([label, value]) => {
+    const isFullWidth = !value;
+    if (isFullWidth) {
+      return new TableRow({
+        cantSplit: true,
+        children: [
+          new TableCell({
+            columnSpan: 2,
+            children: [
+              new Paragraph({
+                children: [new TextRun({ text: label, italics: true, size: 20 })],
+                spacing: { before: 40, after: 40 },
+              }),
+            ],
+            width: { size: 9000, type: WidthType.DXA },
+            margins: { top: 60, bottom: 60, left: 120, right: 120 },
+          }),
+        ],
+      });
+    }
+    return new TableRow({
+      cantSplit: true,
+      children: [
+        new TableCell({
+          children: [
+            new Paragraph({
+              children: [new TextRun({ text: label, bold: true, size: 20 })],
+              spacing: { before: 0, after: 0 },
+            }),
+          ],
+          width: { size: 4000, type: WidthType.DXA },
+          margins: { top: 80, bottom: 80, left: 120, right: 120 },
+          shading: { fill: 'F9F9F9', type: ShadingType.CLEAR },
+        }),
+        new TableCell({
+          children: [
+            new Paragraph({
+              children: [new TextRun({ text: value, size: 20 })],
+              spacing: { before: 0, after: 0 },
+            }),
+          ],
+          width: { size: 5000, type: WidthType.DXA },
+          margins: { top: 80, bottom: 80, left: 120, right: 120 },
+        }),
+      ],
+    });
+  });
+
+  return new Table({
+    rows: docxRows,
+    width: { size: 9000, type: WidthType.DXA },
+    borders: {
+      top: { style: BorderStyle.SINGLE, size: 1, color: 'BBBBBB' },
+      bottom: { style: BorderStyle.SINGLE, size: 1, color: 'BBBBBB' },
+      left: { style: BorderStyle.SINGLE, size: 1, color: 'BBBBBB' },
+      right: { style: BorderStyle.SINGLE, size: 1, color: 'BBBBBB' },
+      insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: 'BBBBBB' },
+      insideVertical: { style: BorderStyle.SINGLE, size: 1, color: 'BBBBBB' },
+    },
+  });
+}
+
+// ─── Markdown → DOCX children ─────────────────────────────────────────────────
+
 type DocxChild = Paragraph | Table;
 
 function parseMarkdownToDocx(markdown: string): DocxChild[] {
   const lines = markdown.split('\n');
   const children: DocxChild[] = [];
   let i = 0;
+  let inVisualSection = false;
 
   while (i < lines.length) {
     const raw = lines[i] ?? '';
     const line = raw.trimEnd();
 
-    // Detect markdown table start
+    // Track section headings to detect the visual block
+    if (/^#{1,3}\s+/.test(line)) {
+      const headingText = line.replace(/^#+\s+/, '');
+      inVisualSection = VISUAL_BLOCK_HEADING_TEXTS.has(headingText);
+    }
+
+    // Markdown table
     if (line.includes('|') && i + 1 < lines.length) {
       const nextLine = lines[i + 1] ?? '';
       if (/^\|?[\s\-|:]+\|?$/.test(nextLine)) {
-        // Collect all table lines
         const tableLines: string[] = [line];
         i++;
         while (i < lines.length && (lines[i] ?? '').includes('|')) {
@@ -146,17 +359,22 @@ function parseMarkdownToDocx(markdown: string): DocxChild[] {
         }
         const parsed = parseMarkdownTable(tableLines);
         if (parsed) {
-          children.push(buildDocxTable(parsed));
+          children.push(buildDocxTable(parsed, { compact: inVisualSection }));
         } else {
-          // Fallback: render as paragraphs
           for (const tl of tableLines) {
-            children.push(new Paragraph({ children: parseInlineMarkdown(tl.replace(/^\||\|$/g, '').replace(/\|/g, ' | ')), spacing: { after: 60 } }));
+            children.push(
+              new Paragraph({
+                children: parseInlineMarkdown(tl.replace(/^\||\|$/g, '').replace(/\|/g, ' | ')),
+                spacing: { after: 60 },
+              }),
+            );
           }
         }
         continue;
       }
     }
 
+    // Horizontal rule → thin spacer
     if (/^-{3,}$/.test(line.trim()) || /^\*{3,}$/.test(line.trim()) || /^_{3,}$/.test(line.trim())) {
       children.push(new Paragraph({ text: '', spacing: { before: 80, after: 80 } }));
       i++;
@@ -164,19 +382,47 @@ function parseMarkdownToDocx(markdown: string): DocxChild[] {
     }
 
     if (/^#{1}\s+/.test(line)) {
-      children.push(new Paragraph({ text: line.replace(/^#+\s+/, ''), heading: HeadingLevel.HEADING_1, spacing: { before: 240, after: 120 } }));
+      children.push(
+        new Paragraph({
+          text: line.replace(/^#+\s+/, ''),
+          heading: HeadingLevel.HEADING_1,
+          spacing: { before: 240, after: 120 },
+        }),
+      );
     } else if (/^#{2}\s+/.test(line)) {
-      children.push(new Paragraph({ text: line.replace(/^#+\s+/, ''), heading: HeadingLevel.HEADING_2, spacing: { before: 200, after: 80 } }));
+      children.push(
+        new Paragraph({
+          text: line.replace(/^#+\s+/, ''),
+          heading: HeadingLevel.HEADING_2,
+          spacing: { before: 200, after: 80 },
+        }),
+      );
     } else if (/^#{3,}\s+/.test(line)) {
-      children.push(new Paragraph({ text: line.replace(/^#+\s+/, ''), heading: HeadingLevel.HEADING_3, spacing: { before: 160, after: 80 } }));
+      children.push(
+        new Paragraph({
+          text: line.replace(/^#+\s+/, ''),
+          heading: HeadingLevel.HEADING_3,
+          spacing: { before: 160, after: 80 },
+        }),
+      );
     } else if (/^[-*+]\s+/.test(line)) {
-      children.push(new Paragraph({ children: parseInlineMarkdown(line.replace(/^[-*+]\s+/, '')), bullet: { level: 0 }, spacing: { after: 60 } }));
+      children.push(
+        new Paragraph({
+          children: parseInlineMarkdown(line.replace(/^[-*+]\s+/, '')),
+          bullet: { level: 0 },
+          spacing: { after: 60 },
+        }),
+      );
     } else if (line.trim() === '') {
       children.push(new Paragraph({ text: '', spacing: { after: 60 } }));
     } else {
-      // Strip image refs, keep visual markers
       const textLine = line.replace(/!\[[^\]]*\]\([^)]+\)/g, '');
-      children.push(new Paragraph({ children: parseInlineMarkdown(textLine), spacing: { after: 80 } }));
+      children.push(
+        new Paragraph({
+          children: parseInlineMarkdown(textLine),
+          spacing: { after: 80 },
+        }),
+      );
     }
     i++;
   }
@@ -184,23 +430,100 @@ function parseMarkdownToDocx(markdown: string): DocxChild[] {
   return children;
 }
 
+// ─── Main entry point ─────────────────────────────────────────────────────────
+
 export async function renderToDocx(
   translatedMarkdown: string,
   meta: DocxMeta,
   visualElements?: VisualElement[],
 ): Promise<Buffer> {
-  // Ensure visual elements block is present
+  const isPresentation = meta.documentType === 'presentation';
+  const sl = meta.serviceLevel ?? 'electronic';
+  const showCert =
+    !isPresentation &&
+    (sl === 'official_with_translator_signature_and_provider_stamp' ||
+      sl === 'notarization_through_partners');
+
+  // Ensure visual elements block is present in markdown
   const finalMarkdown = ensureVisualElementsBlock(
     translatedMarkdown,
     visualElements ?? [],
     meta.targetLang,
   );
 
+  const bodyChildren = parseMarkdownToDocx(finalMarkdown);
+
+  // Build section children: translation heading + body + optional certification block
+  const sectionChildren: DocxChild[] = [];
+
+  // Translation heading (always present for non-presentation docs)
+  if (!isPresentation) {
+    sectionChildren.push(
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: translationHeadingText(meta),
+            bold: true,
+            size: 28, // 14pt
+            allCaps: true,
+          }),
+        ],
+        alignment: AlignmentType.LEFT,
+        spacing: { before: 0, after: 200 },
+        border: {
+          bottom: { style: BorderStyle.SINGLE, size: 6, color: '222222', space: 4 },
+        },
+      }),
+    );
+  }
+
+  sectionChildren.push(...bodyChildren);
+
+  if (showCert) {
+    // Section break before certification block
+    sectionChildren.push(
+      new Paragraph({
+        text: '',
+        spacing: { before: 240, after: 120 },
+        border: {
+          top: { style: BorderStyle.SINGLE, size: 6, color: '222222', space: 4 },
+        },
+      }),
+    );
+    sectionChildren.push(
+      new Paragraph({
+        children: [new TextRun({ text: certificationLabel(meta), bold: true, size: 24, allCaps: true })],
+        spacing: { before: 0, after: 120 },
+      }),
+    );
+    sectionChildren.push(buildCertificationTable(meta));
+
+    if (sl === 'notarization_through_partners') {
+      const note =
+        meta.targetLang === 'ru'
+          ? 'Нотариальное удостоверение подписи переводчика оформляется отдельно при наличии партнёрского процесса.'
+          : "Notarization of the translator's signature is arranged separately where a partner process is available.";
+      sectionChildren.push(
+        new Paragraph({
+          children: [new TextRun({ text: note, italics: true, color: '555555', size: 18 })],
+          spacing: { before: 120, after: 0 },
+        }),
+      );
+    }
+  }
+
   const doc = new Document({
-    sections: [{
-      properties: { page: { margin: { top: 1440, bottom: 1440, left: 1440, right: 1440 } } },
-      children: [...parseMarkdownToDocx(finalMarkdown)],
-    }],
+    sections: [
+      {
+        properties: {
+          page: {
+            // 20mm top/bottom, 18mm left/right (twips: 1mm ≈ 56.7)
+            margin: { top: 1134, bottom: 1134, left: 1020, right: 1020 },
+          },
+        },
+        children: sectionChildren,
+      },
+    ],
   });
 
   return Buffer.from(await Packer.toBuffer(doc));
