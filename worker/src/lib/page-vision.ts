@@ -37,9 +37,11 @@ const DETECT_VISUAL_ELEMENTS_TOOL: Anthropic.Tool = {
                     enum: [
                       'logo', 'emblem', 'photo', 'qr', 'barcode',
                       'stamp', 'signature', 'watermark', 'handwritten_note',
-                      'electronic_approval', 'unknown_image',
+                      'electronic_approval',
+                      'label',          // Rectangular text label: "For Customer", "Copy", etc.
+                      'unknown_image',
                     ],
-                    description: 'Type of visual element',
+                    description: 'Type of visual element. Use "label" for rectangular printed text labels (e.g., "For Customer", "Original", "Copy"). Do not classify shadows or decorative borders.',
                   },
                   position: {
                     type: 'string',

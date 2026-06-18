@@ -35,6 +35,7 @@ export type VisualElementKindExtended =
   | 'watermark'
   | 'handwritten_note'
   | 'electronic_approval'
+  | 'label'          // Rectangular text label (e.g., "For Customer", "Copy", "Original")
   | 'unknown_image';
 
 export type VisualPosition =

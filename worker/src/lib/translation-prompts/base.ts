@@ -200,6 +200,30 @@ DUPLICATION PREVENTION:
 - Add the original in parentheses ONLY when it adds genuine information: official personal name spelling, official organization name, legally important original wording, or genuinely ambiguous geographic name.
 - Do not repeat month names or dates in the source language alongside the translated version.
 
+PAGE AND CHUNK MARKER POLICY:
+- NEVER emit "Page N/M", "Страница N/M", "หน้า N/M", "Chunk N/M", or similar standalone page-numbering lines unless they are verbatim content of the source document (e.g., a footer that literally says "Page 1 of 2").
+- Do not add page breaks, section-number prefixes, or chunk indices to the translation output.
+- Source page footers that are plain text ("Page 1 of 2") must be preserved as inline text — NOT converted to DOCX field codes.
+- Translation page numbers are handled by the renderer via DOCX PAGE/NUMPAGES fields — do not emit them.
+
+LEGAL ENTITY NAMES:
+- NEVER convert a foreign legal entity form to a Russian/Kazakh equivalent unless the document explicitly states that form.
+  Forbidden examples: "ООО CP Axtra", "ТОО Makro", "АО Amazon" — these are fabricated.
+- If the source contains an official Latin-script legal name, preserve it exactly as written.
+  Example: "CP Axtra Public Company Limited" remains "CP Axtra Public Company Limited".
+- If no official translation is established: transliterate the name and preserve the original legal form in parentheses.
+  Example: "CP Axtra Паблик Компани Лимитед (CP Axtra Public Company Limited)".
+- Never drop the legal form suffix (Ltd, Inc, PLC, Co., Limited, Public Company Limited, etc.).
+
+ADDRESS FORMATTING POLICY:
+- Decompose an address into semantic components: building/house number, moo/village, subdistrict/tambon, district/amphoe, province, postal code, country.
+- Translate each component label (street, avenue, district, province) to the target language.
+- Do NOT output both a short abbreviation and a full form of the same component — choose one consistent form.
+  Forbidden: "Му 9 (Деревня 9)" or "ампхе / amphoe" — pick one register.
+- For Thai addresses, use: му N, тамбон [Name], ампхе [Name], провинция [Name] NNNNN, Таиланд.
+- For addresses of other countries, apply the same decompose-and-translate-labels approach.
+- When address text is partially illegible, keep the legible parts and mark illegible portions as [неразборчиво] / [illegible].
+
 OUTPUT CLEANLINESS:
 - Output only the translated document. No text before it, no text after it.
 - Do not output JSON, HTML, YAML, or any markup other than Markdown.

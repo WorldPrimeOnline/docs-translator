@@ -73,6 +73,34 @@ async function translateChunk(
   throw lastError;
 }
 
+/**
+ * Strip internally generated chunk/page markers from translated output.
+ *
+ * Claude must not emit "Page X/Y" or "Страница X/Y" as standalone lines that
+ * it invented as chunk separators. Source page references ("Page 1 of 2") are
+ * preserved when embedded in prose. Only bare "N/M" or "Страница N/M" lines
+ * generated as chunk metadata are removed.
+ */
+/** Exported for testing only. */
+export function stripInternalChunkMarkersForTest(text: string): string {
+  return stripInternalChunkMarkers(text);
+}
+
+function stripInternalChunkMarkers(text: string): string {
+  // Standalone "Страница N/M" or "Page N/M" or "Chunk N/M" — NOT preceded by other text
+  // Must be on its own line (nothing else on that line except optional whitespace)
+  return text
+    .split('\n')
+    .filter(line => {
+      const trimmed = line.trim();
+      // Remove lines that are purely "Страница N/M", "Page N/M", "Chunk N/M"
+      if (/^(?:страница|page|chunk)\s+\d+\s*[/]\s*\d+$/i.test(trimmed)) return false;
+      return true;
+    })
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n');
+}
+
 export async function translateDocument(
   markdown: string,
   sourceLang: string,
@@ -84,7 +112,8 @@ export async function translateDocument(
   const results = await Promise.all(
     chunks.map((c) => translateChunk(c, sourceLang, targetLang, documentType)),
   );
-  return results.join('\n\n');
+  const joined = results.join('\n\n');
+  return stripInternalChunkMarkers(joined);
 }
 
 export async function retranslateWithCorrection(

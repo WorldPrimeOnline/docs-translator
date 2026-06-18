@@ -1,5 +1,6 @@
 import { env } from './env';
 import { extractVisualElementsFromOcr, type VisualElement } from './visual-elements';
+import { reorderPagesByEvidence } from './page-order';
 
 interface MistralOcrPage {
   markdown: string;
@@ -14,6 +15,8 @@ export interface OcrResult {
   pageMarkdowns: string[];
   pageCount: number;
   visualElements: VisualElement[];
+  pageOrderWarning?: string;
+  pageOrderReordered?: boolean;
 }
 
 const MISTRAL_OCR_URL = 'https://api.mistral.ai/v1/ocr';
@@ -69,18 +72,40 @@ export async function extractTextFromPdf(pdfBuffer: Buffer): Promise<OcrResult> 
     const pages = data.pages ?? [];
 
     // Keep raw page markdowns (with images) for visual element extraction
-    const rawPageMarkdowns = pages.map((p) => p.markdown);
+    const rawPageMarkdownsOriginal = pages.map((p) => p.markdown);
 
-    // Strip image refs after extracting visual elements
-    const pageMarkdowns = rawPageMarkdowns.map((md) => stripImageRefs(md));
+    // Strip image refs — on stripped markdowns, detect and reorder pages
+    const strippedOriginal = rawPageMarkdownsOriginal.map((md) => stripImageRefs(md));
+    const orderResult = reorderPagesByEvidence(strippedOriginal);
+
+    // Apply reorder to both stripped and raw (for visual extraction)
+    const pageMarkdowns = orderResult.reorderedMarkdowns;
+    const rawPageMarkdowns = orderResult.reordered
+      ? orderResult.evidence.map(e => rawPageMarkdownsOriginal[e.uploadIndex]!)
+      : rawPageMarkdownsOriginal;
+
     const markdown = pageMarkdowns.join('\n\n');
+
+    if (orderResult.reordered) {
+      const order = orderResult.evidence.map(e => `upload[${e.uploadIndex}]→page${e.detectedPageNumber}`).join(',');
+      console.log(`[ocr] PAGE_ORDER_REORDERED: ${order}`);
+    } else if (orderResult.warning) {
+      console.warn(`[ocr] PAGE_ORDER_WARNING: ${orderResult.warning}`);
+    }
 
     // Extract visual elements from raw (pre-strip) per-page markdowns + joined
     const rawJoined = rawPageMarkdowns.join('\n\n');
     const visualElements = extractVisualElementsFromOcr(rawJoined, rawPageMarkdowns);
 
     console.log(`[ocr] ${pages.length} pages, ${markdown.length} chars, ${visualElements.length} visual elements`);
-    return { markdown, pageMarkdowns, pageCount: pages.length, visualElements };
+    return {
+      markdown,
+      pageMarkdowns,
+      pageCount: pages.length,
+      visualElements,
+      pageOrderReordered: orderResult.reordered,
+      pageOrderWarning: orderResult.warning,
+    };
   }
 
   throw lastError;
