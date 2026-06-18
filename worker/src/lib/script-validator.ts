@@ -35,15 +35,19 @@ export function getScriptFamily(lang: string): ScriptFamily {
 // Unicode range checks
 function hasCyrillic(s: string): boolean { return /[Ѐ-ӿԀ-ԯ]/.test(s); }
 function hasLatin(s: string): boolean { return /[A-Za-z]/.test(s); }
-function hasArabic(s: string): boolean { return /[؀-ۿ]/.test(s); }
+function hasArabic(s: string): boolean { return /[؀-ۿݐ-ݿﭐ-﷿ﹰ-﻿]/.test(s); }
 function hasCJK(s: string): boolean { return /[一-鿿぀-ヿ가-퟿]/.test(s); }
 function hasThai(s: string): boolean { return /[฀-๿]/.test(s); }
+function hasDevanagari(s: string): boolean { return /[ऀ-ॿ]/.test(s); }
+function hasHebrew(s: string): boolean { return /[֐-׿ﬀ-ﭏ]/.test(s); }
 
 function getActualScript(word: string): ScriptFamily {
   if (hasCyrillic(word)) return 'Cyrillic';
   if (hasArabic(word)) return 'Arabic';
   if (hasCJK(word)) return 'CJK';
   if (hasThai(word)) return 'Thai';
+  if (hasDevanagari(word)) return 'Devanagari';
+  if (hasHebrew(word)) return 'Hebrew';
   if (hasLatin(word)) return 'Latin';
   return 'Neutral';
 }
@@ -130,6 +134,22 @@ export function validateTranslationScript(
             text: word,
             foundScript: 'Latin',
             expectedScript: 'Cyrillic',
+          });
+        }
+      } else if (
+        (expectedScript === 'Latin' || expectedScript === 'Cyrillic') &&
+        (actualScript === 'Thai' || actualScript === 'Arabic' || actualScript === 'Hebrew' || actualScript === 'Devanagari')
+      ) {
+        // Non-Latin/Cyrillic script word in a Latin or Cyrillic target document.
+        // Short originals in parentheses are acceptable; longer words indicate missed translation.
+        // Table cells are excluded from this check — they may legitimately contain
+        // short source-language original values.
+        if (!isTableRow && word.length > 3) {
+          issues.push({
+            line: i + 1,
+            text: word,
+            foundScript: actualScript,
+            expectedScript,
           });
         }
       }

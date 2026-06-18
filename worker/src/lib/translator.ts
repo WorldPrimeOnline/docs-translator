@@ -57,6 +57,7 @@ async function translateChunk(
       const response = await client.messages.create({
         model: MODEL,
         max_tokens: 8192,
+        temperature: 0,
         system: systemPrompt,
         messages: [{ role: 'user', content: `${userPrompt}\n\n${chunk}` }],
       });
@@ -94,7 +95,9 @@ function stripInternalChunkMarkers(text: string): string {
     .filter(line => {
       const trimmed = line.trim();
       // Remove lines that are purely "Страница N/M", "Page N/M", "Chunk N/M"
-      if (/^(?:страница|page|chunk)\s+\d+\s*[/]\s*\d+$/i.test(trimmed)) return false;
+      // Matches: "Page: 1 / 1", "Page 1 / 1", "Page 1/1", "Страница: 1/1", "Chunk 2/3"
+      // "Страница N из N" uses "из" not "/" — that form is preserved as it may be source content.
+      if (/^(?:страница|page|chunk):?\s*\d+\s*\/\s*\d+$/i.test(trimmed)) return false;
       return true;
     })
     .join('\n')
@@ -135,6 +138,7 @@ export async function retranslateWithCorrection(
   const response = await client.messages.create({
     model: MODEL,
     max_tokens: 8192,
+    temperature: 0,
     system: correctedSystemPrompt,
     messages: [{ role: 'user', content: `${userPrompt}\n\n${markdown}` }],
   });

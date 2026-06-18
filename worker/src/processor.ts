@@ -3,7 +3,6 @@ import { downloadFile, uploadFile, getPresignedUrl } from './lib/r2';
 import { extractTextFromPdf } from './lib/ocr';
 import { translateDocument, retranslateWithCorrection } from './lib/translator';
 import { extractAndProtectValues, restoreProtectedValues } from './lib/protected-values';
-import { extractMarkdownTableShapes, compareMarkdownTableShapes, buildTableCorrectionPrompt } from './lib/table-shape';
 import { detectSourceLanguage } from './lib/detect-language';
 import { renderToHtml } from './lib/renderer';
 import { generatePdfFromHtml } from './lib/pdf';
@@ -15,11 +14,16 @@ import { analyzeDocumentVisuals } from './lib/page-vision';
 import { convertOcrElementsToDetected, mergeDetectedElements, convertDetectedToVisual, type DetectedVisualElement } from './lib/detected-visual-element';
 import { runQaChecks } from './lib/qa';
 import { resolveDocumentType } from './lib/effective-document-type';
-import { validateTranslationScript, buildScriptCorrectionPrompt } from './lib/script-validator';
+import { validateTranslationScript } from './lib/script-validator';
 import { runStructuralReview, applyStructuralCorrections } from './lib/structural-review';
 import { assessOcrQuality } from './lib/ast/script-quality';
-import { checkContentCoverage } from './lib/content-coverage';
 import { checkSourceCompleteness } from './lib/source-completeness';
+import {
+  runTranslationQualityGate,
+  buildQualityRetryPrompt,
+  selectBestTranslation,
+  formatQualityLogLine,
+} from './lib/translation-quality-gate';
 import { env } from './lib/env';
 import { initializeOrderIntegrations, triggerTranslatorReview } from './lib/integrations';
 
@@ -207,9 +211,6 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
       const { protectedMarkdown, values: pvList } = extractAndProtectValues(markdown);
       console.log(`${tag} [legacy-official] protected values: ${pvList.length}`);
 
-      const sourceShapes = extractMarkdownTableShapes(markdown);
-      console.log(`${tag} [legacy-official] source tables: ${sourceShapes.length}`);
-
       // ── 3c. Translate (protected OCR text only — no visual inventory injected) ──
       const firstTranslation = await translateDocument(
         protectedMarkdown,
@@ -218,97 +219,82 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
         docType,
       );
 
-      // ── 3d. Table shape check + retry ────────────────────────────────────
-      let translationBody = firstTranslation;
-      const translatedShapes = extractMarkdownTableShapes(translationBody);
-      const shapeMismatches = compareMarkdownTableShapes(sourceShapes, translatedShapes);
-      let usedTableRetry = false;
-
-      if (shapeMismatches.length > 0) {
-        console.warn(
-          `${tag} [legacy-official] table structure mismatch — retrying (mismatched tables: ${shapeMismatches.length})`,
-        );
-        usedTableRetry = true;
-        try {
-          const correctionPrompt = buildTableCorrectionPrompt(shapeMismatches);
-          translationBody = await retranslateWithCorrection(
-            protectedMarkdown,
-            resolvedSourceLang,
-            doc.target_language,
-            docType,
-            correctionPrompt,
-          );
-        } catch (retryErr) {
-          const retryMsg = retryErr instanceof Error ? retryErr.message : String(retryErr);
-          console.warn(`${tag} [legacy-official] table retry failed (advisory, continuing): ${retryMsg}`);
-          usedTableRetry = false;
-        }
-      }
-      console.log(`${tag} [legacy-official] table structure retry: ${usedTableRetry}`);
-
-      // ── 3e. Restore protected values ──────────────────────────────────────
-      const { restoredMarkdown, missingTokens, remainingTokens, forcedRestores } = restoreProtectedValues(
-        translationBody,
-        pvList,
-      );
-      console.log(`${tag} [legacy-official] missing placeholders: ${missingTokens.length}`);
+      // ── 3d. Restore protected values after initial translation ───────────────
+      const {
+        restoredMarkdown: initialRestored,
+        missingTokens,
+        remainingTokens,
+        forcedRestores,
+      } = restoreProtectedValues(firstTranslation, pvList);
       if (missingTokens.length > 0) {
-        console.warn(`${tag} [legacy-official] missing tokens (advisory): count=${missingTokens.length}`);
+        console.warn(`${tag} [legacy-official] missing tokens: count=${missingTokens.length}`);
       }
       if (remainingTokens.length > 0) {
         console.warn(`${tag} [legacy-official] unexpected remaining tokens: count=${remainingTokens.length}`);
       }
       if (forcedRestores.length > 0) {
-        console.warn(`${tag} [legacy-official] CONFUSABLE_RECOVERY: forced restores: count=${forcedRestores.length} tokens=${forcedRestores.map(r => r.split(':')[0]).join(',')}`);
+        console.warn(`${tag} [legacy-official] CONFUSABLE_RECOVERY: count=${forcedRestores.length}`);
       }
 
-      translatedMarkdown = restoredMarkdown;
-
-      // ── 3f. Content coverage check (pre-render) ──────────────────────────
-      const coverageResult = checkContentCoverage({
+      // ── 3e. Unified translation quality gate ─────────────────────────────
+      const initialQuality = runTranslationQualityGate({
         sourceMarkdown: markdown,
-        translatedMarkdown,
-        sourceShapes,
-        protectedValueCount: pvList.length,
-        inventoryEntryCount: 0,
+        translatedMarkdown: initialRestored,
+        sourceLang: resolvedSourceLang ?? 'auto',
+        targetLang: doc.target_language,
       });
-      if (coverageResult.warnings.length > 0) {
-        console.warn(`${tag} coverage warnings: ${coverageResult.warnings.join('|')}`);
-      }
-      if (!coverageResult.passed) {
-        console.warn(`${tag} coverage errors: ${coverageResult.errors.join('|')}`);
-      }
-      if (coverageResult.retryNeeded && !usedTableRetry) {
-        console.warn(`${tag} [coverage] retry indicated by coverage check (table/heading issue)`);
+
+      let finalMarkdown = initialRestored;
+      let selectedResult: 'initial' | 'retry' | 'none' = 'initial';
+      let qualityRetryUsed = false;
+
+      if (initialQuality.hasRetryRequired) {
+        console.warn(
+          `${tag} [quality-gate] retry_required issues: ${initialQuality.issues.filter(i => i.severity === 'retry_required').map(i => i.code).join(',')}`,
+        );
         try {
-          const retried = await retranslateWithCorrection(
+          const retryPrompt = buildQualityRetryPrompt(initialQuality.issues, initialQuality.metrics);
+          const retryTranslation = await retranslateWithCorrection(
             protectedMarkdown,
             resolvedSourceLang,
             doc.target_language,
             docType,
-            `Coverage check failed: ${coverageResult.errors.slice(0, 2).join('; ')}. ` +
-            `Ensure ALL headings and tables from the source are present in the translation.`,
+            retryPrompt,
           );
-          const { restoredMarkdown: retryRestored } = restoreProtectedValues(retried, pvList);
-          const retryCheck = checkContentCoverage({
+          const { restoredMarkdown: retryRestored } = restoreProtectedValues(retryTranslation, pvList);
+          const retryQuality = runTranslationQualityGate({
             sourceMarkdown: markdown,
             translatedMarkdown: retryRestored,
-            sourceShapes,
-            protectedValueCount: pvList.length,
-            inventoryEntryCount: 0,
+            sourceLang: resolvedSourceLang ?? 'auto',
+            targetLang: doc.target_language,
           });
-          if (retryCheck.errors.length <= coverageResult.errors.length) {
-            translatedMarkdown = retryRestored;
-            console.log(`${tag} [coverage] retry applied: errors ${coverageResult.errors.length} → ${retryCheck.errors.length}`);
-          } else {
-            console.warn(`${tag} [coverage] retry did not improve coverage, keeping original`);
-          }
-        } catch (cvErr) {
-          console.warn(`${tag} [coverage] retry failed (advisory, continuing): ${cvErr instanceof Error ? cvErr.message : String(cvErr)}`);
+          qualityRetryUsed = true;
+
+          const best = selectBestTranslation(
+            { markdown: initialRestored, result: initialQuality },
+            { markdown: retryRestored, result: retryQuality },
+          );
+          finalMarkdown = best.markdown;
+          selectedResult = best.selectedFrom;
+          console.log(
+            `${tag} [quality-gate] retry applied: selected=${selectedResult} ` +
+            `initial_issues=${initialQuality.issues.length} retry_issues=${retryQuality.issues.length}`,
+          );
+          // Log final quality metrics
+          const finalQuality = best.selectedFrom === 'retry' ? retryQuality : initialQuality;
+          console.log(`${tag} ${formatQualityLogLine(finalQuality.metrics, finalQuality.issues, { retryUsed: true, selectedResult })}`);
+        } catch (retryErr) {
+          console.warn(
+            `${tag} [quality-gate] retry failed (advisory, using initial): ` +
+            `${retryErr instanceof Error ? retryErr.message : String(retryErr)}`,
+          );
+          console.log(`${tag} ${formatQualityLogLine(initialQuality.metrics, initialQuality.issues, { retryUsed: false, selectedResult: 'initial' })}`);
         }
-      } else if (coverageResult.fallbackNeeded) {
-        console.warn(`${tag} [coverage] fallback needed but not retrying — using available content with warning`);
+      } else {
+        console.log(`${tag} ${formatQualityLogLine(initialQuality.metrics, initialQuality.issues, { retryUsed: false, selectedResult: 'none' })}`);
       }
+
+      translatedMarkdown = finalMarkdown;
     } else {
       // Electronic path: unchanged
       translatedMarkdown = await translateDocument(
@@ -321,33 +307,19 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
 
     console.log(`${tag} translation done — ${translatedMarkdown.length} chars, format: ${outputFormat}`);
 
-    // ── Unexpected-script validation (advisory, one targeted retry) ───────────
+    // ── Script validation (advisory, covers transliterated fragments and remaining source-script) ──
     if (plan.mode === 'translator_review_draft' || plan.mode === 'notarization_package') {
       const scriptIssues = validateTranslationScript(
         translatedMarkdown,
         doc.target_language,
       );
       if (scriptIssues.length > 0) {
-        console.warn(`${tag} [script-validator] unexpected script: count=${scriptIssues.length} fragments=${scriptIssues.slice(0, 5).map(i => i.text).join(',')}`);
-        try {
-          const correctionInstructions = buildScriptCorrectionPrompt(scriptIssues, doc.target_language);
-          const corrected = await retranslateWithCorrection(
-            translatedMarkdown,
-            resolvedSourceLang ?? 'auto',
-            doc.target_language,
-            docType,
-            correctionInstructions,
-          );
-          const remaining = validateTranslationScript(corrected, doc.target_language);
-          if (remaining.length < scriptIssues.length) {
-            translatedMarkdown = corrected;
-            console.log(`${tag} [script-validator] correction applied: issues ${scriptIssues.length} → ${remaining.length}`);
-          } else {
-            console.warn(`${tag} [script-validator] correction did not reduce issues (advisory), keeping original`);
-          }
-        } catch (err) {
-          console.warn(`${tag} [script-validator] correction failed (advisory):`, err instanceof Error ? err.message : err);
-        }
+        // Log-only at this stage — quality gate already did the retry.
+        // Script validator catches finer-grained confusables the gate misses.
+        console.warn(
+          `${tag} [script-validator] unexpected script fragments: count=${scriptIssues.length} ` +
+          `samples=${scriptIssues.slice(0, 3).map(i => i.text).join(',')}`,
+        );
       }
     }
 

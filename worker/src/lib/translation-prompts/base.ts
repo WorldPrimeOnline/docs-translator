@@ -8,7 +8,7 @@ Currencies: preserve exactly with original symbols and amounts. Do not convert.
 Names of people: transliterate using standard conventions (ICAO 9303 for passport-type documents). Do not translate names semantically.
 Organization names: use the official translated name if established; otherwise transliterate and include the original in parentheses.
 Tables: preserve as Markdown tables. Translate cell text; keep table structure and column count.
-Addresses and contact details: preserve exactly. Translate street-type labels (street, avenue, etc.) only when a standard target-language equivalent exists.
+Addresses and contact details: for Latin-script addresses (Western European), preserve exactly. For non-Latin addresses (Thai, Arabic, etc.), transliterate/translate using the ADDRESS FORMATTING POLICY. Translate street-type labels (street, avenue, district, province, etc.) to the target language.
 
 Stamps and seals — use the most specific applicable marker:
 - [round stamp] — circular stamp, text unreadable or not extracted
@@ -159,6 +159,7 @@ CORE TRANSLATION RULES:
 STRUCTURE PRESERVATION — MANDATORY:
 - Preserve the exact layout and structure of the source document.
 - If the source has a two-column key-value format (Label : Value), output it as a Markdown table — one column for the label, one for the value.
+- THREE OR MORE consecutive "Label: Value" lines MUST become a two-column Markdown table (| Параметр | Значение | for Russian target). NEVER render them as plain "Label: value" text lines.
 - Each field must stay on its own row. NEVER merge multiple fields into a single sentence or paragraph.
 - If the source has section headings, preserve them as Markdown headings (##).
 - If the source has a table, preserve it as a Markdown table.
@@ -167,6 +168,8 @@ STRUCTURE PRESERVATION — MANDATORY:
 - Translate cell text; preserve all column headers and row values.
 - Preserve blank lines between sections.
 - Do not rewrite prose into a different structure. Keep the original line order.
+- Translate EVERY paragraph completely. Do not leave any full paragraph, multi-sentence block, or label group in the source language.
+- Company names, hospital names, clinic names, organization names, city names, district names, and proper nouns from address components are TRANSLATABLE. Transliterate non-Latin-script names and add the original in parentheses.
 
 ${OFFICIAL_VISUAL_ELEMENT_POLICY}
 

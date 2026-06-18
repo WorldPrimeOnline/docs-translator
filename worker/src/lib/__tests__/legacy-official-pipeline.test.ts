@@ -147,6 +147,15 @@ jest.mock('../ocr', () => ({
   extractTextFromPdf: jest.fn(),
 }));
 
+jest.mock('../page-vision', () => ({
+  analyzeDocumentVisuals: jest.fn().mockResolvedValue([]),
+}));
+
+jest.mock('../structural-review', () => ({
+  runStructuralReview: jest.fn().mockResolvedValue([]),
+  applyStructuralCorrections: jest.fn((md: string) => md),
+}));
+
 jest.mock('../email', () => ({
   sendTranslationReady: jest.fn().mockResolvedValue(undefined),
   sendDocumentReceivedForReview: jest.fn().mockResolvedValue(undefined),
