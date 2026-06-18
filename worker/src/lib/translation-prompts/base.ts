@@ -186,6 +186,15 @@ PROTECTED PLACEHOLDER RULES:
 - Do not translate, paraphrase, or omit placeholders.
 - A placeholder in the source must appear exactly once in the translation.
 
+VISUAL INVENTORY RULES:
+- The document may begin with a "## VISUAL ELEMENTS OF THE SOURCE DOCUMENT" block containing lines like: "- __WPO_VIS_0001__: kind=logo; page=1; position=header; description=..."
+- Translate the "description=..." values to the target language.
+- Preserve every __WPO_VIS_NNNN__ token exactly as written.
+- Preserve "kind=", "page=", "position=" field labels and values — do not translate them.
+- Do NOT remove any __WPO_VIS_NNNN__ line or its token.
+- Do NOT add new __WPO_VIS_NNNN__ lines.
+- Translate the inventory block heading (## VISUAL ELEMENTS OF THE SOURCE DOCUMENT) to the target language.
+
 DUPLICATION PREVENTION:
 - Do not write "Milan (Milan)" or any form where the translated value and source value are identical.
 - Add the original in parentheses ONLY when it adds genuine information: official personal name spelling, official organization name, legally important original wording, or genuinely ambiguous geographic name.

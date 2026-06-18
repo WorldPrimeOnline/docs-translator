@@ -119,14 +119,27 @@ function bracketKind(content: string): VisualElementKind | null {
   return null;
 }
 
+// Kinds that represent distinct real-world occurrences — never auto-merge across occurrences
+const NEVER_DEDUP_KINDS = new Set<VisualElementKind>(['signature', 'stamp', 'electronic_approval', 'photo']);
+
 function deduplicateElements(elements: VisualElement[]): VisualElement[] {
   const seen = new Set<string>();
   return elements.filter((el) => {
-    const key = `${el.kind}:${el.text ?? ''}`;
+    if (NEVER_DEDUP_KINDS.has(el.kind)) return true; // keep all occurrences
+    const key = `${el.kind}:${el.page ?? ''}:${el.text ?? ''}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
   });
+}
+
+function isVerificationUrl(url: string): boolean {
+  const lower = url.toLowerCase();
+  return (
+    /\/(verify|check|qr|validate|confirm|cert|document)[/?#]/.test(lower) ||
+    /[?&](code|token|verify|check|validate|doc|id)=/.test(lower) ||
+    /\/qr[/?#]?$/.test(lower)
+  );
 }
 
 export function extractVisualElementsFromOcr(
@@ -170,24 +183,28 @@ export function extractVisualElementsFromOcr(
     }
   }
 
-  // Verification URLs
+  // Verification URLs only — contact URLs (e.g. www.sml.kz) are silently skipped
   const urlRe = /https?:\/\/[^\s<>\[\]"]{10,}/g;
   let urlMatch: RegExpExecArray | null;
   while ((urlMatch = urlRe.exec(ocrMarkdown)) !== null) {
-    elements.push({
-      kind: 'verification_string',
-      text: urlMatch[0],
-      source: 'regex',
-    });
+    if (isVerificationUrl(urlMatch[0])) {
+      elements.push({
+        kind: 'verification_string',
+        text: urlMatch[0],
+        source: 'regex',
+      });
+    }
   }
   const wwwRe = /www\.[^\s<>\[\]"]{5,}/g;
   let wwwMatch: RegExpExecArray | null;
   while ((wwwMatch = wwwRe.exec(ocrMarkdown)) !== null) {
-    elements.push({
-      kind: 'verification_string',
-      text: wwwMatch[0],
-      source: 'regex',
-    });
+    if (isVerificationUrl(wwwMatch[0])) {
+      elements.push({
+        kind: 'verification_string',
+        text: wwwMatch[0],
+        source: 'regex',
+      });
+    }
   }
 
   // MRZ detection
@@ -313,6 +330,7 @@ const VISUAL_ELEMENTS_HEADING_PATTERNS = [
   /description of non-text elements/i,
   /нетекстовые элементы/i,
   /visual elements/i,
+  /WPO_VISUAL_BLOCK_START/, // sentinel used by buildFinalVisualBlock (language-invariant)
 ];
 
 export function ensureVisualElementsBlock(

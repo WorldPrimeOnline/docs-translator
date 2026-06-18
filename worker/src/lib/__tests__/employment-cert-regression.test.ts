@@ -202,3 +202,54 @@ describe('protected-values: SML employment certificate', () => {
     expect(salaryMismatch!.issues.some((issue) => issue.includes('6 columns'))).toBe(true);
   });
 });
+
+// ── Visual element extraction fixes ──────────────────────────────────────────
+describe('visual-elements URL classification fix', () => {
+  const { extractVisualElementsFromOcr } = jest.requireActual('../visual-elements') as typeof import('../visual-elements');
+
+  test('www.sml.kz is NOT classified as a verification_string', () => {
+    const markdown = 'Contact us at www.sml.kz for assistance.';
+    const elements = extractVisualElementsFromOcr(markdown, [markdown]);
+    const verStrings = elements.filter(e => e.kind === 'verification_string');
+    expect(verStrings).toHaveLength(0);
+  });
+
+  test('https://www.company.kz is NOT a verification_string', () => {
+    const markdown = 'More info at https://www.company.kz';
+    const elements = extractVisualElementsFromOcr(markdown, [markdown]);
+    const verStrings = elements.filter(e => e.kind === 'verification_string');
+    expect(verStrings).toHaveLength(0);
+  });
+
+  test('https://verify.egov.kz/check?doc=123 IS a verification_string', () => {
+    const markdown = 'Verify at https://verify.egov.kz/check?doc=123';
+    const elements = extractVisualElementsFromOcr(markdown, [markdown]);
+    const verStrings = elements.filter(e => e.kind === 'verification_string');
+    expect(verStrings).toHaveLength(1);
+  });
+});
+
+describe('visual-elements deduplication fix', () => {
+  const { extractVisualElementsFromOcr } = jest.requireActual('../visual-elements') as typeof import('../visual-elements');
+
+  test('two [signature] markers produce two signature elements', () => {
+    const markdown = '| Director | [director signature] |\n| Chief Accountant | [signature] |';
+    const elements = extractVisualElementsFromOcr(markdown, [markdown]);
+    const signatures = elements.filter(e => e.kind === 'signature');
+    expect(signatures.length).toBeGreaterThanOrEqual(2);
+  });
+
+  test('two [round stamp] markers produce two stamp elements', () => {
+    const markdown = '[round stamp]\n\n[round stamp]';
+    const elements = extractVisualElementsFromOcr(markdown, [markdown]);
+    const stamps = elements.filter(e => e.kind === 'stamp');
+    expect(stamps.length).toBeGreaterThanOrEqual(2);
+  });
+
+  test('same logo text is deduplicated', () => {
+    const markdown = '[logo]\n\n[logo]';
+    const elements = extractVisualElementsFromOcr(markdown, [markdown]);
+    const logos = elements.filter(e => e.kind === 'logo');
+    expect(logos).toHaveLength(1);
+  });
+});

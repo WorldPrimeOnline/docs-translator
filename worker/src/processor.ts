@@ -11,6 +11,9 @@ import { renderToDocx } from './lib/docx-renderer';
 import { sendTranslationReady, sendDocumentReceivedForReview } from './lib/email';
 import { computeOutputPlan, type ServiceLevel } from './lib/output-plan';
 import { mergeVisualElements, extractVisualElementsFromTranslated } from './lib/visual-elements';
+import { analyzeDocumentVisuals } from './lib/page-vision';
+import { convertOcrElementsToDetected, mergeDetectedElements } from './lib/detected-visual-element';
+import { serializeVisualInventory, parseAndRemoveInventoryBlock, buildFinalVisualBlock, type InventoryEntry, type ParsedInventoryEntry } from './lib/visual-inventory';
 import { runQaChecks } from './lib/qa';
 import { assessOcrQuality } from './lib/ast/script-quality';
 import { translateToAst } from './lib/ast/translator';
@@ -164,54 +167,129 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
     let translatedMarkdown: string;
 
     if (plan.mode === 'translator_review_draft' || plan.mode === 'notarization_package') {
-      // Official path: protect values → translate → table shape check → restore
-      const { protectedMarkdown, values: pvList } = extractAndProtectValues(markdown);
-      console.log(`${tag} [legacy-official] protected values: ${pvList.length}`);
-
-      const sourceShapes = extractMarkdownTableShapes(markdown);
-      console.log(`${tag} [legacy-official] source tables: ${sourceShapes.length}`);
-
-      let firstTranslation = await translateDocument(
-        protectedMarkdown,
-        resolvedSourceLang,
-        doc.target_language,
-        docType,
-      );
-
-      const translatedShapes = extractMarkdownTableShapes(firstTranslation);
-      const shapeMismatches = compareMarkdownTableShapes(sourceShapes, translatedShapes);
-      let usedTableRetry = false;
-
-      if (shapeMismatches.length > 0) {
-        console.warn(`${tag} [legacy-official] table structure mismatch — retrying (mismatched tables: ${shapeMismatches.length})`);
-        usedTableRetry = true;
+      // ── 3a. Visual analysis (official path only) ─────────────────────────
+      let inventoryEntries: InventoryEntry[] = [];
+      let markdownForTranslation: string;
+      {
+        let detectedElements: import('./lib/detected-visual-element').DetectedVisualElement[] = [];
+        const t0Visual = Date.now();
         try {
-          const correctionPrompt = buildTableCorrectionPrompt(shapeMismatches);
-          firstTranslation = await retranslateWithCorrection(
-            protectedMarkdown,
-            resolvedSourceLang,
-            doc.target_language,
-            docType,
-            correctionPrompt,
+          const visionElements = await analyzeDocumentVisuals(pdfBuffer, pageCount);
+          const ocrDetected = convertOcrElementsToDetected(ocrVisualElements);
+          detectedElements = mergeDetectedElements(ocrDetected, visionElements);
+          console.log(
+            `${tag} [visual] vision=${visionElements.length} ocr=${ocrDetected.length} ` +
+            `merged=${detectedElements.length} in ${Date.now() - t0Visual}ms`,
           );
-        } catch (retryErr) {
-          const retryMsg = retryErr instanceof Error ? retryErr.message : String(retryErr);
-          console.warn(`${tag} [legacy-official] table retry failed (advisory, continuing): ${retryMsg}`);
-          usedTableRetry = false;
+        } catch (visionErr) {
+          const visionMsg = visionErr instanceof Error ? visionErr.message : String(visionErr);
+          console.warn(`${tag} PAGE_VISUAL_ANALYSIS_FAILED (non-fatal, using OCR elements): ${visionMsg}`);
+          detectedElements = convertOcrElementsToDetected(ocrVisualElements);
+          console.log(`${tag} [visual] fallback: ocr=${detectedElements.length} elements`);
+        }
+
+        // ── 3b. Protected values + visual inventory prepended ─────────────
+        const { protectedMarkdown, values: pvList } = extractAndProtectValues(markdown);
+        console.log(`${tag} [legacy-official] protected values: ${pvList.length}`);
+
+        let inventoryBlock = '';
+        if (detectedElements.length > 0) {
+          const inv = serializeVisualInventory(detectedElements, doc.target_language);
+          inventoryBlock = inv.inventoryBlock;
+          inventoryEntries = inv.entries;
+          console.log(`${tag} [visual] inventory: ${inventoryEntries.length} entries prepended`);
+        }
+
+        markdownForTranslation = inventoryBlock
+          ? inventoryBlock + '\n\n' + protectedMarkdown
+          : protectedMarkdown;
+
+        const sourceShapes = extractMarkdownTableShapes(markdown);
+        console.log(`${tag} [legacy-official] source tables: ${sourceShapes.length}`);
+
+        // ── 3c. Translate ─────────────────────────────────────────────────
+        const firstTranslation = await translateDocument(
+          markdownForTranslation,
+          resolvedSourceLang,
+          doc.target_language,
+          docType,
+        );
+
+        // ── 3d. Parse inventory out of translation body ───────────────────
+        let parsedInventory: ParsedInventoryEntry[] = [];
+        let translationBody = firstTranslation;
+        if (inventoryEntries.length > 0) {
+          const inv = parseAndRemoveInventoryBlock(firstTranslation, inventoryEntries);
+          parsedInventory = inv.parsedEntries;
+          translationBody = inv.cleanedMarkdown;
+          console.log(
+            `${tag} [visual] parsed inventory: ${parsedInventory.length} entries, ` +
+            `missing=${inv.missingTokens.length}`,
+          );
+          if (inv.missingTokens.length > 0) {
+            console.warn(
+              `${tag} [visual] missing visual tokens (restored from source): count=${inv.missingTokens.length}`,
+            );
+          }
+        }
+
+        // ── 3e. Table shape check + retry ────────────────────────────────
+        const translatedShapes = extractMarkdownTableShapes(translationBody);
+        const shapeMismatches = compareMarkdownTableShapes(sourceShapes, translatedShapes);
+        let usedTableRetry = false;
+
+        if (shapeMismatches.length > 0) {
+          console.warn(
+            `${tag} [legacy-official] table structure mismatch — retrying (mismatched tables: ${shapeMismatches.length})`,
+          );
+          usedTableRetry = true;
+          try {
+            const correctionPrompt = buildTableCorrectionPrompt(shapeMismatches);
+            const retried = await retranslateWithCorrection(
+              markdownForTranslation,
+              resolvedSourceLang,
+              doc.target_language,
+              docType,
+              correctionPrompt,
+            );
+            // Re-parse inventory from retry
+            if (inventoryEntries.length > 0) {
+              const inv = parseAndRemoveInventoryBlock(retried, inventoryEntries);
+              parsedInventory = inv.parsedEntries;
+              translationBody = inv.cleanedMarkdown;
+            } else {
+              translationBody = retried;
+            }
+          } catch (retryErr) {
+            const retryMsg = retryErr instanceof Error ? retryErr.message : String(retryErr);
+            console.warn(`${tag} [legacy-official] table retry failed (advisory, continuing): ${retryMsg}`);
+            usedTableRetry = false;
+          }
+        }
+        console.log(`${tag} [legacy-official] table structure retry: ${usedTableRetry}`);
+
+        // ── 3f. Restore protected values ─────────────────────────────────
+        const { restoredMarkdown, missingTokens, remainingTokens } = restoreProtectedValues(
+          translationBody,
+          pvList,
+        );
+        console.log(`${tag} [legacy-official] missing placeholders: ${missingTokens.length}`);
+        if (missingTokens.length > 0) {
+          console.warn(`${tag} [legacy-official] missing tokens (advisory): count=${missingTokens.length}`);
+        }
+        if (remainingTokens.length > 0) {
+          console.warn(`${tag} [legacy-official] unexpected remaining tokens: count=${remainingTokens.length}`);
+        }
+
+        // ── 3g. Append final visual block ────────────────────────────────
+        if (parsedInventory.length > 0) {
+          const visualBlock = buildFinalVisualBlock(parsedInventory, doc.target_language);
+          translatedMarkdown = restoredMarkdown.trimEnd() + '\n\n' + visualBlock;
+          console.log(`${tag} [visual] final visual block appended: ${parsedInventory.length} elements`);
+        } else {
+          translatedMarkdown = restoredMarkdown;
         }
       }
-      console.log(`${tag} [legacy-official] table structure retry: ${usedTableRetry}`);
-
-      const { restoredMarkdown, missingTokens, remainingTokens } = restoreProtectedValues(firstTranslation, pvList);
-      console.log(`${tag} [legacy-official] missing placeholders: ${missingTokens.length}`);
-      if (missingTokens.length > 0) {
-        console.warn(`${tag} [legacy-official] missing tokens (advisory): count=${missingTokens.length}`);
-      }
-      if (remainingTokens.length > 0) {
-        console.warn(`${tag} [legacy-official] unexpected remaining tokens: count=${remainingTokens.length}`);
-      }
-
-      translatedMarkdown = restoredMarkdown;
     } else {
       // Electronic path: unchanged
       translatedMarkdown = await translateDocument(
@@ -265,8 +343,9 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
     if (plan.mode === 'translator_review_draft' || plan.mode === 'notarization_package') {
       console.log(`${tag} [official mode] generating translator draft DOCX + preview PDF…`);
 
-      // Generate DOCX draft
-      const docxBuf = await renderToDocx(translatedMarkdown, renderMeta, allVisualElements);
+      // Visual block already baked into translatedMarkdown — pass empty array to renderers
+      // so ensureVisualElementsBlock finds the WPO_VISUAL_BLOCK_START sentinel and skips
+      const docxBuf = await renderToDocx(translatedMarkdown, renderMeta, []);
       const draftDocxKey = `${baseKey}/translator_draft.docx`;
       await uploadFile(draftDocxKey, docxBuf, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
       console.log(`${tag} DOCX draft uploaded (${docxBuf.length} bytes) → ${draftDocxKey}`);
@@ -276,7 +355,7 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
       // Hoist qaReport so it can be persisted even if PDF generation fails
       let savedQaReport: Record<string, unknown> | null = null;
       try {
-        const html = await renderToHtml(translatedMarkdown, renderMeta, allVisualElements);
+        const html = await renderToHtml(translatedMarkdown, renderMeta, []);
 
         // Run QA checks
         const qaReport = runQaChecks(html, plan.mode, pageCount);
