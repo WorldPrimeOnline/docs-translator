@@ -301,6 +301,53 @@ describe('legacy official pipeline', () => {
       expect(triggerTranslatorReview).toHaveBeenCalledTimes(1);
     });
 
+    it('generatePdfFromHtml is NOT called for official AI draft', async () => {
+      const { translateDocument } = jest.requireMock('../translator') as {
+        translateDocument: jest.Mock;
+      };
+      translateDocument.mockImplementation((md: string) => Promise.resolve(md));
+
+      const { generatePdfFromHtml } = jest.requireMock('../pdf') as {
+        generatePdfFromHtml: jest.Mock;
+      };
+
+      await processJob('test-job-id', 'test-doc-id');
+
+      expect(generatePdfFromHtml).not.toHaveBeenCalled();
+    });
+
+    it('no preview.pdf is uploaded to R2 for official AI draft', async () => {
+      const { translateDocument } = jest.requireMock('../translator') as {
+        translateDocument: jest.Mock;
+      };
+      translateDocument.mockImplementation((md: string) => Promise.resolve(md));
+
+      const { uploadFile } = jest.requireMock('../r2') as { uploadFile: jest.Mock };
+
+      await processJob('test-job-id', 'test-doc-id');
+
+      const previewCall = uploadFile.mock.calls.find(
+        ([key]: [string]) => key.includes('preview') || key.endsWith('preview.pdf'),
+      );
+      expect(previewCall).toBeUndefined();
+    });
+
+    it('triggerTranslatorReview is called without previewFileKey', async () => {
+      const { translateDocument } = jest.requireMock('../translator') as {
+        translateDocument: jest.Mock;
+      };
+      translateDocument.mockImplementation((md: string) => Promise.resolve(md));
+
+      const { triggerTranslatorReview } = jest.requireMock('../integrations') as {
+        triggerTranslatorReview: jest.Mock;
+      };
+
+      await processJob('test-job-id', 'test-doc-id');
+
+      const callArgs = triggerTranslatorReview.mock.calls[0][0] as Record<string, unknown>;
+      expect(callArgs).not.toHaveProperty('previewFileKey');
+    });
+
     it('AST rendering functions are not used for primary output', async () => {
       const { translateDocument } = jest.requireMock('../translator') as {
         translateDocument: jest.Mock;

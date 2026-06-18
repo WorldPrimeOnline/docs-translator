@@ -374,12 +374,11 @@ export async function triggerTranslatorReview(params: {
   /** R2 key of the AI draft DOCX artifact */
   draftFileKey?: string | null;
   draftFileName?: string | null;
-  /** R2 key of the preview PDF (ai_draft_preview.pdf) — optional, non-blocking */
-  previewFileKey?: string | null;
 }): Promise<void> {
   const tag = `[worker-integration:${params.jobId.slice(0, 8)}]`;
 
-  // ── 1. Upload AI draft + preview to Drive 02_AI_DRAFT ────────────────────
+  // ── 1. Upload AI draft DOCX to Drive 02_AI_DRAFT ─────────────────────────
+  // Preview PDF is not generated for official AI drafts — only ai_draft.docx.
   if (params.driveFolderId && isDriveConfigured()) {
     let aiDraftFolderId: string | null = null;
     try {
@@ -388,31 +387,16 @@ export async function triggerTranslatorReview(params: {
       console.error(`${tag} could not resolve 02_AI_DRAFT subfolder (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
     }
 
-    if (aiDraftFolderId) {
-      // 1a. DOCX draft
-      if (params.draftFileKey) {
-        try {
-          const buf = await downloadFile(params.draftFileKey);
-          const name = params.draftFileName ?? 'ai_draft.docx';
-          const mime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-          await uploadFileToDrive(aiDraftFolderId, name, buf, mime);
-          console.log(`${tag} ✓ ai_draft.docx uploaded to Drive 02_AI_DRAFT`);
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err);
-          console.error(`${tag} DOCX Drive upload failed (non-fatal): ${msg}`);
-        }
-      }
-
-      // 1b. Preview PDF — non-blocking, failure does not affect workflow
-      if (params.previewFileKey) {
-        try {
-          const pdfBuf = await downloadFile(params.previewFileKey);
-          await uploadFileToDrive(aiDraftFolderId, 'ai_draft_preview.pdf', pdfBuf, 'application/pdf');
-          console.log(`${tag} ✓ ai_draft_preview.pdf uploaded to Drive 02_AI_DRAFT`);
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err);
-          console.warn(`${tag} preview PDF Drive upload failed (non-fatal, DOCX still available): ${msg}`);
-        }
+    if (aiDraftFolderId && params.draftFileKey) {
+      try {
+        const buf = await downloadFile(params.draftFileKey);
+        const name = params.draftFileName ?? 'ai_draft.docx';
+        const mime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+        await uploadFileToDrive(aiDraftFolderId, name, buf, mime);
+        console.log(`${tag} ✓ ai_draft.docx uploaded to Drive 02_AI_DRAFT`);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error(`${tag} DOCX Drive upload failed (non-fatal): ${msg}`);
       }
     }
   }

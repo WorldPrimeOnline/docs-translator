@@ -405,33 +405,24 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
       await uploadFile(draftDocxKey, docxBuf, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
       console.log(`${tag} DOCX draft uploaded (${docxBuf.length} bytes) → ${draftDocxKey}`);
 
-      // Generate preview PDF (wrap in try/catch — not critical for the workflow)
-      let previewPdfKey: string | undefined;
-      // Hoist qaReport so it can be persisted even if PDF generation fails
+      // Run QA checks on HTML (operator-facing report only — no PDF generated here)
       let savedQaReport: Record<string, unknown> | null = null;
       try {
         const html = await renderToHtml(markdownForRender, renderMeta, rendererVisuals);
-
-        // Run QA checks
         const qaReport = runQaChecks(html, plan.mode, pageCount);
         savedQaReport = qaReport as unknown as Record<string, unknown>;
         console.log(`${tag} QA report:`, JSON.stringify(qaReport));
         if (qaReport.warnings.length > 0) {
           console.warn(`${tag} QA warnings:`, qaReport.warnings);
         }
-
-        const pdfBuf = await generatePdfFromHtml(html);
-        previewPdfKey = `${baseKey}/preview.pdf`;
-        await uploadFile(previewPdfKey, pdfBuf, 'application/pdf');
-        console.log(`${tag} preview PDF uploaded (${pdfBuf.length} bytes) → ${previewPdfKey}`);
-      } catch (previewErr) {
-        const msg = previewErr instanceof Error ? previewErr.message : String(previewErr);
-        console.error(`${tag} preview PDF generation failed (non-fatal): ${msg}`);
+      } catch (qaErr) {
+        const msg = qaErr instanceof Error ? qaErr.message : String(qaErr);
+        console.warn(`${tag} QA check failed (non-fatal): ${msg}`);
       }
 
-      // Upsert translation record with DOCX key as primary artifact + preview PDF key + qa_report
-      // NOTE: translated_docx_key, translated_preview_pdf_key, qa_report columns require
-      // supabase/migrations/add_official_workflow_fields.sql to be applied in Supabase first.
+      // Upsert translation record — DOCX is the only artifact for AI draft.
+      // translated_pdf_key and translated_preview_pdf_key stay null until the
+      // translator-approved final PDF is generated after human review.
       await updateJob(jobId, 'pdf_rendering', 90, undefined, { workflow_status: 'awaiting_translator_review' });
 
       const { data: existing } = await supabase
@@ -449,10 +440,9 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
         await supabase
           .from('translations')
           .update({
-            // translated_pdf_key holds a real PDF only — preview PDF or null
-            translated_pdf_key: previewPdfKey ?? null,
+            translated_pdf_key: null,
             translated_docx_key: draftDocxKey,
-            translated_preview_pdf_key: previewPdfKey ?? null,
+            translated_preview_pdf_key: null,
             qa_report: mergedQaReport,
           })
           .eq('id', existing.id);
@@ -460,9 +450,9 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
         await supabase.from('translations').insert({
           job_id: jobId,
           translated_markdown: markdownForRender,
-          translated_pdf_key: previewPdfKey ?? null,
+          translated_pdf_key: null,
           translated_docx_key: draftDocxKey,
-          translated_preview_pdf_key: previewPdfKey ?? null,
+          translated_preview_pdf_key: null,
           qa_report: mergedQaReport,
         });
       }
@@ -492,7 +482,6 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
           driveFolderId: integrationResult.driveFolderId,
           draftFileKey: draftDocxKey,
           draftFileName: 'ai_draft.docx',
-          previewFileKey: previewPdfKey ?? null,
         });
       } catch (e) {
         const m = e instanceof Error ? e.message : String(e);
