@@ -9,6 +9,9 @@ import {
   TableCell,
   WidthType,
   BorderStyle,
+  Footer,
+  PageNumber,
+  AlignmentType,
 } from 'docx';
 import type { VisualElement } from './visual-elements';
 import { renderVisualBlock, stripVisualBlockFromMarkdown } from './docx-visual-block';
@@ -66,6 +69,90 @@ export interface DocxMeta {
   serviceLevel?: string;
   outputMode?: string;
 }
+
+// ── Page margin (compact official profile) ─────────────────────────────────────
+// 0.80 in × 1440 = 1152 DXA; 0.72 in × 1440 = 1037 DXA
+const PAGE_MARGINS = { top: 1152, bottom: 1152, left: 1037, right: 1037 } as const;
+
+// ── KV table column widths ─────────────────────────────────────────────────────
+// Total 9000 DXA; label ≈33%, value ≈67%
+const KV_LABEL_W = 2970;
+const KV_VALUE_W = 6030;
+
+// Cell margins (DXA) for KV and data tables
+const KV_CELL_MARGIN = { top: 80, bottom: 80, left: 90, right: 90 };
+
+// Font size for table body text (half-points): 19 = 9.5 pt
+const TABLE_BODY_SIZE = 19;
+
+// ── Key-value table detection ─────────────────────────────────────────────────
+// Normalised "field" column headers for 2-column KV tables
+const KV_FIELD_HEADERS = new Set([
+  'поле', 'campo', 'field', 'feld', 'champ', 'alan', 'maydon',
+  '항목', '字段', '字段', 'өріс', 'ฟิลด์', 'الحقل', '項目',
+  'параметр', 'реквизит', 'attribute', 'attribut',
+]);
+const KV_VALUE_HEADERS = new Set([
+  'значение', 'valore', 'value', 'wert', 'valeur', 'değer', 'qiymat',
+  '값', '值', 'мән', 'ค่า', 'القيمة', '値',
+  'содержание', 'dato', 'inhalt',
+]);
+
+// Localized "Field | Value" header for KV tables (indexed by target language)
+const KV_HEADER_I18N: Record<string, [string, string]> = {
+  ru: ['Поле', 'Значение'],
+  en: ['Field', 'Value'],
+  it: ['Campo', 'Valore'],
+  de: ['Feld', 'Wert'],
+  fr: ['Champ', 'Valeur'],
+  es: ['Campo', 'Valor'],
+  zh: ['字段', '值'],
+  ko: ['항목', '값'],
+  ja: ['項目', '値'],
+  th: ['ฟิลด์', 'ค่า'],
+  ar: ['الحقل', 'القيمة'],
+  kk: ['Өріс', 'Мән'],
+  uz: ['Maydon', 'Qiymat'],
+  tr: ['Alan', 'Değer'],
+};
+
+// ── Translation heading templates ──────────────────────────────────────────────
+// {SRC} and {TGT} are replaced with localized language names from TRANSLATOR_BLOCK_I18N
+const HEADING_TEMPLATE: Record<string, string> = {
+  ru: 'ПЕРЕВОД {SRC} {TGT}',            // srcNames already has preposition "с...", tgtNames "на..."
+  en: 'TRANSLATION FROM {SRC} INTO {TGT}',
+  it: 'TRADUZIONE {SRC} {TGT}',          // "dal russo all'italiano"
+  de: 'ÜBERSETZUNG {SRC} {TGT}',         // "aus dem Russischen ins Deutsche"
+  fr: 'TRADUCTION {SRC} {TGT}',
+  es: 'TRADUCCIÓN {SRC} {TGT}',
+  zh: '{SRC}至{TGT}翻译',
+  ko: '{SRC}에서 {TGT}로의 번역',
+  ja: '{SRC}から{TGT}への翻訳',
+  th: 'การแปลจาก{SRC}เป็น{TGT}',
+  ar: 'ترجمة من {SRC} إلى {TGT}',
+  kk: '{SRC} ТІЛІНЕН {TGT} ТІЛІНЕ АУДАРМА',
+  uz: '{SRC} TILIDAN {TGT} TILIGA TARJIMA',
+  tr: '{SRC} DİLİNDEN {TGT} DİLİNE ÇEVİRİ',
+};
+
+// ── Page footer templates ──────────────────────────────────────────────────────
+// {PAGE} and {PAGES} are replaced with real Word PAGE / NUMPAGES fields
+const FOOTER_I18N: Record<string, string> = {
+  ru: 'Страница перевода {PAGE} из {PAGES}',
+  en: 'Translation page {PAGE} of {PAGES}',
+  it: 'Pagina della traduzione {PAGE} di {PAGES}',
+  de: 'Übersetzungsseite {PAGE} von {PAGES}',
+  fr: 'Page de traduction {PAGE} sur {PAGES}',
+  es: 'Página de traducción {PAGE} de {PAGES}',
+  zh: '翻译第 {PAGE} 页，共 {PAGES} 页',
+  ko: '번역 {PAGE} / {PAGES} 페이지',
+  ja: '翻訳 {PAGE} / {PAGES} ページ',
+  th: 'หน้าการแปล {PAGE} จาก {PAGES}',
+  ar: 'صفحة الترجمة {PAGE} من {PAGES}',
+  kk: 'Аударма беті {PAGE} / {PAGES}',
+  uz: 'Tarjima sahifasi {PAGE} / {PAGES}',
+  tr: 'Çeviri sayfası {PAGE} / {PAGES}',
+};
 
 // ── Translator / Provider block ───────────────────────────────────────────────
 
@@ -300,6 +387,170 @@ function getLocale(targetLang: string): TranslatorBlockLocale {
   return TRANSLATOR_BLOCK_I18N[targetLang] ?? TRANSLATOR_BLOCK_I18N['en']!;
 }
 
+// ── KV table helpers ──────────────────────────────────────────────────────────
+
+function normalizeHeaderText(text: string): string {
+  return text.replace(/\*\*/g, '').trim().toLowerCase();
+}
+
+function isPackedKvTable(headers: string[]): boolean {
+  if (headers.length !== 4) return false;
+  const h0 = normalizeHeaderText(headers[0] ?? '');
+  const h1 = normalizeHeaderText(headers[1] ?? '');
+  const h2 = normalizeHeaderText(headers[2] ?? '');
+  const h3 = normalizeHeaderText(headers[3] ?? '');
+  // Packed KV: columns 0&2 are the same "field" header, columns 1&3 are the same "value" header
+  return h0 === h2 && h1 === h3 && (KV_FIELD_HEADERS.has(h0) || KV_VALUE_HEADERS.has(h1));
+}
+
+function isRegularKvTable(headers: string[]): boolean {
+  if (headers.length !== 2) return false;
+  const h0 = normalizeHeaderText(headers[0] ?? '');
+  const h1 = normalizeHeaderText(headers[1] ?? '');
+  return KV_FIELD_HEADERS.has(h0) && KV_VALUE_HEADERS.has(h1);
+}
+
+function expandKvRows(parsed: ParsedTable): ParsedTable {
+  const rows: string[][] = [];
+  for (const row of parsed.rows) {
+    const l1 = row[0] ?? '';
+    const v1 = row[1] ?? '';
+    const l2 = row[2] ?? '';
+    const v2 = row[3] ?? '';
+    rows.push([l1, v1]);
+    if (l2.trim() || v2.trim()) {
+      rows.push([l2, v2]);
+    }
+  }
+  return { headers: parsed.headers, rows };
+}
+
+const KV_BORDERS = {
+  top: { style: BorderStyle.SINGLE, size: 6, color: '000000' },
+  bottom: { style: BorderStyle.SINGLE, size: 6, color: '000000' },
+  left: { style: BorderStyle.SINGLE, size: 6, color: '000000' },
+  right: { style: BorderStyle.SINGLE, size: 6, color: '000000' },
+  insideHorizontal: { style: BorderStyle.SINGLE, size: 4, color: '000000' },
+  insideVertical: { style: BorderStyle.SINGLE, size: 4, color: '000000' },
+} as const;
+
+function buildKvDocxTable(parsed: ParsedTable, targetLang: string): Table {
+  const [fieldLabel, valueLabel] = KV_HEADER_I18N[targetLang] ?? ['Field', 'Value'];
+
+  const headerRow = new TableRow({
+    tableHeader: true,
+    children: [
+      new TableCell({
+        children: [new Paragraph({
+          children: makeThaiAwareRuns(fieldLabel!, { bold: true, size: TABLE_BODY_SIZE }),
+          spacing: { before: 0, after: 0 },
+        })],
+        width: { size: KV_LABEL_W, type: WidthType.DXA },
+        shading: { fill: 'E6E6E6' },
+        margins: KV_CELL_MARGIN,
+      }),
+      new TableCell({
+        children: [new Paragraph({
+          children: makeThaiAwareRuns(valueLabel!, { bold: true, size: TABLE_BODY_SIZE }),
+          spacing: { before: 0, after: 0 },
+        })],
+        width: { size: KV_VALUE_W, type: WidthType.DXA },
+        shading: { fill: 'E6E6E6' },
+        margins: KV_CELL_MARGIN,
+      }),
+    ],
+  });
+
+  const dataRows = parsed.rows.map((row) => {
+    const labelText = row[0] ?? '';
+    const valueText = row[1] ?? '';
+    return new TableRow({
+      cantSplit: true,
+      children: [
+        new TableCell({
+          children: [new Paragraph({
+            children: makeThaiAwareRuns(labelText, { bold: true }),
+            spacing: { before: 0, after: 0 },
+          })],
+          width: { size: KV_LABEL_W, type: WidthType.DXA },
+          margins: KV_CELL_MARGIN,
+        }),
+        new TableCell({
+          children: [new Paragraph({
+            children: parseInlineMarkdown(valueText),
+            spacing: { before: 0, after: 0 },
+          })],
+          width: { size: KV_VALUE_W, type: WidthType.DXA },
+          margins: KV_CELL_MARGIN,
+        }),
+      ],
+    });
+  });
+
+  return new Table({
+    rows: [headerRow, ...dataRows],
+    width: { size: 9000, type: WidthType.DXA },
+    borders: KV_BORDERS,
+  });
+}
+
+// ── Translation heading ────────────────────────────────────────────────────────
+
+function buildTranslationHeading(meta: DocxMeta): Paragraph[] {
+  const loc = getLocale(meta.targetLang);
+  const srcName = loc.srcNames[meta.sourceLang] ?? meta.sourceLang;
+  const tgtName = loc.tgtNames[meta.targetLang] ?? meta.targetLang;
+  const template = HEADING_TEMPLATE[meta.targetLang] ?? HEADING_TEMPLATE['en']!;
+  const heading = template
+    .replace('{SRC}', srcName)
+    .replace('{TGT}', tgtName)
+    .toUpperCase();
+
+  return [
+    new Paragraph({
+      children: makeThaiAwareRuns(heading, { bold: true, size: 22 }),
+      spacing: { before: 0, after: 120 },
+      border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: '000000' } },
+      keepNext: true,
+    }),
+    new Paragraph({ text: '', spacing: { before: 0, after: 60 } }),
+  ];
+}
+
+// ── Page footer with PAGE / NUMPAGES fields ────────────────────────────────────
+
+function buildDocxFooter(targetLang: string): Footer {
+  const template = FOOTER_I18N[targetLang] ?? FOOTER_I18N['en']!;
+  // Split on {PAGE} and {PAGES} to interleave real Word fields
+  const parts = template.split(/\{PAGE\}|\{PAGES\}/g);
+  const fieldMarkers = [...template.matchAll(/\{(PAGE|PAGES)\}/g)].map((m) => m[1]);
+
+  const children: TextRun[] = [];
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
+    if (part) {
+      children.push(new TextRun({ text: part, size: 16, color: '888888' }));
+    }
+    if (i < fieldMarkers.length) {
+      children.push(new TextRun({
+        children: [fieldMarkers[i] === 'PAGE' ? PageNumber.CURRENT : PageNumber.TOTAL_PAGES],
+        size: 16,
+        color: '888888',
+      }));
+    }
+  }
+
+  return new Footer({
+    children: [
+      new Paragraph({
+        children,
+        alignment: AlignmentType.CENTER,
+        spacing: { before: 0, after: 0 },
+      }),
+    ],
+  });
+}
+
 const BLOCK_BORDERS = {
   top: { style: BorderStyle.SINGLE, size: 6, color: '000000' },
   bottom: { style: BorderStyle.SINGLE, size: 6, color: '000000' },
@@ -428,30 +679,43 @@ function parseMarkdownTable(lines: string[]): ParsedTable | null {
   return { headers, rows };
 }
 
-function buildDocxTable(parsed: ParsedTable): Table {
+function buildDocxTable(parsed: ParsedTable, targetLang: string): Table {
+  // Packed 4-column KV (label|value|label|value) → expand to 2-column KV
+  if (isPackedKvTable(parsed.headers)) {
+    return buildKvDocxTable(expandKvRows(parsed), targetLang);
+  }
+  // Regular 2-column KV (Field|Value style header) → render as styled KV
+  if (isRegularKvTable(parsed.headers)) {
+    return buildKvDocxTable(parsed, targetLang);
+  }
+
+  // Data table: keep original column structure
   const colCount = parsed.headers.length;
   const colWidth = Math.floor(9000 / colCount);
 
   const headerRow = new TableRow({
+    tableHeader: true,
     children: parsed.headers.map(
       (h) =>
         new TableCell({
-          children: [new Paragraph({ children: makeThaiAwareRuns(h, { bold: true }) })],
+          children: [new Paragraph({ children: makeThaiAwareRuns(h, { bold: true }), spacing: { before: 0, after: 0 } })],
           width: { size: colWidth, type: WidthType.DXA },
           shading: { fill: 'E6E6E6' },
+          margins: KV_CELL_MARGIN,
         }),
     ),
-    tableHeader: true,
   });
 
   const dataRows = parsed.rows.map(
     (row) =>
       new TableRow({
+        cantSplit: true,
         children: row.map(
           (cell) =>
             new TableCell({
-              children: [new Paragraph({ children: parseInlineMarkdown(cell) })],
+              children: [new Paragraph({ children: parseInlineMarkdown(cell), spacing: { before: 0, after: 0 } })],
               width: { size: colWidth, type: WidthType.DXA },
+              margins: KV_CELL_MARGIN,
             }),
         ),
       }),
@@ -473,7 +737,7 @@ function buildDocxTable(parsed: ParsedTable): Table {
 
 type DocxChild = Paragraph | Table;
 
-function parseMarkdownToDocx(markdown: string): DocxChild[] {
+function parseMarkdownToDocx(markdown: string, targetLang: string): DocxChild[] {
   const lines = markdown.split('\n');
   const children: DocxChild[] = [];
   let i = 0;
@@ -495,7 +759,7 @@ function parseMarkdownToDocx(markdown: string): DocxChild[] {
         }
         const parsed = parseMarkdownTable(tableLines);
         if (parsed) {
-          children.push(buildDocxTable(parsed));
+          children.push(buildDocxTable(parsed, targetLang));
         } else {
           // Fallback: render as paragraphs
           for (const tl of tableLines) {
@@ -507,11 +771,11 @@ function parseMarkdownToDocx(markdown: string): DocxChild[] {
     }
 
     if (/^#{1}\s+/.test(line)) {
-      children.push(new Paragraph({ children: makeThaiAwareRuns(line.replace(/^#+\s+/, '')), heading: HeadingLevel.HEADING_1, spacing: { before: 240, after: 120 } }));
+      children.push(new Paragraph({ children: makeThaiAwareRuns(line.replace(/^#+\s+/, '')), heading: HeadingLevel.HEADING_1, spacing: { before: 240, after: 120 }, keepNext: true }));
     } else if (/^#{2}\s+/.test(line)) {
-      children.push(new Paragraph({ children: makeThaiAwareRuns(line.replace(/^#+\s+/, '')), heading: HeadingLevel.HEADING_2, spacing: { before: 200, after: 80 } }));
+      children.push(new Paragraph({ children: makeThaiAwareRuns(line.replace(/^#+\s+/, '')), heading: HeadingLevel.HEADING_2, spacing: { before: 200, after: 80 }, keepNext: true }));
     } else if (/^#{3,}\s+/.test(line)) {
-      children.push(new Paragraph({ children: makeThaiAwareRuns(line.replace(/^#+\s+/, '')), heading: HeadingLevel.HEADING_3, spacing: { before: 160, after: 80 } }));
+      children.push(new Paragraph({ children: makeThaiAwareRuns(line.replace(/^#+\s+/, '')), heading: HeadingLevel.HEADING_3, spacing: { before: 160, after: 80 }, keepNext: true }));
     } else if (/^[-*+]\s+/.test(line)) {
       children.push(new Paragraph({ children: parseInlineMarkdown(line.replace(/^[-*+]\s+/, '')), bullet: { level: 0 }, spacing: { after: 60 } }));
     } else if (line.trim() === '') {
@@ -558,21 +822,23 @@ export async function renderToDocx(
   const withoutDuplicateNotes = removeVisualOnlyTranslatorNotes(translatedMarkdown);
   const cleanedMarkdown = stripVisualBlockFromMarkdown(withoutDuplicateNotes);
 
-  // Internal metadata line is suppressed for official drafts — it is not part of the
-  // certified translation content and must not appear in the ai_draft.docx artifact.
   const isOfficialDraft =
     meta.outputMode === 'translator_review_draft' ||
     meta.outputMode === 'notarization_package';
 
-  const headerParagraphs: Paragraph[] = isOfficialDraft ? [] : [
-    new Paragraph({
-      children: [
-        new TextRun({ text: `${meta.sourceLang.toUpperCase()} → ${meta.targetLang.toUpperCase()}`, bold: true, size: 24 }),
-        new TextRun({ text: `  |  ${meta.documentType}  |  ${meta.translatedAt}`, size: 18, color: '666666' }),
-      ],
-      spacing: { after: 200 },
-    }),
-  ];
+  // Official mode: deterministic localized translation heading (no LLM metadata line).
+  // Electronic mode: internal metadata line for traceability.
+  const topParagraphs: Paragraph[] = isOfficialDraft
+    ? buildTranslationHeading(meta)
+    : [
+        new Paragraph({
+          children: [
+            new TextRun({ text: `${meta.sourceLang.toUpperCase()} → ${meta.targetLang.toUpperCase()}`, bold: true, size: 24 }),
+            new TextRun({ text: `  |  ${meta.documentType}  |  ${meta.translatedAt}`, size: 18, color: '666666' }),
+          ],
+          spacing: { after: 200 },
+        }),
+      ];
 
   const visualBlock = renderVisualBlock(visualElements ?? [], meta.targetLang);
 
@@ -582,10 +848,18 @@ export async function renderToDocx(
     outputMode: meta.outputMode ?? '',
   });
 
+  const footer = buildDocxFooter(meta.targetLang);
+
   const doc = new Document({
     sections: [{
-      properties: { page: { margin: { top: 1440, bottom: 1440, left: 1440, right: 1440 } } },
-      children: [...headerParagraphs, ...parseMarkdownToDocx(cleanedMarkdown), ...visualBlock, ...translatorBlock],
+      properties: { page: { margin: PAGE_MARGINS } },
+      footers: { default: footer },
+      children: [
+        ...topParagraphs,
+        ...parseMarkdownToDocx(cleanedMarkdown, meta.targetLang),
+        ...visualBlock,
+        ...translatorBlock,
+      ],
     }],
   });
 
