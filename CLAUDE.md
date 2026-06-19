@@ -159,6 +159,7 @@ Tests live in `src/lib/translation-workflow/__tests__/`, `src/app/api/webhooks/_
 ```bash
 bash scripts/check-i18n.sh                  # Grep locale pages/components for hardcoded strings not wrapped in t()
 npx tsx scripts/telegram-list-updates.ts    # List Telegram bot updates (use to find your chat_id for staff_profiles)
+cd worker && npx tsx src/scripts/gen-acceptance.ts  # Generate acceptance-test DOCX fixtures into /tmp/wpo-acceptance/
 ```
 
 Reference env files: `.env.example` and `.env.staging.example` (web); `worker/.env.example` and `worker/.env.staging.example` (worker). Use these as checklists when configuring new environments.
@@ -206,13 +207,13 @@ There are **two separate processors** — do not conflate them.
 - Polls Supabase every 10 s for unclaimed `status = 'queued'` jobs — handles both subscription and pay-per-doc
 - OCR quality gate: aborts early if extracted text is below minimum word/char threshold (saves translation credits)
 - Calls `computeOutputPlan(job.service_level ?? job.notarized)` to determine artifact path: `translation_only` (immediate PDF release) or `translator_review_draft` (DOCX + preview PDF, `workflow_status: awaiting_translator_review`). Pass `service_level` — the boolean `notarized` is a legacy fallback for pre-migration rows.
-- Full pipeline: OCR (returns `{ markdown, pageCount, visualElements }`) → merge visual elements → translate → render HTML with visual-elements block → QA check → Puppeteer PDF or DOCX → upload to R2 → upsert `translations` (with `qa_report`) → email
+- Full pipeline: OCR (returns `{ markdown, pageCount, visualElements }`) → **page-vision analysis** (`analyzeDocumentVisuals` in `worker/src/lib/page-vision.ts`) → merge visual elements → **protect critical identifiers** (`extractProtectedValues` in `worker/src/lib/protected-values.ts`) → translate → restore identifiers → render HTML with visual-elements block → QA check → Puppeteer PDF or DOCX → upload to R2 → upsert `translations` (with `qa_report`) → email
 - If Puppeteer fails, falls back to saving `.html`
 - Supports DOCX output via `worker/src/lib/docx-renderer.ts` (also in web app at `src/lib/pdf/docx-renderer.ts`)
 
-Both processors use `claude-sonnet-4-5-20250929` via `@anthropic-ai/sdk` (constant `MODEL` in each `translator.ts`). There are **four** `MODEL` constants to update when changing the model: `src/lib/translation/translator.ts`, `src/lib/translation/detect-language.ts`, `worker/src/lib/translator.ts`, `worker/src/lib/detect-language.ts`.
+Both processors use `claude-sonnet-4-5-20250929` via `@anthropic-ai/sdk` (constant `MODEL` in each file). There are **five** `MODEL` constants to update when changing the model: `src/lib/translation/translator.ts`, `src/lib/translation/detect-language.ts`, `worker/src/lib/translator.ts`, `worker/src/lib/detect-language.ts`, `worker/src/lib/page-vision.ts`.
 
-**Synced duplicates** — several modules are maintained as independent copies in both the web app and worker and must be kept in sync manually: `output-plan.ts`, `visual-elements.ts`, `qa.ts`, `renderer.ts`/`renderer-helpers.ts`, `docx-renderer.ts`. The worker copies have a comment pointing back to the canonical `src/lib/translation-workflow/` version.
+**Synced duplicates** — several modules are maintained as independent copies in both the web app and worker and must be kept in sync manually: `output-plan.ts`, `visual-elements.ts`, `qa.ts`, `renderer.ts`/`renderer-helpers.ts`, `docx-renderer.ts`. The worker copies have a comment pointing back to the canonical `src/lib/translation-workflow/` version. `docx-visual-block.ts` is worker-only and has no web app counterpart — do not create one unless explicitly asked.
 
 ### Job status flow
 
@@ -230,8 +231,13 @@ Each transition also updates `progress_percent` (0–100).
 
 - **`types.ts`** — shared types: `OutputMode`, `OutputPlan`, `VisualElement`, `VisualElementKind`, `TranslationQaReport`
 - **`output-plan.ts`** — `computeOutputPlan(serviceLevelOrNotarized)`: accepts a `ServiceLevel` string (canonical) or a legacy boolean. `electronic` → `translation_only` (final PDF, released immediately). `official_with_translator_signature_and_provider_stamp` → `translator_review_draft` (DOCX + preview PDF, `workflow_status: awaiting_translator_review`, not released). `notarization_through_partners` → `notarization_package` (same artifacts, also requires notary review). `deriveBackcompatBooleans(level)` converts a `ServiceLevel` back to legacy `{notarized, bureau_stamp}` for backward-compat DB queries — use it only for old queries, not new code.
-- **`visual-elements.ts`** — `extractVisualElementsFromTranslated(markdown)` and `mergeVisualElements(ocr, translated)` collect stamps, signatures, QR codes, MRZ lines, etc. detected by Mistral OCR and from markers in the translated markdown. Visual elements are passed to renderers for the visual-elements block.
-- **`visual-elements-block.ts`** — renders the collected visual elements into an HTML block appended to the translated document.
+- **`visual-elements.ts`** — `extractVisualElementsFromTranslated(markdown)` and `mergeVisualElements(ocr, translated)` collect stamps, signatures, QR codes, MRZ lines, etc. **Priority order for visual element detection:** (1) `page-vision.ts` (Claude full-PDF vision — primary, returns most complete set), (2) Mistral OCR embedded images, (3) bracket markers in translated markdown (fallback only). If page-vision returns ≥1 element, OCR markers are skipped entirely.
+- **`visual-elements-block.ts`** — renders the collected visual elements into an HTML block appended to the translated document (HTML renderer path only).
+
+Worker-only modules (no `src/lib/` counterpart):
+- **`page-vision.ts`** (`worker/src/lib/page-vision.ts`) — sends the full raw PDF buffer to Claude as a document block for visual-element detection. This is PRIMARY; Mistral OCR image extraction is the fallback. Non-blocking — failure returns `[]` and the pipeline continues.
+- **`protected-values.ts`** (`worker/src/lib/protected-values.ts`) — extracts critical document identifiers (IBANs, BINs/IINs, passport numbers, SWIFT codes, reference codes) from the markdown before LLM translation and replaces them with opaque `{{V0001}}`-style tokens. Tokens are restored verbatim after translation, preventing any alteration of numeric/alphanumeric identifiers.
+- **`docx-visual-block.ts`** (`worker/src/lib/docx-visual-block.ts`) — DOCX-native visual elements block renderer. Used by `docx-renderer.ts` instead of the HTML `visual-elements-block.ts`. Contains `VISUAL_BLOCK_I18N` with localized column headings for all supported target languages.
 - **`qa.ts`** — `runQaChecks(html, mode)` returns a `TranslationQaReport`: checks for forbidden technical terms (`Claude`, `Mistral`, `JSON`, `Markdown`, `renderer`, etc.), broken glyphs, table clipping risk, orphan headings, presence of translator/verification blocks. A `qa_report` JSON is stored in the `translations` table.
 - **`customer-order-state.ts`** — `getCustomerOrderState(input)` is the **canonical** function for all customer-visible order state. Returns `{ customerStatus, canDownload, isActive, isTerminal, stages, progressPercent }`. **Never duplicate this logic in components — always import from here.** `CustomerStatus` covers the full lifecycle including notarization states: `queued`, `ocr_in_progress`, `translation_in_progress`, `pdf_rendering`, `awaiting_translator_review`, `translator_approved`, `awaiting_signature_stamp`, `assigned_to_notary`, `notarization_in_progress`, `notarized`, `ready_for_delivery`, `ready_for_pickup`, `out_for_delivery`, `delivered`, `picked_up`, `translator_declined`, `notary_declined`, `completed`, `failed`, `operator_processing`. Used by `GET /api/jobs` and download gating.
 

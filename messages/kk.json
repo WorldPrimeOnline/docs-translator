@@ -201,6 +201,7 @@
     "subBannerDesc": "4 990 ₸/айдан — 10 құжат, жеке төлемсіз",
     "usingPlanSub": "{plan} жоспарыңыз · {remaining} құжат қалды — төлем қажет емес",
     "status": {
+      "paymentPending": "Awaiting payment",
       "queued": "Кезекте — басталуды күтуде…",
       "ocr": "Мәтін шығарылуда… ({pct}%)",
       "ocrDone": "OCR аяқталды, аударма басталуда… ({pct}%)",
@@ -913,5 +914,30 @@
         "a": "In some cases yes, if a partner process is available for the selected document, language, and jurisdiction. Availability, timeline, and cost of notarization are confirmed separately."
       }
     ]
+  },
+  "payment": {
+    "payButton": "{amount} {currency} төлеу",
+    "processing": "Өңделуде...",
+    "paid": "Төлем расталды",
+    "unavailable": "Карточкамен төлем уақытша қолжетімді емес.",
+    "alreadyPaid": "Бұл тапсырыс қазірдің өзінде төленген.",
+    "sessionExpired": "Сессия мерзімі өтті. Қайта кіріңіз.",
+    "networkError": "Желі қатесі. Қайталап көріңіз.",
+    "scriptError": "Төлем шлюзін жүктеу мүмкін болмады.",
+    "genericError": "Қате орын алды. Қайталап көріңіз.",
+    "retry": "Қайталап көру",
+    "checkingStatus": "Төлем күйін тексеруде...",
+    "processingPayment": "Төлем өңделуде...",
+    "successTitle": "Төлем сәтті өтті",
+    "successDesc": "{amount} төлеміңіз қабылданды. Құжат өңделуде.",
+    "viewOrder": "Тапсырысты қарау",
+    "failedTitle": "Төлем аяқталмады",
+    "failedDesc": "Төлем аяқталмады. Қаражат алынбады.",
+    "reviewTitle": "Төлем тексерілуде",
+    "reviewDesc": "Төлемінгіз тексерілуде. Расталған кезде хабарлаймыз.",
+    "processingTitle": "Төлем өңделуде",
+    "processingDesc": "Төлемінгіз әлі өңделуде. Бірнеше минуттан кейін тексеріңіз.",
+    "goToDashboard": "Кабинетке оралу",
+    "invalidLink": "Жарамсыз төлем сілтемесі."
   }
 }

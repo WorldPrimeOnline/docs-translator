@@ -201,6 +201,7 @@
     "subBannerDesc": "4 990 ₸/айдан — 10 документ, ар бир документ үчүн төлөмсүз",
     "usingPlanSub": "{plan} планыңыз колдонулууда · {remaining} документ калды — төлөм талап кылынбайт",
     "status": {
+      "paymentPending": "Awaiting payment",
       "queued": "Кезекте — башталышын күтүүдө…",
       "ocr": "Текст чыгарылууда… ({pct}%)",
       "ocrDone": "OCR аяктады, котормо башталууда… ({pct}%)",
@@ -913,5 +914,30 @@
         "a": "In some cases yes, if a partner process is available for the selected document, language, and jurisdiction. Availability, timeline, and cost of notarization are confirmed separately."
       }
     ]
+  },
+  "payment": {
+    "payButton": "Pay {amount} {currency}",
+    "processing": "Processing...",
+    "paid": "Payment confirmed",
+    "unavailable": "Card payments are temporarily unavailable.",
+    "alreadyPaid": "This order is already paid.",
+    "sessionExpired": "Your session has expired. Please log in again.",
+    "networkError": "Network error. Please try again.",
+    "scriptError": "Could not load payment gateway.",
+    "genericError": "An error occurred. Please try again.",
+    "retry": "Try again",
+    "checkingStatus": "Checking payment status...",
+    "processingPayment": "Processing your payment...",
+    "successTitle": "Payment successful",
+    "successDesc": "Your payment of {amount} has been received. Your document is being processed.",
+    "viewOrder": "View order",
+    "failedTitle": "Payment not completed",
+    "failedDesc": "Your payment was not completed. No funds have been charged.",
+    "reviewTitle": "Payment under review",
+    "reviewDesc": "Your payment is being reviewed.",
+    "processingTitle": "Payment is processing",
+    "processingDesc": "Please check your dashboard in a few minutes.",
+    "goToDashboard": "Go to Dashboard",
+    "invalidLink": "Invalid payment link."
   }
 }

@@ -6,6 +6,7 @@ import { useTranslations, useLocale } from 'next-intl';
 import { toast } from 'sonner';
 import { Upload, FileText, FileImage, FileCode2, Download, AlertCircle, Loader2, Zap, Star, X, Clock } from 'lucide-react';
 import { SubscriptionModal } from '@/components/subscription-modal';
+import { HalykPayButton } from '@/components/payment/HalykPayButton';
 import { createClient } from '@/lib/supabase/client';
 import { Link } from '@/i18n/navigation';
 import { NOTARY_CITIES } from '@/lib/notary/cities';
@@ -39,6 +40,7 @@ interface OrderEntry {
   isActive: boolean;
   isTerminal: boolean;
   stages: { key: string; labelKey: string; done: boolean; current: boolean }[];
+  priceKzt: number | null;
 }
 
 interface SubscriptionInfo {
@@ -69,6 +71,14 @@ function StatusBadge({ customerStatus }: { customerStatus: string | null }) {
       <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2.5 py-0.5 text-xs font-medium text-red-400">
         <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
         {t('failed')}
+      </span>
+    );
+  }
+  if (status === 'payment_pending') {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-400">
+        <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+        {t('status.paymentPending')}
       </span>
     );
   }
@@ -179,6 +189,7 @@ function useStatusLabel() {
     const pct = entry.progressPercent;
 
     switch (status) {
+      case 'payment_pending':      return t('status.paymentPending');
       case 'queued':               return t('status.queued');
       case 'ocr_in_progress':      return t('status.ocr', { pct });
       case 'translation_in_progress': return t('status.translating', { pct });
@@ -260,6 +271,15 @@ function ActiveOrderCard({ entry, locale }: { entry: OrderEntry; locale: string 
         <div className="mt-3 flex items-start gap-2 rounded-md border border-red-500/20 bg-red-500/5 p-3">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
           <p className="text-xs text-red-400">{entry.errorMessage}</p>
+        </div>
+      )}
+
+      {entry.customerStatus === 'payment_pending' && entry.jobId && entry.priceKzt != null && (
+        <div className="mt-4">
+          <HalykPayButton
+            jobId={entry.jobId}
+            priceKzt={entry.priceKzt}
+          />
         </div>
       )}
 

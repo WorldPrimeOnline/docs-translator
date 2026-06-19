@@ -88,11 +88,13 @@ export type Database = {
         Row: {
           id: string;
           document_id: string;
-          status: 'queued' | 'ocr_in_progress' | 'ocr_completed' | 'translation_in_progress' | 'pdf_rendering' | 'completed' | 'failed';
+          status: 'payment_pending' | 'queued' | 'ocr_in_progress' | 'ocr_completed' | 'translation_in_progress' | 'pdf_rendering' | 'completed' | 'failed';
           error_message: string | null;
           progress_percent: number;
           priority: number;
           payment_source: 'card_payment' | 'subscription' | null;
+          /** Price in KZT (whole tenge). Set at creation for card payment orders. */
+          price_kzt: number | null;
           /** @deprecated Use service_level instead. Kept for backward compat. */
           notarized: boolean;
           started_at: string | null;
@@ -121,11 +123,12 @@ export type Database = {
         Insert: {
           id?: string;
           document_id: string;
-          status: 'queued' | 'ocr_in_progress' | 'ocr_completed' | 'translation_in_progress' | 'pdf_rendering' | 'completed' | 'failed';
+          status: 'payment_pending' | 'queued' | 'ocr_in_progress' | 'ocr_completed' | 'translation_in_progress' | 'pdf_rendering' | 'completed' | 'failed';
           error_message?: string | null;
           progress_percent?: number;
           priority?: number;
           payment_source?: 'card_payment' | 'subscription' | null;
+          price_kzt?: number | null;
           notarized?: boolean;
           started_at?: string | null;
           completed_at?: string | null;
@@ -149,7 +152,7 @@ export type Database = {
         Update: {
           id?: string;
           document_id?: string;
-          status?: 'queued' | 'ocr_in_progress' | 'ocr_completed' | 'translation_in_progress' | 'pdf_rendering' | 'completed' | 'failed';
+          status?: 'payment_pending' | 'queued' | 'ocr_in_progress' | 'ocr_completed' | 'translation_in_progress' | 'pdf_rendering' | 'completed' | 'failed';
           error_message?: string | null;
           progress_percent?: number;
           priority?: number;
@@ -290,16 +293,37 @@ export type Database = {
           user_id: string;
           document_id: string;
           job_id: string;
-          /** Payment amount in the specified currency */
           amount: number;
           currency: string;
           payment_provider: string;
-          status: 'pending' | 'completed' | 'expired' | 'failed';
+          payment_source: string | null;
+          status:
+            | 'pending' | 'completed' | 'expired'           // legacy TON-era
+            | 'payment_pending' | 'paid' | 'failed' | 'canceled'
+            | 'refund_pending' | 'refunded' | 'requires_review' | 'duplicate_charge_review';
           provider_transaction_id: string | null;
-          /** Raw JSON payload from payment provider webhook — for audit/dispute handling */
+          provider_invoice_id: string | null;
+          provider_invoice_suffix6: string | null;
+          provider_status: string | null;
+          provider_reason: string | null;
+          provider_reason_code: string | null;
+          secret_hash_digest: string | null;
+          attempt_number: number;
+          card_mask: string | null;
+          card_type: string | null;
+          issuer: string | null;
+          approval_code: string | null;
+          reference: string | null;
+          secure: string | null;
+          provider_environment: 'test' | 'production';
           raw_payload: Json | null;
-          /** Client IP at payment creation — fraud prevention and dispute handling only */
+          provider_payload: Json | null;
           ip_address: string | null;
+          callback_received_at: string | null;
+          status_checked_at: string | null;
+          paid_at: string | null;
+          failed_at: string | null;
+          refunded_at: string | null;
           expires_at: string;
           created_at: string;
           updated_at: string;
@@ -312,19 +336,55 @@ export type Database = {
           amount: number;
           currency?: string;
           payment_provider?: string;
-          status?: 'pending' | 'completed' | 'expired' | 'failed';
+          payment_source?: string | null;
+          status?: string;
           provider_transaction_id?: string | null;
+          provider_invoice_id?: string | null;
+          provider_invoice_suffix6?: string | null;
+          provider_status?: string | null;
+          provider_reason?: string | null;
+          provider_reason_code?: string | null;
+          secret_hash_digest?: string | null;
+          attempt_number?: number;
+          card_mask?: string | null;
+          card_type?: string | null;
+          issuer?: string | null;
+          approval_code?: string | null;
+          reference?: string | null;
+          secure?: string | null;
+          provider_environment?: 'test' | 'production';
           raw_payload?: Json | null;
+          provider_payload?: Json | null;
           ip_address?: string | null;
+          callback_received_at?: string | null;
+          status_checked_at?: string | null;
+          paid_at?: string | null;
+          failed_at?: string | null;
+          refunded_at?: string | null;
           expires_at: string;
           created_at?: string;
           updated_at?: string;
         };
         Update: {
-          status?: 'pending' | 'completed' | 'expired' | 'failed';
+          status?: string;
           provider_transaction_id?: string | null;
+          provider_status?: string | null;
+          provider_reason?: string | null;
+          provider_reason_code?: string | null;
+          card_mask?: string | null;
+          card_type?: string | null;
+          issuer?: string | null;
+          approval_code?: string | null;
+          reference?: string | null;
+          secure?: string | null;
           raw_payload?: Json | null;
+          provider_payload?: Json | null;
           ip_address?: string | null;
+          callback_received_at?: string | null;
+          status_checked_at?: string | null;
+          paid_at?: string | null;
+          failed_at?: string | null;
+          refunded_at?: string | null;
           updated_at?: string;
         };
         Relationships: [

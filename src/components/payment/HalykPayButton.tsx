@@ -1,0 +1,174 @@
+'use client';
+
+import React, { useState, useRef, useCallback } from 'react';
+import { useTranslations, useLocale } from 'next-intl';
+import { CreditCard, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import type { HalykPayBootstrap, HalykPaymentObject } from '@/lib/payments/halyk/types';
+
+// TypeScript declaration for the Halyk SDK injected into window
+declare global {
+  interface Window {
+    halyk?: {
+      pay: (paymentObject: HalykPaymentObject) => void;
+    };
+  }
+}
+
+type ButtonState = 'idle' | 'loading' | 'script_loading' | 'error' | 'paid';
+
+interface Props {
+  jobId: string;
+  priceKzt: number;
+  className?: string;
+  onSuccess?: (paymentId: string) => void;
+}
+
+export function HalykPayButton({ jobId, priceKzt, className = '', onSuccess }: Props): React.ReactElement {
+  const t = useTranslations('payment');
+  const locale = useLocale();
+  const [state, setState] = useState<ButtonState>('idle');
+  const [errorKey, setErrorKey] = useState<string>('genericError');
+  const initiated = useRef(false);
+  const scriptLoaded = useRef(false);
+
+  const loadScript = useCallback((scriptUrl: string): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      if (scriptLoaded.current || document.querySelector(`script[src="${scriptUrl}"]`)) {
+        scriptLoaded.current = true;
+        resolve();
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = scriptUrl;
+      script.async = true;
+      script.onload = () => {
+        scriptLoaded.current = true;
+        resolve();
+      };
+      script.onerror = () => reject(new Error('Failed to load payment script'));
+      document.head.appendChild(script);
+    });
+  }, []);
+
+  const handlePay = useCallback(async (): Promise<void> => {
+    // Prevent double invocation (double-click, React StrictMode)
+    if (initiated.current || state === 'loading' || state === 'script_loading' || state === 'paid') {
+      return;
+    }
+    initiated.current = true;
+
+    setState('loading');
+    setErrorKey('genericError');
+
+    let bootstrap: HalykPayBootstrap;
+
+    try {
+      const response = await fetch('/api/payments/halyk/initiate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId, locale }),
+        credentials: 'same-origin',
+      });
+
+      if (!response.ok) {
+        const respBody = await response.json() as { error?: string };
+        void respBody;
+        if (response.status === 503) setErrorKey('unavailable');
+        else if (response.status === 409) setErrorKey('alreadyPaid');
+        else if (response.status === 401) setErrorKey('sessionExpired');
+        else setErrorKey('genericError');
+        setState('error');
+        initiated.current = false;
+        return;
+      }
+
+      bootstrap = await response.json() as HalykPayBootstrap;
+    } catch {
+      setErrorKey('networkError');
+      setState('error');
+      initiated.current = false;
+      return;
+    }
+
+    // Load the Halyk script
+    setState('script_loading');
+
+    try {
+      await loadScript(bootstrap.scriptUrl);
+    } catch {
+      setErrorKey('scriptError');
+      setState('error');
+      initiated.current = false;
+      return;
+    }
+
+    // Verify halyk.pay is available
+    if (typeof window.halyk?.pay !== 'function') {
+      setErrorKey('scriptError');
+      setState('error');
+      initiated.current = false;
+      return;
+    }
+
+    // Invoke payment — user will be redirected to Halyk hosted page
+    window.halyk.pay(bootstrap.paymentObject);
+
+    // After halyk.pay() returns (or redirect), notify parent
+    if (onSuccess) {
+      onSuccess(bootstrap.paymentId);
+    }
+  }, [jobId, locale, loadScript, onSuccess, state]);
+
+  const handleRetry = useCallback((): void => {
+    initiated.current = false;
+    setState('idle');
+  }, []);
+
+  if (state === 'paid') {
+    return (
+      <div className="flex items-center gap-2 text-emerald-400 text-sm">
+        <span>{t('paid')}</span>
+      </div>
+    );
+  }
+
+  if (state === 'error') {
+    return (
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-2 text-red-400 text-sm">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          <span>{t(errorKey)}</span>
+        </div>
+        <button
+          type="button"
+          onClick={handleRetry}
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <RefreshCw className="w-3.5 h-3.5" />
+          {t('retry')}
+        </button>
+      </div>
+    );
+  }
+
+  const isLoading = state === 'loading' || state === 'script_loading';
+
+  return (
+    <button
+      type="button"
+      onClick={() => void handlePay()}
+      disabled={isLoading}
+      className={`inline-flex items-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-medium px-4 py-2 transition-colors text-sm ${className}`}
+    >
+      {isLoading ? (
+        <Loader2 className="w-4 h-4 animate-spin" />
+      ) : (
+        <CreditCard className="w-4 h-4" />
+      )}
+      {isLoading
+        ? t('processing')
+        : t('payButton', { amount: priceKzt.toLocaleString(), currency: 'KZT' })}
+    </button>
+  );
+}
