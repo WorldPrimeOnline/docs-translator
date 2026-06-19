@@ -12,6 +12,50 @@ import {
 } from 'docx';
 import { ensureVisualElementsBlock, type VisualElement } from './visual-elements';
 
+// ── Thai font support ──────────────────────────────────────────────────────────
+// U+0E00–U+0E7F: Thai Unicode block
+const THAI_RANGE_RE = /[฀-๿]+/g;
+
+export type TextSegment = {
+  text: string;
+  isThai: boolean;
+};
+
+export function splitThaiTextRuns(text: string): TextSegment[] {
+  if (!text) return [{ text: '', isThai: false }];
+  const segments: TextSegment[] = [];
+  let pos = 0;
+  THAI_RANGE_RE.lastIndex = 0;
+  let m: RegExpExecArray | null;
+  while ((m = THAI_RANGE_RE.exec(text)) !== null) {
+    if (m.index > pos) {
+      segments.push({ text: text.slice(pos, m.index), isThai: false });
+    }
+    segments.push({ text: m[0], isThai: true });
+    pos = m.index + m[0].length;
+  }
+  if (pos < text.length) {
+    segments.push({ text: text.slice(pos), isThai: false });
+  }
+  return segments.length > 0 ? segments : [{ text, isThai: false }];
+}
+
+const THAI_FONT = { ascii: 'Noto Sans Thai', hAnsi: 'Noto Sans Thai', cs: 'Noto Sans Thai' } as const;
+
+interface RunOpts {
+  bold?: boolean;
+  italics?: boolean;
+  size?: number;
+  color?: string;
+}
+
+function makeThaiAwareRuns(text: string, opts: RunOpts = {}): TextRun[] {
+  const segments = splitThaiTextRuns(text);
+  return segments.map(({ text: t, isThai }) =>
+    new TextRun({ text: t, ...(isThai ? { font: THAI_FONT } : {}), ...opts }),
+  );
+}
+
 export interface DocxMeta {
   sourceLang: string;
   targetLang: string;
@@ -22,7 +66,6 @@ export interface DocxMeta {
 
 function parseInlineMarkdown(text: string): TextRun[] {
   const runs: TextRun[] = [];
-  // First pass: split on bold/italic/marker
   const segRe = /(\*\*[^*]+\*\*|\*[^*]+\*|\[([^\]]{1,120})\])/g;
   let segMatch: RegExpExecArray | null;
   let pos = 0;
@@ -30,25 +73,24 @@ function parseInlineMarkdown(text: string): TextRun[] {
 
   while ((segMatch = segRe.exec(text)) !== null) {
     if (segMatch.index > pos) {
-      runs.push(new TextRun({ text: text.slice(pos, segMatch.index) }));
+      runs.push(...makeThaiAwareRuns(text.slice(pos, segMatch.index)));
     }
     const part = segMatch[0];
     if (part.startsWith('**') && part.endsWith('**')) {
-      runs.push(new TextRun({ text: part.slice(2, -2), bold: true }));
+      runs.push(...makeThaiAwareRuns(part.slice(2, -2), { bold: true }));
     } else if (part.startsWith('*') && part.endsWith('*') && !part.startsWith('**')) {
-      runs.push(new TextRun({ text: part.slice(1, -1), italics: true }));
+      runs.push(...makeThaiAwareRuns(part.slice(1, -1), { italics: true }));
     } else if (part.startsWith('[') && part.endsWith(']')) {
-      // Visual marker — render as italic
       runs.push(new TextRun({ text: part, italics: true, color: '333333' }));
     }
     pos = segMatch.index + part.length;
   }
 
   if (pos < text.length) {
-    runs.push(new TextRun({ text: text.slice(pos) }));
+    runs.push(...makeThaiAwareRuns(text.slice(pos)));
   }
 
-  return runs.length > 0 ? runs : [new TextRun({ text })];
+  return runs.length > 0 ? runs : makeThaiAwareRuns(text);
 }
 
 interface ParsedTable {
@@ -85,7 +127,7 @@ function buildDocxTable(parsed: ParsedTable): Table {
     children: parsed.headers.map(
       (h) =>
         new TableCell({
-          children: [new Paragraph({ children: [new TextRun({ text: h, bold: true })] })],
+          children: [new Paragraph({ children: makeThaiAwareRuns(h, { bold: true }) })],
           width: { size: colWidth, type: WidthType.DXA },
           shading: { fill: 'E6E6E6' },
         }),
@@ -156,11 +198,11 @@ function parseMarkdownToDocx(markdown: string): DocxChild[] {
     }
 
     if (/^#{1}\s+/.test(line)) {
-      children.push(new Paragraph({ text: line.replace(/^#+\s+/, ''), heading: HeadingLevel.HEADING_1, spacing: { before: 240, after: 120 } }));
+      children.push(new Paragraph({ children: makeThaiAwareRuns(line.replace(/^#+\s+/, '')), heading: HeadingLevel.HEADING_1, spacing: { before: 240, after: 120 } }));
     } else if (/^#{2}\s+/.test(line)) {
-      children.push(new Paragraph({ text: line.replace(/^#+\s+/, ''), heading: HeadingLevel.HEADING_2, spacing: { before: 200, after: 80 } }));
+      children.push(new Paragraph({ children: makeThaiAwareRuns(line.replace(/^#+\s+/, '')), heading: HeadingLevel.HEADING_2, spacing: { before: 200, after: 80 } }));
     } else if (/^#{3,}\s+/.test(line)) {
-      children.push(new Paragraph({ text: line.replace(/^#+\s+/, ''), heading: HeadingLevel.HEADING_3, spacing: { before: 160, after: 80 } }));
+      children.push(new Paragraph({ children: makeThaiAwareRuns(line.replace(/^#+\s+/, '')), heading: HeadingLevel.HEADING_3, spacing: { before: 160, after: 80 } }));
     } else if (/^[-*+]\s+/.test(line)) {
       children.push(new Paragraph({ children: parseInlineMarkdown(line.replace(/^[-*+]\s+/, '')), bullet: { level: 0 }, spacing: { after: 60 } }));
     } else if (line.trim() === '') {
