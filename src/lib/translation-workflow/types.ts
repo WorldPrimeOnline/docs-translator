@@ -52,11 +52,18 @@ export interface VisualElement {
   source: 'mistral_ocr' | 'markdown_marker' | 'regex' | 'pdf_image_extraction' | 'manual';
 }
 
+export interface MixedScriptWarning {
+  code: 'MIXED_SCRIPT_TOKEN_REQUIRES_REVIEW';
+  tokenPreview: string;
+  severity: 'warning';
+}
+
 // QA report produced after artifact generation
 export interface TranslationQaReport {
   ok: boolean;
   errors: string[];
   warnings: string[];
+  mixedScriptWarnings?: MixedScriptWarning[];
   pages?: number;
   hasTranslatorBlock: boolean;
   hasVisualElementsBlock: boolean;

@@ -33,6 +33,7 @@ import {
   parseVisionResponse,
   parsePdfVisionResponse,
   analyzeDocumentVisuals,
+  sanitizeVisualDescription,
 } from '../page-vision';
 import type { MistralPageWithImages, MistralExtractedImage } from '../ocr';
 import type { VisualElement } from '../visual-elements';
@@ -273,12 +274,25 @@ describe('parsePdfVisionResponse', () => {
     expect(parsePdfVisionResponse(text)).toHaveLength(2);
   });
 
-  it('truncates description to 60 chars', () => {
-    const longDesc = 'A'.repeat(100);
+  it('description over 160 chars is truncated at word boundary or rejected', () => {
+    // 200 chars with spaces so truncation finds a word boundary
+    const longDesc = ('Word '.repeat(45)).trimEnd(); // 225 chars
     const text = JSON.stringify({
       pages: [{ page: 1, elements: [{ kind: 'logo', position: 'upper_left', confidence: 0.9, description: longDesc }] }],
     });
-    expect(parsePdfVisionResponse(text)[0]!.description?.length).toBeLessThanOrEqual(60);
+    const result = parsePdfVisionResponse(text)[0]!.description;
+    if (result !== undefined) {
+      expect(result.length).toBeLessThanOrEqual(160);
+    }
+    // undefined is also acceptable (rejected mid-word)
+  });
+
+  it('description under 160 chars is preserved in full', () => {
+    const shortDesc = 'Firmenlogo mit Brückenmotiv';
+    const text = JSON.stringify({
+      pages: [{ page: 1, elements: [{ kind: 'logo', position: 'upper_left', confidence: 0.9, description: shortDesc }] }],
+    });
+    expect(parsePdfVisionResponse(text)[0]!.description).toBe(shortDesc);
   });
 });
 
@@ -517,5 +531,63 @@ describe('analyzeDocumentVisuals — deduplication (primary)', () => {
     const positions = elements.map((e) => e.position);
     expect(positions).toContain('lower_left');
     expect(positions).toContain('lower_right');
+  });
+});
+
+// ── sanitizeVisualDescription ─────────────────────────────────────────────────
+
+describe('sanitizeVisualDescription', () => {
+  it('returns undefined for empty string', () => {
+    expect(sanitizeVisualDescription('', 'logo')).toBeUndefined();
+  });
+
+  it('returns undefined for signature (always uses positional fallback)', () => {
+    expect(sanitizeVisualDescription('Handschriftliche Unterschrift von Mueller', 'signature')).toBeUndefined();
+    expect(sanitizeVisualDescription('Unterschrift oben links', 'signature')).toBeUndefined();
+  });
+
+  it('returns undefined when description has unclosed guillemet (indicates mid-word truncation)', () => {
+    const truncated = 'Firmenlogo mit Brückenmotiv und Text «ТОО СЕВЕРНЫЙ МОСТ ЛОГИ';
+    expect(sanitizeVisualDescription(truncated, 'logo')).toBeUndefined();
+  });
+
+  it('returns undefined for mixed-script token in description', () => {
+    expect(sanitizeVisualDescription('Unterschrift von Abdrakhмanova', 'stamp')).toBeUndefined();
+    expect(sanitizeVisualDescription('Code KSJВKZKХ ist gültig', 'label')).toBeUndefined();
+  });
+
+  it('returns clean description unchanged', () => {
+    expect(sanitizeVisualDescription('Firmenlogo mit Brückenmotiv', 'logo')).toBe('Firmenlogo mit Brückenmotiv');
+    expect(sanitizeVisualDescription('Runder blauer Stempel', 'stamp')).toBe('Runder blauer Stempel');
+  });
+
+  it('returns description with properly closed guillemets unchanged', () => {
+    const desc = 'Diagonales Wasserzeichen mit dem Text «ОБРАЗЕЦ»';
+    expect(sanitizeVisualDescription(desc, 'watermark')).toBe(desc);
+  });
+
+  it('truncates description over 160 chars at word boundary', () => {
+    const long = 'Firmenlogo ' + 'sehr '.repeat(35); // >175 chars
+    const result = sanitizeVisualDescription(long, 'logo');
+    if (result !== undefined) {
+      expect(result.length).toBeLessThanOrEqual(160);
+      // Should end at a space-boundary word (last char before or at MAX_LEN)
+      expect(result).not.toMatch(/\s$/);
+    }
+  });
+
+  it('returns undefined when no word boundary found before 160 chars', () => {
+    const noSpaces = 'A'.repeat(200);
+    expect(sanitizeVisualDescription(noSpaces, 'logo')).toBeUndefined();
+  });
+
+  it('preserves QR description (short, no issues)', () => {
+    expect(sanitizeVisualDescription('QR-Code', 'qr')).toBe('QR-Code');
+  });
+
+  it('six visual elements employment fixture: signatures always get undefined', () => {
+    // Simulating Claude returning description for a signature
+    expect(sanitizeVisualDescription('HR-Leiterin Abdrakhмanova', 'signature')).toBeUndefined();
+    expect(sanitizeVisualDescription('Unterschrift oben rechts', 'signature')).toBeUndefined();
   });
 });

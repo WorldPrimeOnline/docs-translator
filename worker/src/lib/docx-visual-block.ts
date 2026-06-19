@@ -413,7 +413,9 @@ function visDataRow(el: VisualElement, loc: VisualBlockLocale): TableRow {
   const position = el.position != null
     ? (loc.positionLabels[el.position] ?? el.position)
     : '—';
-  const representation = el.description ?? loc.kindLabels[el.kind] ?? '—';
+  const kindLabel = loc.kindLabels[el.kind] ?? el.kind;
+  const posLabel = el.position != null ? (loc.positionLabels[el.position] ?? el.position) : null;
+  const representation = el.description ?? (posLabel != null ? `${kindLabel}, ${posLabel}` : kindLabel);
 
   return new TableRow({
     cantSplit: true,

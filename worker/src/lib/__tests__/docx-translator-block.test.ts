@@ -228,6 +228,52 @@ describe('renderToDocx official EN → RU translator block', () => {
   });
 });
 
+// ── German Leistungserbringer ─────────────────────────────────────────────────
+
+describe('renderToDocx German official translator block', () => {
+  const DE_META = {
+    sourceLang: 'ru',
+    targetLang: 'de',
+    documentType: 'employment_document',
+    translatedAt: '2026-06-19',
+    outputMode: 'translator_review_draft',
+  };
+
+  it('contains correct German heading', async () => {
+    const buf = await renderToDocx(EMPLOYMENT_MD, DE_META, []);
+    const xml = await getDocumentText(buf);
+    expect(xml).toContain('ANGABEN ZUM ÜBERSETZER UND LEISTUNGSERBRINGER');
+    expect(xml).not.toContain('ÜBERSETZER UND AUFTRAGGEBER');
+  });
+
+  it('uses Leistungserbringer not Auftraggeber', async () => {
+    const buf = await renderToDocx(EMPLOYMENT_MD, DE_META, []);
+    const xml = await getDocumentText(buf);
+    expect(xml).toContain('Leistungserbringer:');
+    expect(xml).not.toContain('Auftraggeber:');
+  });
+
+  it('uses correct German stamp label', async () => {
+    const buf = await renderToDocx(EMPLOYMENT_MD, DE_META, []);
+    const xml = await getDocumentText(buf);
+    expect(xml).toContain('Stempel des Leistungserbringers:');
+    expect(xml).not.toContain('Stempel des Auftraggebers:');
+  });
+
+  it('contains World Prime Online with German style', async () => {
+    const buf = await renderToDocx(EMPLOYMENT_MD, DE_META, []);
+    const xml = await getDocumentText(buf);
+    expect(xml).toContain('Einzelunternehmer World Prime Online');
+  });
+
+  it('i18n dictionary heading matches expected value', () => {
+    const de = TRANSLATOR_BLOCK_I18N['de']!;
+    expect(de.heading).toBe('ANGABEN ZUM ÜBERSETZER UND LEISTUNGSERBRINGER');
+    expect(de.provider).toBe('Leistungserbringer');
+    expect(de.stamp).toBe('Stempel des Leistungserbringers');
+  });
+});
+
 // ── Fallback for unknown language ─────────────────────────────────────────────
 
 describe('renderToDocx unknown target language falls back to English', () => {

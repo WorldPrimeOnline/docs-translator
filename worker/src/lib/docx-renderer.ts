@@ -134,15 +134,15 @@ export const TRANSLATOR_BLOCK_I18N: Record<string, TranslatorBlockLocale> = {
     tgtNames: { ru: 'al russo', en: "all'inglese", th: 'al tailandese', zh: 'al cinese', ko: 'al coreano', ja: 'al giapponese', de: 'al tedesco', fr: 'al francese', es: 'allo spagnolo', ar: "all'arabo", kk: 'al kazako', uz: "all'uzbeko", it: "all'italiano", tr: 'al turco' },
   },
   de: {
-    heading: 'ÜBERSETZER UND AUFTRAGGEBER',
+    heading: 'ANGABEN ZUM ÜBERSETZER UND LEISTUNGSERBRINGER',
     declarationTpl:
       'Der Übersetzer bestätigt, dass diese Übersetzung {src} {tgt} vollständig ist und dem vorgelegten Originaldokument entspricht.',
     translator: 'Übersetzer',
     qualification: 'Qualifikation des Übersetzers',
     signature: 'Unterschrift des Übersetzers',
-    provider: 'Auftraggeber',
+    provider: 'Leistungserbringer',
     iin: 'IIN',
-    stamp: 'Stempel des Auftraggebers',
+    stamp: 'Stempel des Leistungserbringers',
     date: 'Datum',
     providerName: 'Einzelunternehmer World Prime Online',
     srcNames: { ru: 'aus dem Russischen', en: 'aus dem Englischen', th: 'aus dem Thailändischen', zh: 'aus dem Chinesischen', ko: 'aus dem Koreanischen', ja: 'aus dem Japanischen', de: 'aus dem Deutschen', fr: 'aus dem Französischen', es: 'aus dem Spanischen', ar: 'aus dem Arabischen', kk: 'aus dem Kasachischen', uz: 'aus dem Usbekischen', it: 'aus dem Italienischen', tr: 'aus dem Türkischen' },

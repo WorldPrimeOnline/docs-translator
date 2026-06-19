@@ -13,12 +13,20 @@ export const QA_ADVISORY_CODES = {
   SIGNATURE_COUNT_CHANGED: 'SIGNATURE_COUNT_CHANGED',
   TABLE_ROW_COUNT: 'TABLE_ROW_COUNT',
   PROTECTED_VALUE_CHANGED: 'PROTECTED_VALUE_CHANGED',
+  MIXED_SCRIPT_TOKEN_REQUIRES_REVIEW: 'MIXED_SCRIPT_TOKEN_REQUIRES_REVIEW',
 } as const;
+
+export interface MixedScriptWarning {
+  code: 'MIXED_SCRIPT_TOKEN_REQUIRES_REVIEW';
+  tokenPreview: string;
+  severity: 'warning';
+}
 
 export interface TranslationQaReport {
   ok: boolean;
   errors: string[];
   warnings: string[];
+  mixedScriptWarnings?: MixedScriptWarning[];
   pages?: number;
   hasTranslatorBlock: boolean;
   hasVisualElementsBlock: boolean;
@@ -43,6 +51,27 @@ const FORBIDDEN_TERMS = [
   'parser',
   'debug',
 ];
+
+/**
+ * Find compact machine-like tokens that contain both Latin and Cyrillic letters.
+ * Conditions: 4-40 chars, no spaces, letters/digits/hyphens/slashes, both scripts present.
+ * Does NOT flag multi-word phrases or pure-script tokens.
+ */
+function findMixedScriptTokens(text: string): string[] {
+  const results: string[] = [];
+  for (const token of text.split(/[\s,;:'"()\[\]{}«»]+/)) {
+    if (token.length < 4 || token.length > 40) continue;
+    if (!/^[A-Za-zЀ-ӿ0-9\-\/]+$/.test(token)) continue;
+    if (/[A-Za-z]/.test(token) && /[Ѐ-ӿ]/.test(token)) {
+      results.push(token);
+    }
+  }
+  return results;
+}
+
+function makeTokenPreview(token: string): string {
+  return token.length > 6 ? token.slice(0, 2) + '…' + token.slice(-2) : token;
+}
 
 function stripHtmlTags(html: string): string {
   return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
@@ -109,6 +138,21 @@ export function runQaChecks(
     warnings.push('Table overflow:hidden detected — content may be clipped in PDF output.');
   }
 
+  // Mixed-script machine tokens: flag for human review, never block delivery
+  const rawMixedTokens = findMixedScriptTokens(visibleText);
+  const mixedScriptWarnings: MixedScriptWarning[] = rawMixedTokens.map((token) => ({
+    code: 'MIXED_SCRIPT_TOKEN_REQUIRES_REVIEW' as const,
+    tokenPreview: makeTokenPreview(token),
+    severity: 'warning' as const,
+  }));
+  if (mixedScriptWarnings.length > 0) {
+    const previews = mixedScriptWarnings.map((w) => w.tokenPreview).join(', ');
+    warnings.push(
+      `MIXED_SCRIPT_TOKEN_REQUIRES_REVIEW: ${previews} — ` +
+      'Обнаружено значение со смешанными латинскими и кириллическими символами. Сверьте его с оригиналом.',
+    );
+  }
+
   let ok: boolean;
 
   switch (mode) {
@@ -148,6 +192,7 @@ export function runQaChecks(
     ok,
     errors,
     warnings,
+    mixedScriptWarnings: mixedScriptWarnings.length > 0 ? mixedScriptWarnings : undefined,
     pages: pdfPageCount,
     hasTranslatorBlock,
     hasVisualElementsBlock,

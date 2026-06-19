@@ -46,6 +46,51 @@ const VALID_POSITIONS = new Set<string>([
   'full_page',
 ]);
 
+// ── Description sanitization ──────────────────────────────────────────────────
+
+const MAX_DESC_LEN = 160;
+const MIXED_SCRIPT_RE = /[A-Za-zЀ-ӿ0-9\-\/]{4,40}/g;
+
+/**
+ * Sanitize a raw vision description.
+ * Returns undefined when the description is:
+ * - Empty
+ * - For a `signature` element (OCR-identified names are unreliable — use positional fallback)
+ * - Contains a mixed-script token (Latin+Cyrillic in the same word, e.g. "KSјвкZкх")
+ * - Has an unclosed «» guillemet (indicating the description was truncated mid-quoted-text)
+ * Returns a truncated-at-word-boundary string when the description exceeds MAX_DESC_LEN.
+ */
+export function sanitizeVisualDescription(raw: string, kind: string): string | undefined {
+  const desc = raw.trim();
+  if (!desc) return undefined;
+
+  // Signatures: always use the positional fallback — OCR-read names are unreliable
+  if (kind === 'signature') return undefined;
+
+  // Mixed-script check: any token of 4-40 chars containing BOTH Latin and Cyrillic letters
+  MIXED_SCRIPT_RE.lastIndex = 0;
+  let m: RegExpExecArray | null;
+  while ((m = MIXED_SCRIPT_RE.exec(desc)) !== null) {
+    const token = m[0];
+    if (/[A-Za-z]/.test(token) && /[Ѐ-ӿ]/.test(token)) return undefined;
+  }
+
+  // Truncate at word boundary when over the limit
+  let result = desc;
+  if (result.length > MAX_DESC_LEN) {
+    const cut = result.lastIndexOf(' ', MAX_DESC_LEN);
+    if (cut <= 0) return undefined;
+    result = result.slice(0, cut);
+  }
+
+  // Reject unclosed «» guillemets (indicates mid-word / mid-phrase truncation)
+  const opens = (result.match(/«/g) ?? []).length;
+  const closes = (result.match(/»/g) ?? []).length;
+  if (opens > closes) return undefined;
+
+  return result || undefined;
+}
+
 // ── Pure utilities (exported for unit tests) ──────────────────────────────────
 
 /**
@@ -144,7 +189,7 @@ function buildFullPdfVisionPrompt(targetLang: string): string {
     'preserve that text verbatim inside «» guillemets. ' +
     'Describe the element in the target language; only the quoted text stays in the original.\n\n' +
     'Return JSON only — no prose, no markdown fences:\n' +
-    '{"pages":[{"page":1,"elements":[{"kind":"<kind>","position":"<position>","description":"<max 60 chars in target lang>","confidence":<0.0-1.0>}]}]}\n\n' +
+    '{"pages":[{"page":1,"elements":[{"kind":"<kind>","position":"<position>","description":"<max 120 chars in target lang>","confidence":<0.0-1.0>}]}]}\n\n' +
     'Kind values: logo, emblem, photo, qr, barcode, stamp, signature, watermark, accreditation_mark, certification_mark, label, unknown_image\n' +
     'Position values: upper_left, upper_center, upper_right, center_left, center, center_right, lower_left, lower_center, lower_right, full_page\n' +
     'Omit elements with confidence < 0.35.\n' +
@@ -197,13 +242,13 @@ export function parsePdfVisionResponse(text: string): VisualElement[] {
           ? (el.position as VisualPosition)
           : undefined;
 
-        const desc = (el.description ?? '').trim().slice(0, 60);
+        const desc = sanitizeVisualDescription((el.description ?? '').trim(), kind);
 
         elements.push({
           page: pageNum,
           kind,
           position,
-          description: desc || undefined,
+          description: desc,
           text: desc ? `[${kind}: ${desc}]` : `[${kind}]`,
           confidence: el.confidence,
           source: 'pdf_image_extraction',

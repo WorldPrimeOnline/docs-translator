@@ -82,3 +82,69 @@ describe('runQaChecks', () => {
     expect(report.pages).toBe(3);
   });
 });
+
+// ── Mixed-script token detection ──────────────────────────────────────────────
+
+describe('runQaChecks — mixed-script token detection', () => {
+  it('flags KSЈВКZКХ (Latin+Cyrillic mixed token)', () => {
+    const html = `<html><body><p>БИК: KSЈВКZКХ</p></body></html>`;
+    const report = runQaChecks(html, 'translator_review_draft');
+    expect(report.mixedScriptWarnings).toBeDefined();
+    expect(report.mixedScriptWarnings!.length).toBeGreaterThan(0);
+    expect(report.mixedScriptWarnings![0]!.code).toBe('MIXED_SCRIPT_TOKEN_REQUIRES_REVIEW');
+    expect(report.warnings.some(w => w.includes('MIXED_SCRIPT_TOKEN_REQUIRES_REVIEW'))).toBe(true);
+    expect(report.warnings.some(w => w.includes('Сверьте его с оригиналом'))).toBe(true);
+  });
+
+  it('flags КСJВКZКХ (Cyrillic-dominant with Latin J and Z)', () => {
+    const html = `<html><body><p>Code: КСJВКZКХ</p></body></html>`;
+    const report = runQaChecks(html, 'translation_only');
+    expect(report.mixedScriptWarnings).toBeDefined();
+    expect(report.mixedScriptWarnings!.length).toBeGreaterThan(0);
+  });
+
+  it('does not flag KCJBKZKX (pure Latin BIC)', () => {
+    const html = `<html><body><p>BIC: KCJBKZKX</p></body></html>`;
+    const report = runQaChecks(html, 'translation_only');
+    expect(report.mixedScriptWarnings).toBeUndefined();
+  });
+
+  it('does not flag КАЗАХСТАН (pure Cyrillic)', () => {
+    const html = `<html><body><p>Страна: КАЗАХСТАН</p></body></html>`;
+    const report = runQaChecks(html, 'translation_only');
+    expect(report.mixedScriptWarnings).toBeUndefined();
+  });
+
+  it('does not flag N14720583 (Latin + digits only)', () => {
+    const html = `<html><body><p>Ref: N14720583</p></body></html>`;
+    const report = runQaChecks(html, 'translation_only');
+    expect(report.mixedScriptWarnings).toBeUndefined();
+  });
+
+  it('does not flag KZ559876543210123456 (IBAN-like, pure Latin+digits)', () => {
+    const html = `<html><body><p>IBAN: KZ559876543210123456</p></body></html>`;
+    const report = runQaChecks(html, 'translation_only');
+    expect(report.mixedScriptWarnings).toBeUndefined();
+  });
+
+  it('does not flag ТД-2020/0914-38 (pure Cyrillic+digits+punctuation)', () => {
+    const html = `<html><body><p>Приказ: ТД-2020/0914-38</p></body></html>`;
+    const report = runQaChecks(html, 'translation_only');
+    expect(report.mixedScriptWarnings).toBeUndefined();
+  });
+
+  it('tokenPreview abbreviates long mixed tokens', () => {
+    const html = `<html><body><p>Code: KSАВСdEFghЖЗ</p></body></html>`;
+    const report = runQaChecks(html, 'translation_only');
+    if (report.mixedScriptWarnings && report.mixedScriptWarnings.length > 0) {
+      const preview = report.mixedScriptWarnings[0]!.tokenPreview;
+      expect(preview.length).toBeLessThanOrEqual(7); // 2 + "…" + 2 = 5, or full token if ≤6
+    }
+  });
+
+  it('does not block delivery (ok remains true for non-broken content)', () => {
+    const html = `<html><body><p>БИК: KSЈВКZКХ</p></body></html>`;
+    const report = runQaChecks(html, 'translation_only');
+    expect(report.ok).toBe(true); // mixed-script is warning only, not error
+  });
+});
