@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { env } from './env';
 import { buildTranslationPrompt, normalizeDocumentType } from './translation-prompts';
+import { extractProtectedValues, restoreProtectedValues } from './protected-values';
 
 const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
 
@@ -79,10 +80,11 @@ export async function translateDocument(
   targetLang: string,
   documentType: string,
 ): Promise<string> {
-  const chunks = chunkMarkdown(markdown);
-  console.log(`[translator] ${chunks.length} chunk(s), ${wordCount(markdown)} words`);
+  const { protected: protectedMarkdown, entries } = extractProtectedValues(markdown);
+  const chunks = chunkMarkdown(protectedMarkdown);
+  console.log(`[translator] ${chunks.length} chunk(s), ${wordCount(markdown)} words, ${entries.length} protected value(s)`);
   const results = await Promise.all(
     chunks.map((c) => translateChunk(c, sourceLang, targetLang, documentType)),
   );
-  return results.join('\n\n');
+  return restoreProtectedValues(results.join('\n\n'), entries);
 }
