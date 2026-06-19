@@ -1,12 +1,17 @@
 /**
- * Page-level visual element analysis.
+ * Page-level visual element analysis via Claude full-page PDF vision.
  *
- * Source PDF images are extracted by Mistral OCR (include_image_base64=true).
- * For each page that has at least one extracted image, one Claude vision call
- * classifies every image on that page into a VisualElementKind.
+ * PRIMARY: send the full PDF buffer to Claude as a document block.
+ * Claude renders each page visually and identifies ALL elements:
+ * vector stamps, handwritten signatures, watermarks, logos, QR codes —
+ * regardless of whether Mistral OCR extracted them as embedded images.
  *
- * This is the PRIMARY source for the visual inventory.
- * Translated-markdown bracket markers are a fallback only.
+ * SECONDARY fallback: classify individual images extracted by Mistral OCR.
+ * Only used when the full-PDF path fails or returns 0 elements AND
+ * Mistral did extract at least one raster image from the PDF.
+ *
+ * Both paths are non-blocking — any failure returns [] so the caller
+ * can fall back to translated-markdown bracket markers.
  */
 
 import Anthropic from '@anthropic-ai/sdk';
@@ -18,7 +23,6 @@ import type { MistralPageWithImages, MistralExtractedImage, MistralPageDimension
 
 let _client: Anthropic | null = null;
 
-/** Returns the shared Anthropic client, created lazily on first use. */
 function getClient(): Anthropic {
   if (!_client) _client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
   return _client;
@@ -28,7 +32,6 @@ const MODEL = 'claude-sonnet-4-5-20250929';
 const MAX_RETRIES = 3;
 const CONFIDENCE_THRESHOLD = 0.35;
 
-// A4 page in pixels at 72 dpi — used as fallback when Mistral doesn't return dimensions
 const DEFAULT_DIMS: MistralPageDimensions = { dpi: 72, width: 794, height: 1122 };
 
 const VALID_KINDS = new Set<string>([
@@ -36,11 +39,17 @@ const VALID_KINDS = new Set<string>([
   'watermark', 'accreditation_mark', 'certification_mark', 'label', 'unknown_image',
 ]);
 
+const VALID_POSITIONS = new Set<string>([
+  'upper_left', 'upper_center', 'upper_right',
+  'center_left', 'center', 'center_right',
+  'lower_left', 'lower_center', 'lower_right',
+  'full_page',
+]);
+
 // ── Pure utilities (exported for unit tests) ──────────────────────────────────
 
 /**
  * Map a bounding box (pixel coordinates within a page) to a named 3×3 + full_page zone.
- * Uses the centre point of the bbox to determine which zone the element sits in.
  */
 export function bboxToPosition(
   image: Pick<MistralExtractedImage, 'top_left_x' | 'top_left_y' | 'bottom_right_x' | 'bottom_right_y'>,
@@ -62,6 +71,7 @@ export function bboxToPosition(
   return `${v}_${h}` as VisualPosition;
 }
 
+/** Result item returned by the per-image classification call (secondary path). */
 export interface VisionResultItem {
   imageIndex: number;
   kind: string;
@@ -70,7 +80,7 @@ export interface VisionResultItem {
 }
 
 /**
- * Extract the first JSON array from a raw Claude text response.
+ * Extract the first JSON array from a raw Claude text response (secondary path).
  * Returns [] on any parse failure so the pipeline always continues.
  */
 export function parseVisionResponse(text: string): VisionResultItem[] {
@@ -94,14 +104,163 @@ export function parseVisionResponse(text: string): VisionResultItem[] {
   }
 }
 
-// ── Vision prompt ─────────────────────────────────────────────────────────────
+// ── Full-page PDF vision (PRIMARY) ────────────────────────────────────────────
 
-const VISION_SYSTEM =
+const FULL_PDF_VISION_SYSTEM =
+  'You analyze documents for visual and graphical elements. ' +
+  'You examine every page completely, covering all areas: headers, footers, body, ' +
+  'margins, corners, background layers, and signature zones. ' +
+  'Report only elements you can actually see. Use "unknown_image" for unclear elements.';
+
+const FULL_PDF_VISION_PROMPT =
+  'Examine every page of this document and identify all visual/graphical elements.\n\n' +
+  'Look for in every area (including background, margins, and overlays):\n' +
+  '- Company or organization logos or brand marks\n' +
+  '- Official stamps or seals (round, rectangular, wet ink or printed)\n' +
+  '- Handwritten signatures or ink marks\n' +
+  '- QR codes (2D matrix barcodes)\n' +
+  '- Barcodes (1D parallel-line barcodes)\n' +
+  '- Watermarks (background text or translucent overlays)\n' +
+  '- Photographs of persons, objects, or scenes\n' +
+  '- Government emblems or coats of arms\n' +
+  '- Accreditation marks or certification badges\n' +
+  '- Any other meaningful graphical element\n\n' +
+  'Do NOT report:\n' +
+  '- Plain printed text content\n' +
+  '- Plain printed URLs (a QR code containing a URL IS a visual element)\n\n' +
+  'Return JSON only — no prose, no markdown fences:\n' +
+  '{"pages":[{"page":1,"elements":[{"kind":"<kind>","position":"<position>","description":"<max 60 chars>","confidence":<0.0-1.0>}]}]}\n\n' +
+  'Kind values: logo, emblem, photo, qr, barcode, stamp, signature, watermark, accreditation_mark, certification_mark, label, unknown_image\n' +
+  'Position values: upper_left, upper_center, upper_right, center_left, center, center_right, lower_left, lower_center, lower_right, full_page\n' +
+  'Omit elements with confidence < 0.35.\n' +
+  'Return JSON only.';
+
+interface PdfVisionElement {
+  kind: string;
+  position: string;
+  description?: string;
+  confidence: number;
+}
+
+interface PdfVisionPage {
+  page: number;
+  elements?: PdfVisionElement[];
+}
+
+interface PdfVisionResponse {
+  pages?: PdfVisionPage[];
+}
+
+/**
+ * Parse Claude's full-PDF structured response.
+ * Returns [] on any parse failure so the pipeline always continues.
+ */
+export function parsePdfVisionResponse(text: string): VisualElement[] {
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) return [];
+
+  try {
+    const parsed = JSON.parse(jsonMatch[0]) as PdfVisionResponse;
+    if (!Array.isArray(parsed.pages)) return [];
+
+    const elements: VisualElement[] = [];
+
+    for (const pageData of parsed.pages) {
+      const pageNum = pageData.page;
+      if (!Array.isArray(pageData.elements)) continue;
+
+      for (const el of pageData.elements) {
+        if (el.confidence < CONFIDENCE_THRESHOLD) continue;
+
+        const kind: VisualElementKind = VALID_KINDS.has(el.kind)
+          ? (el.kind as VisualElementKind)
+          : 'unknown_image';
+
+        const position: VisualPosition | undefined = VALID_POSITIONS.has(el.position)
+          ? (el.position as VisualPosition)
+          : undefined;
+
+        const desc = (el.description ?? '').trim().slice(0, 60);
+
+        elements.push({
+          page: pageNum,
+          kind,
+          position,
+          description: desc || undefined,
+          text: desc ? `[${kind}: ${desc}]` : `[${kind}]`,
+          confidence: el.confidence,
+          source: 'pdf_image_extraction',
+        });
+      }
+    }
+
+    return deduplicatePageVision(elements);
+  } catch {
+    return [];
+  }
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+async function analyzeFullPdfWithClaude(
+  pdfBuffer: Buffer,
+  anthropic: Anthropic,
+): Promise<VisualElement[]> {
+  const pdfBase64 = pdfBuffer.toString('base64');
+  let lastError: Error = new Error('PDF vision failed after all retries');
+
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    if (attempt > 0) await sleep(1000 * 2 ** attempt);
+
+    try {
+      const docBlock: Anthropic.Messages.DocumentBlockParam = {
+        type: 'document',
+        source: {
+          type: 'base64',
+          media_type: 'application/pdf',
+          data: pdfBase64,
+        },
+      };
+
+      const response = await anthropic.messages.create({
+        model: MODEL,
+        max_tokens: 2048,
+        system: FULL_PDF_VISION_SYSTEM,
+        messages: [{
+          role: 'user',
+          content: [
+            docBlock,
+            { type: 'text', text: FULL_PDF_VISION_PROMPT },
+          ],
+        }],
+      });
+
+      const text = response.content
+        .filter((b) => b.type === 'text')
+        .map((b) => ('text' in b ? b.text : ''))
+        .join('');
+
+      console.log(`[page-vision] full-pdf raw response length=${text.length}`);
+      return parsePdfVisionResponse(text);
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      console.warn(`[page-vision] full-pdf attempt ${attempt + 1} failed: ${lastError.message}`);
+    }
+  }
+
+  throw lastError;
+}
+
+// ── Per-page image classification (SECONDARY fallback) ────────────────────────
+
+const IMAGE_VISION_SYSTEM =
   'You identify visual and graphical elements in images extracted from official document pages. ' +
   'Be precise. Do not guess element types. ' +
   "If you cannot confidently classify an image, use 'unknown_image'.";
 
-function buildVisionPrompt(imageCount: number): string {
+function buildImageVisionPrompt(imageCount: number): string {
   const noun = imageCount === 1 ? '1 image was' : `${imageCount} images were`;
   return (
     `${noun} extracted from a document page. ` +
@@ -122,18 +281,10 @@ function buildVisionPrompt(imageCount: number): string {
     'label – adhesive label, sticker, or decorative border\n' +
     'unknown_image – unclear or unclassifiable image element\n\n' +
     'Rules:\n' +
-    '- Scan: header, footer, centre, margins, signature zones, page corners\n' +
     '- Omit elements with confidence < 0.35\n' +
     '- Do not translate document text\n' +
-    '- Do not add elements for plain printed URLs (those are not visual graphics)\n' +
     'Response: JSON array only.'
   );
-}
-
-// ── Per-page classification ───────────────────────────────────────────────────
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((r) => setTimeout(r, ms));
 }
 
 interface LabeledImage {
@@ -155,7 +306,7 @@ async function classifyPageImages(
     },
   }));
 
-  let lastError: Error = new Error('Vision analysis failed');
+  let lastError: Error = new Error('Image classification failed');
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     if (attempt > 0) await sleep(1000 * 2 ** attempt);
@@ -164,16 +315,14 @@ async function classifyPageImages(
       const response = await anthropic.messages.create({
         model: MODEL,
         max_tokens: 1024,
-        system: VISION_SYSTEM,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              ...imageBlocks,
-              { type: 'text', text: buildVisionPrompt(images.length) },
-            ],
-          },
-        ],
+        system: IMAGE_VISION_SYSTEM,
+        messages: [{
+          role: 'user',
+          content: [
+            ...imageBlocks,
+            { type: 'text', text: buildImageVisionPrompt(images.length) },
+          ],
+        }],
       });
 
       const rawText = response.content
@@ -186,14 +335,12 @@ async function classifyPageImages(
 
       for (const item of items) {
         if (item.confidence < CONFIDENCE_THRESHOLD) continue;
-
         const labeled = images[item.imageIndex];
         if (!labeled) continue;
 
         const kind: VisualElementKind = VALID_KINDS.has(item.kind)
           ? (item.kind as VisualElementKind)
           : 'unknown_image';
-
         const desc = item.description?.trim() ?? '';
 
         elements.push({
@@ -210,20 +357,56 @@ async function classifyPageImages(
       return elements;
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));
-      console.warn(
-        `[page-vision] page ${pageNum} attempt ${attempt + 1} failed: ${lastError.message}`,
-      );
+      console.warn(`[page-vision] page ${pageNum} image attempt ${attempt + 1} failed: ${lastError.message}`);
     }
   }
 
   throw lastError;
 }
 
+async function analyzeExtractedImages(
+  pages: MistralPageWithImages[],
+  anthropic: Anthropic,
+): Promise<VisualElement[]> {
+  const allElements: VisualElement[] = [];
+
+  for (const page of pages) {
+    const pageNum = page.index + 1;
+    const imagesWithData = page.images.filter((img) => img.image_base64);
+
+    if (imagesWithData.length === 0) {
+      console.log(`[page-vision] extracted-images page ${pageNum}: 0 raster images — skipping`);
+      continue;
+    }
+
+    const dims = page.dimensions ?? DEFAULT_DIMS;
+    const labeled: LabeledImage[] = imagesWithData.map((meta) => ({
+      meta,
+      position: bboxToPosition(meta, dims),
+    }));
+
+    try {
+      const elements = await classifyPageImages(pageNum, labeled, anthropic);
+      console.log(
+        `[page-vision] extracted-images page ${pageNum}: ${imagesWithData.length} images,` +
+        ` ${elements.length} elements — kinds=[${elements.map((e) => e.kind).join(',')}]`,
+      );
+      allElements.push(...elements);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`[page-vision] extracted-images page ${pageNum} failed (non-fatal): ${msg}`);
+    }
+  }
+
+  return allElements;
+}
+
 // ── Deduplication ─────────────────────────────────────────────────────────────
 
 /**
- * Dedup by page + kind + position — preserves two physical objects of the same
- * kind at different positions (e.g., two signatures at lower_left and lower_right).
+ * Dedup by page + kind + position.
+ * Preserves two physical objects of the same kind at different positions
+ * (e.g., two signatures at lower_left and lower_right).
  */
 function deduplicatePageVision(elements: VisualElement[]): VisualElement[] {
   const seen = new Set<string>();
@@ -238,47 +421,47 @@ function deduplicatePageVision(elements: VisualElement[]): VisualElement[] {
 // ── Main entry ────────────────────────────────────────────────────────────────
 
 /**
- * Analyze all pages that have extracted images.
- * Maximum one Claude vision call per page.
- * Returns [] on total failure so the caller can fall back to markdown markers.
+ * Analyze a document PDF for visual elements.
  *
- * The optional `_anthropic` parameter is only for unit tests (dependency injection).
- * In production the shared lazy client is used.
+ * PRIMARY: sends the full PDF to Claude as a document block (full-page-raster).
+ *   Claude renders each page and identifies ALL visual elements regardless of
+ *   whether they are vector or raster.
+ *
+ * SECONDARY: if primary yields 0 elements or fails, classifies individual images
+ *   extracted by Mistral OCR (only works if the PDF had embedded raster images).
+ *
+ * Returns [] on total failure — the caller falls back to markdown bracket markers.
+ *
+ * `_anthropic` is only for unit tests (dependency injection).
  */
 export async function analyzeDocumentVisuals(
-  pages: MistralPageWithImages[],
+  rawPages: MistralPageWithImages[],
+  pdfBuffer: Buffer,
   _anthropic?: Anthropic,
 ): Promise<VisualElement[]> {
   const anthropic = _anthropic ?? getClient();
-  const allElements: VisualElement[] = [];
 
-  for (const page of pages) {
-    const pageNum = page.index + 1; // 1-based for display
-    const imagesWithData = page.images.filter((img) => img.image_base64);
-
-    if (imagesWithData.length === 0) {
-      console.log(`[page-vision] page ${pageNum}: 0 extractable images — skipping`);
-      continue;
-    }
-
-    const dims = page.dimensions ?? DEFAULT_DIMS;
-    const labeled: LabeledImage[] = imagesWithData.map((meta) => ({
-      meta,
-      position: bboxToPosition(meta, dims),
-    }));
-
-    try {
-      const elements = await classifyPageImages(pageNum, labeled, anthropic);
-      console.log(
-        `[page-vision] page ${pageNum}: ${imagesWithData.length} images analyzed,` +
-          ` ${elements.length} elements — kinds=[${elements.map((e) => e.kind).join(',')}]`,
-      );
-      allElements.push(...elements);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.warn(`[page-vision] page ${pageNum} failed (non-fatal): ${msg}`);
-    }
+  // PRIMARY: full-page PDF vision via Claude document block
+  try {
+    const elements = await analyzeFullPdfWithClaude(pdfBuffer, anthropic);
+    const count = elements.length;
+    console.log(
+      `[page-vision] source=full-page-raster count=${count}` +
+      ` kinds=${JSON.stringify(elements.map((e) => e.kind))}`,
+    );
+    if (count > 0) return elements;
+    console.log('[page-vision] full-page-raster returned 0 elements — trying extracted images');
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn(`[page-vision] full-page-raster failed (non-fatal): ${msg}`);
   }
 
-  return deduplicatePageVision(allElements);
+  // SECONDARY: Mistral-extracted raster images (fallback within page-vision)
+  const fallbackElements = await analyzeExtractedImages(rawPages, anthropic);
+  const fallbackCount = fallbackElements.length;
+  console.log(
+    `[page-vision] source=extracted-images count=${fallbackCount}` +
+    ` kinds=${JSON.stringify(fallbackElements.map((e) => e.kind))}`,
+  );
+  return deduplicatePageVision(fallbackElements);
 }
