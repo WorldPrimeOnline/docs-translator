@@ -10,7 +10,8 @@ import {
   WidthType,
   BorderStyle,
 } from 'docx';
-import { ensureVisualElementsBlock, type VisualElement } from './visual-elements';
+import type { VisualElement } from './visual-elements';
+import { renderVisualBlock, stripVisualBlockFromMarkdown } from './docx-visual-block';
 
 // ── Thai font support ──────────────────────────────────────────────────────────
 // U+0E00–U+0E7F: Thai Unicode block
@@ -531,12 +532,9 @@ export async function renderToDocx(
   meta: DocxMeta,
   visualElements?: VisualElement[],
 ): Promise<Buffer> {
-  // Ensure visual elements block is present
-  const finalMarkdown = ensureVisualElementsBlock(
-    translatedMarkdown,
-    visualElements ?? [],
-    meta.targetLang,
-  );
+  // Strip any Markdown visual-block section Claude may have appended,
+  // then render it natively as a DOCX 4-column table (see docx-visual-block.ts).
+  const cleanedMarkdown = stripVisualBlockFromMarkdown(translatedMarkdown);
 
   const header = new Paragraph({
     children: [
@@ -545,6 +543,8 @@ export async function renderToDocx(
     ],
     spacing: { after: 200 },
   });
+
+  const visualBlock = renderVisualBlock(visualElements ?? [], meta.targetLang);
 
   const translatorBlock = renderTranslatorProviderBlock({
     sourceLang: meta.sourceLang,
@@ -555,7 +555,7 @@ export async function renderToDocx(
   const doc = new Document({
     sections: [{
       properties: { page: { margin: { top: 1440, bottom: 1440, left: 1440, right: 1440 } } },
-      children: [header, ...parseMarkdownToDocx(finalMarkdown), ...translatorBlock],
+      children: [header, ...parseMarkdownToDocx(cleanedMarkdown), ...visualBlock, ...translatorBlock],
     }],
   });
 

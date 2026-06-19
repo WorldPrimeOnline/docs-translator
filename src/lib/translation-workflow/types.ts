@@ -31,7 +31,16 @@ export type VisualElementKind =
   | 'mrz'
   | 'handwritten_note'
   | 'electronic_approval'
+  | 'accreditation_mark'
+  | 'certification_mark'
+  | 'label'
   | 'unknown_image';
+
+export type VisualPosition =
+  | 'upper_left' | 'upper_center' | 'upper_right'
+  | 'center_left' | 'center' | 'center_right'
+  | 'lower_left' | 'lower_center' | 'lower_right'
+  | 'full_page';
 
 export interface VisualElement {
   page?: number;
