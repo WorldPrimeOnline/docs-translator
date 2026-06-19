@@ -8,7 +8,7 @@ import { generatePdfFromHtml } from './lib/pdf';
 import { renderToDocx } from './lib/docx-renderer';
 import { sendTranslationReady, sendDocumentReceivedForReview } from './lib/email';
 import { computeOutputPlan, type ServiceLevel } from './lib/output-plan';
-import { mergeVisualElements, extractVisualElementsFromTranslated } from './lib/visual-elements';
+import { mergeVisualElements, extractVisualElementsFromTranslated, filterPrintedVerificationStrings } from './lib/visual-elements';
 import { runQaChecks } from './lib/qa';
 import { env } from './lib/env';
 import { initializeOrderIntegrations, triggerTranslatorReview } from './lib/integrations';
@@ -116,6 +116,7 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
     console.log(`${tag} running OCR…`);
     const { markdown, pageCount, visualElements: ocrVisualElements } = await extractTextFromPdf(pdfBuffer);
     console.log(`${tag} OCR done — ${pageCount} pages, ${markdown.length} chars, ${ocrVisualElements.length} visual elements`);
+    console.log(`${tag} [vis:ocr] count=${ocrVisualElements.length} kinds=${JSON.stringify(ocrVisualElements.map((e) => e.kind))}`);
 
     // OCR quality check — abort early rather than waste translation credits
     const ocrWordCount = markdown.trim().split(/\s+/).filter(Boolean).length;
@@ -192,7 +193,12 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
 
     // Merge visual elements from OCR + translated markdown
     const translatedVisualElements = extractVisualElementsFromTranslated(translatedMarkdown);
-    const allVisualElements = mergeVisualElements(ocrVisualElements, translatedVisualElements);
+    console.log(`${tag} [vis:translated] count=${translatedVisualElements.length} kinds=${JSON.stringify(translatedVisualElements.map((e) => e.kind))}`);
+
+    const mergedVisualElements = mergeVisualElements(ocrVisualElements, translatedVisualElements);
+    // Remove plain-text verification strings (printed URLs that are not visual elements)
+    const allVisualElements = filterPrintedVerificationStrings(mergedVisualElements);
+    console.log(`${tag} [vis:renderer] count=${allVisualElements.length} kinds=${JSON.stringify(allVisualElements.map((e) => e.kind))}`);
 
     // ── 4a. Official / review mode (certified + notarization both produce translator draft) ──
     if (plan.mode === 'translator_review_draft' || plan.mode === 'notarization_package') {
