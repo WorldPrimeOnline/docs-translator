@@ -62,6 +62,314 @@ export interface DocxMeta {
   documentType: string;
   translatedAt: string;
   filename?: string;
+  serviceLevel?: string;
+  outputMode?: string;
+}
+
+// ── Translator / Provider block ───────────────────────────────────────────────
+
+const BLANK = '____________________________';
+const PROVIDER_IIN = '840324300155';
+
+interface TranslatorBlockLocale {
+  heading: string;
+  declarationTpl: string; // placeholders: {src} {tgt}
+  translator: string;
+  qualification: string;
+  signature: string;
+  provider: string;
+  iin: string;
+  stamp: string;
+  date: string;
+  providerName: string;
+  srcNames: Record<string, string>;
+  tgtNames: Record<string, string>;
+}
+
+export const TRANSLATOR_BLOCK_I18N: Record<string, TranslatorBlockLocale> = {
+  ru: {
+    heading: 'ПЕРЕВОДЧИК И ИСПОЛНИТЕЛЬ',
+    declarationTpl:
+      'Настоящим переводчик подтверждает полноту и соответствие перевода {src} {tgt} представленному исходному документу.',
+    translator: 'Переводчик',
+    qualification: 'Квалификация / основание компетенции',
+    signature: 'Подпись переводчика',
+    provider: 'Исполнитель',
+    iin: 'ИИН',
+    stamp: 'Печать Исполнителя',
+    date: 'Дата',
+    providerName: 'ИП World Prime Online',
+    srcNames: { ru: 'с русского', en: 'с английского', th: 'с тайского', zh: 'с китайского', ko: 'с корейского', ja: 'с японского', de: 'с немецкого', fr: 'с французского', es: 'с испанского', ar: 'с арабского', kk: 'с казахского', uz: 'с узбекского', it: 'с итальянского', tr: 'с турецкого' },
+    tgtNames: { ru: 'на русский', en: 'на английский', th: 'на тайский', zh: 'на китайский', ko: 'на корейский', ja: 'на японский', de: 'на немецкий', fr: 'на французский', es: 'на испанский', ar: 'на арабский', kk: 'на казахский', uz: 'на узбекский', it: 'на итальянский', tr: 'на турецкий' },
+  },
+  en: {
+    heading: 'TRANSLATOR AND PROVIDER DETAILS',
+    declarationTpl:
+      'The translator confirms that this translation from {src} to {tgt} is complete and corresponds to the source document presented.',
+    translator: 'Translator',
+    qualification: 'Translator qualification',
+    signature: 'Translator signature',
+    provider: 'Provider',
+    iin: 'IIN',
+    stamp: 'Provider stamp',
+    date: 'Date',
+    providerName: 'Individual Entrepreneur World Prime Online',
+    srcNames: { ru: 'Russian', en: 'English', th: 'Thai', zh: 'Chinese', ko: 'Korean', ja: 'Japanese', de: 'German', fr: 'French', es: 'Spanish', ar: 'Arabic', kk: 'Kazakh', uz: 'Uzbek', it: 'Italian', tr: 'Turkish' },
+    tgtNames: { ru: 'Russian', en: 'English', th: 'Thai', zh: 'Chinese', ko: 'Korean', ja: 'Japanese', de: 'German', fr: 'French', es: 'Spanish', ar: 'Arabic', kk: 'Kazakh', uz: 'Uzbek', it: 'Italian', tr: 'Turkish' },
+  },
+  it: {
+    heading: "DATI DEL TRADUTTORE E DELL'ESECUTORE",
+    declarationTpl:
+      'Il traduttore conferma che la presente traduzione {src} {tgt} è completa e corrisponde al documento originale presentato.',
+    translator: 'Traduttore',
+    qualification: 'Qualifica del traduttore',
+    signature: 'Firma del traduttore',
+    provider: 'Esecutore',
+    iin: 'IIN',
+    stamp: "Timbro dell'Esecutore",
+    date: 'Data',
+    providerName: 'Imprenditore individuale World Prime Online',
+    srcNames: { ru: 'dal russo', en: "dall'inglese", th: 'dal tailandese', zh: 'dal cinese', ko: 'dal coreano', ja: 'dal giapponese', de: 'dal tedesco', fr: 'dal francese', es: 'dallo spagnolo', ar: "dall'arabo", kk: 'dal kazako', uz: "dall'uzbeko", it: "dall'italiano", tr: 'dal turco' },
+    tgtNames: { ru: 'al russo', en: "all'inglese", th: 'al tailandese', zh: 'al cinese', ko: 'al coreano', ja: 'al giapponese', de: 'al tedesco', fr: 'al francese', es: 'allo spagnolo', ar: "all'arabo", kk: 'al kazako', uz: "all'uzbeko", it: "all'italiano", tr: 'al turco' },
+  },
+  de: {
+    heading: 'ÜBERSETZER UND AUFTRAGGEBER',
+    declarationTpl:
+      'Der Übersetzer bestätigt, dass diese Übersetzung {src} {tgt} vollständig ist und dem vorgelegten Originaldokument entspricht.',
+    translator: 'Übersetzer',
+    qualification: 'Qualifikation des Übersetzers',
+    signature: 'Unterschrift des Übersetzers',
+    provider: 'Auftraggeber',
+    iin: 'IIN',
+    stamp: 'Stempel des Auftraggebers',
+    date: 'Datum',
+    providerName: 'Einzelunternehmer World Prime Online',
+    srcNames: { ru: 'aus dem Russischen', en: 'aus dem Englischen', th: 'aus dem Thailändischen', zh: 'aus dem Chinesischen', ko: 'aus dem Koreanischen', ja: 'aus dem Japanischen', de: 'aus dem Deutschen', fr: 'aus dem Französischen', es: 'aus dem Spanischen', ar: 'aus dem Arabischen', kk: 'aus dem Kasachischen', uz: 'aus dem Usbekischen', it: 'aus dem Italienischen', tr: 'aus dem Türkischen' },
+    tgtNames: { ru: 'ins Russische', en: 'ins Englische', th: 'ins Thailändische', zh: 'ins Chinesische', ko: 'ins Koreanische', ja: 'ins Japanische', de: 'ins Deutsche', fr: 'ins Französische', es: 'ins Spanische', ar: 'ins Arabische', kk: 'ins Kasachische', uz: 'ins Usbekische', it: 'ins Italienische', tr: 'ins Türkische' },
+  },
+  fr: {
+    heading: 'TRADUCTEUR ET PRESTATAIRE',
+    declarationTpl:
+      'Le traducteur confirme que la présente traduction {src} {tgt} est complète et correspond au document original présenté.',
+    translator: 'Traducteur',
+    qualification: 'Qualifications du traducteur',
+    signature: 'Signature du traducteur',
+    provider: 'Prestataire',
+    iin: 'IIN',
+    stamp: 'Cachet du Prestataire',
+    date: 'Date',
+    providerName: 'Entrepreneur individuel World Prime Online',
+    srcNames: { ru: 'du russe', en: "de l'anglais", th: 'du thaï', zh: 'du chinois', ko: 'du coréen', ja: 'du japonais', de: "de l'allemand", fr: 'du français', es: "de l'espagnol", ar: "de l'arabe", kk: 'du kazakh', uz: "de l'ouzbek", it: "de l'italien", tr: 'du turc' },
+    tgtNames: { ru: 'en russe', en: 'en anglais', th: 'en thaï', zh: 'en chinois', ko: 'en coréen', ja: 'en japonais', de: 'en allemand', fr: 'en français', es: 'en espagnol', ar: 'en arabe', kk: 'en kazakh', uz: 'en ouzbek', it: 'en italien', tr: 'en turc' },
+  },
+  es: {
+    heading: 'TRADUCTOR Y PROVEEDOR',
+    declarationTpl:
+      'El traductor confirma que la presente traducción {src} {tgt} es completa y corresponde al documento original presentado.',
+    translator: 'Traductor',
+    qualification: 'Cualificación del traductor',
+    signature: 'Firma del traductor',
+    provider: 'Proveedor',
+    iin: 'IIN',
+    stamp: 'Sello del Proveedor',
+    date: 'Fecha',
+    providerName: 'Empresario individual World Prime Online',
+    srcNames: { ru: 'del ruso', en: 'del inglés', th: 'del tailandés', zh: 'del chino', ko: 'del coreano', ja: 'del japonés', de: 'del alemán', fr: 'del francés', es: 'del español', ar: 'del árabe', kk: 'del kazajo', uz: 'del uzbeko', it: 'del italiano', tr: 'del turco' },
+    tgtNames: { ru: 'al ruso', en: 'al inglés', th: 'al tailandés', zh: 'al chino', ko: 'al coreano', ja: 'al japonés', de: 'al alemán', fr: 'al francés', es: 'al español', ar: 'al árabe', kk: 'al kazajo', uz: 'al uzbeko', it: 'al italiano', tr: 'al turco' },
+  },
+  zh: {
+    heading: '译者和执行者信息',
+    declarationTpl: '译者确认，本{src}至{tgt}译文完整，与所呈原文件相符。',
+    translator: '译者',
+    qualification: '译者资质',
+    signature: '译者签名',
+    provider: '执行者',
+    iin: '个人识别号',
+    stamp: '执行者印章',
+    date: '日期',
+    providerName: '个体企业主 World Prime Online',
+    srcNames: { ru: '俄语', en: '英语', th: '泰语', zh: '中文', ko: '韩语', ja: '日语', de: '德语', fr: '法语', es: '西班牙语', ar: '阿拉伯语', kk: '哈萨克语', uz: '乌兹别克语', it: '意大利语', tr: '土耳其语' },
+    tgtNames: { ru: '俄语', en: '英语', th: '泰语', zh: '中文', ko: '韩语', ja: '日语', de: '德语', fr: '法语', es: '西班牙语', ar: '阿拉伯语', kk: '哈萨克语', uz: '乌兹别克语', it: '意大利语', tr: '土耳其语' },
+  },
+  ko: {
+    heading: '번역자 및 실행자 정보',
+    declarationTpl: '번역자는 {src}에서 {tgt}로의 본 번역이 완전하며 제시된 원본 문서와 일치함을 확인합니다.',
+    translator: '번역자',
+    qualification: '번역자 자격',
+    signature: '번역자 서명',
+    provider: '실행자',
+    iin: '개인식별번호',
+    stamp: '실행자 직인',
+    date: '날짜',
+    providerName: '개인사업자 World Prime Online',
+    srcNames: { ru: '러시아어', en: '영어', th: '태국어', zh: '중국어', ko: '한국어', ja: '일본어', de: '독일어', fr: '프랑스어', es: '스페인어', ar: '아랍어', kk: '카자흐어', uz: '우즈베크어', it: '이탈리아어', tr: '터키어' },
+    tgtNames: { ru: '러시아어', en: '영어', th: '태국어', zh: '중국어', ko: '한국어', ja: '일본어', de: '독일어', fr: '프랑스어', es: '스페인어', ar: '아랍어', kk: '카자흐어', uz: '우즈베크어', it: '이탈리아어', tr: '터키어' },
+  },
+  ja: {
+    heading: '翻訳者および執行者情報',
+    declarationTpl: '翻訳者は、本{src}から{tgt}への翻訳が完全であり、提示された原文書と一致することを確認します。',
+    translator: '翻訳者',
+    qualification: '翻訳者の資格',
+    signature: '翻訳者の署名',
+    provider: '執行者',
+    iin: '個人識別番号',
+    stamp: '執行者の印鑑',
+    date: '日付',
+    providerName: '個人事業主 World Prime Online',
+    srcNames: { ru: 'ロシア語', en: '英語', th: 'タイ語', zh: '中国語', ko: '韓国語', ja: '日本語', de: 'ドイツ語', fr: 'フランス語', es: 'スペイン語', ar: 'アラビア語', kk: 'カザフ語', uz: 'ウズベク語', it: 'イタリア語', tr: 'トルコ語' },
+    tgtNames: { ru: 'ロシア語', en: '英語', th: 'タイ語', zh: '中国語', ko: '韓国語', ja: '日本語', de: 'ドイツ語', fr: 'フランス語', es: 'スペイン語', ar: 'アラビア語', kk: 'カザフ語', uz: 'ウズベク語', it: 'イタリア語', tr: 'トルコ語' },
+  },
+  th: {
+    heading: 'ข้อมูลนักแปลและผู้ให้บริการ',
+    declarationTpl: 'นักแปลขอรับรองว่าการแปลจาก{src}เป็น{tgt}ฉบับนี้มีความสมบูรณ์และตรงกับเอกสารต้นฉบับที่ได้รับ',
+    translator: 'นักแปล',
+    qualification: 'คุณสมบัติของนักแปล',
+    signature: 'ลายมือชื่อนักแปล',
+    provider: 'ผู้ให้บริการ',
+    iin: 'หมายเลขประจำตัว',
+    stamp: 'ตราประทับผู้ให้บริการ',
+    date: 'วันที่',
+    providerName: 'ผู้ประกอบการรายบุคคล World Prime Online',
+    srcNames: { ru: 'ภาษารัสเซีย', en: 'ภาษาอังกฤษ', th: 'ภาษาไทย', zh: 'ภาษาจีน', ko: 'ภาษาเกาหลี', ja: 'ภาษาญี่ปุ่น', de: 'ภาษาเยอรมัน', fr: 'ภาษาฝรั่งเศส', es: 'ภาษาสเปน', ar: 'ภาษาอาหรับ', kk: 'ภาษาคาซัค', uz: 'ภาษาอุซเบก', it: 'ภาษาอิตาลี', tr: 'ภาษาตุรกี' },
+    tgtNames: { ru: 'ภาษารัสเซีย', en: 'ภาษาอังกฤษ', th: 'ภาษาไทย', zh: 'ภาษาจีน', ko: 'ภาษาเกาหลี', ja: 'ภาษาญี่ปุ่น', de: 'ภาษาเยอรมัน', fr: 'ภาษาฝรั่งเศส', es: 'ภาษาสเปน', ar: 'ภาษาอาหรับ', kk: 'ภาษาคาซัค', uz: 'ภาษาอุซเบก', it: 'ภาษาอิตาลี', tr: 'ภาษาตุรกี' },
+  },
+  ar: {
+    heading: 'المترجم والمنفّذ',
+    declarationTpl: 'يُقرّ المترجم بأن هذه الترجمة {src} إلى {tgt} كاملةٌ وتُطابق الوثيقة الأصلية المُقدَّمة.',
+    translator: 'المترجم',
+    qualification: 'مؤهلات المترجم',
+    signature: 'توقيع المترجم',
+    provider: 'المنفّذ',
+    iin: 'الرقم التعريفي الشخصي',
+    stamp: 'ختم المنفّذ',
+    date: 'التاريخ',
+    providerName: 'World Prime Online (مقاول فردي، كازاخستان)',
+    srcNames: { ru: 'من الروسية', en: 'من الإنجليزية', th: 'من التايلاندية', zh: 'من الصينية', ko: 'من الكورية', ja: 'من اليابانية', de: 'من الألمانية', fr: 'من الفرنسية', es: 'من الإسبانية', ar: 'من العربية', kk: 'من الكازاخية', uz: 'من الأوزبكية', it: 'من الإيطالية', tr: 'من التركية' },
+    tgtNames: { ru: 'الروسية', en: 'الإنجليزية', th: 'التايلاندية', zh: 'الصينية', ko: 'الكورية', ja: 'اليابانية', de: 'الألمانية', fr: 'الفرنسية', es: 'الإسبانية', ar: 'العربية', kk: 'الكازاخية', uz: 'الأوزبكية', it: 'الإيطالية', tr: 'التركية' },
+  },
+  kk: {
+    heading: 'АУДАРМАШЫ ЖӘНЕ ОРЫНДАУШЫ',
+    declarationTpl:
+      'Аудармашы осы {src} тілінен {tgt} тіліне жасалған аударманың толық екенін және ұсынылған түпнұсқа құжатқа сәйкес келетінін растайды.',
+    translator: 'Аудармашы',
+    qualification: 'Аудармашының біліктілігі',
+    signature: 'Аудармашының қолы',
+    provider: 'Орындаушы',
+    iin: 'ЖСН',
+    stamp: 'Орындаушының мөрі',
+    date: 'Күні',
+    providerName: 'ЖК World Prime Online',
+    srcNames: { ru: 'орыс', en: 'ағылшын', th: 'тай', zh: 'қытай', ko: 'корей', ja: 'жапон', de: 'неміс', fr: 'француз', es: 'испан', ar: 'араб', kk: 'қазақ', uz: 'өзбек', it: 'итальян', tr: 'түрік' },
+    tgtNames: { ru: 'орыс', en: 'ағылшын', th: 'тай', zh: 'қытай', ko: 'корей', ja: 'жапон', de: 'неміс', fr: 'француз', es: 'испан', ar: 'араб', kk: 'қазақ', uz: 'өзбек', it: 'итальян', tr: 'түрік' },
+  },
+  uz: {
+    heading: 'TARJIMON VA IJROCHI',
+    declarationTpl:
+      "Tarjimon ushbu {src} tilidan {tgt} tiliga tarjimaning to'liq ekanligini va taqdim etilgan asl hujjatga mos kelishini tasdiqlaydi.",
+    translator: 'Tarjimon',
+    qualification: 'Tarjimon malakasi',
+    signature: 'Tarjimon imzosi',
+    provider: 'Ijrochi',
+    iin: 'JSHSHIR',
+    stamp: 'Ijrochi muhri',
+    date: 'Sana',
+    providerName: "YaT World Prime Online",
+    srcNames: { ru: 'rus', en: 'ingliz', th: 'tailand', zh: 'xitoy', ko: 'koreys', ja: 'yapon', de: 'nemis', fr: 'fransuz', es: 'ispan', ar: 'arab', kk: 'qozoq', uz: "o'zbek", it: 'italyan', tr: 'turk' },
+    tgtNames: { ru: 'rus', en: 'ingliz', th: 'tailand', zh: 'xitoy', ko: 'koreys', ja: 'yapon', de: 'nemis', fr: 'fransuz', es: 'ispan', ar: 'arab', kk: 'qozoq', uz: "o'zbek", it: 'italyan', tr: 'turk' },
+  },
+  tr: {
+    heading: 'ÇEVİRMEN VE HİZMET SAĞLAYICI',
+    declarationTpl: 'Çevirmen, {src} {tgt} yapılan bu çevirinin eksiksiz olduğunu ve sunulan kaynak belgeye karşılık geldiğini onaylar.',
+    translator: 'Çevirmen',
+    qualification: 'Çevirmenin niteliği',
+    signature: 'Çevirmen imzası',
+    provider: 'Hizmet Sağlayıcı',
+    iin: 'KİN',
+    stamp: 'Hizmet Sağlayıcı mühürü',
+    date: 'Tarih',
+    providerName: 'Bireysel Girişimci World Prime Online',
+    srcNames: { ru: 'Rusçadan', en: 'İngilizceden', th: 'Taylandcadan', zh: 'Çinceden', ko: 'Korecedan', ja: 'Japondan', de: 'Almancadan', fr: 'Fransızcadan', es: 'İspanyolcadan', ar: 'Arapçadan', kk: 'Kazakçadan', uz: 'Özbekçeden', it: 'İtalyancadan', tr: 'Türkçeden' },
+    tgtNames: { ru: 'Rusçaya', en: 'İngilizceye', th: 'Taylandcaya', zh: 'Çinceye', ko: 'Koreceye', ja: 'Japonya', de: 'Almancaya', fr: 'Fransızcaya', es: 'İspanyolcaya', ar: 'Arapçaya', kk: 'Kazakçaya', uz: 'Özbekçeye', it: 'İtalyancaya', tr: 'Türkçeye' },
+  },
+};
+
+const BLOCK_MODES = new Set(['translator_review_draft', 'notarization_package']);
+
+function getLocale(targetLang: string): TranslatorBlockLocale {
+  return TRANSLATOR_BLOCK_I18N[targetLang] ?? TRANSLATOR_BLOCK_I18N['en']!;
+}
+
+const BLOCK_BORDERS = {
+  top: { style: BorderStyle.SINGLE, size: 6, color: '000000' },
+  bottom: { style: BorderStyle.SINGLE, size: 6, color: '000000' },
+  left: { style: BorderStyle.SINGLE, size: 6, color: '000000' },
+  right: { style: BorderStyle.SINGLE, size: 6, color: '000000' },
+  insideHorizontal: { style: BorderStyle.SINGLE, size: 4, color: '000000' },
+  insideVertical: { style: BorderStyle.SINGLE, size: 4, color: '000000' },
+} as const;
+
+const LABEL_W = 3200;
+const VALUE_W = 5800;
+
+function blockRow(label: string, value: string): TableRow {
+  return new TableRow({
+    cantSplit: true,
+    children: [
+      new TableCell({
+        children: [new Paragraph({ children: makeThaiAwareRuns(label, { bold: true }), spacing: { before: 60, after: 60 } })],
+        width: { size: LABEL_W, type: WidthType.DXA },
+      }),
+      new TableCell({
+        children: [new Paragraph({ children: makeThaiAwareRuns(value), spacing: { before: 60, after: 60 } })],
+        width: { size: VALUE_W, type: WidthType.DXA },
+      }),
+    ],
+  });
+}
+
+export function renderTranslatorProviderBlock(params: {
+  sourceLang: string;
+  targetLang: string;
+  outputMode: string;
+}): DocxChild[] {
+  const { sourceLang, targetLang, outputMode } = params;
+  if (!BLOCK_MODES.has(outputMode)) return [];
+
+  const loc = getLocale(targetLang);
+  const srcName = loc.srcNames[sourceLang] ?? sourceLang;
+  const tgtName = loc.tgtNames[targetLang] ?? targetLang;
+  const declaration = loc.declarationTpl
+    .replace('{src}', srcName)
+    .replace('{tgt}', tgtName);
+
+  const table = new Table({
+    rows: [
+      blockRow(loc.translator + ':', BLANK),
+      blockRow(loc.qualification + ':', BLANK),
+      blockRow(loc.signature + ':', BLANK),
+      blockRow(loc.provider + ':', loc.providerName),
+      blockRow(loc.iin + ':', PROVIDER_IIN),
+      blockRow(loc.stamp + ':', BLANK),
+      blockRow(loc.date + ':', BLANK),
+    ],
+    width: { size: 9000, type: WidthType.DXA },
+    borders: BLOCK_BORDERS,
+  });
+
+  return [
+    new Paragraph({ text: '', spacing: { before: 200, after: 0 } }),
+    new Paragraph({
+      children: makeThaiAwareRuns(loc.heading, { bold: true }),
+      spacing: { before: 120, after: 120 },
+      keepNext: true,
+    }),
+    new Paragraph({
+      children: makeThaiAwareRuns(declaration),
+      spacing: { after: 120 },
+      keepNext: true,
+    }),
+    table,
+  ];
 }
 
 function parseInlineMarkdown(text: string): TextRun[] {
@@ -238,10 +546,16 @@ export async function renderToDocx(
     spacing: { after: 200 },
   });
 
+  const translatorBlock = renderTranslatorProviderBlock({
+    sourceLang: meta.sourceLang,
+    targetLang: meta.targetLang,
+    outputMode: meta.outputMode ?? '',
+  });
+
   const doc = new Document({
     sections: [{
       properties: { page: { margin: { top: 1440, bottom: 1440, left: 1440, right: 1440 } } },
-      children: [header, ...parseMarkdownToDocx(finalMarkdown)],
+      children: [header, ...parseMarkdownToDocx(finalMarkdown), ...translatorBlock],
     }],
   });
 
