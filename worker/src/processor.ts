@@ -8,7 +8,8 @@ import { generatePdfFromHtml } from './lib/pdf';
 import { renderToDocx } from './lib/docx-renderer';
 import { sendTranslationReady, sendDocumentReceivedForReview } from './lib/email';
 import { computeOutputPlan, type ServiceLevel } from './lib/output-plan';
-import { mergeVisualElements, extractVisualElementsFromTranslated } from './lib/visual-elements';
+import { mergeVisualElements, extractVisualElementsFromTranslated, filterPrintedVerificationStrings } from './lib/visual-elements';
+import { analyzeDocumentVisuals } from './lib/page-vision';
 import { runQaChecks } from './lib/qa';
 import { env } from './lib/env';
 import { initializeOrderIntegrations, triggerTranslatorReview } from './lib/integrations';
@@ -114,8 +115,24 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
     const pdfBuffer = await downloadFile(doc.file_key);
 
     console.log(`${tag} running OCR…`);
-    const { markdown, pageCount, visualElements: ocrVisualElements } = await extractTextFromPdf(pdfBuffer);
-    console.log(`${tag} OCR done — ${pageCount} pages, ${markdown.length} chars, ${ocrVisualElements.length} visual elements`);
+    const {
+      markdown,
+      pageCount,
+      visualElements: ocrVisualElements,
+      rawPages,
+    } = await extractTextFromPdf(pdfBuffer);
+    console.log(`${tag} OCR done — ${pageCount} pages, ${markdown.length} chars`);
+    console.log(`${tag} [vis:ocr] count=${ocrVisualElements.length} kinds=${JSON.stringify(ocrVisualElements.map((e) => e.kind))}`);
+
+    // Page-level vision analysis — primary source for visual inventory
+    let pageVisionElements: import('./lib/visual-elements').VisualElement[] = [];
+    try {
+      pageVisionElements = await analyzeDocumentVisuals(rawPages, pdfBuffer, doc.target_language);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`${tag} page-vision analysis failed (non-fatal): ${msg}`);
+    }
+    console.log(`${tag} [vis:page-vision] count=${pageVisionElements.length} kinds=${JSON.stringify(pageVisionElements.map((e) => e.kind))}`);
 
     // OCR quality check — abort early rather than waste translation credits
     const ocrWordCount = markdown.trim().split(/\s+/).filter(Boolean).length;
@@ -190,9 +207,27 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
 
     const baseKey = `documents/${doc.user_id}/${documentId}`;
 
-    // Merge visual elements from OCR + translated markdown
-    const translatedVisualElements = extractVisualElementsFromTranslated(translatedMarkdown);
-    const allVisualElements = mergeVisualElements(ocrVisualElements, translatedVisualElements);
+    // Build visual inventory: page-vision is primary, markdown markers are fallback
+    let allVisualElements: import('./lib/visual-elements').VisualElement[];
+
+    if (pageVisionElements.length > 0) {
+      // Primary path: detected directly from source page images
+      allVisualElements = pageVisionElements;
+      console.log(
+        `${tag} [vis:renderer] count=${allVisualElements.length} source=page-vision` +
+        ` kinds=${JSON.stringify(allVisualElements.map((e) => e.kind))}`,
+      );
+    } else {
+      // Fallback: bracket markers from translated text (used when page images unavailable)
+      const translatedVisualElements = extractVisualElementsFromTranslated(translatedMarkdown);
+      console.log(`${tag} [vis:translated] count=${translatedVisualElements.length} kinds=${JSON.stringify(translatedVisualElements.map((e) => e.kind))}`);
+      const mergedVisualElements = mergeVisualElements(ocrVisualElements, translatedVisualElements);
+      allVisualElements = filterPrintedVerificationStrings(mergedVisualElements);
+      console.log(
+        `${tag} [vis:renderer] count=${allVisualElements.length} source=fallback-markdown` +
+        ` kinds=${JSON.stringify(allVisualElements.map((e) => e.kind))}`,
+      );
+    }
 
     // ── 4a. Official / review mode (certified + notarization both produce translator draft) ──
     if (plan.mode === 'translator_review_draft' || plan.mode === 'notarization_package') {

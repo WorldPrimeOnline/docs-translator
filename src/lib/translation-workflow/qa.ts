@@ -1,4 +1,4 @@
-import type { OutputMode, TranslationQaReport } from './types';
+import type { OutputMode, TranslationQaReport, MixedScriptWarning } from './types';
 
 const FORBIDDEN_TERMS = [
   'Claude',
@@ -13,6 +13,20 @@ const FORBIDDEN_TERMS = [
   'parser',
   'debug',
 ];
+
+function findMixedScriptTokens(text: string): string[] {
+  const results: string[] = [];
+  for (const token of text.split(/[\s,;:'"()\[\]{}«»]+/)) {
+    if (token.length < 4 || token.length > 40) continue;
+    if (!/^[A-Za-zЀ-ӿ0-9\-\/]+$/.test(token)) continue;
+    if (/[A-Za-z]/.test(token) && /[Ѐ-ӿ]/.test(token)) results.push(token);
+  }
+  return results;
+}
+
+function makeTokenPreview(token: string): string {
+  return token.length > 6 ? token.slice(0, 2) + '…' + token.slice(-2) : token;
+}
 
 function stripHtmlTags(html: string): string {
   return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
@@ -83,6 +97,20 @@ export function runQaChecks(
     warnings.push('Table overflow:hidden detected — content may be clipped in PDF output.');
   }
 
+  const rawMixedTokens = findMixedScriptTokens(visibleText);
+  const mixedScriptWarnings: MixedScriptWarning[] = rawMixedTokens.map((token) => ({
+    code: 'MIXED_SCRIPT_TOKEN_REQUIRES_REVIEW' as const,
+    tokenPreview: makeTokenPreview(token),
+    severity: 'warning' as const,
+  }));
+  if (mixedScriptWarnings.length > 0) {
+    const previews = mixedScriptWarnings.map((w) => w.tokenPreview).join(', ');
+    warnings.push(
+      `MIXED_SCRIPT_TOKEN_REQUIRES_REVIEW: ${previews} — ` +
+      'Обнаружено значение со смешанными латинскими и кириллическими символами. Сверьте его с оригиналом.',
+    );
+  }
+
   let ok: boolean;
 
   switch (mode) {
@@ -124,6 +152,7 @@ export function runQaChecks(
     ok,
     errors,
     warnings,
+    mixedScriptWarnings: mixedScriptWarnings.length > 0 ? mixedScriptWarnings : undefined,
     pages: pdfPageCount,
     hasTranslatorBlock,
     hasVisualElementsBlock,

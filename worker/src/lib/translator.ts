@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { env } from './env';
 import { buildTranslationPrompt, normalizeDocumentType } from './translation-prompts';
+import { extractProtectedValues, restoreProtectedValues } from './protected-values';
 
 const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
 
@@ -79,10 +80,21 @@ export async function translateDocument(
   targetLang: string,
   documentType: string,
 ): Promise<string> {
-  const chunks = chunkMarkdown(markdown);
-  console.log(`[translator] ${chunks.length} chunk(s), ${wordCount(markdown)} words`);
+  const { protected: protectedMarkdown, entries } = extractProtectedValues(markdown);
+  const chunks = chunkMarkdown(protectedMarkdown);
+  console.log(`[translator] ${chunks.length} chunk(s), ${wordCount(markdown)} words, ${entries.length} protected value(s)`);
+  if (entries.length > 0) {
+    console.log(`[translator] protected: ${entries.map((e) => `${e.token}=${e.value}`).join(' ')}`);
+  }
   const results = await Promise.all(
     chunks.map((c) => translateChunk(c, sourceLang, targetLang, documentType)),
   );
-  return results.join('\n\n');
+  const joined = results.join('\n\n');
+  const restored = restoreProtectedValues(joined, entries);
+  for (const { token, value } of entries) {
+    if (!restored.includes(value)) {
+      console.warn(`[translator] MACHINE_VALUE_SOURCE_UNCERTAIN: ${token} (value: ${value}) missing after restore — possible OCR read error or LLM mutation`);
+    }
+  }
+  return restored;
 }

@@ -1,8 +1,33 @@
 import { env } from './env';
 import { extractVisualElementsFromOcr, type VisualElement } from './visual-elements';
 
+// Mistral OCR response types (with include_image_base64)
+export interface MistralExtractedImage {
+  id: string;
+  top_left_x: number;
+  top_left_y: number;
+  bottom_right_x: number;
+  bottom_right_y: number;
+  image_base64?: string;
+}
+
+export interface MistralPageDimensions {
+  dpi: number;
+  height: number;
+  width: number;
+}
+
+export interface MistralPageWithImages {
+  index: number; // 0-based page index
+  images: MistralExtractedImage[];
+  dimensions?: MistralPageDimensions;
+}
+
 interface MistralOcrPage {
+  index?: number;
   markdown: string;
+  images?: MistralExtractedImage[];
+  dimensions?: MistralPageDimensions;
 }
 
 interface MistralOcrResponse {
@@ -14,6 +39,7 @@ export interface OcrResult {
   pageMarkdowns: string[];
   pageCount: number;
   visualElements: VisualElement[];
+  rawPages: MistralPageWithImages[];
 }
 
 const MISTRAL_OCR_URL = 'https://api.mistral.ai/v1/ocr';
@@ -42,6 +68,7 @@ export async function extractTextFromPdf(pdfBuffer: Buffer): Promise<OcrResult> 
       type: 'document_url',
       document_url: `data:application/pdf;base64,${base64}`,
     },
+    include_image_base64: true,
   };
 
   let lastError: Error = new Error('OCR failed after all retries');
@@ -68,10 +95,10 @@ export async function extractTextFromPdf(pdfBuffer: Buffer): Promise<OcrResult> 
     const data = (await res.json()) as MistralOcrResponse;
     const pages = data.pages ?? [];
 
-    // Keep raw page markdowns (with images) for visual element extraction
+    // Keep raw page markdowns (with image refs) for visual element extraction
     const rawPageMarkdowns = pages.map((p) => p.markdown);
 
-    // Strip image refs after extracting visual elements
+    // Strip image refs for clean text used in translation
     const pageMarkdowns = rawPageMarkdowns.map((md) => stripImageRefs(md));
     const markdown = pageMarkdowns.join('\n\n');
 
@@ -79,8 +106,19 @@ export async function extractTextFromPdf(pdfBuffer: Buffer): Promise<OcrResult> 
     const rawJoined = rawPageMarkdowns.join('\n\n');
     const visualElements = extractVisualElementsFromOcr(rawJoined, rawPageMarkdowns);
 
-    console.log(`[ocr] ${pages.length} pages, ${markdown.length} chars, ${visualElements.length} visual elements`);
-    return { markdown, pageMarkdowns, pageCount: pages.length, visualElements };
+    // Structured page data with extracted images + bounding boxes
+    const rawPages: MistralPageWithImages[] = pages.map((p, i) => ({
+      index: p.index ?? i,
+      images: p.images ?? [],
+      dimensions: p.dimensions,
+    }));
+
+    const totalImages = rawPages.reduce((n, pg) => n + pg.images.length, 0);
+    console.log(
+      `[ocr] ${pages.length} pages, ${markdown.length} chars,` +
+      ` ${totalImages} extracted images, ${visualElements.length} text visual elements`,
+    );
+    return { markdown, pageMarkdowns, pageCount: pages.length, visualElements, rawPages };
   }
 
   throw lastError;

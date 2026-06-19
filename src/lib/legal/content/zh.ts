@@ -10,7 +10,7 @@ export const legalDocs: LegalDocs = {
     metaDescription: 'WPO Translations文件翻译服务公开要约协议。服务级别、定价、付款及退款条款。',
     effectiveDate: '2026-05-26',
     sections: [
-      { id: 'provider', heading: '1. 服务提供方信息', body: ['本公开要约协议（以下简称"协议"）由WorldPrimeOnline发布，（以下简称"服务商"）。', '服务商：IE WorldPrimeOnline', 'IIN/BIN：840324300155', '地址：阿拉木图，卡济别克比大街139/1', 'Email：worldprimeonline@gmail.com', '电话：+7 707 222 28 58', '网站：https://www.wpotranslations.org/', '增值税：不适用', '发布日期：2026-05-26', '本协议构成适用法律下的公开要约。在平台上下订单即表示接受本协议的全部条款。'] },
+      { id: 'provider', heading: '1. 服务提供方信息', body: ['本公开要约协议（以下简称"协议"）由WorldPrimeOnline发布，（以下简称"服务商"）。', '服务商：IE WorldPrimeOnline', 'IIN/BIN：840324300155', '地址：阿拉木图', 'Email：worldprimeonline@gmail.com', '电话：+7 701 136 63 76', '网站：https://www.wpotranslations.org/', '增值税：不适用', '发布日期：2026-05-26', '本协议构成适用法律下的公开要约。在平台上下订单即表示接受本协议的全部条款。'] },
       { id: 'definitions', heading: '2. 定义', body: ['• "客户" — 通过平台下订单的任何个人或法律实体。', '• "服务" — 服务商提供的文件翻译服务。', '• "电子翻译" — 以电子格式提供的翻译，不含译员签名、服务商印章或公证，除非客户另行选择。', '• "官方翻译" — 经人工译员审核、含译员签名和服务商印章的翻译，需单独选择并付费。', '• "公证" — 在有合作公证流程的地区，通过认证译员和/或合作公证人安排的额外认证程序，不自动包含，需单独办理。', '• "平台" — https://www.wpotranslations.org/上可访问的网站及服务。'] },
       { id: 'subject', heading: '3. 协议标的', body: ['服务商同意按客户选择的服务级别提供文件翻译服务。客户同意按本协议条款接受并支付此类服务费用。', '平台在工作流程中使用人工智能辅助处理（光学字符识别和机器翻译）。只有在明确选择并确认的情况下，才会有人工译员参与。'] },
       { id: 'service-levels', heading: '4. 服务级别', body: ['4.1 电子翻译：服务商使用AI辅助OCR和机器翻译工具翻译上传的文件，以PDF格式交付。不含译员签名、服务商印章或公证。供参考、审阅和准备用途。', '4.2 官方翻译（如有）：由人工译员审核翻译内容，输出文件含译员签名和服务商印章。需在下订单时明确选择并由服务商确认。', '4.3 公证（如有）：在特定司法管辖区通过认证译员和/或合作公证人安排的额外认证程序。不自动提供，需单独安排，取决于合作方的可用性。'] },
@@ -30,7 +30,7 @@ export const legalDocs: LegalDocs = {
       { id: 'storage', heading: '18. 文件存储与删除', body: ['上传文件和翻译文件在翻译完成后最多存储30天，30天后自动永久删除。客户可通过账户设置或联系worldprimeonline@gmail.com申请提前删除。'] },
       { id: 'lang-priority', heading: '19. 语言优先级', body: [LP] },
       { id: 'disputes', heading: '20. 争议解决', body: ['因本协议引起的任何争议，应先进行诉前解决。客户应向worldprimeonline@gmail.com提交书面索赔，服务商应在30个日历日内答复。', '如争议无法友好解决，应提交服务商注册地址的有管辖权法院，依据适用法律处理。'] },
-      { id: 'contact', heading: '21. 联系方式', body: ['服务商：IE WorldPrimeOnline', '地址：阿拉木图，卡济别克比大街139/1', 'Email：worldprimeonline@gmail.com', '网站：https://www.wpotranslations.org/'] },
+      { id: 'contact', heading: '21. 联系方式', body: ['服务商：IE WorldPrimeOnline', '地址：阿拉木图', 'Email：worldprimeonline@gmail.com', '网站：https://www.wpotranslations.org/'] },
     ],
   },
   privacy: {
@@ -53,7 +53,7 @@ export const legalDocs: LegalDocs = {
       { id: 'cookies', heading: '11. Cookie', body: ['服务商仅使用认证所需的必要Cookie（由Supabase管理）和语言偏好Cookie（NEXT_LOCALE）。不使用广告或跟踪Cookie。'] },
       { id: 'changes', heading: '12. 政策变更', body: ['服务商可能更新本隐私政策，重大变更将通过电子邮件或平台通知告知。继续使用服务即表示接受更新后的政策。'] },
       { id: 'lang-priority', heading: '13. 语言优先级', body: [LP] },
-      { id: 'contact', heading: '14. 联系方式', body: ['服务商：IE WorldPrimeOnline', '地址：阿拉木图，卡济别克比大街139/1', '联系方式：worldprimeonline@gmail.com', '网站：https://www.wpotranslations.org/'] },
+      { id: 'contact', heading: '14. 联系方式', body: ['服务商：IE WorldPrimeOnline', '地址：阿拉木图', '联系方式：worldprimeonline@gmail.com', '网站：https://www.wpotranslations.org/'] },
     ],
   },
   'personal-data-consent': {
@@ -120,7 +120,7 @@ export const legalDocs: LegalDocs = {
       { id: 'service-availability', heading: '6. 服务可用性', body: ['服务商尽力维持平台可用性，但不保证不间断、无错误的访问。平台可能因维护、更新或不可控情况而暂时不可用。'] },
       { id: 'changes', heading: '7. 条款变更', body: ['服务商可随时更新本条款。继续使用平台即表示接受更新后的条款。重大变更将通过电子邮件或平台通知告知。'] },
       { id: 'lang-priority', heading: '8. 语言优先级', body: [LP] },
-      { id: 'contact', heading: '9. 联系方式', body: ['服务商：IE WorldPrimeOnline', '地址：阿拉木图，卡济别克比大街139/1', '联系方式：worldprimeonline@gmail.com', '网站：https://www.wpotranslations.org/'] },
+      { id: 'contact', heading: '9. 联系方式', body: ['服务商：IE WorldPrimeOnline', '地址：阿拉木图', '联系方式：worldprimeonline@gmail.com', '网站：https://www.wpotranslations.org/'] },
     ],
   },
   partners: {
@@ -138,7 +138,7 @@ export const legalDocs: LegalDocs = {
       { id: 'no-misleading', heading: '6. 禁止误导性陈述', body: ['合作伙伴不得：夸大翻译的性质、状态或范围；将电子翻译声称为认证或公证翻译（除非属实）；保证翻译文件被任何机构接受；未经书面授权声称代表服务商。'] },
       { id: 'termination', heading: '7. 合作终止', body: ['任何一方均可按个人合作协议的通知规定终止合作关系。如合作伙伴违反本条款、从事欺诈活动或损害客户，服务商保留立即暂停或终止其平台访问权限的权利。'] },
       { id: 'lang-priority', heading: '8. 语言优先级', body: [LP] },
-      { id: 'contact', heading: '9. 合作咨询联系方式', body: ['服务商：IE WorldPrimeOnline', '地址：阿拉木图，卡济别克比大街139/1', '联系方式：worldprimeonline@gmail.com', '网站：https://www.wpotranslations.org/'] },
+      { id: 'contact', heading: '9. 合作咨询联系方式', body: ['服务商：IE WorldPrimeOnline', '地址：阿拉木图', '联系方式：worldprimeonline@gmail.com', '网站：https://www.wpotranslations.org/'] },
     ],
   },
 };

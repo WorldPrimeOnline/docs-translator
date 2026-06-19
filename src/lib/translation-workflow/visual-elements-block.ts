@@ -19,6 +19,9 @@ const KIND_LABEL_RU: Record<VisualElementKind, string> = {
   mrz: 'Машиночитаемая зона (MRZ)',
   handwritten_note: 'Рукописная пометка',
   electronic_approval: 'Электронное утверждение',
+  accreditation_mark: 'Знак аккредитации',
+  certification_mark: 'Знак сертификации',
+  label: 'Этикетка',
   unknown_image: 'Изображение',
 };
 
@@ -35,6 +38,9 @@ const KIND_LABEL_EN: Record<VisualElementKind, string> = {
   mrz: 'Machine-readable zone (MRZ)',
   handwritten_note: 'Handwritten note',
   electronic_approval: 'Electronic approval',
+  accreditation_mark: 'Accreditation mark',
+  certification_mark: 'Certification mark',
+  label: 'Label',
   unknown_image: 'Image',
 };
 

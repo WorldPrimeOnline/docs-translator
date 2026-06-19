@@ -31,7 +31,16 @@ export type VisualElementKind =
   | 'mrz'
   | 'handwritten_note'
   | 'electronic_approval'
+  | 'accreditation_mark'
+  | 'certification_mark'
+  | 'label'
   | 'unknown_image';
+
+export type VisualPosition =
+  | 'upper_left' | 'upper_center' | 'upper_right'
+  | 'center_left' | 'center' | 'center_right'
+  | 'lower_left' | 'lower_center' | 'lower_right'
+  | 'full_page';
 
 export interface VisualElement {
   page?: number;
@@ -43,11 +52,18 @@ export interface VisualElement {
   source: 'mistral_ocr' | 'markdown_marker' | 'regex' | 'pdf_image_extraction' | 'manual';
 }
 
+export interface MixedScriptWarning {
+  code: 'MIXED_SCRIPT_TOKEN_REQUIRES_REVIEW';
+  tokenPreview: string;
+  severity: 'warning';
+}
+
 // QA report produced after artifact generation
 export interface TranslationQaReport {
   ok: boolean;
   errors: string[];
   warnings: string[];
+  mixedScriptWarnings?: MixedScriptWarning[];
   pages?: number;
   hasTranslatorBlock: boolean;
   hasVisualElementsBlock: boolean;

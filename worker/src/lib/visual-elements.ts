@@ -18,7 +18,16 @@ export type VisualElementKind =
   | 'mrz'
   | 'handwritten_note'
   | 'electronic_approval'
+  | 'accreditation_mark'
+  | 'certification_mark'
+  | 'label'
   | 'unknown_image';
+
+export type VisualPosition =
+  | 'upper_left' | 'upper_center' | 'upper_right'
+  | 'center_left' | 'center' | 'center_right'
+  | 'lower_left' | 'lower_center' | 'lower_right'
+  | 'full_page';
 
 export interface VisualElement {
   page?: number;
@@ -107,15 +116,47 @@ function extractBracketMatches(text: string): BracketMatch[] {
 
 function bracketKind(content: string): VisualElementKind | null {
   const c = content.toLowerCase();
-  if (c.startsWith('qr') || c.includes('qr-код') || c === 'qr code present') return 'qr';
-  if (c.startsWith('barcode') || c.includes('штрих-код') || c.includes('штрих')) return 'barcode';
-  if (c.includes('stamp') || c.includes('печать') || c.includes('round stamp') || c.includes('круглая печать') || c.includes('bank stamp') || c.includes('банковская печать') || c.includes('institution stamp')) return 'stamp';
-  if (c.includes('signature') || c.includes('подпись')) return 'signature';
-  if (c.includes('watermark') || c.includes('водяной знак')) return 'watermark';
-  if (c.startsWith('logo') || c.includes('логотип')) return 'logo';
-  if (c.includes('emblem') || c.includes('герб') || c.includes('coat of arms')) return 'emblem';
-  if (c.startsWith('photo') || c.includes('фото') || c.includes('holder photo') || c.includes('applicant photo') || c.includes('фотография')) return 'photo';
-  if (c.includes('electronic') || c.includes('электронн')) return 'electronic_approval';
+  // QR — universal abbreviation used in all language markers
+  if (c.includes('qr') || c.includes('qr-код')) return 'qr';
+  // Barcode
+  if (c.startsWith('barcode') || c.includes('штрих-код') || c.includes('штрих') ||
+      c.includes('barra') || c.includes('strichcode') || c.includes('code-barres')) return 'barcode';
+  // Stamp / Seal — multilingual keywords
+  if (c.includes('stamp') || c.includes('seal') || c.includes('печать') ||
+      c.includes('timbro') || c.includes('cachet') || c.includes('tampon') ||
+      c.includes('sello') || c.includes('stempel') || c.includes('siegel') ||
+      c.includes('мөр') || c.includes('muhr') || c.includes('mühür') ||
+      c.includes('damga') || c.includes('ختم') || c.includes('طابع') ||
+      c.includes('印章') || c.includes('도장') || c.includes('인감') ||
+      c.includes('印鑑') || c.includes('ตราประทับ')) return 'stamp';
+  // Signature — multilingual keywords
+  if (c.includes('signature') || c.includes('подпись') || c.includes('firma') ||
+      c.includes('unterschrift') || c.includes('imza') || c.includes('imzo') ||
+      c.includes('توقيع') || c.includes('қолтаңба') || c.includes('署名') ||
+      c.includes('서명') || c.includes('ลายมือชื่อ') || c.includes('手書き') ||
+      c.includes('手写签名')) return 'signature';
+  // Watermark — multilingual keywords
+  if (c.includes('watermark') || c.includes('водяной знак') || c.includes('filigrana') ||
+      c.includes('filigrane') || c.includes('filigran') || c.includes('wasserzeichen') ||
+      c.includes('marca de agua') || c.includes('علامة مائية') || c.includes('su belgisi') ||
+      c.includes('水印') || c.includes('워터마크') || c.includes('透かし') ||
+      c.includes('ลายน้ำ')) return 'watermark';
+  // Logo — multilingual (most use 'logo' prefix; add CJK/Arabic variants)
+  if (c.startsWith('logo') || c.includes('логотип') || c.includes('로고') ||
+      c.includes('ロゴ') || c.includes('标志') || c.includes('شعار')) return 'logo';
+  // Emblem
+  if (c.includes('emblem') || c.includes('герб') || c.includes('coat of arms') ||
+      c.includes('emblema') || c.includes('emblème') || c.includes('wappen') ||
+      c.includes('紋章')) return 'emblem';
+  // Photo
+  if (c.startsWith('photo') || c.includes('фото') || c.includes('holder photo') ||
+      c.includes('applicant photo') || c.includes('фотография') || c.includes('foto') ||
+      c.includes('fotografia') || c.includes('fotografía') || c.includes('fotoğraf') ||
+      c.includes('写真') || c.includes('사진') || c.includes('照片') ||
+      c.includes('รูปถ่าย') || c.includes('صورة') || c.includes('фотосурет')) return 'photo';
+  // Electronic approval
+  if (c.includes('electronic') || c.includes('электронн') || c.includes('elektronisch') ||
+      c.includes('électronique') || c.includes('electrónic') || c.includes('電子')) return 'electronic_approval';
   return null;
 }
 
@@ -222,6 +263,17 @@ export function mergeVisualElements(a: VisualElement[], b: VisualElement[]): Vis
   return deduplicateElements([...a, ...b]);
 }
 
+/**
+ * Remove verification_string elements that were found via URL regex (plain printed text).
+ * Such strings appear in the document body as website addresses, not as visual elements.
+ * QR code content is captured separately as kind:'qr' via bracket markers.
+ */
+export function filterPrintedVerificationStrings(elements: VisualElement[]): VisualElement[] {
+  return elements.filter(
+    (el) => !(el.kind === 'verification_string' && el.source === 'regex'),
+  );
+}
+
 // ---- Visual elements block builder (mirrored from visual-elements-block.ts) ----
 
 type DisplayLang = 'ru' | 'en';
@@ -243,6 +295,9 @@ const KIND_LABEL_RU: Record<VisualElementKind, string> = {
   mrz: 'Машиночитаемая зона (MRZ)',
   handwritten_note: 'Рукописная пометка',
   electronic_approval: 'Электронное утверждение',
+  accreditation_mark: 'Знак аккредитации',
+  certification_mark: 'Знак сертификации',
+  label: 'Этикетка',
   unknown_image: 'Изображение',
 };
 
@@ -259,6 +314,9 @@ const KIND_LABEL_EN: Record<VisualElementKind, string> = {
   mrz: 'Machine-readable zone (MRZ)',
   handwritten_note: 'Handwritten note',
   electronic_approval: 'Electronic approval',
+  accreditation_mark: 'Accreditation mark',
+  certification_mark: 'Certification mark',
+  label: 'Label',
   unknown_image: 'Image',
 };
 

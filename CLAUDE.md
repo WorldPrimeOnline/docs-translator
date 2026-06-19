@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Always read `PROJECT_CONTEXT.md` at the start of every session. It is the authoritative source for product vision, positioning rules, business constraints, and MVP status. Do not reposition this product as a generic AI translator.
 
+**PROJECT_CONTEXT.md caveat on payments**: Sections §6, §7, and §18 still describe TON cryptocurrency payments as "implemented" — this is outdated. TON payments have been removed from the codebase. The current payment state is described in the Payments section of this file (subscription-only; Halyk Bank ePay pending). For everything else (vision, positioning, stack, env vars, pipeline), PROJECT_CONTEXT.md is accurate.
+
 ---
 
 ## Branch and Environment Rules
@@ -151,11 +153,12 @@ npx jest src/lib/translation-workflow        # Run a specific directory
 npx jest --testPathPattern qa                # Run matching test file(s)
 ```
 
-Tests live in `src/lib/translation-workflow/__tests__/` and `worker/src/lib/__tests__/`. Config: `jest.config.ts` at repo root — covers both `src/` and `worker/src/`. Test files must match `**/__tests__/**/*.test.ts`.
+Tests live in `src/lib/translation-workflow/__tests__/`, `src/app/api/webhooks/__tests__/`, and `worker/src/lib/__tests__/`. Config: `jest.config.ts` at repo root — covers both `src/` and `worker/src/`. Test files must match `**/__tests__/**/*.test.ts`.
 
 ### Helper scripts
 ```bash
-bash scripts/check-i18n.sh   # Grep locale pages/components for hardcoded strings not wrapped in t()
+bash scripts/check-i18n.sh                  # Grep locale pages/components for hardcoded strings not wrapped in t()
+npx tsx scripts/telegram-list-updates.ts    # List Telegram bot updates (use to find your chat_id for staff_profiles)
 ```
 
 Reference env files: `.env.example` and `.env.staging.example` (web); `worker/.env.example` and `worker/.env.staging.example` (worker). Use these as checklists when configuring new environments.
@@ -202,12 +205,14 @@ There are **two separate processors** — do not conflate them.
 - Claims jobs atomically via `UPDATE WHERE status='queued'` — prevents double-processing
 - Polls Supabase every 10 s for unclaimed `status = 'queued'` jobs — handles both subscription and pay-per-doc
 - OCR quality gate: aborts early if extracted text is below minimum word/char threshold (saves translation credits)
-- Calls `computeOutputPlan(job.notarized)` to determine artifact path: `translation_only` (immediate PDF release) or `translator_review_draft` (DOCX + preview PDF, `workflow_status: awaiting_translator_review`)
+- Calls `computeOutputPlan(job.service_level ?? job.notarized)` to determine artifact path: `translation_only` (immediate PDF release) or `translator_review_draft` (DOCX + preview PDF, `workflow_status: awaiting_translator_review`). Pass `service_level` — the boolean `notarized` is a legacy fallback for pre-migration rows.
 - Full pipeline: OCR (returns `{ markdown, pageCount, visualElements }`) → merge visual elements → translate → render HTML with visual-elements block → QA check → Puppeteer PDF or DOCX → upload to R2 → upsert `translations` (with `qa_report`) → email
 - If Puppeteer fails, falls back to saving `.html`
 - Supports DOCX output via `worker/src/lib/docx-renderer.ts` (also in web app at `src/lib/pdf/docx-renderer.ts`)
 
 Both processors use `claude-sonnet-4-5-20250929` via `@anthropic-ai/sdk` (constant `MODEL` in each `translator.ts`). There are **four** `MODEL` constants to update when changing the model: `src/lib/translation/translator.ts`, `src/lib/translation/detect-language.ts`, `worker/src/lib/translator.ts`, `worker/src/lib/detect-language.ts`.
+
+**Synced duplicates** — several modules are maintained as independent copies in both the web app and worker and must be kept in sync manually: `output-plan.ts`, `visual-elements.ts`, `qa.ts`, `renderer.ts`/`renderer-helpers.ts`, `docx-renderer.ts`. The worker copies have a comment pointing back to the canonical `src/lib/translation-workflow/` version.
 
 ### Job status flow
 
@@ -224,10 +229,11 @@ Each transition also updates `progress_percent` (0–100).
 `src/lib/translation-workflow/` (re-exported from its `index.ts`) drives all post-OCR logic. Its counterpart lives at `worker/src/lib/` with matching files.
 
 - **`types.ts`** — shared types: `OutputMode`, `OutputPlan`, `VisualElement`, `VisualElementKind`, `TranslationQaReport`
-- **`output-plan.ts`** — `computeOutputPlan(notarized)`: returns an `OutputPlan` that controls artifact generation. When `notarized=true`, mode is `translator_review_draft` — produces DOCX + preview PDF, sets `workflow_status: 'awaiting_translator_review'`, does NOT release to customer immediately. When `notarized=false/null`, mode is `translation_only` — produces final PDF and releases immediately.
+- **`output-plan.ts`** — `computeOutputPlan(serviceLevelOrNotarized)`: accepts a `ServiceLevel` string (canonical) or a legacy boolean. `electronic` → `translation_only` (final PDF, released immediately). `official_with_translator_signature_and_provider_stamp` → `translator_review_draft` (DOCX + preview PDF, `workflow_status: awaiting_translator_review`, not released). `notarization_through_partners` → `notarization_package` (same artifacts, also requires notary review). `deriveBackcompatBooleans(level)` converts a `ServiceLevel` back to legacy `{notarized, bureau_stamp}` for backward-compat DB queries — use it only for old queries, not new code.
 - **`visual-elements.ts`** — `extractVisualElementsFromTranslated(markdown)` and `mergeVisualElements(ocr, translated)` collect stamps, signatures, QR codes, MRZ lines, etc. detected by Mistral OCR and from markers in the translated markdown. Visual elements are passed to renderers for the visual-elements block.
 - **`visual-elements-block.ts`** — renders the collected visual elements into an HTML block appended to the translated document.
 - **`qa.ts`** — `runQaChecks(html, mode)` returns a `TranslationQaReport`: checks for forbidden technical terms (`Claude`, `Mistral`, `JSON`, `Markdown`, `renderer`, etc.), broken glyphs, table clipping risk, orphan headings, presence of translator/verification blocks. A `qa_report` JSON is stored in the `translations` table.
+- **`customer-order-state.ts`** — `getCustomerOrderState(input)` is the **canonical** function for all customer-visible order state. Returns `{ customerStatus, canDownload, isActive, isTerminal, stages, progressPercent }`. **Never duplicate this logic in components — always import from here.** `CustomerStatus` covers the full lifecycle including notarization states: `queued`, `ocr_in_progress`, `translation_in_progress`, `pdf_rendering`, `awaiting_translator_review`, `translator_approved`, `awaiting_signature_stamp`, `assigned_to_notary`, `notarization_in_progress`, `notarized`, `ready_for_delivery`, `ready_for_pickup`, `out_for_delivery`, `delivered`, `picked_up`, `translator_declined`, `notary_declined`, `completed`, `failed`, `operator_processing`. Used by `GET /api/jobs` and download gating.
 
 ### Translation prompt system
 
@@ -263,7 +269,7 @@ Other locale-prefixed pages: `contacts` (`src/app/[locale]/contacts/`), `auth` (
 
 ### Payments
 
-**Current state: subscription-only, no active payment gateway.** `src/lib/stripe/` and `src/lib/polar/` are empty placeholder directories. `POST /api/subscriptions/create` returns HTTP 503 ("temporarily unavailable"). The subscription modal shows a "coming soon" message.
+**Current state: subscription-only, no active card payment gateway.** `src/lib/stripe/` and `src/lib/polar/` are empty placeholder directories. `POST /api/subscriptions/create` returns HTTP 503 ("temporarily unavailable"). The subscription modal shows a "coming soon" message. The `jobs.payment_source` column is typed `'card_payment' | 'subscription'` — TON cryptocurrency payments are no longer present in the codebase.
 
 **Planned gateway: Halyk Bank ePay** (card payments in KZT). Integration is pending — controlled by `BUSINESS_PROFILE.cardPaymentsActive` in `src/lib/business-profile.ts` (currently `false`). `src/components/payment/PaymentComplianceBlock.tsx` shows Halyk ePay and Mastercard logos with wording that switches based on that flag. Do not add code to the stripe/polar directories without being asked.
 
@@ -289,7 +295,9 @@ Subscription state: `subscriptions` table. The upload route is the only path tha
 
 **Google Drive** (all optional): `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REFRESH_TOKEN`, `GOOGLE_DRIVE_ROOT_FOLDER_ID`. Logic in `src/lib/google-drive/client.ts` (web) and `worker/src/lib/google-drive.ts` (worker). Drive subfolders per order: `01_ORIGINAL`, `02_AI_DRAFT`, `03_TRANSLATED`, `04_NOTARY`.
 
-**Telegram** (all optional): `TELEGRAM_BOT_TOKEN`, `TELEGRAM_OPERATOR_CHAT_ID`, `TELEGRAM_TRANSLATOR_CHAT_ID`, `TELEGRAM_NOTARY_CHAT_ID`. Logic in `src/lib/telegram/client.ts` (web) and within `worker/src/lib/integrations.ts` (worker). Functions: `notifyOperatorNewOrder`, `notifyTranslatorNewAssignment`, `notifyNotaryNewAssignment`, `notifyOperatorTranslatorDone`, `notifyOperatorNotaryDone`, `notifyOperatorError`.
+**Telegram** (all optional): `TELEGRAM_BOT_TOKEN`, `TELEGRAM_OPERATOR_CHAT_ID`, `TELEGRAM_TRANSLATOR_CHAT_ID`, `TELEGRAM_NOTARY_CHAT_ID`. Logic in `src/lib/telegram/client.ts` (web) and within `worker/src/lib/integrations.ts` (worker). Broadcast functions: `notifyOperatorNewOrder`, `notifyTranslatorNewAssignment`, `notifyNotaryNewAssignment`, `notifyOperatorTranslatorDone`, `notifyOperatorNotaryDone`, `notifyOperatorError`.
+
+**Personal Telegram notifications** — `handleAssigneeChanged(params)` in `src/lib/notifications/assignee.ts` handles `ASSIGNEE_CHANGED` Jira webhook events. It looks up the assignee in `staff_profiles` by `jira_account_id`, builds a role-specific message (translator / notary_partner / operator), calls `sendDirectMessageWithButtons(chatId, text, buttons)`, and records every attempt in `notification_log`. Idempotent: skips if a `sent`/`pending` row already exists for the same `event_id` + `recipient_profile_id`. The `TELEGRAM_OPERATOR_CHAT_ID` / `TELEGRAM_TRANSLATOR_CHAT_ID` env vars are for broadcast fallbacks only — personal routing uses `staff_profiles.telegram_chat_id` instead.
 
 **Notary cities** (`src/lib/notary/cities.ts`) — static registry of KZ cities where notarized-translation pickup/delivery is offered. Referenced by the notarized-translation landing page and job creation flow.
 
@@ -299,11 +307,13 @@ Subscription state: `subscriptions` table. The upload route is the only path tha
 |---|---|
 | `users` | auth users; `terms_accepted_at` — set by `POST /api/users/accept-terms` (dashboard shows acceptance gate until populated) |
 | `documents` | `file_key`, `source_language`, `target_language`, `document_type`, `output_format`, `status`, `word_count`, `price_usd` |
-| `jobs` | `status`, `progress_percent`, `priority`, `payment_source`, `country`, `notarized`, `bureau_stamp`, `workflow_status`, `service_level`, `jira_issue_key`, `last_synced_at` |
+| `jobs` | `status`, `progress_percent`, `priority`, `payment_source` (`'card_payment' \| 'subscription'`), `country`, `notarized`, `bureau_stamp`, `workflow_status`, `service_level`, `fulfillment_method` (`'pickup' \| 'delivery'`), `jira_issue_key`, `last_synced_at` |
 | `ocr_results` | `job_id`, `markdown`, `page_count`, `provider` |
 | `translations` | `job_id`, `translated_markdown`, `translated_pdf_key`, `translated_docx_key`, `translated_preview_pdf_key`, `qa_report` |
 | `subscriptions` | `plan`, `status`, `documents_used`, `documents_limit`, `expires_at` |
 | `job_audit_log` | `job_id`, `actor`, `source`, `action`, `previous_status`, `new_status`, `jira_issue_key`, `correlation_id`, `metadata` — append-only log of all status transitions and integration events |
+| `staff_profiles` | `display_name`, `jira_account_id`, `telegram_chat_id`, `telegram_username`, `telegram_notifications_enabled`, `role` (`operator\|translator\|notary_partner\|admin`), `is_active` — service role only (RLS blocks browser). Unique constraint on `jira_account_id WHERE is_active=true`. |
+| `notification_log` | `event_id`, `order_id`, `jira_issue_key`, `recipient_profile_id`, `channel`, `template`, `status` (`pending\|sent\|failed\|skipped`), `provider_message_id`, `error`, `sent_at` — delivery audit for every Telegram notification attempt. Unique index on `(event_id, recipient_profile_id) WHERE status IN ('sent','pending')` for idempotency. |
 
 Generated types at `src/types/supabase.ts`, re-exported from `src/types/index.ts`. Use `Tables<'tablename'>`, `TablesInsert<'tablename'>`, `TablesUpdate<'tablename'>` for typed DB access — do not inline raw object types.
 
@@ -314,15 +324,16 @@ Generated types at `src/types/supabase.ts`, re-exported from `src/types/index.ts
 | POST | `/api/documents/upload` | Upload + (for subscription html jobs) kick off web processor |
 | POST | `/api/documents/estimate` | OCR + word-count pricing ($0.01/word), not cached |
 | GET | `/api/documents/[documentId]/download` | Presigned R2 URL for the translated file |
-| GET | `/api/jobs/[jobId]` | Job status polling (used by dashboard) |
+| GET | `/api/jobs` | All orders for the current user — enriched with `getCustomerOrderState()` (used by dashboard list) |
+| GET | `/api/jobs/[jobId]` | Single job status polling |
 | POST | `/api/subscriptions/create` | 503 placeholder — payment gateway not yet active |
 | GET | `/api/subscriptions/current` | Active subscription for the current user |
 | POST | `/api/subscriptions/use-document` | Check quota and decrement by 1 |
 | GET | `/api/cron/cleanup` | Daily 02:00 UTC — deletes files older than 30 days (secured via `CRON_SECRET`) |
 | POST | `/api/users/accept-terms` | Records `terms_accepted_at` timestamp in users table; gate shown in dashboard before first upload |
-| POST | `/api/webhooks/jira` | Inbound Jira Automation callbacks — updates Supabase job status and sends Telegram/email notifications; does NOT create Jira issues or call Jira API |
-| POST | `/api/webhooks/stripe` | Placeholder — not yet active |
-| POST | `/api/webhooks/polar` | Placeholder — not yet active |
+| POST | `/api/webhooks/jira` | Inbound Jira Automation callbacks — updates Supabase job status and sends Telegram/email notifications; does NOT create Jira issues or call Jira API. `ASSIGNEE_CHANGED` events are routed to `handleAssigneeChanged()` (`src/lib/notifications/assignee.ts`) for personal Telegram delivery via `staff_profiles`. |
+| POST | `/api/webhooks/stripe` | Placeholder — no route file exists; `src/lib/stripe/` is an empty directory |
+| POST | `/api/webhooks/polar` | Placeholder — no route file exists; `src/lib/polar/` is an empty directory |
 | GET | `/api/debug/env` | Dev-only env sanity check — not part of user-facing flows |
 
 ### Email notifications

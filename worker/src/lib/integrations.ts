@@ -371,28 +371,33 @@ export async function triggerTranslatorReview(params: {
   documentType: string;
   driveUrl?: string | null;
   driveFolderId?: string | null;
-  /** R2 key of the AI draft artifact */
+  /** R2 key of the AI draft DOCX artifact */
   draftFileKey?: string | null;
   draftFileName?: string | null;
 }): Promise<void> {
   const tag = `[worker-integration:${params.jobId.slice(0, 8)}]`;
 
-  // ── 1. Upload AI draft to Drive 02_AI_DRAFT ───────────────────────────────
-  if (params.draftFileKey && params.driveFolderId && isDriveConfigured()) {
+  // ── 1. Upload AI draft DOCX to Drive 02_AI_DRAFT ─────────────────────────
+  // Preview PDF is not generated for official AI drafts — only ai_draft.docx.
+  if (params.driveFolderId && isDriveConfigured()) {
+    let aiDraftFolderId: string | null = null;
     try {
-      const aiDraftFolderId = await getSubfolderId(params.driveFolderId, DRIVE_SUBFOLDER_NAMES.aiDraft);
-      if (aiDraftFolderId) {
+      aiDraftFolderId = await getSubfolderId(params.driveFolderId, DRIVE_SUBFOLDER_NAMES.aiDraft);
+    } catch (err) {
+      console.error(`${tag} could not resolve 02_AI_DRAFT subfolder (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
+    }
+
+    if (aiDraftFolderId && params.draftFileKey) {
+      try {
         const buf = await downloadFile(params.draftFileKey);
         const name = params.draftFileName ?? 'ai_draft.docx';
-        const mime = name.endsWith('.docx')
-          ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-          : 'text/html';
+        const mime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
         await uploadFileToDrive(aiDraftFolderId, name, buf, mime);
-        console.log(`${tag} ✓ AI draft uploaded to Drive 02_AI_DRAFT`);
+        console.log(`${tag} ✓ ai_draft.docx uploaded to Drive 02_AI_DRAFT`);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error(`${tag} DOCX Drive upload failed (non-fatal): ${msg}`);
       }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.error(`${tag} AI draft Drive upload failed (non-fatal): ${msg}`);
     }
   }
 
