@@ -76,8 +76,8 @@ const PAGE_MARGINS = { top: 1152, bottom: 1152, left: 1037, right: 1037 } as con
 
 // ── KV table column widths ─────────────────────────────────────────────────────
 // Total 9000 DXA; label ≈33%, value ≈67%
-const KV_LABEL_W = 2970;
-const KV_VALUE_W = 6030;
+const KV_LABEL_W = 3060; // 34% of 9000 DXA
+const KV_VALUE_W = 5940; // 66% of 9000 DXA
 
 // Cell margins (DXA) for KV and data tables
 const KV_CELL_MARGIN = { top: 80, bottom: 80, left: 90, right: 90 };
@@ -393,36 +393,79 @@ function normalizeHeaderText(text: string): string {
   return text.replace(/\*\*/g, '').trim().toLowerCase();
 }
 
-function isPackedKvTable(headers: string[]): boolean {
-  if (headers.length !== 4) return false;
-  const h0 = normalizeHeaderText(headers[0] ?? '');
-  const h1 = normalizeHeaderText(headers[1] ?? '');
-  const h2 = normalizeHeaderText(headers[2] ?? '');
-  const h3 = normalizeHeaderText(headers[3] ?? '');
-  // Packed KV: columns 0&2 are the same "field" header, columns 1&3 are the same "value" header
-  return h0 === h2 && h1 === h3 && (KV_FIELD_HEADERS.has(h0) || KV_VALUE_HEADERS.has(h1));
+// A cell looks like a label if it is text-based and not a code/number value.
+function isLabelCell(raw: string): boolean {
+  const s = raw.replace(/\*\*/g, '').trim();
+  if (s.length < 2) return false;
+  // Values that start with digits, №, # or common value-only prefixes are not labels
+  if (/^[\d№#%+±]/.test(s)) return false;
+  return true;
 }
 
-function isRegularKvTable(headers: string[]): boolean {
-  if (headers.length !== 2) return false;
-  const h0 = normalizeHeaderText(headers[0] ?? '');
-  const h1 = normalizeHeaderText(headers[1] ?? '');
-  return KV_FIELD_HEADERS.has(h0) && KV_VALUE_HEADERS.has(h1);
-}
-
-function expandKvRows(parsed: ParsedTable): ParsedTable {
-  const rows: string[][] = [];
-  for (const row of parsed.rows) {
-    const l1 = row[0] ?? '';
-    const v1 = row[1] ?? '';
-    const l2 = row[2] ?? '';
-    const v2 = row[3] ?? '';
-    rows.push([l1, v1]);
-    if (l2.trim() || v2.trim()) {
-      rows.push([l2, v2]);
-    }
+// Expand a list of 4-column rows into 2-column [label, value] pairs.
+function expandPairedRows(rows: string[][]): string[][] {
+  const result: string[][] = [];
+  for (const row of rows) {
+    const [l1 = '', v1 = '', l2 = '', v2 = ''] = row;
+    result.push([l1, v1]);
+    if (l2.trim() || v2.trim()) result.push([l2, v2]);
   }
-  return { headers: parsed.headers, rows };
+  return result;
+}
+
+/**
+ * Try to extract KV rows from a parsed Markdown table.
+ *
+ * Handles two LLM output variants:
+ *   A. Explicit structural headers: | Alan | Değer | Alan | Değer |
+ *      → header row is structural metadata; expand only parsed.rows
+ *   B. Data-as-header: | Soyadı | Nurtayeva | Kimlik belgesi | № 047291638 |
+ *      → LLM placed first data pair in the Markdown header row; include it as data
+ *
+ * Returns flat [label, value][] ready for buildKvDocxTable, or null for data tables.
+ */
+function tryExtractKvRows(parsed: ParsedTable): string[][] | null {
+  const cols = parsed.headers.length;
+
+  if (cols === 4) {
+    const h0 = normalizeHeaderText(parsed.headers[0] ?? '');
+    const h1 = normalizeHeaderText(parsed.headers[1] ?? '');
+    const h2 = normalizeHeaderText(parsed.headers[2] ?? '');
+    const h3 = normalizeHeaderText(parsed.headers[3] ?? '');
+
+    // Variant A: explicit repeated KV structural header (Alan|Değer|Alan|Değer)
+    if (h0 === h2 && h1 === h3 && (KV_FIELD_HEADERS.has(h0) || KV_VALUE_HEADERS.has(h1))) {
+      return expandPairedRows(parsed.rows);
+    }
+
+    // Variant B: LLM placed actual data in the Markdown header row.
+    // Detect by: col 0 and col 2 look like text field labels (not numbers/codes).
+    // Visual and translator tables are rendered by their own functions and never reach here.
+    if (isLabelCell(parsed.headers[0] ?? '') && isLabelCell(parsed.headers[2] ?? '')) {
+      return expandPairedRows([parsed.headers, ...parsed.rows]);
+    }
+
+    return null;
+  }
+
+  if (cols === 2) {
+    const h0 = normalizeHeaderText(parsed.headers[0] ?? '');
+    const h1 = normalizeHeaderText(parsed.headers[1] ?? '');
+
+    // Variant A: explicit 2-col KV header (Campo|Valore, Alan|Değer, etc.)
+    if (KV_FIELD_HEADERS.has(h0) && KV_VALUE_HEADERS.has(h1)) {
+      return parsed.rows.map((r) => [r[0] ?? '', r[1] ?? '']);
+    }
+
+    // Variant B: 2-col table with data in header row
+    if (isLabelCell(parsed.headers[0] ?? '')) {
+      return [parsed.headers.slice(0, 2), ...parsed.rows].map((r) => [r[0] ?? '', r[1] ?? '']);
+    }
+
+    return null;
+  }
+
+  return null;
 }
 
 const KV_BORDERS = {
@@ -434,7 +477,7 @@ const KV_BORDERS = {
   insideVertical: { style: BorderStyle.SINGLE, size: 4, color: '000000' },
 } as const;
 
-function buildKvDocxTable(parsed: ParsedTable, targetLang: string): Table {
+function buildKvDocxTable(rows: string[][], targetLang: string): Table {
   const [fieldLabel, valueLabel] = KV_HEADER_I18N[targetLang] ?? ['Field', 'Value'];
 
   const headerRow = new TableRow({
@@ -461,7 +504,7 @@ function buildKvDocxTable(parsed: ParsedTable, targetLang: string): Table {
     ],
   });
 
-  const dataRows = parsed.rows.map((row) => {
+  const dataRows = rows.map((row) => {
     const labelText = row[0] ?? '';
     const valueText = row[1] ?? '';
     return new TableRow({
@@ -680,13 +723,10 @@ function parseMarkdownTable(lines: string[]): ParsedTable | null {
 }
 
 function buildDocxTable(parsed: ParsedTable, targetLang: string): Table {
-  // Packed 4-column KV (label|value|label|value) → expand to 2-column KV
-  if (isPackedKvTable(parsed.headers)) {
-    return buildKvDocxTable(expandKvRows(parsed), targetLang);
-  }
-  // Regular 2-column KV (Field|Value style header) → render as styled KV
-  if (isRegularKvTable(parsed.headers)) {
-    return buildKvDocxTable(parsed, targetLang);
+  // KV table: 2-col or 4-col packed → expand to styled 2-col with localized header
+  const kvRows = tryExtractKvRows(parsed);
+  if (kvRows !== null) {
+    return buildKvDocxTable(kvRows, targetLang);
   }
 
   // Data table: keep original column structure
