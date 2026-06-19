@@ -87,7 +87,7 @@ function buildDocxTable(parsed: ParsedTable): Table {
         new TableCell({
           children: [new Paragraph({ children: [new TextRun({ text: h, bold: true })] })],
           width: { size: colWidth, type: WidthType.DXA },
-          shading: { fill: 'F5F5F5' },
+          shading: { fill: 'E6E6E6' },
         }),
     ),
     tableHeader: true,
@@ -110,12 +110,12 @@ function buildDocxTable(parsed: ParsedTable): Table {
     rows: [headerRow, ...dataRows],
     width: { size: 9000, type: WidthType.DXA },
     borders: {
-      top: { style: BorderStyle.SINGLE, size: 1, color: 'BBBBBB' },
-      bottom: { style: BorderStyle.SINGLE, size: 1, color: 'BBBBBB' },
-      left: { style: BorderStyle.SINGLE, size: 1, color: 'BBBBBB' },
-      right: { style: BorderStyle.SINGLE, size: 1, color: 'BBBBBB' },
-      insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: 'BBBBBB' },
-      insideVertical: { style: BorderStyle.SINGLE, size: 1, color: 'BBBBBB' },
+      top: { style: BorderStyle.SINGLE, size: 6, color: '000000' },
+      bottom: { style: BorderStyle.SINGLE, size: 6, color: '000000' },
+      left: { style: BorderStyle.SINGLE, size: 6, color: '000000' },
+      right: { style: BorderStyle.SINGLE, size: 6, color: '000000' },
+      insideHorizontal: { style: BorderStyle.SINGLE, size: 4, color: '000000' },
+      insideVertical: { style: BorderStyle.SINGLE, size: 4, color: '000000' },
     },
   });
 }
