@@ -303,7 +303,7 @@ describe('analyzeDocumentVisuals — employment certificate (primary)', () => {
   }]);
 
   let elements: VisualElement[];
-  beforeAll(async () => { elements = await analyzeDocumentVisuals([], FAKE_PDF, CLIENT); });
+  beforeAll(async () => { elements = await analyzeDocumentVisuals([], FAKE_PDF, 'it', CLIENT); });
 
   it('logo count = 1', () => expect(countKind(elements, 'logo')).toBe(1));
   it('watermark count = 1', () => expect(countKind(elements, 'watermark')).toBe(1));
@@ -339,7 +339,7 @@ describe('analyzeDocumentVisuals — medical report (primary)', () => {
   }]);
 
   let elements: VisualElement[];
-  beforeAll(async () => { elements = await analyzeDocumentVisuals([], FAKE_PDF, CLIENT); });
+  beforeAll(async () => { elements = await analyzeDocumentVisuals([], FAKE_PDF, 'it', CLIENT); });
 
   it('logo count = 1', () => expect(countKind(elements, 'logo')).toBe(1));
   it('barcode count = 1', () => expect(countKind(elements, 'barcode')).toBe(1));
@@ -361,7 +361,7 @@ describe('analyzeDocumentVisuals — receipt / invoice (primary)', () => {
   }]);
 
   let elements: VisualElement[];
-  beforeAll(async () => { elements = await analyzeDocumentVisuals([], FAKE_PDF, CLIENT); });
+  beforeAll(async () => { elements = await analyzeDocumentVisuals([], FAKE_PDF, 'it', CLIENT); });
 
   it('logo count = 1', () => expect(countKind(elements, 'logo')).toBe(1));
   it('qr count = 1', () => expect(countKind(elements, 'qr')).toBe(1));
@@ -381,7 +381,7 @@ describe('analyzeDocumentVisuals — filtering (primary)', () => {
         { kind: 'stamp', position: 'lower_center', confidence: 0.20 }, // below threshold
       ],
     }]);
-    const elements = await analyzeDocumentVisuals([], FAKE_PDF, client);
+    const elements = await analyzeDocumentVisuals([], FAKE_PDF, 'it', client);
     expect(elements).toHaveLength(1);
     expect(elements[0]!.kind).toBe('logo');
   });
@@ -391,7 +391,7 @@ describe('analyzeDocumentVisuals — filtering (primary)', () => {
       page: 1,
       elements: [{ kind: 'abstract_painting', position: 'center', confidence: 0.80 }],
     }]);
-    const elements = await analyzeDocumentVisuals([], FAKE_PDF, client);
+    const elements = await analyzeDocumentVisuals([], FAKE_PDF, 'it', client);
     expect(elements[0]!.kind).toBe('unknown_image');
   });
 });
@@ -404,7 +404,7 @@ describe('analyzeDocumentVisuals — secondary fallback', () => {
     const client = mockClientFallback([
       { imageIndex: 0, kind: 'logo', confidence: 0.92, description: 'Company logo' },
     ]);
-    const elements = await analyzeDocumentVisuals([page], FAKE_PDF, client);
+    const elements = await analyzeDocumentVisuals([page], FAKE_PDF, 'it', client);
     expect(elements).toHaveLength(1);
     expect(elements[0]!.kind).toBe('logo');
     expect((client.messages.create as jest.Mock)).toHaveBeenCalledTimes(2);
@@ -413,7 +413,7 @@ describe('analyzeDocumentVisuals — secondary fallback', () => {
   it('returns [] when primary returns 0 and rawPages have no images', async () => {
     const client = mockClientPrimary([{ page: 1, elements: [] }]); // primary → 0
     // rawPages empty → secondary skips → total 0
-    const elements = await analyzeDocumentVisuals([], FAKE_PDF, client);
+    const elements = await analyzeDocumentVisuals([], FAKE_PDF, 'it', client);
     expect(elements).toEqual([]);
   });
 });
@@ -426,7 +426,7 @@ describe('analyzeDocumentVisuals — one PDF vision call for whole document', ()
       content: [{ type: 'text', text: '{"pages":[]}' }],
     });
     const client = { messages: { create } } as unknown as Anthropic;
-    await analyzeDocumentVisuals([], FAKE_PDF, client);
+    await analyzeDocumentVisuals([], FAKE_PDF, 'it', client);
     expect(create).toHaveBeenCalledTimes(1);
   });
 
@@ -436,7 +436,7 @@ describe('analyzeDocumentVisuals — one PDF vision call for whole document', ()
     });
     const client = { messages: { create } } as unknown as Anthropic;
     const multiPageRawPages = [makePage(0, []), makePage(1, []), makePage(2, [])];
-    await analyzeDocumentVisuals(multiPageRawPages, FAKE_PDF, client);
+    await analyzeDocumentVisuals(multiPageRawPages, FAKE_PDF, 'it', client);
     // Only 1 call regardless of page count (whole PDF sent at once)
     expect(create).toHaveBeenCalledTimes(1);
   });
@@ -451,7 +451,7 @@ describe('analyzeDocumentVisuals — error handling', () => {
     const client = { messages: { create } } as unknown as Anthropic;
 
     // rawPages empty so secondary makes 0 additional calls
-    const promise = analyzeDocumentVisuals([], FAKE_PDF, client);
+    const promise = analyzeDocumentVisuals([], FAKE_PDF, 'it', client);
     await jest.runAllTimersAsync();
     const elements = await promise;
 
@@ -459,6 +459,34 @@ describe('analyzeDocumentVisuals — error handling', () => {
     expect(elements).toEqual([]);
     expect(create).toHaveBeenCalledTimes(3); // 3 PDF vision retries
   }, 15000);
+});
+
+// ── targetLang is threaded into the vision prompt ─────────────────────────────
+
+describe('analyzeDocumentVisuals — targetLang in prompt', () => {
+  it('includes the target language name in the API call user text', async () => {
+    const create = jest.fn().mockResolvedValue({
+      content: [{ type: 'text', text: '{"pages":[]}' }],
+    });
+    const client = { messages: { create } } as unknown as Anthropic;
+    await analyzeDocumentVisuals([], FAKE_PDF, 'it', client);
+    const callArgs = (create as jest.Mock).mock.calls[0][0];
+    const userText = (callArgs.messages[0].content as {type:string; text?:string}[])
+      .find((b) => b.type === 'text')?.text ?? '';
+    expect(userText).toContain('Italian');
+  });
+
+  it('uses correct language name for Russian target', async () => {
+    const create = jest.fn().mockResolvedValue({
+      content: [{ type: 'text', text: '{"pages":[]}' }],
+    });
+    const client = { messages: { create } } as unknown as Anthropic;
+    await analyzeDocumentVisuals([], FAKE_PDF, 'ru', client);
+    const callArgs = (create as jest.Mock).mock.calls[0][0];
+    const userText = (callArgs.messages[0].content as {type:string; text?:string}[])
+      .find((b) => b.type === 'text')?.text ?? '';
+    expect(userText).toContain('Russian');
+  });
 });
 
 // ── Deduplication (PRIMARY path) ──────────────────────────────────────────────
@@ -472,7 +500,7 @@ describe('analyzeDocumentVisuals — deduplication (primary)', () => {
         { kind: 'logo', position: 'upper_left', confidence: 0.80 }, // same key — dedup
       ],
     }]);
-    const elements = await analyzeDocumentVisuals([], FAKE_PDF, client);
+    const elements = await analyzeDocumentVisuals([], FAKE_PDF, 'it', client);
     expect(countKind(elements, 'logo')).toBe(1);
   });
 
@@ -484,7 +512,7 @@ describe('analyzeDocumentVisuals — deduplication (primary)', () => {
         { kind: 'signature', position: 'lower_right', confidence: 0.87 },
       ],
     }]);
-    const elements = await analyzeDocumentVisuals([], FAKE_PDF, client);
+    const elements = await analyzeDocumentVisuals([], FAKE_PDF, 'it', client);
     expect(countKind(elements, 'signature')).toBe(2);
     const positions = elements.map((e) => e.position);
     expect(positions).toContain('lower_left');

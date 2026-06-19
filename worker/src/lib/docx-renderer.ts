@@ -527,22 +527,52 @@ function parseMarkdownToDocx(markdown: string): DocxChild[] {
   return children;
 }
 
+/**
+ * Remove translator notes that ONLY describe visual elements (signatures, stamps, QR, etc.)
+ * because these duplicate what the native DOCX visual-block table already shows.
+ * Notes about content issues (illegible, damaged, missing, ambiguous) are kept.
+ */
+export function removeVisualOnlyTranslatorNotes(markdown: string): string {
+  const NOTE_PREFIX_RE = /^(?:nota(?:\s+del?\s+traduttore?|\s+du\s+traducteur)?|translator(?:'?s)?\s+note|примечание\s+переводчика|hinweis\s+des\s+übersetzers|note\s+du\s+traducteur|nota\s+del\s+traductor|переводчик\s+отмечает)/i;
+  const CONTENT_RE = /illegib|illeggib|нечитаемо|неразборчив|damaged|повреждён|danneggiato|missing\s+page|отсутству|mancante|ambiguous|неоднозначн|ambiguo|unclear|непонятн|non\s+chiaro|uncertain|сомнительн|truncated|обрезан|troncat|blurred|размыт/i;
+  const VISUAL_RE = /firma|firme|signature|подпись|imza|timbro|stamp|печать|seal|qr|logo|filigran|watermark|водяной/i;
+
+  return markdown
+    .split(/\n\n+/)
+    .filter((para) => {
+      const t = para.trim();
+      if (!NOTE_PREFIX_RE.test(t)) return true;
+      if (CONTENT_RE.test(t)) return true;
+      return !VISUAL_RE.test(t);
+    })
+    .join('\n\n');
+}
+
 export async function renderToDocx(
   translatedMarkdown: string,
   meta: DocxMeta,
   visualElements?: VisualElement[],
 ): Promise<Buffer> {
-  // Strip any Markdown visual-block section Claude may have appended,
-  // then render it natively as a DOCX 4-column table (see docx-visual-block.ts).
-  const cleanedMarkdown = stripVisualBlockFromMarkdown(translatedMarkdown);
+  // Remove visual-element-only translator notes (they duplicate the native DOCX visual table).
+  // Then strip any Markdown visual-block section Claude appended.
+  const withoutDuplicateNotes = removeVisualOnlyTranslatorNotes(translatedMarkdown);
+  const cleanedMarkdown = stripVisualBlockFromMarkdown(withoutDuplicateNotes);
 
-  const header = new Paragraph({
-    children: [
-      new TextRun({ text: `${meta.sourceLang.toUpperCase()} → ${meta.targetLang.toUpperCase()}`, bold: true, size: 24 }),
-      new TextRun({ text: `  |  ${meta.documentType}  |  ${meta.translatedAt}`, size: 18, color: '666666' }),
-    ],
-    spacing: { after: 200 },
-  });
+  // Internal metadata line is suppressed for official drafts — it is not part of the
+  // certified translation content and must not appear in the ai_draft.docx artifact.
+  const isOfficialDraft =
+    meta.outputMode === 'translator_review_draft' ||
+    meta.outputMode === 'notarization_package';
+
+  const headerParagraphs: Paragraph[] = isOfficialDraft ? [] : [
+    new Paragraph({
+      children: [
+        new TextRun({ text: `${meta.sourceLang.toUpperCase()} → ${meta.targetLang.toUpperCase()}`, bold: true, size: 24 }),
+        new TextRun({ text: `  |  ${meta.documentType}  |  ${meta.translatedAt}`, size: 18, color: '666666' }),
+      ],
+      spacing: { after: 200 },
+    }),
+  ];
 
   const visualBlock = renderVisualBlock(visualElements ?? [], meta.targetLang);
 
@@ -555,7 +585,7 @@ export async function renderToDocx(
   const doc = new Document({
     sections: [{
       properties: { page: { margin: { top: 1440, bottom: 1440, left: 1440, right: 1440 } } },
-      children: [header, ...parseMarkdownToDocx(cleanedMarkdown), ...visualBlock, ...translatorBlock],
+      children: [...headerParagraphs, ...parseMarkdownToDocx(cleanedMarkdown), ...visualBlock, ...translatorBlock],
     }],
   });
 

@@ -2,7 +2,7 @@
  * @jest-environment node
  */
 
-import { renderToDocx } from '../docx-renderer';
+import { renderToDocx, removeVisualOnlyTranslatorNotes } from '../docx-renderer';
 import { VISUAL_BLOCK_I18N, stripVisualBlockFromMarkdown } from '../docx-visual-block';
 import type { VisualElement } from '../visual-elements';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -338,6 +338,119 @@ describe('renderToDocx strips injected Markdown visual block', () => {
   });
 });
 
+// ── Representation column uses localized kind label as fallback ───────────────
+
+describe('renderToDocx visual block — localized representation fallback', () => {
+  it('does not contain English "Company logo" when description is absent', async () => {
+    const buf = await renderToDocx(EMPLOYMENT_MD, OFFICIAL_META_IT, EMPLOYMENT_ELEMENTS);
+    const xml = await getDocumentText(buf);
+    expect(xml).not.toContain('Company logo');
+  });
+
+  it('does not contain English "Handwritten signature" when description is absent', async () => {
+    const buf = await renderToDocx(EMPLOYMENT_MD, OFFICIAL_META_IT, EMPLOYMENT_ELEMENTS);
+    const xml = await getDocumentText(buf);
+    expect(xml).not.toContain('Handwritten signature');
+  });
+
+  it('shows Italian kind label as fallback for logo without description', async () => {
+    const elements: VisualElement[] = [
+      { kind: 'logo', page: 1, position: 'upper_left', text: '[logo]', source: 'markdown_marker' },
+    ];
+    const buf = await renderToDocx(EMPLOYMENT_MD, OFFICIAL_META_IT, elements);
+    const xml = await getDocumentText(buf);
+    // Fallback is VISUAL_BLOCK_I18N['it'].kindLabels.logo = 'Logo'
+    expect(xml).toContain('Logo');
+    expect(xml).not.toContain('[logo]');
+  });
+
+  it('uses Italian description when description is provided in target language', async () => {
+    const elements: VisualElement[] = [
+      { kind: 'logo', page: 1, position: 'upper_left', description: "Logo dell'organizzazione", text: '[logo]', source: 'pdf_image_extraction' },
+    ];
+    const buf = await renderToDocx(EMPLOYMENT_MD, OFFICIAL_META_IT, elements);
+    const xml = await getDocumentText(buf);
+    expect(xml).toContain("Logo dell'organizzazione");
+  });
+});
+
+// ── Metadata header suppressed in official modes ──────────────────────────────
+
+describe('renderToDocx — internal metadata header', () => {
+  it('does not contain "RU → IT | other" in official (translator_review_draft) mode', async () => {
+    const buf = await renderToDocx(EMPLOYMENT_MD, OFFICIAL_META_IT, EMPLOYMENT_ELEMENTS);
+    const xml = await getDocumentText(buf);
+    expect(xml).not.toContain('RU → IT');
+    expect(xml).not.toContain('RU &#x2192; IT');
+  });
+
+  it('does not contain metadata line in notarization_package mode', async () => {
+    const buf = await renderToDocx(EMPLOYMENT_MD, {
+      ...OFFICIAL_META_IT,
+      outputMode: 'notarization_package',
+    }, EMPLOYMENT_ELEMENTS);
+    const xml = await getDocumentText(buf);
+    expect(xml).not.toContain('RU → IT');
+  });
+
+  it('contains metadata line in translation_only (electronic) mode', async () => {
+    const buf = await renderToDocx(EMPLOYMENT_MD, ELECTRONIC_META_IT, EMPLOYMENT_ELEMENTS);
+    const xml = await getDocumentText(buf);
+    // Electronic mode: internal metadata line IS shown
+    expect(xml).toMatch(/RU.*IT/);
+  });
+});
+
+// ── removeVisualOnlyTranslatorNotes ──────────────────────────────────────────
+
+describe('removeVisualOnlyTranslatorNotes', () => {
+  it('removes visual-only Italian translator note', () => {
+    const md = 'Testo.\n\nNota del traduttore: Il documento originale contiene firme manoscritte indicate come "(подпись)".\n\nAltro.';
+    const out = removeVisualOnlyTranslatorNotes(md);
+    expect(out).not.toContain('Nota del traduttore:');
+    expect(out).toContain('Testo.');
+    expect(out).toContain('Altro.');
+  });
+
+  it('removes visual-only English translator note', () => {
+    const md = "Content.\n\nTranslator's note: The original document contains handwritten signatures marked as [signature].\n\nMore content.";
+    const out = removeVisualOnlyTranslatorNotes(md);
+    expect(out).not.toContain("Translator's note:");
+    expect(out).toContain('Content.');
+  });
+
+  it('removes note mentioning stamps and QR codes', () => {
+    const md = 'Text.\n\nNota del traduttore: Il documento contiene timbro e QR code.\n\nEnd.';
+    const out = removeVisualOnlyTranslatorNotes(md);
+    expect(out).not.toContain('Nota del traduttore:');
+  });
+
+  it('keeps translator note that mentions illegible content', () => {
+    const md = 'Text.\n\nNota del traduttore: La firma è illeggibile e il timbro è danneggiato.\n\nEnd.';
+    const out = removeVisualOnlyTranslatorNotes(md);
+    expect(out).toContain('Nota del traduttore:');
+  });
+
+  it('keeps translator note with ambiguous content', () => {
+    const md = 'Text.\n\nTranslator note: Some text was unclear and could not be read accurately.\n\nEnd.';
+    const out = removeVisualOnlyTranslatorNotes(md);
+    expect(out).toContain('Translator note:');
+  });
+
+  it('keeps non-visual translator note about missing pages', () => {
+    const md = 'Text.\n\nPrimechanie perevodchika: missing page 3 in the original.\n\nEnd.';
+    const out = removeVisualOnlyTranslatorNotes(md);
+    expect(out).toContain('Primechanie perevodchika:');
+  });
+
+  it('handles markdown with visual-only note removed via renderToDocx', async () => {
+    const mdWithNote = `${EMPLOYMENT_MD}\n\nNota del traduttore: Il documento originale contiene firme manoscritte indicate come "(подпись)".`;
+    const buf = await renderToDocx(mdWithNote, OFFICIAL_META_IT, EMPLOYMENT_ELEMENTS);
+    const xml = await getDocumentText(buf);
+    expect(xml).not.toContain('Nota del traduttore:');
+  });
+});
+
 // ── Deduplication ─────────────────────────────────────────────────────────────
 
 describe('renderToDocx visual block deduplication', () => {
@@ -348,8 +461,8 @@ describe('renderToDocx visual block deduplication', () => {
     ];
     const buf = await renderToDocx(EMPLOYMENT_MD, OFFICIAL_META_IT, elements);
     const xml = await getDocumentText(buf);
-    // Only one Timbro row
-    expect(countOccurrences(xml, 'Timbro')).toBe(2); // once in header (bold), once in data
+    // Only one Timbro row: Elemento col + Rappresentazione col (kind fallback) + translator block "Timbro dell'Esecutore:"
+    expect(countOccurrences(xml, 'Timbro')).toBe(3);
   });
 
   it('keeps two signatures at different positions', async () => {

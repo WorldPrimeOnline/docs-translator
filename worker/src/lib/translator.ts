@@ -83,8 +83,18 @@ export async function translateDocument(
   const { protected: protectedMarkdown, entries } = extractProtectedValues(markdown);
   const chunks = chunkMarkdown(protectedMarkdown);
   console.log(`[translator] ${chunks.length} chunk(s), ${wordCount(markdown)} words, ${entries.length} protected value(s)`);
+  if (entries.length > 0) {
+    console.log(`[translator] protected: ${entries.map((e) => `${e.token}=${e.value}`).join(' ')}`);
+  }
   const results = await Promise.all(
     chunks.map((c) => translateChunk(c, sourceLang, targetLang, documentType)),
   );
-  return restoreProtectedValues(results.join('\n\n'), entries);
+  const joined = results.join('\n\n');
+  const restored = restoreProtectedValues(joined, entries);
+  for (const { token, value } of entries) {
+    if (!restored.includes(value)) {
+      console.warn(`[translator] MACHINE_VALUE_SOURCE_UNCERTAIN: ${token} (value: ${value}) missing after restore — possible OCR read error or LLM mutation`);
+    }
+  }
+  return restored;
 }

@@ -127,7 +127,7 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
     // Page-level vision analysis — primary source for visual inventory
     let pageVisionElements: import('./lib/visual-elements').VisualElement[] = [];
     try {
-      pageVisionElements = await analyzeDocumentVisuals(rawPages, pdfBuffer);
+      pageVisionElements = await analyzeDocumentVisuals(rawPages, pdfBuffer, doc.target_language);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.warn(`${tag} page-vision analysis failed (non-fatal): ${msg}`);

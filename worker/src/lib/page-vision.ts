@@ -112,28 +112,45 @@ const FULL_PDF_VISION_SYSTEM =
   'margins, corners, background layers, and signature zones. ' +
   'Report only elements you can actually see. Use "unknown_image" for unclear elements.';
 
-const FULL_PDF_VISION_PROMPT =
-  'Examine every page of this document and identify all visual/graphical elements.\n\n' +
-  'Look for in every area (including background, margins, and overlays):\n' +
-  '- Company or organization logos or brand marks\n' +
-  '- Official stamps or seals (round, rectangular, wet ink or printed)\n' +
-  '- Handwritten signatures or ink marks\n' +
-  '- QR codes (2D matrix barcodes)\n' +
-  '- Barcodes (1D parallel-line barcodes)\n' +
-  '- Watermarks (background text or translucent overlays)\n' +
-  '- Photographs of persons, objects, or scenes\n' +
-  '- Government emblems or coats of arms\n' +
-  '- Accreditation marks or certification badges\n' +
-  '- Any other meaningful graphical element\n\n' +
-  'Do NOT report:\n' +
-  '- Plain printed text content\n' +
-  '- Plain printed URLs (a QR code containing a URL IS a visual element)\n\n' +
-  'Return JSON only — no prose, no markdown fences:\n' +
-  '{"pages":[{"page":1,"elements":[{"kind":"<kind>","position":"<position>","description":"<max 60 chars>","confidence":<0.0-1.0>}]}]}\n\n' +
-  'Kind values: logo, emblem, photo, qr, barcode, stamp, signature, watermark, accreditation_mark, certification_mark, label, unknown_image\n' +
-  'Position values: upper_left, upper_center, upper_right, center_left, center, center_right, lower_left, lower_center, lower_right, full_page\n' +
-  'Omit elements with confidence < 0.35.\n' +
-  'Return JSON only.';
+const LANG_NAMES: Record<string, string> = {
+  en: 'English', ru: 'Russian (Русский)', it: 'Italian (Italiano)',
+  de: 'German (Deutsch)', fr: 'French (Français)', es: 'Spanish (Español)',
+  zh: 'Chinese (中文)', ko: 'Korean (한국어)', ja: 'Japanese (日本語)',
+  kk: 'Kazakh (Қазақша)', uz: "Uzbek (O'zbek)", th: 'Thai (ภาษาไทย)',
+  ar: 'Arabic (عربي)', tr: 'Turkish (Türkçe)', tj: 'Tajik (Тоҷикӣ)',
+  tk: 'Turkmen (Türkmen)', mn: 'Mongolian (Монгол)', ky: 'Kyrgyz (Кыргызча)',
+};
+
+function buildFullPdfVisionPrompt(targetLang: string): string {
+  const ln = LANG_NAMES[targetLang] ?? targetLang;
+  return (
+    'Examine every page of this document and identify all visual/graphical elements.\n\n' +
+    'Look for in every area (including background, margins, and overlays):\n' +
+    '- Company or organization logos or brand marks\n' +
+    '- Official stamps or seals (round, rectangular, wet ink or printed)\n' +
+    '- Handwritten signatures or ink marks\n' +
+    '- QR codes (2D matrix barcodes)\n' +
+    '- Barcodes (1D parallel-line barcodes)\n' +
+    '- Watermarks (background text or translucent overlays)\n' +
+    '- Photographs of persons, objects, or scenes\n' +
+    '- Government emblems or coats of arms\n' +
+    '- Accreditation marks or certification badges\n' +
+    '- Any other meaningful graphical element\n\n' +
+    'Do NOT report:\n' +
+    '- Plain printed text content\n' +
+    '- Plain printed URLs (a QR code containing a URL IS a visual element)\n\n' +
+    `LANGUAGE: Write every "description" in ${ln}.\n` +
+    'If the visual element has readable text (stamp text, watermark text, logo name), ' +
+    'preserve that text verbatim inside «» guillemets. ' +
+    'Describe the element in the target language; only the quoted text stays in the original.\n\n' +
+    'Return JSON only — no prose, no markdown fences:\n' +
+    '{"pages":[{"page":1,"elements":[{"kind":"<kind>","position":"<position>","description":"<max 60 chars in target lang>","confidence":<0.0-1.0>}]}]}\n\n' +
+    'Kind values: logo, emblem, photo, qr, barcode, stamp, signature, watermark, accreditation_mark, certification_mark, label, unknown_image\n' +
+    'Position values: upper_left, upper_center, upper_right, center_left, center, center_right, lower_left, lower_center, lower_right, full_page\n' +
+    'Omit elements with confidence < 0.35.\n' +
+    'Return JSON only.'
+  );
+}
 
 interface PdfVisionElement {
   kind: string;
@@ -207,8 +224,10 @@ function sleep(ms: number): Promise<void> {
 async function analyzeFullPdfWithClaude(
   pdfBuffer: Buffer,
   anthropic: Anthropic,
+  targetLang: string,
 ): Promise<VisualElement[]> {
   const pdfBase64 = pdfBuffer.toString('base64');
+  const prompt = buildFullPdfVisionPrompt(targetLang);
   let lastError: Error = new Error('PDF vision failed after all retries');
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
@@ -232,7 +251,7 @@ async function analyzeFullPdfWithClaude(
           role: 'user',
           content: [
             docBlock,
-            { type: 'text', text: FULL_PDF_VISION_PROMPT },
+            { type: 'text', text: prompt },
           ],
         }],
       });
@@ -437,13 +456,14 @@ function deduplicatePageVision(elements: VisualElement[]): VisualElement[] {
 export async function analyzeDocumentVisuals(
   rawPages: MistralPageWithImages[],
   pdfBuffer: Buffer,
+  targetLang: string,
   _anthropic?: Anthropic,
 ): Promise<VisualElement[]> {
   const anthropic = _anthropic ?? getClient();
 
   // PRIMARY: full-page PDF vision via Claude document block
   try {
-    const elements = await analyzeFullPdfWithClaude(pdfBuffer, anthropic);
+    const elements = await analyzeFullPdfWithClaude(pdfBuffer, anthropic, targetLang);
     const count = elements.length;
     console.log(
       `[page-vision] source=full-page-raster count=${count}` +
