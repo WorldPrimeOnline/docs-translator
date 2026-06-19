@@ -323,7 +323,9 @@
       "serviceElectronic": "Elektron",
       "serviceCertified": "Tassyklanan",
       "serviceNotarized": "Notarial"
-    }
+    },
+    "uploadAndPay": "Upload & Pay by card",
+    "uploadedPaymentPending": "File uploaded — pay {price} to start translation"
   },
   "auth": {
     "login": "Giriş",

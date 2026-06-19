@@ -323,7 +323,9 @@
       "serviceElectronic": "전자",
       "serviceCertified": "공인",
       "serviceNotarized": "공증"
-    }
+    },
+    "uploadAndPay": "Upload & Pay by card",
+    "uploadedPaymentPending": "File uploaded — pay {price} to start translation"
   },
   "auth": {
     "login": "로그인",

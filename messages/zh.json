@@ -323,7 +323,9 @@
       "serviceElectronic": "电子版",
       "serviceCertified": "认证翻译",
       "serviceNotarized": "公证翻译"
-    }
+    },
+    "uploadAndPay": "Upload & Pay by card",
+    "uploadedPaymentPending": "File uploaded — pay {price} to start translation"
   },
   "auth": {
     "login": "登录",

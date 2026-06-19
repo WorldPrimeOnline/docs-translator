@@ -323,7 +323,9 @@
       "serviceElectronic": "Electrónico",
       "serviceCertified": "Certificado",
       "serviceNotarized": "Notarizado"
-    }
+    },
+    "uploadAndPay": "Upload & Pay by card",
+    "uploadedPaymentPending": "File uploaded — pay {price} to start translation"
   },
   "auth": {
     "login": "Iniciar sesión",

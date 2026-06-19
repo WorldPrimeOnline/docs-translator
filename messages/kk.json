@@ -323,7 +323,9 @@
       "serviceElectronic": "Электрондық",
       "serviceCertified": "Куәландырылған",
       "serviceNotarized": "Нотариалдық"
-    }
+    },
+    "uploadAndPay": "Upload & Pay by card",
+    "uploadedPaymentPending": "File uploaded — pay {price} to start translation"
   },
   "auth": {
     "login": "Кіру",

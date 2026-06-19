@@ -710,6 +710,7 @@ export default function DashboardPage() {
         (!isDelivery || (deliveryPhone.length > 0 && deliveryAddress.length > 0))));
 
   const useSubscription = subscription && subscription.documentsUsed < subscription.documentsLimit;
+  const cardPaymentsEnabled = process.env.NEXT_PUBLIC_HALYK_EPAY_ENABLED === 'true';
 
   // ─── Upload ────────────────────────────────────────────────────────────────────
 
@@ -737,8 +738,20 @@ export default function DashboardPage() {
       if (isDelivery) { form.append('deliveryPhone', deliveryPhone); form.append('deliveryAddress', deliveryAddress); }
     }
 
-    const res = await fetch('/api/documents/upload', { method: 'POST', body: form });
-    const data = (await res.json()) as { jobId?: string; documentId?: string; error?: string; subscriptionPlan?: string; remainingDocs?: number; };
+    // Route to card payment if no subscription and card payments enabled
+    const useCardPayment = !useSubscription && cardPaymentsEnabled;
+    const endpoint = useCardPayment ? '/api/documents/upload-card' : '/api/documents/upload';
+
+    const res = await fetch(endpoint, { method: 'POST', body: form });
+    const data = (await res.json()) as {
+      jobId?: string;
+      documentId?: string;
+      error?: string;
+      subscriptionPlan?: string;
+      remainingDocs?: number;
+      paymentRequired?: boolean;
+      priceKzt?: number;
+    };
 
     if (!res.ok || !data.jobId || !data.documentId) {
       toast.error(data.error ?? 'Upload failed');
@@ -749,7 +762,11 @@ export default function DashboardPage() {
     setUploading(false);
     setFiles([]);
 
-    toast.success(`Translation started — ${data.remainingDocs ?? 0} doc${data.remainingDocs === 1 ? '' : 's'} remaining on your ${data.subscriptionPlan === 'pro' ? 'Pro' : 'Basic'} plan.`);
+    if (data.paymentRequired) {
+      toast.success(t('uploadedPaymentPending', { price: `${(data.priceKzt ?? 0).toLocaleString()} KZT` }));
+    } else {
+      toast.success(`Translation started — ${data.remainingDocs ?? 0} doc${data.remainingDocs === 1 ? '' : 's'} remaining on your ${data.subscriptionPlan === 'pro' ? 'Pro' : 'Basic'} plan.`);
+    }
 
     // Reload from Supabase so the new job appears in the active orders section
     await loadOrders();
@@ -929,7 +946,15 @@ export default function DashboardPage() {
 
           <button type="submit" disabled={uploading || !isFormValid}
             className="inline-flex w-fit items-center justify-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-gold-dark disabled:pointer-events-none disabled:opacity-50">
-            {uploading ? (<><Loader2 className="h-4 w-4 animate-spin" />…</>) : useSubscription ? (<><Upload className="h-4 w-4" />{t('uploadBtn')}</>) : (<><Upload className="h-4 w-4" />{t('uploadPay')}</>)}
+            {uploading ? (
+              <><Loader2 className="h-4 w-4 animate-spin" />…</>
+            ) : useSubscription ? (
+              <><Upload className="h-4 w-4" />{t('uploadBtn')}</>
+            ) : cardPaymentsEnabled ? (
+              <><Upload className="h-4 w-4" />{t('uploadAndPay')}</>
+            ) : (
+              <><Upload className="h-4 w-4" />{t('uploadPay')}</>
+            )}
           </button>
         </form>
       </div>

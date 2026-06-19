@@ -200,6 +200,8 @@
     "documentType": "ТИП ДОКУМЕНТА",
     "uploadBtn": "Загрузить и перевести",
     "uploadPay": "Загрузить и оплатить",
+    "uploadAndPay": "Загрузить и оплатить картой",
+    "uploadedPaymentPending": "Файл загружен — оплатите {price} для начала перевода",
     "pastTranslations": "История переводов",
     "completed": "Готово",
     "processing": "Обрабатывается",

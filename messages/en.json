@@ -175,6 +175,8 @@
     "documentType": "DOCUMENT TYPE",
     "uploadBtn": "Upload & Translate",
     "uploadPay": "Upload & Pay",
+    "uploadAndPay": "Upload & Pay by card",
+    "uploadedPaymentPending": "File uploaded — pay {price} to start translation",
     "pastTranslations": "Past Translations",
     "completed": "Completed",
     "processing": "Processing",
