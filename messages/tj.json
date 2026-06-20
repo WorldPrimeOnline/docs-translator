@@ -325,7 +325,15 @@
       "serviceNotarized": "Нотариалӣ"
     },
     "uploadAndPay": "Upload & Pay by card",
-    "uploadedPaymentPending": "File uploaded — pay {price} to start translation"
+    "uploadedPaymentPending": "File uploaded — pay {price} to start translation",
+    "errors": {
+      "serverError": "Хатои сервер. Лутфан бори дигар кӯшиш кунед.",
+      "uploadFailed": "Хатои боркунӣ",
+      "logoutFailed": "Баромадан муваффақ нашуд",
+      "unsupportedFileType": "Навъи файли дастгирӣнашаванда: {files}",
+      "pleaseSelectFile": "Лутфан ҳадди аққал як файл интихоб кунед",
+      "failedTermsAcceptance": "Қабул кардани шартҳо нигоҳ дошта нашуд."
+    }
   },
   "auth": {
     "login": "Воридшавӣ",

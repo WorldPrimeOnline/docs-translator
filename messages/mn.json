@@ -325,7 +325,15 @@
       "serviceNotarized": "Нотариатын"
     },
     "uploadAndPay": "Upload & Pay by card",
-    "uploadedPaymentPending": "File uploaded — pay {price} to start translation"
+    "uploadedPaymentPending": "File uploaded — pay {price} to start translation",
+    "errors": {
+      "serverError": "Серверийн алдаа. Дахин оролдоно уу.",
+      "uploadFailed": "Байршуулалт амжилтгүй боллоо",
+      "logoutFailed": "Гарах амжилтгүй боллоо",
+      "unsupportedFileType": "Дэмжигдээгүй файлын төрөл: {files}",
+      "pleaseSelectFile": "Дор хаяж нэг файл сонгоно уу",
+      "failedTermsAcceptance": "Нөхцлийг хүлээн зөвшөөрөхийг хадгалах амжилтгүй боллоо."
+    }
   },
   "auth": {
     "login": "Нэвтрэх",

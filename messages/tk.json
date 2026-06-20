@@ -325,7 +325,15 @@
       "serviceNotarized": "Notarial"
     },
     "uploadAndPay": "Upload & Pay by card",
-    "uploadedPaymentPending": "File uploaded — pay {price} to start translation"
+    "uploadedPaymentPending": "File uploaded — pay {price} to start translation",
+    "errors": {
+      "serverError": "Serwer ýalňyşlygy. Gaýtadan synanyşyň.",
+      "uploadFailed": "Ýüklemek şowsuz boldy",
+      "logoutFailed": "Çykmak başartmady",
+      "unsupportedFileType": "Goldanmaýan faýl görnüşi: {files}",
+      "pleaseSelectFile": "Iň az bir faýl saýlaň",
+      "failedTermsAcceptance": "Şertleri kabul etmegi saklamak başartmady."
+    }
   },
   "auth": {
     "login": "Giriş",

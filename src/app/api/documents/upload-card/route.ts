@@ -191,6 +191,7 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
   const safeFilename = rawFiles.length === 1 ? firstName : `${rawFiles.length}_files_${firstName}`;
 
   const docId = crypto.randomUUID();
+  const correlationId = crypto.randomUUID();
   const fileKey = `documents/${user.id}/${docId}/original.pdf`;
   const clientIp = getClientIp(request);
 
@@ -232,7 +233,13 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
     .single();
 
   if (docError || !doc) {
-    console.error('[upload-card] document insert failed:', docError?.message);
+    console.error('[upload-card] document insert failed', {
+      correlationId,
+      code: docError?.code,
+      message: docError?.message,
+      details: docError?.details,
+      hint: docError?.hint,
+    });
     return NextResponse.json({ error: 'Failed to create document record' }, { status: 500 });
   }
 
@@ -259,7 +266,18 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
     .single();
 
   if (jobError || !job) {
-    console.error('[upload-card] job insert failed:', jobError?.message);
+    console.error('[upload-card] job insert failed', {
+      correlationId,
+      code: jobError?.code,
+      message: jobError?.message,
+      details: jobError?.details,
+      hint: jobError?.hint,
+    });
+    // Compensation: mark orphaned document as failed so it doesn't clog the dashboard
+    await supabaseServer
+      .from('documents')
+      .update({ status: 'failed' })
+      .eq('id', docId);
     return NextResponse.json({ error: 'Failed to create job' }, { status: 500 });
   }
 

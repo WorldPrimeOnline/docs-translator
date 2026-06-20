@@ -325,7 +325,15 @@
       "serviceNotarized": "Нотариалдык"
     },
     "uploadAndPay": "Upload & Pay by card",
-    "uploadedPaymentPending": "File uploaded — pay {price} to start translation"
+    "uploadedPaymentPending": "File uploaded — pay {price} to start translation",
+    "errors": {
+      "serverError": "Сервер катасы. Кайра аракет кылыңыз.",
+      "uploadFailed": "Жүктөө катасы",
+      "logoutFailed": "Чыгуу ийгиликсиз аяктады",
+      "unsupportedFileType": "Колдоо көрсөтүлбөгөн файл түрү: {files}",
+      "pleaseSelectFile": "Жок дегенде бир файл тандаңыз",
+      "failedTermsAcceptance": "Шарттарды кабыл алууну сактоо ийгиликсиз аяктады."
+    }
   },
   "auth": {
     "login": "Кирүү",

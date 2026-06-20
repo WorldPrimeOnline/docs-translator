@@ -325,6 +325,14 @@
       "serviceElectronic": "Electronic",
       "serviceCertified": "Certified",
       "serviceNotarized": "Notarized"
+    },
+    "errors": {
+      "serverError": "Server error. Please try again.",
+      "uploadFailed": "Upload failed",
+      "logoutFailed": "Failed to log out",
+      "unsupportedFileType": "Unsupported file type: {files}",
+      "pleaseSelectFile": "Please select at least one file",
+      "failedTermsAcceptance": "Failed to save terms acceptance."
     }
   },
   "auth": {

@@ -6,7 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Always read `PROJECT_CONTEXT.md` at the start of every session. It is the authoritative source for product vision, positioning rules, business constraints, and MVP status. Do not reposition this product as a generic AI translator.
 
-**PROJECT_CONTEXT.md caveat on payments**: Sections §6, §7, and §18 still describe TON cryptocurrency payments as "implemented" — this is outdated. TON payments have been removed from the codebase. The current payment state is described in the Payments section of this file (subscription-only; Halyk Bank ePay pending). For everything else (vision, positioning, stack, env vars, pipeline), PROJECT_CONTEXT.md is accurate.
+**PROJECT_CONTEXT.md caveat on payments**: Sections §6, §7, and §18 still describe TON cryptocurrency payments as "implemented" — this is outdated. TON payments have been removed from the codebase. The current payment state is described in the Payments section of this file (subscription + Halyk Bank ePay card payments; ePay code is implemented but `cardPaymentsActive` is still `false`). For everything else (vision, positioning, stack, env vars, pipeline), PROJECT_CONTEXT.md is accurate.
+
+**Official DOCX pipeline freeze**: The DOCX / official translation pipeline is frozen for a controlled production pilot as of 2026-06-19. See `docs/OFFICIAL_DOCX_PIPELINE_FREEZE.md` for the exact list of what is and is not allowed to change. Do not modify OCR prompts, translation parameters, table-classification logic, or visual-element detection without explicit approval.
 
 ---
 
@@ -210,6 +212,8 @@ There are **two separate processors** — do not conflate them.
 - Full pipeline: OCR (returns `{ markdown, pageCount, visualElements }`) → **page-vision analysis** (`analyzeDocumentVisuals` in `worker/src/lib/page-vision.ts`) → merge visual elements → **protect critical identifiers** (`extractProtectedValues` in `worker/src/lib/protected-values.ts`) → translate → restore identifiers → render HTML with visual-elements block → QA check → Puppeteer PDF or DOCX → upload to R2 → upsert `translations` (with `qa_report`) → email
 - If Puppeteer fails, falls back to saving `.html`
 - Supports DOCX output via `worker/src/lib/docx-renderer.ts` (also in web app at `src/lib/pdf/docx-renderer.ts`)
+- Full step-by-step call graph for the official/notarized pipeline path: `docs/OFFICIAL_TRANSLATION_PIPELINE.md`
+- `translateToAst()` is called non-blockingly after translation for background AST enrichment; result stored in `translations.translated_ast` but **never** used for rendering — the AST renderer (`worker/src/lib/ast/`) is wired for future opt-in only
 
 Both processors use `claude-sonnet-4-5-20250929` via `@anthropic-ai/sdk` (constant `MODEL` in each file). There are **five** `MODEL` constants to update when changing the model: `src/lib/translation/translator.ts`, `src/lib/translation/detect-language.ts`, `worker/src/lib/translator.ts`, `worker/src/lib/detect-language.ts`, `worker/src/lib/page-vision.ts`.
 
@@ -277,11 +281,11 @@ Other locale-prefixed pages: `contacts` (`src/app/[locale]/contacts/`), `auth` (
 
 **Current state: subscription-only, no active card payment gateway.** `src/lib/stripe/` and `src/lib/polar/` are empty placeholder directories. `POST /api/subscriptions/create` returns HTTP 503 ("temporarily unavailable"). The subscription modal shows a "coming soon" message. The `jobs.payment_source` column is typed `'card_payment' | 'subscription'` — TON cryptocurrency payments are no longer present in the codebase.
 
-**Planned gateway: Halyk Bank ePay** (card payments in KZT). Integration is pending — controlled by `BUSINESS_PROFILE.cardPaymentsActive` in `src/lib/business-profile.ts` (currently `false`). `src/components/payment/PaymentComplianceBlock.tsx` shows Halyk ePay and Mastercard logos with wording that switches based on that flag. Do not add code to the stripe/polar directories without being asked.
+**Halyk Bank ePay** (card payments in KZT). The integration is fully implemented in `src/lib/payments/halyk/` (client, config, invoice, pricing, security, status-map, locale, types). API routes: `POST /api/payments/halyk/initiate`, `POST /api/payments/halyk/callback`, `POST /api/documents/upload-card` (card-payment upload path), `GET /api/cron/reconcile-payments`. The gateway is gated by `BUSINESS_PROFILE.cardPaymentsActive` in `src/lib/business-profile.ts` (currently `false` — set to `true` only after Halyk credentials are added to env and end-to-end tested). `src/components/payment/PaymentComplianceBlock.tsx` wording switches on that flag. Do not add code to the stripe/polar directories without being asked.
 
 Subscription plans (KZT pricing): `SUBSCRIPTION_PLANS` in `src/lib/subscriptions/config.ts` — Basic 4990 KZT/mo (10 docs), Pro 12990 KZT/mo (40 docs). Duration: 30 days. `documents_used` is incremented atomically in the upload route before creating the job.
 
-Subscription state: `subscriptions` table. The upload route is the only path that currently creates jobs — if the user has no active subscription it returns HTTP 402.
+Subscription state: `subscriptions` table. `POST /api/documents/upload` (subscription path) and `POST /api/documents/upload-card` (card payment path) are the two job-creation entry points.
 
 ### Integration orchestrator (Jira + Google Drive + Telegram)
 
@@ -315,7 +319,7 @@ Subscription state: `subscriptions` table. The upload route is the only path tha
 | `documents` | `file_key`, `source_language`, `target_language`, `document_type`, `output_format`, `status`, `word_count`, `price_usd` |
 | `jobs` | `status`, `progress_percent`, `priority`, `payment_source` (`'card_payment' \| 'subscription'`), `country`, `notarized`, `bureau_stamp`, `workflow_status`, `service_level`, `fulfillment_method` (`'pickup' \| 'delivery'`), `jira_issue_key`, `last_synced_at` |
 | `ocr_results` | `job_id`, `markdown`, `page_count`, `provider` |
-| `translations` | `job_id`, `translated_markdown`, `translated_pdf_key`, `translated_docx_key`, `translated_preview_pdf_key`, `qa_report` |
+| `translations` | `job_id`, `translated_markdown`, `translated_pdf_key`, `translated_docx_key`, `translated_preview_pdf_key`, `qa_report`, `translated_ast` (background AST enrichment — non-blocking, never gates delivery) |
 | `subscriptions` | `plan`, `status`, `documents_used`, `documents_limit`, `expires_at` |
 | `job_audit_log` | `job_id`, `actor`, `source`, `action`, `previous_status`, `new_status`, `jira_issue_key`, `correlation_id`, `metadata` — append-only log of all status transitions and integration events |
 | `staff_profiles` | `display_name`, `jira_account_id`, `telegram_chat_id`, `telegram_username`, `telegram_notifications_enabled`, `role` (`operator\|translator\|notary_partner\|admin`), `is_active` — service role only (RLS blocks browser). Unique constraint on `jira_account_id WHERE is_active=true`. |
@@ -335,7 +339,11 @@ Generated types at `src/types/supabase.ts`, re-exported from `src/types/index.ts
 | POST | `/api/subscriptions/create` | 503 placeholder — payment gateway not yet active |
 | GET | `/api/subscriptions/current` | Active subscription for the current user |
 | POST | `/api/subscriptions/use-document` | Check quota and decrement by 1 |
+| POST | `/api/documents/upload-card` | Card-payment upload path (Halyk ePay) — creates job gated by `cardPaymentsActive` |
+| POST | `/api/payments/halyk/initiate` | Initiate Halyk ePay payment, returns redirect URL |
+| POST | `/api/payments/halyk/callback` | Halyk ePay payment result callback — updates job payment status |
 | GET | `/api/cron/cleanup` | Daily 02:00 UTC — deletes files older than 30 days (secured via `CRON_SECRET`) |
+| GET | `/api/cron/reconcile-payments` | Scheduled reconciliation of Halyk ePay payment statuses |
 | POST | `/api/users/accept-terms` | Records `terms_accepted_at` timestamp in users table; gate shown in dashboard before first upload |
 | POST | `/api/webhooks/jira` | Inbound Jira Automation callbacks — updates Supabase job status and sends Telegram/email notifications; does NOT create Jira issues or call Jira API. `ASSIGNEE_CHANGED` events are routed to `handleAssigneeChanged()` (`src/lib/notifications/assignee.ts`) for personal Telegram delivery via `staff_profiles`. |
 | POST | `/api/webhooks/stripe` | Placeholder — no route file exists; `src/lib/stripe/` is an empty directory |

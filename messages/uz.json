@@ -325,7 +325,15 @@
       "serviceNotarized": "Notarial"
     },
     "uploadAndPay": "Upload & Pay by card",
-    "uploadedPaymentPending": "File uploaded — pay {price} to start translation"
+    "uploadedPaymentPending": "File uploaded — pay {price} to start translation",
+    "errors": {
+      "serverError": "Server xatosi. Iltimos, qayta urinib ko'ring.",
+      "uploadFailed": "Yuklash xatosi",
+      "logoutFailed": "Chiqish muvaffaqiyatsiz tugadi",
+      "unsupportedFileType": "Qo'llab-quvvatlanmaydigan fayl turi: {files}",
+      "pleaseSelectFile": "Kamida bitta fayl tanlang",
+      "failedTermsAcceptance": "Shartlarni qabul qilishni saqlash muvaffaqiyatsiz tugadi."
+    }
   },
   "auth": {
     "login": "Kirish",

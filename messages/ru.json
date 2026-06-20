@@ -350,6 +350,14 @@
       "serviceElectronic": "Электронный",
       "serviceCertified": "Заверенный",
       "serviceNotarized": "Нотариально удостоверенный"
+    },
+    "errors": {
+      "serverError": "Ошибка сервера. Попробуйте ещё раз.",
+      "uploadFailed": "Ошибка загрузки",
+      "logoutFailed": "Не удалось выйти",
+      "unsupportedFileType": "Неподдерживаемый тип файла: {files}",
+      "pleaseSelectFile": "Пожалуйста, выберите хотя бы один файл",
+      "failedTermsAcceptance": "Не удалось сохранить принятие условий."
     }
   },
   "auth": {

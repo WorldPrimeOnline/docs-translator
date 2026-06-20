@@ -561,7 +561,7 @@ export default function DashboardPage() {
     setIsLoggingOut(true);
     const supabase = createClient();
     const { error } = await supabase.auth.signOut();
-    if (error) { toast.error('Failed to log out'); setIsLoggingOut(false); return; }
+    if (error) { toast.error(t('errors.logoutFailed')); setIsLoggingOut(false); return; }
     router.push('/');
     router.refresh();
   };
@@ -580,7 +580,7 @@ export default function DashboardPage() {
   function addFiles(incoming: File[]) {
     const accepted = incoming.filter(isAccepted);
     const rejected = incoming.filter((f) => !isAccepted(f));
-    if (rejected.length > 0) toast.error(`Unsupported file type: ${rejected.map((f) => f.name).join(', ')}`);
+    if (rejected.length > 0) toast.error(t('errors.unsupportedFileType', { files: rejected.map((f) => f.name).join(', ') }));
     if (accepted.length > 0) setFiles((prev) => [...prev, ...accepted]);
   }
 
@@ -622,12 +622,12 @@ export default function DashboardPage() {
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     if (!isFormValid) return;
-    if (files.length === 0) { toast.error('Please select at least one file'); return; }
+    if (files.length === 0) { toast.error(t('errors.pleaseSelectFile')); return; }
     setUploading(true);
 
     if (!termsAccepted) {
       const acceptRes = await fetch('/api/users/accept-terms', { method: 'POST' });
-      if (!acceptRes.ok) { toast.error('Failed to save terms acceptance.'); setUploading(false); return; }
+      if (!acceptRes.ok) { toast.error(t('errors.failedTermsAcceptance')); setUploading(false); return; }
       setTermsAccepted(true);
     }
 
@@ -648,13 +648,13 @@ export default function DashboardPage() {
     try {
       data = await res.json() as typeof data;
     } catch {
-      toast.error('Server error. Please try again.');
+      toast.error(t('errors.serverError'));
       setUploading(false);
       return;
     }
 
     if (!res.ok || !data.jobId || !data.documentId) {
-      toast.error(data.error ?? 'Upload failed');
+      toast.error(data.error ?? t('errors.uploadFailed'));
       setUploading(false);
       return;
     }

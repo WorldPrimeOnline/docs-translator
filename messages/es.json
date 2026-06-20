@@ -325,7 +325,15 @@
       "serviceNotarized": "Notarizado"
     },
     "uploadAndPay": "Upload & Pay by card",
-    "uploadedPaymentPending": "File uploaded — pay {price} to start translation"
+    "uploadedPaymentPending": "File uploaded — pay {price} to start translation",
+    "errors": {
+      "serverError": "Error del servidor. Por favor, inténtelo de nuevo.",
+      "uploadFailed": "Error al subir el archivo",
+      "logoutFailed": "Error al cerrar sesión",
+      "unsupportedFileType": "Tipo de archivo no compatible: {files}",
+      "pleaseSelectFile": "Por favor, seleccione al menos un archivo",
+      "failedTermsAcceptance": "Error al guardar la aceptación de términos."
+    }
   },
   "auth": {
     "login": "Iniciar sesión",

@@ -325,7 +325,15 @@
       "serviceNotarized": "公证翻译"
     },
     "uploadAndPay": "Upload & Pay by card",
-    "uploadedPaymentPending": "File uploaded — pay {price} to start translation"
+    "uploadedPaymentPending": "File uploaded — pay {price} to start translation",
+    "errors": {
+      "serverError": "服务器错误，请重试。",
+      "uploadFailed": "上传失败",
+      "logoutFailed": "退出登录失败",
+      "unsupportedFileType": "不支持的文件类型：{files}",
+      "pleaseSelectFile": "请至少选择一个文件",
+      "failedTermsAcceptance": "保存服务条款接受状态失败。"
+    }
   },
   "auth": {
     "login": "登录",
