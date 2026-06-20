@@ -4,6 +4,11 @@ import { withSentryConfig } from '@sentry/nextjs';
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
+// Vercel preview toolbar (injected on Preview deployments, not in production).
+const VERCEL_LIVE_DOMAINS = process.env.VERCEL_ENV !== 'production'
+  ? ' https://vercel.live https://vercel.com'
+  : '';
+
 // Halyk ePay domains required for hosted payment page integration.
 // Only the specific official domains are listed — no wildcard.
 const HALYK_SCRIPT_DOMAINS = [
@@ -42,7 +47,7 @@ const securityHeaders = [
     key: 'Content-Security-Policy',
     value: [
       `default-src 'self'`,
-      `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${HALYK_SCRIPT_DOMAINS}`,
+      `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${HALYK_SCRIPT_DOMAINS}${VERCEL_LIVE_DOMAINS}`,
       `style-src 'self' 'unsafe-inline'`,
       `img-src 'self' data: blob: https:`,
       `font-src 'self' data:`,

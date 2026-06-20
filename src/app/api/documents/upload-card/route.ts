@@ -105,6 +105,15 @@ async function getAuthUser() {
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  try {
+    return await handlePost(request);
+  } catch (err) {
+    console.error('[upload-card] unhandled error:', err);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+async function handlePost(request: NextRequest): Promise<NextResponse> {
   const config = getHalykConfig();
   if (!config.enabled) {
     return NextResponse.json(

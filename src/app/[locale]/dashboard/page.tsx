@@ -644,12 +644,14 @@ export default function DashboardPage() {
     }
 
     const res = await fetch('/api/documents/upload-card', { method: 'POST', body: form });
-    const data = (await res.json()) as {
-      jobId?: string;
-      documentId?: string;
-      error?: string;
-      priceKzt?: number;
-    };
+    let data: { jobId?: string; documentId?: string; error?: string; priceKzt?: number } = {};
+    try {
+      data = await res.json() as typeof data;
+    } catch {
+      toast.error('Server error. Please try again.');
+      setUploading(false);
+      return;
+    }
 
     if (!res.ok || !data.jobId || !data.documentId) {
       toast.error(data.error ?? 'Upload failed');
