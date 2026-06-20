@@ -52,7 +52,7 @@ const securityHeaders = [
       `img-src 'self' data: blob: https:`,
       `font-src 'self' data:`,
       `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://sentry.io ${HALYK_CONNECT_DOMAINS}`,
-      `frame-src 'self' ${HALYK_FRAME_DOMAINS}`,
+      `frame-src 'self' ${HALYK_FRAME_DOMAINS}${VERCEL_LIVE_DOMAINS}`,
       `frame-ancestors 'self'`,
       `form-action 'self'`,
       `base-uri 'self'`,

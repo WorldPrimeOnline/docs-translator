@@ -176,6 +176,7 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
   const { notarized } = deriveBackcompatBooleans(serviceLevel as ServiceLevel);
 
   // Convert and merge files
+  console.log('[upload-card] step: converting files', rawFiles.length, 'file(s)');
   const pdfParts = await Promise.all(
     rawFiles.map(async (f) => {
       const mime = detectMimeType(f);
@@ -184,6 +185,7 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
     }),
   );
   const pdfBuffer = await mergePdfs(pdfParts);
+  console.log('[upload-card] step: pdf ready', pdfBuffer.length, 'bytes');
 
   const firstName = rawFiles[0]!.name.replace(/[^a-zA-Z0-9._\- ]/g, '_').slice(0, 200);
   const safeFilename = rawFiles.length === 1 ? firstName : `${rawFiles.length}_files_${firstName}`;
@@ -192,7 +194,9 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
   const fileKey = `documents/${user.id}/${docId}/original.pdf`;
   const clientIp = getClientIp(request);
 
+  console.log('[upload-card] step: uploading to R2', fileKey);
   await uploadFile(fileKey, pdfBuffer, 'application/pdf');
+  console.log('[upload-card] step: R2 upload done');
 
   // Rate limit: same 10 uploads/hour per user
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
