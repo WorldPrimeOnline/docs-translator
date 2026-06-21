@@ -79,14 +79,16 @@ describe('halyk initiate route — structural invariants', () => {
 describe('halyk client.ts — response body on HTTP error', () => {
   it('reads response body snippet when Halyk returns non-2xx', () => {
     // The original bug: error was thrown before reading body, losing diagnostic info.
-    // Fix: read body before throw on !response.ok path.
-    expect(clientSrc).toContain('bodySnippet');
+    // Fix: read body as text before throwing on !response.ok and schema error paths.
     expect(clientSrc).toContain("await response.text()");
     expect(clientSrc).toContain('responseBodySnippet');
+    // New code reads rawBody on HTTP error path
+    expect(clientSrc).toContain('rawBody');
   });
 
-  it('HalykApiError constructor accepts responseBodySnippet as 4th param', () => {
-    expect(clientSrc).toContain('public readonly responseBodySnippet');
+  it('HalykApiError class declares responseBodySnippet property', () => {
+    // Changed from positional constructor params to class property declarations
+    expect(clientSrc).toContain('readonly responseBodySnippet');
   });
 });
 

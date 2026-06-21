@@ -2,12 +2,14 @@ import { z } from 'zod';
 
 // ─── Halyk API response types ──────────────────────────────────────────────────
 
+// Tolerant schema: Halyk test environment may return expires_in as a numeric string
+// and may omit token_type. Unknown fields are passed through without failing.
 export const HalykTokenResponseSchema = z.object({
   access_token: z.string().min(1),
-  token_type: z.string(),
-  expires_in: z.number(),
+  token_type: z.string().optional(),
+  expires_in: z.union([z.number(), z.string()]).transform(Number).optional(),
   scope: z.string().optional(),
-});
+}).passthrough();
 export type HalykTokenResponse = z.infer<typeof HalykTokenResponseSchema>;
 
 /**

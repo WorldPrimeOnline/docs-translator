@@ -312,18 +312,18 @@ async function handlePost(request: NextRequest, correlationId: string): Promise<
       failurePostLink,
     });
   } catch (err) {
-    const code = err instanceof HalykApiError ? err.code : 'unknown';
-    const httpStatus = err instanceof HalykApiError ? err.httpStatus : undefined;
-    const bodySnippet = err instanceof HalykApiError ? err.responseBodySnippet : undefined;
-    const message = err instanceof Error ? err.message.slice(0, 300) : String(err).slice(0, 300);
-
+    const isHalyk = err instanceof HalykApiError;
     console.error('[halyk/initiate] token acquisition failed', {
       correlationId,
-      code,
-      httpStatus,
-      message,
-      // responseBodySnippet may contain Halyk error description — sanitize access_token
-      responseBodySnippet: bodySnippet?.replace(/"access_token"\s*:\s*"[^"]*"/g, '"access_token":"[redacted]"'),
+      code: isHalyk ? err.code : 'UNKNOWN',
+      httpStatus: isHalyk ? err.httpStatus : undefined,
+      responseContentType: isHalyk ? err.responseContentType : undefined,
+      // snippet already has access_token redacted by client.ts
+      responseBodySnippetSanitized: isHalyk ? err.responseBodySnippet : undefined,
+      halykErrorCode: isHalyk ? err.halykErrorCode : undefined,
+      halykErrorDescription: isHalyk ? err.halykErrorDescription : undefined,
+      validationIssues: isHalyk ? err.validationIssues : undefined,
+      message: err instanceof Error ? err.message.slice(0, 300) : String(err).slice(0, 300),
       mode: config.mode,
       oauthUrlHost: safeHostname(config.endpoints.oauthUrl),
     });
@@ -363,8 +363,8 @@ async function handlePost(request: NextRequest, correlationId: string): Promise<
     email,
     auth: {
       access_token: halykToken.access_token,
-      token_type: halykToken.token_type,
-      expires_in: halykToken.expires_in,
+      token_type: halykToken.token_type ?? 'Bearer',
+      expires_in: halykToken.expires_in ?? 7200,
       ...(halykToken.scope ? { scope: halykToken.scope } : {}),
     },
     data: JSON.stringify({ paymentId: paymentTx.id, jobId }),
