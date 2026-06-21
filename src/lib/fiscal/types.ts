@@ -7,6 +7,7 @@ export type FiscalOperationType = 'sale' | 'refund' | 'correction';
 
 export type FiscalReceiptStatus =
   | 'pending_manual'
+  | 'blocked_by_config'
   | 'pending'
   | 'issued'
   | 'failed'

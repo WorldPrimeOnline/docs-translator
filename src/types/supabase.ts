@@ -524,7 +524,7 @@ export type Database = {
           amount_kzt: number;
           currency: string;
           operation_type: 'sale' | 'refund' | 'correction';
-          status: 'pending_manual' | 'pending' | 'issued' | 'failed' | 'retry_required' | 'canceled';
+          status: 'pending_manual' | 'blocked_by_config' | 'pending' | 'issued' | 'failed' | 'retry_required' | 'canceled';
           customer_email: string | null;
           customer_phone: string | null;
           receipt_payload_sanitized: Json | null;
@@ -552,7 +552,7 @@ export type Database = {
           amount_kzt: number;
           currency?: string;
           operation_type?: 'sale' | 'refund' | 'correction';
-          status?: 'pending_manual' | 'pending' | 'issued' | 'failed' | 'retry_required' | 'canceled';
+          status?: 'pending_manual' | 'blocked_by_config' | 'pending' | 'issued' | 'failed' | 'retry_required' | 'canceled';
           customer_email?: string | null;
           customer_phone?: string | null;
           receipt_payload_sanitized?: Json | null;
@@ -566,7 +566,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
-          status?: 'pending_manual' | 'pending' | 'issued' | 'failed' | 'retry_required' | 'canceled';
+          status?: 'pending_manual' | 'blocked_by_config' | 'pending' | 'issued' | 'failed' | 'retry_required' | 'canceled';
           provider_receipt_id?: string | null;
           provider_shift_id?: string | null;
           provider_cashbox_id?: string | null;

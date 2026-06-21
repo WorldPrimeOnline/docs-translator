@@ -5,13 +5,17 @@
  * Does NOT block the translation job poll loop.
  *
  * What it does:
- * 1. Finds fiscal_receipts in pending/failed/retry_required status and logs them
- *    for operator action. (With a real provider, would retry the API call.)
- * 2. Finds refund_transactions in pending_manual status and logs them for operator
- *    action. (With Halyk refund API, would retry the call.)
+ * 1. Finds fiscal_receipts in pending/retry_required status and logs them for
+ *    operator attention. (These can occur if the web app call failed transiently.)
+ * 2. Finds refund_transactions in pending_manual status and logs them for operator.
  *
- * Throttled: runs every FISCAL_RECONCILE_INTERVAL_MS (default 5 min).
- * Never logs more than MAX_ITEMS_TO_LOG items per cycle to avoid log spam.
+ * Statuses NOT auto-retried:
+ * - pending_manual: requires operator action
+ * - blocked_by_config: requires config change (WEBKASSA_ALLOW_REAL_RECEIPTS)
+ * - failed: permanent failure; operator must investigate
+ *
+ * Throttled: runs every 5 min.
+ * Never logs more than MAX_ITEMS_PER_CYCLE items per cycle to avoid log spam.
  */
 import { supabase } from './supabase';
 

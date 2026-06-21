@@ -31,15 +31,16 @@ CREATE TABLE IF NOT EXISTS public.fiscal_receipts (
                               CHECK (operation_type IN ('sale', 'refund', 'correction')),
 
   -- Lifecycle status
-  -- pending_manual: no provider configured; operator must issue receipt manually
-  -- pending:        provider configured; receipt creation queued
-  -- issued:         provider confirmed receipt
-  -- failed:         provider returned error; may be retried
-  -- retry_required: transient error; eligible for retry
-  -- canceled:       manually voided by operator
+  -- pending_manual:   no provider configured; operator must issue receipt manually
+  -- blocked_by_config: safety gate active (e.g. WEBKASSA_ALLOW_REAL_RECEIPTS not set)
+  -- pending:          provider configured; receipt creation queued
+  -- issued:           provider confirmed receipt
+  -- failed:           provider returned non-retryable error
+  -- retry_required:   transient error; eligible for retry
+  -- canceled:         manually voided by operator
   status                      TEXT NOT NULL DEFAULT 'pending_manual'
                               CHECK (status IN (
-                                'pending_manual', 'pending', 'issued',
+                                'pending_manual', 'blocked_by_config', 'pending', 'issued',
                                 'failed', 'retry_required', 'canceled'
                               )),
 
