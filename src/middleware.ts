@@ -75,7 +75,11 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
       request.headers.get('x-real-ip') ??
       'unknown';
 
-    const limit = pathname.startsWith('/api/jobs') ? MAX_REQUESTS_JOBS : MAX_REQUESTS;
+    // Payment status is polled every 3 s from the result page; allow same rate as job polling.
+    const isHighFreqPath =
+      pathname.startsWith('/api/jobs') ||
+      pathname.startsWith('/api/payments/halyk/status');
+    const limit = isHighFreqPath ? MAX_REQUESTS_JOBS : MAX_REQUESTS;
     if (isRateLimited(ip, limit)) {
       return new NextResponse(JSON.stringify({ error: 'Too many requests' }), {
         status: 429,

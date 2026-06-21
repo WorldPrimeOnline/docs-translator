@@ -1,6 +1,9 @@
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import { PDFDocument, rgb } from 'pdf-lib';
+import fontkit from '@pdf-lib/fontkit';
 import sharp from 'sharp';
 import mammoth from 'mammoth';
+import fs from 'fs';
+import path from 'path';
 
 export async function mergePdfs(pdfBuffers: Buffer[]): Promise<Buffer> {
   if (pdfBuffers.length === 1) return pdfBuffers[0]!;
@@ -44,15 +47,29 @@ async function imageBufferToPdf(imageBuffer: Buffer): Promise<Buffer> {
   return Buffer.from(bytes);
 }
 
-async function docxBufferToPdf(docxBuffer: Buffer): Promise<Buffer> {
-  const { value: text } = await mammoth.extractRawText({ buffer: docxBuffer });
-  // pdf-lib StandardFonts (Helvetica) use WinAnsi encoding and cannot render
-  // Cyrillic, Kazakh, CJK, or other non-Latin-1 characters. Rather than
-  // silently corrupt the document, callers must pre-screen for Unicode content
-  // or use a Unicode-safe rendering path (Puppeteer in the Railway worker).
+// Load NotoSans-Regular once per process (sync, small — ~500 KB bundled in public/fonts/).
+// NotoSans covers Latin, Cyrillic, Kazakh, Turkish, and most Unicode ranges required by WPO.
+// This conversion is for upload intake / OCR / payment workflow only.
+// It is NOT the final official translation output renderer.
+// The frozen official DOCX renderer lives in worker/src/lib/docx-renderer.ts.
+let notoSansFontBytes: Buffer | null = null;
+function getNotoSansFont(): Buffer {
+  if (!notoSansFontBytes) {
+    const fontPath = path.join(process.cwd(), 'public', 'fonts', 'NotoSans-Regular.ttf');
+    notoSansFontBytes = fs.readFileSync(fontPath);
+  }
+  return notoSansFontBytes;
+}
 
+async function docxBufferToPdf(docxBuffer: Buffer): Promise<Buffer> {
+  // Extract plain text from DOCX; mammoth preserves Unicode content.
+  const { value: text } = await mammoth.extractRawText({ buffer: docxBuffer });
+
+  const fontBytes = getNotoSansFont();
   const pdfDoc = await PDFDocument.create();
-  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  pdfDoc.registerFontkit(fontkit);
+  const font = await pdfDoc.embedFont(fontBytes);
+
   const fontSize = 11;
   const margin = 50;
   const lineHeight = fontSize * 1.4;
@@ -70,7 +87,9 @@ async function docxBufferToPdf(docxBuffer: Buffer): Promise<Buffer> {
       page = pdfDoc.addPage([pageWidth, pageHeight]);
       y = pageHeight - margin;
     }
-    page.drawText(line, { x: margin, y, size: fontSize, font, color: rgb(0, 0, 0) });
+    if (line) {
+      page.drawText(line, { x: margin, y, size: fontSize, font, color: rgb(0, 0, 0) });
+    }
     y -= lineHeight;
   }
 
@@ -78,7 +97,15 @@ async function docxBufferToPdf(docxBuffer: Buffer): Promise<Buffer> {
   return Buffer.from(bytes);
 }
 
-function wrapText(text: string, font: ReturnType<typeof Object.create>, fontSize: number, maxWidth: number): string[] {
+// pdf-lib doesn't export the font class type directly; use the inferred return type.
+type EmbeddedFont = Awaited<ReturnType<PDFDocument['embedFont']>>;
+
+function wrapText(
+  text: string,
+  font: EmbeddedFont,
+  fontSize: number,
+  maxWidth: number,
+): string[] {
   const result: string[] = [];
   for (const paragraph of text.split('\n')) {
     if (paragraph.trim() === '') {
@@ -89,12 +116,18 @@ function wrapText(text: string, font: ReturnType<typeof Object.create>, fontSize
     let current = '';
     for (const word of words) {
       const candidate = current ? `${current} ${word}` : word;
-      const width: number = font.widthOfTextAtSize(candidate, fontSize);
-      if (width > maxWidth && current) {
-        result.push(current);
+      try {
+        const width: number = font.widthOfTextAtSize(candidate, fontSize);
+        if (width > maxWidth && current) {
+          result.push(current);
+          current = word;
+        } else {
+          current = candidate;
+        }
+      } catch {
+        // If a glyph is missing from the font, push what we have and continue.
+        if (current) result.push(current);
         current = word;
-      } else {
-        current = candidate;
       }
     }
     if (current) result.push(current);
