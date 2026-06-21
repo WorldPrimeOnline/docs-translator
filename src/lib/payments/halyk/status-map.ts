@@ -8,11 +8,14 @@ import type { InternalPaymentStatus } from './types';
  * Reference: https://epayment.kz/docs/kody-oshibok
  */
 export function mapHalykStatus(
-  resultCode: number,
+  resultCode: number | string,
   statusName: string | undefined,
 ): InternalPaymentStatus {
-  if (resultCode === 100) {
-    switch (statusName?.toUpperCase()) {
+  const code = Number(resultCode);
+  // Normalize statusName: trim whitespace and uppercase for case-insensitive matching
+  const status = statusName?.trim().toUpperCase();
+  if (code === 100) {
+    switch (status) {
       case 'CHARGE':
         return 'paid';
       case 'REFUND':
@@ -35,17 +38,17 @@ export function mapHalykStatus(
     }
   }
 
-  if (resultCode === 107) {
+  if (code === 107) {
     // Transaction not found yet — check later
     return 'payment_pending';
   }
 
-  if (resultCode === 102) {
+  if (code === 102) {
     // Immediately after initiation: not a final failure
     return 'payment_pending';
   }
 
-  if (resultCode === 103) {
+  if (code === 103) {
     // Technical error — retry recommended
     return 'requires_review';
   }

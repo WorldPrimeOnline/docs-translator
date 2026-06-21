@@ -48,13 +48,15 @@ describe('status endpoint — on-demand reconciliation', () => {
     expect(statusSrc).toContain('provider_invoice_id');
   });
 
-  it('updates status_checked_at before calling Halyk (anti-thundering-herd)', () => {
-    // status_checked_at must be updated before the await checkPaymentStatus call
+  it('updates status_checked_at AFTER a successful Halyk response (not before, to avoid blocking retries on parse error)', () => {
+    // status_checked_at is set inside the try block, AFTER the successful checkPaymentStatus call.
+    // This ensures parse/network errors do NOT permanently activate the cooldown.
     const setCooldownPos = statusSrc.indexOf('status_checked_at: new Date().toISOString()');
     const checkStatusPos = statusSrc.indexOf('await checkPaymentStatus');
     expect(setCooldownPos).toBeGreaterThan(-1);
     expect(checkStatusPos).toBeGreaterThan(-1);
-    expect(setCooldownPos).toBeLessThan(checkStatusPos);
+    // cooldown stamp comes AFTER the awaited status call
+    expect(setCooldownPos).toBeGreaterThan(checkStatusPos);
   });
 
   it('maps CHARGE to paid and finalizes', () => {

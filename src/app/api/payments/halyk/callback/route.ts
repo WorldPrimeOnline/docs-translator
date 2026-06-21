@@ -188,11 +188,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const statusName = transaction?.statusName;
   const internalStatus = mapHalykStatus(resultCode, statusName);
 
-  // Verify terminal and amount against stored snapshot
+  // Verify terminal and amount against stored snapshot.
+  // Note: Halyk returns both "terminal" (short numeric ID, e.g. "98120001") and
+  // "terminalID" (UUID). config.terminalId is the short form — match against either.
   if (transaction) {
-    if (config.terminalId && transaction.terminalID && transaction.terminalID !== config.terminalId) {
+    const terminalMatches =
+      !config.terminalId ||                        // no config → skip check
+      (!transaction.terminalID && !transaction.terminal) || // no terminal in response → skip
+      transaction.terminal === config.terminalId ||         // short id matches
+      transaction.terminalID === config.terminalId;         // uuid matches (edge case)
+    if (!terminalMatches) {
       console.error('[halyk/callback] terminal mismatch payment:', paymentTx.id,
-        'expected:', config.terminalId, 'got:', transaction.terminalID);
+        { expected: config.terminalId, gotShort: transaction.terminal, gotUUID: transaction.terminalID });
       await supabaseServer
         .from('payment_transactions')
         .update({

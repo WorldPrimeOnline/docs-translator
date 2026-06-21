@@ -84,12 +84,19 @@ export type HalykTransactionStatusName =
   | 'REJECT';
 
 export const HalykTransactionSchema = z.object({
-  invoiceID: z.union([z.string(), z.number()]).transform(String),
+  // Halyk docs show uppercase "invoiceID" but some environments use lowercase "invoiceId" —
+  // both are optional here so the schema tolerates either casing.
+  invoiceID: z.union([z.string(), z.number()]).transform(String).optional(),
+  invoiceId: z.union([z.string(), z.number()]).transform(String).optional(),
+  // terminalID is the UUID; terminal is the short numeric id (e.g. "98120001").
+  // Both may be present; we keep both for comparison logic.
   terminalID: z.string().optional(),
+  terminal: z.string().optional(),
   numericCardId: z.string().optional(),
-  statusName: z.string(),
-  amount: z.union([z.string(), z.number()]).transform((v) => Number(v)),
-  currency: z.string(),
+  // statusName may be missing for non-200 resultCodes — made optional.
+  statusName: z.string().transform(s => s.trim().toUpperCase()).optional(),
+  amount: z.union([z.string(), z.number()]).transform((v) => Number(v)).optional(),
+  currency: z.string().optional(),
   description: z.string().optional(),
   language: z.string().optional(),
   cardMask: z.string().optional(),
@@ -97,10 +104,11 @@ export const HalykTransactionSchema = z.object({
   issuer: z.string().optional(),
   approvalCode: z.string().optional(),
   reference: z.string().optional(),
-  secure: z.string().optional(),
-  // Provider transaction identifier
+  intReference: z.string().optional(),
+  secure: z.union([z.boolean(), z.string()]).optional(),
+  // Provider transaction identifier — "transactionId" or "id" depending on endpoint
   transactionId: z.union([z.string(), z.number()]).transform(String).optional(),
-  // Alternative field names seen in docs
+  id: z.union([z.string(), z.number()]).transform(String).optional(),
   reasonCode: z.union([z.string(), z.number()]).transform(String).optional(),
   reason: z.string().optional(),
 }).passthrough();
@@ -110,7 +118,8 @@ export type HalykTransaction = z.infer<typeof HalykTransactionSchema>;
 export const HalykStatusResponseSchema = z.object({
   resultCode: z.union([z.string(), z.number()]).transform(Number),
   resultMessage: z.string().optional(),
-  transaction: HalykTransactionSchema.optional(),
+  // transaction is null for error responses (resultCode != 100)
+  transaction: z.union([HalykTransactionSchema, z.null()]).optional(),
 }).passthrough();
 
 export type HalykStatusResponse = z.infer<typeof HalykStatusResponseSchema>;

@@ -326,6 +326,7 @@ export async function checkPaymentStatus(invoiceId: string): Promise<HalykStatus
       }
 
       const { data: raw, rawText, httpStatus: statusCode, contentType } = await parseJsonResponse(response);
+      const snippet = redactSnippet(rawText);
       const parsed = HalykStatusResponseSchema.safeParse(raw);
 
       if (!parsed.success) {
@@ -333,8 +334,12 @@ export async function checkPaymentStatus(invoiceId: string): Promise<HalykStatus
           message: 'Halyk status response validation failed',
           code: 'HALYK_STATUS_PARSE_ERROR',
           httpStatus: statusCode,
-          responseBodySnippet: rawText.slice(0, 500),
+          responseBodySnippet: snippet,
           responseContentType: contentType,
+          validationIssues: parsed.error.issues.map((i) => ({
+            path: i.path as (string | number)[],
+            message: i.message,
+          })),
         });
       }
 

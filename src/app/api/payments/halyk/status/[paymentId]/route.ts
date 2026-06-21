@@ -104,11 +104,9 @@ export async function GET(
   else if (msSinceLastCheck <= RECONCILE_COOLDOWN_MS) providerCheckSkippedReason = 'cooldown';
 
   if (shouldReconcile) {
-    // Mark status_checked_at immediately to prevent concurrent polls all hitting Halyk.
-    await supabaseServer
-      .from('payment_transactions')
-      .update({ status_checked_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-      .eq('id', paymentTx.id);
+    // Note: status_checked_at is updated AFTER a successful API response (not before),
+    // so that parse/network errors do not permanently block retries via cooldown.
+    // A small thundering-herd risk is acceptable given the 12s cooldown applies on success.
 
     let providerResultCode: number | undefined;
     let providerStatusName: string | undefined;
@@ -118,6 +116,12 @@ export async function GET(
 
     try {
       const statusResp = await checkPaymentStatus(paymentTx.provider_invoice_id!);
+
+      // Success: stamp the cooldown timestamp now that we have a valid response
+      await supabaseServer
+        .from('payment_transactions')
+        .update({ status_checked_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+        .eq('id', paymentTx.id);
       providerResultCode = statusResp.resultCode;
       providerStatusName = statusResp.transaction?.statusName;
 
@@ -202,9 +206,13 @@ export async function GET(
         paymentId: paymentTx.id,
         code: isHalyk ? err.code : 'UNKNOWN',
         httpStatus: isHalyk ? err.httpStatus : undefined,
+        responseBodySnippetSanitized: isHalyk ? err.responseBodySnippet : undefined,
+        validationIssues: isHalyk ? err.validationIssues : undefined,
+        halykErrorCode: isHalyk ? err.halykErrorCode : undefined,
+        halykErrorDescription: isHalyk ? err.halykErrorDescription : undefined,
         message: err instanceof Error ? err.message : String(err),
       });
-      // Don't fail the request — return current DB state
+      // status_checked_at was NOT updated (cooldown not applied on error) — retry will happen
     }
 
     console.log('[halyk/status] provider check result', {

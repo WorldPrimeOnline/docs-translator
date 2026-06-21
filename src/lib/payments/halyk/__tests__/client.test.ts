@@ -282,7 +282,7 @@ describe('checkPaymentStatus', () => {
     await expect(checkPaymentStatus('123456')).rejects.toThrow(HalykApiError);
   });
 
-  it('returns status response with CHARGE', async () => {
+  it('returns status response with CHARGE (numeric resultCode)', async () => {
     mockFetch
       .mockResolvedValueOnce(mockTokenSuccess())
       .mockResolvedValueOnce(mockStatusSuccess());
@@ -290,6 +290,155 @@ describe('checkPaymentStatus', () => {
     const result = await checkPaymentStatus('123456789012345');
     expect(result.resultCode).toBe(100);
     expect(result.transaction?.statusName).toBe('CHARGE');
+  });
+
+  it('accepts resultCode as string "100" (official Halyk format)', async () => {
+    mockFetch
+      .mockResolvedValueOnce(mockTokenSuccess())
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: { get: () => 'application/json' },
+        text: async () => JSON.stringify({
+          resultCode: '100',  // STRING — official Halyk format
+          resultMessage: 'SUCCESS',
+          transaction: {
+            invoiceID: '123456789012345',
+            terminalID: 'test-terminal-uuid',
+            terminal: 'test-terminal',
+            statusName: 'CHARGE',
+            amount: 3999,
+            currency: 'KZT',
+            cardMask: '400303...9821',
+            cardType: 'VISA',
+            issuer: 'Test Bank',
+          },
+        }),
+      });
+
+    const result = await checkPaymentStatus('123456789012345');
+    // Schema transforms string "100" → number 100
+    expect(result.resultCode).toBe(100);
+    expect(result.transaction?.statusName).toBe('CHARGE');
+  });
+
+  it('normalizes statusName with whitespace: " charge " → "CHARGE"', async () => {
+    mockFetch
+      .mockResolvedValueOnce(mockTokenSuccess())
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: { get: () => 'application/json' },
+        text: async () => JSON.stringify({
+          resultCode: '100',
+          transaction: {
+            invoiceID: '123456789012345',
+            statusName: ' charge ',  // with whitespace and lowercase
+            amount: 3999,
+            currency: 'KZT',
+          },
+        }),
+      });
+
+    const result = await checkPaymentStatus('123456789012345');
+    expect(result.transaction?.statusName).toBe('CHARGE');
+  });
+
+  it('accepts transaction with all optional fields missing (minimal response)', async () => {
+    // Halyk may return minimal transaction objects in some environments
+    mockFetch
+      .mockResolvedValueOnce(mockTokenSuccess())
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: { get: () => 'application/json' },
+        text: async () => JSON.stringify({
+          resultCode: '100',
+          transaction: {
+            // invoiceID, amount, currency all absent — now all optional
+            statusName: 'NEW',
+          },
+        }),
+      });
+
+    const result = await checkPaymentStatus('123456789012345');
+    expect(result.resultCode).toBe(100);
+    expect(result.transaction?.statusName).toBe('NEW');
+  });
+
+  it('accepts extra unknown fields in transaction without throwing', async () => {
+    mockFetch
+      .mockResolvedValueOnce(mockTokenSuccess())
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: { get: () => 'application/json' },
+        text: async () => JSON.stringify({
+          resultCode: 100,
+          transaction: {
+            invoiceID: '123',
+            statusName: 'CHARGE',
+            amount: 3999,
+            currency: 'KZT',
+            id: 'uuid-here',          // 'id' field from actual Halyk response
+            terminal: '98120001',     // short terminal id
+            reason: 'Successfully',
+            reasonCode: '00',
+            reference: 'ref123',
+            cardMask: '400303...9821',
+            cardType: 'VISA',
+            issuer: 'Test Bank',
+            extraField: 'ignored',
+          },
+        }),
+      });
+
+    const result = await checkPaymentStatus('123456789012345');
+    expect(result.resultCode).toBe(100);
+    expect(result.transaction?.statusName).toBe('CHARGE');
+  });
+
+  it('accepts transaction: null for non-100 resultCode', async () => {
+    mockFetch
+      .mockResolvedValueOnce(mockTokenSuccess())
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: { get: () => 'application/json' },
+        text: async () => JSON.stringify({
+          resultCode: '107',
+          resultMessage: 'Transaction not found',
+          transaction: null,
+        }),
+      });
+
+    const result = await checkPaymentStatus('123456789012345');
+    expect(result.resultCode).toBe(107);
+    expect(result.transaction).toBeNull();
+  });
+
+  it('throws HALYK_STATUS_PARSE_ERROR with validationIssues when schema fails', async () => {
+    // Simulate a truly invalid response that fails schema validation
+    mockFetch
+      .mockResolvedValueOnce(mockTokenSuccess())
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: { get: () => 'application/json' },
+        text: async () => JSON.stringify({
+          // missing resultCode entirely
+          wrongField: 'value',
+        }),
+      });
+
+    let caught: HalykApiError | null = null;
+    try { await checkPaymentStatus('123456'); } catch (e) { if (e instanceof HalykApiError) caught = e; }
+    expect(caught).not.toBeNull();
+    expect(caught?.code).toBe('HALYK_STATUS_PARSE_ERROR');
+    expect(caught?.httpStatus).toBe(200);
+    expect(caught?.responseBodySnippet).toBeDefined();
+    expect(caught?.validationIssues).toBeDefined();
+    expect(caught?.validationIssues?.length).toBeGreaterThan(0);
   });
 
   it('throws on invalid status response JSON', async () => {
@@ -311,5 +460,29 @@ describe('checkPaymentStatus', () => {
       .mockResolvedValueOnce(mockStatusSuccess());
     const result = await checkPaymentStatus('123456789012345');
     expect(result.resultCode).toBe(100);
+  });
+});
+
+// ─── Status mapping with string resultCode ────────────────────────────────────
+
+describe('mapHalykStatus (via status-map)', () => {
+  // These tests import directly from status-map.ts — verifying the string resultCode path
+  // which the actual Halyk API sends (e.g. "100", not 100)
+  it('mapHalykStatus accepts string "100" + CHARGE → paid', async () => {
+    const { mapHalykStatus } = await import('../status-map');
+    expect(mapHalykStatus('100', 'CHARGE')).toBe('paid');
+  });
+
+  it('mapHalykStatus accepts string "107" → payment_pending', async () => {
+    const { mapHalykStatus } = await import('../status-map');
+    expect(mapHalykStatus('107', undefined)).toBe('payment_pending');
+  });
+
+  it('mapHalykStatus normalizes lowercase statusName', async () => {
+    const { mapHalykStatus } = await import('../status-map');
+    // The schema already normalizes via transform, but the map function also normalizes
+    // as a safety net in case it's called directly with raw strings
+    expect(mapHalykStatus(100, 'charge')).toBe('paid');
+    expect(mapHalykStatus(100, ' CHARGE ')).toBe('paid');
   });
 });
