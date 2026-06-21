@@ -82,12 +82,25 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Bad request' }, { status: 400 });
   }
 
+  const correlationId = crypto.randomUUID();
+  console.log('[halyk/callback] received', {
+    correlationId,
+    contentType: request.headers.get('content-type'),
+    payloadKeys: Object.keys(payload),
+  });
+
   // Extract invoiceId (Halyk uses both casings)
   const invoiceId = getField(payload, 'invoiceId', 'invoiceID');
   if (!invoiceId) {
-    console.warn('[halyk/callback] missing invoiceId in payload');
+    console.warn('[halyk/callback] missing invoiceId in payload', { correlationId });
     return NextResponse.json({ error: 'Missing invoiceId' }, { status: 400 });
   }
+
+  console.log('[halyk/callback] parsed', {
+    correlationId,
+    invoiceId,
+    hasSecretHash: !!getField(payload, 'secret_hash'),
+  });
 
   // Find payment transaction
   const { data: paymentTx } = await supabaseServer
@@ -98,21 +111,45 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   if (!paymentTx) {
     // Do not reveal whether the invoice exists — return a generic error
-    console.warn('[halyk/callback] invoice not found:', invoiceId);
+    console.warn('[halyk/callback] invoice not found', { correlationId, invoiceId });
     return NextResponse.json({ error: 'Unknown invoice' }, { status: 400 });
   }
 
-  // Verify secret_hash (constant-time)
-  const incomingSecret = getField(payload, 'secret_hash');
-  if (!incomingSecret || !paymentTx.secret_hash_digest) {
-    // Log security event without exposing what failed
-    console.error('[halyk/callback] secret verification failed for payment:', paymentTx.id);
-    return NextResponse.json({ error: 'Verification failed' }, { status: 401 });
-  }
+  console.log('[halyk/callback] transaction found', {
+    correlationId,
+    txId: paymentTx.id,
+    jobId: paymentTx.job_id,
+    currentStatus: paymentTx.status,
+  });
 
-  if (!verifySecretHash(incomingSecret, paymentTx.secret_hash_digest)) {
-    console.error('[halyk/callback] secret mismatch for payment:', paymentTx.id);
+  // Verify secret_hash (constant-time).
+  // In test mode, Halyk may not include secret_hash in the callback — we log a
+  // warning and fall through to the authoritative Status API check instead.
+  // In production mode, missing secret_hash is a hard rejection.
+  const incomingSecret = getField(payload, 'secret_hash');
+  const isTestMode = config.mode === 'test';
+
+  if (incomingSecret && paymentTx.secret_hash_digest) {
+    // Both present — verify
+    if (!verifySecretHash(incomingSecret, paymentTx.secret_hash_digest)) {
+      console.error('[halyk/callback] secret mismatch for payment:', paymentTx.id);
+      return NextResponse.json({ error: 'Verification failed' }, { status: 401 });
+    }
+    console.log('[halyk/callback] secret verified for payment:', paymentTx.id);
+  } else if (!incomingSecret && isTestMode) {
+    // Test mode: Halyk test environment sometimes omits secret_hash.
+    // Proceed to authoritative Status API check (which requires our credentials).
+    console.warn('[halyk/callback] secret_hash absent in test mode — proceeding to status API check', {
+      paymentId: paymentTx.id,
+    });
+  } else if (!incomingSecret && !isTestMode) {
+    // Production mode: secret_hash is mandatory
+    console.error('[halyk/callback] secret_hash missing in production callback for payment:', paymentTx.id);
     return NextResponse.json({ error: 'Verification failed' }, { status: 401 });
+  } else if (incomingSecret && !paymentTx.secret_hash_digest) {
+    // We have a hash from Halyk but nothing to compare — configuration error, flag for review
+    console.error('[halyk/callback] secret_hash_digest not stored for payment:', paymentTx.id);
+    // Proceed to Status API check; mark for review if needed
   }
 
   // Idempotency: already in a terminal status
@@ -232,8 +269,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     if (result?.ok && !result.already_paid && !result.duplicate_charge && result.job_id) {
       // Trigger downstream job processing (existing worker picks it up via polling)
-      console.log('[halyk/callback] payment finalized, job queued:', result.job_id);
+      console.log('[halyk/callback] payment finalized, job queued', {
+        correlationId,
+        jobId: result.job_id,
+        paymentId: paymentTx.id,
+      });
     }
+    console.log('[halyk/callback] rpc result', {
+      correlationId,
+      ok: result?.ok,
+      alreadyPaid: result?.already_paid,
+      duplicateCharge: result?.duplicate_charge,
+    });
   } else {
     const now = new Date().toISOString();
     await supabaseServer
