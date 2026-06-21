@@ -935,6 +935,7 @@
     "networkError": "Network error. Please try again.",
     "scriptError": "Could not load payment gateway.",
     "genericError": "An error occurred. Please try again.",
+    "gatewayError": "Төлбөрийн гарцын алдаа. Дахин оролдоно уу.",
     "retry": "Try again",
     "checkingStatus": "Checking payment status...",
     "processingPayment": "Processing your payment...",

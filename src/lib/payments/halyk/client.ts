@@ -21,6 +21,7 @@ export class HalykApiError extends Error {
     message: string,
     public readonly code: string,
     public readonly httpStatus?: number,
+    public readonly responseBodySnippet?: string,
   ) {
     super(message);
     this.name = 'HalykApiError';
@@ -102,10 +103,13 @@ export async function createPaymentToken(params: PaymentTokenParams): Promise<Ha
       });
 
       if (!response.ok) {
+        let bodySnippet = '';
+        try { bodySnippet = (await response.text()).slice(0, 300); } catch { /* ignore */ }
         throw new HalykApiError(
-          `Halyk OAuth error HTTP ${response.status}`,
+          `Halyk OAuth HTTP ${response.status}`,
           'oauth_http_error',
           response.status,
+          bodySnippet,
         );
       }
 

@@ -935,6 +935,7 @@
     "networkError": "Network error. Please try again.",
     "scriptError": "Could not load payment gateway.",
     "genericError": "An error occurred. Please try again.",
+    "gatewayError": "Хатогии дарвозаи пардохт. Лутфан дубора кӯшиш кунед.",
     "retry": "Try again",
     "checkingStatus": "Checking payment status...",
     "processingPayment": "Processing your payment...",

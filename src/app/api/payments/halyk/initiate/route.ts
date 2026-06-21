@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { supabaseServer } from '@/lib/supabase/server';
 import { getHalykConfig } from '@/lib/payments/halyk/config';
-import { createPaymentToken } from '@/lib/payments/halyk/client';
+import { createPaymentToken, HalykApiError } from '@/lib/payments/halyk/client';
 import { generateUniqueInvoiceId, getInvoiceSuffix6 } from '@/lib/payments/halyk/invoice';
 import { generateSecretHash, digestSecretHash } from '@/lib/payments/halyk/security';
 import { mapLocaleToHalyk } from '@/lib/payments/halyk/locale';
@@ -44,23 +44,93 @@ function getClientIp(req: NextRequest): string | null {
   return req.headers.get('x-real-ip')?.trim() ?? null;
 }
 
+function safeHostname(url: string): string | null {
+  try { return new URL(url).hostname; } catch { return null; }
+}
+
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  const correlationId = crypto.randomUUID();
+
+  try {
+    return await handlePost(request, correlationId);
+  } catch (err) {
+    console.error('[halyk/initiate] unhandled error', {
+      correlationId,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return NextResponse.json(
+      { error: 'INTERNAL_ERROR', correlationId },
+      { status: 500 },
+    );
+  }
+}
+
+async function handlePost(request: NextRequest, correlationId: string): Promise<NextResponse> {
   const config = getHalykConfig();
 
+  // ── Config gate ─────────────────────────────────────────────────────────────
   if (!config.enabled) {
+    console.error('[halyk/initiate] payment not configured', {
+      correlationId,
+      mode: config.mode,
+      clientIdPresent: !!process.env.HALYK_EPAY_CLIENT_ID,
+      clientSecretPresent: !!process.env.HALYK_EPAY_CLIENT_SECRET,
+      terminalIdPresent: !!process.env.HALYK_EPAY_TERMINAL_ID,
+      enabledFlag: process.env.HALYK_EPAY_ENABLED,
+    });
     return NextResponse.json(
-      { error: 'Card payments are not available at this time' },
+      { error: 'PAYMENT_NOT_CONFIGURED', correlationId },
       { status: 503 },
     );
   }
 
-  // Auth check
+  // ── APP_BASE_URL validation ──────────────────────────────────────────────────
+  const appBaseUrl = config.appBaseUrl;
+  if (!appBaseUrl) {
+    console.error('[halyk/initiate] APP_BASE_URL missing', { correlationId });
+    return NextResponse.json(
+      { error: 'APP_BASE_URL_INVALID', correlationId },
+      { status: 503 },
+    );
+  }
+  try {
+    const parsed = new URL(appBaseUrl);
+    const isLocal = parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1';
+    if (parsed.protocol !== 'https:' && !isLocal) {
+      console.error('[halyk/initiate] APP_BASE_URL not HTTPS', {
+        correlationId,
+        appBaseUrlHost: parsed.hostname,
+      });
+      return NextResponse.json(
+        { error: 'APP_BASE_URL_INVALID', correlationId },
+        { status: 503 },
+      );
+    }
+  } catch {
+    console.error('[halyk/initiate] APP_BASE_URL invalid', { correlationId });
+    return NextResponse.json(
+      { error: 'APP_BASE_URL_INVALID', correlationId },
+      { status: 503 },
+    );
+  }
+
+  // ── Staging/production mismatch guard ───────────────────────────────────────
+  const vercelEnv = process.env.VERCEL_ENV;
+  if (config.mode === 'production' && vercelEnv && vercelEnv !== 'production') {
+    console.warn('[halyk/initiate] PAYMENT_ENV_MISMATCH: production Halyk mode on non-production Vercel env', {
+      correlationId,
+      mode: config.mode,
+      vercelEnv,
+    });
+  }
+
+  // ── Auth check ───────────────────────────────────────────────────────────────
   const user = await getAuthUser();
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Parse request body
+  // ── Parse request body ───────────────────────────────────────────────────────
   let body: unknown;
   try {
     body = await request.json();
@@ -79,7 +149,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const { jobId, locale } = parsed.data;
   const clientIp = getClientIp(request);
 
-  // Load job + document, verify ownership
+  // ── Load job + document, verify ownership ────────────────────────────────────
   const { data: job, error: jobError } = await supabaseServer
     .from('jobs')
     .select(`
@@ -89,31 +159,41 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     .eq('id', jobId)
     .maybeSingle();
 
-  if (jobError || !job) {
-    return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+  if (jobError) {
+    console.error('[halyk/initiate] job lookup error', {
+      correlationId,
+      code: jobError.code,
+      message: jobError.message,
+    });
+    return NextResponse.json({ error: 'JOB_NOT_FOUND', correlationId }, { status: 404 });
   }
 
-  // Ownership check
+  if (!job) {
+    return NextResponse.json({ error: 'JOB_NOT_FOUND', correlationId }, { status: 404 });
+  }
+
+  // ── Ownership check ──────────────────────────────────────────────────────────
   const doc = Array.isArray(job.documents) ? job.documents[0] : job.documents;
   if (!doc || doc.user_id !== user.id) {
-    return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    return NextResponse.json({ error: 'JOB_NOT_FOUND', correlationId }, { status: 404 });
   }
 
-  // Status checks: cannot initiate for already-paid, canceled, or processing orders
+  // ── Status checks ────────────────────────────────────────────────────────────
   if (job.status === 'completed') {
-    return NextResponse.json({ error: 'Order already completed' }, { status: 409 });
+    return NextResponse.json({ error: 'JOB_NOT_PAYABLE', correlationId }, { status: 409 });
   }
-  if (['failed'].includes(job.status) && job.payment_source !== 'card_payment') {
-    return NextResponse.json({ error: 'Order cannot be paid' }, { status: 409 });
+  if (job.status === 'failed' && job.payment_source !== 'card_payment') {
+    return NextResponse.json({ error: 'JOB_NOT_PAYABLE', correlationId }, { status: 409 });
   }
 
-  // Amount must be set and positive
+  // ── Amount validation ────────────────────────────────────────────────────────
   const priceKzt = job.price_kzt;
   if (!priceKzt || priceKzt <= 0) {
-    return NextResponse.json({ error: 'Order amount not set' }, { status: 409 });
+    console.error('[halyk/initiate] price not set on job', { correlationId, jobId });
+    return NextResponse.json({ error: 'PRICE_NOT_SET', correlationId }, { status: 422 });
   }
 
-  // Check for an existing pending payment attempt
+  // ── Idempotency: check for recent pending attempt ────────────────────────────
   const { data: existingAttempts } = await supabaseServer
     .from('payment_transactions')
     .select('id, status, provider_invoice_id, created_at')
@@ -126,17 +206,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   );
 
   if (pendingAttempt) {
-    // Return the age: if recent (< 10 min), reject to prevent double-click double-init
     const ageMs = Date.now() - new Date(pendingAttempt.created_at).getTime();
     if (ageMs < 10 * 60 * 1000) {
       return NextResponse.json(
-        { error: 'A payment attempt is already in progress for this order' },
+        { error: 'PAYMENT_ALREADY_PENDING', correlationId },
         { status: 409 },
       );
     }
   }
 
-  // Get user email for payment form pre-fill
+  // ── User email ───────────────────────────────────────────────────────────────
   const { data: userRow } = await supabaseServer
     .from('users')
     .select('email')
@@ -144,7 +223,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     .maybeSingle();
   const email = userRow?.email ?? user.email ?? '';
 
-  // Generate unique invoice ID
+  // ── Generate unique invoice ID ───────────────────────────────────────────────
   const invoiceId = await generateUniqueInvoiceId(async (id, suffix6) => {
     const { data } = await supabaseServer
       .from('payment_transactions')
@@ -156,17 +235,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const invoiceSuffix6 = getInvoiceSuffix6(invoiceId);
 
-  // Generate secret_hash; store only digest
+  // ── secret_hash — used once, never returned to browser ──────────────────────
   const secretHash = generateSecretHash();
   const secretHashDigest = digestSecretHash(secretHash);
 
-  // Build callback URLs from APP_BASE_URL (never from Host header)
-  const baseUrl = config.appBaseUrl;
-  const postLink = `${baseUrl}/api/payments/halyk/callback`;
-  const failurePostLink = `${baseUrl}/api/payments/halyk/callback`;
+  // ── Callback URLs — always from APP_BASE_URL, never from Host header ─────────
+  const postLink = `${appBaseUrl}/api/payments/halyk/callback`;
+  const failurePostLink = `${appBaseUrl}/api/payments/halyk/callback`;
 
-  // Create payment_transaction record first (before calling Halyk)
-  const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString(); // 30 min window
+  // ── Create payment_transaction record before calling Halyk ───────────────────
+  const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
 
   const { data: paymentTx, error: txError } = await supabaseServer
     .from('payment_transactions')
@@ -190,11 +268,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     .single();
 
   if (txError || !paymentTx) {
-    console.error('[halyk/initiate] failed to create payment_transaction:', txError?.message);
-    return NextResponse.json({ error: 'Failed to create payment record' }, { status: 500 });
+    console.error('[halyk/initiate] failed to create payment_transaction', {
+      correlationId,
+      code: txError?.code,
+      message: txError?.message,
+    });
+    return NextResponse.json(
+      { error: 'TRANSACTION_CREATE_FAILED', correlationId },
+      { status: 500 },
+    );
   }
 
-  // Update job to payment_pending if not already
+  // ── Update job to payment_pending if not already ─────────────────────────────
   if (job.status !== 'payment_pending') {
     await supabaseServer
       .from('jobs')
@@ -202,7 +287,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       .eq('id', jobId);
   }
 
-  // Call Halyk to get payment token
+  // ── Call Halyk OAuth to get payment token ────────────────────────────────────
+  console.log('[halyk/initiate] requesting token', {
+    correlationId,
+    mode: config.mode,
+    oauthUrlHost: safeHostname(config.endpoints.oauthUrl),
+    apiBaseHost: safeHostname(config.endpoints.apiBase),
+    terminalIdPresent: !!process.env.HALYK_EPAY_TERMINAL_ID,
+    clientIdPresent: !!process.env.HALYK_EPAY_CLIENT_ID,
+    clientSecretPresent: !!process.env.HALYK_EPAY_CLIENT_SECRET,
+    appBaseUrlHost: safeHostname(appBaseUrl),
+    invoiceId,
+    amount: priceKzt,
+    currency: 'KZT',
+  });
+
   let halykToken;
   try {
     halykToken = await createPaymentToken({
@@ -212,29 +311,46 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       postLink,
       failurePostLink,
     });
-  } catch {
-    // Mark transaction as failed if token acquisition fails
-    console.error('[halyk/initiate] token acquisition failed (no secret logged)');
+  } catch (err) {
+    const code = err instanceof HalykApiError ? err.code : 'unknown';
+    const httpStatus = err instanceof HalykApiError ? err.httpStatus : undefined;
+    const bodySnippet = err instanceof HalykApiError ? err.responseBodySnippet : undefined;
+    const message = err instanceof Error ? err.message.slice(0, 300) : String(err).slice(0, 300);
+
+    console.error('[halyk/initiate] token acquisition failed', {
+      correlationId,
+      code,
+      httpStatus,
+      message,
+      // responseBodySnippet may contain Halyk error description — sanitize access_token
+      responseBodySnippet: bodySnippet?.replace(/"access_token"\s*:\s*"[^"]*"/g, '"access_token":"[redacted]"'),
+      mode: config.mode,
+      oauthUrlHost: safeHostname(config.endpoints.oauthUrl),
+    });
 
     await supabaseServer
       .from('payment_transactions')
-      .update({ status: 'failed', failed_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .update({
+        status: 'failed',
+        failed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
       .eq('id', paymentTx.id);
 
     return NextResponse.json(
-      { error: 'Payment gateway temporarily unavailable. Please try again.' },
+      { error: 'HALYK_TOKEN_FAILED', correlationId },
       { status: 502 },
     );
   }
 
-  // Build the payment object for halyk.pay() — client_secret is NOT included
+  // ── Build payment object — access_token passed to browser for halyk.pay() ────
   const language = mapLocaleToHalyk(locale);
   const description = buildPaymentDescription(jobId);
 
   const paymentObject: HalykPaymentObject = {
     invoiceId,
-    backLink: `${baseUrl}/payment/result?payment=${paymentTx.id}`,
-    failureBackLink: `${baseUrl}/payment/result?payment=${paymentTx.id}`,
+    backLink: `${appBaseUrl}/payment/result?payment=${paymentTx.id}`,
+    failureBackLink: `${appBaseUrl}/payment/result?payment=${paymentTx.id}`,
     autoBackLink: true,
     postLink,
     failurePostLink,
@@ -259,6 +375,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     paymentObject,
     scriptUrl: config.endpoints.scriptUrl,
   };
+
+  console.log('[halyk/initiate] token acquired, returning bootstrap', {
+    correlationId,
+    paymentId: paymentTx.id,
+    invoiceId,
+  });
 
   return NextResponse.json(bootstrap);
 }

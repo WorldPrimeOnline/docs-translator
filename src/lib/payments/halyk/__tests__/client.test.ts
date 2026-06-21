@@ -84,6 +84,22 @@ describe('createPaymentToken', () => {
     ).rejects.toThrow(HalykApiError);
   });
 
+  it('includes response body snippet in error for diagnosis', async () => {
+    const halykErrorBody = '{"error":"invalid_client","error_description":"Bad credentials"}';
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 401, text: async () => halykErrorBody });
+    let caught: HalykApiError | null = null;
+    try {
+      await createPaymentToken({ invoiceId: '123456', secretHash: 'h', amount: 1999, postLink: 'x', failurePostLink: 'y' });
+    } catch (err) {
+      if (err instanceof HalykApiError) caught = err;
+    }
+    expect(caught).not.toBeNull();
+    expect(caught?.httpStatus).toBe(401);
+    expect(caught?.responseBodySnippet).toContain('invalid_client');
+    // Must never contain our client_secret
+    expect(caught?.responseBodySnippet).not.toContain('test-client-secret');
+  });
+
   it('throws on invalid JSON response', async () => {
     mockFetch.mockResolvedValueOnce({ ok: true, status: 200, text: async () => 'not-json' });
     await expect(

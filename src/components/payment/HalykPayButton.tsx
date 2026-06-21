@@ -72,10 +72,13 @@ export function HalykPayButton({ jobId, priceKzt, className = '', onSuccess }: P
       });
 
       if (!response.ok) {
-        const respBody = await response.json() as { error?: string };
-        void respBody;
+        let errorCode: string | undefined;
+        try { errorCode = (await response.json() as { error?: string }).error; } catch { /* ignore */ }
         if (response.status === 503) setErrorKey('unavailable');
-        else if (response.status === 409) setErrorKey('alreadyPaid');
+        else if (response.status === 502) setErrorKey('gatewayError');
+        else if (response.status === 409) {
+          setErrorKey(errorCode === 'PAYMENT_ALREADY_PENDING' ? 'alreadyPaid' : 'alreadyPaid');
+        }
         else if (response.status === 401) setErrorKey('sessionExpired');
         else setErrorKey('genericError');
         setState('error');
@@ -127,7 +130,7 @@ export function HalykPayButton({ jobId, priceKzt, className = '', onSuccess }: P
 
   if (state === 'paid') {
     return (
-      <div className="flex items-center gap-2 text-emerald-400 text-sm">
+      <div className="flex items-center gap-2 text-primary text-sm font-medium">
         <span>{t('paid')}</span>
       </div>
     );
@@ -159,7 +162,7 @@ export function HalykPayButton({ jobId, priceKzt, className = '', onSuccess }: P
       type="button"
       onClick={() => void handlePay()}
       disabled={isLoading}
-      className={`inline-flex items-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-medium px-4 py-2 transition-colors text-sm ${className}`}
+      className={`inline-flex items-center justify-center gap-2 rounded-md bg-primary hover:bg-gold-dark disabled:pointer-events-none disabled:opacity-50 text-primary-foreground font-semibold px-5 py-2.5 transition-colors text-sm ${className}`}
     >
       {isLoading ? (
         <Loader2 className="w-4 h-4 animate-spin" />
