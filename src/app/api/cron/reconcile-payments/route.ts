@@ -13,6 +13,7 @@ import { supabaseServer } from '@/lib/supabase/server';
 import { checkPaymentStatus } from '@/lib/payments/halyk/client';
 import { mapHalykStatus, isPaidStatus, isTerminalStatus } from '@/lib/payments/halyk/status-map';
 import { getHalykConfig } from '@/lib/payments/halyk/config';
+import { createSaleReceiptForPayment } from '@/lib/fiscal/service';
 
 const BATCH_LIMIT = 20;
 const MIN_AGE_MINUTES = 2;    // don't reconcile brand-new attempts
@@ -97,6 +98,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
           errors++;
         } else {
           finalized++;
+          // Fiscal receipt — non-blocking, idempotent
+          void createSaleReceiptForPayment(tx.id).catch((err: unknown) => {
+            console.error('[reconcile-payments] fiscal receipt failed (non-fatal):', (err as Error).message, { txId: tx.id });
+          });
         }
       } else if (isTerminalStatus(internalStatus)) {
         await supabaseServer

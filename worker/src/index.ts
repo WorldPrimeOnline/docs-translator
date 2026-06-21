@@ -2,6 +2,7 @@ import { env } from './lib/env';
 import { supabase, type JobRow, type PaymentTransactionRow } from './lib/supabase';
 import { processJob } from './processor';
 import { closeBrowser } from './lib/pdf';
+import { reconcileFiscalAndRefunds } from './lib/fiscal-reconciliation';
 
 // ── State ──────────────────────────────────────────────────────────────────
 let running = false;   // true while we are processing a job
@@ -209,6 +210,15 @@ async function main(): Promise<void> {
   setInterval(() => {
     void pollOnce();
   }, env.POLL_INTERVAL_MS);
+
+  // Fiscal and refund reconciliation — separate from job processing loop
+  // Runs every 5 minutes to log items needing manual operator attention.
+  const FISCAL_RECONCILE_INTERVAL_MS = 5 * 60 * 1000;
+  setInterval(() => {
+    void reconcileFiscalAndRefunds().catch((err: unknown) => {
+      console.error('[worker] fiscal reconciliation error:', (err as Error).message);
+    });
+  }, FISCAL_RECONCILE_INTERVAL_MS);
 }
 
 void main();

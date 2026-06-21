@@ -66,6 +66,35 @@ export interface PaymentTransactionRow {
   status: string;
 }
 
+export interface FiscalReceiptRow {
+  id: string;
+  job_id: string;
+  document_id: string;
+  payment_transaction_id: string;
+  provider: string;
+  provider_environment: 'test' | 'production';
+  amount_kzt: number;
+  currency: string;
+  operation_type: 'sale' | 'refund' | 'correction';
+  status: 'pending_manual' | 'pending' | 'issued' | 'failed' | 'retry_required' | 'canceled';
+  retry_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RefundTransactionRow {
+  id: string;
+  job_id: string;
+  payment_transaction_id: string;
+  provider: string;
+  provider_environment: 'test' | 'production';
+  refund_amount_kzt: number;
+  status: 'requested' | 'pending' | 'succeeded' | 'failed' | 'requires_review' | 'pending_manual' | 'canceled';
+  reason: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export type SupabaseClient = ReturnType<typeof createClient>;
 
 export const supabase = createClient(

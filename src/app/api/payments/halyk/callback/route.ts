@@ -17,6 +17,7 @@ import { verifySecretHash } from '@/lib/payments/halyk/security';
 import { checkPaymentStatus } from '@/lib/payments/halyk/client';
 import { mapHalykStatus, isPaidStatus } from '@/lib/payments/halyk/status-map';
 import { getHalykConfig } from '@/lib/payments/halyk/config';
+import { createSaleReceiptForPayment } from '@/lib/fiscal/service';
 
 const MAX_BODY_BYTES = 64 * 1024; // 64 KB
 
@@ -274,12 +275,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       // TODO: send operator alert via Telegram/email
     }
 
-    if (result?.ok && !result.already_paid && !result.duplicate_charge && result.job_id) {
-      // Trigger downstream job processing (existing worker picks it up via polling)
-      console.log('[halyk/callback] payment finalized, job queued', {
-        correlationId,
-        jobId: result.job_id,
-        paymentId: paymentTx.id,
+    if (result?.ok && !result.duplicate_charge && result.job_id) {
+      if (!result.already_paid) {
+        console.log('[halyk/callback] payment finalized, job queued', {
+          correlationId,
+          jobId: result.job_id,
+          paymentId: paymentTx.id,
+        });
+      }
+
+      // Create fiscal receipt (idempotent — safe on duplicate callback)
+      // Non-blocking: fiscal failure must not affect the payment response to Halyk
+      void createSaleReceiptForPayment(paymentTx.id).catch((err: unknown) => {
+        console.error('[halyk/callback] fiscal receipt creation failed (non-fatal):', (err as Error).message, {
+          paymentId: paymentTx.id,
+        });
       });
     }
     console.log('[halyk/callback] rpc result', {

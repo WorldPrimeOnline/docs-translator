@@ -4,7 +4,7 @@
 //
 // Manually maintained to match the current target schema (see supabase/STAGING_INIT_ALL.sql).
 // Tables: users, documents, jobs, ocr_results, translations, payment_transactions, subscriptions,
-//         job_audit_log, staff_profiles, notification_log
+//         job_audit_log, staff_profiles, notification_log, fiscal_receipts, refund_transactions
 // Excluded: payments (dead Stripe-era table), ton_payments (renamed), wallet_links (dropped)
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
@@ -506,6 +506,150 @@ export type Database = {
         Relationships: [
           { foreignKeyName: 'notification_log_order_id_fkey'; columns: ['order_id']; referencedRelation: 'jobs'; referencedColumns: ['id'] },
           { foreignKeyName: 'notification_log_recipient_profile_id_fkey'; columns: ['recipient_profile_id']; referencedRelation: 'staff_profiles'; referencedColumns: ['id'] },
+        ];
+      };
+      fiscal_receipts: {
+        Row: {
+          id: string;
+          job_id: string;
+          document_id: string;
+          payment_transaction_id: string;
+          provider: string;
+          provider_environment: 'test' | 'production';
+          provider_receipt_id: string | null;
+          provider_shift_id: string | null;
+          provider_cashbox_id: string | null;
+          fiscal_sign: string | null;
+          fiscal_url: string | null;
+          amount_kzt: number;
+          currency: string;
+          operation_type: 'sale' | 'refund' | 'correction';
+          status: 'pending_manual' | 'pending' | 'issued' | 'failed' | 'retry_required' | 'canceled';
+          customer_email: string | null;
+          customer_phone: string | null;
+          receipt_payload_sanitized: Json | null;
+          provider_response_sanitized: Json | null;
+          error_code: string | null;
+          error_message: string | null;
+          retry_count: number;
+          issued_at: string | null;
+          failed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          job_id: string;
+          document_id: string;
+          payment_transaction_id: string;
+          provider?: string;
+          provider_environment?: 'test' | 'production';
+          provider_receipt_id?: string | null;
+          provider_shift_id?: string | null;
+          provider_cashbox_id?: string | null;
+          fiscal_sign?: string | null;
+          fiscal_url?: string | null;
+          amount_kzt: number;
+          currency?: string;
+          operation_type?: 'sale' | 'refund' | 'correction';
+          status?: 'pending_manual' | 'pending' | 'issued' | 'failed' | 'retry_required' | 'canceled';
+          customer_email?: string | null;
+          customer_phone?: string | null;
+          receipt_payload_sanitized?: Json | null;
+          provider_response_sanitized?: Json | null;
+          error_code?: string | null;
+          error_message?: string | null;
+          retry_count?: number;
+          issued_at?: string | null;
+          failed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          status?: 'pending_manual' | 'pending' | 'issued' | 'failed' | 'retry_required' | 'canceled';
+          provider_receipt_id?: string | null;
+          provider_shift_id?: string | null;
+          provider_cashbox_id?: string | null;
+          fiscal_sign?: string | null;
+          fiscal_url?: string | null;
+          provider_response_sanitized?: Json | null;
+          error_code?: string | null;
+          error_message?: string | null;
+          retry_count?: number;
+          issued_at?: string | null;
+          failed_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          { foreignKeyName: 'fiscal_receipts_job_id_fkey'; columns: ['job_id']; referencedRelation: 'jobs'; referencedColumns: ['id'] },
+          { foreignKeyName: 'fiscal_receipts_document_id_fkey'; columns: ['document_id']; referencedRelation: 'documents'; referencedColumns: ['id'] },
+          { foreignKeyName: 'fiscal_receipts_payment_transaction_id_fkey'; columns: ['payment_transaction_id']; referencedRelation: 'payment_transactions'; referencedColumns: ['id'] },
+        ];
+      };
+      refund_transactions: {
+        Row: {
+          id: string;
+          job_id: string;
+          payment_transaction_id: string;
+          provider: string;
+          provider_environment: 'test' | 'production';
+          provider_refund_id: string | null;
+          provider_transaction_id: string | null;
+          refund_amount_kzt: number;
+          currency: string;
+          status: 'requested' | 'pending' | 'succeeded' | 'failed' | 'requires_review' | 'pending_manual' | 'canceled';
+          reason: string;
+          operator_id: string | null;
+          idempotency_key: string;
+          fiscal_refund_receipt_id: string | null;
+          provider_response_sanitized: Json | null;
+          error_code: string | null;
+          error_message: string | null;
+          requested_at: string;
+          processed_at: string | null;
+          failed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          job_id: string;
+          payment_transaction_id: string;
+          provider?: string;
+          provider_environment?: 'test' | 'production';
+          provider_refund_id?: string | null;
+          provider_transaction_id?: string | null;
+          refund_amount_kzt: number;
+          currency?: string;
+          status?: 'requested' | 'pending' | 'succeeded' | 'failed' | 'requires_review' | 'pending_manual' | 'canceled';
+          reason: string;
+          operator_id?: string | null;
+          idempotency_key: string;
+          fiscal_refund_receipt_id?: string | null;
+          provider_response_sanitized?: Json | null;
+          error_code?: string | null;
+          error_message?: string | null;
+          requested_at?: string;
+          processed_at?: string | null;
+          failed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          status?: 'requested' | 'pending' | 'succeeded' | 'failed' | 'requires_review' | 'pending_manual' | 'canceled';
+          provider_refund_id?: string | null;
+          fiscal_refund_receipt_id?: string | null;
+          provider_response_sanitized?: Json | null;
+          error_code?: string | null;
+          error_message?: string | null;
+          processed_at?: string | null;
+          failed_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          { foreignKeyName: 'refund_transactions_job_id_fkey'; columns: ['job_id']; referencedRelation: 'jobs'; referencedColumns: ['id'] },
+          { foreignKeyName: 'refund_transactions_payment_transaction_id_fkey'; columns: ['payment_transaction_id']; referencedRelation: 'payment_transactions'; referencedColumns: ['id'] },
+          { foreignKeyName: 'refund_transactions_fiscal_refund_receipt_id_fkey'; columns: ['fiscal_refund_receipt_id']; referencedRelation: 'fiscal_receipts'; referencedColumns: ['id'] },
         ];
       };
     };
