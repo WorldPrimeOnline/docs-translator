@@ -213,6 +213,27 @@ Same `/api/v4/check` endpoint, `OperationType=3` (возврат продажи)
 
 Full list available from `POST /api/v4/references/RefUnits`.
 
+## Webkassa credentials: test vs production
+
+`WEBKASSA_LOGIN` and `WEBKASSA_PASSWORD` must belong to the same Webkassa environment as `WEBKASSA_API_BASE_URL`.
+
+For test integration:
+
+- use credentials registered in `https://devkkm.webkassa.kz/`;
+- set `FISCAL_PROVIDER_ENV=test`;
+- set `WEBKASSA_ALLOW_REAL_RECEIPTS=false`.
+
+For production fiscal receipts:
+
+- use production Webkassa credentials/API credentials for the real cashbox;
+- do not use `devkkm` credentials;
+- set `FISCAL_PROVIDER_ENV=production`;
+- production receipt calls require `WEBKASSA_ALLOW_REAL_RECEIPTS=true`.
+
+Never mix test credentials with production base URL or production credentials with test base URL.
+
+Prefer a dedicated API/integration user if Webkassa supports it. If Webkassa API uses regular cabinet credentials, store them only in Vercel/Railway environment variables.
+
 ## Environment Variables
 
 | Variable | Required | Description |
