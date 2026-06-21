@@ -45,12 +45,11 @@ async function imageBufferToPdf(imageBuffer: Buffer): Promise<Buffer> {
 }
 
 async function docxBufferToPdf(docxBuffer: Buffer): Promise<Buffer> {
-  const { value: rawText } = await mammoth.extractRawText({ buffer: docxBuffer });
-  // pdf-lib StandardFonts use WinAnsi encoding (U+0000–U+00FF only).
-  // Characters outside that range cause an encode error; replace with space to preserve word
-  // structure without silently corrupting content. The OCR step will read the resulting PDF
-  // and a blank/sparse page will trigger the worker's quality gate, surfacing the issue.
-  const text = rawText.replace(/[^\x00-\xFF]/g, ' ');
+  const { value: text } = await mammoth.extractRawText({ buffer: docxBuffer });
+  // pdf-lib StandardFonts (Helvetica) use WinAnsi encoding and cannot render
+  // Cyrillic, Kazakh, CJK, or other non-Latin-1 characters. Rather than
+  // silently corrupt the document, callers must pre-screen for Unicode content
+  // or use a Unicode-safe rendering path (Puppeteer in the Railway worker).
 
   const pdfDoc = await PDFDocument.create();
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);

@@ -2,38 +2,56 @@
  * @jest-environment node
  */
 
-describe('convert-to-pdf — WinAnsi safe text handling', () => {
-  it('replaces non-Latin-1 characters with space, not transliteration', () => {
-    // The text replacement happens inline in docxBufferToPdf.
-    // We verify the regex behaviour directly since the function requires
-    // real DOCX buffers and pdf-lib font embedding (integration-level).
-    const replace = (text: string) => text.replace(/[^\x00-\xFF]/g, ' ');
+// Tests for convert-to-pdf behaviour around Unicode safety.
+// The key invariant: no code path should silently replace Cyrillic/Kazakh/CJK
+// characters with spaces, '?', or Latin transliterations.
 
-    // Cyrillic should become spaces, not Latin lookalikes
-    expect(replace('Иван')).toBe('    ');
-    expect(replace('Қазақстан')).toBe('         ');
+describe('convert-to-pdf — Unicode safety', () => {
+  it('does not contain a destructive replace(/[^\\x00-\\xFF]/g) call', async () => {
+    // Read the actual source to verify no destructive regex exists.
+    const fs = await import('fs');
+    const path = await import('path');
+    const src = fs.readFileSync(
+      path.join(process.cwd(), 'src/lib/convert-to-pdf.ts'),
+      'utf-8',
+    );
 
-    // ASCII is preserved as-is
-    expect(replace('Hello World')).toBe('Hello World');
+    // These patterns are explicitly forbidden
+    expect(src).not.toMatch(/replace\(\/\[\\^\s*\\\\x00-\\\\xFF\]\//);
+    expect(src).not.toContain("replace(/[^\\x00-\\xFF]/g, '?')");
+    expect(src).not.toContain("replace(/[^\\x00-\\xFF]/g, ' ')");
 
-    // Latin-extended (U+00C0–U+00FF) is preserved
-    expect(replace('Ñoño')).toBe('Ñoño');
-    expect(replace('café')).toBe('café');
-
-    // Mixed text: ASCII preserved, non-Latin-1 replaced
-    expect(replace('Name: Иван')).toBe('Name:     ');
-    expect(replace('ID: 123456')).toBe('ID: 123456');
+    // No CYRILLIC_TO_LATIN transliteration table
+    expect(src).not.toContain('CYRILLIC_TO_LATIN');
   });
 
-  it('does NOT transliterate Cyrillic to Latin', () => {
-    const replace = (text: string) => text.replace(/[^\x00-\xFF]/g, ' ');
+  it('upload-card route blocks DOCX files before any conversion', async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+    const src = fs.readFileSync(
+      path.join(process.cwd(), 'src/app/api/documents/upload-card/route.ts'),
+      'utf-8',
+    );
 
-    // These should NOT produce transliteration artifacts
-    const result = replace('Казахстан');
-    expect(result).not.toContain('K');
-    expect(result).not.toContain('z');
-    expect(result).not.toContain('kh');
-    // Should be all spaces
-    expect(result.trim()).toBe('');
+    // Must contain an explicit DOCX_MIME block before the conversion step
+    expect(src).toContain('DOCX_NOT_SUPPORTED');
+    expect(src).toContain('application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+  });
+});
+
+describe('convert-to-pdf — migration constraint', () => {
+  it('migration 0016 grants card_payment in payment_source constraint', async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+    const sql = fs.readFileSync(
+      path.join(process.cwd(), 'supabase/migrations/0016_fix_jobs_payment_source_constraint.sql'),
+      'utf-8',
+    );
+
+    expect(sql).toContain('card_payment');
+    expect(sql).toContain('subscription');
+    expect(sql).toContain('jobs_payment_source_check');
+    expect(sql).toContain('payment_pending');
+    expect(sql).toContain('DROP CONSTRAINT IF EXISTS');
   });
 });

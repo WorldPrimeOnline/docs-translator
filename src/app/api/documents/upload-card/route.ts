@@ -142,10 +142,21 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'At least one file is required' }, { status: 400 });
   }
 
+  const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
   for (const f of rawFiles) {
     const mime = detectMimeType(f);
     if (!ALLOWED_MIME_TYPES[mime]) {
       return NextResponse.json({ error: `Unsupported file type: ${f.name}` }, { status: 400 });
+    }
+    // DOCX→PDF conversion on Vercel uses pdf-lib Helvetica (WinAnsi only) which cannot
+    // encode Cyrillic or Kazakh characters. Block DOCX here to prevent silent corruption.
+    // Unicode-safe conversion (Puppeteer) is only available in the Railway worker.
+    // Use a PDF scan or image of the document instead.
+    if (mime === DOCX_MIME) {
+      return NextResponse.json(
+        { error: 'DOCX_NOT_SUPPORTED', message: 'DOCX files are not supported for card payment uploads. Please upload a PDF or image.' },
+        { status: 400 },
+      );
     }
     if (f.size > MAX_FILE_SIZE_EACH) {
       return NextResponse.json({ error: `File "${f.name}" exceeds 25 MB limit` }, { status: 400 });
