@@ -201,6 +201,7 @@
     "subBannerDesc": "4 990 ₸/aýdan — 10 resminama, her resminama üçin tölegsiz",
     "usingPlanSub": "{plan} meýilnamaňyzy ulanylýar · {remaining} resminama galdy — töleg talap edilmeýär",
     "status": {
+      "paymentPending": "Awaiting payment",
       "queued": "Nobatda — başlamaga garaşylýar…",
       "ocr": "Tekst çykarylýar… ({pct}%)",
       "ocrDone": "OCR tamamlandy, terjime başlanýar… ({pct}%)",
@@ -322,6 +323,16 @@
       "serviceElectronic": "Elektron",
       "serviceCertified": "Tassyklanan",
       "serviceNotarized": "Notarial"
+    },
+    "uploadAndPay": "Upload & Pay by card",
+    "uploadedPaymentPending": "File uploaded — pay {price} to start translation",
+    "errors": {
+      "serverError": "Serwer ýalňyşlygy. Gaýtadan synanyşyň.",
+      "uploadFailed": "Ýüklemek şowsuz boldy",
+      "logoutFailed": "Çykmak başartmady",
+      "unsupportedFileType": "Goldanmaýan faýl görnüşi: {files}",
+      "pleaseSelectFile": "Iň az bir faýl saýlaň",
+      "failedTermsAcceptance": "Şertleri kabul etmegi saklamak başartmady."
     }
   },
   "auth": {
@@ -913,5 +924,31 @@
         "a": "In some cases yes, if a partner process is available for the selected document, language, and jurisdiction. Availability, timeline, and cost of notarization are confirmed separately."
       }
     ]
+  },
+  "payment": {
+    "payButton": "Pay {amount} {currency}",
+    "processing": "Processing...",
+    "paid": "Payment confirmed",
+    "unavailable": "Card payments are temporarily unavailable.",
+    "alreadyPaid": "This order is already paid.",
+    "sessionExpired": "Your session has expired. Please log in again.",
+    "networkError": "Network error. Please try again.",
+    "scriptError": "Could not load payment gateway.",
+    "genericError": "An error occurred. Please try again.",
+    "gatewayError": "Töleg derwezesiniň ýalňyşlygy. Gaýtadan synanyşyň.",
+    "retry": "Try again",
+    "checkingStatus": "Checking payment status...",
+    "processingPayment": "Processing your payment...",
+    "successTitle": "Payment successful",
+    "successDesc": "Your payment of {amount} has been received. Your document is being processed.",
+    "viewOrder": "View order",
+    "failedTitle": "Payment not completed",
+    "failedDesc": "Your payment was not completed. No funds have been charged.",
+    "reviewTitle": "Payment under review",
+    "reviewDesc": "Your payment is being reviewed.",
+    "processingTitle": "Payment is processing",
+    "processingDesc": "Please check your dashboard in a few minutes.",
+    "goToDashboard": "Go to Dashboard",
+    "invalidLink": "Invalid payment link."
   }
 }

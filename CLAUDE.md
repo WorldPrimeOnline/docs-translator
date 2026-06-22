@@ -6,7 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Always read `PROJECT_CONTEXT.md` at the start of every session. It is the authoritative source for product vision, positioning rules, business constraints, and MVP status. Do not reposition this product as a generic AI translator.
 
-**PROJECT_CONTEXT.md caveat on payments**: Sections §6, §7, and §18 still describe TON cryptocurrency payments as "implemented" — this is outdated. TON payments have been removed from the codebase. The current payment state is described in the Payments section of this file (subscription-only; Halyk Bank ePay pending). For everything else (vision, positioning, stack, env vars, pipeline), PROJECT_CONTEXT.md is accurate.
+**PROJECT_CONTEXT.md caveat on payments**: Sections §6, §7, and §18 still describe TON cryptocurrency payments as "implemented" — this is outdated. TON payments have been removed from the codebase. The current payment state is described in the Payments section of this file (subscription + Halyk Bank ePay card payments; ePay code is implemented but `cardPaymentsActive` is still `false`). For everything else (vision, positioning, stack, env vars, pipeline), PROJECT_CONTEXT.md is accurate.
+
+**Official DOCX pipeline freeze**: The DOCX / official translation pipeline is frozen for a controlled production pilot as of 2026-06-19. See `docs/OFFICIAL_DOCX_PIPELINE_FREEZE.md` for the exact list of what is and is not allowed to change. Do not modify OCR prompts, translation parameters, table-classification logic, or visual-element detection without explicit approval.
 
 ---
 
@@ -159,6 +161,7 @@ Tests live in `src/lib/translation-workflow/__tests__/`, `src/app/api/webhooks/_
 ```bash
 bash scripts/check-i18n.sh                  # Grep locale pages/components for hardcoded strings not wrapped in t()
 npx tsx scripts/telegram-list-updates.ts    # List Telegram bot updates (use to find your chat_id for staff_profiles)
+cd worker && npx tsx src/scripts/gen-acceptance.ts  # Generate acceptance-test DOCX fixtures into /tmp/wpo-acceptance/
 ```
 
 Reference env files: `.env.example` and `.env.staging.example` (web); `worker/.env.example` and `worker/.env.staging.example` (worker). Use these as checklists when configuring new environments.
@@ -206,13 +209,15 @@ There are **two separate processors** — do not conflate them.
 - Polls Supabase every 10 s for unclaimed `status = 'queued'` jobs — handles both subscription and pay-per-doc
 - OCR quality gate: aborts early if extracted text is below minimum word/char threshold (saves translation credits)
 - Calls `computeOutputPlan(job.service_level ?? job.notarized)` to determine artifact path: `translation_only` (immediate PDF release) or `translator_review_draft` (DOCX + preview PDF, `workflow_status: awaiting_translator_review`). Pass `service_level` — the boolean `notarized` is a legacy fallback for pre-migration rows.
-- Full pipeline: OCR (returns `{ markdown, pageCount, visualElements }`) → merge visual elements → translate → render HTML with visual-elements block → QA check → Puppeteer PDF or DOCX → upload to R2 → upsert `translations` (with `qa_report`) → email
+- Full pipeline: OCR (returns `{ markdown, pageCount, visualElements }`) → **page-vision analysis** (`analyzeDocumentVisuals` in `worker/src/lib/page-vision.ts`) → merge visual elements → **protect critical identifiers** (`extractProtectedValues` in `worker/src/lib/protected-values.ts`) → translate → restore identifiers → render HTML with visual-elements block → QA check → Puppeteer PDF or DOCX → upload to R2 → upsert `translations` (with `qa_report`) → email
 - If Puppeteer fails, falls back to saving `.html`
 - Supports DOCX output via `worker/src/lib/docx-renderer.ts` (also in web app at `src/lib/pdf/docx-renderer.ts`)
+- Full step-by-step call graph for the official/notarized pipeline path: `docs/OFFICIAL_TRANSLATION_PIPELINE.md`
+- `translateToAst()` is called non-blockingly after translation for background AST enrichment; result stored in `translations.translated_ast` but **never** used for rendering — the AST renderer (`worker/src/lib/ast/`) is wired for future opt-in only
 
-Both processors use `claude-sonnet-4-5-20250929` via `@anthropic-ai/sdk` (constant `MODEL` in each `translator.ts`). There are **four** `MODEL` constants to update when changing the model: `src/lib/translation/translator.ts`, `src/lib/translation/detect-language.ts`, `worker/src/lib/translator.ts`, `worker/src/lib/detect-language.ts`.
+Both processors use `claude-sonnet-4-5-20250929` via `@anthropic-ai/sdk` (constant `MODEL` in each file). There are **five** `MODEL` constants to update when changing the model: `src/lib/translation/translator.ts`, `src/lib/translation/detect-language.ts`, `worker/src/lib/translator.ts`, `worker/src/lib/detect-language.ts`, `worker/src/lib/page-vision.ts`.
 
-**Synced duplicates** — several modules are maintained as independent copies in both the web app and worker and must be kept in sync manually: `output-plan.ts`, `visual-elements.ts`, `qa.ts`, `renderer.ts`/`renderer-helpers.ts`, `docx-renderer.ts`. The worker copies have a comment pointing back to the canonical `src/lib/translation-workflow/` version.
+**Synced duplicates** — several modules are maintained as independent copies in both the web app and worker and must be kept in sync manually: `output-plan.ts`, `visual-elements.ts`, `qa.ts`, `renderer.ts`/`renderer-helpers.ts`, `docx-renderer.ts`. The worker copies have a comment pointing back to the canonical `src/lib/translation-workflow/` version. `docx-visual-block.ts` is worker-only and has no web app counterpart — do not create one unless explicitly asked.
 
 ### Job status flow
 
@@ -230,8 +235,13 @@ Each transition also updates `progress_percent` (0–100).
 
 - **`types.ts`** — shared types: `OutputMode`, `OutputPlan`, `VisualElement`, `VisualElementKind`, `TranslationQaReport`
 - **`output-plan.ts`** — `computeOutputPlan(serviceLevelOrNotarized)`: accepts a `ServiceLevel` string (canonical) or a legacy boolean. `electronic` → `translation_only` (final PDF, released immediately). `official_with_translator_signature_and_provider_stamp` → `translator_review_draft` (DOCX + preview PDF, `workflow_status: awaiting_translator_review`, not released). `notarization_through_partners` → `notarization_package` (same artifacts, also requires notary review). `deriveBackcompatBooleans(level)` converts a `ServiceLevel` back to legacy `{notarized, bureau_stamp}` for backward-compat DB queries — use it only for old queries, not new code.
-- **`visual-elements.ts`** — `extractVisualElementsFromTranslated(markdown)` and `mergeVisualElements(ocr, translated)` collect stamps, signatures, QR codes, MRZ lines, etc. detected by Mistral OCR and from markers in the translated markdown. Visual elements are passed to renderers for the visual-elements block.
-- **`visual-elements-block.ts`** — renders the collected visual elements into an HTML block appended to the translated document.
+- **`visual-elements.ts`** — `extractVisualElementsFromTranslated(markdown)` and `mergeVisualElements(ocr, translated)` collect stamps, signatures, QR codes, MRZ lines, etc. **Priority order for visual element detection:** (1) `page-vision.ts` (Claude full-PDF vision — primary, returns most complete set), (2) Mistral OCR embedded images, (3) bracket markers in translated markdown (fallback only). If page-vision returns ≥1 element, OCR markers are skipped entirely.
+- **`visual-elements-block.ts`** — renders the collected visual elements into an HTML block appended to the translated document (HTML renderer path only).
+
+Worker-only modules (no `src/lib/` counterpart):
+- **`page-vision.ts`** (`worker/src/lib/page-vision.ts`) — sends the full raw PDF buffer to Claude as a document block for visual-element detection. This is PRIMARY; Mistral OCR image extraction is the fallback. Non-blocking — failure returns `[]` and the pipeline continues.
+- **`protected-values.ts`** (`worker/src/lib/protected-values.ts`) — extracts critical document identifiers (IBANs, BINs/IINs, passport numbers, SWIFT codes, reference codes) from the markdown before LLM translation and replaces them with opaque `{{V0001}}`-style tokens. Tokens are restored verbatim after translation, preventing any alteration of numeric/alphanumeric identifiers.
+- **`docx-visual-block.ts`** (`worker/src/lib/docx-visual-block.ts`) — DOCX-native visual elements block renderer. Used by `docx-renderer.ts` instead of the HTML `visual-elements-block.ts`. Contains `VISUAL_BLOCK_I18N` with localized column headings for all supported target languages.
 - **`qa.ts`** — `runQaChecks(html, mode)` returns a `TranslationQaReport`: checks for forbidden technical terms (`Claude`, `Mistral`, `JSON`, `Markdown`, `renderer`, etc.), broken glyphs, table clipping risk, orphan headings, presence of translator/verification blocks. A `qa_report` JSON is stored in the `translations` table.
 - **`customer-order-state.ts`** — `getCustomerOrderState(input)` is the **canonical** function for all customer-visible order state. Returns `{ customerStatus, canDownload, isActive, isTerminal, stages, progressPercent }`. **Never duplicate this logic in components — always import from here.** `CustomerStatus` covers the full lifecycle including notarization states: `queued`, `ocr_in_progress`, `translation_in_progress`, `pdf_rendering`, `awaiting_translator_review`, `translator_approved`, `awaiting_signature_stamp`, `assigned_to_notary`, `notarization_in_progress`, `notarized`, `ready_for_delivery`, `ready_for_pickup`, `out_for_delivery`, `delivered`, `picked_up`, `translator_declined`, `notary_declined`, `completed`, `failed`, `operator_processing`. Used by `GET /api/jobs` and download gating.
 
@@ -271,11 +281,17 @@ Other locale-prefixed pages: `contacts` (`src/app/[locale]/contacts/`), `auth` (
 
 **Current state: subscription-only, no active card payment gateway.** `src/lib/stripe/` and `src/lib/polar/` are empty placeholder directories. `POST /api/subscriptions/create` returns HTTP 503 ("temporarily unavailable"). The subscription modal shows a "coming soon" message. The `jobs.payment_source` column is typed `'card_payment' | 'subscription'` — TON cryptocurrency payments are no longer present in the codebase.
 
-**Planned gateway: Halyk Bank ePay** (card payments in KZT). Integration is pending — controlled by `BUSINESS_PROFILE.cardPaymentsActive` in `src/lib/business-profile.ts` (currently `false`). `src/components/payment/PaymentComplianceBlock.tsx` shows Halyk ePay and Mastercard logos with wording that switches based on that flag. Do not add code to the stripe/polar directories without being asked.
+**Halyk Bank ePay** (card payments in KZT). The integration is fully implemented in `src/lib/payments/halyk/` (client, config, invoice, pricing, security, status-map, locale, types). API routes: `POST /api/payments/halyk/initiate`, `POST /api/payments/halyk/callback`, `POST /api/documents/upload-card` (card-payment upload path), `GET /api/cron/reconcile-payments`. The gateway is gated by `BUSINESS_PROFILE.cardPaymentsActive` in `src/lib/business-profile.ts` (currently `false` — set to `true` only after Halyk credentials are added to env and end-to-end tested). `src/components/payment/PaymentComplianceBlock.tsx` wording switches on that flag. Do not add code to the stripe/polar directories without being asked.
 
 Subscription plans (KZT pricing): `SUBSCRIPTION_PLANS` in `src/lib/subscriptions/config.ts` — Basic 4990 KZT/mo (10 docs), Pro 12990 KZT/mo (40 docs). Duration: 30 days. `documents_used` is incremented atomically in the upload route before creating the job.
 
-Subscription state: `subscriptions` table. The upload route is the only path that currently creates jobs — if the user has no active subscription it returns HTTP 402.
+Subscription state: `subscriptions` table. `POST /api/documents/upload` (subscription path) and `POST /api/documents/upload-card` (card payment path) are the two job-creation entry points.
+
+**Fiscalization** (KZ tax law requires fiscal receipts for card payments). `src/lib/fiscal/` is a provider-abstracted system: `types.ts` (interface), `config.ts` (reads env), `provider.ts` (factory), `manual-provider.ts`, `webkassa-provider.ts` + `webkassa-client.ts`. Orchestration in `service.ts`: `createSaleReceiptForPayment(paymentTransactionId)` — called non-blocking after Halyk CHARGE confirms; `createRefundReceiptForRefund(...)` — called after refund is logged. Both are **idempotent** (unique constraint on `(payment_transaction_id, operation_type)` in `fiscal_receipts`) and **non-blocking** (fiscal failure never throws to the caller). Current mode: `FISCAL_PROVIDER=manual` → every receipt gets `status = pending_manual`; operator issues manually via OFD web cabinet. Webkassa provider is implemented but gated by `FISCALIZATION_ENABLED=true` + `FISCAL_PROVIDER=webkassa`. Env vars: `FISCAL_PROVIDER` (`manual`|`webkassa`), `FISCALIZATION_ENABLED` (`true`/`false`), `FISCAL_PROVIDER_ENV` (`test`/`production`). See `docs/payments/FISCALIZATION.md` for operator queries and provider onboarding steps.
+
+**Refunds** — operator-initiated only; no customer-facing endpoint. `src/lib/refunds/service.ts`: `initiateRefund(request)` validates the refundable amount (via Supabase RPC `get_refundable_amount`), creates a `refund_transactions` row with `status = pending_manual`, then calls `createRefundReceiptForRefund`. Halyk refund API not yet integrated — operator must process manually via Halyk merchant cabinet. Admin API routes: `POST /api/admin/payments/refund` and `POST /api/admin/payments/[paymentId]/refunds`. See `docs/payments/REFUNDS.md`.
+
+**Worker fiscal reconciliation** — `reconcileFiscalAndRefunds()` in `worker/src/lib/fiscal-reconciliation.ts` runs every 5 minutes. Finds `fiscal_receipts` with `pending`/`failed`/`retry_required` status and `refund_transactions` with `pending_manual` status, logs them for operator attention, and increments `retry_count` to throttle repeat logging. Does not auto-retry with the manual provider.
 
 ### Integration orchestrator (Jira + Google Drive + Telegram)
 
@@ -309,11 +325,14 @@ Subscription state: `subscriptions` table. The upload route is the only path tha
 | `documents` | `file_key`, `source_language`, `target_language`, `document_type`, `output_format`, `status`, `word_count`, `price_usd` |
 | `jobs` | `status`, `progress_percent`, `priority`, `payment_source` (`'card_payment' \| 'subscription'`), `country`, `notarized`, `bureau_stamp`, `workflow_status`, `service_level`, `fulfillment_method` (`'pickup' \| 'delivery'`), `jira_issue_key`, `last_synced_at` |
 | `ocr_results` | `job_id`, `markdown`, `page_count`, `provider` |
-| `translations` | `job_id`, `translated_markdown`, `translated_pdf_key`, `translated_docx_key`, `translated_preview_pdf_key`, `qa_report` |
+| `translations` | `job_id`, `translated_markdown`, `translated_pdf_key`, `translated_docx_key`, `translated_preview_pdf_key`, `qa_report`, `translated_ast` (background AST enrichment — non-blocking, never gates delivery) |
 | `subscriptions` | `plan`, `status`, `documents_used`, `documents_limit`, `expires_at` |
 | `job_audit_log` | `job_id`, `actor`, `source`, `action`, `previous_status`, `new_status`, `jira_issue_key`, `correlation_id`, `metadata` — append-only log of all status transitions and integration events |
 | `staff_profiles` | `display_name`, `jira_account_id`, `telegram_chat_id`, `telegram_username`, `telegram_notifications_enabled`, `role` (`operator\|translator\|notary_partner\|admin`), `is_active` — service role only (RLS blocks browser). Unique constraint on `jira_account_id WHERE is_active=true`. |
 | `notification_log` | `event_id`, `order_id`, `jira_issue_key`, `recipient_profile_id`, `channel`, `template`, `status` (`pending\|sent\|failed\|skipped`), `provider_message_id`, `error`, `sent_at` — delivery audit for every Telegram notification attempt. Unique index on `(event_id, recipient_profile_id) WHERE status IN ('sent','pending')` for idempotency. |
+| `payment_transactions` | `job_id`, `document_id`, `amount`, `currency`, `status` (`pending\|paid\|failed\|expired`), `provider` (`halyk_epay`), `provider_environment` (`test\|production`), `provider_transaction_id`, `card_mask` — one row per Halyk ePay payment attempt. |
+| `fiscal_receipts` | `payment_transaction_id`, `operation_type` (`sale\|refund\|correction`), `status` (`pending\|pending_manual\|issued\|failed\|retry_required`), `amount_kzt`, `provider` (`manual\|webkassa`), `fiscal_url`, `provider_receipt_id`, `receipt_payload_sanitized`, `customer_email` — migration `0017_fiscal_receipts.sql`. |
+| `refund_transactions` | `payment_transaction_id`, `refund_amount_kzt`, `status` (`pending_manual\|pending\|succeeded\|failed\|requires_review`), `provider` (`halyk_epay`), `reason`, `operator_id`, `idempotency_key`, `fiscal_refund_receipt_id` — migration `0018_refund_transactions.sql`. |
 
 Generated types at `src/types/supabase.ts`, re-exported from `src/types/index.ts`. Use `Tables<'tablename'>`, `TablesInsert<'tablename'>`, `TablesUpdate<'tablename'>` for typed DB access — do not inline raw object types.
 
@@ -329,7 +348,13 @@ Generated types at `src/types/supabase.ts`, re-exported from `src/types/index.ts
 | POST | `/api/subscriptions/create` | 503 placeholder — payment gateway not yet active |
 | GET | `/api/subscriptions/current` | Active subscription for the current user |
 | POST | `/api/subscriptions/use-document` | Check quota and decrement by 1 |
+| POST | `/api/documents/upload-card` | Card-payment upload path (Halyk ePay) — creates job gated by `cardPaymentsActive` |
+| POST | `/api/payments/halyk/initiate` | Initiate Halyk ePay payment, returns redirect URL |
+| POST | `/api/payments/halyk/callback` | Halyk ePay payment result callback — updates job payment status |
 | GET | `/api/cron/cleanup` | Daily 02:00 UTC — deletes files older than 30 days (secured via `CRON_SECRET`) |
+| GET | `/api/cron/reconcile-payments` | Scheduled reconciliation of Halyk ePay payment statuses |
+| POST | `/api/admin/payments/refund` | Operator-initiated refund — creates `refund_transactions` row (pending_manual) |
+| POST | `/api/admin/payments/[paymentId]/refunds` | Same as above, payment-scoped path |
 | POST | `/api/users/accept-terms` | Records `terms_accepted_at` timestamp in users table; gate shown in dashboard before first upload |
 | POST | `/api/webhooks/jira` | Inbound Jira Automation callbacks — updates Supabase job status and sends Telegram/email notifications; does NOT create Jira issues or call Jira API. `ASSIGNEE_CHANGED` events are routed to `handleAssigneeChanged()` (`src/lib/notifications/assignee.ts`) for personal Telegram delivery via `staff_profiles`. |
 | POST | `/api/webhooks/stripe` | Placeholder — no route file exists; `src/lib/stripe/` is an empty directory |

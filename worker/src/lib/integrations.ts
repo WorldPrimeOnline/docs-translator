@@ -223,15 +223,18 @@ export async function initializeOrderIntegrations(params: {
     .eq('id', params.jobId)
     .single();
 
-  if (existing?.jira_issue_key && existing.google_drive_folder_id) {
-    console.log(`${tag} already initialized — jira=${existing.jira_issue_key} drive=${existing.google_drive_folder_id}`);
-    const aiDraftFolderId = await getSubfolderId(existing.google_drive_folder_id, DRIVE_SUBFOLDER_NAMES.aiDraft).catch(() => null);
-    const sourceFolderId = await getSubfolderId(existing.google_drive_folder_id, DRIVE_SUBFOLDER_NAMES.source).catch(() => null);
+  // For electronic orders, Jira is never created — idempotency only requires Drive folder.
+  const driveReady = !!existing?.google_drive_folder_id;
+  const jiraReady = params.serviceLevel === 'electronic' || !!existing?.jira_issue_key;
+  if (driveReady && jiraReady) {
+    console.log(`${tag} already initialized — jira=${existing?.jira_issue_key ?? 'n/a'} drive=${existing!.google_drive_folder_id}`);
+    const aiDraftFolderId = await getSubfolderId(existing!.google_drive_folder_id!, DRIVE_SUBFOLDER_NAMES.aiDraft).catch(() => null);
+    const sourceFolderId = await getSubfolderId(existing!.google_drive_folder_id!, DRIVE_SUBFOLDER_NAMES.source).catch(() => null);
     return {
-      jiraIssueKey: existing.jira_issue_key,
-      jiraIssueUrl: existing.jira_issue_url ?? null,
-      driveFolderId: existing.google_drive_folder_id,
-      driveUrl: existing.google_drive_folder_url ?? null,
+      jiraIssueKey: existing?.jira_issue_key ?? null,
+      jiraIssueUrl: existing?.jira_issue_url ?? null,
+      driveFolderId: existing!.google_drive_folder_id!,
+      driveUrl: existing?.google_drive_folder_url ?? null,
       aiDraftFolderId,
       sourceFolderId,
     };
@@ -290,8 +293,8 @@ export async function initializeOrderIntegrations(params: {
     }
   }
 
-  // ── 3. Create Jira issue ───────────────────────────────────────────────────
-  if (!jiraIssueKey) {
+  // ── 3. Create Jira issue (certified/notarized only — electronic is fully automated) ───────
+  if (!jiraIssueKey && params.serviceLevel !== 'electronic') {
     if (!getJiraAuth()) {
       // Credentials missing — record the misconfiguration so the operator can see it in Supabase
       const msg = 'Jira credentials not configured — set JIRA_BASE_URL, JIRA_EMAIL, JIRA_API_TOKEN on Railway';
@@ -371,6 +374,8 @@ export async function triggerTranslatorReview(params: {
   documentType: string;
   driveUrl?: string | null;
   driveFolderId?: string | null;
+  /** Direct ID of the 02_AI_DRAFT subfolder — avoids a search query if known */
+  aiDraftFolderId?: string | null;
   /** R2 key of the AI draft DOCX artifact */
   draftFileKey?: string | null;
   draftFileName?: string | null;
@@ -380,11 +385,18 @@ export async function triggerTranslatorReview(params: {
   // ── 1. Upload AI draft DOCX to Drive 02_AI_DRAFT ─────────────────────────
   // Preview PDF is not generated for official AI drafts — only ai_draft.docx.
   if (params.driveFolderId && isDriveConfigured()) {
-    let aiDraftFolderId: string | null = null;
-    try {
-      aiDraftFolderId = await getSubfolderId(params.driveFolderId, DRIVE_SUBFOLDER_NAMES.aiDraft);
-    } catch (err) {
-      console.error(`${tag} could not resolve 02_AI_DRAFT subfolder (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
+    // Use the folder ID passed directly from initializeOrderIntegrations if available.
+    // Fall back to a search only if needed (e.g. when called after a worker restart).
+    let aiDraftFolderId: string | null = params.aiDraftFolderId ?? null;
+    if (!aiDraftFolderId) {
+      try {
+        aiDraftFolderId = await getSubfolderId(params.driveFolderId, DRIVE_SUBFOLDER_NAMES.aiDraft);
+        if (!aiDraftFolderId) {
+          console.error(`${tag} 02_AI_DRAFT subfolder not found in Drive folder ${params.driveFolderId}`);
+        }
+      } catch (err) {
+        console.error(`${tag} could not resolve 02_AI_DRAFT subfolder (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
+      }
     }
 
     if (aiDraftFolderId && params.draftFileKey) {
@@ -398,6 +410,10 @@ export async function triggerTranslatorReview(params: {
         const msg = err instanceof Error ? err.message : String(err);
         console.error(`${tag} DOCX Drive upload failed (non-fatal): ${msg}`);
       }
+    } else if (!aiDraftFolderId) {
+      console.error(`${tag} ai_draft upload skipped — 02_AI_DRAFT folder ID not available`);
+    } else if (!params.draftFileKey) {
+      console.error(`${tag} ai_draft upload skipped — draftFileKey is null`);
     }
   }
 

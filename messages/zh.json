@@ -201,6 +201,7 @@
     "subBannerDesc": "低至 4 990 ₸/月——10 份文件，无需按次付费",
     "usingPlanSub": "使用 {plan} 计划 · 剩余 {remaining} 份文件 — 无需付款",
     "status": {
+      "paymentPending": "Awaiting payment",
       "queued": "排队中——等待开始…",
       "ocr": "正在提取文字… ({pct}%)",
       "ocrDone": "OCR 完成，正在开始翻译… ({pct}%)",
@@ -322,6 +323,16 @@
       "serviceElectronic": "电子版",
       "serviceCertified": "认证翻译",
       "serviceNotarized": "公证翻译"
+    },
+    "uploadAndPay": "Upload & Pay by card",
+    "uploadedPaymentPending": "File uploaded — pay {price} to start translation",
+    "errors": {
+      "serverError": "服务器错误，请重试。",
+      "uploadFailed": "上传失败",
+      "logoutFailed": "退出登录失败",
+      "unsupportedFileType": "不支持的文件类型：{files}",
+      "pleaseSelectFile": "请至少选择一个文件",
+      "failedTermsAcceptance": "保存服务条款接受状态失败。"
     }
   },
   "auth": {
@@ -913,5 +924,31 @@
         "a": "In some cases yes, if a partner process is available for the selected document, language, and jurisdiction. Availability, timeline, and cost of notarization are confirmed separately."
       }
     ]
+  },
+  "payment": {
+    "payButton": "Pay {amount} {currency}",
+    "processing": "Processing...",
+    "paid": "Payment confirmed",
+    "unavailable": "Card payments are temporarily unavailable.",
+    "alreadyPaid": "This order is already paid.",
+    "sessionExpired": "Your session has expired. Please log in again.",
+    "networkError": "Network error. Please try again.",
+    "scriptError": "Could not load payment gateway.",
+    "genericError": "An error occurred. Please try again.",
+    "gatewayError": "支付网关错误，请重试。",
+    "retry": "Try again",
+    "checkingStatus": "Checking payment status...",
+    "processingPayment": "Processing your payment...",
+    "successTitle": "Payment successful",
+    "successDesc": "Your payment of {amount} has been received. Your document is being processed.",
+    "viewOrder": "View order",
+    "failedTitle": "Payment not completed",
+    "failedDesc": "Your payment was not completed. No funds have been charged.",
+    "reviewTitle": "Payment under review",
+    "reviewDesc": "Your payment is being reviewed.",
+    "processingTitle": "Payment is processing",
+    "processingDesc": "Please check your dashboard in a few minutes.",
+    "goToDashboard": "Go to Dashboard",
+    "invalidLink": "Invalid payment link."
   }
 }

@@ -4,8 +4,8 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { toast } from 'sonner';
-import { Upload, FileText, FileImage, FileCode2, Download, AlertCircle, Loader2, Zap, Star, X, Clock } from 'lucide-react';
-import { SubscriptionModal } from '@/components/subscription-modal';
+import { Upload, FileText, FileImage, FileCode2, Download, AlertCircle, Loader2, X, Clock } from 'lucide-react';
+import { HalykPayButton } from '@/components/payment/HalykPayButton';
 import { createClient } from '@/lib/supabase/client';
 import { Link } from '@/i18n/navigation';
 import { NOTARY_CITIES } from '@/lib/notary/cities';
@@ -39,16 +39,9 @@ interface OrderEntry {
   isActive: boolean;
   isTerminal: boolean;
   stages: { key: string; labelKey: string; done: boolean; current: boolean }[];
+  priceKzt: number | null;
 }
 
-interface SubscriptionInfo {
-  id: string;
-  plan: 'basic' | 'pro';
-  status: string;
-  documentsLimit: number;
-  documentsUsed: number;
-  expiresAt: string | null;
-}
 
 // ─── Status badge ──────────────────────────────────────────────────────────────
 
@@ -69,6 +62,14 @@ function StatusBadge({ customerStatus }: { customerStatus: string | null }) {
       <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2.5 py-0.5 text-xs font-medium text-red-400">
         <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
         {t('failed')}
+      </span>
+    );
+  }
+  if (status === 'payment_pending') {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-400">
+        <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+        {t('status.paymentPending')}
       </span>
     );
   }
@@ -179,6 +180,7 @@ function useStatusLabel() {
     const pct = entry.progressPercent;
 
     switch (status) {
+      case 'payment_pending':      return t('status.paymentPending');
       case 'queued':               return t('status.queued');
       case 'ocr_in_progress':      return t('status.ocr', { pct });
       case 'translation_in_progress': return t('status.translating', { pct });
@@ -263,6 +265,15 @@ function ActiveOrderCard({ entry, locale }: { entry: OrderEntry; locale: string 
         </div>
       )}
 
+      {entry.customerStatus === 'payment_pending' && entry.jobId && entry.priceKzt != null && (
+        <div className="mt-4">
+          <HalykPayButton
+            jobId={entry.jobId}
+            priceKzt={entry.priceKzt}
+          />
+        </div>
+      )}
+
       {entry.canDownload && (
         <a
           href={`/api/documents/${entry.documentId}/download`}
@@ -304,75 +315,6 @@ function HistoryRow({ entry }: { entry: OrderEntry }) {
           </a>
         )}
       </div>
-    </div>
-  );
-}
-
-// ─── Subscription components (unchanged) ──────────────────────────────────────
-
-function SubscriptionBanner({ onViewPlans }: { onViewPlans: () => void }) {
-  const t = useTranslations('dashboard');
-  return (
-    <div className="flex items-center justify-between gap-4 rounded-lg border border-primary/20 bg-primary/5 px-5 py-4">
-      <div className="flex items-center gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/10">
-          <Zap className="h-4 w-4 text-primary" />
-        </div>
-        <div>
-          <p className="text-sm font-medium text-foreground">{t('subBannerTitle')}</p>
-          <p className="text-xs text-muted-foreground">{t('subBannerDesc')}</p>
-        </div>
-      </div>
-      <button
-        type="button"
-        onClick={onViewPlans}
-        className="shrink-0 inline-flex items-center rounded-md bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-gold-dark"
-      >
-        {t('viewPlans')}
-      </button>
-    </div>
-  );
-}
-
-function SubscriptionCard({ sub, onUpgrade }: { sub: SubscriptionInfo; onUpgrade: () => void }) {
-  const t = useTranslations('dashboard');
-  const locale = useLocale();
-  const pct = Math.round((sub.documentsUsed / sub.documentsLimit) * 100);
-  const remaining = sub.documentsLimit - sub.documentsUsed;
-  const expiresDate = sub.expiresAt
-    ? new Date(sub.expiresAt).toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' })
-    : '—';
-  const isPro = sub.plan === 'pro';
-  return (
-    <div className={`overflow-hidden rounded-lg border p-5 ${isPro ? 'border-primary/40 bg-primary/5' : 'border-white/10 bg-card'}`}>
-      <div className="mb-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          {isPro ? <Star className="h-4 w-4 text-primary" /> : <Zap className="h-4 w-4 text-primary" />}
-          <span className="text-sm font-semibold text-foreground">{isPro ? t('proPlan') : t('basicPlan')}</span>
-          {isPro && <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-bold text-primary-foreground">PRO</span>}
-        </div>
-        <span className="text-xs text-muted-foreground">{t('expires')} {expiresDate}</span>
-      </div>
-      <div className="mb-2 flex items-center justify-between text-xs">
-        <span className="text-muted-foreground">{t('docsUsed')}</span>
-        <span className="font-medium text-foreground">{sub.documentsUsed} / {sub.documentsLimit}</span>
-      </div>
-      <div className="mb-4 h-2 w-full overflow-hidden rounded-full bg-white/10">
-        <div className={`h-full rounded-full transition-all duration-500 ${pct >= 90 ? 'bg-amber-500' : 'bg-primary'}`} style={{ width: `${pct}%` }} />
-      </div>
-      {remaining === 0 ? (
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-xs text-amber-400">{t('allDocsUsed', { n: sub.documentsLimit })}</p>
-          <button type="button" onClick={onUpgrade} className="shrink-0 inline-flex items-center rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-gold-dark">{t('upgradeToPro')}</button>
-        </div>
-      ) : !isPro ? (
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-xs text-muted-foreground">{t('docsRemaining', { n: remaining })}</p>
-          <button type="button" onClick={onUpgrade} className="shrink-0 inline-flex items-center rounded-md border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-white/10">{t('upgradeToPro')}</button>
-        </div>
-      ) : (
-        <p className="text-xs text-muted-foreground">{t('docsRemaining', { n: remaining })}</p>
-      )}
     </div>
   );
 }
@@ -454,8 +396,6 @@ export default function DashboardPage() {
   const [uploading, setUploading] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState<boolean | null>(null);
   const [consentChecked, setConsentChecked] = useState(false);
-  const [subscription, setSubscription] = useState<SubscriptionInfo | null | undefined>(undefined);
-  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
 
   // All orders loaded from Supabase — source of truth
   const [orders, setOrders] = useState<OrderEntry[]>([]);
@@ -486,17 +426,6 @@ export default function DashboardPage() {
     }
   }, []);
 
-  const loadSubscription = useCallback(async (): Promise<void> => {
-    try {
-      const res = await fetch('/api/subscriptions/current');
-      if (!res.ok) { setSubscription(null); return; }
-      const data = (await res.json()) as { subscription: SubscriptionInfo | null };
-      setSubscription(data.subscription);
-    } catch {
-      setSubscription(null);
-    }
-  }, []);
-
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getSession().then(async ({ data }) => {
@@ -510,8 +439,7 @@ export default function DashboardPage() {
       }
     });
     void loadOrders();
-    void loadSubscription();
-  }, [loadOrders, loadSubscription]);
+  }, [loadOrders]);
 
   // Keep ordersRef in sync so pollActiveJobs can read current orders without closing over state
   useEffect(() => { ordersRef.current = orders; }, [orders]);
@@ -625,8 +553,7 @@ export default function DashboardPage() {
     if (!newlyDone.length) return;
     newlyDone.forEach((o) => { if (o.jobId) seenTerminalIds.current.add(o.jobId); });
     void loadOrders();
-    void loadSubscription();
-  }, [orders, ordersLoaded, loadOrders, loadSubscription]);
+  }, [orders, ordersLoaded, loadOrders]);
 
   // ─── Auth ──────────────────────────────────────────────────────────────────────
 
@@ -634,7 +561,7 @@ export default function DashboardPage() {
     setIsLoggingOut(true);
     const supabase = createClient();
     const { error } = await supabase.auth.signOut();
-    if (error) { toast.error('Failed to log out'); setIsLoggingOut(false); return; }
+    if (error) { toast.error(t('errors.logoutFailed')); setIsLoggingOut(false); return; }
     router.push('/');
     router.refresh();
   };
@@ -653,7 +580,7 @@ export default function DashboardPage() {
   function addFiles(incoming: File[]) {
     const accepted = incoming.filter(isAccepted);
     const rejected = incoming.filter((f) => !isAccepted(f));
-    if (rejected.length > 0) toast.error(`Unsupported file type: ${rejected.map((f) => f.name).join(', ')}`);
+    if (rejected.length > 0) toast.error(t('errors.unsupportedFileType', { files: rejected.map((f) => f.name).join(', ') }));
     if (accepted.length > 0) setFiles((prev) => [...prev, ...accepted]);
   }
 
@@ -689,19 +616,18 @@ export default function DashboardPage() {
         fulfillmentMethod !== '' &&
         (!isDelivery || (deliveryPhone.length > 0 && deliveryAddress.length > 0))));
 
-  const useSubscription = subscription && subscription.documentsUsed < subscription.documentsLimit;
 
   // ─── Upload ────────────────────────────────────────────────────────────────────
 
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     if (!isFormValid) return;
-    if (files.length === 0) { toast.error('Please select at least one file'); return; }
+    if (files.length === 0) { toast.error(t('errors.pleaseSelectFile')); return; }
     setUploading(true);
 
     if (!termsAccepted) {
       const acceptRes = await fetch('/api/users/accept-terms', { method: 'POST' });
-      if (!acceptRes.ok) { toast.error('Failed to save terms acceptance.'); setUploading(false); return; }
+      if (!acceptRes.ok) { toast.error(t('errors.failedTermsAcceptance')); setUploading(false); return; }
       setTermsAccepted(true);
     }
 
@@ -717,23 +643,27 @@ export default function DashboardPage() {
       if (isDelivery) { form.append('deliveryPhone', deliveryPhone); form.append('deliveryAddress', deliveryAddress); }
     }
 
-    const res = await fetch('/api/documents/upload', { method: 'POST', body: form });
-    const data = (await res.json()) as { jobId?: string; documentId?: string; error?: string; subscriptionPlan?: string; remainingDocs?: number; };
+    const res = await fetch('/api/documents/upload-card', { method: 'POST', body: form });
+    let data: { jobId?: string; documentId?: string; error?: string; priceKzt?: number } = {};
+    try {
+      data = await res.json() as typeof data;
+    } catch {
+      toast.error(t('errors.serverError'));
+      setUploading(false);
+      return;
+    }
 
     if (!res.ok || !data.jobId || !data.documentId) {
-      toast.error(data.error ?? 'Upload failed');
+      toast.error(data.error ?? t('errors.uploadFailed'));
       setUploading(false);
       return;
     }
 
     setUploading(false);
     setFiles([]);
+    toast.success(t('uploadedPaymentPending', { price: `${(data.priceKzt ?? 0).toLocaleString()} KZT` }));
 
-    toast.success(`Translation started — ${data.remainingDocs ?? 0} doc${data.remainingDocs === 1 ? '' : 's'} remaining on your ${data.subscriptionPlan === 'pro' ? 'Pro' : 'Basic'} plan.`);
-
-    // Reload from Supabase so the new job appears in the active orders section
     await loadOrders();
-    await loadSubscription();
   };
 
   const selectClass = 'rounded-md border border-white/10 bg-input px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring transition-colors hover:border-white/20';
@@ -751,13 +681,6 @@ export default function DashboardPage() {
           {isLoggingOut ? '…' : t('logout')}
         </button>
       </div>
-
-      {/* Subscription */}
-      {subscription === undefined ? null : subscription ? (
-        <SubscriptionCard sub={subscription} onUpgrade={() => setShowSubscriptionModal(true)} />
-      ) : (
-        <SubscriptionBanner onViewPlans={() => setShowSubscriptionModal(true)} />
-      )}
 
       {/* Upload form */}
       <div className="rounded-lg border border-white/10 bg-card p-6">
@@ -879,18 +802,6 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* Subscription hint */}
-          {subscription && subscription.documentsUsed >= subscription.documentsLimit ? (
-            <div className="flex items-start gap-2 rounded-md border border-amber-500/20 bg-amber-500/5 p-3">
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
-              <p className="text-xs text-amber-400">{t('allDocsUsed', { n: subscription.documentsLimit })}{' '}
-                <button type="button" onClick={() => setShowSubscriptionModal(true)} className="underline underline-offset-2 hover:text-amber-300">{t('upgradeToPro')}</button>
-              </p>
-            </div>
-          ) : subscription ? (
-            <p className="text-xs text-muted-foreground">✓ {t('usingPlan', { plan: subscription.plan === 'pro' ? 'Pro' : 'Basic', remaining: subscription.documentsLimit - subscription.documentsUsed })}</p>
-          ) : null}
-
           {/* Consent */}
           {termsAccepted === false ? (
             <label className="flex cursor-pointer items-start gap-2.5">
@@ -909,7 +820,11 @@ export default function DashboardPage() {
 
           <button type="submit" disabled={uploading || !isFormValid}
             className="inline-flex w-fit items-center justify-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-gold-dark disabled:pointer-events-none disabled:opacity-50">
-            {uploading ? (<><Loader2 className="h-4 w-4 animate-spin" />…</>) : useSubscription ? (<><Upload className="h-4 w-4" />{t('uploadBtn')}</>) : (<><Upload className="h-4 w-4" />{t('uploadPay')}</>)}
+            {uploading ? (
+              <><Loader2 className="h-4 w-4 animate-spin" />…</>
+            ) : (
+              <><Upload className="h-4 w-4" />{t('uploadAndPay')}</>
+            )}
           </button>
         </form>
       </div>
@@ -935,13 +850,6 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Subscription modal */}
-      {showSubscriptionModal && (
-        <SubscriptionModal
-          onSuccess={(plan) => { setShowSubscriptionModal(false); void loadSubscription(); toast.success(`${plan === 'pro' ? 'Pro' : 'Basic'} plan activated!`); }}
-          onClose={() => setShowSubscriptionModal(false)}
-        />
-      )}
 
       {/* History */}
       <div className="rounded-lg border border-white/10 bg-card">

@@ -75,7 +75,9 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
 
     const serviceLevel = resolvedServiceLevel;
 
-    // ── 1b. Integration init (certified/notarized only) ─────────────────────
+    // ── 1b. Integration init (all orders) ──────────────────────────────────
+    // Drive folder + source.pdf upload run for every order (electronic included).
+    // Jira issue creation is restricted to certified/notarized inside initializeOrderIntegrations.
     // Must run BEFORE we change status so the worker is the durable executor,
     // not a fire-and-forget Vercel request that gets killed after HTTP response.
     let integrationResult = {
@@ -87,26 +89,24 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
       sourceFolderId: null as string | null,
     };
 
-    if (serviceLevel !== 'electronic') {
-      try {
-        integrationResult = await initializeOrderIntegrations({
-          jobId,
-          serviceLevel: resolvedServiceLevel as typeof serviceLevel,
-          sourceLang: doc.source_language,
-          targetLang: doc.target_language,
-          documentType: doc.document_type,
-          notaryCity: jobRow?.notary_city ?? null,
-          fulfillmentMethod: jobRow?.fulfillment_method ?? null,
-          deliveryPhone: jobRow?.delivery_phone ?? null,
-          deliveryAddress: jobRow?.delivery_address ?? null,
-          paymentSource: jobRow?.payment_source ?? null,
-          customerId: doc.user_id,
-          sourceFileKey: doc.file_key,
-        });
-      } catch (initErr) {
-        const initMsg = initErr instanceof Error ? initErr.message : String(initErr);
-        console.error(`${tag} integration init failed (non-fatal, continuing with OCR): ${initMsg}`);
-      }
+    try {
+      integrationResult = await initializeOrderIntegrations({
+        jobId,
+        serviceLevel: resolvedServiceLevel as typeof serviceLevel,
+        sourceLang: doc.source_language,
+        targetLang: doc.target_language,
+        documentType: doc.document_type,
+        notaryCity: jobRow?.notary_city ?? null,
+        fulfillmentMethod: jobRow?.fulfillment_method ?? null,
+        deliveryPhone: jobRow?.delivery_phone ?? null,
+        deliveryAddress: jobRow?.delivery_address ?? null,
+        paymentSource: jobRow?.payment_source ?? null,
+        customerId: doc.user_id,
+        sourceFileKey: doc.file_key,
+      });
+    } catch (initErr) {
+      const initMsg = initErr instanceof Error ? initErr.message : String(initErr);
+      console.error(`${tag} integration init failed (non-fatal, continuing with OCR): ${initMsg}`);
     }
 
     // ── 2. OCR ───────────────────────────────────────────────────────────────
@@ -314,6 +314,7 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
           documentType: docType,
           driveUrl: integrationResult.driveUrl,
           driveFolderId: integrationResult.driveFolderId,
+          aiDraftFolderId: integrationResult.aiDraftFolderId,
           draftFileKey: draftDocxKey,
           draftFileName: 'ai_draft.docx',
         });

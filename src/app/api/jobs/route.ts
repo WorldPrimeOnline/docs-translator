@@ -44,7 +44,7 @@ export async function GET(): Promise<NextResponse> {
   const { data: jobs } = await supabaseServer
     .from('jobs')
     .select(
-      'id, document_id, status, progress_percent, error_message, workflow_status, service_level, fulfillment_method, created_at',
+      'id, document_id, status, progress_percent, error_message, workflow_status, service_level, fulfillment_method, price_kzt, created_at',
     )
     .in('document_id', docIds)
     .order('created_at', { ascending: false });
@@ -95,6 +95,7 @@ export async function GET(): Promise<NextResponse> {
       isActive: state?.isActive ?? false,
       isTerminal: state?.isTerminal ?? true,
       stages: state?.stages ?? [],
+      priceKzt: job?.price_kzt ?? null,
     };
   });
 

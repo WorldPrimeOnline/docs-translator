@@ -19,6 +19,7 @@ export interface OrderStateInput {
 }
 
 export type CustomerStatus =
+  | 'payment_pending'
   | 'queued'
   | 'ocr_in_progress'
   | 'translation_in_progress'
@@ -108,6 +109,7 @@ const NOTARIZED_STAGES_PICKUP = [
 
 function electronicCurrentStage(jobStatus: string): number {
   switch (jobStatus) {
+    case 'payment_pending': return 0;
     case 'queued': return 0;
     case 'ocr_in_progress':
     case 'ocr_completed': return 1;
@@ -119,6 +121,7 @@ function electronicCurrentStage(jobStatus: string): number {
 }
 
 function certifiedCurrentStage(jobStatus: string, workflowStatus: string | null): number {
+  if (jobStatus === 'payment_pending') return 0;
   if (jobStatus === 'queued') return 0;
   if (
     jobStatus === 'ocr_in_progress' || jobStatus === 'ocr_completed' ||
@@ -133,6 +136,7 @@ function certifiedCurrentStage(jobStatus: string, workflowStatus: string | null)
 }
 
 function notarizedCurrentStage(jobStatus: string, workflowStatus: string | null): number {
+  if (jobStatus === 'payment_pending') return 0;
   if (jobStatus === 'queued') return 0;
   if (
     jobStatus === 'ocr_in_progress' || jobStatus === 'ocr_completed' ||
@@ -168,6 +172,7 @@ function deriveCustomerStatus(
   workflowStatus: string | null,
   serviceLevel: string | null,
 ): CustomerStatus {
+  if (jobStatus === 'payment_pending') return 'payment_pending';
   if (jobStatus === 'failed') return 'failed';
   if (workflowStatus === 'translator_declined') return 'translator_declined';
   if (workflowStatus === 'notary_declined') return 'notary_declined';

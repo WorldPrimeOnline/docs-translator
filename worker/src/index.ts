@@ -2,10 +2,13 @@ import { env } from './lib/env';
 import { supabase, type JobRow, type PaymentTransactionRow } from './lib/supabase';
 import { processJob } from './processor';
 import { closeBrowser } from './lib/pdf';
+import { reconcileFiscalAndRefunds } from './lib/fiscal-reconciliation';
+import { logDriveAuthMode } from './lib/google-drive';
 
 // ── State ──────────────────────────────────────────────────────────────────
 let running = false;   // true while we are processing a job
 let shuttingDown = false;
+let pollCycles = 0;
 
 // ── Graceful shutdown ──────────────────────────────────────────────────────
 async function shutdown(signal: string): Promise<void> {
@@ -43,11 +46,12 @@ function sleep(ms: number): Promise<void> {
 async function isEligible(job: JobRow): Promise<boolean> {
   if (job.payment_source === 'subscription') return true;
 
+  // Accept both 'paid' (Halyk ePay, current) and 'completed' (legacy TON-era, historical rows).
   const { data: payment } = await supabase
     .from('payment_transactions')
     .select('status')
     .eq('job_id', job.id)
-    .eq('status', 'completed')
+    .in('status', ['paid', 'completed'])
     .maybeSingle<PaymentTransactionRow>();
 
   return !!payment;
@@ -93,6 +97,11 @@ async function claimNextJob(): Promise<{ jobId: string; documentId: string } | n
       continue;
     }
 
+    console.info('[worker] job claimed', {
+      jobId: job.id,
+      paymentSource: job.payment_source,
+      priority: job.priority,
+    });
     return { jobId: job.id, documentId: job.document_id };
   }
 
@@ -103,8 +112,15 @@ async function claimNextJob(): Promise<{ jobId: string; documentId: string } | n
 async function pollOnce(): Promise<void> {
   if (running || shuttingDown) return;
 
+  pollCycles++;
   const claimed = await claimNextJob();
-  if (!claimed) return; // Nothing to do this tick
+  if (!claimed) {
+    // Log heartbeat every ~5 min (30 cycles × 10s default interval)
+    if (pollCycles % 30 === 0) {
+      console.info('[worker] poll heartbeat', { cycle: pollCycles, status: 'idle' });
+    }
+    return;
+  }
 
   running = true;
   try {
@@ -182,6 +198,13 @@ async function main(): Promise<void> {
   console.log(
     `[worker] started — poll every ${env.POLL_INTERVAL_MS}ms, concurrency ${env.WORKER_CONCURRENCY}`,
   );
+  logDriveAuthMode();
+  console.info('[worker] eligibility config', {
+    selectableJobStatuses: ['queued'],
+    eligiblePaymentStatuses: ['paid', 'completed'],
+    subscriptionJobsEligibleImmediately: true,
+    cardPaymentJobsRequireConfirmedPayment: true,
+  });
 
   // Initial poll immediately on startup (catch jobs queued while worker was down)
   await pollOnce();
@@ -189,6 +212,15 @@ async function main(): Promise<void> {
   setInterval(() => {
     void pollOnce();
   }, env.POLL_INTERVAL_MS);
+
+  // Fiscal and refund reconciliation — separate from job processing loop
+  // Runs every 5 minutes to log items needing manual operator attention.
+  const FISCAL_RECONCILE_INTERVAL_MS = 5 * 60 * 1000;
+  setInterval(() => {
+    void reconcileFiscalAndRefunds().catch((err: unknown) => {
+      console.error('[worker] fiscal reconciliation error:', (err as Error).message);
+    });
+  }, FISCAL_RECONCILE_INTERVAL_MS);
 }
 
 void main();

@@ -52,3 +52,24 @@ next-env.d.ts
 
 # generated test artifacts
 /tmp
+
+# Postman exports / API collections / local API credentials
+*.postman_collection.json
+*.postman_environment.json
+*postman_collection*.json
+*postman_environment*.json
+Postman/
+postman/
+collections/
+environments/
+
+# Webkassa / integrator exported API docs with possible secrets
+*ИНТЕГРАТОРЫ*.json
+*integrator*.json
+*webkassa*collection*.json
+*webkassa*environment*.json
+
+# Local secret dumps
+*.secrets.json
+*.tokens.json
+*.credentials.json

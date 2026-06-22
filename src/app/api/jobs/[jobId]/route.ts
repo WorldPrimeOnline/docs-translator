@@ -5,6 +5,7 @@ import { supabaseServer } from '@/lib/supabase/server';
 import type { Database } from '@/types';
 
 type JobStatus =
+  | 'payment_pending'
   | 'queued'
   | 'ocr_in_progress'
   | 'ocr_completed'
@@ -48,7 +49,15 @@ export async function GET(
     .eq('id', jobId)
     .single();
 
-  if (error || !job) return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+  if (error) {
+    // PGRST116 = "JSON object requested, multiple (or no) rows returned" — genuinely not found
+    if (error.code === 'PGRST116') {
+      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+    }
+    console.error('[jobs/[jobId]] DB error', { code: error.code, message: error.message, jobId });
+    return NextResponse.json({ error: 'Database error' }, { status: 500 });
+  }
+  if (!job) return NextResponse.json({ error: 'Job not found' }, { status: 404 });
 
   const { data: doc } = await supabaseServer
     .from('documents')

@@ -1,0 +1,238 @@
+/**
+ * @jest-environment node
+ *
+ * Structural tests for Halyk payment finalization flow.
+ * These verify invariants about the implementation — not mock integration tests —
+ * because the status endpoint and callback require Supabase + HTTP which can't
+ * be meaningfully mocked at unit level without recreating the full stack.
+ */
+
+import * as fs from 'fs';
+import * as path from 'path';
+
+const ROOT = path.join(process.cwd(), 'src/app/api/payments/halyk');
+
+function readRoute(filename: string): string {
+  return fs.readFileSync(path.join(ROOT, filename), 'utf-8');
+}
+
+// ─── Status endpoint ───────────────────────────────────────────────────────────
+
+describe('status endpoint — on-demand reconciliation', () => {
+  const statusSrc = readRoute('status/[paymentId]/route.ts');
+
+  it('imports checkPaymentStatus for on-demand reconciliation', () => {
+    expect(statusSrc).toContain("import { checkPaymentStatus");
+  });
+
+  it('imports finalize_halyk_payment RPC call', () => {
+    expect(statusSrc).toContain('finalize_halyk_payment');
+  });
+
+  it('checks provider_invoice_id before calling Halyk', () => {
+    expect(statusSrc).toContain('provider_invoice_id');
+    expect(statusSrc).toContain('shouldReconcile');
+  });
+
+  it('uses RECONCILE_COOLDOWN_MS to prevent spamming Halyk', () => {
+    expect(statusSrc).toContain('RECONCILE_COOLDOWN_MS');
+  });
+
+  it('skips reconciliation for terminal statuses', () => {
+    expect(statusSrc).toContain('alreadyTerminal');
+    expect(statusSrc).toContain('isTerminalStatus');
+  });
+
+  it('selects status_checked_at and provider_invoice_id from DB', () => {
+    expect(statusSrc).toContain('status_checked_at');
+    expect(statusSrc).toContain('provider_invoice_id');
+  });
+
+  it('updates status_checked_at AFTER a successful Halyk response (not before, to avoid blocking retries on parse error)', () => {
+    // status_checked_at is set inside the try block, AFTER the successful checkPaymentStatus call.
+    // This ensures parse/network errors do NOT permanently activate the cooldown.
+    const setCooldownPos = statusSrc.indexOf('status_checked_at: new Date().toISOString()');
+    const checkStatusPos = statusSrc.indexOf('await checkPaymentStatus');
+    expect(setCooldownPos).toBeGreaterThan(-1);
+    expect(checkStatusPos).toBeGreaterThan(-1);
+    // cooldown stamp comes AFTER the awaited status call
+    expect(setCooldownPos).toBeGreaterThan(checkStatusPos);
+  });
+
+  it('maps CHARGE to paid and finalizes', () => {
+    expect(statusSrc).toContain('isPaidStatus');
+    expect(statusSrc).toContain("'paid'");
+  });
+
+  it('does not expose access_token or client_secret', () => {
+    expect(statusSrc).not.toMatch(/access_token.*log/i);
+    expect(statusSrc).not.toContain('client_secret');
+  });
+
+  it('returns JSON with paymentId, status, amount, currency, jobId', () => {
+    expect(statusSrc).toContain('paymentId');
+    expect(statusSrc).toContain('status:');
+    expect(statusSrc).toContain('amount:');
+    expect(statusSrc).toContain('currency:');
+    expect(statusSrc).toContain('jobId:');
+  });
+});
+
+// ─── Callback route ────────────────────────────────────────────────────────────
+
+describe('callback route — security and resilience', () => {
+  const callbackSrc = readRoute('callback/route.ts');
+
+  it('does NOT return 401 when secret_hash is absent in test mode', () => {
+    // Must contain the conditional path that proceeds without secret_hash in test mode
+    expect(callbackSrc).toContain('isTestMode');
+    expect(callbackSrc).toContain('secret_hash absent in test mode');
+  });
+
+  it('rejects missing secret_hash in production mode', () => {
+    expect(callbackSrc).toContain('Production mode: secret_hash is mandatory');
+  });
+
+  it('calls checkPaymentStatus for authoritative status', () => {
+    expect(callbackSrc).toContain('checkPaymentStatus');
+  });
+
+  it('calls finalize_halyk_payment RPC on CHARGE', () => {
+    expect(callbackSrc).toContain('finalize_halyk_payment');
+  });
+
+  it('returns 200 to Halyk even on non-paid status (prevent retry storm)', () => {
+    // The route should always end with { ok: true }
+    expect(callbackSrc).toContain('{ ok: true }');
+  });
+
+  it('handles both invoiceId and invoiceID field names', () => {
+    expect(callbackSrc).toContain("'invoiceId', 'invoiceID'");
+  });
+
+  it('logs structured events', () => {
+    expect(callbackSrc).toContain('[halyk/callback] received');
+    expect(callbackSrc).toContain('[halyk/callback] parsed');
+    expect(callbackSrc).toContain('[halyk/callback] transaction found');
+  });
+
+  it('is idempotent for already-terminal payments', () => {
+    expect(callbackSrc).toContain('duplicate callback for already-terminal payment');
+  });
+});
+
+// ─── Fiscal hook presence ──────────────────────────────────────────────────────
+
+describe('fiscal hook — all finalization paths use ensureSaleFiscalReceiptForPaidPayment', () => {
+  it('callback route imports ensureSaleFiscalReceiptForPaidPayment', () => {
+    const src = readRoute('callback/route.ts');
+    expect(src).toContain('ensureSaleFiscalReceiptForPaidPayment');
+  });
+
+  it('callback route does NOT use void createSaleReceiptForPayment (fire-and-forget is removed)', () => {
+    const src = readRoute('callback/route.ts');
+    expect(src).not.toContain('void createSaleReceiptForPayment');
+  });
+
+  it('callback route awaits fiscal hook in a try-catch', () => {
+    const src = readRoute('callback/route.ts');
+    expect(src).toContain('await ensureSaleFiscalReceiptForPaidPayment');
+  });
+
+  it('status route imports ensureSaleFiscalReceiptForPaidPayment', () => {
+    const src = readRoute('status/[paymentId]/route.ts');
+    expect(src).toContain('ensureSaleFiscalReceiptForPaidPayment');
+  });
+
+  it('status route awaits fiscal hook after finalization', () => {
+    const src = readRoute('status/[paymentId]/route.ts');
+    expect(src).toContain('await ensureSaleFiscalReceiptForPaidPayment');
+    // Hook placed after finalizeSucceeded
+    const hookPos = src.indexOf('await ensureSaleFiscalReceiptForPaidPayment');
+    const finalizePos = src.indexOf('finalizeSucceeded = true');
+    expect(hookPos).toBeGreaterThan(finalizePos);
+  });
+
+  it('reconcile-payments cron imports ensureSaleFiscalReceiptForPaidPayment', () => {
+    const src = fs.readFileSync(
+      path.join(process.cwd(), 'src/app/api/cron/reconcile-payments/route.ts'),
+      'utf-8',
+    );
+    expect(src).toContain('ensureSaleFiscalReceiptForPaidPayment');
+  });
+
+  it('reconcile-payments cron does NOT use void createSaleReceiptForPayment', () => {
+    const src = fs.readFileSync(
+      path.join(process.cwd(), 'src/app/api/cron/reconcile-payments/route.ts'),
+      'utf-8',
+    );
+    expect(src).not.toContain('void createSaleReceiptForPayment');
+  });
+
+  it('fiscal service exports ensureSaleFiscalReceiptForPaidPayment', () => {
+    const src = fs.readFileSync(
+      path.join(process.cwd(), 'src/lib/fiscal/service.ts'),
+      'utf-8',
+    );
+    expect(src).toContain('export async function ensureSaleFiscalReceiptForPaidPayment');
+  });
+
+  it('fiscal service creates DB row before any provider call', () => {
+    const src = fs.readFileSync(
+      path.join(process.cwd(), 'src/lib/fiscal/service.ts'),
+      'utf-8',
+    );
+    // Row insert comes before _runProviderSaleReceipt invocation
+    const insertPos = src.indexOf("from('fiscal_receipts')\n    .insert");
+    const providerCallPos = src.indexOf('_runProviderSaleReceipt');
+    expect(insertPos).toBeGreaterThan(-1);
+    expect(providerCallPos).toBeGreaterThan(-1);
+    expect(insertPos).toBeLessThan(providerCallPos);
+  });
+
+  it('fiscal service _runProviderSaleReceipt is only called for pending (real provider) status', () => {
+    const src = fs.readFileSync(
+      path.join(process.cwd(), 'src/lib/fiscal/service.ts'),
+      'utf-8',
+    );
+    // Provider call is gated on initialStatus === 'pending'
+    expect(src).toContain("initialStatus === 'pending'");
+    expect(src).toContain('_runProviderSaleReceipt');
+  });
+
+  it('pending_manual path does not trigger async provider call', () => {
+    const src = fs.readFileSync(
+      path.join(process.cwd(), 'src/lib/fiscal/service.ts'),
+      'utf-8',
+    );
+    // manual or disabled → pending_manual; provider call only for pending
+    expect(src).toContain("'pending_manual' as const");
+    expect(src).toContain("'pending' as const");
+  });
+});
+
+// ─── Migration: finalize_halyk_payment RPC exists ─────────────────────────────
+
+describe('migration 0015 — finalize_halyk_payment RPC', () => {
+  it('defines finalize_halyk_payment function', () => {
+    const sql = fs.readFileSync(
+      path.join(process.cwd(), 'supabase/migrations/0015_halyk_epay.sql'),
+      'utf-8',
+    );
+    expect(sql).toContain('CREATE OR REPLACE FUNCTION public.finalize_halyk_payment');
+    expect(sql).toContain("'queued'");
+    expect(sql).toContain("'paid'");
+    expect(sql).toContain('GRANT EXECUTE ON FUNCTION public.finalize_halyk_payment TO service_role');
+  });
+
+  it('transitions job from payment_pending to queued on paid', () => {
+    const sql = fs.readFileSync(
+      path.join(process.cwd(), 'supabase/migrations/0015_halyk_epay.sql'),
+      'utf-8',
+    );
+    // SQL uses extra spaces for alignment: "status         = 'queued'"
+    expect(sql).toContain("'queued'");
+    expect(sql).toContain("'payment_pending'");
+    expect(sql).toContain('Move job from payment_pending to queued');
+  });
+});
