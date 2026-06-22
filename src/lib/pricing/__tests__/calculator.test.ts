@@ -232,4 +232,130 @@ describe('calculatePrice', () => {
       expect(isPayable).toBe(false);
     });
   });
+
+  describe('new pricing fields', () => {
+    it('night_or_weekend urgency applies 1.50 coefficient', () => {
+      const standard = calculatePrice(baseInput({ urgencyLevel: 'standard' }), mockVersion);
+      const weekend = calculatePrice(baseInput({ urgencyLevel: 'night_or_weekend' }), mockVersion);
+      expect(weekend.amountKzt).toBeGreaterThan(standard.amountKzt);
+      const urgencyItem = weekend.items.find(i => i.itemType === 'urgency_fee');
+      expect(urgencyItem).toBeDefined();
+      expect(urgencyItem!.metadataJson?.coefficient).toBe(1.50);
+    });
+
+    it('poor_scan quality adds 15% surcharge on translation portion', () => {
+      const normal = calculatePrice(baseInput({ scanQuality: 'normal' }), mockVersion);
+      const poorScan = calculatePrice(baseInput({ scanQuality: 'poor_scan' }), mockVersion);
+      expect(poorScan.amountKzt).toBeGreaterThan(normal.amountKzt);
+      const scanItem = poorScan.items.find(i => i.itemType === 'scan_quality_surcharge');
+      expect(scanItem).toBeDefined();
+    });
+
+    it('handwritten scan quality triggers operator review', () => {
+      const result = calculatePrice(baseInput({ scanQuality: 'handwritten' }), mockVersion);
+      expect(result.requiresOperatorReview).toBe(true);
+      expect(result.reviewReasons.some(r => r.includes('handwritten'))).toBe(true);
+    });
+
+    it('tables layout complexity adds fixed fee per page', () => {
+      const standard = calculatePrice(baseInput({ layoutComplexity: 'standard', physicalPageCount: 2 }), mockVersion);
+      const tables = calculatePrice(baseInput({ layoutComplexity: 'tables', physicalPageCount: 2 }), mockVersion);
+      expect(tables.amountKzt).toBeGreaterThan(standard.amountKzt);
+      const layoutItem = tables.items.find(i => i.itemType === 'layout_complexity_fee');
+      expect(layoutItem).toBeDefined();
+      expect(layoutItem!.quantity).toBe(2);
+      expect(layoutItem!.unitPriceKzt).toBe(1000);
+    });
+
+    it('complex_layout adds 25% multiplier on translation portion', () => {
+      const standard = calculatePrice(baseInput({ layoutComplexity: 'standard' }), mockVersion);
+      const complex = calculatePrice(baseInput({ layoutComplexity: 'complex_layout' }), mockVersion);
+      expect(complex.amountKzt).toBeGreaterThan(standard.amountKzt);
+      const layoutItem = complex.items.find(i => i.itemType === 'layout_complexity_fee');
+      expect(layoutItem).toBeDefined();
+      expect(layoutItem!.metadataJson?.multiplier).toBe(0.25);
+    });
+
+    it('presentation layout triggers operator review', () => {
+      const result = calculatePrice(baseInput({ layoutComplexity: 'presentation' }), mockVersion);
+      expect(result.requiresOperatorReview).toBe(true);
+    });
+
+    it('many_stamps adds 1000 KZT to subtotal (not translation portion)', () => {
+      const normal = calculatePrice(baseInput({ visualMarksComplexity: 'normal' }), mockVersion);
+      const stamps = calculatePrice(baseInput({ visualMarksComplexity: 'many_stamps' }), mockVersion);
+      expect(stamps.amountKzt - normal.amountKzt).toBeGreaterThanOrEqual(1000);
+      const marksItem = stamps.items.find(i => i.itemType === 'visual_marks_fee');
+      expect(marksItem).toBeDefined();
+      expect(marksItem!.amountKzt).toBe(1000);
+      expect(marksItem!.isClientVisible).toBe(true);
+    });
+
+    it('legal_entity applicant type uses higher MRP coefficient (1.10)', () => {
+      const individual = calculatePrice(baseInput({
+        serviceLevel: 'notarization_through_partners',
+        applicantType: 'individual',
+      }), mockVersion);
+      const legal = calculatePrice(baseInput({
+        serviceLevel: 'notarization_through_partners',
+        applicantType: 'legal_entity',
+      }), mockVersion);
+      expect(legal.amountKzt).toBeGreaterThan(individual.amountKzt);
+    });
+
+    it('unknown applicant type triggers operator review for notarized order', () => {
+      const result = calculatePrice(baseInput({
+        serviceLevel: 'notarization_through_partners',
+        applicantType: 'unknown',
+      }), mockVersion);
+      expect(result.requiresOperatorReview).toBe(true);
+      expect(result.reviewReasons.some(r => r.includes('unknown'))).toBe(true);
+    });
+
+    it('extra paper copies add 500 KZT per copy (notarization only)', () => {
+      const noCopies = calculatePrice(baseInput({
+        serviceLevel: 'notarization_through_partners',
+        extraPaperCopies: 0,
+      }), mockVersion);
+      const withCopies = calculatePrice(baseInput({
+        serviceLevel: 'notarization_through_partners',
+        extraPaperCopies: 3,
+      }), mockVersion);
+      const copiesItem = withCopies.items.find(i => i.itemType === 'extra_paper_copies');
+      expect(copiesItem).toBeDefined();
+      expect(copiesItem!.quantity).toBe(3);
+      expect(copiesItem!.unitPriceKzt).toBe(500);
+      expect(withCopies.amountKzt - noCopies.amountKzt).toBeGreaterThanOrEqual(1500);
+    });
+
+    it('delivery zone almaty_standard adds 2500 KZT', () => {
+      const result = calculatePrice(baseInput({
+        serviceLevel: 'notarization_through_partners',
+        fulfillmentMethod: 'delivery',
+        deliveryRequired: true,
+        deliveryZone: 'almaty_standard',
+      }), mockVersion);
+      const deliveryItem = result.items.find(i => i.itemType === 'delivery_fee');
+      expect(deliveryItem).toBeDefined();
+      expect(deliveryItem!.amountKzt).toBe(2500);
+    });
+
+    it('remote_area delivery zone triggers operator review', () => {
+      const result = calculatePrice(baseInput({
+        serviceLevel: 'notarization_through_partners',
+        fulfillmentMethod: 'delivery',
+        deliveryRequired: true,
+        deliveryZone: 'remote_area',
+      }), mockVersion);
+      expect(result.requiresOperatorReview).toBe(true);
+      expect(result.reviewReasons.some(r => r.includes('remote_area'))).toBe(true);
+      const deliveryItem = result.items.find(i => i.itemType === 'delivery_fee');
+      expect(deliveryItem).toBeUndefined();
+    });
+
+    it('source language auto is rejected at resolver and triggers review', () => {
+      const result = calculatePrice(baseInput({ sourceLanguage: 'auto', targetLanguage: 'en' }), mockVersion);
+      expect(result.requiresOperatorReview).toBe(true);
+    });
+  });
 });

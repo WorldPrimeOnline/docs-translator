@@ -171,6 +171,7 @@
     "dropzone": "Файл оруулах эсвэл дарна уу",
     "dropzoneHint": "PDF, DOCX, JPG, PNG · нийт 50 МБ хүртэл",
     "sourceLanguage": "ЭХ ХЭЛ",
+    "selectSourceLanguage": "Эх хэл сонгоно уу",
     "targetLanguage": "ЗОРИЛТОТ ХЭЛ",
     "documentType": "БАРИМТ БИЧГИЙН ТӨРӨЛ",
     "uploadBtn": "Байршуулж орчуулах",
@@ -285,6 +286,11 @@
       "phonePlaceholder": "+7 (___) ___-__-__",
       "address": "ХҮРГЭЛТИЙН ХАЯГ",
       "addressPlaceholder": "Гудамж, байр, тоот",
+"applicantType": "ӨРГӨДӨЛ ГАРГАГЧИЙН ТӨРӨЛ",
+      "individual": "Хувь хүн",
+      "legalEntity": "Хуулийн этгээд",
+      "unknownApplicant": "Тодорхойгүй (оператор хянана)",
+      "extraCopies": "НЭМЭЛТ ЦААСАН ХУУЛБАР",
       "cityRequired": "Хот сонгоно уу",
       "fulfillmentRequired": "Авах эсвэл хүргэлтийг сонгоно уу",
       "phoneRequired": "Хүргэлтэд утасны дугаар шаардлагатай",
@@ -347,7 +353,34 @@
     "priceHint": "The exact price is calculated after document upload and analysis.",
     "priceHintElectronic": "Electronic translation — from 2 500 ₸. Final price after upload.",
     "priceHintOfficial": "Official translation — from 5 500 ₸. Final price after upload.",
-    "priceHintNotarized": "Notarized translation — from 11 000 ₸. Final price after upload."
+    "priceHintNotarized": "Notarized translation — from 11 000 ₸. Final price after upload.",
+    "urgency": {
+    "label": "ЯАРАЛТАЙ",
+    "standard": "Энгийн",
+    "within_24h": "24 цагийн дотор (+30%)",
+    "six_to_twelve_hours": "6–12 цаг (+60%)",
+    "two_to_four_hours": "2–4 цаг (+100%)",
+    "night_or_weekend": "Шөнө / амралтын өдөр (+50%)"
+},
+    "scanQuality": {
+    "label": "СКАН ЧАНАР",
+    "normal": "Энгийн",
+    "poor_scan": "Муу скан (+15%)",
+    "handwritten": "Гар бичмэл (оператор хянана)"
+},
+    "layoutComplexity": {
+    "label": "ЗАГВАРЫН НАРИЙН ТӨВӨГТЭЙ БАЙДАЛ",
+    "standard": "Энгийн",
+    "tables": "Хүснэгт агуулсан (+1 000 ₸/хуудас)",
+    "complex_tables": "Нарийн хүснэгт (+2 000 ₸/хуудас)",
+    "complex_layout": "Нарийн загвар (+25%)",
+    "presentation": "Танилцуулга (оператор хянана)"
+},
+    "visualMarks": {
+    "label": "ТАМГА БА ТЭМДЭГ",
+    "normal": "Энгийн",
+    "many_stamps": "Олон тамга (+1 000 ₸)"
+}
   },
   "auth": {
     "login": "Нэвтрэх",

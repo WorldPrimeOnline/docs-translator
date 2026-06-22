@@ -171,6 +171,7 @@
     "dropzone": "Файлдарды таштаңыз же басыңыз",
     "dropzoneHint": "PDF, DOCX, JPG, PNG · жалпы 50 МБ чейин",
     "sourceLanguage": "БУЛАК ТИЛ",
+    "selectSourceLanguage": "Булак тилди тандаңыз",
     "targetLanguage": "МАКСАТ ТИЛ",
     "documentType": "ДОКУМЕНТ ТҮРҮ",
     "uploadBtn": "Жүктөп которуу",
@@ -285,6 +286,11 @@
       "phonePlaceholder": "+7 (___) ___-__-__",
       "address": "ЖЕТКИРҮҮ ДАРЕГИ",
       "addressPlaceholder": "Көчө, үй, батир",
+"applicantType": "ӨТҮНҮЧ БЕРҮҮЧҮНҮН ТҮРҮ",
+      "individual": "Жеке адам",
+      "legalEntity": "Юридикалык жак",
+      "unknownApplicant": "Белгисиз (оператор карайт)",
+      "extraCopies": "КОШУМЧА КАГАЗ НУСКАЛАР",
       "cityRequired": "Шаарды тандаңыз",
       "fulfillmentRequired": "Алуу же жеткирүүнү тандаңыз",
       "phoneRequired": "Жеткирүү үчүн телефон керек",
@@ -347,7 +353,34 @@
     "priceHint": "The exact price is calculated after document upload and analysis.",
     "priceHintElectronic": "Electronic translation — from 2 500 ₸. Final price after upload.",
     "priceHintOfficial": "Official translation — from 5 500 ₸. Final price after upload.",
-    "priceHintNotarized": "Notarized translation — from 11 000 ₸. Final price after upload."
+    "priceHintNotarized": "Notarized translation — from 11 000 ₸. Final price after upload.",
+    "urgency": {
+    "label": "ШАШЫЛЫШТУУЛУК",
+    "standard": "Стандарт",
+    "within_24h": "24 саат ичинде (+30%)",
+    "six_to_twelve_hours": "6–12 саат (+60%)",
+    "two_to_four_hours": "2–4 саат (+100%)",
+    "night_or_weekend": "Түн / эс алуу (+50%)"
+},
+    "scanQuality": {
+    "label": "СКАН САПАТЫ",
+    "normal": "Кадимки",
+    "poor_scan": "Начар скан (+15%)",
+    "handwritten": "Кол жазма (оператор карайт)"
+},
+    "layoutComplexity": {
+    "label": "БАРАКЧАНЫН ТАТААЛДЫГЫ",
+    "standard": "Стандарт",
+    "tables": "Таблицалар бар (+1 000 ₸/бет)",
+    "complex_tables": "Татаал таблицалар (+2 000 ₸/бет)",
+    "complex_layout": "Татаал беттер (+25%)",
+    "presentation": "Презентация (оператор карайт)"
+},
+    "visualMarks": {
+    "label": "МӨӨРЛӨР ЖАНА ШТАМПТАР",
+    "normal": "Кадимки",
+    "many_stamps": "Көп мөөр/штамп (+1 000 ₸)"
+}
   },
   "auth": {
     "login": "Кирүү",

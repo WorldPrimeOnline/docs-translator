@@ -411,9 +411,9 @@ export default function DashboardPage() {
   const locale = useLocale();
 
   const LANGUAGES = [
-    { value: 'auto', label: t('langs.auto') },
     { value: 'ru',   label: t('langs.ru')   },
     { value: 'en',   label: t('langs.en')   },
+    { value: 'kk',   label: t('langs.kk')   },
     { value: 'th',   label: t('langs.th')   },
     { value: 'zh',   label: t('langs.zh')   },
     { value: 'ko',   label: t('langs.ko')   },
@@ -422,7 +422,6 @@ export default function DashboardPage() {
     { value: 'fr',   label: t('langs.fr')   },
     { value: 'es',   label: t('langs.es')   },
     { value: 'ar',   label: t('langs.ar')   },
-    { value: 'kk',   label: t('langs.kk')   },
     { value: 'uz',   label: t('langs.uz')   },
     { value: 'it',   label: t('langs.it')   },
     { value: 'tr',   label: t('langs.tr')   },
@@ -446,11 +445,17 @@ export default function DashboardPage() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
-  const [sourceLang, setSourceLang] = useState('auto');
+  const [sourceLang, setSourceLang] = useState('');
   const [targetLang, setTargetLang] = useState('en');
   const [documentType, setDocumentType] = useState('other');
   const [outputFormat, setOutputFormat] = useState<'html' | 'pdf' | 'docx'>('pdf');
   const [serviceLevel, setServiceLevel] = useState<ServiceLevel>('electronic');
+  const [urgencyLevel, setUrgencyLevel] = useState('standard');
+  const [scanQuality, setScanQuality] = useState('normal');
+  const [layoutComplexity, setLayoutComplexity] = useState('standard');
+  const [visualMarksComplexity, setVisualMarksComplexity] = useState('normal');
+  const [applicantType, setApplicantType] = useState('individual');
+  const [extraPaperCopies, setExtraPaperCopies] = useState(0);
   const [notaryCity, setNotaryCity] = useState('');
   const [fulfillmentMethod, setFulfillmentMethod] = useState<FulfillmentMethod | ''>('');
   const [deliveryPhone, setDeliveryPhone] = useState('');
@@ -674,6 +679,7 @@ export default function DashboardPage() {
     setServiceLevel(newLevel);
     if (newLevel !== 'notarization_through_partners') {
       setNotaryCity(''); setFulfillmentMethod(''); setDeliveryPhone(''); setDeliveryAddress('');
+      setApplicantType('individual'); setExtraPaperCopies(0);
     }
   };
 
@@ -683,6 +689,7 @@ export default function DashboardPage() {
 
   const isFormValid =
     files.length > 0 &&
+    sourceLang.length > 0 &&
     termsAccepted !== null &&
     (termsAccepted === true || consentChecked) &&
     (!isNotarization ||
@@ -717,7 +724,13 @@ export default function DashboardPage() {
     form.append('targetLang', targetLang);
     form.append('documentType', `${documentType}|${outputFormat}`);
     form.append('serviceLevel', serviceLevel);
+    form.append('urgencyLevel', urgencyLevel);
+    form.append('scanQuality', scanQuality);
+    form.append('layoutComplexity', layoutComplexity);
+    form.append('visualMarksComplexity', visualMarksComplexity);
     if (isNotarization) {
+      form.append('applicantType', applicantType);
+      form.append('extraPaperCopies', String(extraPaperCopies));
       form.append('notaryCity', notaryCity);
       if (fulfillmentMethod) form.append('fulfillmentMethod', fulfillmentMethod);
       if (isDelivery) { form.append('deliveryPhone', deliveryPhone); form.append('deliveryAddress', deliveryAddress); }
@@ -809,15 +822,16 @@ export default function DashboardPage() {
           {/* Selects */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('sourceLanguage')}</label>
-              <select value={sourceLang} onChange={(e) => setSourceLang(e.target.value)} className={selectClass}>
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('sourceLanguage')} <span className="text-red-400">*</span></label>
+              <select value={sourceLang} onChange={(e) => setSourceLang(e.target.value)} className={selectClass} required>
+                <option value="" disabled>{t('selectSourceLanguage')}</option>
                 {LANGUAGES.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
               </select>
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('targetLanguage')}</label>
               <select value={targetLang} onChange={(e) => setTargetLang(e.target.value)} className={selectClass}>
-                {LANGUAGES.filter((l) => l.value !== 'auto').map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
+                {LANGUAGES.filter((l) => l.value !== sourceLang).map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
               </select>
             </div>
             <div className="flex flex-col gap-1.5">
@@ -832,6 +846,41 @@ export default function DashboardPage() {
                 <option value="pdf">{t('formatPdf')}</option>
                 <option value="html">{t('formatHtml')}</option>
                 <option value="docx">{t('formatDocx')}</option>
+              </select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('urgency.label')}</label>
+              <select value={urgencyLevel} onChange={(e) => setUrgencyLevel(e.target.value)} className={selectClass}>
+                <option value="standard">{t('urgency.standard')}</option>
+                <option value="within_24h">{t('urgency.within_24h')}</option>
+                <option value="six_to_twelve_hours">{t('urgency.six_to_twelve_hours')}</option>
+                <option value="two_to_four_hours">{t('urgency.two_to_four_hours')}</option>
+                <option value="night_or_weekend">{t('urgency.night_or_weekend')}</option>
+              </select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('scanQuality.label')}</label>
+              <select value={scanQuality} onChange={(e) => setScanQuality(e.target.value)} className={selectClass}>
+                <option value="normal">{t('scanQuality.normal')}</option>
+                <option value="poor_scan">{t('scanQuality.poor_scan')}</option>
+                <option value="handwritten">{t('scanQuality.handwritten')}</option>
+              </select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('layoutComplexity.label')}</label>
+              <select value={layoutComplexity} onChange={(e) => setLayoutComplexity(e.target.value)} className={selectClass}>
+                <option value="standard">{t('layoutComplexity.standard')}</option>
+                <option value="tables">{t('layoutComplexity.tables')}</option>
+                <option value="complex_tables">{t('layoutComplexity.complex_tables')}</option>
+                <option value="complex_layout">{t('layoutComplexity.complex_layout')}</option>
+                <option value="presentation">{t('layoutComplexity.presentation')}</option>
+              </select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('visualMarks.label')}</label>
+              <select value={visualMarksComplexity} onChange={(e) => setVisualMarksComplexity(e.target.value)} className={selectClass}>
+                <option value="normal">{t('visualMarks.normal')}</option>
+                <option value="many_stamps">{t('visualMarks.many_stamps')}</option>
               </select>
             </div>
           </div>
@@ -883,6 +932,18 @@ export default function DashboardPage() {
                   </div>
                 </div>
               )}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('notary.applicantType')}</label>
+                <select value={applicantType} onChange={(e) => setApplicantType(e.target.value)} className={selectClass}>
+                  <option value="individual">{t('notary.individual')}</option>
+                  <option value="legal_entity">{t('notary.legalEntity')}</option>
+                  <option value="unknown">{t('notary.unknownApplicant')}</option>
+                </select>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('notary.extraCopies')}</label>
+                <input type="number" min={0} max={20} value={extraPaperCopies} onChange={(e) => setExtraPaperCopies(Math.max(0, parseInt(e.target.value, 10) || 0))} className={`${inputClass} w-24`} />
+              </div>
             </div>
           )}
 

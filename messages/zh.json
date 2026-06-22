@@ -171,6 +171,7 @@
     "dropzone": "拖放文件或点击浏览",
     "dropzoneHint": "PDF、DOCX、JPG、PNG · 总计不超过 50 MB",
     "sourceLanguage": "源语言",
+    "selectSourceLanguage": "选择源语言",
     "targetLanguage": "目标语言",
     "documentType": "文件类型",
     "uploadBtn": "上传并翻译",
@@ -285,6 +286,11 @@
       "phonePlaceholder": "+7 (___) ___-__-__",
       "address": "送达地址",
       "addressPlaceholder": "街道、楼号、房间号",
+"applicantType": "申请人类型",
+      "individual": "个人",
+      "legalEntity": "法人",
+      "unknownApplicant": "未知 (运营商审核)",
+      "extraCopies": "额外纸质副本",
       "cityRequired": "请选择城市",
       "fulfillmentRequired": "请选择自取或配送",
       "phoneRequired": "配送需填写电话号码",
@@ -347,7 +353,34 @@
     "priceHint": "The exact price is calculated after document upload and analysis.",
     "priceHintElectronic": "Electronic translation — from 2 500 ₸. Final price after upload.",
     "priceHintOfficial": "Official translation — from 5 500 ₸. Final price after upload.",
-    "priceHintNotarized": "Notarized translation — from 11 000 ₸. Final price after upload."
+    "priceHintNotarized": "Notarized translation — from 11 000 ₸. Final price after upload.",
+    "urgency": {
+    "label": "紧急程度",
+    "standard": "标准",
+    "within_24h": "24小时内 (+30%)",
+    "six_to_twelve_hours": "6–12小时 (+60%)",
+    "two_to_four_hours": "2–4小时 (+100%)",
+    "night_or_weekend": "夜间/周末 (+50%)"
+},
+    "scanQuality": {
+    "label": "扫描质量",
+    "normal": "正常",
+    "poor_scan": "扫描质量差 (+15%)",
+    "handwritten": "手写 (需人工审核)"
+},
+    "layoutComplexity": {
+    "label": "版面复杂度",
+    "standard": "标准",
+    "tables": "含表格 (+1 000 ₸/页)",
+    "complex_tables": "复杂表格 (+2 000 ₸/页)",
+    "complex_layout": "复杂版面 (+25%)",
+    "presentation": "演示文稿 (需人工审核)"
+},
+    "visualMarks": {
+    "label": "印章与封印",
+    "normal": "正常",
+    "many_stamps": "多处印章 (+1 000 ₸)"
+}
   },
   "auth": {
     "login": "登录",

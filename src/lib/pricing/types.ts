@@ -3,7 +3,17 @@ export type ServiceLevel =
   | 'official_with_translator_signature_and_provider_stamp'
   | 'notarization_through_partners';
 
-export type UrgencyLevel = 'standard' | 'within_24h' | 'six_to_twelve_hours' | 'two_to_four_hours';
+export type UrgencyLevel = 'standard' | 'within_24h' | 'six_to_twelve_hours' | 'two_to_four_hours' | 'night_or_weekend';
+
+export type ScanQuality = 'normal' | 'poor_scan' | 'handwritten';
+
+export type LayoutComplexity = 'standard' | 'tables' | 'complex_tables' | 'complex_layout' | 'presentation';
+
+export type VisualMarksComplexity = 'normal' | 'many_stamps';
+
+export type ApplicantType = 'individual' | 'legal_entity' | 'unknown';
+
+export type DeliveryZone = 'almaty_standard' | 'remote_area' | 'other_city' | 'urgent_delivery';
 
 export type SalesChannel = 'direct' | 'referral' | 'reseller';
 
@@ -61,6 +71,12 @@ export interface PricingInput {
   physicalPageCount?: number;
   complexity?: 'simple' | 'complex';
   urgencyLevel?: UrgencyLevel;
+  scanQuality?: ScanQuality;
+  layoutComplexity?: LayoutComplexity;
+  visualMarksComplexity?: VisualMarksComplexity;
+  applicantType?: ApplicantType;
+  deliveryZone?: DeliveryZone;
+  extraPaperCopies?: number;
   fulfillmentMethod?: 'pickup' | 'delivery';
   deliveryRequired?: boolean;
   salesChannel?: SalesChannel;

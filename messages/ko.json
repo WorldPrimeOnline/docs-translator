@@ -171,6 +171,7 @@
     "dropzone": "파일을 끌어다 놓거나 클릭하여 선택",
     "dropzoneHint": "PDF, DOCX, JPG, PNG · 총 50 MB 이하",
     "sourceLanguage": "원본 언어",
+    "selectSourceLanguage": "원본 언어를 선택하세요",
     "targetLanguage": "번역 언어",
     "documentType": "문서 유형",
     "uploadBtn": "업로드 및 번역",
@@ -285,6 +286,11 @@
       "phonePlaceholder": "+7 (___) ___-__-__",
       "address": "배달 주소",
       "addressPlaceholder": "도로명, 건물, 호수",
+"applicantType": "신청인 유형",
+      "individual": "개인",
+      "legalEntity": "법인",
+      "unknownApplicant": "알 수 없음 (운영자 검토)",
+      "extraCopies": "추가 종이 사본",
       "cityRequired": "도시를 선택해 주세요",
       "fulfillmentRequired": "픽업 또는 배달을 선택해 주세요",
       "phoneRequired": "배달에는 전화번호가 필요합니다",
@@ -347,7 +353,34 @@
     "priceHint": "The exact price is calculated after document upload and analysis.",
     "priceHintElectronic": "Electronic translation — from 2 500 ₸. Final price after upload.",
     "priceHintOfficial": "Official translation — from 5 500 ₸. Final price after upload.",
-    "priceHintNotarized": "Notarized translation — from 11 000 ₸. Final price after upload."
+    "priceHintNotarized": "Notarized translation — from 11 000 ₸. Final price after upload.",
+    "urgency": {
+    "label": "긴급도",
+    "standard": "표준",
+    "within_24h": "24시간 이내 (+30%)",
+    "six_to_twelve_hours": "6–12시간 (+60%)",
+    "two_to_four_hours": "2–4시간 (+100%)",
+    "night_or_weekend": "야간 / 주말 (+50%)"
+},
+    "scanQuality": {
+    "label": "스캔 품질",
+    "normal": "보통",
+    "poor_scan": "불량 스캔 (+15%)",
+    "handwritten": "손글씨 (운영자 검토 필요)"
+},
+    "layoutComplexity": {
+    "label": "레이아웃 복잡도",
+    "standard": "표준",
+    "tables": "표 포함 (+1 000 ₸/페이지)",
+    "complex_tables": "복잡한 표 (+2 000 ₸/페이지)",
+    "complex_layout": "복잡한 레이아웃 (+25%)",
+    "presentation": "프레젠테이션 (운영자 검토)"
+},
+    "visualMarks": {
+    "label": "도장 및 인감",
+    "normal": "보통",
+    "many_stamps": "도장 많음 (+1 000 ₸)"
+}
   },
   "auth": {
     "login": "로그인",

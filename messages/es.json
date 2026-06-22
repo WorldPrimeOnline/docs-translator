@@ -171,6 +171,7 @@
     "dropzone": "Arrastra archivos aquí o haz clic para buscar",
     "dropzoneHint": "PDF, DOCX, JPG, PNG · hasta 50 MB en total",
     "sourceLanguage": "IDIOMA ORIGINAL",
+    "selectSourceLanguage": "Seleccione el idioma de origen",
     "targetLanguage": "IDIOMA DE TRADUCCIÓN",
     "documentType": "TIPO DE DOCUMENTO",
     "uploadBtn": "Subir y traducir",
@@ -285,6 +286,11 @@
       "phonePlaceholder": "+7 (___) ___-__-__",
       "address": "DIRECCIÓN DE ENTREGA",
       "addressPlaceholder": "Calle, número, piso",
+"applicantType": "TIPO DE SOLICITANTE",
+      "individual": "Persona física",
+      "legalEntity": "Persona jurídica",
+      "unknownApplicant": "Desconocido (revisión del operador)",
+      "extraCopies": "COPIAS ADICIONALES EN PAPEL",
       "cityRequired": "Seleccione una ciudad",
       "fulfillmentRequired": "Seleccione recogida o entrega",
       "phoneRequired": "Se requiere teléfono para la entrega",
@@ -347,7 +353,34 @@
     "priceHint": "The exact price is calculated after document upload and analysis.",
     "priceHintElectronic": "Electronic translation — from 2 500 ₸. Final price after upload.",
     "priceHintOfficial": "Official translation — from 5 500 ₸. Final price after upload.",
-    "priceHintNotarized": "Notarized translation — from 11 000 ₸. Final price after upload."
+    "priceHintNotarized": "Notarized translation — from 11 000 ₸. Final price after upload.",
+    "urgency": {
+    "label": "URGENCIA",
+    "standard": "Estándar",
+    "within_24h": "En 24 horas (+30%)",
+    "six_to_twelve_hours": "6–12 horas (+60%)",
+    "two_to_four_hours": "2–4 horas (+100%)",
+    "night_or_weekend": "Nocturno / fin de semana (+50%)"
+},
+    "scanQuality": {
+    "label": "CALIDAD DE ESCANEO",
+    "normal": "Normal",
+    "poor_scan": "Escaneo deficiente (+15%)",
+    "handwritten": "Manuscrito (revisión del operador)"
+},
+    "layoutComplexity": {
+    "label": "COMPLEJIDAD DE DISEÑO",
+    "standard": "Estándar",
+    "tables": "Con tablas (+1 000 ₸/pág.)",
+    "complex_tables": "Tablas complejas (+2 000 ₸/pág.)",
+    "complex_layout": "Diseño complejo (+25%)",
+    "presentation": "Presentación (revisión del operador)"
+},
+    "visualMarks": {
+    "label": "SELLOS Y MARCAS",
+    "normal": "Normal",
+    "many_stamps": "Muchos sellos (+1 000 ₸)"
+}
   },
   "auth": {
     "login": "Iniciar sesión",

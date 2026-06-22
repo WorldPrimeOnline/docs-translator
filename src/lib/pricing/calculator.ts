@@ -6,6 +6,12 @@ import {
   ADDITIONAL_PAGE_RATE_KZT,
   DOCUMENT_TYPE_COEFFICIENT,
   URGENCY_COEFFICIENT,
+  SCAN_QUALITY_SURCHARGE,
+  LAYOUT_COMPLEXITY_CONFIG,
+  VISUAL_MARKS_FEE_KZT,
+  DELIVERY_ZONE_FEE_KZT,
+  NOTARY_APPLICANT_MRP_COEFFICIENT,
+  EXTRA_PAPER_COPY_FEE_KZT,
   NOTARY_CONFIG,
   PRICE_ROUNDING_INCREMENT,
 } from './config';
@@ -24,6 +30,11 @@ export function calculatePrice(input: PricingInput, version: PricingVersion): Pr
   const urgency = input.urgencyLevel ?? 'standard';
   const complexity = input.complexity ?? 'simple';
   const salesChannel = input.salesChannel ?? 'direct';
+  const scanQuality = input.scanQuality ?? 'normal';
+  const layoutComplexity = input.layoutComplexity ?? 'standard';
+  const visualMarks = input.visualMarksComplexity ?? 'normal';
+  const applicantType = input.applicantType ?? 'individual';
+  const extraCopies = Math.max(0, input.extraPaperCopies ?? 0);
   const sourceWords = Math.max(0, input.sourceWordCount ?? 0);
   const physicalPages = Math.max(1, input.physicalPageCount ?? 1);
   const includedWords = 250;
@@ -125,7 +136,13 @@ export function calculatePrice(input: PricingInput, version: PricingVersion): Pr
   }
 
   // 6. Urgency coefficient (applied to translation/layout portion only)
-  const urgencyCoeff = URGENCY_COEFFICIENT[urgency] ?? 1.00;
+  const urgencyCoeffOrReview = URGENCY_COEFFICIENT[urgency] ?? 1.00;
+  let urgencyCoeff = 1.00;
+  if (urgencyCoeffOrReview === 'operator_review') {
+    reviewReasons.push(`Urgency level '${urgency}' requires operator confirmation`);
+  } else {
+    urgencyCoeff = urgencyCoeffOrReview;
+  }
   if (urgencyCoeff !== 1.00) {
     const urgencyFee = translationPortion * (urgencyCoeff - 1);
     items.push({
@@ -142,9 +159,63 @@ export function calculatePrice(input: PricingInput, version: PricingVersion): Pr
     translationPortion += urgencyFee;
   }
 
+  // 7. Scan quality surcharge (applied to translation portion after urgency)
+  const scanSurchargeOrReview = SCAN_QUALITY_SURCHARGE[scanQuality] ?? 0;
+  if (scanSurchargeOrReview === 'operator_review') {
+    reviewReasons.push(`Scan quality '${scanQuality}' requires operator review`);
+  } else if (scanSurchargeOrReview > 0) {
+    const scanFee = Math.round(translationPortion * scanSurchargeOrReview);
+    items.push({
+      itemType: 'scan_quality_surcharge',
+      label: `Scan quality surcharge (${scanQuality}, +${(scanSurchargeOrReview * 100).toFixed(0)}%)`,
+      quantity: 1,
+      unitPriceKzt: scanFee,
+      amountKzt: scanFee,
+      isClientVisible: true,
+      isCost: false,
+      sortOrder: nextSort(),
+      metadataJson: { scanQuality, surchargeRate: scanSurchargeOrReview },
+    });
+    translationPortion += scanFee;
+  }
+
+  // 8. Layout complexity (fixed per page or multiplier — applied to translation portion)
+  const layoutConfig = LAYOUT_COMPLEXITY_CONFIG[layoutComplexity];
+  if (layoutConfig.type === 'operator_review') {
+    reviewReasons.push(`Layout complexity '${layoutComplexity}' requires operator review`);
+  } else if (layoutConfig.type === 'fixed_per_page' && layoutConfig.feePerPage > 0) {
+    const layoutFee = layoutConfig.feePerPage * physicalPages;
+    items.push({
+      itemType: 'layout_complexity_fee',
+      label: `Layout complexity (${layoutComplexity}, ${physicalPages} page(s) × ${layoutConfig.feePerPage} KZT)`,
+      quantity: physicalPages,
+      unitPriceKzt: layoutConfig.feePerPage,
+      amountKzt: layoutFee,
+      isClientVisible: true,
+      isCost: false,
+      sortOrder: nextSort(),
+      metadataJson: { layoutComplexity, feePerPage: layoutConfig.feePerPage },
+    });
+    translationPortion += layoutFee;
+  } else if (layoutConfig.type === 'translation_portion_multiplier') {
+    const layoutFee = Math.round(translationPortion * layoutConfig.multiplier);
+    items.push({
+      itemType: 'layout_complexity_fee',
+      label: `Layout complexity (${layoutComplexity}, +${(layoutConfig.multiplier * 100).toFixed(0)}%)`,
+      quantity: 1,
+      unitPriceKzt: layoutFee,
+      amountKzt: layoutFee,
+      isClientVisible: true,
+      isCost: false,
+      sortOrder: nextSort(),
+      metadataJson: { layoutComplexity, multiplier: layoutConfig.multiplier },
+    });
+    translationPortion += layoutFee;
+  }
+
   let subtotal = translationPortion;
 
-  // 7. Official service label (0 cost — baked into base minimum)
+  // 9. Official service label (0 cost — baked into base minimum)
   if (serviceLevel === 'official_with_translator_signature_and_provider_stamp') {
     items.push({
       itemType: 'official_service_fee',
@@ -159,16 +230,43 @@ export function calculatePrice(input: PricingInput, version: PricingVersion): Pr
     });
   }
 
-  // 8. Notary components
+  // 10. Visual marks fee (added to subtotal, NOT part of translation portion)
+  const visualMarksFee = VISUAL_MARKS_FEE_KZT[visualMarks] ?? 0;
+  if (visualMarksFee > 0) {
+    items.push({
+      itemType: 'visual_marks_fee',
+      label: `Visual marks (${visualMarks})`,
+      quantity: 1,
+      unitPriceKzt: visualMarksFee,
+      amountKzt: visualMarksFee,
+      isClientVisible: true,
+      isCost: false,
+      sortOrder: nextSort(),
+      metadataJson: { visualMarksComplexity: visualMarks },
+    });
+    subtotal += visualMarksFee;
+  }
+
+  // 11. Notary components
   let notaryFee = 0;
   let notaryCoordFee = 0;
   let printingFee = 0;
 
   if (serviceLevel === 'notarization_through_partners') {
-    // MRP-based estimate — requires notary confirmation before production use
     const mrpValue = version.mrpValue ?? 3.69;
-    const mrpKzt = mrpValue * 1000; // Approx: 1 MRP ≈ 3690 KZT
-    notaryFee = Math.round(mrpKzt * NOTARY_CONFIG.mrpCoefficient_individual);
+    const mrpKzt = mrpValue * 1000;
+
+    // Applicant type determines MRP coefficient
+    const mrpCoeffOrReview = NOTARY_APPLICANT_MRP_COEFFICIENT[applicantType];
+    let mrpCoeff: number;
+    if (mrpCoeffOrReview === 'operator_review') {
+      reviewReasons.push(`Applicant type '${applicantType}' requires operator confirmation for notary fee`);
+      mrpCoeff = NOTARY_CONFIG.mrpCoefficient_individual; // safe fallback for cost estimate
+    } else {
+      mrpCoeff = mrpCoeffOrReview;
+    }
+
+    notaryFee = Math.round(mrpKzt * mrpCoeff);
     notaryCoordFee = NOTARY_CONFIG.notaryCoordinationFeeDefault;
     printingFee = NOTARY_CONFIG.printingBindingFee;
 
@@ -182,7 +280,7 @@ export function calculatePrice(input: PricingInput, version: PricingVersion): Pr
         isClientVisible: true,
         isCost: false,
         sortOrder: nextSort(),
-        metadataJson: { note: 'TODO: confirm with notary', mrpValue, mrpCoeff: NOTARY_CONFIG.mrpCoefficient_individual },
+        metadataJson: { note: 'TODO: confirm with notary', mrpValue, mrpCoeff, applicantType },
       },
       {
         itemType: 'notary_coordination_fee',
@@ -208,26 +306,55 @@ export function calculatePrice(input: PricingInput, version: PricingVersion): Pr
 
     subtotal += notaryFee + notaryCoordFee + printingFee;
     reviewReasons.push('Notarized order: MRP-based fee requires notary confirmation before production launch');
+
+    // Extra paper copies (notarization only, added to subtotal)
+    if (extraCopies > 0) {
+      const copiesFee = extraCopies * EXTRA_PAPER_COPY_FEE_KZT;
+      items.push({
+        itemType: 'extra_paper_copies',
+        label: `Extra paper copies (${extraCopies} × ${EXTRA_PAPER_COPY_FEE_KZT} KZT)`,
+        quantity: extraCopies,
+        unitPriceKzt: EXTRA_PAPER_COPY_FEE_KZT,
+        amountKzt: copiesFee,
+        isClientVisible: true,
+        isCost: false,
+        sortOrder: nextSort(),
+      });
+      subtotal += copiesFee;
+    }
   }
 
-  // 9. Delivery
+  // 12. Delivery fee
   let deliveryFee = 0;
   if (input.deliveryRequired && input.fulfillmentMethod === 'delivery') {
-    deliveryFee = NOTARY_CONFIG.deliveryFeeAlmatyStandard;
-    items.push({
-      itemType: 'delivery_fee',
-      label: 'Delivery (Almaty standard)',
-      quantity: 1,
-      unitPriceKzt: deliveryFee,
-      amountKzt: deliveryFee,
-      isClientVisible: true,
-      isCost: false,
-      sortOrder: nextSort(),
-    });
-    subtotal += deliveryFee;
+    if (input.deliveryZone) {
+      const zoneFeeOrReview = DELIVERY_ZONE_FEE_KZT[input.deliveryZone];
+      if (zoneFeeOrReview === 'operator_review') {
+        reviewReasons.push(`Delivery zone '${input.deliveryZone}' requires operator confirmation`);
+        // No fee added — operator sets manually
+      } else {
+        deliveryFee = zoneFeeOrReview;
+      }
+    } else {
+      // Legacy fallback: almaty standard
+      deliveryFee = NOTARY_CONFIG.deliveryFeeAlmatyStandard;
+    }
+    if (deliveryFee > 0) {
+      items.push({
+        itemType: 'delivery_fee',
+        label: `Delivery (${input.deliveryZone ?? 'almaty_standard'})`,
+        quantity: 1,
+        unitPriceKzt: deliveryFee,
+        amountKzt: deliveryFee,
+        isClientVisible: true,
+        isCost: false,
+        sortOrder: nextSort(),
+      });
+      subtotal += deliveryFee;
+    }
   }
 
-  // 10. Internal reserves (hidden from client)
+  // 13. Internal reserves (hidden from client)
   const aiItReserve = version.aiItReservePerPageKzt * physicalPages;
   const taxReserve = subtotal * version.taxRate;
   const acquiringFee = subtotal * version.acquiringRate;
@@ -261,7 +388,7 @@ export function calculatePrice(input: PricingInput, version: PricingVersion): Pr
 
   const targetProfit = subtotal * version.targetProfitRate;
 
-  // 11. Round final client price
+  // 14. Round final client price
   const roundedAmount = roundToIncrement(subtotal, PRICE_ROUNDING_INCREMENT);
   const roundingAdj = roundedAmount - subtotal;
   if (Math.abs(roundingAdj) > 0.01) {

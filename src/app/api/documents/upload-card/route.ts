@@ -27,12 +27,29 @@ const VALID_SERVICE_LEVELS = [
   'notarization_through_partners',
 ] as const;
 
+const VALID_URGENCY_LEVELS = [
+  'standard', 'within_24h', 'six_to_twelve_hours', 'two_to_four_hours', 'night_or_weekend',
+] as const;
+
+const VALID_SCAN_QUALITY = ['normal', 'poor_scan', 'handwritten'] as const;
+const VALID_LAYOUT_COMPLEXITY = ['standard', 'tables', 'complex_tables', 'complex_layout', 'presentation'] as const;
+const VALID_VISUAL_MARKS = ['normal', 'many_stamps'] as const;
+const VALID_APPLICANT_TYPES = ['individual', 'legal_entity', 'unknown'] as const;
+const VALID_DELIVERY_ZONES = ['almaty_standard', 'remote_area', 'other_city', 'urgent_delivery'] as const;
+
 const UploadFormSchema = z
   .object({
-    sourceLang: z.string().min(1),
+    sourceLang: z.string().min(1).refine((v) => v !== 'auto', { message: 'Source language must be specified explicitly' }),
     targetLang: z.string().min(1),
     documentType: z.string().min(1),
     serviceLevel: z.enum(VALID_SERVICE_LEVELS).default('electronic'),
+    urgencyLevel: z.enum(VALID_URGENCY_LEVELS).default('standard'),
+    scanQuality: z.enum(VALID_SCAN_QUALITY).default('normal'),
+    layoutComplexity: z.enum(VALID_LAYOUT_COMPLEXITY).default('standard'),
+    visualMarksComplexity: z.enum(VALID_VISUAL_MARKS).default('normal'),
+    applicantType: z.enum(VALID_APPLICANT_TYPES).default('individual'),
+    deliveryZone: z.enum(VALID_DELIVERY_ZONES).optional(),
+    extraPaperCopies: z.coerce.number().int().min(0).max(20).default(0),
     notaryCity: z.string().optional(),
     fulfillmentMethod: z.enum(['pickup', 'delivery']).optional(),
     deliveryPhone: z.string().max(30).optional(),
@@ -163,6 +180,13 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
     targetLang: formData.get('targetLang'),
     documentType: formData.get('documentType'),
     serviceLevel: formData.get('serviceLevel') ?? 'electronic',
+    urgencyLevel: formData.get('urgencyLevel') ?? 'standard',
+    scanQuality: formData.get('scanQuality') ?? 'normal',
+    layoutComplexity: formData.get('layoutComplexity') ?? 'standard',
+    visualMarksComplexity: formData.get('visualMarksComplexity') ?? 'normal',
+    applicantType: formData.get('applicantType') ?? 'individual',
+    deliveryZone: formData.get('deliveryZone') ?? undefined,
+    extraPaperCopies: formData.get('extraPaperCopies') ?? 0,
     notaryCity: formData.get('notaryCity') ?? undefined,
     fulfillmentMethod: formData.get('fulfillmentMethod') ?? undefined,
     deliveryPhone: formData.get('deliveryPhone') ?? undefined,
@@ -173,7 +197,12 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Validation failed', details: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { sourceLang, targetLang, documentType, serviceLevel, notaryCity, fulfillmentMethod, deliveryPhone, deliveryAddress } = parsed.data;
+  const {
+    sourceLang, targetLang, documentType, serviceLevel,
+    urgencyLevel, scanQuality, layoutComplexity, visualMarksComplexity,
+    applicantType, deliveryZone, extraPaperCopies,
+    notaryCity, fulfillmentMethod, deliveryPhone, deliveryAddress,
+  } = parsed.data;
   const { notarized } = deriveBackcompatBooleans(serviceLevel as ServiceLevel);
 
   // Convert and merge files
@@ -253,7 +282,13 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
     serviceLevel: serviceLevel as ServiceLevel,
     documentType,
     physicalPageCount: 1, // conservative default; OCR hasn't run yet
-    urgencyLevel: 'standard' as const,
+    urgencyLevel,
+    scanQuality,
+    layoutComplexity,
+    visualMarksComplexity,
+    applicantType,
+    deliveryZone: deliveryZone as 'almaty_standard' | 'remote_area' | 'other_city' | 'urgent_delivery' | undefined,
+    extraPaperCopies,
     fulfillmentMethod: fulfillmentMethod as 'pickup' | 'delivery' | undefined,
     deliveryRequired: fulfillmentMethod === 'delivery',
     salesChannel: 'direct' as const,

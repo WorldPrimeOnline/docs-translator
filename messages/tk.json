@@ -171,6 +171,7 @@
     "dropzone": "Faýllary goýuň ýa-da basyň",
     "dropzoneHint": "PDF, DOCX, JPG, PNG · jemi 50 MB çenli",
     "sourceLanguage": "ÇEŞME DİL",
+    "selectSourceLanguage": "Çeşme dili saýlaň",
     "targetLanguage": "MAKSAT DİL",
     "documentType": "RESMINAMA GÖRNÜŞI",
     "uploadBtn": "Ýükle we terjime et",
@@ -285,6 +286,11 @@
       "phonePlaceholder": "+7 (___) ___-__-__",
       "address": "ELTIP BERIŞ SALGYSY",
       "addressPlaceholder": "Köçe, bina, öý",
+"applicantType": "ARZA BERIJI GÖRNÜŞI",
+      "individual": "Fiziki şahs",
+      "legalEntity": "Hukuk şahsy",
+      "unknownApplicant": "Belli däl (operator seredýär)",
+      "extraCopies": "GOŞMAÇA KAGYZ NUSGALARY",
       "cityRequired": "Şäheri saýlaň",
       "fulfillmentRequired": "Almak ýa-da eltip bermegi saýlaň",
       "phoneRequired": "Eltip bermek üçin telefon belgisi zerur",
@@ -347,7 +353,34 @@
     "priceHint": "The exact price is calculated after document upload and analysis.",
     "priceHintElectronic": "Electronic translation — from 2 500 ₸. Final price after upload.",
     "priceHintOfficial": "Official translation — from 5 500 ₸. Final price after upload.",
-    "priceHintNotarized": "Notarized translation — from 11 000 ₸. Final price after upload."
+    "priceHintNotarized": "Notarized translation — from 11 000 ₸. Final price after upload.",
+    "urgency": {
+    "label": "HOWLUKMAÇLYK",
+    "standard": "Standart",
+    "within_24h": "24 sagat içinde (+30%)",
+    "six_to_twelve_hours": "6–12 sagat (+60%)",
+    "two_to_four_hours": "2–4 sagat (+100%)",
+    "night_or_weekend": "Gije / dynç güni (+50%)"
+},
+    "scanQuality": {
+    "label": "SKANIŇ HILI",
+    "normal": "Adaty",
+    "poor_scan": "Erbet skan (+15%)",
+    "handwritten": "El ýazgysy (operator seredýär)"
+},
+    "layoutComplexity": {
+    "label": "SAHYPA ÇYLŞYRYMLYLYK",
+    "standard": "Standart",
+    "tables": "Tablisalar bar (+1 000 ₸/sah.)",
+    "complex_tables": "Çylşyrymly tablisalar (+2 000 ₸/sah.)",
+    "complex_layout": "Çylşyrymly sahypa (+25%)",
+    "presentation": "Prezentasiýa (operator seredýär)"
+},
+    "visualMarks": {
+    "label": "MÖHÜRLER WE ŞTAMPLAR",
+    "normal": "Adaty",
+    "many_stamps": "Köp möhür/ştamp (+1 000 ₸)"
+}
   },
   "auth": {
     "login": "Giriş",

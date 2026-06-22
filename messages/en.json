@@ -171,6 +171,7 @@
     "dropzone": "Drop files here or click to browse",
     "dropzoneHint": "PDF, DOCX, JPG, PNG · up to 50 MB total",
     "sourceLanguage": "SOURCE LANGUAGE",
+    "selectSourceLanguage": "Select source language",
     "targetLanguage": "TARGET LANGUAGE",
     "documentType": "DOCUMENT TYPE",
     "uploadBtn": "Upload & Translate",
@@ -191,6 +192,33 @@
     "priceHintElectronic": "Electronic translation — from 2 500 ₸. Final price after upload.",
     "priceHintOfficial": "Official translation — from 5 500 ₸. Final price after upload.",
     "priceHintNotarized": "Notarized translation — from 11 000 ₸. Final price after upload.",
+    "urgency": {
+      "label": "URGENCY",
+      "standard": "Standard",
+      "within_24h": "Within 24 hours (+30%)",
+      "six_to_twelve_hours": "6–12 hours (+60%)",
+      "two_to_four_hours": "2–4 hours (+100%)",
+      "night_or_weekend": "Night / weekend (+50%)"
+    },
+    "scanQuality": {
+      "label": "SCAN QUALITY",
+      "normal": "Normal",
+      "poor_scan": "Poor scan (+15%)",
+      "handwritten": "Handwritten (operator review)"
+    },
+    "layoutComplexity": {
+      "label": "LAYOUT COMPLEXITY",
+      "standard": "Standard",
+      "tables": "Contains tables (+1 000 ₸/page)",
+      "complex_tables": "Complex tables (+2 000 ₸/page)",
+      "complex_layout": "Complex layout (+25%)",
+      "presentation": "Presentation (operator review)"
+    },
+    "visualMarks": {
+      "label": "STAMPS & SEALS",
+      "normal": "Standard",
+      "many_stamps": "Many stamps / seals (+1 000 ₸)"
+    },
     "pastTranslations": "Past Translations",
     "completed": "Completed",
     "processing": "Processing",
@@ -238,6 +266,11 @@
       "phonePlaceholder": "+7 (___) ___-__-__",
       "address": "DELIVERY ADDRESS",
       "addressPlaceholder": "Street, building, apartment",
+      "applicantType": "APPLICANT TYPE",
+      "individual": "Individual",
+      "legalEntity": "Legal entity",
+      "unknownApplicant": "Unknown (operator review)",
+      "extraCopies": "EXTRA PAPER COPIES",
       "cityRequired": "Please select a city",
       "fulfillmentRequired": "Please select pickup or delivery",
       "phoneRequired": "Phone number is required for delivery",

@@ -171,6 +171,7 @@
     "dropzone": "Файлдарды жүктеңіз немесе шертіңіз",
     "dropzoneHint": "PDF, DOCX, JPG, PNG · барлығы 50 МБ-қа дейін",
     "sourceLanguage": "БАСТАПҚЫ ТІЛ",
+    "selectSourceLanguage": "Бастапқы тілді таңдаңыз",
     "targetLanguage": "АУДАРМА ТІЛІ",
     "documentType": "ҚҰЖАТ ТҮРІ",
     "uploadBtn": "Жүктеп салу және аудару",
@@ -285,6 +286,11 @@
       "phonePlaceholder": "+7 (___) ___-__-__",
       "address": "ЖЕТКІЗУ МЕКЕНЖАЙЫ",
       "addressPlaceholder": "Көше, үй, пәтер",
+"applicantType": "ӨТІНІШ БЕРУШІНІҢ ТҮРІ",
+      "individual": "Жеке тұлға",
+      "legalEntity": "Заңды тұлға",
+      "unknownApplicant": "Белгісіз (оператор қарайды)",
+      "extraCopies": "ҚОСЫМША ҚАҒАЗ КӨШІРМЕЛЕР",
       "cityRequired": "Қаланы таңдаңыз",
       "fulfillmentRequired": "Өзі алу немесе жеткізуді таңдаңыз",
       "phoneRequired": "Жеткізу үшін телефон нөмірі қажет",
@@ -347,7 +353,34 @@
     "priceHint": "The exact price is calculated after document upload and analysis.",
     "priceHintElectronic": "Electronic translation — from 2 500 ₸. Final price after upload.",
     "priceHintOfficial": "Official translation — from 5 500 ₸. Final price after upload.",
-    "priceHintNotarized": "Notarized translation — from 11 000 ₸. Final price after upload."
+    "priceHintNotarized": "Notarized translation — from 11 000 ₸. Final price after upload.",
+    "urgency": {
+    "label": "ШҰҒЫЛДЫҚ",
+    "standard": "Стандарт",
+    "within_24h": "24 сағат ішінде (+30%)",
+    "six_to_twelve_hours": "6–12 сағат (+60%)",
+    "two_to_four_hours": "2–4 сағат (+100%)",
+    "night_or_weekend": "Түнгі / демалыс (+50%)"
+},
+    "scanQuality": {
+    "label": "СКАН САПАСЫ",
+    "normal": "Қалыпты",
+    "poor_scan": "Нашар скан (+15%)",
+    "handwritten": "Қолжазба (оператор қарайды)"
+},
+    "layoutComplexity": {
+    "label": "БЕТТІҢ КҮРДЕЛІЛІГІ",
+    "standard": "Стандарт",
+    "tables": "Кестелер бар (+1 000 ₸/бет)",
+    "complex_tables": "Күрделі кестелер (+2 000 ₸/бет)",
+    "complex_layout": "Күрделі бет (+25%)",
+    "presentation": "Презентация (оператор қарайды)"
+},
+    "visualMarks": {
+    "label": "МӨРЛЕР МЕН ШТАМПТАР",
+    "normal": "Қалыпты",
+    "many_stamps": "Көп мөр/штамп (+1 000 ₸)"
+}
   },
   "auth": {
     "login": "Кіру",

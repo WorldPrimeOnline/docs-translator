@@ -171,6 +171,7 @@
     "dropzone": "Файлҳоро партоед ё клик кунед",
     "dropzoneHint": "PDF, DOCX, JPG, PNG · то 50 МБ",
     "sourceLanguage": "ЗАБОНИ МАНБАЪ",
+    "selectSourceLanguage": "Забони манбаъро интихоб кунед",
     "targetLanguage": "ЗАБОНИ ТАРҶУМА",
     "documentType": "НАМУДИ ҲУҶҶАТ",
     "uploadBtn": "Бор кунед ва тарҷума кунед",
@@ -285,6 +286,11 @@
       "phonePlaceholder": "+7 (___) ___-__-__",
       "address": "СУРОҒАИ ТАҲВИЛ",
       "addressPlaceholder": "Кӯча, бино, хона",
+"applicantType": "НАВЪИ АРИЗАДИҲАНДА",
+      "individual": "Шахси воқеӣ",
+      "legalEntity": "Шахси ҳуқуқӣ",
+      "unknownApplicant": "Номаълум (баррасии оператор)",
+      "extraCopies": "НУСХАҲОИ ИЛОВАГИИ КОҒАЗӢ",
       "cityRequired": "Лутфан шаҳрро интихоб кунед",
       "fulfillmentRequired": "Гирифтан ё таҳвилро интихоб кунед",
       "phoneRequired": "Барои таҳвил рақами телефон лозим аст",
@@ -347,7 +353,34 @@
     "priceHint": "The exact price is calculated after document upload and analysis.",
     "priceHintElectronic": "Electronic translation — from 2 500 ₸. Final price after upload.",
     "priceHintOfficial": "Official translation — from 5 500 ₸. Final price after upload.",
-    "priceHintNotarized": "Notarized translation — from 11 000 ₸. Final price after upload."
+    "priceHintNotarized": "Notarized translation — from 11 000 ₸. Final price after upload.",
+    "urgency": {
+    "label": "ФАВРИЯТНОКӢ",
+    "standard": "Стандартӣ",
+    "within_24h": "Дар давоми 24 соат (+30%)",
+    "six_to_twelve_hours": "6–12 соат (+60%)",
+    "two_to_four_hours": "2–4 соат (+100%)",
+    "night_or_weekend": "Шаб / истироҳат (+50%)"
+},
+    "scanQuality": {
+    "label": "СИФАТИ СКАН",
+    "normal": "Муқаррарӣ",
+    "poor_scan": "Скани бад (+15%)",
+    "handwritten": "Дастнавис (баррасии оператор)"
+},
+    "layoutComplexity": {
+    "label": "МУРАККАБИИ ТАРҲ",
+    "standard": "Стандартӣ",
+    "tables": "Ҷадвалҳо дорад (+1 000 ₸/саҳ.)",
+    "complex_tables": "Ҷадвалҳои мураккаб (+2 000 ₸/саҳ.)",
+    "complex_layout": "Тарҳи мураккаб (+25%)",
+    "presentation": "Презентатсия (баррасии оператор)"
+},
+    "visualMarks": {
+    "label": "МУҲРҲО ВА ШТАМПҲО",
+    "normal": "Муқаррарӣ",
+    "many_stamps": "Муҳрҳои зиёд (+1 000 ₸)"
+}
   },
   "auth": {
     "login": "Воридшавӣ",

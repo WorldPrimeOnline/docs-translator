@@ -110,8 +110,29 @@ finalAmount = Math.ceil(grossTotal / 100) * 100
 
 Always rounds up. Minimum floor: BASE_MINIMUM_KZT for the group/service level.
 
+## Required Pricing Inputs
+
+All inputs are optional at the TypeScript level but some **must** be set explicitly to get an accurate quote. Omitting them falls back to safe defaults that may under- or over-price the order.
+
+| Field | Required | Default | Effect of omission |
+|---|---|---|---|
+| `sourceLanguage` | **Yes** | — | Must never be `'auto'` — unknown pair → `requiresOperatorReview = true`. Rejected at API level. |
+| `targetLanguage` | **Yes** | — | Same as above. |
+| `serviceLevel` | **Yes** | `'electronic'` | Determines base minimum and word/page rates. |
+| `urgencyLevel` | Recommended | `'standard'` | `standard` = no surcharge; higher values apply coefficient. |
+| `scanQuality` | Recommended | `'normal'` | `poor_scan` = +15%; `handwritten` = operator review. |
+| `layoutComplexity` | Recommended | `'standard'` | `tables`/`complex_tables` = fixed fee per page; `complex_layout` = +25% multiplier; `presentation` = operator review. |
+| `visualMarksComplexity` | Recommended | `'normal'` | `many_stamps` = +1 000 KZT flat fee to subtotal (not translation portion). |
+| `applicantType` | Notarization | `'individual'` | Drives notary MRP coefficient: individual=0.53, legal_entity=1.10, unknown=operator review. |
+| `deliveryZone` | Delivery | `almaty_standard` fallback | `almaty_standard`=2 500 KZT; other zones → operator review. |
+| `extraPaperCopies` | Optional | `0` | Notarization only: +500 KZT per copy. |
+
+### Why `sourceLanguage='auto'` is forbidden
+
+The language pair drives `BASE_MINIMUM_KZT`, `EXTRA_WORD_RATE_KZT`, and `EXTRA_WORD_RATE_KZT` lookups. If `'auto'` is passed, `resolveLanguageGroup` cannot find a matching group and returns `requiresReview: true`, making the order unquotable. The upload-card API route rejects `sourceLang=auto` at the schema level. The frontend must always show a mandatory source-language selector.
+
 ## Code location
 
-- `src/lib/pricing/config.ts` — all rate tables
+- `src/lib/pricing/config.ts` — all rate tables (including new: SCAN_QUALITY_SURCHARGE, LAYOUT_COMPLEXITY_CONFIG, VISUAL_MARKS_FEE_KZT, DELIVERY_ZONE_FEE_KZT, NOTARY_APPLICANT_MRP_COEFFICIENT, EXTRA_PAPER_COPY_FEE_KZT)
 - `src/lib/pricing/calculator.ts` — `calculatePrice(input, version)`
 - `src/lib/pricing/service.ts` — DB integration (`getActivePricingVersion`, `computeQuoteForJob`, `saveQuote`, etc.)

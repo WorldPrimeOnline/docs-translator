@@ -1,4 +1,4 @@
-import type { ServiceLevel, UrgencyLevel } from './types';
+import type { ServiceLevel, UrgencyLevel, ScanQuality, LayoutComplexity, VisualMarksComplexity, ApplicantType, DeliveryZone } from './types';
 
 export type LanguageGroup =
   | 'ru_kz'
@@ -82,12 +82,57 @@ export const DOCUMENT_TYPE_COEFFICIENT: Record<string, number> = {
   other:              1.10,
 };
 
-export const URGENCY_COEFFICIENT: Record<UrgencyLevel, number> = {
+export const URGENCY_COEFFICIENT: Record<UrgencyLevel, number | 'operator_review'> = {
   standard:             1.00,
   within_24h:           1.30,
   six_to_twelve_hours:  1.60,
   two_to_four_hours:    2.00,
+  night_or_weekend:     1.50,
 };
+
+// Scan quality surcharge — multiplied against translation portion
+export const SCAN_QUALITY_SURCHARGE: Record<ScanQuality, number | 'operator_review'> = {
+  normal:      0,
+  poor_scan:   0.15,
+  handwritten: 'operator_review',
+};
+
+// Layout complexity — fixed fee per page or multiplier on translation portion
+export type LayoutComplexityConfig =
+  | { type: 'fixed_per_page'; feePerPage: number }
+  | { type: 'translation_portion_multiplier'; multiplier: number }
+  | { type: 'operator_review' };
+
+export const LAYOUT_COMPLEXITY_CONFIG: Record<LayoutComplexity, LayoutComplexityConfig> = {
+  standard:       { type: 'fixed_per_page', feePerPage: 0 },
+  tables:         { type: 'fixed_per_page', feePerPage: 1000 },
+  complex_tables: { type: 'fixed_per_page', feePerPage: 2000 },
+  complex_layout: { type: 'translation_portion_multiplier', multiplier: 0.25 },
+  presentation:   { type: 'operator_review' },
+};
+
+// Visual marks surcharge — flat fee added to subtotal
+export const VISUAL_MARKS_FEE_KZT: Record<VisualMarksComplexity, number> = {
+  normal:      0,
+  many_stamps: 1000,
+};
+
+// Delivery zone fee — overrides the legacy NOTARY_CONFIG.deliveryFeeAlmatyStandard
+export const DELIVERY_ZONE_FEE_KZT: Record<DeliveryZone, number | 'operator_review'> = {
+  almaty_standard: 2500,
+  remote_area:     'operator_review',
+  other_city:      'operator_review',
+  urgent_delivery: 'operator_review',
+};
+
+// Notary MRP coefficient by applicant type — overrides NOTARY_CONFIG mrpCoefficient_individual
+export const NOTARY_APPLICANT_MRP_COEFFICIENT: Record<ApplicantType, number | 'operator_review'> = {
+  individual:   0.53,
+  legal_entity: 1.10,
+  unknown:      'operator_review',
+};
+
+export const EXTRA_PAPER_COPY_FEE_KZT = 500;
 
 // TODO: All NOTARY_CONFIG values require confirmation from notary partner before production launch.
 export const NOTARY_CONFIG = {

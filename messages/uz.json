@@ -171,6 +171,7 @@
     "dropzone": "Fayllarni tashlang yoki bosing",
     "dropzoneHint": "PDF, DOCX, JPG, PNG · jami 50 MB gacha",
     "sourceLanguage": "MANBA TIL",
+    "selectSourceLanguage": "Manba tilini tanlang",
     "targetLanguage": "MAQSAD TIL",
     "documentType": "HUJJAT TURI",
     "uploadBtn": "Yuklash va tarjima qilish",
@@ -285,6 +286,11 @@
       "phonePlaceholder": "+7 (___) ___-__-__",
       "address": "YETKAZIB BERISH MANZILI",
       "addressPlaceholder": "Ko'cha, bino, xonadon",
+"applicantType": "ARIZACHILAR TURI",
+      "individual": "Jismoniy shaxs",
+      "legalEntity": "Yuridik shaxs",
+      "unknownApplicant": "Noma'lum (operator ko'rib chiqadi)",
+      "extraCopies": "QO'SHIMCHA QOG'OZ NUSXALAR",
       "cityRequired": "Iltimos, shaharni tanlang",
       "fulfillmentRequired": "Olib ketish yoki yetkazib berishni tanlang",
       "phoneRequired": "Yetkazib berish uchun telefon raqami kerak",
@@ -347,7 +353,34 @@
     "priceHint": "The exact price is calculated after document upload and analysis.",
     "priceHintElectronic": "Electronic translation — from 2 500 ₸. Final price after upload.",
     "priceHintOfficial": "Official translation — from 5 500 ₸. Final price after upload.",
-    "priceHintNotarized": "Notarized translation — from 11 000 ₸. Final price after upload."
+    "priceHintNotarized": "Notarized translation — from 11 000 ₸. Final price after upload.",
+    "urgency": {
+    "label": "SHOSHILINCHLIK",
+    "standard": "Standart",
+    "within_24h": "24 soat ichida (+30%)",
+    "six_to_twelve_hours": "6–12 soat (+60%)",
+    "two_to_four_hours": "2–4 soat (+100%)",
+    "night_or_weekend": "Kecha / dam olish kuni (+50%)"
+},
+    "scanQuality": {
+    "label": "SKAN SIFATI",
+    "normal": "Normal",
+    "poor_scan": "Yomon skan (+15%)",
+    "handwritten": "Qo'lda yozilgan (operator ko'rib chiqadi)"
+},
+    "layoutComplexity": {
+    "label": "TARTIB MURAKKABLIGI",
+    "standard": "Standart",
+    "tables": "Jadvallar bor (+1 000 ₸/bet)",
+    "complex_tables": "Murakkab jadvallar (+2 000 ₸/bet)",
+    "complex_layout": "Murakkab tartib (+25%)",
+    "presentation": "Taqdimot (operator ko'rib chiqadi)"
+},
+    "visualMarks": {
+    "label": "MUHRLAR VA TAMG'ALAR",
+    "normal": "Normal",
+    "many_stamps": "Ko'p muhr/tamg'a (+1 000 ₸)"
+}
   },
   "auth": {
     "login": "Kirish",
