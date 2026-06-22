@@ -287,6 +287,12 @@ Subscription plans (KZT pricing): `SUBSCRIPTION_PLANS` in `src/lib/subscriptions
 
 Subscription state: `subscriptions` table. `POST /api/documents/upload` (subscription path) and `POST /api/documents/upload-card` (card payment path) are the two job-creation entry points.
 
+**Fiscalization** (KZ tax law requires fiscal receipts for card payments). `src/lib/fiscal/` is a provider-abstracted system: `types.ts` (interface), `config.ts` (reads env), `provider.ts` (factory), `manual-provider.ts`, `webkassa-provider.ts` + `webkassa-client.ts`. Orchestration in `service.ts`: `createSaleReceiptForPayment(paymentTransactionId)` — called non-blocking after Halyk CHARGE confirms; `createRefundReceiptForRefund(...)` — called after refund is logged. Both are **idempotent** (unique constraint on `(payment_transaction_id, operation_type)` in `fiscal_receipts`) and **non-blocking** (fiscal failure never throws to the caller). Current mode: `FISCAL_PROVIDER=manual` → every receipt gets `status = pending_manual`; operator issues manually via OFD web cabinet. Webkassa provider is implemented but gated by `FISCALIZATION_ENABLED=true` + `FISCAL_PROVIDER=webkassa`. Env vars: `FISCAL_PROVIDER` (`manual`|`webkassa`), `FISCALIZATION_ENABLED` (`true`/`false`), `FISCAL_PROVIDER_ENV` (`test`/`production`). See `docs/payments/FISCALIZATION.md` for operator queries and provider onboarding steps.
+
+**Refunds** — operator-initiated only; no customer-facing endpoint. `src/lib/refunds/service.ts`: `initiateRefund(request)` validates the refundable amount (via Supabase RPC `get_refundable_amount`), creates a `refund_transactions` row with `status = pending_manual`, then calls `createRefundReceiptForRefund`. Halyk refund API not yet integrated — operator must process manually via Halyk merchant cabinet. Admin API routes: `POST /api/admin/payments/refund` and `POST /api/admin/payments/[paymentId]/refunds`. See `docs/payments/REFUNDS.md`.
+
+**Worker fiscal reconciliation** — `reconcileFiscalAndRefunds()` in `worker/src/lib/fiscal-reconciliation.ts` runs every 5 minutes. Finds `fiscal_receipts` with `pending`/`failed`/`retry_required` status and `refund_transactions` with `pending_manual` status, logs them for operator attention, and increments `retry_count` to throttle repeat logging. Does not auto-retry with the manual provider.
+
 ### Integration orchestrator (Jira + Google Drive + Telegram)
 
 **Architecture principle:** WPO creates ONE Jira issue per order and then hands off — Jira Automation handles all internal transitions (assignee, security level, status, notifications). WPO never calls Jira API for transitions. Jira Automation sends callbacks to `/api/webhooks/jira` when statuses change; that route only updates Supabase and fires Telegram/email notifications.
@@ -324,6 +330,9 @@ Subscription state: `subscriptions` table. `POST /api/documents/upload` (subscri
 | `job_audit_log` | `job_id`, `actor`, `source`, `action`, `previous_status`, `new_status`, `jira_issue_key`, `correlation_id`, `metadata` — append-only log of all status transitions and integration events |
 | `staff_profiles` | `display_name`, `jira_account_id`, `telegram_chat_id`, `telegram_username`, `telegram_notifications_enabled`, `role` (`operator\|translator\|notary_partner\|admin`), `is_active` — service role only (RLS blocks browser). Unique constraint on `jira_account_id WHERE is_active=true`. |
 | `notification_log` | `event_id`, `order_id`, `jira_issue_key`, `recipient_profile_id`, `channel`, `template`, `status` (`pending\|sent\|failed\|skipped`), `provider_message_id`, `error`, `sent_at` — delivery audit for every Telegram notification attempt. Unique index on `(event_id, recipient_profile_id) WHERE status IN ('sent','pending')` for idempotency. |
+| `payment_transactions` | `job_id`, `document_id`, `amount`, `currency`, `status` (`pending\|paid\|failed\|expired`), `provider` (`halyk_epay`), `provider_environment` (`test\|production`), `provider_transaction_id`, `card_mask` — one row per Halyk ePay payment attempt. |
+| `fiscal_receipts` | `payment_transaction_id`, `operation_type` (`sale\|refund\|correction`), `status` (`pending\|pending_manual\|issued\|failed\|retry_required`), `amount_kzt`, `provider` (`manual\|webkassa`), `fiscal_url`, `provider_receipt_id`, `receipt_payload_sanitized`, `customer_email` — migration `0017_fiscal_receipts.sql`. |
+| `refund_transactions` | `payment_transaction_id`, `refund_amount_kzt`, `status` (`pending_manual\|pending\|succeeded\|failed\|requires_review`), `provider` (`halyk_epay`), `reason`, `operator_id`, `idempotency_key`, `fiscal_refund_receipt_id` — migration `0018_refund_transactions.sql`. |
 
 Generated types at `src/types/supabase.ts`, re-exported from `src/types/index.ts`. Use `Tables<'tablename'>`, `TablesInsert<'tablename'>`, `TablesUpdate<'tablename'>` for typed DB access — do not inline raw object types.
 
@@ -344,6 +353,8 @@ Generated types at `src/types/supabase.ts`, re-exported from `src/types/index.ts
 | POST | `/api/payments/halyk/callback` | Halyk ePay payment result callback — updates job payment status |
 | GET | `/api/cron/cleanup` | Daily 02:00 UTC — deletes files older than 30 days (secured via `CRON_SECRET`) |
 | GET | `/api/cron/reconcile-payments` | Scheduled reconciliation of Halyk ePay payment statuses |
+| POST | `/api/admin/payments/refund` | Operator-initiated refund — creates `refund_transactions` row (pending_manual) |
+| POST | `/api/admin/payments/[paymentId]/refunds` | Same as above, payment-scoped path |
 | POST | `/api/users/accept-terms` | Records `terms_accepted_at` timestamp in users table; gate shown in dashboard before first upload |
 | POST | `/api/webhooks/jira` | Inbound Jira Automation callbacks — updates Supabase job status and sends Telegram/email notifications; does NOT create Jira issues or call Jira API. `ASSIGNEE_CHANGED` events are routed to `handleAssigneeChanged()` (`src/lib/notifications/assignee.ts`) for personal Telegram delivery via `staff_profiles`. |
 | POST | `/api/webhooks/stripe` | Placeholder — no route file exists; `src/lib/stripe/` is an empty directory |

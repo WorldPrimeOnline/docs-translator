@@ -121,6 +121,96 @@ describe('callback route — security and resilience', () => {
   });
 });
 
+// ─── Fiscal hook presence ──────────────────────────────────────────────────────
+
+describe('fiscal hook — all finalization paths use ensureSaleFiscalReceiptForPaidPayment', () => {
+  it('callback route imports ensureSaleFiscalReceiptForPaidPayment', () => {
+    const src = readRoute('callback/route.ts');
+    expect(src).toContain('ensureSaleFiscalReceiptForPaidPayment');
+  });
+
+  it('callback route does NOT use void createSaleReceiptForPayment (fire-and-forget is removed)', () => {
+    const src = readRoute('callback/route.ts');
+    expect(src).not.toContain('void createSaleReceiptForPayment');
+  });
+
+  it('callback route awaits fiscal hook in a try-catch', () => {
+    const src = readRoute('callback/route.ts');
+    expect(src).toContain('await ensureSaleFiscalReceiptForPaidPayment');
+  });
+
+  it('status route imports ensureSaleFiscalReceiptForPaidPayment', () => {
+    const src = readRoute('status/[paymentId]/route.ts');
+    expect(src).toContain('ensureSaleFiscalReceiptForPaidPayment');
+  });
+
+  it('status route awaits fiscal hook after finalization', () => {
+    const src = readRoute('status/[paymentId]/route.ts');
+    expect(src).toContain('await ensureSaleFiscalReceiptForPaidPayment');
+    // Hook placed after finalizeSucceeded
+    const hookPos = src.indexOf('await ensureSaleFiscalReceiptForPaidPayment');
+    const finalizePos = src.indexOf('finalizeSucceeded = true');
+    expect(hookPos).toBeGreaterThan(finalizePos);
+  });
+
+  it('reconcile-payments cron imports ensureSaleFiscalReceiptForPaidPayment', () => {
+    const src = fs.readFileSync(
+      path.join(process.cwd(), 'src/app/api/cron/reconcile-payments/route.ts'),
+      'utf-8',
+    );
+    expect(src).toContain('ensureSaleFiscalReceiptForPaidPayment');
+  });
+
+  it('reconcile-payments cron does NOT use void createSaleReceiptForPayment', () => {
+    const src = fs.readFileSync(
+      path.join(process.cwd(), 'src/app/api/cron/reconcile-payments/route.ts'),
+      'utf-8',
+    );
+    expect(src).not.toContain('void createSaleReceiptForPayment');
+  });
+
+  it('fiscal service exports ensureSaleFiscalReceiptForPaidPayment', () => {
+    const src = fs.readFileSync(
+      path.join(process.cwd(), 'src/lib/fiscal/service.ts'),
+      'utf-8',
+    );
+    expect(src).toContain('export async function ensureSaleFiscalReceiptForPaidPayment');
+  });
+
+  it('fiscal service creates DB row before any provider call', () => {
+    const src = fs.readFileSync(
+      path.join(process.cwd(), 'src/lib/fiscal/service.ts'),
+      'utf-8',
+    );
+    // Row insert comes before _runProviderSaleReceipt invocation
+    const insertPos = src.indexOf("from('fiscal_receipts')\n    .insert");
+    const providerCallPos = src.indexOf('_runProviderSaleReceipt');
+    expect(insertPos).toBeGreaterThan(-1);
+    expect(providerCallPos).toBeGreaterThan(-1);
+    expect(insertPos).toBeLessThan(providerCallPos);
+  });
+
+  it('fiscal service _runProviderSaleReceipt is only called for pending (real provider) status', () => {
+    const src = fs.readFileSync(
+      path.join(process.cwd(), 'src/lib/fiscal/service.ts'),
+      'utf-8',
+    );
+    // Provider call is gated on initialStatus === 'pending'
+    expect(src).toContain("initialStatus === 'pending'");
+    expect(src).toContain('_runProviderSaleReceipt');
+  });
+
+  it('pending_manual path does not trigger async provider call', () => {
+    const src = fs.readFileSync(
+      path.join(process.cwd(), 'src/lib/fiscal/service.ts'),
+      'utf-8',
+    );
+    // manual or disabled → pending_manual; provider call only for pending
+    expect(src).toContain("'pending_manual' as const");
+    expect(src).toContain("'pending' as const");
+  });
+});
+
 // ─── Migration: finalize_halyk_payment RPC exists ─────────────────────────────
 
 describe('migration 0015 — finalize_halyk_payment RPC', () => {

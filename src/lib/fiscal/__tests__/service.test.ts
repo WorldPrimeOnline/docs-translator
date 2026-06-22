@@ -78,6 +78,71 @@ describe('getFiscalProvider', () => {
   });
 });
 
+// ─── ensureSaleFiscalReceiptForPaidPayment structural contract tests ──────────
+
+import * as fs from 'fs';
+import * as path from 'path';
+
+const SERVICE_SRC = fs.readFileSync(
+  path.join(process.cwd(), 'src/lib/fiscal/service.ts'),
+  'utf-8',
+);
+
+describe('ensureSaleFiscalReceiptForPaidPayment — structural contracts', () => {
+  it('is exported from service.ts', () => {
+    expect(SERVICE_SRC).toContain('export async function ensureSaleFiscalReceiptForPaidPayment');
+  });
+
+  it('performs idempotency check before inserting', () => {
+    // Slice from the new function declaration to check positions within it
+    const fnStart = SERVICE_SRC.indexOf('export async function ensureSaleFiscalReceiptForPaidPayment');
+    const fnSrc = SERVICE_SRC.slice(fnStart);
+    const idempotencyCheckPos = fnSrc.indexOf('// 1. Idempotency check');
+    const insertPos = fnSrc.indexOf('.insert(');
+    expect(idempotencyCheckPos).toBeGreaterThan(-1);
+    expect(insertPos).toBeGreaterThan(-1);
+    expect(idempotencyCheckPos).toBeLessThan(insertPos);
+  });
+
+  it('uses pending_manual initial status for manual provider / disabled config', () => {
+    expect(SERVICE_SRC).toContain("'pending_manual' as const");
+    expect(SERVICE_SRC).toContain("provider.name === 'manual' || !config.enabled");
+  });
+
+  it('uses pending initial status when real provider is enabled', () => {
+    expect(SERVICE_SRC).toContain("'pending' as const");
+  });
+
+  it('inserts the DB row before any provider call', () => {
+    const fnStart = SERVICE_SRC.indexOf('export async function ensureSaleFiscalReceiptForPaidPayment');
+    const fnSrc = SERVICE_SRC.slice(fnStart);
+    const insertPos = fnSrc.indexOf('// 5. Insert DB row with correct initial status');
+    const providerCallPos = fnSrc.indexOf('// 6. If real provider is active');
+    expect(insertPos).toBeGreaterThan(-1);
+    expect(providerCallPos).toBeGreaterThan(-1);
+    expect(insertPos).toBeLessThan(providerCallPos);
+  });
+
+  it('async provider call is gated on initialStatus === pending', () => {
+    expect(SERVICE_SRC).toContain("if (initialStatus === 'pending')");
+    expect(SERVICE_SRC).toContain('void _runProviderSaleReceipt');
+  });
+
+  it('handles unique constraint violation (race idempotency)', () => {
+    expect(SERVICE_SRC).toContain("insertError.code === '23505'");
+  });
+
+  it('does not expose credentials in structured logs', () => {
+    expect(SERVICE_SRC).not.toMatch(/console\.(info|log|error).*password/i);
+    expect(SERVICE_SRC).not.toMatch(/console\.(info|log|error).*api_key/i);
+  });
+
+  it('_runProviderSaleReceipt updates row to failed on provider error', () => {
+    expect(SERVICE_SRC).toContain("status: 'failed'");
+    expect(SERVICE_SRC).toContain('failed_at: new Date().toISOString()');
+  });
+});
+
 // Note: createSaleReceiptForPayment integration tests require a real Supabase connection.
 // The following tests validate the idempotency logic and error path contracts.
 

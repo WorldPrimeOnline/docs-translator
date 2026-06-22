@@ -12,7 +12,7 @@ import { supabaseServer } from '@/lib/supabase/server';
 import { getFiscalProvider } from './provider';
 import { getFiscalConfig } from './config';
 import type { Json } from '@/types/supabase';
-import type { FiscalSaleInput } from './types';
+import type { FiscalSaleInput, FiscalProvider } from './types';
 
 export interface CreateSaleReceiptResult {
   fiscalReceiptId: string;
@@ -217,6 +217,219 @@ export async function createSaleReceiptForPayment(
       isNew: true,
     };
   }
+}
+
+// ─── Async provider update (used by ensureSaleFiscalReceiptForPaidPayment) ──────
+
+async function _runProviderSaleReceipt(
+  receiptId: string,
+  provider: FiscalProvider,
+  fiscalInput: FiscalSaleInput,
+): Promise<void> {
+  try {
+    const result = await provider.createSaleReceipt(fiscalInput);
+    await supabaseServer
+      .from('fiscal_receipts')
+      .update({
+        status: result.status,
+        provider_receipt_id: result.providerReceiptId ?? null,
+        provider_shift_id: result.shiftId ?? null,
+        provider_cashbox_id: result.cashboxId ?? null,
+        fiscal_sign: result.fiscalSign ?? null,
+        fiscal_url: result.fiscalUrl ?? null,
+        provider_response_sanitized: (result.providerResponseSanitized ?? null) as Json | null,
+        error_code: result.errorCode ?? null,
+        error_message: result.errorMessage ?? null,
+        issued_at: result.status === 'issued' ? new Date().toISOString() : null,
+        failed_at: result.status === 'failed' ? new Date().toISOString() : null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', receiptId);
+    if (result.status === 'issued') {
+      console.info('[fiscal] provider receipt issued', { receiptId, fiscalUrl: result.fiscalUrl, provider: provider.name });
+    } else {
+      console.info('[fiscal] provider receipt result', { receiptId, status: result.status, provider: provider.name });
+    }
+  } catch (err) {
+    const msg = (err as Error).message;
+    console.error('[fiscal] provider sale receipt call failed:', msg, { receiptId, provider: provider.name });
+    await supabaseServer
+      .from('fiscal_receipts')
+      .update({
+        status: 'failed',
+        error_message: msg,
+        failed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', receiptId);
+  }
+}
+
+/**
+ * Ensures a fiscal receipt row exists for a confirmed paid payment.
+ *
+ * Guarantees:
+ * - DB row is created synchronously before returning (awaitable, safe in serverless).
+ * - Idempotent: second call returns the existing row without creating a duplicate.
+ * - Non-blocking for HTTP providers: Webkassa API call fires async after row creation.
+ * - fiscal failure never throws — returns null on unrecoverable error.
+ *
+ * Status after return:
+ *   pending_manual — manual provider or fiscalization disabled (operator issues manually)
+ *   pending        — real provider enabled; async update will set issued/failed/blocked_by_config
+ *
+ * Use this in all finalization paths (callback, status, cron) instead of void createSaleReceiptForPayment.
+ */
+export async function ensureSaleFiscalReceiptForPaidPayment(
+  paymentTransactionId: string,
+): Promise<{ fiscalReceiptId: string; status: string; isNew: boolean } | null> {
+  // 1. Idempotency check
+  const { data: existing } = await supabaseServer
+    .from('fiscal_receipts')
+    .select('id, status, fiscal_url')
+    .eq('payment_transaction_id', paymentTransactionId)
+    .eq('operation_type', 'sale')
+    .maybeSingle();
+
+  if (existing) {
+    console.info('[fiscal] sale receipt already exists', {
+      fiscalReceiptId: existing.id,
+      paymentTransactionId,
+      status: existing.status,
+    });
+    return { fiscalReceiptId: existing.id, status: existing.status, isNew: false };
+  }
+
+  // 2. Load payment transaction
+  const { data: payment } = await supabaseServer
+    .from('payment_transactions')
+    .select('id, job_id, document_id, amount, currency, status, provider_environment')
+    .eq('id', paymentTransactionId)
+    .eq('status', 'paid')
+    .maybeSingle();
+
+  if (!payment) {
+    console.warn('[fiscal] ensure sale receipt: payment not found or not paid', { paymentTransactionId });
+    return null;
+  }
+
+  // 3. Load customer email for receipt delivery
+  let customerEmail: string | undefined;
+  const { data: job } = await supabaseServer
+    .from('jobs')
+    .select('id, document_id')
+    .eq('id', payment.job_id)
+    .maybeSingle();
+  if (job) {
+    const { data: doc } = await supabaseServer
+      .from('documents')
+      .select('user_id')
+      .eq('id', job.document_id)
+      .maybeSingle();
+    if (doc) {
+      const { data: user } = await supabaseServer
+        .from('users')
+        .select('email')
+        .eq('id', doc.user_id)
+        .maybeSingle();
+      customerEmail = user?.email;
+    }
+  }
+
+  const config = getFiscalConfig();
+  const provider = getFiscalProvider();
+  const amountKzt = Math.round(payment.amount);
+  const orderNumber = paymentTransactionId.slice(0, 8).toUpperCase();
+
+  // 4. Determine initial status from config — no HTTP call, no provider call yet.
+  //    manual or disabled → pending_manual (operator issues receipt manually, no async call)
+  //    real provider enabled → pending (async provider call will update to final status)
+  const initialStatus = (provider.name === 'manual' || !config.enabled)
+    ? 'pending_manual' as const
+    : 'pending' as const;
+
+  console.info('[fiscal] ensure sale receipt start', {
+    paymentTransactionId,
+    jobId: payment.job_id,
+    provider: provider.name,
+    providerEnvironment: config.providerEnvironment,
+    amountKzt,
+    currency: 'KZT',
+    initialStatus,
+  });
+
+  // 5. Insert DB row with correct initial status (happens before any provider HTTP call)
+  const { data: receiptRow, error: insertError } = await supabaseServer
+    .from('fiscal_receipts')
+    .insert({
+      job_id: payment.job_id,
+      document_id: payment.document_id,
+      payment_transaction_id: paymentTransactionId,
+      provider: provider.name,
+      provider_environment: config.providerEnvironment,
+      amount_kzt: amountKzt,
+      currency: 'KZT',
+      operation_type: 'sale',
+      status: initialStatus,
+      customer_email: customerEmail ?? null,
+      receipt_payload_sanitized: {
+        orderNumber,
+        amountKzt,
+        description: `Перевод документа #${orderNumber}`,
+      },
+    })
+    .select('id')
+    .single();
+
+  if (insertError) {
+    if (insertError.code === '23505') {
+      const { data: race } = await supabaseServer
+        .from('fiscal_receipts')
+        .select('id, status, fiscal_url')
+        .eq('payment_transaction_id', paymentTransactionId)
+        .eq('operation_type', 'sale')
+        .maybeSingle();
+      if (race) {
+        console.info('[fiscal] sale receipt already exists (race)', {
+          fiscalReceiptId: race.id,
+          paymentTransactionId,
+          status: race.status,
+        });
+        return { fiscalReceiptId: race.id, status: race.status, isNew: false };
+      }
+    }
+    console.error('[fiscal] sale receipt creation failed', {
+      paymentTransactionId,
+      code: insertError.code,
+      message: insertError.message,
+    });
+    return null;
+  }
+
+  const receiptId = receiptRow.id;
+
+  console.info('[fiscal] sale receipt row created', {
+    fiscalReceiptId: receiptId,
+    paymentTransactionId,
+    status: initialStatus,
+  });
+
+  // 6. If real provider is active: fire async provider attempt (does NOT block the caller)
+  //    Provider will update the row to issued / failed / blocked_by_config.
+  if (initialStatus === 'pending') {
+    const fiscalInput: FiscalSaleInput = {
+      jobId: payment.job_id,
+      paymentTransactionId,
+      amountKzt,
+      currency: 'KZT',
+      customerEmail,
+      description: `Перевод документа #${orderNumber}`,
+      orderNumber,
+    };
+    void _runProviderSaleReceipt(receiptId, provider, fiscalInput);
+  }
+
+  return { fiscalReceiptId: receiptId, status: initialStatus, isNew: true };
 }
 
 /**

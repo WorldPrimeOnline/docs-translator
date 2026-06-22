@@ -15,6 +15,7 @@ import { supabaseServer } from '@/lib/supabase/server';
 import { checkPaymentStatus, HalykApiError } from '@/lib/payments/halyk/client';
 import { getHalykConfig } from '@/lib/payments/halyk/config';
 import { mapHalykStatus, isPaidStatus, isTerminalStatus } from '@/lib/payments/halyk/status-map';
+import { ensureSaleFiscalReceiptForPaidPayment } from '@/lib/fiscal/service';
 import type { InternalPaymentStatus } from '@/lib/payments/halyk/types';
 import type { Database } from '@/types';
 
@@ -163,6 +164,15 @@ export async function GET(
           finalizeSucceeded = true;
           currentStatus = 'paid';
           currentPaidAt = new Date().toISOString();
+
+          // Ensure fiscal receipt row exists for this newly-finalized payment
+          try {
+            await ensureSaleFiscalReceiptForPaidPayment(paymentTx.id);
+          } catch (err) {
+            console.error('[halyk/status] fiscal hook failed (non-fatal):', (err as Error).message, {
+              paymentId: paymentTx.id,
+            });
+          }
 
           const result = rpcResult as { duplicate_charge?: boolean; job_id?: string } | null;
           if (result?.duplicate_charge) {

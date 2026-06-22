@@ -17,7 +17,7 @@ import { verifySecretHash } from '@/lib/payments/halyk/security';
 import { checkPaymentStatus } from '@/lib/payments/halyk/client';
 import { mapHalykStatus, isPaidStatus } from '@/lib/payments/halyk/status-map';
 import { getHalykConfig } from '@/lib/payments/halyk/config';
-import { createSaleReceiptForPayment } from '@/lib/fiscal/service';
+import { ensureSaleFiscalReceiptForPaidPayment } from '@/lib/fiscal/service';
 
 const MAX_BODY_BYTES = 64 * 1024; // 64 KB
 
@@ -284,13 +284,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         });
       }
 
-      // Create fiscal receipt (idempotent — safe on duplicate callback)
-      // Non-blocking: fiscal failure must not affect the payment response to Halyk
-      void createSaleReceiptForPayment(paymentTx.id).catch((err: unknown) => {
-        console.error('[halyk/callback] fiscal receipt creation failed (non-fatal):', (err as Error).message, {
+      // Ensure fiscal receipt row exists (awaited — DB insert must complete before serverless returns)
+      // ensureSaleFiscalReceiptForPaidPayment: idempotent, does not throw, provider HTTP call is async
+      try {
+        await ensureSaleFiscalReceiptForPaidPayment(paymentTx.id);
+      } catch (err) {
+        console.error('[halyk/callback] fiscal hook failed (non-fatal):', (err as Error).message, {
           paymentId: paymentTx.id,
         });
-      });
+      }
     }
     console.log('[halyk/callback] rpc result', {
       correlationId,
