@@ -396,7 +396,9 @@
     "customerComment": {
       "label": "ORDER COMMENT",
       "placeholder": "E.g.: specify formatting requirements, target authority, desired deadline, or other preferences."
-    }
+    },
+    "paymentPendingTitle": "Payment is being verified",
+    "paymentPendingDesc": "If money was charged, do not pay again. We will update the status automatically."
   },
   "auth": {
     "login": "로그인",
@@ -1019,6 +1021,14 @@
     "QUOTE_NOT_FOUND": "Quote not found. Please refresh.",
     "PRICING_NOT_CONFIGURED": "Pricing is not configured. Please contact support.",
     "LANGUAGE_PAIR_MUST_DIFFER": "Source and target languages must be different.",
-    "NOTARY_CUTOFF_PASSED": "This price is no longer valid — the notary cutoff time has passed. Please upload again to get a new quote."
+    "NOTARY_CUTOFF_PASSED": "This price is no longer valid — the notary cutoff time has passed. Please upload again to get a new quote.",
+    "delayedTitle": "Payment not yet confirmed",
+    "delayedDesc": "Sometimes a bank takes longer to confirm. We will check automatically. If money was charged, do not pay again.",
+    "checkAgain": "Check again",
+    "pendingLongTitle": "Confirming payment...",
+    "pendingLongDesc": "This is taking longer than usual. You can go to your account — we will update the status automatically.",
+    "retryPayment": "Return to payment",
+    "paymentPendingTitle": "Payment is being verified",
+    "paymentPendingDesc": "If money was charged, do not pay again. We will update the status automatically."
   }
 }

@@ -285,6 +285,19 @@ function ActiveOrderCard({ entry, locale, onRecalculate }: { entry: OrderEntry; 
           entry.quoteStatus === 'expired' ||
           (entry.quoteExpiresAt != null && new Date(entry.quoteExpiresAt) <= now && entry.quoteStatus !== 'paid');
 
+        // Payment is in-flight: user already initiated Halyk; quote moved to payment_pending
+        if (entry.quoteStatus === 'payment_pending') {
+          return (
+            <div className="mt-3 rounded-md border border-amber-500/20 bg-amber-500/5 p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
+                <p className="text-sm font-medium text-amber-300">{t('paymentPendingTitle')}</p>
+              </div>
+              <p className="text-xs text-muted-foreground">{t('paymentPendingDesc')}</p>
+            </div>
+          );
+        }
+
         if (entry.quoteRequiresOperatorReview) {
           return (
             <div className="mt-3 rounded-md border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-amber-300">

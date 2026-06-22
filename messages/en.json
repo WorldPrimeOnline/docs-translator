@@ -187,6 +187,8 @@
     "quoteExpired": "Quote expired",
     "quoteRecalculate": "Recalculate",
     "quoteCalculating": "Calculating price...",
+    "paymentPendingTitle": "Payment is being verified",
+    "paymentPendingDesc": "If money was charged, do not pay again. We will update the status automatically.",
     "quoteRecalculating": "Refreshing order status...",
     "priceHint": "The exact price is calculated after document upload and analysis.",
     "priceHintElectronic": "Electronic translation — from 2 500 ₸. Final price after upload.",
@@ -1019,6 +1021,14 @@
     "processingTitle": "Payment is processing",
     "processingDesc": "Your payment is still being processed. Please check your dashboard in a few minutes.",
     "goToDashboard": "Go to Dashboard",
-    "invalidLink": "Invalid payment link."
+    "invalidLink": "Invalid payment link.",
+    "delayedTitle": "Payment not yet confirmed",
+    "delayedDesc": "Sometimes a bank takes longer to confirm. We will check automatically. If money was charged, do not pay again.",
+    "checkAgain": "Check again",
+    "pendingLongTitle": "Confirming payment...",
+    "pendingLongDesc": "This is taking longer than usual. You can go to your account — we will update the status automatically.",
+    "retryPayment": "Return to payment",
+    "paymentPendingTitle": "Payment is being verified",
+    "paymentPendingDesc": "If money was charged, do not pay again. We will update the status automatically."
   }
 }

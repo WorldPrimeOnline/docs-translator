@@ -21,6 +21,16 @@ import type { Database } from '@/types';
 
 const RECONCILE_COOLDOWN_MS = 12_000; // min seconds between Halyk API calls per transaction
 
+function computeCanRetryPayment(status: string, createdAt: string | null): boolean {
+  if (['failed', 'canceled', 'expired'].includes(status)) return true;
+  if (status === 'payment_pending' && createdAt) {
+    const timeoutMinutes = parseInt(process.env.HALYK_PAYMENT_PENDING_TIMEOUT_MINUTES ?? '15', 10);
+    const ageMs = Date.now() - new Date(createdAt).getTime();
+    return ageMs > timeoutMinutes * 60 * 1000;
+  }
+  return false;
+}
+
 async function getAuthUser() {
   const cookieStore = await cookies();
   const supabase = createServerClient<Database>(
@@ -54,7 +64,7 @@ export async function GET(
   // Load payment transaction and verify ownership
   const { data: paymentTx, error: txError } = await supabaseServer
     .from('payment_transactions')
-    .select('id, status, amount, currency, paid_at, failed_at, job_id, user_id, provider_invoice_id, status_checked_at')
+    .select('id, status, amount, currency, paid_at, failed_at, job_id, user_id, provider_invoice_id, status_checked_at, created_at')
     .eq('id', paymentId)
     .maybeSingle();
 
@@ -244,6 +254,14 @@ export async function GET(
     });
   }
 
+  const responseIsTerminal = isTerminalStatus(currentStatus as InternalPaymentStatus) || currentStatus === 'paid';
+  const responseIsSuccess = currentStatus === 'paid';
+  const responseIsFailure = ['failed', 'canceled', 'expired'].includes(currentStatus);
+  const retryAllowed = computeCanRetryPayment(currentStatus, (paymentTx as { created_at?: string | null }).created_at ?? null);
+  const nextProviderCheckAfter = paymentTx.status_checked_at
+    ? new Date(new Date(paymentTx.status_checked_at).getTime() + RECONCILE_COOLDOWN_MS).toISOString()
+    : null;
+
   return NextResponse.json({
     paymentId: paymentTx.id,
     status: currentStatus,
@@ -252,5 +270,13 @@ export async function GET(
     paidAt: currentPaidAt ?? null,
     failedAt: currentFailedAt ?? null,
     jobId: paymentTx.job_id,
+    isTerminal: responseIsTerminal,
+    isSuccess: responseIsSuccess,
+    isFailure: responseIsFailure,
+    canRetryPayment: retryAllowed,
+    skippedProviderCheck: !shouldReconcile,
+    messageCode: providerCheckSkippedReason ?? null,
+    nextProviderCheckAfter,
+    lastCheckedAt: paymentTx.status_checked_at ?? null,
   });
 }
