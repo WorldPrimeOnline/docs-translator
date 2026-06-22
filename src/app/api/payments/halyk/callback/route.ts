@@ -89,6 +89,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     correlationId,
     contentType: request.headers.get('content-type'),
     payloadKeys: Object.keys(payload),
+    hasInvoiceId: !!(payload['invoiceId'] ?? payload['invoiceID']),
+    hasCode: !!(payload['code']),
+    hasSecretHash: !!(payload['secret_hash']),
+    codeValue: payload['code'] ?? null,
+    reasonValue: payload['reason'] ?? null,
   });
 
   // Extract invoiceId (Halyk uses both casings)

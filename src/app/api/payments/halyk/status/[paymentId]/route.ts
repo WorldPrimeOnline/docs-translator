@@ -218,6 +218,26 @@ export async function GET(
           })
           .eq('id', paymentTx.id);
         currentStatus = mappedStatus;
+
+        // AUTH stuck warning: if a payment has been AUTH for >15min on the 1-step CHARGE flow,
+        // the Halyk test terminal is likely configured for 2-step (AUTH→CAPTURE) not 1-step (CHARGE).
+        // Operator action: check Halyk merchant portal terminal settings.
+        if (providerStatusName === 'AUTH') {
+          const paymentAgeMs = Date.now() - new Date(
+            (paymentTx as { created_at?: string | null }).created_at ?? 0,
+          ).getTime();
+          const AUTH_WARNING_THRESHOLD_MS = 15 * 60 * 1000;
+          if (paymentAgeMs > AUTH_WARNING_THRESHOLD_MS) {
+            console.warn('[halyk/status] PAYMENT_STUCK_AUTH: payment in AUTH for >15min', {
+              correlationId,
+              paymentId: paymentTx.id,
+              jobId: paymentTx.job_id,
+              invoiceId: paymentTx.provider_invoice_id,
+              ageMinutes: Math.round(paymentAgeMs / 60_000),
+              hypothesis: 'Terminal may be configured for 2-step AUTH→CAPTURE instead of 1-step CHARGE. Check Halyk merchant portal terminal settings.',
+            });
+          }
+        }
       }
     } catch (err) {
       const isHalyk = err instanceof HalykApiError;

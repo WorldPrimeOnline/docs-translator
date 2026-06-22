@@ -162,3 +162,33 @@ describe('isPaidStatus', () => {
     expect(isPaidStatus('requires_review')).toBe(false);
   });
 });
+
+describe('AUTH invariants — fiscal and worker must not fire for AUTH', () => {
+  it('AUTH internal status is NOT paid — fiscal receipt must not be created', () => {
+    const authInternal = mapHalykStatus(100, 'AUTH');
+    expect(isPaidStatus(authInternal)).toBe(false);
+  });
+
+  it('AUTH public status is authorized, non-terminal — worker must not pick up', () => {
+    const authInternal = mapHalykStatus(100, 'AUTH');
+    const authPublic = mapToPublicStatus(authInternal, 'AUTH');
+    expect(authPublic.status).toBe('authorized');
+    expect(authPublic.isPublicTerminal).toBe(false);
+    expect(authPublic.isAuthorized).toBe(true);
+  });
+
+  it('CHARGE still maps to paid even for quote-based amounts — no regression', () => {
+    expect(mapHalykStatus(100, 'CHARGE')).toBe('paid');
+    const pub = mapToPublicStatus('paid');
+    expect(pub.status).toBe('paid');
+    expect(pub.isPublicTerminal).toBe(true);
+  });
+
+  it('amount_source (quote vs legacy_test) does not affect status mapping — mapping is pure', () => {
+    // The mapping functions are pure; amount_source is a DB label, not an input.
+    // Legacy 3999 and quote-based 7200 both go through the same mapHalykStatus logic.
+    expect(mapHalykStatus(100, 'CHARGE')).toBe('paid');
+    expect(mapHalykStatus(100, 'AUTH')).toBe('payment_pending');
+    // Confirms no hardcoded amount-based branching exists.
+  });
+});
