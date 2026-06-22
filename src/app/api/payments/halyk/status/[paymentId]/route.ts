@@ -16,6 +16,7 @@ import { checkPaymentStatus, HalykApiError } from '@/lib/payments/halyk/client';
 import { getHalykConfig } from '@/lib/payments/halyk/config';
 import { mapHalykStatus, isPaidStatus, isTerminalStatus, mapToPublicStatus } from '@/lib/payments/halyk/status-map';
 import { ensureSaleFiscalReceiptForPaidPayment } from '@/lib/fiscal/service';
+import { notifyOperatorPaymentAlert } from '@/lib/telegram/client';
 import type { InternalPaymentStatus } from '@/lib/payments/halyk/types';
 import type { Database } from '@/types';
 
@@ -191,6 +192,17 @@ export async function GET(
               correlationId,
               paymentId: paymentTx.id,
               jobId: result.job_id,
+            });
+            void notifyOperatorPaymentAlert({
+              paymentId: paymentTx.id,
+              invoiceId: paymentTx.provider_invoice_id,
+              jobId: result.job_id ?? paymentTx.job_id,
+              quoteId: null,
+              amountKzt: paymentTx.amount,
+              currency: paymentTx.currency,
+              providerStatus: providerStatusName ?? null,
+              reason: 'DUPLICATE CHARGE — second successful charge detected via status polling for an already-paid job. Immediate manual refund review required.',
+              env: config.mode === 'test' ? 'staging/test' : 'production',
             });
           }
         }

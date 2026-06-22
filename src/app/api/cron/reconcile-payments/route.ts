@@ -14,6 +14,7 @@ import { checkPaymentStatus } from '@/lib/payments/halyk/client';
 import { mapHalykStatus, isPaidStatus, isTerminalStatus } from '@/lib/payments/halyk/status-map';
 import { getHalykConfig } from '@/lib/payments/halyk/config';
 import { ensureSaleFiscalReceiptForPaidPayment } from '@/lib/fiscal/service';
+import { notifyOperatorPaymentAlert } from '@/lib/telegram/client';
 
 const BATCH_LIMIT = 20;
 const MIN_AGE_MINUTES = 2;    // don't reconcile brand-new attempts
@@ -78,7 +79,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
       if (isPaidStatus(internalStatus)) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error: rpcError } = await (supabaseServer as any).rpc('finalize_halyk_payment', {
+        const { data: rpcResult, error: rpcError } = await (supabaseServer as any).rpc('finalize_halyk_payment', {
           p_invoice_id: tx.provider_invoice_id,
           p_transaction_id: transaction?.transactionId ?? null,
           p_provider_status: statusName ?? null,
@@ -98,6 +99,24 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
           errors++;
         } else {
           finalized++;
+
+          const rpcData = rpcResult as { duplicate_charge?: boolean; job_id?: string } | null;
+          if (rpcData?.duplicate_charge) {
+            console.error('[reconcile-payments] DUPLICATE CHARGE detected for tx:', tx.id,
+              'job:', rpcData.job_id);
+            void notifyOperatorPaymentAlert({
+              paymentId: tx.id,
+              invoiceId: tx.provider_invoice_id,
+              jobId: rpcData.job_id ?? null,
+              quoteId: null,
+              amountKzt: tx.amount,
+              currency: tx.currency,
+              providerStatus: statusName ?? null,
+              reason: 'DUPLICATE CHARGE — second successful charge detected via reconciliation cron for an already-paid job. Immediate manual refund review required.',
+              env: config.mode === 'test' ? 'staging/test' : 'production',
+            });
+          }
+
           // Ensure fiscal receipt row exists (awaited — safe in Vercel serverless)
           try {
             await ensureSaleFiscalReceiptForPaidPayment(tx.id);
@@ -119,12 +138,22 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       } else {
         stillPending++;
 
-        // If stuck in requires_review for too long, flag for operator
+        // If stuck in requires_review for >1 h, alert operator for manual investigation.
         const ageHours = (now.getTime() - new Date(tx.created_at).getTime()) / (1000 * 60 * 60);
         if (ageHours > 1 && internalStatus !== 'payment_pending') {
           console.warn('[reconcile-payments] long-pending requires_review tx:', tx.id,
             'age:', Math.round(ageHours), 'h');
-          // TODO: fire operator alert via existing Telegram channel
+          void notifyOperatorPaymentAlert({
+            paymentId: tx.id,
+            invoiceId: tx.provider_invoice_id,
+            jobId: null,
+            quoteId: null,
+            amountKzt: tx.amount,
+            currency: tx.currency,
+            providerStatus: statusName ?? null,
+            reason: `Payment stuck in requires_review for ${Math.round(ageHours)}h — manual Halyk portal investigation required.`,
+            env: config.mode === 'test' ? 'staging/test' : 'production',
+          });
         }
       }
     } catch (err) {

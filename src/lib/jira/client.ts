@@ -44,12 +44,6 @@ const TRANSLATION_TYPE_LABELS: Record<string, string> = {
 
 const FULFILLMENT_LABELS: Record<string, string> = { delivery: 'Курьер', pickup: 'Самовывоз' };
 
-function stableHash(s: string): number {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) { h = Math.imul(31, h) + s.charCodeAt(i); h |= 0; }
-  return Math.abs(h);
-}
-
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 
 export interface CreateIssueParams {
@@ -68,6 +62,7 @@ export interface CreateIssueParams {
   wpoUrl: string;
   createdAt?: string | null;
   customerComment?: string | null;
+  amountKzt?: number | null;
 }
 
 export interface JiraIssueResult {
@@ -124,9 +119,7 @@ function buildCustomFields(params: CreateIssueParams): Record<string, unknown> {
     if (params.deliveryAddress) fields[f.deliveryAddress] = params.deliveryAddress;
   }
 
-  // TODO: replace temporary Jira order price with final pricing engine result
-  fields[f.totalCost] = 5000 + (stableHash(params.jobId) % 10001);
-  // TODO: calculate translator, notary, delivery and operational internal costs
+  if (params.amountKzt != null && params.amountKzt > 0) fields[f.totalCost] = params.amountKzt;
   fields[f.internalCost] = 0;
 
   fields[f.paymentMethod] = { value: params.paymentSource === 'subscription' ? 'Подписка' : 'За документ' };

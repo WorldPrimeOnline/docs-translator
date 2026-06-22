@@ -19,6 +19,7 @@ import { mapHalykStatus, isPaidStatus } from '@/lib/payments/halyk/status-map';
 import { getHalykConfig } from '@/lib/payments/halyk/config';
 import { ensureSaleFiscalReceiptForPaidPayment } from '@/lib/fiscal/service';
 import { markQuotePaid } from '@/lib/pricing/service';
+import { notifyOperatorPaymentAlert } from '@/lib/telegram/client';
 
 const MAX_BODY_BYTES = 64 * 1024; // 64 KB
 
@@ -177,7 +178,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     statusResponse = await checkPaymentStatus(invoiceId);
   } catch (err) {
-    console.error('[halyk/callback] Halyk status check failed:', (err as Error).message);
+    const errMsg = (err as Error).message;
+    console.error('[halyk/callback] Halyk status check failed:', errMsg);
     // Save sanitised payload for later reconciliation
     await supabaseServer
       .from('payment_transactions')
@@ -188,6 +190,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         updated_at: new Date().toISOString(),
       })
       .eq('id', paymentTx.id);
+    void notifyOperatorPaymentAlert({
+      paymentId: paymentTx.id,
+      invoiceId,
+      jobId: paymentTx.job_id,
+      quoteId: paymentTx.quote_id,
+      amountKzt: paymentTx.amount,
+      currency: paymentTx.currency,
+      providerStatus: null,
+      reason: `Halyk status API unreachable — requires manual reconciliation. Error: ${errMsg.slice(0, 200)}`,
+      env: config.mode === 'test' ? 'staging/test' : 'production',
+    });
     // Return 200 to Halyk so they don't retry (we have reconciliation)
     return NextResponse.json({ ok: true });
   }
@@ -216,6 +229,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           updated_at: new Date().toISOString(),
         })
         .eq('id', paymentTx.id);
+      void notifyOperatorPaymentAlert({
+        paymentId: paymentTx.id,
+        invoiceId,
+        jobId: paymentTx.job_id,
+        quoteId: paymentTx.quote_id,
+        amountKzt: paymentTx.amount,
+        currency: paymentTx.currency,
+        providerStatus: statusName ?? null,
+        reason: `Terminal ID mismatch — expected ${config.terminalId ?? '(none)'}, got short=${transaction.terminal ?? '?'} uuid=${transaction.terminalID ?? '?'}`,
+        env: config.mode === 'test' ? 'staging/test' : 'production',
+      });
       return NextResponse.json({ ok: true });
     }
 
@@ -225,6 +249,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         .from('payment_transactions')
         .update({ status: 'requires_review', updated_at: new Date().toISOString() })
         .eq('id', paymentTx.id);
+      void notifyOperatorPaymentAlert({
+        paymentId: paymentTx.id,
+        invoiceId,
+        jobId: paymentTx.job_id,
+        quoteId: paymentTx.quote_id,
+        amountKzt: paymentTx.amount,
+        currency: transaction.currency,
+        providerStatus: statusName ?? null,
+        reason: `Currency mismatch — expected KZT, received ${transaction.currency}`,
+        env: config.mode === 'test' ? 'staging/test' : 'production',
+      });
       return NextResponse.json({ ok: true });
     }
 
@@ -238,6 +273,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         .from('payment_transactions')
         .update({ status: 'requires_review', updated_at: new Date().toISOString() })
         .eq('id', paymentTx.id);
+      void notifyOperatorPaymentAlert({
+        paymentId: paymentTx.id,
+        invoiceId,
+        jobId: paymentTx.job_id,
+        quoteId: paymentTx.quote_id,
+        amountKzt: storedAmount,
+        currency: paymentTx.currency,
+        providerStatus: statusName ?? null,
+        reason: `Amount mismatch — stored ${storedAmount} KZT, Halyk returned ${halykAmount} KZT`,
+        env: config.mode === 'test' ? 'staging/test' : 'production',
+      });
       return NextResponse.json({ ok: true });
     }
   }
@@ -279,7 +325,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (result?.duplicate_charge) {
       console.error('[halyk/callback] DUPLICATE CHARGE detected for job:', result.job_id,
         'payment:', paymentTx.id);
-      // TODO: send operator alert via Telegram/email
+      void notifyOperatorPaymentAlert({
+        paymentId: paymentTx.id,
+        invoiceId,
+        jobId: result.job_id ?? paymentTx.job_id,
+        quoteId: paymentTx.quote_id,
+        amountKzt: paymentTx.amount,
+        currency: paymentTx.currency,
+        providerStatus: statusName ?? null,
+        reason: 'DUPLICATE CHARGE — a second successful charge was received for an already-paid job. Immediate manual refund review required.',
+        env: config.mode === 'test' ? 'staging/test' : 'production',
+      });
     }
 
     if (result?.ok && !result.duplicate_charge && result.job_id) {
