@@ -286,7 +286,7 @@
       "phonePlaceholder": "+7 (___) ___-__-__",
       "address": "ELTIP BERIŞ SALGYSY",
       "addressPlaceholder": "Köçe, bina, öý",
-"applicantType": "ARZA BERIJI GÖRNÜŞI",
+      "applicantType": "ARZA BERIJI GÖRNÜŞI",
       "individual": "Fiziki şahs",
       "legalEntity": "Hukuk şahsy",
       "unknownApplicant": "Belli däl (operator seredýär)",
@@ -304,7 +304,8 @@
         "before_noon": "Şol gün 12:00-den öň (goşmaça töleg ýok)",
         "after_noon": "Şol gün 12:00-den soň (+50%)",
         "after_18": "18:00-den soň gijeki tassyklama (×2)",
-        "notaryCutoffPassed": "Notarial möhlet geçdi — baha güýçsüz. Täze baha almak üçin täzeden ýükläň."
+        "notaryCutoffPassed": "Notarial möhlet geçdi — baha güýçsüz. Täze baha almak üçin täzeden ýükläň.",
+        "standardHint": "Standard notarization is completed on the next business day for documents uploaded and paid after 12:00 Almaty time. If uploaded before 12:00, same-day completion may be possible subject to translator/notary availability."
       }
     },
     "inReview": "Seredilýär",
@@ -366,32 +367,36 @@
     "priceHintOfficial": "Official translation — from 5 500 ₸. Final price after upload.",
     "priceHintNotarized": "Notarized translation — from 11 000 ₸. Final price after upload.",
     "urgency": {
-    "label": "HOWLUKMAÇLYK",
-    "standard": "Standart",
-    "within_24h": "24 sagat içinde (+30%)",
-    "six_to_twelve_hours": "6–12 sagat (+60%)",
-    "two_to_four_hours": "2–4 sagat (+100%)",
-    "night_or_weekend": "Gije / dynç güni (+50%)"
-},
+      "label": "HOWLUKMAÇLYK",
+      "standard": "Standart",
+      "within_24h": "24 sagat içinde (+30%)",
+      "six_to_twelve_hours": "6–12 sagat (+60%)",
+      "two_to_four_hours": "2–4 sagat (+100%)",
+      "night_or_weekend": "Gije / dynç güni (+50%)"
+    },
     "scanQuality": {
-    "label": "SKANIŇ HILI",
-    "normal": "Adaty",
-    "poor_scan": "Erbet skan (+15%)",
-    "handwritten": "El ýazgysy (operator seredýär)"
-},
+      "label": "SKANIŇ HILI",
+      "normal": "Adaty",
+      "poor_scan": "Erbet skan (+15%)",
+      "handwritten": "El ýazgysy (operator seredýär)"
+    },
     "layoutComplexity": {
-    "label": "SAHYPA ÇYLŞYRYMLYLYK",
-    "standard": "Standart",
-    "tables": "Tablisalar bar (+1 000 ₸/sah.)",
-    "complex_tables": "Çylşyrymly tablisalar (+2 000 ₸/sah.)",
-    "complex_layout": "Çylşyrymly sahypa (+25%)",
-    "presentation": "Prezentasiýa (operator seredýär)"
-},
+      "label": "SAHYPA ÇYLŞYRYMLYLYK",
+      "standard": "Standart",
+      "tables": "Tablisalar bar (+1 000 ₸/sah.)",
+      "complex_tables": "Çylşyrymly tablisalar (+2 000 ₸/sah.)",
+      "complex_layout": "Çylşyrymly sahypa (+25%)",
+      "presentation": "Prezentasiýa (operator seredýär)"
+    },
     "visualMarks": {
-    "label": "MÖHÜRLER WE ŞTAMPLAR",
-    "normal": "Adaty",
-    "many_stamps": "Köp möhür/ştamp (+1 000 ₸)"
-}
+      "label": "MÖHÜRLER WE ŞTAMPLAR",
+      "normal": "Adaty",
+      "many_stamps": "Köp möhür/ştamp (+1 000 ₸)"
+    },
+    "customerComment": {
+      "label": "ORDER COMMENT",
+      "placeholder": "E.g.: specify formatting requirements, target authority, desired deadline, or other preferences."
+    }
   },
   "auth": {
     "login": "Giriş",

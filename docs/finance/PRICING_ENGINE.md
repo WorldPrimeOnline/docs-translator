@@ -110,26 +110,56 @@ finalAmount = Math.ceil(grossTotal / 100) * 100
 
 Always rounds up. Minimum floor: BASE_MINIMUM_KZT for the group/service level.
 
-## Required Pricing Inputs
+## Customer Pricing Inputs (from upload form)
 
-All inputs are optional at the TypeScript level but some **must** be set explicitly to get an accurate quote. Omitting them falls back to safe defaults that may under- or over-price the order.
+Only these fields are accepted from the public upload form. The backend schema rejects deprecated system-analysis fields if sent.
 
-| Field | Required | Default | Effect of omission |
-|---|---|---|---|
-| `sourceLanguage` | **Yes** | — | Must never be `'auto'` — unknown pair → `requiresOperatorReview = true`. Rejected at API level. |
-| `targetLanguage` | **Yes** | — | Same as above. |
-| `serviceLevel` | **Yes** | `'electronic'` | Determines base minimum and word/page rates. |
-| `urgencyLevel` | Recommended | `'standard'` | `standard` = no surcharge; higher values apply coefficient. |
-| `scanQuality` | Recommended | `'normal'` | `poor_scan` = +15%; `handwritten` = operator review. |
-| `layoutComplexity` | Recommended | `'standard'` | `tables`/`complex_tables` = fixed fee per page; `complex_layout` = +25% multiplier; `presentation` = operator review. |
-| `visualMarksComplexity` | Recommended | `'normal'` | `many_stamps` = +1 000 KZT flat fee to subtotal (not translation portion). |
-| `applicantType` | Notarization | `'individual'` | Drives notary MRP coefficient: individual=0.53, legal_entity=1.10, unknown=operator review. |
-| `deliveryZone` | Delivery | `almaty_standard` fallback | `almaty_standard`=2 500 KZT; other zones → operator review. |
-| `extraPaperCopies` | Optional | `0` | Notarization only: +500 KZT per copy. |
+| Field | Required | Notes |
+|---|---|---|
+| `sourceLanguage` | **Yes** | Must not be `'auto'`. Rejected at API level. |
+| `targetLanguage` | **Yes** | |
+| `serviceLevel` | **Yes** | `electronic` / `official_with_translator_signature_and_provider_stamp` / `notarization_through_partners` |
+| `documentType` | Optional | Drives document coefficient |
+| `notaryCity` | Notarization | City selector |
+| `fulfillmentMethod` | Notarization | `pickup` / `delivery` |
+| `deliveryZone` | Delivery only | `almaty_standard` = 2 500 KZT; other zones → operator review |
+| `applicantType` | Notarization | `individual` / `legal_entity` / `unknown` → operator review |
+| `notaryUrgencyLevel` | Notarization | `standard` / `same_day` (Almaty cutoff rules apply) |
+| `customerComment` | Optional | Free text, max 2 000 chars; stored on `jobs.customer_comment`; included in Jira description |
+
+## System-Derived Pricing Signals (not from upload form)
+
+These are determined after document analysis. Clients do not set them. They default to conservative values until AI/OCR analysis or operator override provides actual values.
+
+| Field | Default | Source |
+|---|---|---|
+| `urgencyLevel` | `standard` | Hardcoded — no translation urgency surcharge in current product |
+| `scanQuality` | `normal` | OCR/AI analysis (future: `poor_scan` = +15%, `handwritten` = operator review) |
+| `layoutComplexity` | `standard` | OCR/AI analysis (future: `tables`/`complex_tables` = per-page fee, `complex_layout` = +25%, `presentation` = review) |
+| `visualMarksComplexity` | `normal` | Page-vision analysis (future: `many_stamps` = +1 000 KZT to subtotal) |
+| `extraPaperCopies` | `0` | Operator-only until notary confirms |
+| `sourceWordCount` | From OCR | Determined after OCR completes |
+| `physicalPageCount` | `1` (conservative) | Determined after OCR |
+
+### Why scan quality, layout, and stamps are not customer inputs
+
+Clients cannot objectively self-report OCR difficulty. A client describing a poor scan as "normal" would result in systematic underpricing. These signals must come from AI/OCR analysis or operator override, not self-assessment.
+
+### Why extra paper copies is operator-only
+
+The count and cost of notarial copies must be confirmed by the notary partner before the customer is billed. Exposing this to the customer before confirmation creates pricing discrepancies.
+
+### Why urgency surcharge applies only to notary, not translation
+
+For electronic and official translations, WPO currently operates on a standard turnaround. Client-controlled urgency pricing requires staffing guarantees not yet in place. Notary urgency (`notaryUrgencyLevel`) is gated by Almaty time windows because notary offices have hard physical cutoff hours.
 
 ### Why `sourceLanguage='auto'` is forbidden
 
-The language pair drives `BASE_MINIMUM_KZT`, `EXTRA_WORD_RATE_KZT`, and `EXTRA_WORD_RATE_KZT` lookups. If `'auto'` is passed, `resolveLanguageGroup` cannot find a matching group and returns `requiresReview: true`, making the order unquotable. The upload-card API route rejects `sourceLang=auto` at the schema level. The frontend must always show a mandatory source-language selector.
+The language pair drives `BASE_MINIMUM_KZT` and rate lookups. If `'auto'` is passed, `resolveLanguageGroup` cannot find a matching group and returns `requiresReview: true`. The upload-card API route rejects `sourceLang=auto` at the schema level.
+
+### Customer comment handling
+
+The optional `customerComment` field (max 2 000 chars) is stored as `jobs.customer_comment` and included in the Jira issue description. It is never used in pricing and never sent to AI models.
 
 ## Notary Urgency and Almaty Cutoff Rules
 

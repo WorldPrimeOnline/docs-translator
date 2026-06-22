@@ -67,6 +67,7 @@ export interface CreateIssueParams {
   driveUrl?: string | null;
   wpoUrl: string;
   createdAt?: string | null;
+  customerComment?: string | null;
 }
 
 export interface JiraIssueResult {
@@ -104,6 +105,7 @@ function buildDescription(params: CreateIssueParams): object {
   if (params.driveUrl) lines.push(`Drive: ${params.driveUrl}`);
   lines.push(`WPO order: ${params.wpoUrl}`);
   if (params.createdAt) lines.push(`Created: ${params.createdAt}`);
+  lines.push(`Комментарий клиента: ${params.customerComment?.trim() || 'не указан'}`);
   return {
     type: 'doc', version: 1,
     content: lines.map((text) => ({ type: 'paragraph', content: [{ type: 'text', text }] })),

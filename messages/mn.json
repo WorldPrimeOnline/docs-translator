@@ -286,7 +286,7 @@
       "phonePlaceholder": "+7 (___) ___-__-__",
       "address": "ХҮРГЭЛТИЙН ХАЯГ",
       "addressPlaceholder": "Гудамж, байр, тоот",
-"applicantType": "ӨРГӨДӨЛ ГАРГАГЧИЙН ТӨРӨЛ",
+      "applicantType": "ӨРГӨДӨЛ ГАРГАГЧИЙН ТӨРӨЛ",
       "individual": "Хувь хүн",
       "legalEntity": "Хуулийн этгээд",
       "unknownApplicant": "Тодорхойгүй (оператор хянана)",
@@ -304,7 +304,8 @@
         "before_noon": "Өдөр 12:00-с өмнө (нэмэгдэлгүй)",
         "after_noon": "Өдөр 12:00-с хойш (+50%)",
         "after_18": "18:00-с хойш шөнийн нотариатчилал (×2)",
-        "notaryCutoffPassed": "Нотариатын хугацаа дууссан — үнийн санал хүчингүй. Шинэ санал авахын тулд дахин байршуулна уу."
+        "notaryCutoffPassed": "Нотариатын хугацаа дууссан — үнийн санал хүчингүй. Шинэ санал авахын тулд дахин байршуулна уу.",
+        "standardHint": "Standard notarization is completed on the next business day for documents uploaded and paid after 12:00 Almaty time. If uploaded before 12:00, same-day completion may be possible subject to translator/notary availability."
       }
     },
     "inReview": "Хянагдаж байна",
@@ -366,32 +367,36 @@
     "priceHintOfficial": "Official translation — from 5 500 ₸. Final price after upload.",
     "priceHintNotarized": "Notarized translation — from 11 000 ₸. Final price after upload.",
     "urgency": {
-    "label": "ЯАРАЛТАЙ",
-    "standard": "Энгийн",
-    "within_24h": "24 цагийн дотор (+30%)",
-    "six_to_twelve_hours": "6–12 цаг (+60%)",
-    "two_to_four_hours": "2–4 цаг (+100%)",
-    "night_or_weekend": "Шөнө / амралтын өдөр (+50%)"
-},
+      "label": "ЯАРАЛТАЙ",
+      "standard": "Энгийн",
+      "within_24h": "24 цагийн дотор (+30%)",
+      "six_to_twelve_hours": "6–12 цаг (+60%)",
+      "two_to_four_hours": "2–4 цаг (+100%)",
+      "night_or_weekend": "Шөнө / амралтын өдөр (+50%)"
+    },
     "scanQuality": {
-    "label": "СКАН ЧАНАР",
-    "normal": "Энгийн",
-    "poor_scan": "Муу скан (+15%)",
-    "handwritten": "Гар бичмэл (оператор хянана)"
-},
+      "label": "СКАН ЧАНАР",
+      "normal": "Энгийн",
+      "poor_scan": "Муу скан (+15%)",
+      "handwritten": "Гар бичмэл (оператор хянана)"
+    },
     "layoutComplexity": {
-    "label": "ЗАГВАРЫН НАРИЙН ТӨВӨГТЭЙ БАЙДАЛ",
-    "standard": "Энгийн",
-    "tables": "Хүснэгт агуулсан (+1 000 ₸/хуудас)",
-    "complex_tables": "Нарийн хүснэгт (+2 000 ₸/хуудас)",
-    "complex_layout": "Нарийн загвар (+25%)",
-    "presentation": "Танилцуулга (оператор хянана)"
-},
+      "label": "ЗАГВАРЫН НАРИЙН ТӨВӨГТЭЙ БАЙДАЛ",
+      "standard": "Энгийн",
+      "tables": "Хүснэгт агуулсан (+1 000 ₸/хуудас)",
+      "complex_tables": "Нарийн хүснэгт (+2 000 ₸/хуудас)",
+      "complex_layout": "Нарийн загвар (+25%)",
+      "presentation": "Танилцуулга (оператор хянана)"
+    },
     "visualMarks": {
-    "label": "ТАМГА БА ТЭМДЭГ",
-    "normal": "Энгийн",
-    "many_stamps": "Олон тамга (+1 000 ₸)"
-}
+      "label": "ТАМГА БА ТЭМДЭГ",
+      "normal": "Энгийн",
+      "many_stamps": "Олон тамга (+1 000 ₸)"
+    },
+    "customerComment": {
+      "label": "ORDER COMMENT",
+      "placeholder": "E.g.: specify formatting requirements, target authority, desired deadline, or other preferences."
+    }
   },
   "auth": {
     "login": "Нэвтрэх",

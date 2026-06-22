@@ -27,13 +27,6 @@ const VALID_SERVICE_LEVELS = [
   'notarization_through_partners',
 ] as const;
 
-const VALID_URGENCY_LEVELS = [
-  'standard', 'within_24h', 'six_to_twelve_hours', 'two_to_four_hours', 'night_or_weekend',
-] as const;
-
-const VALID_SCAN_QUALITY = ['normal', 'poor_scan', 'handwritten'] as const;
-const VALID_LAYOUT_COMPLEXITY = ['standard', 'tables', 'complex_tables', 'complex_layout', 'presentation'] as const;
-const VALID_VISUAL_MARKS = ['normal', 'many_stamps'] as const;
 const VALID_APPLICANT_TYPES = ['individual', 'legal_entity', 'unknown'] as const;
 const VALID_DELIVERY_ZONES = ['almaty_standard', 'remote_area', 'other_city', 'urgent_delivery'] as const;
 const VALID_NOTARY_URGENCY = ['standard', 'same_day'] as const;
@@ -44,18 +37,14 @@ const UploadFormSchema = z
     targetLang: z.string().min(1),
     documentType: z.string().min(1),
     serviceLevel: z.enum(VALID_SERVICE_LEVELS).default('electronic'),
-    urgencyLevel: z.enum(VALID_URGENCY_LEVELS).default('standard'),
-    scanQuality: z.enum(VALID_SCAN_QUALITY).default('normal'),
-    layoutComplexity: z.enum(VALID_LAYOUT_COMPLEXITY).default('standard'),
-    visualMarksComplexity: z.enum(VALID_VISUAL_MARKS).default('normal'),
     applicantType: z.enum(VALID_APPLICANT_TYPES).default('individual'),
     notaryUrgencyLevel: z.enum(VALID_NOTARY_URGENCY).default('standard'),
     deliveryZone: z.enum(VALID_DELIVERY_ZONES).optional(),
-    extraPaperCopies: z.coerce.number().int().min(0).max(20).default(0),
     notaryCity: z.string().optional(),
     fulfillmentMethod: z.enum(['pickup', 'delivery']).optional(),
     deliveryPhone: z.string().max(30).optional(),
     deliveryAddress: z.string().max(500).optional(),
+    customerComment: z.string().max(2000).optional().transform((v) => v?.trim() || undefined),
   })
   .superRefine((data, ctx) => {
     if (data.serviceLevel === 'notarization_through_partners') {
@@ -182,29 +171,31 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
     targetLang: formData.get('targetLang'),
     documentType: formData.get('documentType'),
     serviceLevel: formData.get('serviceLevel') ?? 'electronic',
-    urgencyLevel: formData.get('urgencyLevel') ?? 'standard',
-    scanQuality: formData.get('scanQuality') ?? 'normal',
-    layoutComplexity: formData.get('layoutComplexity') ?? 'standard',
-    visualMarksComplexity: formData.get('visualMarksComplexity') ?? 'normal',
     applicantType: formData.get('applicantType') ?? 'individual',
     notaryUrgencyLevel: formData.get('notaryUrgencyLevel') ?? 'standard',
     deliveryZone: formData.get('deliveryZone') ?? undefined,
-    extraPaperCopies: formData.get('extraPaperCopies') ?? 0,
     notaryCity: formData.get('notaryCity') ?? undefined,
     fulfillmentMethod: formData.get('fulfillmentMethod') ?? undefined,
     deliveryPhone: formData.get('deliveryPhone') ?? undefined,
     deliveryAddress: formData.get('deliveryAddress') ?? undefined,
+    customerComment: (formData.get('customerComment') as string | null) ?? undefined,
   });
 
   if (!parsed.success) {
     return NextResponse.json({ error: 'Validation failed', details: parsed.error.flatten() }, { status: 400 });
   }
 
+  // Warn if deprecated system-analysis fields are sent by old client (ignored)
+  if (formData.get('scanQuality') || formData.get('layoutComplexity') || formData.get('urgencyLevel')) {
+    console.warn('[upload-card] deprecated pricing fields received from client, ignoring', {
+      fields: ['scanQuality', 'layoutComplexity', 'urgencyLevel', 'visualMarksComplexity', 'extraPaperCopies'].filter((f) => formData.get(f)),
+    });
+  }
+
   const {
     sourceLang, targetLang, documentType, serviceLevel,
-    urgencyLevel, scanQuality, layoutComplexity, visualMarksComplexity,
-    applicantType, notaryUrgencyLevel, deliveryZone, extraPaperCopies,
-    notaryCity, fulfillmentMethod, deliveryPhone, deliveryAddress,
+    applicantType, notaryUrgencyLevel, deliveryZone,
+    notaryCity, fulfillmentMethod, deliveryPhone, deliveryAddress, customerComment,
   } = parsed.data;
   const { notarized } = deriveBackcompatBooleans(serviceLevel as ServiceLevel);
 
@@ -285,14 +276,15 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
     serviceLevel: serviceLevel as ServiceLevel,
     documentType,
     physicalPageCount: 1, // conservative default; OCR hasn't run yet
-    urgencyLevel,
-    scanQuality,
-    layoutComplexity,
-    visualMarksComplexity,
+    // System-derived defaults — not from customer input
+    urgencyLevel: 'standard' as const,
+    scanQuality: 'normal' as const,
+    layoutComplexity: 'standard' as const,
+    visualMarksComplexity: 'normal' as const,
+    extraPaperCopies: 0,
     applicantType,
     notaryUrgencyLevel: notaryUrgencyLevel as 'standard' | 'same_day',
     deliveryZone: deliveryZone as 'almaty_standard' | 'remote_area' | 'other_city' | 'urgent_delivery' | undefined,
-    extraPaperCopies,
     fulfillmentMethod: fulfillmentMethod as 'pickup' | 'delivery' | undefined,
     deliveryRequired: fulfillmentMethod === 'delivery',
     salesChannel: 'direct' as const,
@@ -310,22 +302,25 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
   const finalPriceKzt = Math.round(pricingResult.amountKzt);
 
   // Create job with dynamic price
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const jobInsertPayload: any = {
+    document_id: doc.id,
+    status: 'payment_pending',
+    progress_percent: 0,
+    priority: 0,
+    payment_source: 'card_payment',
+    notarized,
+    service_level: serviceLevel,
+    notary_city: notaryCity ?? null,
+    fulfillment_method: fulfillmentMethod ?? null,
+    delivery_phone: deliveryPhone ?? null,
+    delivery_address: deliveryAddress ?? null,
+    price_kzt: finalPriceKzt,
+    customer_comment: customerComment ?? null,
+  };
   const { data: job, error: jobError } = await supabaseServer
     .from('jobs')
-    .insert({
-      document_id: doc.id,
-      status: 'payment_pending',
-      progress_percent: 0,
-      priority: 0,
-      payment_source: 'card_payment',
-      notarized,
-      service_level: serviceLevel,
-      notary_city: notaryCity ?? null,
-      fulfillment_method: fulfillmentMethod ?? null,
-      delivery_phone: deliveryPhone ?? null,
-      delivery_address: deliveryAddress ?? null,
-      price_kzt: finalPriceKzt,
-    })
+    .insert(jobInsertPayload)
     .select()
     .single();
 

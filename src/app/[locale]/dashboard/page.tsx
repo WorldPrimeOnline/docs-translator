@@ -450,14 +450,10 @@ export default function DashboardPage() {
   const [documentType, setDocumentType] = useState('other');
   const [outputFormat, setOutputFormat] = useState<'html' | 'pdf' | 'docx'>('pdf');
   const [serviceLevel, setServiceLevel] = useState<ServiceLevel>('electronic');
-  const [urgencyLevel, setUrgencyLevel] = useState('standard');
-  const [scanQuality, setScanQuality] = useState('normal');
-  const [layoutComplexity, setLayoutComplexity] = useState('standard');
-  const [visualMarksComplexity, setVisualMarksComplexity] = useState('normal');
   const [applicantType, setApplicantType] = useState('individual');
   const [notaryUrgencyLevel, setNotaryUrgencyLevel] = useState<'standard' | 'same_day'>('standard');
-  const [extraPaperCopies, setExtraPaperCopies] = useState(0);
   const [notaryCity, setNotaryCity] = useState('');
+  const [customerComment, setCustomerComment] = useState('');
   const [fulfillmentMethod, setFulfillmentMethod] = useState<FulfillmentMethod | ''>('');
   const [deliveryPhone, setDeliveryPhone] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
@@ -680,7 +676,7 @@ export default function DashboardPage() {
     setServiceLevel(newLevel);
     if (newLevel !== 'notarization_through_partners') {
       setNotaryCity(''); setFulfillmentMethod(''); setDeliveryPhone(''); setDeliveryAddress('');
-      setApplicantType('individual'); setNotaryUrgencyLevel('standard'); setExtraPaperCopies(0);
+      setApplicantType('individual'); setNotaryUrgencyLevel('standard');
     }
   };
 
@@ -725,18 +721,14 @@ export default function DashboardPage() {
     form.append('targetLang', targetLang);
     form.append('documentType', `${documentType}|${outputFormat}`);
     form.append('serviceLevel', serviceLevel);
-    form.append('urgencyLevel', urgencyLevel);
-    form.append('scanQuality', scanQuality);
-    form.append('layoutComplexity', layoutComplexity);
-    form.append('visualMarksComplexity', visualMarksComplexity);
     if (isNotarization) {
       form.append('applicantType', applicantType);
       form.append('notaryUrgencyLevel', notaryUrgencyLevel);
-      form.append('extraPaperCopies', String(extraPaperCopies));
       form.append('notaryCity', notaryCity);
       if (fulfillmentMethod) form.append('fulfillmentMethod', fulfillmentMethod);
       if (isDelivery) { form.append('deliveryPhone', deliveryPhone); form.append('deliveryAddress', deliveryAddress); }
     }
+    if (customerComment.trim()) form.append('customerComment', customerComment.trim());
 
     const res = await fetch('/api/documents/upload-card', { method: 'POST', body: form });
     let data: { jobId?: string; documentId?: string; error?: string; priceKzt?: number; quoteId?: string; requiresOperatorReview?: boolean; currency?: string } = {};
@@ -850,41 +842,6 @@ export default function DashboardPage() {
                 <option value="docx">{t('formatDocx')}</option>
               </select>
             </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('urgency.label')}</label>
-              <select value={urgencyLevel} onChange={(e) => setUrgencyLevel(e.target.value)} className={selectClass}>
-                <option value="standard">{t('urgency.standard')}</option>
-                <option value="within_24h">{t('urgency.within_24h')}</option>
-                <option value="six_to_twelve_hours">{t('urgency.six_to_twelve_hours')}</option>
-                <option value="two_to_four_hours">{t('urgency.two_to_four_hours')}</option>
-                <option value="night_or_weekend">{t('urgency.night_or_weekend')}</option>
-              </select>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('scanQuality.label')}</label>
-              <select value={scanQuality} onChange={(e) => setScanQuality(e.target.value)} className={selectClass}>
-                <option value="normal">{t('scanQuality.normal')}</option>
-                <option value="poor_scan">{t('scanQuality.poor_scan')}</option>
-                <option value="handwritten">{t('scanQuality.handwritten')}</option>
-              </select>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('layoutComplexity.label')}</label>
-              <select value={layoutComplexity} onChange={(e) => setLayoutComplexity(e.target.value)} className={selectClass}>
-                <option value="standard">{t('layoutComplexity.standard')}</option>
-                <option value="tables">{t('layoutComplexity.tables')}</option>
-                <option value="complex_tables">{t('layoutComplexity.complex_tables')}</option>
-                <option value="complex_layout">{t('layoutComplexity.complex_layout')}</option>
-                <option value="presentation">{t('layoutComplexity.presentation')}</option>
-              </select>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('visualMarks.label')}</label>
-              <select value={visualMarksComplexity} onChange={(e) => setVisualMarksComplexity(e.target.value)} className={selectClass}>
-                <option value="normal">{t('visualMarks.normal')}</option>
-                <option value="many_stamps">{t('visualMarks.many_stamps')}</option>
-              </select>
-            </div>
           </div>
 
           {/* Service level */}
@@ -943,10 +900,6 @@ export default function DashboardPage() {
                 </select>
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('notary.extraCopies')}</label>
-                <input type="number" min={0} max={20} value={extraPaperCopies} onChange={(e) => setExtraPaperCopies(Math.max(0, parseInt(e.target.value, 10) || 0))} className={`${inputClass} w-24`} />
-              </div>
-              <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('notary.urgencyLevel')}</label>
                 <div className="flex flex-col gap-2">
                   {(['standard', 'same_day'] as const).map((level) => (
@@ -961,6 +914,9 @@ export default function DashboardPage() {
                       />
                       <div>
                         <p className="text-sm font-medium text-foreground">{t(`notary.urgency.${level}`)}</p>
+                        {level === 'standard' && (
+                          <p className="text-xs text-muted-foreground mt-0.5">{t('notary.urgency.standardHint')}</p>
+                        )}
                         {level === 'same_day' && (
                           <p className="text-xs text-muted-foreground mt-0.5">{t('notary.urgency.sameDayHint')}</p>
                         )}
@@ -987,6 +943,26 @@ export default function DashboardPage() {
           ) : termsAccepted === true ? (
             <p className="text-xs text-muted-foreground/60">✓ {tLegal('termsAccepted')}</p>
           ) : null}
+
+          {/* Customer comment */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              {t('customerComment.label')}
+            </label>
+            <textarea
+              value={customerComment}
+              onChange={(e) => setCustomerComment(e.target.value.slice(0, 2000))}
+              placeholder={t('customerComment.placeholder')}
+              rows={3}
+              maxLength={2000}
+              className={`${inputClass} resize-none`}
+            />
+            {customerComment.length > 1800 && (
+              <p className="text-xs text-muted-foreground text-right">
+                {customerComment.length}/2000
+              </p>
+            )}
+          </div>
 
           <div className="rounded-md border border-white/10 bg-white/[0.02] px-4 py-3 text-xs text-muted-foreground">
             {serviceLevel === 'electronic' && t('priceHintElectronic')}

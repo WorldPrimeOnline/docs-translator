@@ -103,6 +103,8 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
         paymentSource: jobRow?.payment_source ?? null,
         customerId: doc.user_id,
         sourceFileKey: doc.file_key,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        customerComment: (jobRow as any)?.customer_comment ?? null,
       });
     } catch (initErr) {
       const initMsg = initErr instanceof Error ? initErr.message : String(initErr);

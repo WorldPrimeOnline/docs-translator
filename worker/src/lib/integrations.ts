@@ -78,6 +78,7 @@ async function createJiraIssue(params: {
   driveUrl?: string | null;
   wpoUrl: string;
   createdAt?: string;
+  customerComment?: string | null;
 }): Promise<{ issueKey: string; issueId: string; issueUrl: string } | null> {
   const auth = getJiraAuth();
   if (!auth) {
@@ -98,6 +99,7 @@ async function createJiraIssue(params: {
     params.driveUrl ? `Drive: ${params.driveUrl}` : null,
     `WPO order: ${params.wpoUrl}`,
     params.createdAt ? `Created: ${params.createdAt}` : null,
+    `Комментарий клиента: ${params.customerComment?.trim() || 'не указан'}`,
   ].filter((x): x is string => x !== null);
 
   const customFields = buildJiraIssueFields({
@@ -212,6 +214,8 @@ export async function initializeOrderIntegrations(params: {
   customerId?: string | null;
   /** R2 key of the source PDF — uploaded to Drive 01_SOURCE if provided */
   sourceFileKey?: string | null;
+  /** Optional order comment from the customer — included in Jira description */
+  customerComment?: string | null;
 }): Promise<InitResult> {
   const tag = `[worker-integration:${params.jobId.slice(0, 8)}]`;
   console.log(`${tag} initializeOrderIntegrations — ${params.serviceLevel}`);
@@ -320,6 +324,7 @@ export async function initializeOrderIntegrations(params: {
           driveUrl,
           wpoUrl: `${siteUrl}/dashboard`,
           createdAt: new Date().toISOString(),
+          customerComment: params.customerComment ?? null,
         });
 
         if (issue) {

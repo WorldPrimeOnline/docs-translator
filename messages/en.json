@@ -284,8 +284,13 @@
         "before_noon": "Same-day before 12:00 (no surcharge)",
         "after_noon": "Same-day after 12:00 (+50%)",
         "after_18": "Night notarization after 18:00 (×2)",
-        "notaryCutoffPassed": "This quote expired because the notary cutoff time has passed. Please recalculate."
+        "notaryCutoffPassed": "This quote expired because the notary cutoff time has passed. Please recalculate.",
+        "standardHint": "Standard notarization is completed on the next business day for documents uploaded and paid after 12:00 Almaty time. If uploaded before 12:00, same-day completion may be possible subject to translator/notary availability."
       }
+    },
+    "customerComment": {
+      "label": "ORDER COMMENT",
+      "placeholder": "E.g.: specify formatting requirements, target authority, desired deadline, or other preferences."
     },
     "status": {
       "paymentPending": "Awaiting payment",

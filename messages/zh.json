@@ -286,7 +286,7 @@
       "phonePlaceholder": "+7 (___) ___-__-__",
       "address": "送达地址",
       "addressPlaceholder": "街道、楼号、房间号",
-"applicantType": "申请人类型",
+      "applicantType": "申请人类型",
       "individual": "个人",
       "legalEntity": "法人",
       "unknownApplicant": "未知 (运营商审核)",
@@ -304,7 +304,8 @@
         "before_noon": "当日12:00前（无附加费）",
         "after_noon": "当日12:00后（+50%）",
         "after_18": "18:00后夜间办理（×2）",
-        "notaryCutoffPassed": "公证截止时间已过，报价无效。请重新上传以获取新报价。"
+        "notaryCutoffPassed": "公证截止时间已过，报价无效。请重新上传以获取新报价。",
+        "standardHint": "Standard notarization is completed on the next business day for documents uploaded and paid after 12:00 Almaty time. If uploaded before 12:00, same-day completion may be possible subject to translator/notary availability."
       }
     },
     "inReview": "审核中",
@@ -366,32 +367,36 @@
     "priceHintOfficial": "Official translation — from 5 500 ₸. Final price after upload.",
     "priceHintNotarized": "Notarized translation — from 11 000 ₸. Final price after upload.",
     "urgency": {
-    "label": "紧急程度",
-    "standard": "标准",
-    "within_24h": "24小时内 (+30%)",
-    "six_to_twelve_hours": "6–12小时 (+60%)",
-    "two_to_four_hours": "2–4小时 (+100%)",
-    "night_or_weekend": "夜间/周末 (+50%)"
-},
+      "label": "紧急程度",
+      "standard": "标准",
+      "within_24h": "24小时内 (+30%)",
+      "six_to_twelve_hours": "6–12小时 (+60%)",
+      "two_to_four_hours": "2–4小时 (+100%)",
+      "night_or_weekend": "夜间/周末 (+50%)"
+    },
     "scanQuality": {
-    "label": "扫描质量",
-    "normal": "正常",
-    "poor_scan": "扫描质量差 (+15%)",
-    "handwritten": "手写 (需人工审核)"
-},
+      "label": "扫描质量",
+      "normal": "正常",
+      "poor_scan": "扫描质量差 (+15%)",
+      "handwritten": "手写 (需人工审核)"
+    },
     "layoutComplexity": {
-    "label": "版面复杂度",
-    "standard": "标准",
-    "tables": "含表格 (+1 000 ₸/页)",
-    "complex_tables": "复杂表格 (+2 000 ₸/页)",
-    "complex_layout": "复杂版面 (+25%)",
-    "presentation": "演示文稿 (需人工审核)"
-},
+      "label": "版面复杂度",
+      "standard": "标准",
+      "tables": "含表格 (+1 000 ₸/页)",
+      "complex_tables": "复杂表格 (+2 000 ₸/页)",
+      "complex_layout": "复杂版面 (+25%)",
+      "presentation": "演示文稿 (需人工审核)"
+    },
     "visualMarks": {
-    "label": "印章与封印",
-    "normal": "正常",
-    "many_stamps": "多处印章 (+1 000 ₸)"
-}
+      "label": "印章与封印",
+      "normal": "正常",
+      "many_stamps": "多处印章 (+1 000 ₸)"
+    },
+    "customerComment": {
+      "label": "ORDER COMMENT",
+      "placeholder": "E.g.: specify formatting requirements, target authority, desired deadline, or other preferences."
+    }
   },
   "auth": {
     "login": "登录",
