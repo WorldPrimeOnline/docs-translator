@@ -61,8 +61,47 @@ export async function GET(): Promise<NextResponse> {
     }
   }
 
+  // Fetch latest price quote per job
+  type QuoteRow = {
+    id: string;
+    job_id: string;
+    status: string;
+    amount_kzt: number;
+    currency: string;
+    expires_at: string;
+    pricing_context_json: Record<string, unknown>;
+    requiresReview: boolean;
+  };
+  const latestQuoteByJob = new Map<string, QuoteRow>();
+  const jobIds = Array.from(latestJobByDoc.values()).map((j) => j.id).filter(Boolean);
+  if (jobIds.length > 0) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: quotes } = await (supabaseServer as any)
+      .from('price_quotes')
+      .select('id, job_id, status, amount_kzt, currency, expires_at, pricing_context_json')
+      .in('job_id', jobIds)
+      .in('status', ['quoted', 'payment_pending', 'requires_operator_review', 'paid', 'expired'])
+      .order('created_at', { ascending: false });
+
+    if (quotes) {
+      for (const q of quotes as QuoteRow[]) {
+        if (!latestQuoteByJob.has(q.job_id)) {
+          latestQuoteByJob.set(q.job_id, {
+            ...q,
+            amount_kzt: Number(q.amount_kzt),
+            currency: q.currency ?? 'KZT',
+            requiresReview:
+              q.status === 'requires_operator_review' ||
+              (q.pricing_context_json as Record<string, unknown>)?.requiresOperatorReview === true,
+          });
+        }
+      }
+    }
+  }
+
   const result = docs.map((doc) => {
     const job = latestJobByDoc.get(doc.id) ?? null;
+    const quote = job ? (latestQuoteByJob.get(job.id) ?? null) : null;
 
     const state = job
       ? getCustomerOrderState({
@@ -96,6 +135,12 @@ export async function GET(): Promise<NextResponse> {
       isTerminal: state?.isTerminal ?? true,
       stages: state?.stages ?? [],
       priceKzt: job?.price_kzt ?? null,
+      latestQuoteId: quote?.id ?? null,
+      quoteStatus: quote?.status ?? null,
+      quoteAmountKzt: quote?.amount_kzt ?? null,
+      quoteCurrency: quote?.currency ?? null,
+      quoteExpiresAt: quote?.expires_at ?? null,
+      quoteRequiresOperatorReview: quote?.requiresReview ?? false,
     };
   });
 

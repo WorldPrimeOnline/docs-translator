@@ -333,7 +333,21 @@
       "unsupportedFileType": "Колдоо көрсөтүлбөгөн файл түрү: {files}",
       "pleaseSelectFile": "Жок дегенде бир файл тандаңыз",
       "failedTermsAcceptance": "Шарттарды кабыл алууну сактоо ийгиликсиз аяктады."
-    }
+    },
+    "uploadDocument": "Upload document",
+    "uploadedQuoteReady": "Document uploaded — price: {price} KZT. Confirm payment below.",
+    "uploadedRequiresReview": "Document uploaded. The price will be confirmed by our operator.",
+    "quoteReady": "Price confirmed",
+    "quoteValidUntil": "Valid until {date}",
+    "quoteRequiresReview": "Price is being confirmed by an operator. We will notify you.",
+    "quoteExpired": "Quote expired",
+    "quoteRecalculate": "Recalculate",
+    "quoteCalculating": "Calculating price...",
+    "quoteRecalculating": "Refreshing order status...",
+    "priceHint": "The exact price is calculated after document upload and analysis.",
+    "priceHintElectronic": "Electronic translation — from 2 500 ₸. Final price after upload.",
+    "priceHintOfficial": "Official translation — from 5 500 ₸. Final price after upload.",
+    "priceHintNotarized": "Notarized translation — from 11 000 ₸. Final price after upload."
   },
   "auth": {
     "login": "Кирүү",
@@ -949,6 +963,11 @@
     "processingTitle": "Payment is processing",
     "processingDesc": "Please check your dashboard in a few minutes.",
     "goToDashboard": "Go to Dashboard",
-    "invalidLink": "Invalid payment link."
+    "invalidLink": "Invalid payment link.",
+    "QUOTE_EXPIRED": "The price quote has expired. Please refresh the page.",
+    "QUOTE_ALREADY_PAID": "This order is already paid.",
+    "QUOTE_JOB_MISMATCH": "Invalid quote for this order.",
+    "QUOTE_NOT_FOUND": "Quote not found. Please refresh.",
+    "PRICING_NOT_CONFIGURED": "Pricing is not configured. Please contact support."
   }
 }

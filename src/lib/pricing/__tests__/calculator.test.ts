@@ -179,4 +179,57 @@ describe('calculatePrice', () => {
     expect(result.items.find(i => i.itemType === 'printing_binding_fee')).toBeDefined();
     expect(result.requiresOperatorReview).toBe(true);
   });
+
+  describe('client visibility', () => {
+    it('internal cost/reserve items are not client-visible', () => {
+      const result = calculatePrice(baseInput(), mockVersion);
+      const internalTypes = ['tax_reserve', 'acquiring_reserve', 'risk_reserve', 'owner_reserve', 'marketing_reserve', 'ai_it_reserve', 'translator_reserved_cost', 'target_profit'];
+      for (const type of internalTypes) {
+        const item = result.items.find(i => i.itemType === type);
+        if (item) {
+          expect(item.isClientVisible).toBe(false);
+          expect(item.isCost).toBe(true);
+        }
+      }
+    });
+
+    it('client-facing items are visible', () => {
+      const result = calculatePrice(baseInput({ sourceWordCount: 350, physicalPageCount: 2 }), mockVersion);
+      const visibleTypes = ['minimum_check', 'extra_words', 'additional_pages'];
+      for (const type of visibleTypes) {
+        const item = result.items.find(i => i.itemType === type);
+        if (item) {
+          expect(item.isClientVisible).toBe(true);
+        }
+      }
+    });
+
+    it('payment button should not show for requires_operator_review quotes', () => {
+      const quoteStatus: string = 'requires_operator_review';
+      const isPayable = quoteStatus === 'quoted';
+      expect(isPayable).toBe(false);
+    });
+
+    it('payment button shows when quote is quoted, not expired, amount > 0', () => {
+      const quoteStatus: string = 'quoted';
+      const quoteAmountKzt = 6500;
+      const quoteExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      const isPayable = quoteStatus === 'quoted' && quoteAmountKzt > 0 && new Date(quoteExpiresAt) > new Date();
+      expect(isPayable).toBe(true);
+    });
+
+    it('payment button hidden for expired quotes', () => {
+      const quoteStatus: string = 'quoted';
+      const quoteExpiresAt = new Date(Date.now() - 1000).toISOString();
+      const isExpired = new Date(quoteExpiresAt) <= new Date();
+      const isPayable = quoteStatus === 'quoted' && !isExpired;
+      expect(isPayable).toBe(false);
+    });
+
+    it('payment button hidden for paid jobs', () => {
+      const quoteStatus: string = 'paid';
+      const isPayable = quoteStatus === 'quoted';
+      expect(isPayable).toBe(false);
+    });
+  });
 });

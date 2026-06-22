@@ -358,7 +358,21 @@
       "unsupportedFileType": "Неподдерживаемый тип файла: {files}",
       "pleaseSelectFile": "Пожалуйста, выберите хотя бы один файл",
       "failedTermsAcceptance": "Не удалось сохранить принятие условий."
-    }
+    },
+    "uploadDocument": "Загрузить документ",
+    "uploadedQuoteReady": "Документ загружен — стоимость: {price} ₸. Подтвердите оплату ниже.",
+    "uploadedRequiresReview": "Документ загружен. Стоимость будет подтверждена оператором.",
+    "quoteReady": "Стоимость рассчитана",
+    "quoteValidUntil": "Действительно до {date}",
+    "quoteRequiresReview": "Цена подтверждается оператором. Мы уведомим вас.",
+    "quoteExpired": "Расчёт истёк",
+    "quoteRecalculate": "Пересчитать",
+    "quoteCalculating": "Рассчитываем стоимость...",
+    "quoteRecalculating": "Обновляем статус заказа...",
+    "priceHint": "Точная цена рассчитывается после загрузки и анализа документа.",
+    "priceHintElectronic": "Электронный перевод — от 2 500 ₸. Итоговая цена после загрузки.",
+    "priceHintOfficial": "Заверенный перевод — от 5 500 ₸. Итоговая цена после загрузки.",
+    "priceHintNotarized": "Нотариальный перевод — от 11 000 ₸. Итоговая цена после загрузки."
   },
   "auth": {
     "login": "Войти",
@@ -978,6 +992,11 @@
     "processingTitle": "Платёж обрабатывается",
     "processingDesc": "Ваш платёж ещё обрабатывается. Проверьте личный кабинет через несколько минут.",
     "goToDashboard": "В личный кабинет",
-    "invalidLink": "Некорректная ссылка платежа."
+    "invalidLink": "Некорректная ссылка платежа.",
+    "QUOTE_EXPIRED": "The price quote has expired. Please refresh the page.",
+    "QUOTE_ALREADY_PAID": "This order is already paid.",
+    "QUOTE_JOB_MISMATCH": "Invalid quote for this order.",
+    "QUOTE_NOT_FOUND": "Quote not found. Please refresh.",
+    "PRICING_NOT_CONFIGURED": "Pricing is not configured. Please contact support."
   }
 }

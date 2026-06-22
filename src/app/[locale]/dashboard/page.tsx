@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { toast } from 'sonner';
-import { Upload, FileText, FileImage, FileCode2, Download, AlertCircle, Loader2, X, Clock } from 'lucide-react';
+import { Upload, FileText, FileImage, FileCode2, Download, AlertCircle, Loader2, X, Clock, RefreshCw } from 'lucide-react';
 import { HalykPayButton } from '@/components/payment/HalykPayButton';
 import { createClient } from '@/lib/supabase/client';
 import { Link } from '@/i18n/navigation';
@@ -40,6 +40,12 @@ interface OrderEntry {
   isTerminal: boolean;
   stages: { key: string; labelKey: string; done: boolean; current: boolean }[];
   priceKzt: number | null;
+  latestQuoteId: string | null;
+  quoteStatus: string | null;
+  quoteAmountKzt: number | null;
+  quoteCurrency: string | null;
+  quoteExpiresAt: string | null;
+  quoteRequiresOperatorReview: boolean;
 }
 
 
@@ -210,7 +216,7 @@ function useStatusLabel() {
 
 // ─── Active order card ────────────────────────────────────────────────────────
 
-function ActiveOrderCard({ entry, locale }: { entry: OrderEntry; locale: string }) {
+function ActiveOrderCard({ entry, locale, onRecalculate }: { entry: OrderEntry; locale: string; onRecalculate: (jobId: string) => void }) {
   const t = useTranslations('dashboard');
   const statusLabel = useStatusLabel();
 
@@ -265,14 +271,70 @@ function ActiveOrderCard({ entry, locale }: { entry: OrderEntry; locale: string 
         </div>
       )}
 
-      {entry.customerStatus === 'payment_pending' && entry.jobId && entry.priceKzt != null && (
-        <div className="mt-4">
-          <HalykPayButton
-            jobId={entry.jobId}
-            priceKzt={entry.priceKzt}
-          />
-        </div>
-      )}
+      {entry.customerStatus === 'payment_pending' && entry.jobId && (() => {
+        const now = new Date();
+        const isQuoteValid =
+          entry.quoteStatus === 'quoted' &&
+          entry.quoteAmountKzt != null &&
+          entry.quoteAmountKzt > 0 &&
+          entry.latestQuoteId != null &&
+          entry.quoteExpiresAt != null &&
+          new Date(entry.quoteExpiresAt) > now;
+
+        const isExpired =
+          entry.quoteStatus === 'expired' ||
+          (entry.quoteExpiresAt != null && new Date(entry.quoteExpiresAt) <= now && entry.quoteStatus !== 'paid');
+
+        if (entry.quoteRequiresOperatorReview) {
+          return (
+            <div className="mt-3 rounded-md border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-amber-300">
+              {t('quoteRequiresReview')}
+            </div>
+          );
+        }
+
+        if (isExpired) {
+          return (
+            <div className="mt-3 flex items-center gap-3">
+              <span className="text-xs text-muted-foreground">{t('quoteExpired')}</span>
+              <button type="button" onClick={() => onRecalculate(entry.jobId!)}
+                className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-white/20 hover:bg-white/10">
+                <RefreshCw className="h-3 w-3" />
+                {t('quoteRecalculate')}
+              </button>
+            </div>
+          );
+        }
+
+        if (isQuoteValid) {
+          const expiryDate = new Date(entry.quoteExpiresAt!);
+          const formattedExpiry = expiryDate.toLocaleString(locale, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+          return (
+            <div className="mt-3 rounded-md border border-primary/20 bg-primary/5 p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-foreground">{t('quoteReady')}</span>
+                <span className="text-xs text-muted-foreground">{t('quoteValidUntil', { date: formattedExpiry })}</span>
+              </div>
+              <div className="mb-3">
+                <span className="text-xl font-bold text-foreground">{entry.quoteAmountKzt!.toLocaleString()} {entry.quoteCurrency ?? 'KZT'}</span>
+              </div>
+              <HalykPayButton
+                jobId={entry.jobId}
+                quoteId={entry.latestQuoteId!}
+                priceKzt={entry.quoteAmountKzt!}
+              />
+            </div>
+          );
+        }
+
+        // No quote yet / calculating
+        return (
+          <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            {t('quoteCalculating')}
+          </div>
+        );
+      })()}
 
       {entry.canDownload && (
         <a
@@ -468,6 +530,12 @@ export default function DashboardPage() {
             workflowStatus: string | null;
             serviceLevel: string;
             fulfillmentMethod: 'pickup' | 'delivery' | null;
+            latestQuoteId: string | null;
+            quoteStatus: string | null;
+            quoteAmountKzt: number | null;
+            quoteCurrency: string | null;
+            quoteExpiresAt: string | null;
+            quoteRequiresOperatorReview: boolean;
           };
         }),
       );
@@ -505,6 +573,12 @@ export default function DashboardPage() {
             canDownload: state.canDownload,
             isActive: state.isActive,
             isTerminal: state.isTerminal,
+            latestQuoteId: data.latestQuoteId ?? next[idx]!.latestQuoteId,
+            quoteStatus: data.quoteStatus ?? next[idx]!.quoteStatus,
+            quoteAmountKzt: data.quoteAmountKzt ?? next[idx]!.quoteAmountKzt,
+            quoteCurrency: data.quoteCurrency ?? next[idx]!.quoteCurrency,
+            quoteExpiresAt: data.quoteExpiresAt ?? next[idx]!.quoteExpiresAt,
+            quoteRequiresOperatorReview: data.quoteRequiresOperatorReview ?? next[idx]!.quoteRequiresOperatorReview,
             stages: state.stages,
           };
         });
@@ -619,6 +693,12 @@ export default function DashboardPage() {
 
   // ─── Upload ────────────────────────────────────────────────────────────────────
 
+  const handleRecalculate = useCallback(async (jobId: string): Promise<void> => {
+    await loadOrders();
+    toast.info(t('quoteRecalculating'));
+    void jobId; // jobId reserved for future recalculate endpoint
+  }, [loadOrders, t]);
+
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     if (!isFormValid) return;
@@ -644,7 +724,7 @@ export default function DashboardPage() {
     }
 
     const res = await fetch('/api/documents/upload-card', { method: 'POST', body: form });
-    let data: { jobId?: string; documentId?: string; error?: string; priceKzt?: number } = {};
+    let data: { jobId?: string; documentId?: string; error?: string; priceKzt?: number; quoteId?: string; requiresOperatorReview?: boolean; currency?: string } = {};
     try {
       data = await res.json() as typeof data;
     } catch {
@@ -661,7 +741,11 @@ export default function DashboardPage() {
 
     setUploading(false);
     setFiles([]);
-    toast.success(t('uploadedPaymentPending', { price: `${(data.priceKzt ?? 0).toLocaleString()} KZT` }));
+    if (data.requiresOperatorReview) {
+      toast.success(t('uploadedRequiresReview'));
+    } else {
+      toast.success(t('uploadedQuoteReady', { price: (data.priceKzt ?? 0).toLocaleString() }));
+    }
 
     await loadOrders();
   };
@@ -818,12 +902,18 @@ export default function DashboardPage() {
             <p className="text-xs text-muted-foreground/60">✓ {tLegal('termsAccepted')}</p>
           ) : null}
 
+          <div className="rounded-md border border-white/10 bg-white/[0.02] px-4 py-3 text-xs text-muted-foreground">
+            {serviceLevel === 'electronic' && t('priceHintElectronic')}
+            {serviceLevel === 'official_with_translator_signature_and_provider_stamp' && t('priceHintOfficial')}
+            {serviceLevel === 'notarization_through_partners' && t('priceHintNotarized')}
+          </div>
+
           <button type="submit" disabled={uploading || !isFormValid}
             className="inline-flex w-fit items-center justify-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-gold-dark disabled:pointer-events-none disabled:opacity-50">
             {uploading ? (
               <><Loader2 className="h-4 w-4 animate-spin" />…</>
             ) : (
-              <><Upload className="h-4 w-4" />{t('uploadAndPay')}</>
+              <><Upload className="h-4 w-4" />{t('uploadDocument')}</>
             )}
           </button>
         </form>
@@ -844,7 +934,7 @@ export default function DashboardPage() {
         ) : (
           <>
             {[...activeOrders, ...readyOrders].map((o) => (
-              <ActiveOrderCard key={o.documentId} entry={o} locale={locale} />
+              <ActiveOrderCard key={o.documentId} entry={o} locale={locale} onRecalculate={handleRecalculate} />
             ))}
           </>
         )}
