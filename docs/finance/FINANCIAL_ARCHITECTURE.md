@@ -48,3 +48,46 @@ Refund (operator only)
 See `docs/finance/PRICING_ENGINE.md` for the calculation algorithm.
 See `docs/finance/REFUND_FINANCE_RULES.md` for the refund policy.
 See `docs/finance/UNIT_ECONOMICS.md` for target margins.
+
+## Finance Report Jira Issue
+
+For each order that has a Jira issue, a separate Finance Report Story is created after
+job completion. It is linked to the main order issue (`WO-123 relates to WO-124`).
+
+**The main order issue (Заказ) must NEVER contain:**
+- `translator_reserved_cost`, `tax_reserve`, `acquiring_reserve`, `risk_reserve`
+- `marketing_reserve`, `owner_reserve`, `target_profit`, `ai_it_reserve`
+- `estimated_margin`, `internal_cost`, `partner_commission`
+
+**MVP mode:** If `JIRA_FINANCE_SECURITY_LEVEL_ID` is not configured, the finance issue is
+created without a Jira security level. Labels (`wpo-finance`, `confidential`, `internal-finance`)
+provide fallback access control.
+
+**Production recommendation:** Configure a Jira Issue Security Scheme and set
+`JIRA_FINANCE_SECURITY_LEVEL_ID` before granting translators broad Jira project access.
+
+### Finance issue DB fields (on `jobs` table, migration 0025)
+
+| Column | Description |
+|---|---|
+| `finance_jira_issue_id` | Jira internal issue ID |
+| `finance_jira_issue_key` | e.g. `WO-124` |
+| `finance_jira_issue_url` | browse URL |
+| `finance_jira_sync_status` | `pending` \| `synced` \| `failed` |
+| `finance_jira_last_error` | error message on failure |
+| `finance_jira_synced_at` | timestamp of successful sync |
+
+### Env vars (all optional — read via `process.env` in `finance-report.ts`)
+
+| Var | Default | Notes |
+|---|---|---|
+| `JIRA_FINANCE_PROJECT_KEY` | `WO` | |
+| `JIRA_FINANCE_ISSUE_TYPE` | `Story` | |
+| `JIRA_FINANCE_SECURITY_LEVEL_ID` | (none) | omit `security` field if absent |
+| `JIRA_FINANCE_LABELS` | `wpo-finance,confidential,internal-finance` | comma-separated |
+
+### Code
+
+- `worker/src/lib/jira/finance-report.ts` — payload builder (`buildFinanceIssuePayload`, `getFinanceConfig`)
+- `worker/src/lib/integrations.ts` — `createFinanceReportIssue()` and `createJiraIssueLink()`
+- `worker/src/processor.ts` — non-blocking call after job completion

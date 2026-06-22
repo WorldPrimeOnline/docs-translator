@@ -24,6 +24,12 @@ import {
 import { downloadFile } from './r2';
 import type { ServiceLevel } from './output-plan';
 import { buildJiraIssueFields } from './jira/order-fields';
+import {
+  buildFinanceIssuePayload,
+  getFinanceConfig,
+  type FinanceReportParams,
+  type PricingResult,
+} from './jira/finance-report';
 
 // ─── Jira helpers ─────────────────────────────────────────────────────────────
 
@@ -152,6 +158,131 @@ async function createJiraIssue(params: {
     issueKey: data.key,
     issueUrl: `${auth.baseUrl}/browse/${data.key}`,
   };
+}
+
+// ─── Jira issue link ─────────────────────────────────────────────────────────
+
+async function createJiraIssueLink(inwardIssueKey: string, outwardIssueKey: string): Promise<void> {
+  const res = await jiraFetch('/issueLink', {
+    method: 'POST',
+    body: JSON.stringify({
+      type: { name: 'Relates' },
+      inwardIssue: { key: inwardIssueKey },
+      outwardIssue: { key: outwardIssueKey },
+    }),
+  });
+  if (!res) return; // Jira not configured — already logged by jiraFetch
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    console.warn('[worker-jira] createJiraIssueLink failed', { status: res.status, body: text.slice(0, 200) });
+  }
+}
+
+// ─── Finance report issue ─────────────────────────────────────────────────────
+
+/**
+ * Create a separate Finance Report Story in Jira for the given order.
+ * Always non-blocking — never throws to the caller; returns issue key or null.
+ *
+ * If JIRA_FINANCE_SECURITY_LEVEL_ID is absent, creates without security field.
+ * Labels (wpo-finance, confidential, internal-finance) act as fallback access control.
+ */
+export async function createFinanceReportIssue(params: {
+  jobId: string;
+  mainIssueKey: string;
+  pricingSnapshot: Record<string, unknown> | null;
+  quoteId: string | null;
+  serviceLevel: string;
+  sourceLanguage: string;
+  targetLanguage: string;
+  documentType: string;
+  paymentTransactionId: string | null;
+  paymentAmountKzt: number | null;
+  paymentStatus: string | null;
+  fiscalStatus: string | null;
+  fiscalReceiptId: string | null;
+  customerComment: string | null;
+}): Promise<string | null> {
+  const tag = `[finance-jira:${params.jobId.slice(0, 8)}]`;
+
+  if (!getJiraAuth()) {
+    console.log(`${tag} Jira not configured — skipping finance report`);
+    return null;
+  }
+
+  // Idempotency check
+  const { data: existingJob } = await supabase
+    .from('jobs')
+    .select('finance_jira_issue_key')
+    .eq('id', params.jobId)
+    .maybeSingle();
+
+  const existingKey = (existingJob as Record<string, unknown> | null)?.finance_jira_issue_key as string | null;
+  if (existingKey) {
+    console.log(`${tag} Finance issue already exists: ${existingKey}`);
+    return existingKey;
+  }
+
+  const reportParams: FinanceReportParams = {
+    jobId: params.jobId,
+    mainIssueKey: params.mainIssueKey,
+    quoteId: params.quoteId,
+    serviceLevel: params.serviceLevel,
+    sourceLanguage: params.sourceLanguage,
+    targetLanguage: params.targetLanguage,
+    documentType: params.documentType,
+    pricingResult: params.pricingSnapshot as PricingResult | null,
+    paymentTransactionId: params.paymentTransactionId,
+    paymentAmountKzt: params.paymentAmountKzt,
+    paymentStatus: params.paymentStatus,
+    fiscalStatus: params.fiscalStatus,
+    fiscalReceiptId: params.fiscalReceiptId,
+    customerComment: params.customerComment,
+  };
+
+  const financeConfig = getFinanceConfig();
+  if (!financeConfig.securityLevelId) {
+    console.warn(`${tag} Finance report created WITHOUT Jira security level. Configure JIRA_FINANCE_SECURITY_LEVEL_ID before granting translators broad project access.`);
+  }
+
+  const payload = buildFinanceIssuePayload(reportParams);
+
+  const res = await jiraFetch('/issue', { method: 'POST', body: JSON.stringify(payload) });
+  if (!res) return null;
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    console.error(`${tag} Jira create finance issue failed: ${res.status} ${text.slice(0, 300)}`);
+    await supabase.from('jobs').update({
+      finance_jira_sync_status: 'failed',
+      finance_jira_last_error: `HTTP ${res.status}: ${text.slice(0, 200)}`,
+    } as Record<string, unknown>).eq('id', params.jobId);
+    return null;
+  }
+
+  const data = await res.json() as { id: string; key: string };
+  const issueKey = data.key;
+  const issueId = data.id;
+  const auth = getJiraAuth()!;
+  const issueUrl = `${auth.baseUrl}/browse/${issueKey}`;
+
+  await supabase.from('jobs').update({
+    finance_jira_issue_id: issueId,
+    finance_jira_issue_key: issueKey,
+    finance_jira_issue_url: issueUrl,
+    finance_jira_sync_status: 'synced',
+    finance_jira_synced_at: new Date().toISOString(),
+  } as Record<string, unknown>).eq('id', params.jobId);
+
+  // Link to main order issue (non-fatal on failure)
+  try {
+    await createJiraIssueLink(issueKey, params.mainIssueKey);
+  } catch (err) {
+    console.warn(`${tag} Failed to link finance issue (non-fatal):`, err instanceof Error ? err.message : String(err));
+  }
+
+  console.log(`${tag} ✓ Finance report Jira issue created: ${issueKey} → linked to ${params.mainIssueKey}`);
+  return issueKey;
 }
 
 // ─── Telegram helper ──────────────────────────────────────────────────────────
