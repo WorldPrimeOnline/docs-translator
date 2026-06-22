@@ -223,15 +223,18 @@ export async function initializeOrderIntegrations(params: {
     .eq('id', params.jobId)
     .single();
 
-  if (existing?.jira_issue_key && existing.google_drive_folder_id) {
-    console.log(`${tag} already initialized — jira=${existing.jira_issue_key} drive=${existing.google_drive_folder_id}`);
-    const aiDraftFolderId = await getSubfolderId(existing.google_drive_folder_id, DRIVE_SUBFOLDER_NAMES.aiDraft).catch(() => null);
-    const sourceFolderId = await getSubfolderId(existing.google_drive_folder_id, DRIVE_SUBFOLDER_NAMES.source).catch(() => null);
+  // For electronic orders, Jira is never created — idempotency only requires Drive folder.
+  const driveReady = !!existing?.google_drive_folder_id;
+  const jiraReady = params.serviceLevel === 'electronic' || !!existing?.jira_issue_key;
+  if (driveReady && jiraReady) {
+    console.log(`${tag} already initialized — jira=${existing?.jira_issue_key ?? 'n/a'} drive=${existing!.google_drive_folder_id}`);
+    const aiDraftFolderId = await getSubfolderId(existing!.google_drive_folder_id!, DRIVE_SUBFOLDER_NAMES.aiDraft).catch(() => null);
+    const sourceFolderId = await getSubfolderId(existing!.google_drive_folder_id!, DRIVE_SUBFOLDER_NAMES.source).catch(() => null);
     return {
-      jiraIssueKey: existing.jira_issue_key,
-      jiraIssueUrl: existing.jira_issue_url ?? null,
-      driveFolderId: existing.google_drive_folder_id,
-      driveUrl: existing.google_drive_folder_url ?? null,
+      jiraIssueKey: existing?.jira_issue_key ?? null,
+      jiraIssueUrl: existing?.jira_issue_url ?? null,
+      driveFolderId: existing!.google_drive_folder_id!,
+      driveUrl: existing?.google_drive_folder_url ?? null,
       aiDraftFolderId,
       sourceFolderId,
     };
@@ -290,8 +293,8 @@ export async function initializeOrderIntegrations(params: {
     }
   }
 
-  // ── 3. Create Jira issue ───────────────────────────────────────────────────
-  if (!jiraIssueKey) {
+  // ── 3. Create Jira issue (certified/notarized only — electronic is fully automated) ───────
+  if (!jiraIssueKey && params.serviceLevel !== 'electronic') {
     if (!getJiraAuth()) {
       // Credentials missing — record the misconfiguration so the operator can see it in Supabase
       const msg = 'Jira credentials not configured — set JIRA_BASE_URL, JIRA_EMAIL, JIRA_API_TOKEN on Railway';
