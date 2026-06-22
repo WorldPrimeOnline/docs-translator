@@ -9,11 +9,13 @@ import { generateUniqueInvoiceId, getInvoiceSuffix6 } from '@/lib/payments/halyk
 import { generateSecretHash, digestSecretHash } from '@/lib/payments/halyk/security';
 import { mapLocaleToHalyk } from '@/lib/payments/halyk/locale';
 import { buildPaymentDescription } from '@/lib/payments/halyk/description';
+import { verifyQuotePayable, markQuotePaymentPending } from '@/lib/pricing/service';
 import type { HalykPayBootstrap, HalykPaymentObject } from '@/lib/payments/halyk/types';
 import type { Database } from '@/types';
 
 const RequestSchema = z.object({
   jobId: z.string().uuid(),
+  quoteId: z.string().uuid().optional(),
   locale: z.string().optional().default('en'),
 });
 
@@ -146,7 +148,7 @@ async function handlePost(request: NextRequest, correlationId: string): Promise<
     );
   }
 
-  const { jobId, locale } = parsed.data;
+  const { jobId, quoteId, locale } = parsed.data;
   const clientIp = getClientIp(request);
 
   // ── Load job + document, verify ownership ────────────────────────────────────
@@ -186,11 +188,26 @@ async function handlePost(request: NextRequest, correlationId: string): Promise<
     return NextResponse.json({ error: 'JOB_NOT_PAYABLE', correlationId }, { status: 409 });
   }
 
-  // ── Amount validation ────────────────────────────────────────────────────────
-  const priceKzt = job.price_kzt;
-  if (!priceKzt || priceKzt <= 0) {
-    console.error('[halyk/initiate] price not set on job', { correlationId, jobId });
-    return NextResponse.json({ error: 'PRICE_NOT_SET', correlationId }, { status: 422 });
+  // ── Quote verification (preferred) or fallback to jobs.price_kzt ────────────
+  let priceKzt: number;
+  let verifiedQuoteId: string | null = quoteId ?? null;
+
+  if (quoteId) {
+    const quoteCheck = await verifyQuotePayable(quoteId, jobId, user.id);
+    if (!quoteCheck.ok) {
+      console.error('[halyk/initiate] quote verification failed', { correlationId, quoteId, error: quoteCheck.error });
+      return NextResponse.json({ error: quoteCheck.error, correlationId }, { status: 422 });
+    }
+    priceKzt = quoteCheck.amountKzt;
+  } else {
+    // Legacy path: use price set on job (still DB-authoritative, not from client)
+    const jobPrice = job.price_kzt;
+    if (!jobPrice || jobPrice <= 0) {
+      console.error('[halyk/initiate] price not set on job', { correlationId, jobId });
+      return NextResponse.json({ error: 'PRICE_NOT_SET', correlationId }, { status: 422 });
+    }
+    priceKzt = jobPrice;
+    verifiedQuoteId = null;
   }
 
   // ── Idempotency: check for recent pending attempt ────────────────────────────
@@ -246,7 +263,8 @@ async function handlePost(request: NextRequest, correlationId: string): Promise<
   // ── Create payment_transaction record before calling Halyk ───────────────────
   const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
 
-  const { data: paymentTx, error: txError } = await supabaseServer
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: paymentTx, error: txError } = await (supabaseServer as any)
     .from('payment_transactions')
     .insert({
       user_id: user.id,
@@ -263,9 +281,14 @@ async function handlePost(request: NextRequest, correlationId: string): Promise<
       provider_environment: config.mode,
       ip_address: clientIp,
       expires_at: expiresAt,
+      // Quote linkage — amount is sourced from price_quotes when quoteId is provided
+      quote_id: verifiedQuoteId ?? null,
+      price_locked_at: verifiedQuoteId ? new Date().toISOString() : null,
+      amount_source: verifiedQuoteId ? 'quote' : 'legacy_test',
+      pricing_snapshot_json: verifiedQuoteId ? { quoteId: verifiedQuoteId, amountKzt: priceKzt } : {},
     })
     .select()
-    .single();
+    .single() as { data: { id: string; [key: string]: unknown } | null; error: { code?: string; message?: string } | null };
 
   if (txError || !paymentTx) {
     console.error('[halyk/initiate] failed to create payment_transaction', {
@@ -285,6 +308,13 @@ async function handlePost(request: NextRequest, correlationId: string): Promise<
       .from('jobs')
       .update({ status: 'payment_pending' })
       .eq('id', jobId);
+  }
+
+  // ── Mark quote as payment_pending (non-blocking) ─────────────────────────────
+  if (verifiedQuoteId) {
+    void markQuotePaymentPending(verifiedQuoteId).catch(err => {
+      console.error('[halyk/initiate] failed to mark quote payment_pending (non-fatal):', (err as Error).message);
+    });
   }
 
   // ── Call Halyk OAuth to get payment token ────────────────────────────────────

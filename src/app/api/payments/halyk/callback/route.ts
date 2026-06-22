@@ -18,6 +18,7 @@ import { checkPaymentStatus } from '@/lib/payments/halyk/client';
 import { mapHalykStatus, isPaidStatus } from '@/lib/payments/halyk/status-map';
 import { getHalykConfig } from '@/lib/payments/halyk/config';
 import { ensureSaleFiscalReceiptForPaidPayment } from '@/lib/fiscal/service';
+import { markQuotePaid } from '@/lib/pricing/service';
 
 const MAX_BODY_BYTES = 64 * 1024; // 64 KB
 
@@ -104,11 +105,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   });
 
   // Find payment transaction
-  const { data: paymentTx } = await supabaseServer
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: paymentTx } = await (supabaseServer as any)
     .from('payment_transactions')
-    .select('id, status, secret_hash_digest, amount, currency, provider_environment, job_id')
+    .select('id, status, secret_hash_digest, amount, currency, provider_environment, job_id, quote_id')
     .eq('provider_invoice_id', invoiceId)
-    .maybeSingle();
+    .maybeSingle() as { data: { id: string; status: string; secret_hash_digest: string | null; amount: number; currency: string; provider_environment: string; job_id: string; quote_id: string | null } | null };
 
   if (!paymentTx) {
     // Do not reveal whether the invoice exists — return a generic error
@@ -291,6 +293,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       } catch (err) {
         console.error('[halyk/callback] fiscal hook failed (non-fatal):', (err as Error).message, {
           paymentId: paymentTx.id,
+        });
+      }
+
+      // Mark associated quote as paid and commit cost reservations
+      const quoteId = paymentTx.quote_id;
+      if (quoteId) {
+        void markQuotePaid(quoteId, paymentTx.id).catch(err => {
+          console.error('[halyk/callback] failed to mark quote paid (non-fatal):', (err as Error).message, {
+            quoteId,
+            paymentId: paymentTx.id,
+          });
         });
       }
     }

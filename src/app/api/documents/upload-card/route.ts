@@ -1,7 +1,8 @@
 /**
  * Card-payment upload route.
  * Creates document + job in payment_pending state without consuming subscription quota.
- * Returns job ID and price so the frontend can initiate Halyk ePay payment.
+ * Computes a dynamic price quote via the pricing engine.
+ * Returns job ID, quote ID, and price so the frontend can initiate Halyk ePay payment.
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
@@ -13,7 +14,7 @@ import { convertToPdf, mergePdfs } from '@/lib/convert-to-pdf';
 import { deriveBackcompatBooleans } from '@/lib/translation-workflow/output-plan';
 import { isValidNotaryCity } from '@/lib/notary/cities';
 import { getHalykConfig } from '@/lib/payments/halyk/config';
-import { getPriceKzt } from '@/lib/payments/halyk/pricing';
+import { computeQuoteForJob, saveQuote } from '@/lib/pricing/service';
 import type { Database } from '@/types';
 import type { ServiceLevel } from '@/lib/translation-prompts/types';
 
@@ -243,9 +244,33 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Failed to create document record' }, { status: 500 });
   }
 
-  // Calculate price in KZT
-  const priceKzt = getPriceKzt(serviceLevel as ServiceLevel);
+  // Dynamic pricing: compute quote from pricing engine
+  const pricingInput = {
+    documentId: doc.id,
+    userId: user.id,
+    sourceLanguage: sourceLang,
+    targetLanguage: targetLang,
+    serviceLevel: serviceLevel as ServiceLevel,
+    documentType,
+    physicalPageCount: 1, // conservative default; OCR hasn't run yet
+    urgencyLevel: 'standard' as const,
+    fulfillmentMethod: fulfillmentMethod as 'pickup' | 'delivery' | undefined,
+    deliveryRequired: fulfillmentMethod === 'delivery',
+    salesChannel: 'direct' as const,
+  };
 
+  const quoteResult = await computeQuoteForJob(pricingInput);
+
+  if ('error' in quoteResult) {
+    console.error('[upload-card] pricing not configured:', quoteResult.error, { correlationId });
+    await supabaseServer.from('documents').update({ status: 'failed' }).eq('id', docId);
+    return NextResponse.json({ error: 'PRICING_NOT_CONFIGURED' }, { status: 503 });
+  }
+
+  const { result: pricingResult } = quoteResult;
+  const finalPriceKzt = Math.round(pricingResult.amountKzt);
+
+  // Create job with dynamic price
   const { data: job, error: jobError } = await supabaseServer
     .from('jobs')
     .insert({
@@ -260,7 +285,7 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
       fulfillment_method: fulfillmentMethod ?? null,
       delivery_phone: deliveryPhone ?? null,
       delivery_address: deliveryAddress ?? null,
-      price_kzt: priceKzt,
+      price_kzt: finalPriceKzt,
     })
     .select()
     .single();
@@ -273,12 +298,17 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
       details: jobError?.details,
       hint: jobError?.hint,
     });
-    // Compensation: mark orphaned document as failed so it doesn't clog the dashboard
-    await supabaseServer
-      .from('documents')
-      .update({ status: 'failed' })
-      .eq('id', docId);
+    await supabaseServer.from('documents').update({ status: 'failed' }).eq('id', docId);
     return NextResponse.json({ error: 'Failed to create job' }, { status: 500 });
+  }
+
+  // Save quote with job_id now that job exists
+  const savedQuote = await saveQuote({ ...pricingInput, jobId: job.id }, pricingResult);
+  const quoteId = 'quoteId' in savedQuote ? savedQuote.quoteId : null;
+
+  if ('error' in savedQuote) {
+    // Non-fatal: job and price_kzt are set; payment can still proceed using jobs.price_kzt
+    console.error('[upload-card] failed to save quote (non-fatal):', savedQuote.error, { correlationId });
   }
 
   await supabaseServer.from('job_audit_log').insert({
@@ -287,13 +317,16 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
     source: 'upload-card',
     action: 'job_created',
     new_status: 'payment_pending',
-    metadata: { serviceLevel, priceKzt, notaryCity: notaryCity ?? null },
+    metadata: { serviceLevel, priceKzt: finalPriceKzt, quoteId, notaryCity: notaryCity ?? null },
   }).then(({ error: e }) => { if (e) console.error('[upload-card] audit insert failed:', e.message); });
 
   return NextResponse.json({
     jobId: job.id,
     documentId: doc.id,
-    priceKzt,
+    priceKzt: finalPriceKzt,
+    quoteId,
+    requiresOperatorReview: pricingResult.requiresOperatorReview,
+    reviewReasons: pricingResult.requiresOperatorReview ? pricingResult.reviewReasons : undefined,
     currency: 'KZT',
     paymentRequired: true,
   });
