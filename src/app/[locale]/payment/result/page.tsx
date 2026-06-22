@@ -6,14 +6,17 @@ import { useSearchParams } from 'next/navigation';
 import { Link } from '@/i18n/navigation';
 import { Loader2, CheckCircle2, XCircle, Clock, RefreshCw } from 'lucide-react';
 
+// Public payment statuses — matches PublicPaymentStatus in status-map.ts.
+// Internal-only statuses (requires_review, duplicate_charge_review) are never returned by the API.
 type PaymentStatus =
   | 'payment_pending'
+  | 'authorized'
   | 'paid'
   | 'failed'
   | 'canceled'
   | 'expired'
-  | 'requires_review'
-  | 'duplicate_charge_review';
+  | 'refunded'
+  | 'unknown';
 
 interface PaymentStatusResponse {
   paymentId: string;
@@ -26,6 +29,7 @@ interface PaymentStatusResponse {
   isTerminal?: boolean;
   isSuccess?: boolean;
   isFailure?: boolean;
+  isAuthorized?: boolean;
   canRetryPayment?: boolean;
   skippedProviderCheck?: boolean;
   messageCode?: string | null;
@@ -38,7 +42,7 @@ const MAX_AUTO_POLL_MS = 90_000;
 const PENDING_LONG_THRESHOLD_MS = 30_000;
 
 function isTerminalStatus(status: PaymentStatus): boolean {
-  return ['paid', 'failed', 'canceled', 'expired', 'duplicate_charge_review'].includes(status);
+  return ['paid', 'failed', 'canceled', 'expired', 'refunded', 'unknown'].includes(status);
 }
 
 export default function PaymentResultPage(): React.ReactElement {
@@ -157,6 +161,7 @@ export default function PaymentResultPage(): React.ReactElement {
   const currency = response?.currency ?? 'KZT';
   const jobId = response?.jobId ?? null;
   const canRetry = response?.canRetryPayment ?? false;
+  const isAuthorized = response?.isAuthorized ?? false;
 
   if (status === 'paid' || response?.isSuccess) {
     return (
@@ -206,13 +211,27 @@ export default function PaymentResultPage(): React.ReactElement {
     );
   }
 
-  if (status === 'requires_review' || status === 'duplicate_charge_review') {
+  // authorized: pre-authorized payment, Halyk will auto-capture (1-step flow)
+  if (status === 'authorized' || isAuthorized) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="text-center max-w-md">
-          <Clock className="w-16 h-16 text-yellow-400 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold mb-2">{t('reviewTitle')}</h1>
-          <p className="text-muted-foreground mb-6">{t('reviewDesc')}</p>
+        <div className="text-center max-w-md space-y-4">
+          <Loader2 className="w-12 h-12 animate-spin mx-auto text-blue-400" />
+          <h1 className="text-xl font-semibold">{t('authorizedTitle')}</h1>
+          <p className="text-sm text-muted-foreground">{t('authorizedDesc')}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // unknown: internal review state or unrecognized status — do not leave the user stranded
+  if (status === 'unknown') {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="text-center max-w-md space-y-4">
+          <Clock className="w-16 h-16 text-yellow-400 mx-auto" />
+          <h1 className="text-2xl font-bold">{t('reviewTitle')}</h1>
+          <p className="text-muted-foreground">{t('reviewDesc')}</p>
           <Link href="/dashboard" className="text-blue-400 hover:underline">{t('goToDashboard')}</Link>
         </div>
       </div>

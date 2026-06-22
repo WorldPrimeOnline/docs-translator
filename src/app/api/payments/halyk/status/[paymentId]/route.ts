@@ -14,7 +14,7 @@ import { createServerClient } from '@supabase/ssr';
 import { supabaseServer } from '@/lib/supabase/server';
 import { checkPaymentStatus, HalykApiError } from '@/lib/payments/halyk/client';
 import { getHalykConfig } from '@/lib/payments/halyk/config';
-import { mapHalykStatus, isPaidStatus, isTerminalStatus } from '@/lib/payments/halyk/status-map';
+import { mapHalykStatus, isPaidStatus, isTerminalStatus, mapToPublicStatus } from '@/lib/payments/halyk/status-map';
 import { ensureSaleFiscalReceiptForPaidPayment } from '@/lib/fiscal/service';
 import type { InternalPaymentStatus } from '@/lib/payments/halyk/types';
 import type { Database } from '@/types';
@@ -254,28 +254,50 @@ export async function GET(
     });
   }
 
-  const responseIsTerminal = isTerminalStatus(currentStatus as InternalPaymentStatus) || currentStatus === 'paid';
-  const responseIsSuccess = currentStatus === 'paid';
-  const responseIsFailure = ['failed', 'canceled', 'expired'].includes(currentStatus);
+  // Map internal status to public-safe status — never expose requires_review or
+  // duplicate_charge_review directly to the frontend.
+  const publicResult = mapToPublicStatus(
+    currentStatus as InternalPaymentStatus,
+    // Pass current provider_status so authorized state can be detected
+    (paymentTx as { provider_status?: string | null }).provider_status ?? undefined,
+  );
+
   const retryAllowed = computeCanRetryPayment(currentStatus, (paymentTx as { created_at?: string | null }).created_at ?? null);
   const nextProviderCheckAfter = paymentTx.status_checked_at
     ? new Date(new Date(paymentTx.status_checked_at).getTime() + RECONCILE_COOLDOWN_MS).toISOString()
     : null;
 
+  // messageCode priority: throttling reason wins over public status message
+  const effectiveMessageCode = providerCheckSkippedReason ?? publicResult.messageCode;
+
+  console.log('[halyk/status] status response', {
+    correlationId,
+    paymentId: paymentTx.id,
+    jobId: paymentTx.job_id,
+    internalStatus: currentStatus,
+    publicStatus: publicResult.status,
+    skippedProviderCheck: !shouldReconcile,
+    skippedReason: providerCheckSkippedReason,
+    isTerminal: publicResult.isPublicTerminal,
+    isAuthorized: publicResult.isAuthorized,
+    nextProviderCheckAfter,
+  });
+
   return NextResponse.json({
     paymentId: paymentTx.id,
-    status: currentStatus,
+    status: publicResult.status,
     amount: paymentTx.amount,
     currency: paymentTx.currency,
     paidAt: currentPaidAt ?? null,
     failedAt: currentFailedAt ?? null,
     jobId: paymentTx.job_id,
-    isTerminal: responseIsTerminal,
-    isSuccess: responseIsSuccess,
-    isFailure: responseIsFailure,
+    isTerminal: publicResult.isPublicTerminal,
+    isSuccess: publicResult.status === 'paid',
+    isFailure: ['failed', 'canceled', 'expired'].includes(publicResult.status),
+    isAuthorized: publicResult.isAuthorized,
     canRetryPayment: retryAllowed,
     skippedProviderCheck: !shouldReconcile,
-    messageCode: providerCheckSkippedReason ?? null,
+    messageCode: effectiveMessageCode,
     nextProviderCheckAfter,
     lastCheckedAt: paymentTx.status_checked_at ?? null,
   });

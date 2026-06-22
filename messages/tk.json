@@ -1029,6 +1029,8 @@
     "pendingLongDesc": "This is taking longer than usual. You can go to your account — we will update the status automatically.",
     "retryPayment": "Return to payment",
     "paymentPendingTitle": "Payment is being verified",
-    "paymentPendingDesc": "If money was charged, do not pay again. We will update the status automatically."
+    "paymentPendingDesc": "If money was charged, do not pay again. We will update the status automatically.",
+    "authorizedTitle": "Payment authorized",
+    "authorizedDesc": "Your payment is authorized and will be confirmed shortly. Please wait."
   }
 }
