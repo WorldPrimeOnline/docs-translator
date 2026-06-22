@@ -3,6 +3,7 @@ import { supabase, type JobRow, type PaymentTransactionRow } from './lib/supabas
 import { processJob } from './processor';
 import { closeBrowser } from './lib/pdf';
 import { reconcileFiscalAndRefunds } from './lib/fiscal-reconciliation';
+import { logDriveAuthMode } from './lib/google-drive';
 
 // ── State ──────────────────────────────────────────────────────────────────
 let running = false;   // true while we are processing a job
@@ -197,6 +198,7 @@ async function main(): Promise<void> {
   console.log(
     `[worker] started — poll every ${env.POLL_INTERVAL_MS}ms, concurrency ${env.WORKER_CONCURRENCY}`,
   );
+  logDriveAuthMode();
   console.info('[worker] eligibility config', {
     selectableJobStatuses: ['queued'],
     eligiblePaymentStatuses: ['paid', 'completed'],

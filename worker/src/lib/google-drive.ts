@@ -1,6 +1,28 @@
 // Google Drive integration for the Railway worker.
-// Required env vars: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN,
-//                    GOOGLE_DRIVE_ROOT_FOLDER_ID
+//
+// Two auth modes — selected by GOOGLE_AUTH_MODE env var:
+//   service_account (preferred): GOOGLE_AUTH_MODE=service_account
+//     + GOOGLE_SERVICE_ACCOUNT_JSON_BASE64 (base64-encoded service account key JSON)
+//     + GOOGLE_DRIVE_ROOT_FOLDER_ID
+//
+//   oauth (legacy fallback): GOOGLE_AUTH_MODE unset or anything else
+//     + GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET + GOOGLE_REFRESH_TOKEN
+//     + GOOGLE_DRIVE_ROOT_FOLDER_ID
+//
+// JWT signing for service account uses Node.js built-in crypto — no googleapis package needed.
+
+import * as crypto from 'crypto';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface ServiceAccountJson {
+  type: string;
+  private_key_id: string;
+  private_key: string;
+  client_email: string;
+  client_id: string;
+  token_uri?: string;
+}
 
 export interface DriveFolder {
   folderId: string;
@@ -24,25 +46,122 @@ export const DRIVE_SUBFOLDER_NAMES = {
   final: '06_FINAL',
 } as const;
 
-type AccessTokenCache = { token: string; expiresAt: number };
-let _cachedToken: AccessTokenCache | null = null;
+// ─── Auth mode ────────────────────────────────────────────────────────────────
+
+export function getAuthMode(): 'service_account' | 'oauth' {
+  return process.env.GOOGLE_AUTH_MODE === 'service_account' ? 'service_account' : 'oauth';
+}
 
 export function isDriveConfigured(): boolean {
-  return !!(
-    process.env.GOOGLE_CLIENT_ID &&
-    process.env.GOOGLE_CLIENT_SECRET &&
-    process.env.GOOGLE_REFRESH_TOKEN &&
-    process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID
+  const mode = getAuthMode();
+  const hasRoot = !!process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID;
+  if (mode === 'service_account') {
+    return hasRoot && !!process.env.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64;
+  }
+  return (
+    hasRoot &&
+    !!process.env.GOOGLE_CLIENT_ID &&
+    !!process.env.GOOGLE_CLIENT_SECRET &&
+    !!process.env.GOOGLE_REFRESH_TOKEN
   );
 }
 
-async function getAccessToken(): Promise<string> {
-  const now = Date.now();
-  if (_cachedToken && _cachedToken.expiresAt > now + 60_000) return _cachedToken.token;
+export function logDriveAuthMode(): void {
+  const mode = getAuthMode();
+  const root = process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID ?? '(not set)';
+  const configured = isDriveConfigured();
+  console.log(`[drive] auth mode: ${mode} | root folder: ${root} | configured: ${configured}`);
+}
 
-  const clientId = process.env.GOOGLE_CLIENT_ID!;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET!;
-  const refreshToken = process.env.GOOGLE_REFRESH_TOKEN!;
+// ─── Token cache ──────────────────────────────────────────────────────────────
+
+type TokenCache = { token: string; expiresAt: number };
+let _cachedToken: TokenCache | null = null;
+
+export function _resetTokenCache(): void {
+  _cachedToken = null;
+}
+
+// ─── Service account JWT ──────────────────────────────────────────────────────
+
+function parseServiceAccountJson(): ServiceAccountJson {
+  const b64 = process.env.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64;
+  if (!b64) throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON_BASE64 is not set');
+
+  let jsonStr: string;
+  try {
+    jsonStr = Buffer.from(b64, 'base64').toString('utf-8');
+  } catch {
+    throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON_BASE64 is not valid base64');
+  }
+
+  let parsed: ServiceAccountJson;
+  try {
+    parsed = JSON.parse(jsonStr) as ServiceAccountJson;
+  } catch {
+    throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON_BASE64 decoded to invalid JSON');
+  }
+
+  if (!parsed.client_email || !parsed.private_key) {
+    throw new Error('Service account JSON missing required fields (client_email, private_key)');
+  }
+  return parsed;
+}
+
+function buildJwt(sa: ServiceAccountJson): string {
+  const now = Math.floor(Date.now() / 1000);
+  const header = Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })).toString('base64url');
+  const payload = Buffer.from(
+    JSON.stringify({
+      iss: sa.client_email,
+      scope: 'https://www.googleapis.com/auth/drive',
+      aud: sa.token_uri ?? 'https://oauth2.googleapis.com/token',
+      iat: now,
+      exp: now + 3600,
+    }),
+  ).toString('base64url');
+  const unsigned = `${header}.${payload}`;
+  const sign = crypto.createSign('RSA-SHA256');
+  sign.update(unsigned);
+  const signature = sign.sign(sa.private_key).toString('base64url');
+  return `${unsigned}.${signature}`;
+}
+
+async function fetchServiceAccountToken(): Promise<{ token: string; expiresIn: number }> {
+  const sa = parseServiceAccountJson();
+  const jwt = buildJwt(sa);
+  const tokenUrl = sa.token_uri ?? 'https://oauth2.googleapis.com/token';
+
+  const res = await fetch(tokenUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+      assertion: jwt,
+    }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(
+      `Service account token fetch failed: ${res.status} — ${text.slice(0, 200)}`,
+    );
+  }
+
+  const data = (await res.json()) as { access_token: string; expires_in: number };
+  return { token: data.access_token, expiresIn: data.expires_in };
+}
+
+async function fetchOAuthToken(): Promise<{ token: string; expiresIn: number }> {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
+
+  if (!clientId || !clientSecret || !refreshToken) {
+    throw new Error(
+      'Google OAuth credentials not configured (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET / GOOGLE_REFRESH_TOKEN)',
+    );
+  }
 
   const res = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
@@ -59,14 +178,24 @@ async function getAccessToken(): Promise<string> {
     throw new Error(`Google OAuth token refresh failed: ${res.status}`);
   }
 
-  const { access_token, expires_in } = (await res.json()) as {
-    access_token: string;
-    expires_in: number;
-  };
-
-  _cachedToken = { token: access_token, expiresAt: now + expires_in * 1000 };
-  return access_token;
+  const data = (await res.json()) as { access_token: string; expires_in: number };
+  return { token: data.access_token, expiresIn: data.expires_in };
 }
+
+async function getAccessToken(): Promise<string> {
+  const now = Date.now();
+  if (_cachedToken && _cachedToken.expiresAt > now + 60_000) return _cachedToken.token;
+
+  const { token, expiresIn } =
+    getAuthMode() === 'service_account'
+      ? await fetchServiceAccountToken()
+      : await fetchOAuthToken();
+
+  _cachedToken = { token, expiresAt: now + expiresIn * 1000 };
+  return token;
+}
+
+// ─── Drive API helpers ────────────────────────────────────────────────────────
 
 async function driveGet(path: string): Promise<Response> {
   const token = await getAccessToken();
@@ -116,6 +245,8 @@ async function getOrCreateFolder(name: string, parentId: string): Promise<string
   if (existing) return existing;
   return createFolder(name, parentId);
 }
+
+// ─── Public API ───────────────────────────────────────────────────────────────
 
 export async function createOrderFolder(jobId: string): Promise<DriveFolder> {
   if (!isDriveConfigured()) throw new Error('Google Drive not configured');
@@ -179,7 +310,6 @@ export async function uploadFileToDrive(
   return data.id;
 }
 
-/** Find the subfolder ID by name under the given parent (for uploading to specific stage). */
 export async function getSubfolderId(parentFolderId: string, subfolderName: string): Promise<string | null> {
   return findExistingFolder(subfolderName, parentFolderId);
 }
