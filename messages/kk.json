@@ -1018,6 +1018,7 @@
     "QUOTE_JOB_MISMATCH": "Invalid quote for this order.",
     "QUOTE_NOT_FOUND": "Quote not found. Please refresh.",
     "PRICING_NOT_CONFIGURED": "Pricing is not configured. Please contact support.",
+    "LANGUAGE_PAIR_MUST_DIFFER": "Source and target languages must be different.",
     "NOTARY_CUTOFF_PASSED": "Нотариалдық мерзім өтті — баға жарамсыз. Жаңа есеп алу үшін қайта жүктеңіз."
   }
 }

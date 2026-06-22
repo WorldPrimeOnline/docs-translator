@@ -197,7 +197,23 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
     applicantType, notaryUrgencyLevel, deliveryZone,
     notaryCity, fulfillmentMethod, deliveryPhone, deliveryAddress, customerComment,
   } = parsed.data;
+
+  const correlationId = crypto.randomUUID();
+
+  // Reject same source/target language pair
+  if (sourceLang === targetLang) {
+    return NextResponse.json(
+      { error: 'LANGUAGE_PAIR_MUST_DIFFER', correlationId },
+      { status: 422 },
+    );
+  }
+
   const { notarized } = deriveBackcompatBooleans(serviceLevel as ServiceLevel);
+
+  // Strip output-format suffix from documentType for pricing engine.
+  // documents.document_type stores "presentation|pdf" (compound, per CLAUDE.md),
+  // but pricingInput.documentType must be just "presentation".
+  const pricingDocumentType = documentType.includes('|') ? documentType.split('|')[0]! : documentType;
 
   // Convert and merge files
   console.log('[upload-card] step: converting files', rawFiles.length, 'file(s)');
@@ -215,7 +231,6 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
   const safeFilename = rawFiles.length === 1 ? firstName : `${rawFiles.length}_files_${firstName}`;
 
   const docId = crypto.randomUUID();
-  const correlationId = crypto.randomUUID();
   const fileKey = `documents/${user.id}/${docId}/original.pdf`;
   const clientIp = getClientIp(request);
 
@@ -274,7 +289,7 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
     sourceLanguage: sourceLang,
     targetLanguage: targetLang,
     serviceLevel: serviceLevel as ServiceLevel,
-    documentType,
+    documentType: pricingDocumentType,
     physicalPageCount: 1, // conservative default; OCR hasn't run yet
     // System-derived defaults — not from customer input
     urgencyLevel: 'standard' as const,

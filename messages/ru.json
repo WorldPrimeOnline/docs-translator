@@ -1047,6 +1047,7 @@
     "QUOTE_JOB_MISMATCH": "Invalid quote for this order.",
     "QUOTE_NOT_FOUND": "Quote not found. Please refresh.",
     "PRICING_NOT_CONFIGURED": "Pricing is not configured. Please contact support.",
+    "LANGUAGE_PAIR_MUST_DIFFER": "Исходный и целевой языки должны отличаться.",
     "NOTARY_CUTOFF_PASSED": "Этот расчёт больше недействителен — истёк нотариальный срок подачи. Загрузите документ заново для нового расчёта."
   }
 }

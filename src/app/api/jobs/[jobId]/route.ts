@@ -91,7 +91,9 @@ export async function GET(
     fulfillmentMethod: (job.fulfillment_method as 'pickup' | 'delivery' | null) ?? null,
     latestQuoteId: quote?.id ?? null,
     quoteStatus: quote?.status ?? null,
-    quoteAmountKzt: quote ? Number(quote.amount_kzt) : null,
+    quoteAmountKzt: (quote?.status === 'requires_operator_review' || (quote?.pricing_context_json as Record<string, unknown>)?.requiresOperatorReview === true)
+      ? null
+      : (quote ? Number(quote.amount_kzt) : null),
     quoteCurrency: quote?.currency ?? null,
     quoteExpiresAt: quote?.expires_at ?? null,
     quoteRequiresOperatorReview:

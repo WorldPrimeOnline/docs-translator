@@ -388,7 +388,7 @@ function ServiceLevelCard({ value, current, label, description, onChange }: {
   return (
     <button
       type="button"
-      onClick={() => onChange(selected ? 'electronic' : value)}
+      onClick={() => onChange(value)}
       className={`flex w-full items-start gap-3 rounded-lg border px-4 py-3.5 text-left transition-all duration-150 ${selected ? 'border-primary/40 bg-primary/5' : 'border-white/10 bg-transparent hover:border-white/20 hover:bg-white/[0.02]'}`}
     >
       <span className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors ${selected ? 'border-primary bg-primary' : 'border-white/30 bg-transparent'}`}>
@@ -446,7 +446,7 @@ export default function DashboardPage() {
   const [files, setFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [sourceLang, setSourceLang] = useState('');
-  const [targetLang, setTargetLang] = useState('en');
+  const [targetLang, setTargetLang] = useState('ru');
   const [documentType, setDocumentType] = useState('other');
   const [outputFormat, setOutputFormat] = useState<'html' | 'pdf' | 'docx'>('pdf');
   const [serviceLevel, setServiceLevel] = useState<ServiceLevel>('electronic');
@@ -460,6 +460,15 @@ export default function DashboardPage() {
   const [uploading, setUploading] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState<boolean | null>(null);
   const [consentChecked, setConsentChecked] = useState(false);
+
+  // Auto-reset targetLang if it matches a newly selected sourceLang
+  useEffect(() => {
+    if (sourceLang && targetLang && sourceLang === targetLang) {
+      const fallback = LANGUAGES.find(l => l.value !== sourceLang && l.value !== '')?.value ?? 'ru';
+      setTargetLang(fallback);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sourceLang]);
 
   // All orders loaded from Supabase — source of truth
   const [orders, setOrders] = useState<OrderEntry[]>([]);
@@ -687,6 +696,8 @@ export default function DashboardPage() {
   const isFormValid =
     files.length > 0 &&
     sourceLang.length > 0 &&
+    targetLang.length > 0 &&
+    sourceLang !== targetLang &&
     termsAccepted !== null &&
     (termsAccepted === true || consentChecked) &&
     (!isNotarization ||
@@ -729,6 +740,11 @@ export default function DashboardPage() {
       if (isDelivery) { form.append('deliveryPhone', deliveryPhone); form.append('deliveryAddress', deliveryAddress); }
     }
     if (customerComment.trim()) form.append('customerComment', customerComment.trim());
+
+    // Staging/dev debug: log actual payload values to diagnose mapping issues
+    if (process.env.NODE_ENV !== 'production') {
+      console.info('[upload-card payload]', { sourceLanguage: sourceLang, targetLanguage: targetLang, documentType: `${documentType}|${outputFormat}`, serviceLevel });
+    }
 
     const res = await fetch('/api/documents/upload-card', { method: 'POST', body: form });
     let data: { jobId?: string; documentId?: string; error?: string; priceKzt?: number; quoteId?: string; requiresOperatorReview?: boolean; currency?: string } = {};

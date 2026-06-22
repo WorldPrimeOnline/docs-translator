@@ -137,7 +137,7 @@ export async function GET(): Promise<NextResponse> {
       priceKzt: job?.price_kzt ?? null,
       latestQuoteId: quote?.id ?? null,
       quoteStatus: quote?.status ?? null,
-      quoteAmountKzt: quote?.amount_kzt ?? null,
+      quoteAmountKzt: quote?.requiresReview ? null : (quote?.amount_kzt ?? null),
       quoteCurrency: quote?.currency ?? null,
       quoteExpiresAt: quote?.expires_at ?? null,
       quoteRequiresOperatorReview: quote?.requiresReview ?? false,

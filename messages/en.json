@@ -1005,6 +1005,7 @@
     "QUOTE_JOB_MISMATCH": "Invalid quote for this order.",
     "QUOTE_NOT_FOUND": "Quote not found. Please refresh.",
     "PRICING_NOT_CONFIGURED": "Pricing is not configured. Please contact support.",
+    "LANGUAGE_PAIR_MUST_DIFFER": "Source and target languages must be different.",
     "NOTARY_CUTOFF_PASSED": "This price is no longer valid — the notary cutoff time has passed. Please upload again to get a new quote.",
     "checkingStatus": "Checking payment status...",
     "processingPayment": "Processing your payment...",
