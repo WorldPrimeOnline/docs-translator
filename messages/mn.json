@@ -294,7 +294,18 @@
       "cityRequired": "Хот сонгоно уу",
       "fulfillmentRequired": "Авах эсвэл хүргэлтийг сонгоно уу",
       "phoneRequired": "Хүргэлтэд утасны дугаар шаардлагатай",
-      "addressRequired": "Хүргэлтэд хаяг шаардлагатай"
+      "addressRequired": "Хүргэлтэд хаяг шаардлагатай",
+      "urgencyLevel": "НОТАРИАТЫН ХУРД",
+      "urgency": {
+        "standard": "Стандарт нотариатчилал",
+        "same_day": "Өдөрт нь нотариатчилал",
+        "sameDayHint": "Алматы цагаар 12:00-с өмнө байршуулж, төлбөр хийнэ үү. 12:00-с хойш +50%; 18:00-с хойш ×2 шөнийн нэмэгдэл.",
+        "cutoffNotice": "Төлбөрийн хугацаа: {time} (Алматы цаг)",
+        "before_noon": "Өдөр 12:00-с өмнө (нэмэгдэлгүй)",
+        "after_noon": "Өдөр 12:00-с хойш (+50%)",
+        "after_18": "18:00-с хойш шөнийн нотариатчилал (×2)",
+        "notaryCutoffPassed": "Нотариатын хугацаа дууссан — үнийн санал хүчингүй. Шинэ санал авахын тулд дахин байршуулна уу."
+      }
     },
     "inReview": "Хянагдаж байна",
     "activeOrders": "Идэвхтэй захиалгууд",
@@ -1001,6 +1012,7 @@
     "QUOTE_ALREADY_PAID": "This order is already paid.",
     "QUOTE_JOB_MISMATCH": "Invalid quote for this order.",
     "QUOTE_NOT_FOUND": "Quote not found. Please refresh.",
-    "PRICING_NOT_CONFIGURED": "Pricing is not configured. Please contact support."
+    "PRICING_NOT_CONFIGURED": "Pricing is not configured. Please contact support.",
+    "NOTARY_CUTOFF_PASSED": "This price is no longer valid — the notary cutoff time has passed. Please upload again to get a new quote."
   }
 }

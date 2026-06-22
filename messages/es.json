@@ -294,7 +294,18 @@
       "cityRequired": "Seleccione una ciudad",
       "fulfillmentRequired": "Seleccione recogida o entrega",
       "phoneRequired": "Se requiere teléfono para la entrega",
-      "addressRequired": "Se requiere dirección para la entrega"
+      "addressRequired": "Se requiere dirección para la entrega",
+      "urgencyLevel": "VELOCIDAD DE NOTARIZACIÓN",
+      "urgency": {
+        "standard": "Notarización estándar",
+        "same_day": "Notarización el mismo día",
+        "sameDayHint": "Para el mismo día, cargue y pague antes de las 12:00 hora de Almaty. Después de las 12:00 se aplica +50%; después de las 18:00 se aplica ×2 tarifa nocturna.",
+        "cutoffNotice": "Plazo de pago: {time} (hora de Almaty)",
+        "before_noon": "Mismo día antes de las 12:00 (sin recargo)",
+        "after_noon": "Mismo día después de las 12:00 (+50%)",
+        "after_18": "Notarización nocturna después de las 18:00 (×2)",
+        "notaryCutoffPassed": "El plazo notarial ha pasado — el precio ya no es válido. Suba el documento nuevamente para obtener una nueva cotización."
+      }
     },
     "inReview": "En revisión",
     "activeOrders": "Pedidos activos",
@@ -1001,6 +1012,7 @@
     "QUOTE_ALREADY_PAID": "This order is already paid.",
     "QUOTE_JOB_MISMATCH": "Invalid quote for this order.",
     "QUOTE_NOT_FOUND": "Quote not found. Please refresh.",
-    "PRICING_NOT_CONFIGURED": "Pricing is not configured. Please contact support."
+    "PRICING_NOT_CONFIGURED": "Pricing is not configured. Please contact support.",
+    "NOTARY_CUTOFF_PASSED": "This price is no longer valid — the notary cutoff time has passed. Please upload again to get a new quote."
   }
 }

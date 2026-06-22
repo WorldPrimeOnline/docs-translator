@@ -274,7 +274,18 @@
       "cityRequired": "Please select a city",
       "fulfillmentRequired": "Please select pickup or delivery",
       "phoneRequired": "Phone number is required for delivery",
-      "addressRequired": "Delivery address is required for delivery"
+      "addressRequired": "Delivery address is required for delivery",
+      "urgencyLevel": "NOTARIZATION SPEED",
+      "urgency": {
+        "standard": "Standard notarization",
+        "same_day": "Same-day notarization",
+        "sameDayHint": "Documents must be uploaded and paid before 12:00 Almaty time. After 12:00 a +50% surcharge applies; after 18:00 a ×2 night surcharge applies.",
+        "cutoffNotice": "Payment deadline: {time} (Almaty time)",
+        "before_noon": "Same-day before 12:00 (no surcharge)",
+        "after_noon": "Same-day after 12:00 (+50%)",
+        "after_18": "Night notarization after 18:00 (×2)",
+        "notaryCutoffPassed": "This quote expired because the notary cutoff time has passed. Please recalculate."
+      }
     },
     "status": {
       "paymentPending": "Awaiting payment",
@@ -989,6 +1000,7 @@
     "QUOTE_JOB_MISMATCH": "Invalid quote for this order.",
     "QUOTE_NOT_FOUND": "Quote not found. Please refresh.",
     "PRICING_NOT_CONFIGURED": "Pricing is not configured. Please contact support.",
+    "NOTARY_CUTOFF_PASSED": "This price is no longer valid — the notary cutoff time has passed. Please upload again to get a new quote.",
     "checkingStatus": "Checking payment status...",
     "processingPayment": "Processing your payment...",
     "successTitle": "Payment successful",

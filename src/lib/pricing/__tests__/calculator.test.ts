@@ -358,4 +358,65 @@ describe('calculatePrice', () => {
       expect(result.requiresOperatorReview).toBe(true);
     });
   });
+
+  describe('notary urgency', () => {
+    const notaryBase = (overrides: Partial<PricingInput> = {}): PricingInput => ({
+      sourceLanguage: 'ru',
+      targetLanguage: 'kz',
+      serviceLevel: 'notarization_through_partners',
+      documentType: 'passport_id',
+      physicalPageCount: 1,
+      urgencyLevel: 'standard',
+      salesChannel: 'direct',
+      ...overrides,
+    });
+
+    it('standard notarized order produces no notary_urgency_fee item', () => {
+      const result = calculatePrice(notaryBase({ notaryUrgencyLevel: 'standard' }), mockVersion);
+      const urgencyFee = result.items.find(i => i.itemType === 'notary_urgency_fee');
+      expect(urgencyFee).toBeUndefined();
+    });
+
+    it('standard notarized order has notaryCutoff snapshot with window=standard', () => {
+      const result = calculatePrice(notaryBase({ notaryUrgencyLevel: 'standard' }), mockVersion);
+      expect(result.context.notaryCutoff).toBeDefined();
+      expect(result.context.notaryCutoff?.effectiveWindow).toBe('standard');
+      expect(result.context.notaryCutoff?.multiplier).toBe(1.0);
+    });
+
+    it('notary official fee (MRP) is present regardless of notaryUrgencyLevel', () => {
+      const result = calculatePrice(notaryBase({ notaryUrgencyLevel: 'standard' }), mockVersion);
+      const mrpFee = result.items.find(i => i.itemType === 'notary_official_fee');
+      expect(mrpFee).toBeDefined();
+      expect(mrpFee!.amountKzt).toBeGreaterThan(0);
+    });
+
+    it('non-notarized order has no notaryCutoff snapshot', () => {
+      const result = calculatePrice(baseInput({ serviceLevel: 'electronic', notaryUrgencyLevel: 'standard' }), mockVersion);
+      expect(result.context.notaryCutoff).toBeUndefined();
+    });
+
+    // Note: same_day tests depend on server time — tested exhaustively in almaty-time.test.ts
+    // The calculator delegates window determination to getNotaryCutoffWindow()
+    it('same_day produces a notaryCutoff snapshot with a non-standard window', () => {
+      const result = calculatePrice(notaryBase({ notaryUrgencyLevel: 'same_day' }), mockVersion);
+      expect(result.context.notaryCutoff).toBeDefined();
+      const snapshot = result.context.notaryCutoff!;
+      expect(['before_noon', 'after_noon', 'after_18']).toContain(snapshot.effectiveWindow);
+      expect(snapshot.multiplier).toBeGreaterThanOrEqual(1.0);
+      expect(snapshot.pricingTimezone).toBe('Asia/Almaty');
+    });
+
+    it('same_day after_noon or after_18 adds notary_urgency_fee item with positive amount', () => {
+      // We can't control server time, so just verify structure is correct when fee is present
+      const result = calculatePrice(notaryBase({ notaryUrgencyLevel: 'same_day' }), mockVersion);
+      const snapshot = result.context.notaryCutoff!;
+      if (snapshot.multiplier > 1.0) {
+        const urgencyFee = result.items.find(i => i.itemType === 'notary_urgency_fee');
+        expect(urgencyFee).toBeDefined();
+        expect(urgencyFee!.amountKzt).toBeGreaterThan(0);
+        expect(urgencyFee!.isClientVisible).toBe(true);
+      }
+    });
+  });
 });

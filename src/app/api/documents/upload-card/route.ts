@@ -36,6 +36,7 @@ const VALID_LAYOUT_COMPLEXITY = ['standard', 'tables', 'complex_tables', 'comple
 const VALID_VISUAL_MARKS = ['normal', 'many_stamps'] as const;
 const VALID_APPLICANT_TYPES = ['individual', 'legal_entity', 'unknown'] as const;
 const VALID_DELIVERY_ZONES = ['almaty_standard', 'remote_area', 'other_city', 'urgent_delivery'] as const;
+const VALID_NOTARY_URGENCY = ['standard', 'same_day'] as const;
 
 const UploadFormSchema = z
   .object({
@@ -48,6 +49,7 @@ const UploadFormSchema = z
     layoutComplexity: z.enum(VALID_LAYOUT_COMPLEXITY).default('standard'),
     visualMarksComplexity: z.enum(VALID_VISUAL_MARKS).default('normal'),
     applicantType: z.enum(VALID_APPLICANT_TYPES).default('individual'),
+    notaryUrgencyLevel: z.enum(VALID_NOTARY_URGENCY).default('standard'),
     deliveryZone: z.enum(VALID_DELIVERY_ZONES).optional(),
     extraPaperCopies: z.coerce.number().int().min(0).max(20).default(0),
     notaryCity: z.string().optional(),
@@ -185,6 +187,7 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
     layoutComplexity: formData.get('layoutComplexity') ?? 'standard',
     visualMarksComplexity: formData.get('visualMarksComplexity') ?? 'normal',
     applicantType: formData.get('applicantType') ?? 'individual',
+    notaryUrgencyLevel: formData.get('notaryUrgencyLevel') ?? 'standard',
     deliveryZone: formData.get('deliveryZone') ?? undefined,
     extraPaperCopies: formData.get('extraPaperCopies') ?? 0,
     notaryCity: formData.get('notaryCity') ?? undefined,
@@ -200,7 +203,7 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
   const {
     sourceLang, targetLang, documentType, serviceLevel,
     urgencyLevel, scanQuality, layoutComplexity, visualMarksComplexity,
-    applicantType, deliveryZone, extraPaperCopies,
+    applicantType, notaryUrgencyLevel, deliveryZone, extraPaperCopies,
     notaryCity, fulfillmentMethod, deliveryPhone, deliveryAddress,
   } = parsed.data;
   const { notarized } = deriveBackcompatBooleans(serviceLevel as ServiceLevel);
@@ -287,6 +290,7 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
     layoutComplexity,
     visualMarksComplexity,
     applicantType,
+    notaryUrgencyLevel: notaryUrgencyLevel as 'standard' | 'same_day',
     deliveryZone: deliveryZone as 'almaty_standard' | 'remote_area' | 'other_city' | 'urgent_delivery' | undefined,
     extraPaperCopies,
     fulfillmentMethod: fulfillmentMethod as 'pickup' | 'delivery' | undefined,
@@ -337,8 +341,11 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Failed to create job' }, { status: 500 });
   }
 
-  // Save quote with job_id now that job exists
-  const savedQuote = await saveQuote({ ...pricingInput, jobId: job.id }, pricingResult);
+  // Save quote with job_id now that job exists.
+  // For same-day notary orders, use the cutoff-aware expiry from the pricing result.
+  const notaryCutoffExpiry = pricingResult.context.notaryCutoff?.quoteExpiresAt;
+  const cutoffExpiresAt = notaryCutoffExpiry && notaryCutoffExpiry.length > 0 ? notaryCutoffExpiry : undefined;
+  const savedQuote = await saveQuote({ ...pricingInput, jobId: job.id }, pricingResult, 24, cutoffExpiresAt);
   const quoteId = 'quoteId' in savedQuote ? savedQuote.quoteId : null;
 
   if ('error' in savedQuote) {

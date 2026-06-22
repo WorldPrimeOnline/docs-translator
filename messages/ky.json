@@ -294,7 +294,18 @@
       "cityRequired": "Шаарды тандаңыз",
       "fulfillmentRequired": "Алуу же жеткирүүнү тандаңыз",
       "phoneRequired": "Жеткирүү үчүн телефон керек",
-      "addressRequired": "Жеткирүү үчүн дарек керек"
+      "addressRequired": "Жеткирүү үчүн дарек керек",
+      "urgencyLevel": "НОТАРИАЛДЫК ТАРИЗДӨӨ МӨӨНӨТҮ",
+      "urgency": {
+        "standard": "Стандарттуу нотариалдык тариздөө",
+        "same_day": "Ошол күнү нотариалдык тариздөө",
+        "sameDayHint": "Алматы убактысы боюнча 12:00гө чейин жүктөп, төлөм жасаңыз. 12:00дөн кийин +50%; 18:00дөн кийин ×2 түнкү коэффициент.",
+        "cutoffNotice": "Төлөм мөөнөтү: {time}чейин (Алматы убактысы)",
+        "before_noon": "Ошол күнү 12:00гө чейин (кошумча акысыз)",
+        "after_noon": "Ошол күнү 12:00дөн кийин (+50%)",
+        "after_18": "18:00дөн кийин түнкү тариздөө (×2)",
+        "notaryCutoffPassed": "Нотариалдык мөөнөт өттү — баа жараксыз. Жаңа эсеп алуу үчүн кайра жүктөңүз."
+      }
     },
     "inReview": "Каралуда",
     "activeOrders": "Активдүү заказдар",
@@ -1001,6 +1012,7 @@
     "QUOTE_ALREADY_PAID": "This order is already paid.",
     "QUOTE_JOB_MISMATCH": "Invalid quote for this order.",
     "QUOTE_NOT_FOUND": "Quote not found. Please refresh.",
-    "PRICING_NOT_CONFIGURED": "Pricing is not configured. Please contact support."
+    "PRICING_NOT_CONFIGURED": "Pricing is not configured. Please contact support.",
+    "NOTARY_CUTOFF_PASSED": "This price is no longer valid — the notary cutoff time has passed. Please upload again to get a new quote."
   }
 }

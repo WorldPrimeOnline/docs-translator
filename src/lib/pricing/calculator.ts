@@ -1,4 +1,4 @@
-import type { PricingInput, PricingResult, PricingVersion, QuoteLineItem, QuoteStatus } from './types';
+import type { PricingInput, PricingResult, PricingVersion, QuoteLineItem, QuoteStatus, NotaryCutoffSnapshot } from './types';
 import {
   resolveLanguageGroup,
   BASE_MINIMUM_KZT,
@@ -15,6 +15,7 @@ import {
   NOTARY_CONFIG,
   PRICE_ROUNDING_INCREMENT,
 } from './config';
+import { getNotaryCutoffWindow } from './almaty-time';
 
 function roundToIncrement(amount: number, increment: number): number {
   return Math.ceil(amount / increment) * increment;
@@ -251,6 +252,7 @@ export function calculatePrice(input: PricingInput, version: PricingVersion): Pr
   let notaryFee = 0;
   let notaryCoordFee = 0;
   let printingFee = 0;
+  let notaryCutoffSnapshot: NotaryCutoffSnapshot | undefined;
 
   if (serviceLevel === 'notarization_through_partners') {
     const mrpValue = version.mrpValue ?? 3.69;
@@ -306,6 +308,57 @@ export function calculatePrice(input: PricingInput, version: PricingVersion): Pr
 
     subtotal += notaryFee + notaryCoordFee + printingFee;
     reviewReasons.push('Notarized order: MRP-based fee requires notary confirmation before production launch');
+
+    // 11a. Notary urgency — applies ONLY to coordination fee, NOT to MRP-based official fee
+    const notaryUrgencyLevel = input.notaryUrgencyLevel ?? 'standard';
+    if (notaryUrgencyLevel === 'same_day') {
+      const cutoffInfo = getNotaryCutoffWindow(); // server time in Asia/Almaty
+      const notaryUrgencyMultiplier = cutoffInfo.multiplier;
+      notaryCutoffSnapshot = {
+        notaryUrgencyLevel,
+        effectiveWindow: cutoffInfo.window,
+        multiplier: notaryUrgencyMultiplier,
+        quoteExpiresAt: cutoffInfo.quoteExpiresAt,
+        cutoffAt: cutoffInfo.cutoffAt,
+        pricingTimezone: 'Asia/Almaty',
+        windowLabel: cutoffInfo.windowLabel,
+      };
+
+      if (notaryUrgencyMultiplier > 1.0) {
+        const urgencySurcharge = Math.round(notaryCoordFee * (notaryUrgencyMultiplier - 1.0));
+        const label =
+          cutoffInfo.window === 'after_18'
+            ? 'Night notarization surcharge (×2)'
+            : 'Same-day notarization surcharge (+50%)';
+        items.push({
+          itemType: 'notary_urgency_fee',
+          label,
+          quantity: 1,
+          unitPriceKzt: urgencySurcharge,
+          amountKzt: urgencySurcharge,
+          isClientVisible: true,
+          isCost: false,
+          sortOrder: nextSort(),
+          metadataJson: {
+            notaryUrgencyLevel,
+            effectiveWindow: cutoffInfo.window,
+            multiplier: notaryUrgencyMultiplier,
+            pricingTimezone: 'Asia/Almaty',
+          },
+        });
+        subtotal += urgencySurcharge;
+      }
+    } else {
+      notaryCutoffSnapshot = {
+        notaryUrgencyLevel: 'standard',
+        effectiveWindow: 'standard',
+        multiplier: 1.0,
+        quoteExpiresAt: '', // standard 24h — set by saveQuote
+        cutoffAt: null,
+        pricingTimezone: 'Asia/Almaty',
+        windowLabel: 'standard',
+      };
+    }
 
     // Extra paper copies (notarization only, added to subtotal)
     if (extraCopies > 0) {
@@ -449,6 +502,7 @@ export function calculatePrice(input: PricingInput, version: PricingVersion): Pr
       urgencyCoefficient: urgencyCoeff,
       includedWordCount: includedWords,
       includedPageCount: includedPages,
+      ...(notaryCutoffSnapshot ? { notaryCutoff: notaryCutoffSnapshot } : {}),
     },
   };
 }

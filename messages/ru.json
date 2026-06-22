@@ -321,7 +321,18 @@
       "cityRequired": "Выберите город",
       "fulfillmentRequired": "Выберите самовывоз или доставку",
       "phoneRequired": "Укажите номер телефона для доставки",
-      "addressRequired": "Укажите адрес доставки"
+      "addressRequired": "Укажите адрес доставки",
+      "urgencyLevel": "СРОК НОТАРИАЛЬНОГО ОФОРМЛЕНИЯ",
+      "urgency": {
+        "standard": "Стандартное нотариальное оформление",
+        "same_day": "Нотариальное оформление в тот же день",
+        "sameDayHint": "Загрузите документ и оплатите до 12:00 по времени Алматы. После 12:00 — коэффициент +50%; после 18:00 — ночной коэффициент ×2.",
+        "cutoffNotice": "Срок оплаты: до {time} (время Алматы)",
+        "before_noon": "В тот же день до 12:00 (без доплаты)",
+        "after_noon": "В тот же день после 12:00 (+50%)",
+        "after_18": "Ночное оформление после 18:00 (×2)",
+        "notaryCutoffPassed": "Расчёт истёк — прошёл нотариальный срок подачи. Загрузите документ заново для нового расчёта."
+      }
     },
     "inReview": "На проверке",
     "activeOrders": "Активные заказы",
@@ -1030,6 +1041,7 @@
     "QUOTE_ALREADY_PAID": "This order is already paid.",
     "QUOTE_JOB_MISMATCH": "Invalid quote for this order.",
     "QUOTE_NOT_FOUND": "Quote not found. Please refresh.",
-    "PRICING_NOT_CONFIGURED": "Pricing is not configured. Please contact support."
+    "PRICING_NOT_CONFIGURED": "Pricing is not configured. Please contact support.",
+    "NOTARY_CUTOFF_PASSED": "Этот расчёт больше недействителен — истёк нотариальный срок подачи. Загрузите документ заново для нового расчёта."
   }
 }

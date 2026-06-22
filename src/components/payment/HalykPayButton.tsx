@@ -81,7 +81,7 @@ export function HalykPayButton({ jobId, quoteId, priceKzt, className = '', onSuc
           setErrorKey(errorCode === 'PAYMENT_ALREADY_PENDING' ? 'alreadyPaid' : 'alreadyPaid');
         }
         else if (response.status === 401) setErrorKey('sessionExpired');
-        else if (response.status === 422 && errorCode && ['QUOTE_EXPIRED', 'QUOTE_ALREADY_PAID', 'QUOTE_JOB_MISMATCH', 'QUOTE_NOT_FOUND', 'PRICING_NOT_CONFIGURED'].includes(errorCode)) {
+        else if (response.status === 422 && errorCode && ['QUOTE_EXPIRED', 'QUOTE_ALREADY_PAID', 'QUOTE_JOB_MISMATCH', 'QUOTE_NOT_FOUND', 'PRICING_NOT_CONFIGURED', 'NOTARY_CUTOFF_PASSED'].includes(errorCode)) {
           setErrorKey(errorCode);
         }
         else setErrorKey('genericError');

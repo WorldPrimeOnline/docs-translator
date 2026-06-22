@@ -131,6 +131,51 @@ All inputs are optional at the TypeScript level but some **must** be set explici
 
 The language pair drives `BASE_MINIMUM_KZT`, `EXTRA_WORD_RATE_KZT`, and `EXTRA_WORD_RATE_KZT` lookups. If `'auto'` is passed, `resolveLanguageGroup` cannot find a matching group and returns `requiresReview: true`, making the order unquotable. The upload-card API route rejects `sourceLang=auto` at the schema level. The frontend must always show a mandatory source-language selector.
 
+## Notary Urgency and Almaty Cutoff Rules
+
+Notary same-day processing uses Asia/Almaty time (UTC+5, no DST). All cutoff calculations
+are server-side only — client browser time is never used.
+
+### Windows
+
+| Window | Almaty hours | Multiplier applied to | Quote expires |
+|---|---|---|---|
+| standard | any | — | 24 hours |
+| same_day_before_noon | 00:00–11:59 | coord fee ×1.0 (no surcharge) | Today 12:00 Almaty |
+| same_day_after_noon | 12:00–17:59 | coord fee ×1.5 (+50%) | Today 18:00 Almaty |
+| same_day_after_18 | 18:00–23:59 | coord fee ×2.0 (×2 night) | Now + 2 hours |
+
+### What IS multiplied by notary urgency
+- `notary_coordination_fee` (operational coordination cost, default 3 000 KZT)
+
+### What is NOT multiplied by notary urgency
+- `notary_official_fee` (MRP-based state duty — regulated, not adjustable)
+- `printing_binding_fee`
+- `delivery_fee`
+- Translation/layout portion (use `urgencyLevel` for that)
+
+### Cutoff enforcement at payment time
+If a same-day quote was created before a window boundary (e.g. before noon) but the
+user tries to pay after the boundary has passed, `POST /api/payments/halyk/initiate`
+reads `price_quotes.pricing_context_json.notaryCutoff.cutoffAt`, compares to `new Date()`,
+and returns `NOTARY_CUTOFF_PASSED` (HTTP 422). The quote is also marked `expired`.
+The user must re-upload to get a new quote at the current window's rate.
+
+### Quote expiry
+- `standard` → 24 hours (unchanged)
+- `same_day_before_noon` → quote expires at 12:00 Almaty today
+- `same_day_after_noon` → quote expires at 18:00 Almaty today
+- `same_day_after_18` → quote expires 2 hours from creation time
+
+### Why Asia/Almaty
+WPO operates notary partner services in Almaty (UTC+5). Notary offices work on Almaty
+local time. Cutoff decisions must be consistent regardless of server location or user timezone.
+
+### New pricing input
+| Field | Values | Default | Effect |
+|---|---|---|---|
+| `notaryUrgencyLevel` | `standard` \| `same_day` | `standard` | Triggers cutoff window lookup and time-based quote expiry |
+
 ## Code location
 
 - `src/lib/pricing/config.ts` — all rate tables (including new: SCAN_QUALITY_SURCHARGE, LAYOUT_COMPLEXITY_CONFIG, VISUAL_MARKS_FEE_KZT, DELIVERY_ZONE_FEE_KZT, NOTARY_APPLICANT_MRP_COEFFICIENT, EXTRA_PAPER_COPY_FEE_KZT)

@@ -294,7 +294,18 @@
       "cityRequired": "Iltimos, shaharni tanlang",
       "fulfillmentRequired": "Olib ketish yoki yetkazib berishni tanlang",
       "phoneRequired": "Yetkazib berish uchun telefon raqami kerak",
-      "addressRequired": "Yetkazib berish uchun manzil kerak"
+      "addressRequired": "Yetkazib berish uchun manzil kerak",
+      "urgencyLevel": "NOTARIAL TASDIQLASH MUDDATI",
+      "urgency": {
+        "standard": "Standart notarial tasdiqlash",
+        "same_day": "Shu kuni notarial tasdiqlash",
+        "sameDayHint": "Shu kuni bajarish uchun Olmaota vaqti bilan soat 12:00 gacha yuklang va to'lang. 12:00 dan keyin +50%; 18:00 dan keyin ×2 tungi narx.",
+        "cutoffNotice": "To'lov muddati: {time} gacha (Olmaota vaqti)",
+        "before_noon": "Shu kuni 12:00 gacha (qo'shimcha to'lovsiz)",
+        "after_noon": "Shu kuni 12:00 dan keyin (+50%)",
+        "after_18": "18:00 dan keyin tungi tasdiqlash (×2)",
+        "notaryCutoffPassed": "Notarial muddat o'tdi — narx amal qilmaydi. Yangi narx olish uchun qayta yuklang."
+      }
     },
     "inReview": "Ko'rib chiqilmoqda",
     "activeOrders": "Faol buyurtmalar",
@@ -1001,6 +1012,7 @@
     "QUOTE_ALREADY_PAID": "This order is already paid.",
     "QUOTE_JOB_MISMATCH": "Invalid quote for this order.",
     "QUOTE_NOT_FOUND": "Quote not found. Please refresh.",
-    "PRICING_NOT_CONFIGURED": "Pricing is not configured. Please contact support."
+    "PRICING_NOT_CONFIGURED": "Pricing is not configured. Please contact support.",
+    "NOTARY_CUTOFF_PASSED": "This price is no longer valid — the notary cutoff time has passed. Please upload again to get a new quote."
   }
 }

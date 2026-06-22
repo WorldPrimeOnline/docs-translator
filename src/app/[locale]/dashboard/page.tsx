@@ -455,6 +455,7 @@ export default function DashboardPage() {
   const [layoutComplexity, setLayoutComplexity] = useState('standard');
   const [visualMarksComplexity, setVisualMarksComplexity] = useState('normal');
   const [applicantType, setApplicantType] = useState('individual');
+  const [notaryUrgencyLevel, setNotaryUrgencyLevel] = useState<'standard' | 'same_day'>('standard');
   const [extraPaperCopies, setExtraPaperCopies] = useState(0);
   const [notaryCity, setNotaryCity] = useState('');
   const [fulfillmentMethod, setFulfillmentMethod] = useState<FulfillmentMethod | ''>('');
@@ -679,7 +680,7 @@ export default function DashboardPage() {
     setServiceLevel(newLevel);
     if (newLevel !== 'notarization_through_partners') {
       setNotaryCity(''); setFulfillmentMethod(''); setDeliveryPhone(''); setDeliveryAddress('');
-      setApplicantType('individual'); setExtraPaperCopies(0);
+      setApplicantType('individual'); setNotaryUrgencyLevel('standard'); setExtraPaperCopies(0);
     }
   };
 
@@ -730,6 +731,7 @@ export default function DashboardPage() {
     form.append('visualMarksComplexity', visualMarksComplexity);
     if (isNotarization) {
       form.append('applicantType', applicantType);
+      form.append('notaryUrgencyLevel', notaryUrgencyLevel);
       form.append('extraPaperCopies', String(extraPaperCopies));
       form.append('notaryCity', notaryCity);
       if (fulfillmentMethod) form.append('fulfillmentMethod', fulfillmentMethod);
@@ -943,6 +945,29 @@ export default function DashboardPage() {
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('notary.extraCopies')}</label>
                 <input type="number" min={0} max={20} value={extraPaperCopies} onChange={(e) => setExtraPaperCopies(Math.max(0, parseInt(e.target.value, 10) || 0))} className={`${inputClass} w-24`} />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('notary.urgencyLevel')}</label>
+                <div className="flex flex-col gap-2">
+                  {(['standard', 'same_day'] as const).map((level) => (
+                    <label key={level} className={`flex items-start gap-3 rounded-lg border px-3 py-2.5 cursor-pointer transition-all ${notaryUrgencyLevel === level ? 'border-primary/40 bg-primary/5' : 'border-white/10 hover:border-white/20'}`}>
+                      <input
+                        type="radio"
+                        name="notaryUrgencyLevel"
+                        value={level}
+                        checked={notaryUrgencyLevel === level}
+                        onChange={() => setNotaryUrgencyLevel(level)}
+                        className="mt-0.5 accent-primary"
+                      />
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{t(`notary.urgency.${level}`)}</p>
+                        {level === 'same_day' && (
+                          <p className="text-xs text-muted-foreground mt-0.5">{t('notary.urgency.sameDayHint')}</p>
+                        )}
+                      </div>
+                    </label>
+                  ))}
+                </div>
               </div>
             </div>
           )}

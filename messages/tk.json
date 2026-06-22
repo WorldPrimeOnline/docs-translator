@@ -294,7 +294,18 @@
       "cityRequired": "Şäheri saýlaň",
       "fulfillmentRequired": "Almak ýa-da eltip bermegi saýlaň",
       "phoneRequired": "Eltip bermek üçin telefon belgisi zerur",
-      "addressRequired": "Eltip bermek üçin salgy zerur"
+      "addressRequired": "Eltip bermek üçin salgy zerur",
+      "urgencyLevel": "NOTARIAL TASSYKLAMANYŇ MÖHLETI",
+      "urgency": {
+        "standard": "Adaty notarial tassyklama",
+        "same_day": "Şol gün notarial tassyklama",
+        "sameDayHint": "Şol gün üçin Almatý wagty bilen sagat 12:00-den öň ýükläp, töleg ediň. 12:00-den soň +50%; 18:00-den soň ×2 gijeki nyrh.",
+        "cutoffNotice": "Töleg möhleti: {time} (Almatý wagty)",
+        "before_noon": "Şol gün 12:00-den öň (goşmaça töleg ýok)",
+        "after_noon": "Şol gün 12:00-den soň (+50%)",
+        "after_18": "18:00-den soň gijeki tassyklama (×2)",
+        "notaryCutoffPassed": "Notarial möhlet geçdi — baha güýçsüz. Täze baha almak üçin täzeden ýükläň."
+      }
     },
     "inReview": "Seredilýär",
     "activeOrders": "Işjeň buýurmalar",
@@ -1001,6 +1012,7 @@
     "QUOTE_ALREADY_PAID": "This order is already paid.",
     "QUOTE_JOB_MISMATCH": "Invalid quote for this order.",
     "QUOTE_NOT_FOUND": "Quote not found. Please refresh.",
-    "PRICING_NOT_CONFIGURED": "Pricing is not configured. Please contact support."
+    "PRICING_NOT_CONFIGURED": "Pricing is not configured. Please contact support.",
+    "NOTARY_CUTOFF_PASSED": "This price is no longer valid — the notary cutoff time has passed. Please upload again to get a new quote."
   }
 }

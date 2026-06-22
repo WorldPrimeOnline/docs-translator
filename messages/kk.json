@@ -294,7 +294,18 @@
       "cityRequired": "Қаланы таңдаңыз",
       "fulfillmentRequired": "Өзі алу немесе жеткізуді таңдаңыз",
       "phoneRequired": "Жеткізу үшін телефон нөмірі қажет",
-      "addressRequired": "Жеткізу үшін мекенжай қажет"
+      "addressRequired": "Жеткізу үшін мекенжай қажет",
+      "urgencyLevel": "НОТАРИАЛДЫҚ РЕСІМДЕУ МЕРЗІМІ",
+      "urgency": {
+        "standard": "Стандартты нотариалдық ресімдеу",
+        "same_day": "Сол күні нотариалдық ресімдеу",
+        "sameDayHint": "Алматы уақыты бойынша 12:00-ге дейін жүктеп, төлем жасаңыз. 12:00-ден кейін +50%; 18:00-ден кейін ×2 түнгі коэффициент.",
+        "cutoffNotice": "Төлем мерзімі: {time} дейін (Алматы уақыты)",
+        "before_noon": "Сол күні 12:00-ге дейін (қосымша ақысыз)",
+        "after_noon": "Сол күні 12:00-ден кейін (+50%)",
+        "after_18": "18:00-ден кейін түнгі ресімдеу (×2)",
+        "notaryCutoffPassed": "Нотариалдық мерзім өтті. Жаңа есеп алу үшін қайта жүктеңіз."
+      }
     },
     "inReview": "Тексерілуде",
     "activeOrders": "Белсенді тапсырыстар",
@@ -1001,6 +1012,7 @@
     "QUOTE_ALREADY_PAID": "This order is already paid.",
     "QUOTE_JOB_MISMATCH": "Invalid quote for this order.",
     "QUOTE_NOT_FOUND": "Quote not found. Please refresh.",
-    "PRICING_NOT_CONFIGURED": "Pricing is not configured. Please contact support."
+    "PRICING_NOT_CONFIGURED": "Pricing is not configured. Please contact support.",
+    "NOTARY_CUTOFF_PASSED": "Нотариалдық мерзім өтті — баға жарамсыз. Жаңа есеп алу үшін қайта жүктеңіз."
   }
 }

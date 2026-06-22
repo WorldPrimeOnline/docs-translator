@@ -199,6 +199,32 @@ async function handlePost(request: NextRequest, correlationId: string): Promise<
       return NextResponse.json({ error: quoteCheck.error, correlationId }, { status: 422 });
     }
     priceKzt = quoteCheck.amountKzt;
+
+    // Notary cutoff check: if this is a same-day notary quote and the cutoff has passed,
+    // reject it so the user re-uploads at the current window's price.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: quoteDetail } = await (supabaseServer as any)
+      .from('price_quotes')
+      .select('pricing_context_json')
+      .eq('id', quoteId)
+      .maybeSingle();
+
+    if (quoteDetail?.pricing_context_json) {
+      const ctx = quoteDetail.pricing_context_json as Record<string, unknown>;
+      const cutoff = ctx['notaryCutoff'] as { cutoffAt?: string | null } | undefined;
+      if (cutoff?.cutoffAt) {
+        const cutoffDate = new Date(cutoff.cutoffAt);
+        if (new Date() >= cutoffDate) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (supabaseServer as any)
+            .from('price_quotes')
+            .update({ status: 'expired', updated_at: new Date().toISOString() })
+            .eq('id', quoteId);
+          console.warn('[halyk/initiate] notary cutoff passed', { correlationId, quoteId, cutoffAt: cutoff.cutoffAt });
+          return NextResponse.json({ error: 'NOTARY_CUTOFF_PASSED', correlationId }, { status: 422 });
+        }
+      }
+    }
   } else {
     // Legacy path: use price set on job (still DB-authoritative, not from client)
     const jobPrice = job.price_kzt;

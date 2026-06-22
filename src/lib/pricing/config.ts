@@ -145,6 +145,13 @@ export const NOTARY_CONFIG = {
 
 export const PRICE_ROUNDING_INCREMENT = 100;
 
+export const NOTARY_URGENCY_CONFIG = {
+  standard:             { multiplier: 1.0 },
+  same_day_before_noon: { multiplier: 1.0, cutoffHour: 12 },
+  same_day_after_noon:  { multiplier: 1.5, cutoffHour: 18 },
+  same_day_after_18:    { multiplier: 2.0, windowHours: 2 },
+} as const;
+
 // ─── Language resolution ───────────────────────────────────────────────────────
 
 const RU = ['ru', 'russian'];

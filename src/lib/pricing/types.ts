@@ -15,6 +15,8 @@ export type ApplicantType = 'individual' | 'legal_entity' | 'unknown';
 
 export type DeliveryZone = 'almaty_standard' | 'remote_area' | 'other_city' | 'urgent_delivery';
 
+export type NotaryUrgencyLevel = 'standard' | 'same_day';
+
 export type SalesChannel = 'direct' | 'referral' | 'reseller';
 
 export type QuoteStatus =
@@ -81,6 +83,17 @@ export interface PricingInput {
   deliveryRequired?: boolean;
   salesChannel?: SalesChannel;
   partnerId?: string;
+  notaryUrgencyLevel?: NotaryUrgencyLevel;
+}
+
+export interface NotaryCutoffSnapshot {
+  notaryUrgencyLevel: NotaryUrgencyLevel;
+  effectiveWindow: string;    // 'before_noon' | 'after_noon' | 'after_18' | 'standard'
+  multiplier: number;
+  quoteExpiresAt: string;     // ISO — cutoff-aware expiry for same_day, '' for standard
+  cutoffAt: string | null;    // ISO of the window boundary (12:00 or 18:00 Almaty)
+  pricingTimezone: 'Asia/Almaty';
+  windowLabel: string;
 }
 
 export interface InternalCostBreakdown {
@@ -126,5 +139,6 @@ export interface PricingResult {
     urgencyCoefficient: number;
     includedWordCount: number;
     includedPageCount: number;
+    notaryCutoff?: NotaryCutoffSnapshot;
   };
 }

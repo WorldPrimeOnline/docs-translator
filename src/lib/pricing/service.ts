@@ -91,8 +91,13 @@ export async function saveQuote(
   input: PricingInput,
   result: PricingResult,
   expiresInHours = 24,
+  overrideExpiresAt?: string,
 ): Promise<{ quoteId: string } | { error: string }> {
-  const expiresAt = new Date(Date.now() + expiresInHours * 60 * 60 * 1000).toISOString();
+  // Use override expiry for same-day notary cutoff windows; otherwise default 24h
+  const expiresAt =
+    overrideExpiresAt && overrideExpiresAt.length > 0
+      ? overrideExpiresAt
+      : new Date(Date.now() + expiresInHours * 60 * 60 * 1000).toISOString();
 
   const { data: quote, error: quoteError } = await db
     .from('price_quotes')

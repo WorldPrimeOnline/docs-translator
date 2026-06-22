@@ -294,7 +294,18 @@
       "cityRequired": "Лутфан шаҳрро интихоб кунед",
       "fulfillmentRequired": "Гирифтан ё таҳвилро интихоб кунед",
       "phoneRequired": "Барои таҳвил рақами телефон лозим аст",
-      "addressRequired": "Барои таҳвил суроға лозим аст"
+      "addressRequired": "Барои таҳвил суроға лозим аст",
+      "urgencyLevel": "МУҲЛАТИ ТАСДИҚИ НОТАРИАЛӢ",
+      "urgency": {
+        "standard": "Тасдиқи нотариалии стандартӣ",
+        "same_day": "Тасдиқи нотариалии рӯзи ҳамон",
+        "sameDayHint": "Барои рӯзи ҳамон то соати 12:00 вақти Алматы боргузорӣ кунед ва пардохт намоед. Баъд аз 12:00 +50%; баъд аз 18:00 ×2.",
+        "cutoffNotice": "Мӯҳлати пардохт: то {time} (вақти Алматы)",
+        "before_noon": "Рӯзи ҳамон то 12:00 (бидуни иловапардохт)",
+        "after_noon": "Рӯзи ҳамон баъд аз 12:00 (+50%)",
+        "after_18": "Тасдиқи шабона баъд аз 18:00 (×2)",
+        "notaryCutoffPassed": "Мӯҳлати нотариалӣ гузашт — нарх беэтибор аст. Барои нарх нав боргузорӣ кунед."
+      }
     },
     "inReview": "Дар баррасӣ",
     "activeOrders": "Фармоишҳои фаъол",
@@ -1001,6 +1012,7 @@
     "QUOTE_ALREADY_PAID": "This order is already paid.",
     "QUOTE_JOB_MISMATCH": "Invalid quote for this order.",
     "QUOTE_NOT_FOUND": "Quote not found. Please refresh.",
-    "PRICING_NOT_CONFIGURED": "Pricing is not configured. Please contact support."
+    "PRICING_NOT_CONFIGURED": "Pricing is not configured. Please contact support.",
+    "NOTARY_CUTOFF_PASSED": "This price is no longer valid — the notary cutoff time has passed. Please upload again to get a new quote."
   }
 }

@@ -294,7 +294,18 @@
       "cityRequired": "도시를 선택해 주세요",
       "fulfillmentRequired": "픽업 또는 배달을 선택해 주세요",
       "phoneRequired": "배달에는 전화번호가 필요합니다",
-      "addressRequired": "배달에는 주소가 필요합니다"
+      "addressRequired": "배달에는 주소가 필요합니다",
+      "urgencyLevel": "공증 처리 속도",
+      "urgency": {
+        "standard": "일반 공증",
+        "same_day": "당일 공증",
+        "sameDayHint": "당일 처리는 알마티 시간 12:00 이전에 업로드 및 결제해야 합니다. 12:00 이후 +50%; 18:00 이후 야간 ×2 요금이 적용됩니다.",
+        "cutoffNotice": "결제 마감: {time} (알마티 시간)",
+        "before_noon": "당일 12:00 이전 (추가 요금 없음)",
+        "after_noon": "당일 12:00 이후 (+50%)",
+        "after_18": "18:00 이후 야간 공증 (×2)",
+        "notaryCutoffPassed": "공증 마감 시간이 지나 이 견적이 만료되었습니다. 다시 업로드해 주세요."
+      }
     },
     "inReview": "검토 중",
     "activeOrders": "진행 중인 주문",
@@ -1001,6 +1012,7 @@
     "QUOTE_ALREADY_PAID": "This order is already paid.",
     "QUOTE_JOB_MISMATCH": "Invalid quote for this order.",
     "QUOTE_NOT_FOUND": "Quote not found. Please refresh.",
-    "PRICING_NOT_CONFIGURED": "Pricing is not configured. Please contact support."
+    "PRICING_NOT_CONFIGURED": "Pricing is not configured. Please contact support.",
+    "NOTARY_CUTOFF_PASSED": "This price is no longer valid — the notary cutoff time has passed. Please upload again to get a new quote."
   }
 }

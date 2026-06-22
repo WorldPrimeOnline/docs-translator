@@ -294,7 +294,18 @@
       "cityRequired": "请选择城市",
       "fulfillmentRequired": "请选择自取或配送",
       "phoneRequired": "配送需填写电话号码",
-      "addressRequired": "配送需填写地址"
+      "addressRequired": "配送需填写地址",
+      "urgencyLevel": "公证办理时效",
+      "urgency": {
+        "standard": "标准公证办理",
+        "same_day": "当日公证办理",
+        "sameDayHint": "当日办理须在阿拉木图时间12:00前上传并付款。12:00后加收50%；18:00后加收2倍夜间费用。",
+        "cutoffNotice": "付款截止时间：{time}（阿拉木图时间）",
+        "before_noon": "当日12:00前（无附加费）",
+        "after_noon": "当日12:00后（+50%）",
+        "after_18": "18:00后夜间办理（×2）",
+        "notaryCutoffPassed": "公证截止时间已过，报价无效。请重新上传以获取新报价。"
+      }
     },
     "inReview": "审核中",
     "activeOrders": "进行中的订单",
@@ -1001,6 +1012,7 @@
     "QUOTE_ALREADY_PAID": "This order is already paid.",
     "QUOTE_JOB_MISMATCH": "Invalid quote for this order.",
     "QUOTE_NOT_FOUND": "Quote not found. Please refresh.",
-    "PRICING_NOT_CONFIGURED": "Pricing is not configured. Please contact support."
+    "PRICING_NOT_CONFIGURED": "Pricing is not configured. Please contact support.",
+    "NOTARY_CUTOFF_PASSED": "This price is no longer valid — the notary cutoff time has passed. Please upload again to get a new quote."
   }
 }
