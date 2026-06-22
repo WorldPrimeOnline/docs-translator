@@ -276,11 +276,6 @@ describe('calculatePrice', () => {
       expect(layoutItem!.metadataJson?.multiplier).toBe(0.25);
     });
 
-    it('presentation layout triggers operator review', () => {
-      const result = calculatePrice(baseInput({ layoutComplexity: 'presentation' }), mockVersion);
-      expect(result.requiresOperatorReview).toBe(true);
-    });
-
     it('many_stamps adds 1000 KZT to subtotal (not translation portion)', () => {
       const normal = calculatePrice(baseInput({ visualMarksComplexity: 'normal' }), mockVersion);
       const stamps = calculatePrice(baseInput({ visualMarksComplexity: 'many_stamps' }), mockVersion);
@@ -417,6 +412,107 @@ describe('calculatePrice', () => {
         expect(urgencyFee!.amountKzt).toBeGreaterThan(0);
         expect(urgencyFee!.isClientVisible).toBe(true);
       }
+    });
+  });
+
+  describe('presentation pricing', () => {
+    const basePresentation = (overrides: Partial<PricingInput> = {}): PricingInput => ({
+      sourceLanguage: 'en',
+      targetLanguage: 'ru',
+      serviceLevel: 'official_with_translator_signature_and_provider_stamp',
+      documentType: 'presentation',
+      physicalPageCount: 1,
+      urgencyLevel: 'standard',
+      salesChannel: 'direct',
+      ...overrides,
+    });
+
+    it('EN→RU official + presentation + 1 slide creates valid quote', () => {
+      const result = calculatePrice(basePresentation(), mockVersion);
+      expect(result.requiresOperatorReview).toBe(false);
+      expect(result.amountKzt).toBeGreaterThan(0);
+      expect(result.status).toBe('quoted');
+    });
+
+    it('EN→RU official + presentation + 5 slides creates valid quote', () => {
+      const result = calculatePrice(basePresentation({ physicalPageCount: 5 }), mockVersion);
+      expect(result.requiresOperatorReview).toBe(false);
+      expect(result.amountKzt).toBeGreaterThan(0);
+      expect(result.status).toBe('quoted');
+    });
+
+    it('presentation coefficient 1.60 is applied to translation portion', () => {
+      const other = calculatePrice(basePresentation({ documentType: 'other' }), mockVersion);
+      const pres = calculatePrice(basePresentation(), mockVersion);
+      expect(pres.amountKzt).toBeGreaterThan(other.amountKzt);
+      expect(pres.items.find(i => i.itemType === 'document_type_coefficient')).toBeDefined();
+    });
+
+    it('presentation_slides_fee appears when pageCount > 1', () => {
+      const result = calculatePrice(basePresentation({ physicalPageCount: 5 }), mockVersion);
+      const fee = result.items.find(i => i.itemType === 'presentation_slides_fee');
+      expect(fee).toBeDefined();
+      expect(fee!.quantity).toBe(4);
+    });
+
+    it('no presentation_slides_fee when pageCount = 1', () => {
+      const result = calculatePrice(basePresentation(), mockVersion);
+      expect(result.items.find(i => i.itemType === 'presentation_slides_fee')).toBeUndefined();
+    });
+
+    it('slide fee for electronic is 500 KZT per additional slide', () => {
+      const result = calculatePrice(basePresentation({ serviceLevel: 'electronic', physicalPageCount: 3 }), mockVersion);
+      const fee = result.items.find(i => i.itemType === 'presentation_slides_fee');
+      expect(fee?.unitPriceKzt).toBe(500);
+      expect(fee?.quantity).toBe(2);
+      expect(fee?.amountKzt).toBe(1000);
+    });
+
+    it('slide fee for official is 1000 KZT per additional slide', () => {
+      const result = calculatePrice(basePresentation({ physicalPageCount: 3 }), mockVersion);
+      const fee = result.items.find(i => i.itemType === 'presentation_slides_fee');
+      expect(fee?.unitPriceKzt).toBe(1000);
+      expect(fee?.amountKzt).toBe(2000);
+    });
+
+    it('presentation_slides_fee is client-visible', () => {
+      const result = calculatePrice(basePresentation({ physicalPageCount: 3 }), mockVersion);
+      const fee = result.items.find(i => i.itemType === 'presentation_slides_fee');
+      expect(fee?.isClientVisible).toBe(true);
+    });
+
+    it('document coefficient applies after slide fees (scales both base and slides)', () => {
+      const result = calculatePrice(basePresentation({ physicalPageCount: 5 }), mockVersion);
+      const coeffItem = result.items.find(i => i.itemType === 'document_type_coefficient');
+      const slidesFee = result.items.find(i => i.itemType === 'presentation_slides_fee');
+      expect(coeffItem).toBeDefined();
+      expect(slidesFee).toBeDefined();
+      // doc coeff = (base 6500 + slides 4×1000) * (1.60 - 1.0) = 10500 * 0.60 = 6300
+      expect(coeffItem!.amountKzt).toBeCloseTo(6300, -1);
+    });
+
+    it('no additional_pages item for presentation (uses slides fee instead)', () => {
+      const result = calculatePrice(basePresentation({ physicalPageCount: 5 }), mockVersion);
+      expect(result.items.find(i => i.itemType === 'additional_pages')).toBeUndefined();
+    });
+
+    it('operator review when physicalPageCount explicitly 0', () => {
+      const result = calculatePrice(basePresentation({ physicalPageCount: 0 }), mockVersion);
+      expect(result.requiresOperatorReview).toBe(true);
+      expect(result.reviewReasons.some(r => r.includes('presentation_slide_count_unknown'))).toBe(true);
+    });
+
+    it('regression: passport pricing unaffected by presentation changes', () => {
+      const result = calculatePrice(baseInput({ documentType: 'passport_id', physicalPageCount: 1 }), mockVersion);
+      expect(result.requiresOperatorReview).toBe(false);
+      expect(result.amountKzt).toBeGreaterThan(0);
+      expect(result.items.find(i => i.itemType === 'presentation_slides_fee')).toBeUndefined();
+    });
+
+    it('regression: diploma with 3 pages still uses additional_pages (not slides)', () => {
+      const result = calculatePrice(baseInput({ documentType: 'diploma_transcript', physicalPageCount: 3 }), mockVersion);
+      expect(result.items.find(i => i.itemType === 'additional_pages')).toBeDefined();
+      expect(result.items.find(i => i.itemType === 'presentation_slides_fee')).toBeUndefined();
     });
   });
 });

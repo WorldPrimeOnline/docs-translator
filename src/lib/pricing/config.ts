@@ -108,7 +108,13 @@ export const LAYOUT_COMPLEXITY_CONFIG: Record<LayoutComplexity, LayoutComplexity
   tables:         { type: 'fixed_per_page', feePerPage: 1000 },
   complex_tables: { type: 'fixed_per_page', feePerPage: 2000 },
   complex_layout: { type: 'translation_portion_multiplier', multiplier: 0.25 },
-  presentation:   { type: 'operator_review' },
+};
+
+/** Per-slide fee for presentation documents (per additional slide beyond the 1st). */
+export const PRESENTATION_SLIDE_FEE_KZT: Record<'electronic' | 'official' | 'notarized', number> = {
+  electronic: 500,
+  official:   1000,
+  notarized:  1000,
 };
 
 // Visual marks surcharge — flat fee added to subtotal

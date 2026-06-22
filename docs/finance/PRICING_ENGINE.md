@@ -135,7 +135,7 @@ These are determined after document analysis. Clients do not set them. They defa
 |---|---|---|
 | `urgencyLevel` | `standard` | Hardcoded — no translation urgency surcharge in current product |
 | `scanQuality` | `normal` | OCR/AI analysis (future: `poor_scan` = +15%, `handwritten` = operator review) |
-| `layoutComplexity` | `standard` | OCR/AI analysis (future: `tables`/`complex_tables` = per-page fee, `complex_layout` = +25%, `presentation` = review) |
+| `layoutComplexity` | `standard` | OCR/AI analysis (future: `tables`/`complex_tables` = per-page fee, `complex_layout` = +25%) |
 | `visualMarksComplexity` | `normal` | Page-vision analysis (future: `many_stamps` = +1 000 KZT to subtotal) |
 | `extraPaperCopies` | `0` | Operator-only until notary confirms |
 | `sourceWordCount` | From OCR | Determined after OCR completes |
@@ -205,6 +205,39 @@ local time. Cutoff decisions must be consistent regardless of server location or
 | Field | Values | Default | Effect |
 |---|---|---|---|
 | `notaryUrgencyLevel` | `standard` \| `same_day` | `standard` | Triggers cutoff window lookup and time-based quote expiry |
+
+## Presentation / Pitch Deck Pricing
+
+Presentations (`documentType = 'presentation'`) are **not** automatically sent to operator review.
+
+### When WPO calculates automatically
+
+If `physicalPageCount` is known (≥ 1, which it always is given the conservative default of 1):
+- Document coefficient **1.60** applies to the full translation portion (base + slide fees)
+- Additional slides beyond the 1st: `presentation_slides_fee` line item
+  - electronic: 500 KZT/slide
+  - official: 1 000 KZT/slide
+  - notarized: 1 000 KZT/slide
+- `additional_pages` line item is skipped for presentations (slides fee replaces it)
+
+### Quote at upload time
+
+At upload, `physicalPageCount = 1` (conservative default — OCR hasn't run). The initial quote
+covers 1 slide. After OCR the quote can be recalculated with the real slide count.
+
+### When operator review is triggered
+
+| Reason | Code |
+|---|---|
+| `physicalPageCount` explicitly 0 or negative | `presentation_slide_count_unknown` |
+| Complex design recreation requested (future) | `presentation_complex_design_manual_review` |
+| Embedded official documents detected (future) | `presentation_embedded_official_docs` |
+| Notarized presentation (inherits notary review) | covered by notary review reason |
+
+### What the 1.60 coefficient applies to
+
+The 1.60 coefficient is applied to the translation portion (base minimum + extra words + slide fees)
+**only**. It does not multiply notary official fees, delivery fees, or fiscal reserves.
 
 ## Code location
 

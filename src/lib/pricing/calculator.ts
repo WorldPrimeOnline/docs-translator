@@ -14,6 +14,7 @@ import {
   EXTRA_PAPER_COPY_FEE_KZT,
   NOTARY_CONFIG,
   PRICE_ROUNDING_INCREMENT,
+  PRESENTATION_SLIDE_FEE_KZT,
 } from './config';
 import { getNotaryCutoffWindow } from './almaty-time';
 
@@ -40,6 +41,7 @@ export function calculatePrice(input: PricingInput, version: PricingVersion): Pr
   const physicalPages = Math.max(1, input.physicalPageCount ?? 1);
   const includedWords = 250;
   const includedPages = 1;
+  const docType = input.documentType ?? 'other';
 
   // 1. Resolve language group
   const { group, requiresReview: langRequiresReview } = resolveLanguageGroup(
@@ -97,9 +99,9 @@ export function calculatePrice(input: PricingInput, version: PricingVersion): Pr
     translationPortion += wordAmount;
   }
 
-  // 4. Additional physical pages (beyond 1 included)
+  // 4. Additional physical pages (beyond 1 included) — skipped for presentations (see 4b)
   const additionalPages = Math.max(0, physicalPages - includedPages);
-  if (additionalPages > 0) {
+  if (docType !== 'presentation' && additionalPages > 0) {
     const pageRateKey: 'electronic' | 'official' = serviceLevel === 'electronic' ? 'electronic' : 'official';
     const pageRate = ADDITIONAL_PAGE_RATE_KZT[pageRateKey][complexity];
     const pageAmount = additionalPages * pageRate;
@@ -117,8 +119,37 @@ export function calculatePrice(input: PricingInput, version: PricingVersion): Pr
     translationPortion += pageAmount;
   }
 
+  // 4b. Presentation slides: per-slide fee beyond the 1st included slide
+  if (docType === 'presentation') {
+    // physicalPageCount null/undefined defaults to 1 (Math.max above) — always known
+    // Only trigger unknown review if someone explicitly passes 0 or negative
+    if (input.physicalPageCount != null && input.physicalPageCount < 1) {
+      reviewReasons.push('presentation_slide_count_unknown');
+    } else if (physicalPages > 1) {
+      const additionalSlides = physicalPages - 1;
+      const slideRateKey: 'electronic' | 'official' | 'notarized' =
+        serviceLevel === 'electronic' ? 'electronic'
+        : serviceLevel === 'notarization_through_partners' ? 'notarized'
+        : 'official';
+      const slideRate = PRESENTATION_SLIDE_FEE_KZT[slideRateKey];
+      const slidesFee = additionalSlides * slideRate;
+
+      items.push({
+        itemType: 'presentation_slides_fee',
+        label: `Дополнительные слайды презентации (${additionalSlides} × ${slideRate} KZT)`,
+        quantity: additionalSlides,
+        unitPriceKzt: slideRate,
+        amountKzt: slidesFee,
+        isClientVisible: true,
+        isCost: false,
+        sortOrder: nextSort(),
+        metadataJson: { additionalSlides, slideRate, serviceLevel },
+      });
+      translationPortion += slidesFee;
+    }
+  }
+
   // 5. Document type coefficient (applied to translation portion only)
-  const docType = input.documentType ?? 'other';
   const docCoeff = DOCUMENT_TYPE_COEFFICIENT[docType] ?? DOCUMENT_TYPE_COEFFICIENT['other'] ?? 1.10;
   if (docCoeff !== 1.00) {
     const docFee = translationPortion * (docCoeff - 1);

@@ -7,7 +7,7 @@ export type UrgencyLevel = 'standard' | 'within_24h' | 'six_to_twelve_hours' | '
 
 export type ScanQuality = 'normal' | 'poor_scan' | 'handwritten';
 
-export type LayoutComplexity = 'standard' | 'tables' | 'complex_tables' | 'complex_layout' | 'presentation';
+export type LayoutComplexity = 'standard' | 'tables' | 'complex_tables' | 'complex_layout';
 
 export type VisualMarksComplexity = 'normal' | 'many_stamps';
 
