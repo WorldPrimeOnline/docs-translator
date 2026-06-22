@@ -314,6 +314,7 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
           documentType: docType,
           driveUrl: integrationResult.driveUrl,
           driveFolderId: integrationResult.driveFolderId,
+          aiDraftFolderId: integrationResult.aiDraftFolderId,
           draftFileKey: draftDocxKey,
           draftFileName: 'ai_draft.docx',
         });

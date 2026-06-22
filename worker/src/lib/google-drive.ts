@@ -221,7 +221,11 @@ async function findExistingFolder(name: string, parentId: string): Promise<strin
     `name='${name.replace(/'/g, "\\'")}' and '${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
   );
   const res = await driveGet(`/files?q=${q}&fields=files(id)&pageSize=1`);
-  if (!res.ok) return null;
+  if (!res.ok) {
+    const t = await res.text().catch(() => '');
+    console.error(`[drive] folder search "${name}" failed: ${res.status} ${t.slice(0, 200)}`);
+    return null;
+  }
   const data = (await res.json()) as { files: { id: string }[] };
   return data.files[0]?.id ?? null;
 }

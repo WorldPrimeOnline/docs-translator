@@ -374,6 +374,8 @@ export async function triggerTranslatorReview(params: {
   documentType: string;
   driveUrl?: string | null;
   driveFolderId?: string | null;
+  /** Direct ID of the 02_AI_DRAFT subfolder — avoids a search query if known */
+  aiDraftFolderId?: string | null;
   /** R2 key of the AI draft DOCX artifact */
   draftFileKey?: string | null;
   draftFileName?: string | null;
@@ -383,11 +385,18 @@ export async function triggerTranslatorReview(params: {
   // ── 1. Upload AI draft DOCX to Drive 02_AI_DRAFT ─────────────────────────
   // Preview PDF is not generated for official AI drafts — only ai_draft.docx.
   if (params.driveFolderId && isDriveConfigured()) {
-    let aiDraftFolderId: string | null = null;
-    try {
-      aiDraftFolderId = await getSubfolderId(params.driveFolderId, DRIVE_SUBFOLDER_NAMES.aiDraft);
-    } catch (err) {
-      console.error(`${tag} could not resolve 02_AI_DRAFT subfolder (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
+    // Use the folder ID passed directly from initializeOrderIntegrations if available.
+    // Fall back to a search only if needed (e.g. when called after a worker restart).
+    let aiDraftFolderId: string | null = params.aiDraftFolderId ?? null;
+    if (!aiDraftFolderId) {
+      try {
+        aiDraftFolderId = await getSubfolderId(params.driveFolderId, DRIVE_SUBFOLDER_NAMES.aiDraft);
+        if (!aiDraftFolderId) {
+          console.error(`${tag} 02_AI_DRAFT subfolder not found in Drive folder ${params.driveFolderId}`);
+        }
+      } catch (err) {
+        console.error(`${tag} could not resolve 02_AI_DRAFT subfolder (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
+      }
     }
 
     if (aiDraftFolderId && params.draftFileKey) {
@@ -401,6 +410,10 @@ export async function triggerTranslatorReview(params: {
         const msg = err instanceof Error ? err.message : String(err);
         console.error(`${tag} DOCX Drive upload failed (non-fatal): ${msg}`);
       }
+    } else if (!aiDraftFolderId) {
+      console.error(`${tag} ai_draft upload skipped — 02_AI_DRAFT folder ID not available`);
+    } else if (!params.draftFileKey) {
+      console.error(`${tag} ai_draft upload skipped — draftFileKey is null`);
     }
   }
 

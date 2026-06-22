@@ -172,7 +172,40 @@ async function main(): Promise<void> {
   const created = (await createRes.json()) as { id: string };
   console.log(`  ✓ test folder created: "${testFolderName}" (${created.id})`);
 
-  // ── 4. Delete test folder ─────────────────────────────────────────────────────
+  // ── 4. Upload a test file into the folder ─────────────────────────────────────
+  const boundary = `wpo_test_${Date.now()}`;
+  const fileContent = Buffer.from('WPO Drive upload test', 'utf-8');
+  const metadata = JSON.stringify({ name: 'test_upload.txt', parents: [created.id] });
+  const bodyBuf = Buffer.concat([
+    Buffer.from(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n`, 'utf-8'),
+    Buffer.from(`--${boundary}\r\nContent-Type: text/plain\r\n\r\n`, 'utf-8'),
+    fileContent,
+    Buffer.from(`\r\n--${boundary}--`, 'utf-8'),
+  ]);
+  const uploadRes = await fetch(
+    'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': `multipart/related; boundary=${boundary}`,
+      },
+      body: bodyBuf,
+    },
+  );
+  if (!uploadRes.ok) {
+    const text = await uploadRes.text().catch(() => '');
+    console.error(`\nFAIL — file upload failed (${uploadRes.status}): ${text.slice(0, 300)}`);
+    console.error('  → Folder creation works but file upload is broken.');
+    console.error('  → Check that the service account has "Editor" access to the root folder,');
+    console.error('    not just "Viewer".');
+    process.exit(1);
+  }
+  const uploadedFile = (await uploadRes.json()) as { id: string };
+  console.log(`  ✓ test file uploaded: "test_upload.txt" (${uploadedFile.id})`);
+  console.log(`    → Open the folder to verify the file is visible: https://drive.google.com/drive/folders/${created.id}`);
+
+  // ── 5. Delete test folder (and its contents) ──────────────────────────────────
   const deleteRes = await fetch(`https://www.googleapis.com/drive/v3/files/${created.id}`, {
     method: 'DELETE',
     headers: { Authorization: `Bearer ${token}` },
@@ -183,7 +216,7 @@ async function main(): Promise<void> {
     console.log(`  ✓ test folder deleted`);
   }
 
-  console.log('\n=== SUCCESS — Drive auth is working correctly ===\n');
+  console.log('\n=== SUCCESS — Drive auth and file upload are working correctly ===\n');
 }
 
 main().catch((err) => {
