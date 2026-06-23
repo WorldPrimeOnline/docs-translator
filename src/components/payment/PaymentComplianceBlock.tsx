@@ -56,16 +56,6 @@ export async function PaymentComplianceBlock({ variant = 'standalone' }: Props) 
   const inner = (
     <div className="flex flex-col gap-2.5">
       <div className="flex flex-wrap items-center gap-2">
-        {/* Halyk ePay logo — MUST link to http://epay.homebank.kz/ per Halyk Bank requirements */}
-        <a
-          href="http://epay.homebank.kz/"
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="Halyk ePay — internet acquiring"
-          className="opacity-90 transition-opacity hover:opacity-100"
-        >
-          <HalykEpayLogo />
-        </a>
         <VisaLogo />
         <MastercardLogo />
       </div>
