@@ -13,6 +13,8 @@
     "passportTranslation": "Pasport terjimesi",
     "bankStatement": "Bank beýannamasy",
     "diplomaTranslation": "Diplom terjimesi",
-    "certifiedTranslation": "Tassyklanan terjime"
+    "certifiedTranslation": "Tassyklanan terjime",
+    "switchLanguage": "Switch language",
+    "toggleMenu": "Toggle menu"
   }
 }

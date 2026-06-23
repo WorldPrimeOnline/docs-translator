@@ -13,6 +13,8 @@
     "passportTranslation": "Паспорт котормосу",
     "bankStatement": "Банк көчүрмөсү",
     "diplomaTranslation": "Диплом котормосу",
-    "certifiedTranslation": "Күбөлөндүрүлгөн котормо"
+    "certifiedTranslation": "Күбөлөндүрүлгөн котормо",
+    "switchLanguage": "Switch language",
+    "toggleMenu": "Toggle menu"
   }
 }

@@ -13,6 +13,8 @@
     "passportTranslation": "Перевод паспорта",
     "bankStatement": "Банковская выписка",
     "diplomaTranslation": "Перевод диплома",
-    "certifiedTranslation": "Сертифицированный перевод"
+    "certifiedTranslation": "Сертифицированный перевод",
+    "switchLanguage": "Сменить язык",
+    "toggleMenu": "Открыть/закрыть меню"
   }
 }

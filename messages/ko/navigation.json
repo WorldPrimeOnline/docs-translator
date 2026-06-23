@@ -13,6 +13,8 @@
     "passportTranslation": "여권 번역",
     "bankStatement": "은행 거래내역서",
     "diplomaTranslation": "졸업장 번역",
-    "certifiedTranslation": "공증 번역"
+    "certifiedTranslation": "공증 번역",
+    "switchLanguage": "Switch language",
+    "toggleMenu": "Toggle menu"
   }
 }

@@ -13,6 +13,8 @@
     "passportTranslation": "Тарҷумаи шиносномаи",
     "bankStatement": "Хулосаи бонкӣ",
     "diplomaTranslation": "Тарҷумаи диплом",
-    "certifiedTranslation": "Тарҷумаи тасдиқшуда"
+    "certifiedTranslation": "Тарҷумаи тасдиқшуда",
+    "switchLanguage": "Switch language",
+    "toggleMenu": "Toggle menu"
   }
 }

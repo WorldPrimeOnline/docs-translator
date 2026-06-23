@@ -13,6 +13,8 @@
     "passportTranslation": "护照翻译",
     "bankStatement": "银行流水",
     "diplomaTranslation": "文凭翻译",
-    "certifiedTranslation": "经认证的翻译"
+    "certifiedTranslation": "经认证的翻译",
+    "switchLanguage": "Switch language",
+    "toggleMenu": "Toggle menu"
   }
 }

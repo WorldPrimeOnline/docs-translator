@@ -13,6 +13,8 @@
     "passportTranslation": "Passport Translation",
     "bankStatement": "Bank Statement",
     "diplomaTranslation": "Diploma Translation",
-    "certifiedTranslation": "Certified Translation"
+    "certifiedTranslation": "Certified Translation",
+    "switchLanguage": "Switch language",
+    "toggleMenu": "Toggle menu"
   }
 }

@@ -1,35 +1,34 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { usePathname } from 'next/navigation';
 import { ChevronDown } from 'lucide-react';
 import { LOCALES, DEFAULT_LOCALE } from '@/i18n/locales';
 
 type LangCode = string;
 
-// Locales that appear as a URL path prefix (all except the default locale)
-const PREFIXED_LOCALES: LangCode[] = LOCALES.filter((l) => l.code !== DEFAULT_LOCALE).map((l) => l.code);
+// All locales have a URL prefix (localePrefix: 'always')
+const ALL_LOCALE_CODES: LangCode[] = LOCALES.map((l) => l.code);
 
 /**
  * Strip any locale prefix from the pathname and prepend the new one.
- * Works with `localePrefix: 'as-needed'` where the default locale has no prefix.
+ * Works with `localePrefix: 'always'` where every locale has a /{code}/ prefix.
  */
 function buildLocalePath(pathname: string, newLocale: LangCode): string {
   let clean = pathname;
-  for (const loc of PREFIXED_LOCALES) {
+  for (const loc of ALL_LOCALE_CODES) {
     if (pathname.startsWith(`/${loc}/`)) {
-      clean = pathname.slice(loc.length + 2);
+      clean = pathname.slice(loc.length + 1);
       break;
     }
     if (pathname === `/${loc}`) {
-      clean = '';
+      clean = '/';
       break;
     }
   }
 
-  if (newLocale === DEFAULT_LOCALE) return clean ? `/${clean}` : '/';
-  return `/${newLocale}${clean ? `/${clean}` : ''}`;
+  return `/${newLocale}${clean === '/' ? '' : clean}`;
 }
 
 export function LanguageSwitcher() {
@@ -37,6 +36,7 @@ export function LanguageSwitcher() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const tNav = useTranslations('nav');
 
   const current = LOCALES.find((l) => l.code === locale) ?? LOCALES[0]!;
 
@@ -64,7 +64,7 @@ export function LanguageSwitcher() {
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
-        aria-label="Switch language"
+        aria-label={tNav('switchLanguage')}
       >
         <span className="text-sm leading-none">{current.flag}</span>
         <span>{current.code.toUpperCase()}</span>

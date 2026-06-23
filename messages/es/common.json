@@ -14,9 +14,9 @@
     "websiteLabel": "Website"
   },
   "mockup": {
-    "statusReady": "TODO_I18N Ready",
-    "translationReady": "TODO_I18N Translation ready",
-    "pdfGenerated": "TODO_I18N PDF generated · ready to download",
-    "download": "TODO_I18N Download"
+    "statusReady": "Ready",
+    "translationReady": "Translation ready",
+    "pdfGenerated": "PDF generated · ready to download",
+    "download": "Download"
   }
 }

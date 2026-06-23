@@ -13,6 +13,8 @@
     "passportTranslation": "Паспортын орчуулга",
     "bankStatement": "Банкны хуулга",
     "diplomaTranslation": "Дипломын орчуулга",
-    "certifiedTranslation": "Баталгаажуулсан орчуулга"
+    "certifiedTranslation": "Баталгаажуулсан орчуулга",
+    "switchLanguage": "Switch language",
+    "toggleMenu": "Toggle menu"
   }
 }

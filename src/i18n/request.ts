@@ -22,13 +22,29 @@ export default getRequestConfig(async ({ requestLocale }) => {
     ? requested
     : routing.defaultLocale;
 
-  const parts = await Promise.all(
+  const loaded = await Promise.all(
     NAMESPACES.map((ns) =>
-      import(`../../messages/${locale}/${ns}.json`).then((m) => m.default as Record<string, unknown>),
+      import(`../../messages/${locale}/${ns}.json`).then((m) => ({
+        ns,
+        data: m.default as Record<string, unknown>,
+      })),
     ),
   );
 
-  const messages = Object.assign({}, ...parts) as Record<string, unknown>;
+  // Detect key collisions before merging — two namespace files must not share a top-level key
+  if (process.env.NODE_ENV !== 'production') {
+    const seen = new Map<string, string>();
+    for (const { ns, data } of loaded) {
+      for (const key of Object.keys(data)) {
+        if (seen.has(key)) {
+          console.error(`[i18n] Key collision: "${key}" appears in both "${seen.get(key)}" and "${ns}" (locale: ${locale})`);
+        }
+        seen.set(key, ns);
+      }
+    }
+  }
+
+  const messages = Object.assign({}, ...loaded.map((l) => l.data)) as Record<string, unknown>;
 
   return { locale, messages };
 });

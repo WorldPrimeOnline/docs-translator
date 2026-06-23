@@ -13,6 +13,8 @@
     "passportTranslation": "Паспорт аудармасы",
     "bankStatement": "Банк үзінді-көшірмесі",
     "diplomaTranslation": "Диплом аудармасы",
-    "certifiedTranslation": "Куәландырылған аударма"
+    "certifiedTranslation": "Куәландырылған аударма",
+    "switchLanguage": "Тілді ауыстыру",
+    "toggleMenu": "Мәзірді ашу/жабу"
   }
 }

@@ -13,6 +13,8 @@
     "passportTranslation": "Pasport tarjimasi",
     "bankStatement": "Bank ko'chirmasi",
     "diplomaTranslation": "Diplom tarjimasi",
-    "certifiedTranslation": "Tasdiqlangan tarjima"
+    "certifiedTranslation": "Tasdiqlangan tarjima",
+    "switchLanguage": "Switch language",
+    "toggleMenu": "Toggle menu"
   }
 }

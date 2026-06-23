@@ -31,14 +31,12 @@ function isRateLimited(ip: string, limit: number): boolean {
 }
 
 // ---------------------------------------------------------------------------
-// Locale helpers
+// Locale helpers (localePrefix: 'always' — every locale has a /{code}/ prefix)
 // ---------------------------------------------------------------------------
-const NON_DEFAULT_LOCALES = routing.locales.filter(
-  (l) => l !== routing.defaultLocale,
-) as string[];
+const ALL_LOCALES = routing.locales as string[];
 
 function localeFromPath(pathname: string): string {
-  for (const locale of NON_DEFAULT_LOCALES) {
+  for (const locale of ALL_LOCALES) {
     if (pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`) {
       return locale;
     }
@@ -47,7 +45,7 @@ function localeFromPath(pathname: string): string {
 }
 
 function stripLocalePrefix(pathname: string): string {
-  for (const locale of NON_DEFAULT_LOCALES) {
+  for (const locale of ALL_LOCALES) {
     if (pathname.startsWith(`/${locale}/`)) return pathname.slice(locale.length + 1);
     if (pathname === `/${locale}`) return '/';
   }
@@ -146,7 +144,8 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   // 4. Auth redirects (locale-aware)
   const cleanPath = stripLocalePrefix(pathname);
   const locale = localeFromPath(pathname);
-  const prefix = locale !== routing.defaultLocale ? `/${locale}` : '';
+  // With localePrefix: 'always', every locale has a /{code}/ prefix including the default
+  const prefix = `/${locale}`;
 
   if (!user && cleanPath.startsWith('/dashboard')) {
     const url = request.nextUrl.clone();

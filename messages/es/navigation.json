@@ -13,6 +13,8 @@
     "passportTranslation": "Traducción de pasaporte",
     "bankStatement": "Extracto bancario",
     "diplomaTranslation": "Traducción de diploma",
-    "certifiedTranslation": "Traducción certificada"
+    "certifiedTranslation": "Traducción certificada",
+    "switchLanguage": "Cambiar idioma",
+    "toggleMenu": "Alternar menú"
   }
 }

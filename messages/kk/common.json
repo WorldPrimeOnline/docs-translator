@@ -14,9 +14,9 @@
     "websiteLabel": "Website"
   },
   "mockup": {
-    "statusReady": "TODO_I18N Ready",
-    "translationReady": "TODO_I18N Translation ready",
-    "pdfGenerated": "TODO_I18N PDF generated · ready to download",
-    "download": "TODO_I18N Download"
+    "statusReady": "Дайын",
+    "translationReady": "Аударма дайын",
+    "pdfGenerated": "PDF жасалды · жүктеуге дайын",
+    "download": "Жүктеу"
   }
 }

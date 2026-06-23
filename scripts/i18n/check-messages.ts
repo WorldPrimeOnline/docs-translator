@@ -22,6 +22,14 @@ const NAMESPACES = [
   'footer', 'auth', 'order', 'checkout', 'legal', 'common', 'errors',
 ];
 
+// strict mode: TODO_I18N in these namespaces for critical locales is an error
+const STRICT_MODE = process.argv.includes('--strict');
+const CRITICAL_NAMESPACES = new Set([
+  'navigation', 'home', 'pricing', 'footer', 'auth',
+  'order', 'checkout', 'legal', 'common', 'errors',
+]);
+const CRITICAL_LOCALES = new Set(['ru', 'en', 'kk']);
+
 const VAR_PATTERN = /\{[a-zA-Z_][a-zA-Z0-9_]*\}/g;
 
 let errors = 0;
@@ -64,7 +72,10 @@ function loadNamespace(locale: string, ns: string): Record<string, string> | nul
   }
 }
 
-console.log(`\n=== i18n:check — master: ${MASTER_LOCALE} ===\n`);
+console.log(`\n=== i18n:check${STRICT_MODE ? ':strict' : ''} — master: ${MASTER_LOCALE} ===\n`);
+if (STRICT_MODE) {
+  console.log(`  Strict mode: TODO_I18N in [${[...CRITICAL_LOCALES].join(',')}] × [${[...CRITICAL_NAMESPACES].join(',')}] → ERROR\n`);
+}
 
 // Load master
 const master: Record<string, Record<string, string>> = {};
@@ -116,7 +127,13 @@ for (const locale of LOCALES.filter((l) => l !== MASTER_LOCALE)) {
       }
 
       if (v.includes('TODO_I18N')) {
-        warn(`[${locale}/${ns}] TODO_I18N: ${k}`);
+        const isStrictViolation = STRICT_MODE && CRITICAL_LOCALES.has(locale) && CRITICAL_NAMESPACES.has(ns);
+        if (isStrictViolation) {
+          err(`[${locale}/${ns}] TODO_I18N in critical locale+namespace: ${k}`);
+          nsErrors++;
+        } else {
+          warn(`[${locale}/${ns}] TODO_I18N: ${k}`);
+        }
       }
 
       // Check interpolation variables match master
@@ -140,9 +157,10 @@ console.log(`\n=== Summary ===`);
 console.log(`Errors:   ${errors}`);
 console.log(`Warnings: ${warnings} (TODO_I18N + extra keys)`);
 
+const label = STRICT_MODE ? 'i18n:check:strict' : 'i18n:check';
 if (errors > 0) {
-  console.error(`\n✗ i18n:check FAILED with ${errors} error(s)\n`);
+  console.error(`\n✗ ${label} FAILED with ${errors} error(s)\n`);
   process.exit(1);
 } else {
-  console.log(`\n✓ i18n:check passed\n`);
+  console.log(`\n✓ ${label} passed\n`);
 }
