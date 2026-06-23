@@ -125,7 +125,7 @@ After every task, report:
 - Where the change should be merged next
 - Any required manual action in Vercel, Railway, Supabase, R2, or payment systems
 
-See `docs/DEPLOYMENT_WORKFLOW.md` for the canonical workflow reference. Additional staging/migration references in `docs/`: `STAGING_SETUP.md`, `STAGING_ENV_VARS.md`, `STAGING_QA_CHECKLIST.md`, `MIGRATION_AUDIT.md`. Payment/fiscal setup: `docs/payments/HALYK_EPAY_INTEGRATION.md`, `docs/payments/FISCALIZATION.md`, `docs/payments/REFUNDS.md`, `docs/payments/PRODUCTION_READINESS.md`. Integration setup: `docs/TELEGRAM_NOTIFICATIONS_SETUP.md`, `docs/JIRA_AUTOMATION_SETUP.md`. Acceptance testing: `docs/OFFICIAL_TRANSLATION_ACCEPTANCE.md`.
+See `docs/DEPLOYMENT_WORKFLOW.md` for the canonical workflow reference. Additional staging/migration references in `docs/`: `STAGING_SETUP.md`, `STAGING_ENV_VARS.md`, `STAGING_QA_CHECKLIST.md`, `MIGRATION_AUDIT.md`. Payment/fiscal setup: `docs/payments/HALYK_EPAY_INTEGRATION.md`, `docs/payments/FISCALIZATION.md`, `docs/payments/REFUNDS.md`, `docs/payments/PRODUCTION_READINESS.md`. Integration setup: `docs/TELEGRAM_NOTIFICATIONS_SETUP.md`, `docs/JIRA_AUTOMATION_SETUP.md`. Acceptance testing: `docs/OFFICIAL_TRANSLATION_ACCEPTANCE.md`. Finance: `docs/finance/FINANCIAL_ARCHITECTURE.md`, `docs/finance/PRICING_ENGINE.md`, `docs/finance/REFUND_FINANCE_RULES.md`, `docs/finance/UNIT_ECONOMICS.md`. Production operations: `docs/operations/PRODUCTION_DEPLOY_RUNBOOK.md`.
 
 ---
 
@@ -161,9 +161,15 @@ Tests live in `src/lib/translation-workflow/__tests__/`, `src/app/api/webhooks/_
 
 ### Helper scripts
 ```bash
-bash scripts/check-i18n.sh                  # Grep locale pages/components for hardcoded strings not wrapped in t()
-npx tsx scripts/telegram-list-updates.ts    # List Telegram bot updates (use to find your chat_id for staff_profiles)
-cd worker && npx tsx src/scripts/gen-acceptance.ts  # Generate acceptance-test DOCX fixtures into /tmp/wpo-acceptance/
+bash scripts/check-i18n.sh                              # Grep locale pages/components for hardcoded strings not wrapped in t()
+npx tsx scripts/telegram-list-updates.ts                # List Telegram bot updates (find chat_id for staff_profiles)
+cd worker && npx tsx src/scripts/gen-acceptance.ts      # Generate acceptance-test DOCX fixtures into /tmp/wpo-acceptance/
+
+# Finance / pricing scripts (run from repo root):
+npx tsx scripts/finance/list-quotes.ts                  # List recent price quotes
+npx tsx scripts/finance/inspect-job-finance.ts          # Inspect a job's full finance state
+npx tsx scripts/finance/list-refundable-payments.ts     # Find payments eligible for refund
+npx tsx scripts/finance/backfill-legacy-quotes.ts       # One-time backfill for pre-quote orders
 ```
 
 Reference env files: `.env.example` and `.env.staging.example` (web); `worker/.env.example` and `worker/.env.staging.example` (worker). Use these as checklists when configuring new environments.
@@ -231,7 +237,35 @@ Each transition also updates `progress_percent` (0–100).
 
 ### Estimate API
 
-`POST /api/documents/estimate` — OCRs the already-uploaded PDF via Mistral, counts words, and returns `{ wordCount, priceUsd }`. Pricing: `$0.01 × wordCount`. Result is not cached — the route re-OCRs on every call.
+`POST /api/documents/estimate` — OCRs the already-uploaded PDF via Mistral, counts words, and returns `{ wordCount, priceUsd }`. Pricing: `$0.01 × wordCount` USD (legacy preview only — not used for actual payment). Result is not cached — the route re-OCRs on every call.
+
+**Real payment pricing uses the KZT quote system** — see Financial Architecture section below.
+
+### Financial Architecture (quote-based pricing)
+
+All payments use an immutable KZT quote locked before the customer pays. The flow:
+
+```
+Upload request
+  → computeQuoteForJob()     — src/lib/pricing/service.ts
+  → saveQuote()              — inserts price_quotes, price_quote_items, cost_reservations
+  → job.price_kzt = quote.amount_kzt
+
+Payment initiation
+  → verifyQuotePayable()     — quote belongs to user/job, not expired, status=quoted
+  → payment_transactions row with amount_source='quote', quote_id=...
+  → markQuotePaymentPending()
+
+Payment confirmation (Halyk callback)
+  → markQuotePaid()          — commits cost_reservations, status=paid
+  → ensureSaleFiscalReceiptForPaidPayment()
+```
+
+**Key rule**: `payment_transactions.amount` is always read from `price_quotes.amount_kzt`. Client-provided amounts are never used. Quotes expire in 24 h.
+
+Pricing engine (`src/lib/pricing/calculator.ts`): language group → base minimum → extra words (beyond 250) → additional pages (beyond 1) → document type coefficient → urgency coefficient → notary components. All in KZT, rounded up to nearest 100 KZT. 17 language groups defined in `src/lib/pricing/config.ts`.
+
+Docs: `docs/finance/FINANCIAL_ARCHITECTURE.md`, `docs/finance/PRICING_ENGINE.md`, `docs/finance/REFUND_FINANCE_RULES.md`, `docs/finance/UNIT_ECONOMICS.md`.
 
 ### translation-workflow module
 
@@ -299,7 +333,7 @@ Subscription state: `subscriptions` table. `POST /api/documents/upload` (subscri
 
 ### Integration orchestrator (Jira + Google Drive + Telegram)
 
-**Architecture principle:** WPO creates ONE Jira issue per order and then hands off — Jira Automation handles all internal transitions (assignee, security level, status, notifications). WPO never calls Jira API for transitions. Jira Automation sends callbacks to `/api/webhooks/jira` when statuses change; that route only updates Supabase and fires Telegram/email notifications.
+**Architecture principle:** WPO creates ONE Jira issue per order and then hands off — Jira Automation handles all internal transitions (assignee, security level, status, notifications). WPO never calls Jira API for transitions. After job completion a separate **Finance Report Story** is created and linked to the main issue (`relates to`); its key is stored in `jobs.finance_jira_issue_key`. Never put internal cost fields (margins, reserves) into the main order issue — finance fields go only in the Finance Report Story. Jira Automation sends callbacks to `/api/webhooks/jira` when statuses change; that route only updates Supabase and fires Telegram/email notifications.
 
 **Web app** (`src/lib/integrations/workflow.ts`) — `initializeOrderIntegrations(job)`:
 - Creates Google Drive order folder (if Drive is configured)
@@ -329,7 +363,7 @@ Subscription state: `subscriptions` table. `POST /api/documents/upload` (subscri
 |---|---|
 | `users` | auth users; `terms_accepted_at` — set by `POST /api/users/accept-terms` (dashboard shows acceptance gate until populated) |
 | `documents` | `file_key`, `source_language`, `target_language`, `document_type`, `output_format`, `status`, `word_count`, `price_usd` |
-| `jobs` | `status`, `progress_percent`, `priority`, `payment_source` (`'card_payment' \| 'subscription'`), `country`, `notarized`, `bureau_stamp`, `workflow_status`, `service_level`, `fulfillment_method` (`'pickup' \| 'delivery'`), `jira_issue_key`, `last_synced_at` |
+| `jobs` | `status`, `progress_percent`, `priority`, `payment_source` (`'card_payment' \| 'subscription'`), `country`, `notarized`, `bureau_stamp`, `workflow_status`, `service_level`, `fulfillment_method` (`'pickup' \| 'delivery'`), `jira_issue_key`, `last_synced_at`, `customer_comment`, `finance_jira_issue_key`, `finance_jira_sync_status` |
 | `ocr_results` | `job_id`, `markdown`, `page_count`, `provider` |
 | `translations` | `job_id`, `translated_markdown`, `translated_pdf_key`, `translated_docx_key`, `translated_preview_pdf_key`, `qa_report`, `translated_ast` (background AST enrichment — non-blocking, never gates delivery) |
 | `subscriptions` | `plan`, `status`, `documents_used`, `documents_limit`, `expires_at` |
@@ -338,7 +372,11 @@ Subscription state: `subscriptions` table. `POST /api/documents/upload` (subscri
 | `notification_log` | `event_id`, `order_id`, `jira_issue_key`, `recipient_profile_id`, `channel`, `template`, `status` (`pending\|sent\|failed\|skipped`), `provider_message_id`, `error`, `sent_at` — delivery audit for every Telegram notification attempt. Unique index on `(event_id, recipient_profile_id) WHERE status IN ('sent','pending')` for idempotency. |
 | `payment_transactions` | `job_id`, `document_id`, `amount`, `currency`, `status` (`pending\|paid\|failed\|expired`), `provider` (`halyk_epay`), `provider_environment` (`test\|production`), `provider_transaction_id`, `card_mask` — one row per Halyk ePay payment attempt. |
 | `fiscal_receipts` | `payment_transaction_id`, `operation_type` (`sale\|refund\|correction`), `status` (`pending\|pending_manual\|issued\|failed\|retry_required`), `amount_kzt`, `provider` (`manual\|webkassa`), `fiscal_url`, `provider_receipt_id`, `receipt_payload_sanitized`, `customer_email` — migration `0017_fiscal_receipts.sql`. |
-| `refund_transactions` | `payment_transaction_id`, `refund_amount_kzt`, `status` (`pending_manual\|pending\|succeeded\|failed\|requires_review`), `provider` (`halyk_epay`), `reason`, `operator_id`, `idempotency_key`, `fiscal_refund_receipt_id` — migration `0018_refund_transactions.sql`. |
+| `refund_transactions` | `payment_transaction_id`, `refund_amount_kzt`, `status` (`pending_manual\|pending\|succeeded\|failed\|requires_review`), `provider` (`halyk_epay`), `reason`, `operator_id`, `idempotency_key`, `fiscal_refund_receipt_id`, `refund_policy_case`, `approval_status` — migration `0018` + `0023`. |
+| `pricing_versions` | `code`, `status` (`draft\|active\|archived`), rate columns (all numeric fractions) — one `active` row at a time. Migration `0019`. |
+| `price_quotes` | `job_id`, `user_id`, `status` (`draft\|quoted\|expired\|payment_pending\|paid\|canceled\|refunded\|requires_operator_review`), `amount_kzt`, `expires_at`, `pricing_version_id` — immutable once `quoted`. Migration `0020`. |
+| `price_quote_items` | `quote_id`, `item_type`, `label_key`, `amount_kzt`, `is_internal` — line-item breakdown. Migration `0021`. |
+| `cost_reservations` | `quote_id`, `job_id`, `bucket` (translator/notary/ai_it/tax/etc.), `amount_kzt`, `status` (`reserved\|committed\|released`) — internal cost buckets, committed on payment. Migration `0022`. |
 
 Generated types at `src/types/supabase.ts`, re-exported from `src/types/index.ts`. Use `Tables<'tablename'>`, `TablesInsert<'tablename'>`, `TablesUpdate<'tablename'>` for typed DB access — do not inline raw object types.
 
@@ -421,3 +459,43 @@ Three config files at root: `sentry.client.config.ts`, `sentry.server.config.ts`
 - Server actions for mutations; API routes only when needed (e.g. webhooks, cron)
 - Never expose secrets to the client bundle
 - Conventional commits
+
+## Codebase Memory MCP usage
+
+This project has codebase-memory-mcp connected in Claude Code. Use it as the first step before non-trivial analysis or code changes.
+
+Always use codebase-memory-mcp before touching:
+- pricing calculation (quote engine: `src/lib/pricing/`, `price_quotes`, `cost_reservations`)
+- checkout and Halyk/ePay payment flow
+- payment_transactions and order status updates
+- Jira issue creation, custom fields, and workflow status mapping
+- Google Drive folder/file creation
+- Supabase order/payment/document logic
+- PDF/DOCX generation and official translation rendering
+- i18n, legal, public, footer, checkout, refund, privacy, consent, disclaimer texts
+- staging/production environment separation
+- worker/background processing
+- file storage, Cloudflare R2, upload/download flows
+- client document handling and deletion logic
+
+Required workflow:
+1. First use codebase-memory-mcp to find affected files, symbols, routes, functions, imports, and call chains.
+2. Explain the blast radius and risks before editing.
+3. Then read the exact affected files.
+4. Then propose the patch.
+5. Do not edit until the affected flow and risk points are clear.
+6. After edits, use codebase-memory-mcp or git diff analysis to identify impacted flows and required QA checks.
+
+Rules:
+- Do not rely only on graph results. Always read exact files before editing.
+- Do not expose or print secrets from .env files.
+- Do not index or inspect real client documents.
+- Do not commit .codebase-memory/.
+- Do not make broad refactors unless explicitly requested.
+- For payment, legal, pricing, tax, refund, notarization, and official translation logic, be conservative and explain risks first.
+- For WPO, do not change the tech stack without explicit approval.
+- Do not hardcode RU-only public/legal/payment texts; use i18n.
+- Do not make claims like guaranteed accepted, AI certified translation, or automatic notarization.
+
+Default prompt behavior:
+When the user asks to fix, inspect, refactor, or debug WPO code, first say which codebase-memory-mcp query/tooling you will use, then inspect the graph, then continue with file reads and edits only if needed.

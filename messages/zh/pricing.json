@@ -1,0 +1,30 @@
+{
+  "pricing": {
+    "label": "定价",
+    "title": "简单透明的价格",
+    "payg": "按需付费",
+    "basic": "基础版",
+    "pro": "专业版",
+    "perDoc": "每份文件",
+    "perMonth": "/ 月",
+    "mostPopular": "最受欢迎",
+    "subscribe": "订阅",
+    "startTranslating": "开始翻译",
+    "docs": "份文件 / 月",
+    "subtitle": "按文件付费或使用月度计划节省费用。",
+    "allPricesNote": "所有价格以美元计 · 30天使用权 · 无自动续费",
+    "paygNote": "从 2 290 ₸ 起 — 护照和证件。2 590 ₸ — 其他所有文件。",
+    "feature1": "无需承诺",
+    "feature2": "所有文件类型",
+    "feature3": "Claude AI 翻译",
+    "feature4": "清晰 PDF 输出",
+    "translateNow": "立即翻译",
+    "allDocTypes": "所有文件类型",
+    "aiTranslation": "Claude AI 翻译",
+    "cleanPdf": "整洁的 PDF 输出",
+    "dayAccess": "30 天访问",
+    "priorityProcessing": "优先处理",
+    "proBadge": "PRO 徽章",
+    "proDesc": "优先处理。"
+  }
+}

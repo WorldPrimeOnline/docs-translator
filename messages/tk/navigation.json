@@ -1,0 +1,18 @@
+{
+  "nav": {
+    "login": "Giriş",
+    "dashboard": "Dolandyryş paneli",
+    "signup": "Hasap açmak",
+    "getStarted": "Başla",
+    "kazakhstan": "Gazagystan",
+    "documents": "Resminamalar",
+    "kazakhstanOverview": "Gazagystan hakynda",
+    "translationForNotary": "Notarius üçin terjime",
+    "universityDocs": "Uniwersitet resminamalary",
+    "allDocTypes": "Ähli resminama görnüşleri",
+    "passportTranslation": "Pasport terjimesi",
+    "bankStatement": "Bank beýannamasy",
+    "diplomaTranslation": "Diplom terjimesi",
+    "certifiedTranslation": "Tassyklanan terjime"
+  }
+}

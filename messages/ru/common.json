@@ -1,0 +1,22 @@
+{
+  "disclaimer": "НЕОФИЦИАЛЬНЫЙ ПЕРЕВОД — ТОЛЬКО ДЛЯ ИНФОРМАЦИОННЫХ ЦЕЛЕЙ",
+  "mockup": {
+    "statusReady": "Готово",
+    "translationReady": "Перевод готов",
+    "pdfGenerated": "PDF создан · готов к скачиванию",
+    "download": "Скачать"
+  },
+  "contactsPage": {
+    "title": "Контакты",
+    "metaTitle": "Контакты — WPO Translations",
+    "metaDescription": "Контактная информация и реквизиты провайдера WPO Translations. По вопросам споров, возвратов и удаления данных.",
+    "providerHeading": "Провайдер услуг",
+    "disputesNote": "По вопросам споров, возвратов и удаления данных обращайтесь по указанным контактам.",
+    "legalNameLabel": "Юридическое наименование",
+    "iinBinLabel": "ИИН / БИН",
+    "addressLabel": "Юридический / почтовый адрес",
+    "phoneLabel": "Телефон",
+    "emailLabel": "Email",
+    "websiteLabel": "Веб-сайт"
+  }
+}

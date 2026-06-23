@@ -1,0 +1,374 @@
+{
+  "documentsHub": {
+    "heroBadge": "Barcha hujjat turlari",
+    "heroHeadline": "Har qanday rasmiy hujjatni tarjima qiling",
+    "heroAccentLine": "Onlayn, daqiqalarda",
+    "heroSubheadline": "Skanerlangan yoki raqamli PDF yuklang va toza tarjima qilingan versiyani oling. Barcha asosiy rasmiy hujjat turlari qo'llab-quvvatlanadi — pasportlar, bank ko'chirmalari, diplomlar, guvohnomalar va boshqalar.",
+    "heroCtaLabel": "Tarjimani boshlash",
+    "heroTrustLine": "2 290 ₸ dan · 10+ til · 2–5 daqiqa",
+    "finalCtaHeadline": "Hujjatingizni tarjima qilishni boshlang",
+    "finalCtaSub": "Har qanday rasmiy PDF yuklang va 2–5 daqiqada toza tarjima oling.",
+    "finalCtaCta": "Hujjat yuklash",
+    "faq": [
+      {
+        "q": "Qaysi hujjat turlarini qo'llabquvvatlaysiz?",
+        "a": "Biz barcha asosiy rasmiy hujjat turlarini qo'llab-quvvatlaymiz: pasportlar, ID kartalar, bank ko'chirmalari, diplomlar, akademik ko'chirmalar, tug'ilish va nikoh guvohnomalarari, mehnat shartnomalar, tibbiy yozuvlar, jinoiy javobgarlik yo'qligi guvohnomalari, haydovchilik guvohnomalar va boshqa rasmiy hujjatlar."
+      },
+      {
+        "q": "Qaysi tillar qo'llabquvvatlanadi?",
+        "a": "Biz ingliz, rus, xitoy, koreys, yapon, nemis, frantsuz, ispan va arab tillarini o'z ichiga olgan 10+ tilni qo'llab-quvvatlaymiz. Manba tili avtomatik aniqlanishi mumkin."
+      },
+      {
+        "q": "Tarjimalaringiz sertifikatlangan yoki notarius tasdiqlaganmi?",
+        "a": "Yo'q. Barcha tarjimalar norasmiy va faqat ma'lumot olish uchun. Har bir tarjima qilingan sahifada ko'rinadigan ogoh qilish maydoni paydo bo'ladi. Sertifikatlangan yoki notarius tasdiqlangan tarjimalar litsenziyalangan tarjimon yoki notariusdan olinishi kerak."
+      }
+    ]
+  },
+  "kazakhstan": {
+    "heroBadge": "Qozog'iston · Hujjat ish oqimlari",
+    "heroHeadline": "Qozog'iston uchun hujjat tarjimasi",
+    "heroAccentLine": "Ta'lim, migratsiya va rasmiy ish oqimlari",
+    "heroSubheadline": "Diplomlar, tug'ilish guvohnomalari, shartnomalar, bank ko'chirmalari va rasmiy hujjatlarni onlayn tarjima qiling. Xalqaro ish oqimlari uchun talabalar, migratsiya maslahatchilari, notariuslar va viza agentlari tomonidan ishlatiladi.",
+    "heroCtaLabel": "Hujjat tarjima qilish",
+    "heroCtaSecondaryLabel": "Qo'llab-quvvatlanadigan hujjatlarni ko'rish",
+    "heroTrustLine": "2 290 ₸ dan · RU / EN / KZ · 2–5 daqiqa",
+    "finalCtaHeadline": "Hujjatlaringizni onlayn tarjima qiling — byuroga bormasdan",
+    "finalCtaSub": "PDF yuklang va 2–5 daqiqada toza tarjima qilingan versiyani oling.",
+    "finalCtaCta": "Tarjimani boshlash",
+    "faq": [
+      {
+        "q": "Notariusga borishdan oldin bu tarjimadan foydalana olamanmi?",
+        "a": "Ha. Ko'pgina notariuslar va sertifikatlangan tarjimonlar sertifikatlangan versiyani yakunlashdan oldin norasmiy tarjima loyihasini ko'rib chiqishadi. Toza, tuzilgan WPO tarjimasi bu suhbatni tezlashtirishi va yakuniy sertifikatlangan hujjatdagi xatolarni kamaytirishi mumkin."
+      },
+      {
+        "q": "Qozog'iston hujjatlari uchun qaysi tillarni qo'llabquvvatlaysiz?",
+        "a": "Biz asosiy juftliklar sifatida rus ↔ ingliz va ingliz → rusni qo'llab-quvvatlaymiz. Qozog'cha ↔ rus va qozog'cha → ingliz ham qo'llab-quvvatlanadi. Bular xalqaro maqsadlar uchun ishlatiladigan Qozog'istonli hujjatlarning asosiy ish oqimlarini qamrab oladi."
+      },
+      {
+        "q": "Bu tarjima xorijiy universitetlar tomonidan qabul qilinadimi?",
+        "a": "Xorijiy universitetlar odatda sertifikatlangan yoki notarius tasdiqlangan tarjimalarni talab qiladi. WPO ariza tayyorlash bosqichida, ta'lim maslahatchisi tomonidan ko'rib chiqish uchun yoki sertifikatlangan tarjimon uchun havola loyihasi sifatida foydalanish mumkin bo'lgan norasmiy tarjimalar taqdim etadi."
+      },
+      {
+        "q": "Notariuslar va viza agentlari mijozlar nomidan bu xizmatdan foydalana oladimi?",
+        "a": "Ha. Har qanday foydalanuvchi mijozning hujjatini yuklashi, qayta ishlashi va tarjima qilingan PDFni olishi mumkin. Agentliklar uchun hamkor boshqaruv paneli kelajakdagi versiyada rejalashtirilgan."
+      },
+      {
+        "q": "Apostil nima va tarjima unga ta'sir qiladimi?",
+        "a": "Apostil — hukumat organi tomonidan hujjatga qo'yiladigan rasmiy autentifikatsiya muhri. Apostil asl hujjatga tegishli. Tarjima — apostil olingandan keyin ko'pincha talab qilinadigan alohida qadam. WPO tarjima bosqichini ta'minlaydi; apostil tegishli hukumat organidan olinishi kerak."
+      }
+    ],
+    "docsHeadline": "Supported document types",
+    "docsSubheadline": "All major document types used in study, migration, and official workflows",
+    "docItem1": "Diploma & Transcript",
+    "docItem2": "Birth & Marriage Certificate",
+    "docItem3": "Passport & National ID",
+    "docItem4": "Bank Statement",
+    "docItem5": "Employment Contract & Letter",
+    "docItem6": "Police Clearance Certificate",
+    "docItem7": "Medical Certificate",
+    "docItem8": "Migration & Residency Documents",
+    "docItem9": "Apostille-Related Documents",
+    "painHeadline": "Document translation in Kazakhstan — common bottlenecks",
+    "pain1Title": "Translation bureaus charge per page and require physical presence",
+    "pain1Desc": "Most certified translation offices in Kazakhstan require you to come in person with originals, wait several days, and pay significant per-page fees for what can be a 2-page diploma.",
+    "pain2Title": "Notary appointments need a complete translation draft in advance",
+    "pain2Desc": "Many notaries and certified translators in Kazakhstan work faster and more accurately when they have a clean first-pass translation to review, rather than starting from scratch.",
+    "pain3Title": "International university applications require precise English formatting",
+    "pain3Desc": "Foreign universities evaluating Kazakhstani diplomas want clean, readable English transcriptions — not literal word-for-word renderings that lose structural context.",
+    "pain4Title": "Migration and apostille workflows involve many documents at once",
+    "pain4Desc": "Preparing for relocation, work abroad, or foreign university admission often means translating 5–10 documents simultaneously. The timeline becomes the main constraint.",
+    "painSectionLabel": "WHY WPO",
+    "painBridgeLabel": "WPO helps",
+    "docsSectionLabel": "SUPPORTED DOCUMENTS",
+    "trustHeadline": "Transparent, Confidential and Legally Accurate",
+    "pricingHeadline": "Simple Per-Document Pricing",
+    "pricingSubheadline": "No subscription. Pay only for the translation you choose.",
+    "seoHeadline": "Document Translation for Kazakhstan — When and How to Use",
+    "seoParagraph1": "In Kazakhstan, document translations are often needed for enrolling in foreign universities, work visas, relocation, immigration procedures, opening bank accounts abroad, and apostille. The traditional route through a translation bureau can require a personal visit, waiting time, and manual document handoff.",
+    "seoParagraph2": "WorldPrimeOnline helps prepare translations online: upload a document, choose a language pair and service level, and receive the result in electronic format. Electronic translation is suitable for preparation and reference. Official translation with translator review, translator signature, and Provider stamp is available as a separate service level. Notarial certification is arranged separately through partners where available.",
+    "seoParagraph3": "Acceptance of translations by third parties is not guaranteed. Before submitting a document to a bank, university, consulate, immigration authority, or notary, verify the requirements of the receiving party."
+  },
+  "kazakhstanNotarized": {
+    "heroBadge": "Qozog'iston · Notariat tayyorgarlik",
+    "heroHeadline": "Tarjima",
+    "heroAccentLine": "Notariat ko'rib chiqish va sertifikatlash uchun",
+    "heroSubheadline": "Hujjatingizni yuklang va notariusga yoki sertifikatlangan tarjimonga taqdim etishga tayyor toza, tuzilgan rus yoki ingliz tarjimasini oling. Ko'rib chiqish vaqtini qisqartiring, xatolarni kamaytiring, umumiy xarajatni tushiring.",
+    "heroCtaLabel": "Tarjima tayyorlash",
+    "heroTrustLine": "2 290 ₸ dan · 2–5 daqiqa · Notariat uchun tayyor natija",
+    "finalCtaHeadline": "Notariat uchrashuvidan oldin tarjimangi tayyorlang",
+    "finalCtaSub": "Hujjatingizni yuklang va 2–5 daqiqada tuzilgan tarjima oling. 2 290 ₸ dan.",
+    "finalCtaCta": "Tarjimani boshlash",
+    "faq": [
+      {
+        "q": "Bu sertifikatlangan yoki notarius tasdiqlagan tarjimami?",
+        "a": "Yo'q. WPO ma'lumot olish va tayyorlash maqsadlari uchun norasmiy tarjima loyihalari taqdim etadi. Sertifikatlangan yoki notarius tasdiqlagan tarjima litsenziyalangan tarjimon yoki notarius tomonidan tayyorlanishi kerak. WPO loyihalari bu jarayonga kirish sifatida ishlatilishi mumkin, ammo uning o'rnini bosa olmaydi."
+      },
+      {
+        "q": "Notariusim WPO tarjima loyihasini boshlang'ich nuqta sifatida qabul qiladimi?",
+        "a": "Ko'pgina notariuslar va sertifikatlangan tarjimonlar oldindan tayyorlangan loyihadan ishlashga tayyor. Bu ularning ishini tezlashtiradi va xato ehtimolini kamaytiradi. Biroq, barcha notariuslar tashqi loyihalarni qabul qilmaydi — bu ish oqimidan foydalanishdan oldin o'zingizning notariusingiz bilan tasdiqlang."
+      },
+      {
+        "q": "Qaysi tillar qo'llabquvvatlanadi?",
+        "a": "Rus ↔ ingliz, qozog'cha → ingliz va qozog'cha → rus. Bular xalqaro maqsadlar uchun Qozog'istonda tayyorlangan hujjatlar uchun asosiy til juftliklarini qamrab oladi."
+      },
+      {
+        "q": "Notarius yoki migratsiya maslahatchisi sifatida bu xizmatdan foydalana olamanmi?",
+        "a": "Ha. Siz mijoz hujjatlarini yuklashingiz va ularning nomidan tarjima qilingan loyihalarni olishingiz mumkin. Maxsus hamkor ish oqimi ishlab chiqilmoqda."
+      },
+      {
+        "q": "TODO_I18N Сколько времени занимает нотариальное удостоверение?",
+        "a": "TODO_I18N Электронный перевод обычно готов за несколько минут. Официальный перевод и нотариальное удостоверение требуют дополнительного времени, потому что в процесс вовлекаются переводчик и/или нотариус-партнёр."
+      }
+    ],
+    "docsHeadline": "Document types commonly prepared for notary review",
+    "docItem1": "Diploma & Academic Transcript",
+    "docItem2": "Birth Certificate",
+    "docItem3": "Marriage & Divorce Certificate",
+    "docItem4": "Passport & National ID",
+    "docItem5": "Police Clearance Certificate",
+    "docItem6": "Employment Contract",
+    "docItem7": "Bank Statement",
+    "docItem8": "Power of Attorney",
+    "docItem9": "Medical Document",
+    "painHeadline": "Notary translation appointments take longer than necessary",
+    "pain1Title": "Notaries start from scratch on every document",
+    "pain1Desc": "Without a pre-prepared draft, a notary or certified translator reads the original, dictates, and constructs the translation during the appointment — a slow, billable process.",
+    "pain2Title": "Errors in the first draft cost time and money to correct",
+    "pain2Desc": "Name transliterations, date formatting, and institution names are common error points. A pre-processed draft identifies these before the certified version is produced.",
+    "pain3Title": "Multiple documents multiply the wait time",
+    "pain3Desc": "University or migration packages often involve 5–10 documents. Preparing drafts for all of them before one notary session significantly reduces the overall timeline.",
+    "pain4Title": "Clients arrive unprepared, extending appointment duration",
+    "pain4Desc": "For notaries and visa agents, clients who arrive with a clear draft are faster to process. The translated draft also helps clients understand what they are signing.",
+    "painSectionLabel": "HOW IT WORKS",
+    "painBridgeLabel": "WPO helps organize the process",
+    "docsSectionLabel": "DOCUMENTS FOR NOTARY PROCESS"
+  },
+  "kazakhstanUniversity": {
+    "heroBadge": "Qozog'iston · Universitet arizalari",
+    "heroHeadline": "Akademik hujjatlarni tarjima qiling",
+    "heroAccentLine": "Xalqaro universitet arizalari uchun",
+    "heroSubheadline": "Buyuk Britaniya, AQSh, Yevropa, Kanada va boshqa mamlakatlardagi universitetlarga ariza berish uchun diplomlar, akademik ko'chirmalar, maktab guvohnomalar va akademik yozuvlarning toza ingliz tarjimalarini oling.",
+    "heroCtaLabel": "Akademik hujjatlarni tarjima qilish",
+    "heroTrustLine": "2 590 ₸ dan · Diplom va ko'chirma formatlari · RU / EN",
+    "finalCtaHeadline": "Universitet ariza hujjatlaringizni tayyorlang",
+    "finalCtaSub": "Diplomingizni, akademik ko'chirmangizni yoki akademik guvohnomangizni yuklang va bir necha daqiqada toza ingliz tarjimasini oling.",
+    "finalCtaCta": "Akademik hujjatlarimni tarjima qilish",
+    "faq": [
+      {
+        "q": "Xorijiy universitetlar WPO tarjimasini qabul qiladimi?",
+        "a": "Talablar universitetga va mamlakatga qarab farq qiladi. Ko'pgina universitetlar dastlabki ariza ko'rib chiqishi uchun norasmiy tarjimalarni qabul qiladi, sertifikatlangan tarjimalar faqat qabul qilinganidan keyin yoki ro'yxatga olish vaqtida talab qilinadi. Maqsadli universitetingiz uchun maxsus talablarni doimo tekshiring."
+      },
+      {
+        "q": "\"Maktabni tugatish guvohnomasi\" (Attestat) nima?",
+        "a": "Attestat — Qozog'istonning o'rta maktabni tugatish guvohnomasi. Barcha fanlardagi yakuniy baholarni ro'yxatga oladi. Biz fan nomlari, baholar va malaka tafsilotlari bilan to'liq hujjatni toza ingliz tiliga tarjima qilamiz."
+      },
+      {
+        "q": "Baho shkalasi va baholash tizimini saqlaydingizmi?",
+        "a": "Ha. Biz asl baholarni ko'rsatilganidek saqlaymiz (masalan, 5 ballik yoki 100 ballik shkala) va tarjima qilingan hujjatda baholash tizimini qayd etamiz. Baholarni konvertatsiya qilmaymiz yoki hech qanday talqin qo'llamaymiz."
+      },
+      {
+        "q": "IELTS, TOEFL yoki hisob-kitob maqsadlari uchun hujjatlarni tarjima qila olasizmi?",
+        "a": "WPO tarjimalari norasmiy. Ular rasmiy ball hisoboti uchun IELTS/TOEFL ma'muriy organlari tomonidan qabul qilinmaydi. Biroq, ular o'z tayyorgarligingiz, norasmiy ariza ko'rib chiqish yoki sertifikatlangan tarjima ish oqimiga kirish uchun ishlatilishi mumkin."
+      }
+    ],
+    "docsHeadline": "Supported academic document types",
+    "docItem1": "Bachelor / Master Diploma",
+    "docItem2": "Academic Transcript",
+    "docItem3": "School Leaving Certificate (Attestat)",
+    "docItem4": "Grade Transcripts & Supplements",
+    "docItem5": "Birth Certificate (for enrollment)",
+    "docItem6": "Passport (for enrollment)",
+    "docItem7": "Research / Employment Certificate",
+    "docItem8": "Medical Certificate (for admission)",
+    "painHeadline": "University application translation — where it gets complicated",
+    "pain1Title": "International universities require precise academic terminology",
+    "pain1Desc": "A diploma from a Kazakhstani university contains specific field-of-study names, department names, and qualification titles that must be translated using internationally recognised terminology.",
+    "pain2Title": "Transcripts have structured tables — poorly formatted output gets rejected",
+    "pain2Desc": "Academic transcripts contain subject names, credit hours, and grades in tabular format. Generic translation tools convert them to unstructured text. WPO preserves the structure.",
+    "pain3Title": "Tight admission deadlines leave no time for agency delays",
+    "pain3Desc": "University application windows are narrow. Getting a translation in 2–5 minutes versus waiting days from a bureau can determine whether you submit on time.",
+    "pain4Title": "Education consultants need fast drafts for multiple clients at once",
+    "pain4Desc": "Agencies handling multiple university applications simultaneously need a scalable, fast translation tool — not a per-client bureau negotiation."
+  },
+  "passportTranslation": {
+    "heroBadge": "Hujjat turi · Pasport va ID",
+    "heroHeadline": "Pasport tarjimasi",
+    "heroAccentLine": "Har qanday til — Onlayn bir necha daqiqada",
+    "heroSubheadline": "Pasport yoki ID karta skanini yuklang va toza, tuzilgan tarjimani oling. Barcha biografik ma'lumotlar, hujjat raqamlari, sanalar va shaxsiy ma'lumotlar aynan ko'rsatilganidek saqlanadi.",
+    "heroCtaLabel": "Pasportimni tarjima qilish",
+    "heroTrustLine": "Pasport uchun 2 290 ₸ · 2–5 daqiqa · 10+ til juftliklari",
+    "finalCtaHeadline": "Pasportingizni onlayn tarjima qiling",
+    "finalCtaSub": "Pasport skaningizni yuklang va bir necha daqiqada toza, tuzilgan ingliz tarjimasini oling.",
+    "finalCtaCta": "Pasportimni tarjima qilish",
+    "faq": [
+      {
+        "q": "Tarjimaga qaysi pasport ma'lumotlari kiritilgan?",
+        "a": "Biz pasport ma'lumotlar sahifasidagi barcha ko'rinadigan maydonlarni tarjima qilamiz: familiya, ism(lar), millat, tug'ilgan sana, tug'ilgan joy, jins, berilgan sana, amal qilish muddati, pasport raqami, beruvchi organ va MRZ zonasi mazmuni. Shaxsiy ismlar maqsadli skriptga transliteratsiya qilinadi."
+      },
+      {
+        "q": "Pasport qaysi tillarga tarjima qilinishi mumkin?",
+        "a": "Biz ingliz, rus, xitoy, koreys, yapon, nemis, frantsuz, ispan va arab tillarini o'z ichiga olgan 10+ maqsad tilni qo'llab-quvvatlaymiz. Manba tili avtomatik aniqlanishi yoki qo'lda ko'rsatilishi mumkin."
+      },
+      {
+        "q": "Tarjima viza arizalari uchun qabul qilinadimi?",
+        "a": "Tarjimalarimiz norasmiy va ma'lumot olish uchun. Ba'zi konsulxonalar asl pasport bilan birga norasmiy tarjima nusxalarini qabul qiladi. Boshqalari sertifikatlangan tarjimalarni talab qiladi. Doimo o'zingizning elchixona yoki konsulxonangiz bilan qanday darajadagi tarjima talab qilinishini tasdiqlang."
+      },
+      {
+        "q": "Ismlar tarjimada qanday qayta ishlanadi?",
+        "a": "Shaxsiy ismlar pasport uslubidagi hujjatlar uchun ICAO 9303 standartlariga muvofiq va boshqa skriptlar uchun standart transliteratsiya qoidalariga ko'ra transliteratsiya qilinadi. Ismlar hech qachon semantik jihatdan tarjima qilinmaydi."
+      },
+      {
+        "q": "Pasport ma'lumotlarim xavfsizmi?",
+        "a": "Hujjatingiz shifrlangan Cloudflare R2 saqlashda qayta ishlanadi va saqlanadi. U 30 kundan keyin avtomatik o'chiriladi. Biz pasportingizda shaxsiy ma'lumotlarni tarjima yaratishdan boshqa maqsadlar uchun saqlamaymiz, ulashmaymiz yoki ishlatmaymiz."
+      }
+    ]
+  },
+  "diplomaTranslation": {
+    "heroBadge": "Hujjat turi · Diplom va Akademik ko'chirma",
+    "heroHeadline": "Diplom va Akademik hisob",
+    "heroAccentLine": "Onlayn tarjima",
+    "heroSubheadline": "Universitet arizalari, professional litsenziyalash, hisob-kitob va xalqaro ish uchun diplomlar, daraja guvohnomalar va akademik ko'chirmalarni tarjima qiling.",
+    "heroCtaLabel": "Diplomimni tarjima qilish",
+    "heroTrustLine": "Hujjat uchun 2 590 ₸ · Akademik terminologiya saqlanadi · 10+ til",
+    "finalCtaHeadline": "Diplom yoki akademik ko'chirmangizni tarjima qiling",
+    "finalCtaSub": "Akademik hisob-kitobingizni yuklang va bir necha daqiqada toza, tuzilgan ingliz tarjimasini oling.",
+    "finalCtaCta": "Diplomimni tarjima qilish",
+    "faq": [
+      {
+        "q": "Tarjimangiz WES yoki boshqa hisob-kitob baholashlari uchun qabul qilinadimi?",
+        "a": "WES (World Education Services) va ko'pgina hisob-kitob baholash organlari sertifikatlangan yoki notarius tasdiqlagan tarjimalarni talab qiladi. WPO tayyorgarlik paytida, ta'lim maslahatchilari tomonidan yoki sertifikatlangan tarjima ish oqimiga kirish sifatida foydalanish mumkin bo'lgan norasmiy tarjimalar taqdim etadi. Topshirishdan oldin rasmiy talablarni tekshiring."
+      },
+      {
+        "q": "Diplom qo'shimchalari va baho tushuntirishlarini tarjima qilasizmi?",
+        "a": "Ha. Diplom qo'shimchalari, baho shkalasi tushuntirishlari va ilova qilingan akademik ko'chirmalar hujjat sifatida tarjima qilinadi. Fan nomlari standart akademik ingliz terminologiyasidan foydalanib tarjima qilinadi."
+      },
+      {
+        "q": "Diplom tarjimasi uchun qaysi tillarni qo'llabquvvatlaysiz?",
+        "a": "Biz 10+ tilni qo'llab-quvvatlaymiz. Diplom tarjimasi uchun eng keng tarqalgan juftliklar: rus → ingliz, qozog'cha → ingliz va xitoy → ingliz. Manba tili avtomatik aniqlanishi mumkin."
+      },
+      {
+        "q": "Daraja unvonlari va akademik baholarni qanday qayta ishlaysiz?",
+        "a": "Daraja unvonlari kerak bo'lganda tushuntirish konteksti bilan tarjima qilinadi (masalan, \"Mutaxassis darajasi (5 yillik integral dastur)\"). Baholar konvertatsiya qilinmasdan asl shkala bo'yicha saqlanadi."
+      },
+      {
+        "q": "Buni professional litsenziyalash arizasi uchun ishlatsa bo'ladimi?",
+        "a": "Ko'pgina litsenziyalash kengashlari xorijiy hisob-kitoblarning sertifikatlangan yoki notarius tasdiqlagan tarjimalarini talab qiladi. WPO tayyorgarlik va ma'lumot olish uchun norasmiy tarjimalar taqdim etadi. Litsenziyalash kengashingiz bilan sertifikatlash talablarini tasdiqlang."
+      }
+    ],
+    "docsHeadline": "Academic document types supported",
+    "docItem1": "Bachelor's Diploma",
+    "docItem2": "Master's Diploma",
+    "docItem3": "PhD / Doctoral Certificate",
+    "docItem4": "Academic Transcript",
+    "docItem5": "School Leaving Certificate",
+    "docItem6": "Diploma Supplement",
+    "docItem7": "Academic Reference Letter",
+    "docItem8": "Professional Certification",
+    "painHeadline": "Diploma translation challenges — what goes wrong",
+    "pain1Title": "Academic institution names must be translated with care",
+    "pain1Desc": "University and faculty names have official international forms. Incorrectly translating a university name raises immediate flags with reviewers.",
+    "pain2Title": "Qualification titles are not universal — context matters",
+    "pain2Desc": "A Russian 'specialist' degree is not simply a bachelor's degree. Credential evaluators expect accurate description of the qualification type, duration, and field.",
+    "pain3Title": "Transcripts are tables — not paragraphs",
+    "pain3Desc": "Academic transcripts contain structured course listings with credits, grades, and subject codes. Translation tools that flatten tables into prose produce unusable output.",
+    "pain4Title": "Tight deadlines for credential evaluation services",
+    "pain4Desc": "WES, ICAS, and other credential evaluation bodies often have document submission deadlines. Having a fast translation tool available means you can submit on time."
+  },
+  "bankStatementTranslation": {
+    "heroBadge": "Hujjat turi · Bank ko'chirmasi",
+    "heroHeadline": "Bank ko'chirmasi tarjimasi",
+    "heroAccentLine": "Viza, immigratsiya va daromad isboti uchun",
+    "heroSubheadline": "Bank ko'chirmalarini har qanday tildan ingliz yoki boshqa maqsad tillariga tarjima qiling. Barcha qoldiqlar, tranzaktsiya sanalar, hisob raqamlari va valyuta miqdorlari aynan ko'rsatilganidek saqlanadi.",
+    "heroCtaLabel": "Bank ko'chirmamni tarjima qilish",
+    "heroTrustLine": "Hujjat uchun 2 590 ₸ · 2–5 daqiqa · Har qanday bank, har qanday mamlakat",
+    "finalCtaHeadline": "Viza yoki immigratsiya uchun bank ko'chirmangizni tarjima qiling",
+    "finalCtaSub": "Bank ko'chirmangizni yuklang va 2–5 daqiqada toza ingliz tarjimasini oling.",
+    "finalCtaCta": "Bank ko'chirmamni tarjima qilish",
+    "faq": [
+      {
+        "q": "Qaysi viza turlari tarjima qilingan bank ko'chirmasini talab qiladi?",
+        "a": "Shengen vizalari, Buyuk Britaniya tashrif vizalari, AQSh B1/B2 vizalari va ko'pgina immigratsiya arizalari odatda ingliz tilida bankdan mablag'lar isbotini talab qiladi. Daromad guvohnomalar va ish haqi to'lovnomalari kabi boshqa hujjatlar ham ko'pincha talab qilinadi."
+      },
+      {
+        "q": "Valyutalar va miqdorlar konvertatsiyasiz saqlanadimi?",
+        "a": "Ha. Barcha miqdorlar, valyutalar va qoldiqlar asl hujjatda ko'rsatilganidek saqlanadi. Biz valyutalarni konvertatsiya qilmaymiz, miqdorlarni yaxlitlamaymiz yoki moliyaviy ma'lumotlarni hech qanday tarzda talqin qilmaymiz."
+      },
+      {
+        "q": "Bank ko'chirmam 6 sahifali bo'lsa nima bo'ladi?",
+        "a": "Biz 50 sahifagacha bo'lgan bank ko'chirmalarini qo'llab-quvvatlaymiz. Hujjat uchun narx shu chegaradagi sahifalar sonidan qat'iy nazar qo'llaniladi. Barcha sahifalar bitta hujjat sifatida tarjima qilinadi."
+      },
+      {
+        "q": "Tarjima qilingan ko'chirma konsulxonam tomonidan qabul qilinadimi?",
+        "a": "Tarjimalarimiz norasmiy. Ko'pgina konsulxonalar asl ko'chirma bilan birga norasmiy tarjimalarni qabul qiladi. Boshqalari sertifikatlangan tarjimani talab qiladi. O'zingizning konsulxonangiz yoki viza agentingiz bilan talablarni tekshiring."
+      },
+      {
+        "q": "Onlayn bank skrinshoti yoki PDF eksportlarini tarjima qila olasizmi?",
+        "a": "Ha. Skanerlangan qog'oz ko'chirmalari ham, onlayn bank tizimidan raqamli PDF eksportlari ham qo'llab-quvvatlanadi. Skanerlangan hujjatlar tarjimadan oldin OCR orqali qayta ishlanadi."
+      }
+    ],
+    "docsHeadline": "Bank and financial document types supported",
+    "docItem1": "Bank Statement (1–6 months)",
+    "docItem2": "Account Balance Certificate",
+    "docItem3": "Income Certificate from Employer",
+    "docItem4": "Tax Return Summary",
+    "docItem5": "Payslip / Salary Statement",
+    "docItem6": "Property or Asset Statement",
+    "painHeadline": "Why getting your bank statement translated is harder than it should be",
+    "pain1Title": "Visa consulates require English bank statements — most banks don't offer them",
+    "pain1Desc": "Banks in Russia, Kazakhstan, and many other countries issue statements only in their local language. Embassies and consulates reviewing visa applications typically require English translations.",
+    "pain2Title": "Numbers and amounts must be perfectly preserved — no rounding, no conversion",
+    "pain2Desc": "Bank statements used for visa or mortgage applications must show exact original amounts in original currency. Any conversion or rounding creates a discrepancy that can cause rejection.",
+    "pain3Title": "Transaction-level detail must be readable and structured",
+    "pain3Desc": "A bank statement with 50 transactions must remain a table — not a paragraph. Generic translation tools collapse structure into unformatted text.",
+    "pain4Title": "Tight visa deadlines make waiting 3–5 days for a bureau unacceptable",
+    "pain4Desc": "DTV, Schengen, and other visa applications have narrow windows. Getting your bank statement translated in minutes, not days, can determine whether your application is ready on time."
+  },
+  "kazakhstanCertified": {
+    "heroBadge": "Kazakhstan · Official Translation",
+    "heroHeadline": "Certified Translation",
+    "heroAccentLine": "of Documents Online",
+    "heroSubheadline": "Order an official translation with translator review, translator signature, and Provider stamp. For banks, universities, migration, visa, and official purposes.",
+    "heroCtaLabel": "Order Official Translation",
+    "heroTrustLine": "Acceptance of the translation by third parties is not guaranteed and depends on the requirements of the receiving organization.",
+    "painSectionLabel": "WHAT'S INCLUDED",
+    "painBridgeLabel": "WPO helps",
+    "painHeadline": "Official Translation — a Separate Service Level",
+    "pain1Title": "Translator Review",
+    "pain1Desc": "The translation is reviewed by a human translator. OCR errors, terminology, and formatting are corrected as needed.",
+    "pain2Title": "Translator Signature",
+    "pain2Desc": "The final document may include a translator signature and translator block.",
+    "pain3Title": "Provider Stamp",
+    "pain3Desc": "For the official service level, a Provider stamp may be added to the document.",
+    "pain4Title": "No Acceptance Guarantee",
+    "pain4Desc": "Banks, universities, consulates, and other organizations may have their own requirements. These should be verified in advance.",
+    "finalCtaHeadline": "Need an Official Translation?",
+    "finalCtaSub": "Upload a document, choose the official service level, and review the final price before payment.",
+    "finalCtaCta": "Start Translation",
+    "faq": [
+      {
+        "q": "What does certified translation mean at WPO?",
+        "a": "At WPO, certified translation means the official service level: the translation is reviewed by a human translator and may include a translator signature, Provider stamp, date, and translator block. It does not automatically mean notarial certification or guaranteed acceptance by third parties."
+      },
+      {
+        "q": "How does certified translation differ from electronic translation?",
+        "a": "Electronic translation is performed automatically using OCR and AI, without a translator signature, Provider stamp, or notarial certification. Certified / official translation undergoes translator review and may include a translator signature and Provider stamp."
+      },
+      {
+        "q": "Is this a notarized translation?",
+        "a": "No. WPO certified / official translation is not notarial certification by itself. Notarization is arranged separately through a partner process, if this service is available for the selected document, language pair, and jurisdiction."
+      },
+      {
+        "q": "Do you guarantee that the translation will be accepted by a bank, university, or consulate?",
+        "a": "No. Acceptance of a translation depends on the requirements of the specific bank, university, consulate, immigration authority, notary, or other organization. Before using the translation for official purposes, the customer must independently verify the requirements of the receiving party."
+      },
+      {
+        "q": "When is an official translation needed?",
+        "a": "An official translation is usually needed when the receiving party requires a translation with translator review, translator signature, Provider stamp, or additional confirmation. If a standard electronic translation is insufficient, choose the official service level."
+      },
+      {
+        "q": "Can notarial certification be added later?",
+        "a": "In some cases yes, if a partner process is available for the selected document, language, and jurisdiction. Availability, timeline, and cost of notarization are confirmed separately."
+      }
+    ]
+  }
+}

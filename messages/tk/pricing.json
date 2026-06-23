@@ -1,0 +1,30 @@
+{
+  "pricing": {
+    "label": "BAHALAR",
+    "title": "Ýönekeý we açyk bahalar",
+    "payg": "Her gezek töle",
+    "basic": "Esasy",
+    "pro": "Pro",
+    "perDoc": "resminama üçin",
+    "perMonth": "/ aý",
+    "mostPopular": "Iň meşhur",
+    "subscribe": "Agza bol",
+    "startTranslating": "Terjimäni başla",
+    "docs": "resminama / aý",
+    "subtitle": "Resminama üçin tölä ýa-da aýlyk meýilnama bilen tygşytla.",
+    "allPricesNote": "Ähli bahalar KZT · 30 günlük giriş · Awtomatik täzelenme ýok",
+    "paygNote": "2 290 ₸-dan — pasportlar we ID-ler. 2 590 ₸ — beýleki ähli resminamalar.",
+    "feature1": "Borç ýok",
+    "feature2": "Ähli resminama görnüşleri",
+    "feature3": "Claude tarapyndan emeli intellekt terjimesi",
+    "feature4": "Arassa PDF çykary",
+    "translateNow": "Häzir terjime et",
+    "allDocTypes": "Ähli resminama görnüşleri",
+    "aiTranslation": "Claude arkaly AI terjimesi",
+    "cleanPdf": "Arassa PDF çykyşy",
+    "dayAccess": "30 günlük giriş",
+    "priorityProcessing": "Ileri derejeli gaýtadan işleme",
+    "proBadge": "PRO nyşany",
+    "proDesc": "Ileri derejeli gaýtadan işleme."
+  }
+}

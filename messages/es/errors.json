@@ -1,0 +1,12 @@
+{
+  "errors": {
+    "somethingWrong": "Algo salió mal",
+    "errorDesc": "Ocurrió un error inesperado. Por favor, inténtalo de nuevo o regresa al panel.",
+    "tryAgain": "Intentar de nuevo",
+    "goToDashboard": "Ir al Panel",
+    "notFound": "Página no encontrada",
+    "notFoundDesc": "La página que buscas no existe o fue movida.",
+    "goHome": "Ir al inicio",
+    "dashboard": "Panel"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "nav": {
+    "login": "Log in",
+    "dashboard": "Dashboard",
+    "signup": "Sign up",
+    "getStarted": "Get Started",
+    "kazakhstan": "Kazakhstan",
+    "documents": "Documents",
+    "kazakhstanOverview": "Kazakhstan Overview",
+    "translationForNotary": "Translation for Notary",
+    "universityDocs": "University Documents",
+    "allDocTypes": "All Document Types",
+    "passportTranslation": "Passport Translation",
+    "bankStatement": "Bank Statement",
+    "diplomaTranslation": "Diploma Translation",
+    "certifiedTranslation": "Certified Translation"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "pricing": {
+    "label": "PRICING",
+    "title": "Simple, transparent pricing",
+    "payg": "Pay as you go",
+    "basic": "Basic",
+    "pro": "Pro",
+    "perDoc": "per document",
+    "perMonth": "/ month",
+    "mostPopular": "Most Popular",
+    "subscribe": "Subscribe",
+    "startTranslating": "Start translating",
+    "docs": "documents / month",
+    "subtitle": "Pay per document or save with a monthly plan.",
+    "allPricesNote": "All prices in ₸ (tenge) · 30-day access · No auto-renewal",
+    "paygNote": "From 2 290 ₸ — passports & IDs. 2 590 ₸ — all other documents.",
+    "feature1": "No commitment",
+    "feature2": "All document types",
+    "feature3": "AI translation by Claude",
+    "feature4": "Clean PDF output",
+    "translateNow": "Translate Now",
+    "allDocTypes": "All document types",
+    "aiTranslation": "AI translation by Claude",
+    "cleanPdf": "Clean PDF output",
+    "dayAccess": "30-day access",
+    "priorityProcessing": "Priority processing",
+    "proBadge": "PRO badge",
+    "proDesc": "Priority processing."
+  }
+}

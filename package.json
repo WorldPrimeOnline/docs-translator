@@ -9,7 +9,11 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "jest",
-    "staging:check": "node scripts/staging-check.mjs"
+    "staging:check": "node scripts/staging-check.mjs",
+    "i18n:check": "tsx scripts/i18n/check-messages.ts",
+    "i18n:hardcoded": "tsx scripts/i18n/find-hardcoded-ui-text.ts",
+    "i18n:forbidden": "tsx scripts/i18n/find-forbidden-phrases.ts",
+    "i18n:validate": "npm run i18n:check && npm run i18n:forbidden"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",

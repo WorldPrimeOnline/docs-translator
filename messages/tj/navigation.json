@@ -1,0 +1,18 @@
+{
+  "nav": {
+    "login": "Воридшавӣ",
+    "dashboard": "Идоракунӣ",
+    "signup": "Сабтном",
+    "getStarted": "Оғоз кардан",
+    "kazakhstan": "Қазоқистон",
+    "documents": "Ҳуҷҷатҳо",
+    "kazakhstanOverview": "Қазоқистон умумӣ",
+    "translationForNotary": "Тарҷума барои нотариус",
+    "universityDocs": "Ҳуҷҷатҳои донишгоҳ",
+    "allDocTypes": "Ҳамаи намудҳои ҳуҷҷат",
+    "passportTranslation": "Тарҷумаи шиносномаи",
+    "bankStatement": "Хулосаи бонкӣ",
+    "diplomaTranslation": "Тарҷумаи диплом",
+    "certifiedTranslation": "Тарҷумаи тасдиқшуда"
+  }
+}

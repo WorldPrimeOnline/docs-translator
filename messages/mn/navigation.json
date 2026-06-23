@@ -1,0 +1,18 @@
+{
+  "nav": {
+    "login": "Нэвтрэх",
+    "dashboard": "Хяналтын самбар",
+    "signup": "Бүртгүүлэх",
+    "getStarted": "Эхлэх",
+    "kazakhstan": "Казахстан",
+    "documents": "Баримт бичгүүд",
+    "kazakhstanOverview": "Казахстаны тухай",
+    "translationForNotary": "Нотариусын орчуулга",
+    "universityDocs": "Их сургуулийн баримт бичгүүд",
+    "allDocTypes": "Бүх баримт бичгийн төрлүүд",
+    "passportTranslation": "Паспортын орчуулга",
+    "bankStatement": "Банкны хуулга",
+    "diplomaTranslation": "Дипломын орчуулга",
+    "certifiedTranslation": "Баталгаажуулсан орчуулга"
+  }
+}

@@ -109,7 +109,7 @@ export default async function LocaleLayout({
           </div>
 
           <div className="mt-8 border-t border-white/10 pt-6 text-center text-xs text-muted-foreground">
-            <span>© 2026 WorldPrime Online. All rights reserved.</span>
+            <span>{tFooter('copyright')}</span>
           </div>
         </div>
       </footer>

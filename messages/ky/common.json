@@ -1,0 +1,22 @@
+{
+  "disclaimer": "РАСМИЙ ЭМЕС КОТОРМО — МААЛЫМАТ МАКСАТЫНДА ГАНА",
+  "contactsPage": {
+    "title": "Contacts",
+    "metaTitle": "Contact WPO Translations",
+    "metaDescription": "Provider contact details for WPO Translations. For disputes, refund requests, and data deletion inquiries.",
+    "providerHeading": "Service Provider",
+    "disputesNote": "For disputes, refund requests, and data deletion requests, use the contact details below.",
+    "legalNameLabel": "Legal name",
+    "iinBinLabel": "IIN / BIN",
+    "addressLabel": "Legal / Postal address",
+    "phoneLabel": "Phone",
+    "emailLabel": "Email",
+    "websiteLabel": "Website"
+  },
+  "mockup": {
+    "statusReady": "TODO_I18N Ready",
+    "translationReady": "TODO_I18N Translation ready",
+    "pdfGenerated": "TODO_I18N PDF generated · ready to download",
+    "download": "TODO_I18N Download"
+  }
+}

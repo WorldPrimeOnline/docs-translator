@@ -1,0 +1,18 @@
+{
+  "nav": {
+    "login": "Кирүү",
+    "dashboard": "Башкаруу панели",
+    "signup": "Катталуу",
+    "getStarted": "Баштоо",
+    "kazakhstan": "Казакстан",
+    "documents": "Документтер",
+    "kazakhstanOverview": "Казакстан жөнүндө",
+    "translationForNotary": "Нотариус үчүн котормо",
+    "universityDocs": "Университет документтери",
+    "allDocTypes": "Бардык документ түрлөрү",
+    "passportTranslation": "Паспорт котормосу",
+    "bankStatement": "Банк көчүрмөсү",
+    "diplomaTranslation": "Диплом котормосу",
+    "certifiedTranslation": "Күбөлөндүрүлгөн котормо"
+  }
+}

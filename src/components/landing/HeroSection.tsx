@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { getTranslations } from 'next-intl/server';
 import { Upload, ChevronDown, FileText, ArrowRight, Download, Zap } from 'lucide-react';
 import type { BreadcrumbItem } from '@/lib/landing-pages/types';
 
@@ -15,7 +16,7 @@ interface HeroSectionProps {
   breadcrumb?: BreadcrumbItem[];
 }
 
-export function HeroSection({
+export async function HeroSection({
   badge,
   headline,
   accentLine,
@@ -27,6 +28,7 @@ export function HeroSection({
   trustLine,
   breadcrumb,
 }: HeroSectionProps) {
+  const tCommon = await getTranslations('mockup');
   return (
     <section className="relative overflow-hidden bg-grid pb-20 pt-14 sm:pb-24 sm:pt-20">
       {/* Background glow */}
@@ -116,7 +118,7 @@ export function HeroSection({
             </div>
             <span className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-              Ready
+              {tCommon('statusReady')}
             </span>
           </div>
 
@@ -134,12 +136,12 @@ export function HeroSection({
           {/* Download row */}
           <div className="flex items-center justify-between px-4 py-3.5">
             <div>
-              <p className="text-[11px] font-semibold text-foreground">Translation ready</p>
-              <p className="text-[10px] text-muted-foreground">PDF generated · ready to download</p>
+              <p className="text-[11px] font-semibold text-foreground">{tCommon('translationReady')}</p>
+              <p className="text-[10px] text-muted-foreground">{tCommon('pdfGenerated')}</p>
             </div>
             <div className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-[10px] font-semibold text-primary-foreground">
               <Download className="h-3 w-3" />
-              Download
+              {tCommon('download')}
             </div>
           </div>
         </div>

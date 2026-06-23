@@ -1,10 +1,12 @@
 import { defineRouting } from 'next-intl/routing';
+import { LOCALE_CODES, DEFAULT_LOCALE } from './locales';
 
 export const routing = defineRouting({
-  locales: ['en', 'ru', 'zh', 'ko', 'kk', 'tj', 'uz', 'tk', 'mn', 'ky', 'es'],
-  defaultLocale: 'en',
-  localePrefix: 'as-needed', // EN has no prefix (/), others get /ru/, /zh/, etc.
-  localeCookie: true, // persist locale choice in NEXT_LOCALE cookie across navigations
+  locales: LOCALE_CODES as unknown as [string, ...string[]],
+  defaultLocale: DEFAULT_LOCALE,
+  // RU is default — no prefix for /. All other locales get /{code}/ prefix.
+  localePrefix: 'as-needed',
+  localeCookie: true,
 });
 
 export type Locale = (typeof routing.locales)[number];

@@ -1,0 +1,18 @@
+{
+  "nav": {
+    "login": "로그인",
+    "dashboard": "대시보드",
+    "signup": "회원가입",
+    "getStarted": "시작하기",
+    "kazakhstan": "카자흐스탄",
+    "documents": "문서",
+    "kazakhstanOverview": "카자흐스탄 개요",
+    "translationForNotary": "공증 번역",
+    "universityDocs": "대학 신청 서류",
+    "allDocTypes": "모든 문서 유형",
+    "passportTranslation": "여권 번역",
+    "bankStatement": "은행 거래내역서",
+    "diplomaTranslation": "졸업장 번역",
+    "certifiedTranslation": "공증 번역"
+  }
+}

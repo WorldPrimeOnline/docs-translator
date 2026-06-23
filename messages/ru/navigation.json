@@ -1,0 +1,18 @@
+{
+  "nav": {
+    "login": "Войти",
+    "dashboard": "Кабинет",
+    "signup": "Регистрация",
+    "getStarted": "Начать",
+    "kazakhstan": "Казахстан",
+    "documents": "Документы",
+    "kazakhstanOverview": "Обзор Казахстана",
+    "translationForNotary": "Перевод для нотариуса",
+    "universityDocs": "Документы для университета",
+    "allDocTypes": "Все типы документов",
+    "passportTranslation": "Перевод паспорта",
+    "bankStatement": "Банковская выписка",
+    "diplomaTranslation": "Перевод диплома",
+    "certifiedTranslation": "Сертифицированный перевод"
+  }
+}

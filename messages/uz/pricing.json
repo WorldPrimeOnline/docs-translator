@@ -1,0 +1,30 @@
+{
+  "pricing": {
+    "label": "NARXLAR",
+    "title": "Oddiy va shaffof narxlar",
+    "payg": "Har safar to'lang",
+    "basic": "Asosiy",
+    "pro": "Pro",
+    "perDoc": "hujjat uchun",
+    "perMonth": "/ oy",
+    "mostPopular": "Eng mashhur",
+    "subscribe": "Obuna bo'lish",
+    "startTranslating": "Tarjimani boshlash",
+    "docs": "hujjat / oy",
+    "subtitle": "Hujjat uchun to'lang yoki oylik reja bilan tejang.",
+    "allPricesNote": "Barcha narxlar KZT da · 30 kunlik kirish · Avtomatik yangilash yo'q",
+    "paygNote": "2 290 ₸ dan — pasport va ID. 2 590 ₸ — barcha boshqa hujjatlar.",
+    "feature1": "Majburiyat yo'q",
+    "feature2": "Barcha hujjat turlari",
+    "feature3": "Claude tomonidan sun'iy intellekt tarjimasi",
+    "feature4": "Toza PDF natija",
+    "translateNow": "Hozir tarjima qiling",
+    "allDocTypes": "Barcha hujjat turlari",
+    "aiTranslation": "Claude orqali AI tarjimasi",
+    "cleanPdf": "Toza PDF chiqishi",
+    "dayAccess": "30 kunlik kirish",
+    "priorityProcessing": "Ustuvor qayta ishlash",
+    "proBadge": "PRO nishoni",
+    "proDesc": "Ustuvor qayta ishlash."
+  }
+}

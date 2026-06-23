@@ -14,7 +14,7 @@ export function PainSection({ headline, points, sectionLabel, bridgeLabel }: Pro
       <div className="mx-auto max-w-6xl">
         <div className="mb-12">
           <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.15em] text-primary/70">
-            {sectionLabel ?? 'The Problem'}
+            {sectionLabel}
           </p>
           <h2 className="max-w-2xl text-2xl font-bold tracking-[-0.025em] text-foreground sm:text-[1.85rem]">
             {headline}

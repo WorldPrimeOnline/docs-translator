@@ -1,0 +1,12 @@
+{
+  "errors": {
+    "somethingWrong": "Nimadir noto'g'ri ketdi",
+    "errorDesc": "Kutilmagan xato yuz berdi. Qayta urinib ko'ring yoki boshqaruv paneliga qayting.",
+    "tryAgain": "Qayta urinish",
+    "goToDashboard": "Boshqaruv paneliga",
+    "notFound": "Sahifa topilmadi",
+    "notFoundDesc": "Siz izlayotgan sahifa mavjud emas yoki ko'chirilgan.",
+    "goHome": "Bosh sahifaga",
+    "dashboard": "Boshqaruv paneli"
+  }
+}

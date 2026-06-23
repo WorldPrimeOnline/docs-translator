@@ -1,0 +1,30 @@
+{
+  "pricing": {
+    "label": "PRECIOS",
+    "title": "Precios simples y transparentes",
+    "payg": "Pago por documento",
+    "basic": "Básico",
+    "pro": "Pro",
+    "perDoc": "por documento",
+    "perMonth": "/ mes",
+    "mostPopular": "Más popular",
+    "subscribe": "Suscribirse",
+    "startTranslating": "Comenzar a traducir",
+    "docs": "documentos / mes",
+    "subtitle": "Paga por documento o ahorra con un plan mensual.",
+    "allPricesNote": "Todos los precios en KZT · Acceso de 30 días · Sin renovación automática",
+    "paygNote": "Desde 2 290 ₸ — pasaportes e ID. 2 590 ₸ — todos los demás documentos.",
+    "feature1": "Sin compromiso",
+    "feature2": "Todos los tipos de documentos",
+    "feature3": "Traducción con IA de Claude",
+    "feature4": "PDF limpio de salida",
+    "translateNow": "Traducir ahora",
+    "allDocTypes": "Todos los tipos de documentos",
+    "aiTranslation": "Traducción IA con Claude",
+    "cleanPdf": "PDF limpio de salida",
+    "dayAccess": "Acceso 30 días",
+    "priorityProcessing": "Procesamiento prioritario",
+    "proBadge": "Insignia PRO",
+    "proDesc": "Procesamiento prioritario."
+  }
+}

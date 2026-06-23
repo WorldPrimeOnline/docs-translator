@@ -4,42 +4,22 @@ import { useState, useRef, useEffect } from 'react';
 import { useLocale } from 'next-intl';
 import { usePathname } from 'next/navigation';
 import { ChevronDown } from 'lucide-react';
+import { LOCALES, DEFAULT_LOCALE } from '@/i18n/locales';
 
-const LANGUAGES = [
-  { code: 'en', flag: '🇬🇧', short: 'EN',  name: 'English'   },
-  { code: 'ru', flag: '🇷🇺', short: 'RU',  name: 'Русский'   },
-  { code: 'zh', flag: '🇨🇳', short: 'CN',  name: '中文'       },
-  { code: 'ko', flag: '🇰🇷', short: 'KR',  name: '한국어'     },
-  { code: 'kk', flag: '🇰🇿', short: 'KZ',  name: 'Қазақша'   },
-  { code: 'tj', flag: '🇹🇯', short: 'TJ',  name: 'Тоҷикӣ'   },
-  { code: 'uz', flag: '🇺🇿', short: 'UZ',  name: "O'zbek"    },
-  { code: 'tk', flag: '🇹🇲', short: 'TK',  name: 'Türkmen'   },
-  { code: 'mn', flag: '🇲🇳', short: 'MN',  name: 'Монгол'    },
-  { code: 'ky', flag: '🇰🇬', short: 'KY',  name: 'Кыргызча'  },
-  { code: 'es', flag: '🇪🇸', short: 'ES',  name: 'Español'   },
-] as const;
+type LangCode = string;
 
-type LangCode = (typeof LANGUAGES)[number]['code'];
-
-// Non-default locales that appear as a path prefix in the URL
-const PREFIXED_LOCALES: LangCode[] = ['ru', 'zh', 'ko', 'kk', 'tj', 'uz', 'tk', 'mn', 'ky', 'es'];
+// Locales that appear as a URL path prefix (all except the default locale)
+const PREFIXED_LOCALES: LangCode[] = LOCALES.filter((l) => l.code !== DEFAULT_LOCALE).map((l) => l.code);
 
 /**
  * Strip any locale prefix from the pathname and prepend the new one.
- * Works with `localePrefix: 'as-needed'` where EN has no prefix.
- *
- * Examples:
- *   ('/ru/dashboard', 'zh') → '/zh/dashboard'
- *   ('/dashboard',    'ru') → '/ru/dashboard'
- *   ('/ru',           'en') → '/'
- *   ('/',             'ru') → '/ru'
+ * Works with `localePrefix: 'as-needed'` where the default locale has no prefix.
  */
 function buildLocalePath(pathname: string, newLocale: LangCode): string {
-  // Strip existing prefix
   let clean = pathname;
   for (const loc of PREFIXED_LOCALES) {
     if (pathname.startsWith(`/${loc}/`)) {
-      clean = pathname.slice(loc.length + 2); // '/ru/dashboard' → 'dashboard'
+      clean = pathname.slice(loc.length + 2);
       break;
     }
     if (pathname === `/${loc}`) {
@@ -48,19 +28,18 @@ function buildLocalePath(pathname: string, newLocale: LangCode): string {
     }
   }
 
-  if (newLocale === 'en') return clean ? `/${clean}` : '/';
+  if (newLocale === DEFAULT_LOCALE) return clean ? `/${clean}` : '/';
   return `/${newLocale}${clean ? `/${clean}` : ''}`;
 }
 
 export function LanguageSwitcher() {
   const locale = useLocale() as LangCode;
-  const pathname = usePathname(); // real URL path, e.g. '/ru/dashboard'
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  const current = LANGUAGES.find((l) => l.code === locale) ?? LANGUAGES[0]!;
+  const current = LOCALES.find((l) => l.code === locale) ?? LOCALES[0]!;
 
-  // Close on outside click
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) {
@@ -73,7 +52,6 @@ export function LanguageSwitcher() {
 
   function switchLocale(code: LangCode) {
     if (code === locale) { setOpen(false); return; }
-    // Persist locale choice so next-intl middleware restores it on every navigation
     document.cookie = `NEXT_LOCALE=${code}; path=/; max-age=${365 * 24 * 60 * 60}; SameSite=Lax`;
     const newPath = buildLocalePath(pathname, code);
     window.location.href = newPath;
@@ -82,7 +60,6 @@ export function LanguageSwitcher() {
 
   return (
     <div ref={ref} className="relative">
-      {/* Collapsed button — flag + short code */}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -90,16 +67,15 @@ export function LanguageSwitcher() {
         aria-label="Switch language"
       >
         <span className="text-sm leading-none">{current.flag}</span>
-        <span>{current.short}</span>
+        <span>{current.code.toUpperCase()}</span>
         <ChevronDown
           className={`h-3 w-3 transition-transform duration-150 ${open ? 'rotate-180' : ''}`}
         />
       </button>
 
-      {/* Dropdown — flag + native name */}
       {open && (
         <div className="absolute right-0 top-full z-50 mt-1 w-40 rounded-lg border border-white/10 bg-navy-light py-1 shadow-xl shadow-black/30">
-          {LANGUAGES.map((lang) => (
+          {LOCALES.filter((l) => l.enabled).map((lang) => (
             <button
               key={lang.code}
               type="button"
@@ -111,7 +87,7 @@ export function LanguageSwitcher() {
               }`}
             >
               <span className="text-sm leading-none">{lang.flag}</span>
-              <span>{lang.name}</span>
+              <span>{lang.nativeLabel}</span>
               {lang.code === locale && (
                 <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" />
               )}

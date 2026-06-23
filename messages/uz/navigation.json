@@ -1,0 +1,18 @@
+{
+  "nav": {
+    "login": "Kirish",
+    "dashboard": "Boshqaruv paneli",
+    "signup": "Ro'yxatdan o'tish",
+    "getStarted": "Boshlash",
+    "kazakhstan": "Qozog'iston",
+    "documents": "Hujjatlar",
+    "kazakhstanOverview": "Qozog'iston haqida",
+    "translationForNotary": "Notarius uchun tarjima",
+    "universityDocs": "Universitet hujjatlari",
+    "allDocTypes": "Barcha hujjat turlari",
+    "passportTranslation": "Pasport tarjimasi",
+    "bankStatement": "Bank ko'chirmasi",
+    "diplomaTranslation": "Diplom tarjimasi",
+    "certifiedTranslation": "Tasdiqlangan tarjima"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "pricing": {
+    "label": "요금제",
+    "title": "간단하고 투명한 가격",
+    "payg": "건당 결제",
+    "basic": "베이직",
+    "pro": "프로",
+    "perDoc": "문서당",
+    "perMonth": "/ 월",
+    "mostPopular": "인기 요금제",
+    "subscribe": "구독하기",
+    "startTranslating": "번역 시작",
+    "docs": "문서 / 월",
+    "subtitle": "문서당 결제하거나 월간 요금제로 절약하세요.",
+    "allPricesNote": "모든 가격은 KZT · 30일 이용 · 자동 갱신 없음",
+    "paygNote": "2 290 ₸부터 — 여권 및 신분증. 2 590 ₸ — 기타 모든 문서.",
+    "feature1": "약정 없음",
+    "feature2": "모든 문서 유형",
+    "feature3": "Claude AI 번역",
+    "feature4": "깔끔한 PDF 출력",
+    "translateNow": "지금 번역",
+    "allDocTypes": "모든 문서 유형",
+    "aiTranslation": "Claude AI 번역",
+    "cleanPdf": "깔끔한 PDF 출력",
+    "dayAccess": "30일 이용",
+    "priorityProcessing": "우선 처리",
+    "proBadge": "PRO 배지",
+    "proDesc": "우선 처리."
+  }
+}
