@@ -319,8 +319,14 @@ async function handlePost(request: NextRequest, correlationId: string): Promise<
   if (txError || !paymentTx) {
     console.error('[halyk/initiate] failed to create payment_transaction', {
       correlationId,
-      code: txError?.code,
-      message: txError?.message,
+      jobId,
+      quoteId: verifiedQuoteId,
+      amountKzt: priceKzt,
+      currency: 'KZT',
+      errorCode: txError?.code,
+      errorMessage: txError?.message,
+      errorDetails: (txError as Record<string, unknown>)?.details,
+      errorHint: (txError as Record<string, unknown>)?.hint,
     });
     return NextResponse.json(
       { error: 'TRANSACTION_CREATE_FAILED', correlationId },
