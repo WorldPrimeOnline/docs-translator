@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { usePathname } from 'next/navigation';
 import { ChevronDown } from 'lucide-react';
-import { LOCALES, DEFAULT_LOCALE } from '@/i18n/locales';
+import { LOCALES } from '@/i18n/locales';
 
 type LangCode = string;
 

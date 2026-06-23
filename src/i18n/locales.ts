@@ -6,8 +6,8 @@ export interface LocaleDefinition {
   enabled: boolean;
 }
 
-// enabled: show in language switcher. Set false for locales with TODO_I18N in critical namespaces.
-// Routing still works for all locales — disabled means "not advertised", not "blocked".
+// enabled: show in language switcher.
+// Disabled locales redirect to /ru at middleware level — they are not publicly accessible.
 export const LOCALES: LocaleDefinition[] = [
   { code: 'ru', label: 'Russian',    nativeLabel: 'Русский',   flag: '🇷🇺', enabled: true  },
   { code: 'en', label: 'English',    nativeLabel: 'English',   flag: '🇬🇧', enabled: true  },
@@ -25,3 +25,8 @@ export const LOCALES: LocaleDefinition[] = [
 export const LOCALE_CODES = LOCALES.map((l) => l.code) as [string, ...string[]];
 
 export const DEFAULT_LOCALE = 'ru';
+
+/** Locale codes that are disabled and should redirect to DEFAULT_LOCALE at middleware level. */
+export const DISABLED_LOCALE_CODES: ReadonlySet<string> = new Set(
+  LOCALES.filter((l) => !l.enabled).map((l) => l.code),
+);
