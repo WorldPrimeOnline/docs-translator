@@ -1,4 +1,4 @@
-import { buildJiraIssueFields, temporaryOrderPrice, JIRA_FIELDS } from '../order-fields';
+import { buildJiraIssueFields, JIRA_FIELDS } from '../order-fields';
 import type { JiraIssueFieldsInput } from '../order-fields';
 
 const BASE_INPUT: JiraIssueFieldsInput = {
@@ -162,24 +162,26 @@ describe('buildJiraIssueFields', () => {
   });
 });
 
-// ── temporaryOrderPrice ────────────────────────────────────────────────────────
+// ── totalCost (customfield_10077) ──────────────────────────────────────────────
 
-describe('temporaryOrderPrice', () => {
-  it('returns value in 5000–15000 KZT range', () => {
-    const price = temporaryOrderPrice('00000000-0000-4000-8000-000000000001');
-    expect(price).toBeGreaterThanOrEqual(5000);
-    expect(price).toBeLessThanOrEqual(15000);
+describe('totalCost field', () => {
+  it('omits totalCost when amountKzt is not provided', () => {
+    const fields = buildJiraIssueFields(BASE_INPUT);
+    expect(fields[JIRA_FIELDS.totalCost]).toBeUndefined();
   });
 
-  it('is deterministic — same orderId always yields same price', () => {
-    const id = 'test-order-id-abc';
-    expect(temporaryOrderPrice(id)).toBe(temporaryOrderPrice(id));
+  it('omits totalCost when amountKzt is null', () => {
+    const fields = buildJiraIssueFields({ ...BASE_INPUT, amountKzt: null });
+    expect(fields[JIRA_FIELDS.totalCost]).toBeUndefined();
   });
 
-  it('different orderIds produce different prices', () => {
-    const p1 = temporaryOrderPrice('00000000-0000-4000-8000-000000000001');
-    const p2 = temporaryOrderPrice('00000000-0000-4000-8000-000000000002');
-    // Not guaranteed to differ in theory but overwhelmingly likely for any two UUIDs
-    expect(p1).not.toBe(p2);
+  it('omits totalCost when amountKzt is 0', () => {
+    const fields = buildJiraIssueFields({ ...BASE_INPUT, amountKzt: 0 });
+    expect(fields[JIRA_FIELDS.totalCost]).toBeUndefined();
+  });
+
+  it('sets totalCost when a positive amountKzt is provided', () => {
+    const fields = buildJiraIssueFields({ ...BASE_INPUT, amountKzt: 9990 });
+    expect(fields[JIRA_FIELDS.totalCost]).toBe(9990);
   });
 });

@@ -258,78 +258,55 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       const { sub } = subResult;
       const planConfig = SUBSCRIPTION_PLANS[sub.plan as keyof typeof SUBSCRIPTION_PLANS];
       const priority = planConfig?.priority ?? 0;
-
-      // Create document record only after confirming subscription capacity.
       const clientIp = getClientIp(request);
-      console.log('[upload] inserting document record:', docId);
-      const { data: doc, error: docError } = await supabaseServer
-        .from('documents')
-        .insert({
-          id: docId,
-          user_id: user.id,
-          filename: safeFilename,
-          original_file_size: totalSize,
-          file_key: fileKey,
-          source_language: sourceLang,
-          target_language: targetLang,
-          document_type: documentType,
-          status: 'processing',
-          ip_address: clientIp,
-        })
-        .select()
-        .single();
 
-      if (docError || !doc) {
-        console.error('[upload] document insert failed — code:', docError?.code, 'message:', docError?.message);
-        return NextResponse.json(
-          { error: 'Failed to create document record', detail: docError?.message },
-          { status: 500 },
-        );
-      }
-      console.log('[upload] document created:', doc.id);
+      // Atomic RPC: document insert + subscription quota increment + job insert + audit log.
+      // The RPC re-checks capacity under a FOR UPDATE lock to prevent TOCTOU quota races.
+      console.log('[upload] calling create_subscription_job RPC for doc:', docId);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: rpcResult, error: rpcError } = await (supabaseServer as any).rpc(
+        'create_subscription_job',
+        {
+          p_document_id:        docId,
+          p_user_id:            user.id,
+          p_filename:           safeFilename,
+          p_original_file_size: totalSize,
+          p_file_key:           fileKey,
+          p_source_language:    sourceLang,
+          p_target_language:    targetLang,
+          p_document_type:      documentType,
+          p_ip_address:         clientIp,
+          p_subscription_id:    sub.id,
+          p_documents_limit:    sub.documents_limit,
+          p_priority:           priority,
+          p_notarized:          notarized,
+          p_service_level:      serviceLevel,
+          p_notary_city:        notaryCity ?? null,
+          p_fulfillment_method: fulfillmentMethod ?? null,
+          p_delivery_phone:     deliveryPhone ?? null,
+          p_delivery_address:   deliveryAddress ?? null,
+          p_actor:              user.id,
+          p_audit_metadata:     { serviceLevel, notaryCity: notaryCity ?? null, fulfillmentMethod: fulfillmentMethod ?? null },
+        },
+      );
 
-      const { error: subUpdateErr } = await supabaseServer
-        .from('subscriptions')
-        .update({ documents_used: sub.documents_used + 1 })
-        .eq('id', sub.id);
-
-      if (subUpdateErr) {
-        console.error('[upload] subscription documents_used update failed:', subUpdateErr);
-        return NextResponse.json({ error: 'Failed to reserve document quota' }, { status: 500 });
-      }
-
-      const { data: job, error: jobError } = await supabaseServer
-        .from('jobs')
-        .insert({
-          document_id: doc.id,
-          status: 'queued',
-          progress_percent: 0,
-          priority,
-          payment_source: 'subscription',
-          notarized,
-          service_level: serviceLevel,
-          notary_city: notaryCity ?? null,
-          fulfillment_method: fulfillmentMethod ?? null,
-          delivery_phone: deliveryPhone ?? null,
-          delivery_address: deliveryAddress ?? null,
-        })
-        .select()
-        .single();
-
-      if (jobError || !job) {
-        console.error('[upload] job insert failed (subscription path):', jobError);
+      if (rpcError) {
+        console.error('[upload] create_subscription_job RPC error:', rpcError);
         return NextResponse.json({ error: 'Failed to create job' }, { status: 500 });
       }
 
-      // Audit: job created
-      await supabaseServer.from('job_audit_log').insert({
-        job_id: job.id,
-        actor: user.id,
-        source: 'upload',
-        action: 'job_created',
-        new_status: 'queued',
-        metadata: { serviceLevel, notaryCity: notaryCity ?? null, fulfillmentMethod: fulfillmentMethod ?? null },
-      }).then(({ error: e }) => { if (e) console.error('[upload] audit insert failed:', e.message); });
+      const result = rpcResult as { ok: boolean; document_id?: string; job_id?: string; error_code?: string } | null;
+
+      if (!result?.ok) {
+        if (result?.error_code === 'over_quota') {
+          return NextResponse.json({ error: 'Subscription document limit reached' }, { status: 402 });
+        }
+        console.error('[upload] create_subscription_job returned not-ok:', result);
+        return NextResponse.json({ error: 'Failed to create job' }, { status: 500 });
+      }
+
+      const jobId = result.job_id!;
+      console.log('[upload] job created via RPC:', jobId);
 
       // Integration init (Jira + Drive) is handled by the Railway worker before OCR.
       // Running it here on Vercel is unreliable because the serverless function may be
@@ -341,14 +318,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       const [, outputFmt] = (documentType as string).split('|');
       if (serviceLevel === 'electronic' && (!outputFmt || outputFmt === 'html')) {
         setTimeout(() => {
-          void processJob(job.id, doc.id);
+          void processJob(jobId, docId);
         }, 0);
       }
 
       const remainingDocs = sub.documents_limit - sub.documents_used - 1;
       return NextResponse.json({
-        jobId: job.id,
-        documentId: doc.id,
+        jobId,
+        documentId: docId,
         paidViaSubscription: true,
         subscriptionPlan: sub.plan,
         remainingDocs,

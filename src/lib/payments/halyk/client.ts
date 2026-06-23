@@ -343,6 +343,20 @@ export async function checkPaymentStatus(invoiceId: string): Promise<HalykStatus
         });
       }
 
+      const tx = parsed.data.transaction;
+      console.log('[halyk/client] checkPaymentStatus raw response', {
+        invoiceId,
+        rawResultCode: parsed.data.resultCode,
+        rawStatusName: tx?.statusName ?? null,
+        rawTransactionId: tx?.transactionId ?? tx?.id ?? null,
+        rawApprovalCode: tx?.approvalCode ?? null,
+        rawAmount: tx?.amount ?? null,
+        rawCurrency: tx?.currency ?? null,
+        rawReason: tx?.reason ?? null,
+        rawReasonCode: tx?.reasonCode ?? null,
+        rawReference: tx?.reference ?? null,
+        rawTerminal: tx?.terminal ?? tx?.terminalID ?? null,
+      });
       return parsed.data;
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));

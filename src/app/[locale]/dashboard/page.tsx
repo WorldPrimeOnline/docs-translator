@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { toast } from 'sonner';
-import { Upload, FileText, FileImage, FileCode2, Download, AlertCircle, Loader2, X, Clock } from 'lucide-react';
+import { Upload, FileText, FileImage, FileCode2, Download, AlertCircle, Loader2, X, Clock, RefreshCw } from 'lucide-react';
 import { HalykPayButton } from '@/components/payment/HalykPayButton';
 import { createClient } from '@/lib/supabase/client';
 import { Link } from '@/i18n/navigation';
@@ -40,6 +40,12 @@ interface OrderEntry {
   isTerminal: boolean;
   stages: { key: string; labelKey: string; done: boolean; current: boolean }[];
   priceKzt: number | null;
+  latestQuoteId: string | null;
+  quoteStatus: string | null;
+  quoteAmountKzt: number | null;
+  quoteCurrency: string | null;
+  quoteExpiresAt: string | null;
+  quoteRequiresOperatorReview: boolean;
 }
 
 
@@ -210,7 +216,7 @@ function useStatusLabel() {
 
 // ─── Active order card ────────────────────────────────────────────────────────
 
-function ActiveOrderCard({ entry, locale }: { entry: OrderEntry; locale: string }) {
+function ActiveOrderCard({ entry, locale, onRecalculate }: { entry: OrderEntry; locale: string; onRecalculate: (jobId: string) => void }) {
   const t = useTranslations('dashboard');
   const statusLabel = useStatusLabel();
 
@@ -265,14 +271,83 @@ function ActiveOrderCard({ entry, locale }: { entry: OrderEntry; locale: string 
         </div>
       )}
 
-      {entry.customerStatus === 'payment_pending' && entry.jobId && entry.priceKzt != null && (
-        <div className="mt-4">
-          <HalykPayButton
-            jobId={entry.jobId}
-            priceKzt={entry.priceKzt}
-          />
-        </div>
-      )}
+      {entry.customerStatus === 'payment_pending' && entry.jobId && (() => {
+        const now = new Date();
+        const isQuoteValid =
+          entry.quoteStatus === 'quoted' &&
+          entry.quoteAmountKzt != null &&
+          entry.quoteAmountKzt > 0 &&
+          entry.latestQuoteId != null &&
+          entry.quoteExpiresAt != null &&
+          new Date(entry.quoteExpiresAt) > now;
+
+        const isExpired =
+          entry.quoteStatus === 'expired' ||
+          (entry.quoteExpiresAt != null && new Date(entry.quoteExpiresAt) <= now && entry.quoteStatus !== 'paid');
+
+        // Payment is in-flight: user already initiated Halyk; quote moved to payment_pending
+        if (entry.quoteStatus === 'payment_pending') {
+          return (
+            <div className="mt-3 rounded-md border border-amber-500/20 bg-amber-500/5 p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
+                <p className="text-sm font-medium text-amber-300">{t('paymentPendingTitle')}</p>
+              </div>
+              <p className="text-xs text-muted-foreground">{t('paymentPendingDesc')}</p>
+            </div>
+          );
+        }
+
+        if (entry.quoteRequiresOperatorReview) {
+          return (
+            <div className="mt-3 rounded-md border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-amber-300">
+              {t('quoteRequiresReview')}
+            </div>
+          );
+        }
+
+        if (isExpired) {
+          return (
+            <div className="mt-3 flex items-center gap-3">
+              <span className="text-xs text-muted-foreground">{t('quoteExpired')}</span>
+              <button type="button" onClick={() => onRecalculate(entry.jobId!)}
+                className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-white/20 hover:bg-white/10">
+                <RefreshCw className="h-3 w-3" />
+                {t('quoteRecalculate')}
+              </button>
+            </div>
+          );
+        }
+
+        if (isQuoteValid) {
+          const expiryDate = new Date(entry.quoteExpiresAt!);
+          const formattedExpiry = expiryDate.toLocaleString(locale, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+          return (
+            <div className="mt-3 rounded-md border border-primary/20 bg-primary/5 p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-foreground">{t('quoteReady')}</span>
+                <span className="text-xs text-muted-foreground">{t('quoteValidUntil', { date: formattedExpiry })}</span>
+              </div>
+              <div className="mb-3">
+                <span className="text-xl font-bold text-foreground">{entry.quoteAmountKzt!.toLocaleString()} {entry.quoteCurrency ?? 'KZT'}</span>
+              </div>
+              <HalykPayButton
+                jobId={entry.jobId}
+                quoteId={entry.latestQuoteId!}
+                priceKzt={entry.quoteAmountKzt!}
+              />
+            </div>
+          );
+        }
+
+        // No quote yet / calculating
+        return (
+          <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            {t('quoteCalculating')}
+          </div>
+        );
+      })()}
 
       {entry.canDownload && (
         <a
@@ -326,7 +401,7 @@ function ServiceLevelCard({ value, current, label, description, onChange }: {
   return (
     <button
       type="button"
-      onClick={() => onChange(selected ? 'electronic' : value)}
+      onClick={() => onChange(value)}
       className={`flex w-full items-start gap-3 rounded-lg border px-4 py-3.5 text-left transition-all duration-150 ${selected ? 'border-primary/40 bg-primary/5' : 'border-white/10 bg-transparent hover:border-white/20 hover:bg-white/[0.02]'}`}
     >
       <span className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors ${selected ? 'border-primary bg-primary' : 'border-white/30 bg-transparent'}`}>
@@ -349,9 +424,9 @@ export default function DashboardPage() {
   const locale = useLocale();
 
   const LANGUAGES = [
-    { value: 'auto', label: t('langs.auto') },
     { value: 'ru',   label: t('langs.ru')   },
     { value: 'en',   label: t('langs.en')   },
+    { value: 'kk',   label: t('langs.kk')   },
     { value: 'th',   label: t('langs.th')   },
     { value: 'zh',   label: t('langs.zh')   },
     { value: 'ko',   label: t('langs.ko')   },
@@ -360,7 +435,6 @@ export default function DashboardPage() {
     { value: 'fr',   label: t('langs.fr')   },
     { value: 'es',   label: t('langs.es')   },
     { value: 'ar',   label: t('langs.ar')   },
-    { value: 'kk',   label: t('langs.kk')   },
     { value: 'uz',   label: t('langs.uz')   },
     { value: 'it',   label: t('langs.it')   },
     { value: 'tr',   label: t('langs.tr')   },
@@ -384,18 +458,30 @@ export default function DashboardPage() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
-  const [sourceLang, setSourceLang] = useState('auto');
-  const [targetLang, setTargetLang] = useState('en');
+  const [sourceLang, setSourceLang] = useState('');
+  const [targetLang, setTargetLang] = useState('ru');
   const [documentType, setDocumentType] = useState('other');
   const [outputFormat, setOutputFormat] = useState<'html' | 'pdf' | 'docx'>('pdf');
   const [serviceLevel, setServiceLevel] = useState<ServiceLevel>('electronic');
+  const [applicantType, setApplicantType] = useState('individual');
+  const [notaryUrgencyLevel, setNotaryUrgencyLevel] = useState<'standard' | 'same_day'>('standard');
   const [notaryCity, setNotaryCity] = useState('');
+  const [customerComment, setCustomerComment] = useState('');
   const [fulfillmentMethod, setFulfillmentMethod] = useState<FulfillmentMethod | ''>('');
   const [deliveryPhone, setDeliveryPhone] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [uploading, setUploading] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState<boolean | null>(null);
   const [consentChecked, setConsentChecked] = useState(false);
+
+  // Auto-reset targetLang if it matches a newly selected sourceLang
+  useEffect(() => {
+    if (sourceLang && targetLang && sourceLang === targetLang) {
+      const fallback = LANGUAGES.find(l => l.value !== sourceLang && l.value !== '')?.value ?? 'ru';
+      setTargetLang(fallback);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sourceLang]);
 
   // All orders loaded from Supabase — source of truth
   const [orders, setOrders] = useState<OrderEntry[]>([]);
@@ -468,6 +554,12 @@ export default function DashboardPage() {
             workflowStatus: string | null;
             serviceLevel: string;
             fulfillmentMethod: 'pickup' | 'delivery' | null;
+            latestQuoteId: string | null;
+            quoteStatus: string | null;
+            quoteAmountKzt: number | null;
+            quoteCurrency: string | null;
+            quoteExpiresAt: string | null;
+            quoteRequiresOperatorReview: boolean;
           };
         }),
       );
@@ -505,6 +597,12 @@ export default function DashboardPage() {
             canDownload: state.canDownload,
             isActive: state.isActive,
             isTerminal: state.isTerminal,
+            latestQuoteId: data.latestQuoteId ?? next[idx]!.latestQuoteId,
+            quoteStatus: data.quoteStatus ?? next[idx]!.quoteStatus,
+            quoteAmountKzt: data.quoteAmountKzt ?? next[idx]!.quoteAmountKzt,
+            quoteCurrency: data.quoteCurrency ?? next[idx]!.quoteCurrency,
+            quoteExpiresAt: data.quoteExpiresAt ?? next[idx]!.quoteExpiresAt,
+            quoteRequiresOperatorReview: data.quoteRequiresOperatorReview ?? next[idx]!.quoteRequiresOperatorReview,
             stages: state.stages,
           };
         });
@@ -600,6 +698,7 @@ export default function DashboardPage() {
     setServiceLevel(newLevel);
     if (newLevel !== 'notarization_through_partners') {
       setNotaryCity(''); setFulfillmentMethod(''); setDeliveryPhone(''); setDeliveryAddress('');
+      setApplicantType('individual'); setNotaryUrgencyLevel('standard');
     }
   };
 
@@ -609,6 +708,9 @@ export default function DashboardPage() {
 
   const isFormValid =
     files.length > 0 &&
+    sourceLang.length > 0 &&
+    targetLang.length > 0 &&
+    sourceLang !== targetLang &&
     termsAccepted !== null &&
     (termsAccepted === true || consentChecked) &&
     (!isNotarization ||
@@ -618,6 +720,12 @@ export default function DashboardPage() {
 
 
   // ─── Upload ────────────────────────────────────────────────────────────────────
+
+  const handleRecalculate = useCallback(async (jobId: string): Promise<void> => {
+    await loadOrders();
+    toast.info(t('quoteRecalculating'));
+    void jobId; // jobId reserved for future recalculate endpoint
+  }, [loadOrders, t]);
 
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
@@ -638,13 +746,21 @@ export default function DashboardPage() {
     form.append('documentType', `${documentType}|${outputFormat}`);
     form.append('serviceLevel', serviceLevel);
     if (isNotarization) {
+      form.append('applicantType', applicantType);
+      form.append('notaryUrgencyLevel', notaryUrgencyLevel);
       form.append('notaryCity', notaryCity);
       if (fulfillmentMethod) form.append('fulfillmentMethod', fulfillmentMethod);
       if (isDelivery) { form.append('deliveryPhone', deliveryPhone); form.append('deliveryAddress', deliveryAddress); }
     }
+    if (customerComment.trim()) form.append('customerComment', customerComment.trim());
+
+    // Staging/dev debug: log actual payload values to diagnose mapping issues
+    if (process.env.NODE_ENV !== 'production') {
+      console.info('[upload-card payload]', { sourceLanguage: sourceLang, targetLanguage: targetLang, documentType: `${documentType}|${outputFormat}`, serviceLevel });
+    }
 
     const res = await fetch('/api/documents/upload-card', { method: 'POST', body: form });
-    let data: { jobId?: string; documentId?: string; error?: string; priceKzt?: number } = {};
+    let data: { jobId?: string; documentId?: string; error?: string; priceKzt?: number; quoteId?: string; requiresOperatorReview?: boolean; currency?: string } = {};
     try {
       data = await res.json() as typeof data;
     } catch {
@@ -661,7 +777,11 @@ export default function DashboardPage() {
 
     setUploading(false);
     setFiles([]);
-    toast.success(t('uploadedPaymentPending', { price: `${(data.priceKzt ?? 0).toLocaleString()} KZT` }));
+    if (data.requiresOperatorReview) {
+      toast.success(t('uploadedRequiresReview'));
+    } else {
+      toast.success(t('uploadedQuoteReady', { price: (data.priceKzt ?? 0).toLocaleString() }));
+    }
 
     await loadOrders();
   };
@@ -725,15 +845,16 @@ export default function DashboardPage() {
           {/* Selects */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('sourceLanguage')}</label>
-              <select value={sourceLang} onChange={(e) => setSourceLang(e.target.value)} className={selectClass}>
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('sourceLanguage')} <span className="text-red-400">*</span></label>
+              <select value={sourceLang} onChange={(e) => setSourceLang(e.target.value)} className={selectClass} required>
+                <option value="" disabled>{t('selectSourceLanguage')}</option>
                 {LANGUAGES.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
               </select>
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('targetLanguage')}</label>
               <select value={targetLang} onChange={(e) => setTargetLang(e.target.value)} className={selectClass}>
-                {LANGUAGES.filter((l) => l.value !== 'auto').map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
+                {LANGUAGES.filter((l) => l.value !== sourceLang).map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
               </select>
             </div>
             <div className="flex flex-col gap-1.5">
@@ -799,6 +920,40 @@ export default function DashboardPage() {
                   </div>
                 </div>
               )}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('notary.applicantType')}</label>
+                <select value={applicantType} onChange={(e) => setApplicantType(e.target.value)} className={selectClass}>
+                  <option value="individual">{t('notary.individual')}</option>
+                  <option value="legal_entity">{t('notary.legalEntity')}</option>
+                  <option value="unknown">{t('notary.unknownApplicant')}</option>
+                </select>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('notary.urgencyLevel')}</label>
+                <div className="flex flex-col gap-2">
+                  {(['standard', 'same_day'] as const).map((level) => (
+                    <label key={level} className={`flex items-start gap-3 rounded-lg border px-3 py-2.5 cursor-pointer transition-all ${notaryUrgencyLevel === level ? 'border-primary/40 bg-primary/5' : 'border-white/10 hover:border-white/20'}`}>
+                      <input
+                        type="radio"
+                        name="notaryUrgencyLevel"
+                        value={level}
+                        checked={notaryUrgencyLevel === level}
+                        onChange={() => setNotaryUrgencyLevel(level)}
+                        className="mt-0.5 accent-primary"
+                      />
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{t(`notary.urgency.${level}`)}</p>
+                        {level === 'standard' && (
+                          <p className="text-xs text-muted-foreground mt-0.5">{t('notary.urgency.standardHint')}</p>
+                        )}
+                        {level === 'same_day' && (
+                          <p className="text-xs text-muted-foreground mt-0.5">{t('notary.urgency.sameDayHint')}</p>
+                        )}
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 
@@ -818,12 +973,38 @@ export default function DashboardPage() {
             <p className="text-xs text-muted-foreground/60">✓ {tLegal('termsAccepted')}</p>
           ) : null}
 
+          {/* Customer comment */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              {t('customerComment.label')}
+            </label>
+            <textarea
+              value={customerComment}
+              onChange={(e) => setCustomerComment(e.target.value.slice(0, 2000))}
+              placeholder={t('customerComment.placeholder')}
+              rows={3}
+              maxLength={2000}
+              className={`${inputClass} resize-none`}
+            />
+            {customerComment.length > 1800 && (
+              <p className="text-xs text-muted-foreground text-right">
+                {customerComment.length}/2000
+              </p>
+            )}
+          </div>
+
+          <div className="rounded-md border border-white/10 bg-white/[0.02] px-4 py-3 text-xs text-muted-foreground">
+            {serviceLevel === 'electronic' && t('priceHintElectronic')}
+            {serviceLevel === 'official_with_translator_signature_and_provider_stamp' && t('priceHintOfficial')}
+            {serviceLevel === 'notarization_through_partners' && t('priceHintNotarized')}
+          </div>
+
           <button type="submit" disabled={uploading || !isFormValid}
             className="inline-flex w-fit items-center justify-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-gold-dark disabled:pointer-events-none disabled:opacity-50">
             {uploading ? (
               <><Loader2 className="h-4 w-4 animate-spin" />…</>
             ) : (
-              <><Upload className="h-4 w-4" />{t('uploadAndPay')}</>
+              <><Upload className="h-4 w-4" />{t('uploadDocument')}</>
             )}
           </button>
         </form>
@@ -844,7 +1025,7 @@ export default function DashboardPage() {
         ) : (
           <>
             {[...activeOrders, ...readyOrders].map((o) => (
-              <ActiveOrderCard key={o.documentId} entry={o} locale={locale} />
+              <ActiveOrderCard key={o.documentId} entry={o} locale={locale} onRecalculate={handleRecalculate} />
             ))}
           </>
         )}

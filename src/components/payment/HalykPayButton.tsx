@@ -18,12 +18,13 @@ type ButtonState = 'idle' | 'loading' | 'script_loading' | 'error' | 'paid';
 
 interface Props {
   jobId: string;
+  quoteId: string;
   priceKzt: number;
   className?: string;
   onSuccess?: (paymentId: string) => void;
 }
 
-export function HalykPayButton({ jobId, priceKzt, className = '', onSuccess }: Props): React.ReactElement {
+export function HalykPayButton({ jobId, quoteId, priceKzt, className = '', onSuccess }: Props): React.ReactElement {
   const t = useTranslations('payment');
   const locale = useLocale();
   const [state, setState] = useState<ButtonState>('idle');
@@ -67,7 +68,7 @@ export function HalykPayButton({ jobId, priceKzt, className = '', onSuccess }: P
       const response = await fetch('/api/payments/halyk/initiate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jobId, locale }),
+        body: JSON.stringify({ jobId, quoteId, locale }),
         credentials: 'same-origin',
       });
 
@@ -80,6 +81,9 @@ export function HalykPayButton({ jobId, priceKzt, className = '', onSuccess }: P
           setErrorKey(errorCode === 'PAYMENT_ALREADY_PENDING' ? 'alreadyPaid' : 'alreadyPaid');
         }
         else if (response.status === 401) setErrorKey('sessionExpired');
+        else if (response.status === 422 && errorCode && ['QUOTE_EXPIRED', 'QUOTE_ALREADY_PAID', 'QUOTE_JOB_MISMATCH', 'QUOTE_NOT_FOUND', 'PRICING_NOT_CONFIGURED', 'NOTARY_CUTOFF_PASSED'].includes(errorCode)) {
+          setErrorKey(errorCode);
+        }
         else setErrorKey('genericError');
         setState('error');
         initiated.current = false;
@@ -121,7 +125,7 @@ export function HalykPayButton({ jobId, priceKzt, className = '', onSuccess }: P
     if (onSuccess) {
       onSuccess(bootstrap.paymentId);
     }
-  }, [jobId, locale, loadScript, onSuccess, state]);
+  }, [jobId, quoteId, locale, loadScript, onSuccess, state]);
 
   const handleRetry = useCallback((): void => {
     initiated.current = false;

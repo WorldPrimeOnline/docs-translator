@@ -14,12 +14,23 @@ import { createServerClient } from '@supabase/ssr';
 import { supabaseServer } from '@/lib/supabase/server';
 import { checkPaymentStatus, HalykApiError } from '@/lib/payments/halyk/client';
 import { getHalykConfig } from '@/lib/payments/halyk/config';
-import { mapHalykStatus, isPaidStatus, isTerminalStatus } from '@/lib/payments/halyk/status-map';
+import { mapHalykStatus, isPaidStatus, isTerminalStatus, mapToPublicStatus } from '@/lib/payments/halyk/status-map';
 import { ensureSaleFiscalReceiptForPaidPayment } from '@/lib/fiscal/service';
+import { notifyOperatorPaymentAlert } from '@/lib/telegram/client';
 import type { InternalPaymentStatus } from '@/lib/payments/halyk/types';
 import type { Database } from '@/types';
 
 const RECONCILE_COOLDOWN_MS = 12_000; // min seconds between Halyk API calls per transaction
+
+function computeCanRetryPayment(status: string, createdAt: string | null): boolean {
+  if (['failed', 'canceled', 'expired'].includes(status)) return true;
+  if (status === 'payment_pending' && createdAt) {
+    const timeoutMinutes = parseInt(process.env.HALYK_PAYMENT_PENDING_TIMEOUT_MINUTES ?? '15', 10);
+    const ageMs = Date.now() - new Date(createdAt).getTime();
+    return ageMs > timeoutMinutes * 60 * 1000;
+  }
+  return false;
+}
 
 async function getAuthUser() {
   const cookieStore = await cookies();
@@ -54,7 +65,7 @@ export async function GET(
   // Load payment transaction and verify ownership
   const { data: paymentTx, error: txError } = await supabaseServer
     .from('payment_transactions')
-    .select('id, status, amount, currency, paid_at, failed_at, job_id, user_id, provider_invoice_id, status_checked_at')
+    .select('id, status, amount, currency, paid_at, failed_at, job_id, user_id, provider_invoice_id, status_checked_at, created_at')
     .eq('id', paymentId)
     .maybeSingle();
 
@@ -182,6 +193,17 @@ export async function GET(
               paymentId: paymentTx.id,
               jobId: result.job_id,
             });
+            void notifyOperatorPaymentAlert({
+              paymentId: paymentTx.id,
+              invoiceId: paymentTx.provider_invoice_id,
+              jobId: result.job_id ?? paymentTx.job_id,
+              quoteId: null,
+              amountKzt: paymentTx.amount,
+              currency: paymentTx.currency,
+              providerStatus: providerStatusName ?? null,
+              reason: 'DUPLICATE CHARGE — second successful charge detected via status polling for an already-paid job. Immediate manual refund review required.',
+              env: config.mode === 'test' ? 'staging/test' : 'production',
+            });
           }
         }
       } else if (['failed', 'canceled'].includes(mappedStatus)) {
@@ -208,6 +230,26 @@ export async function GET(
           })
           .eq('id', paymentTx.id);
         currentStatus = mappedStatus;
+
+        // AUTH stuck warning: if a payment has been AUTH for >15min on the 1-step CHARGE flow,
+        // the Halyk test terminal is likely configured for 2-step (AUTH→CAPTURE) not 1-step (CHARGE).
+        // Operator action: check Halyk merchant portal terminal settings.
+        if (providerStatusName === 'AUTH') {
+          const paymentAgeMs = Date.now() - new Date(
+            (paymentTx as { created_at?: string | null }).created_at ?? 0,
+          ).getTime();
+          const AUTH_WARNING_THRESHOLD_MS = 15 * 60 * 1000;
+          if (paymentAgeMs > AUTH_WARNING_THRESHOLD_MS) {
+            console.warn('[halyk/status] PAYMENT_STUCK_AUTH: payment in AUTH for >15min', {
+              correlationId,
+              paymentId: paymentTx.id,
+              jobId: paymentTx.job_id,
+              invoiceId: paymentTx.provider_invoice_id,
+              ageMinutes: Math.round(paymentAgeMs / 60_000),
+              hypothesis: 'Terminal may be configured for 2-step AUTH→CAPTURE instead of 1-step CHARGE. Check Halyk merchant portal terminal settings.',
+            });
+          }
+        }
       }
     } catch (err) {
       const isHalyk = err instanceof HalykApiError;
@@ -244,13 +286,51 @@ export async function GET(
     });
   }
 
+  // Map internal status to public-safe status — never expose requires_review or
+  // duplicate_charge_review directly to the frontend.
+  const publicResult = mapToPublicStatus(
+    currentStatus as InternalPaymentStatus,
+    // Pass current provider_status so authorized state can be detected
+    (paymentTx as { provider_status?: string | null }).provider_status ?? undefined,
+  );
+
+  const retryAllowed = computeCanRetryPayment(currentStatus, (paymentTx as { created_at?: string | null }).created_at ?? null);
+  const nextProviderCheckAfter = paymentTx.status_checked_at
+    ? new Date(new Date(paymentTx.status_checked_at).getTime() + RECONCILE_COOLDOWN_MS).toISOString()
+    : null;
+
+  // messageCode priority: throttling reason wins over public status message
+  const effectiveMessageCode = providerCheckSkippedReason ?? publicResult.messageCode;
+
+  console.log('[halyk/status] status response', {
+    correlationId,
+    paymentId: paymentTx.id,
+    jobId: paymentTx.job_id,
+    internalStatus: currentStatus,
+    publicStatus: publicResult.status,
+    skippedProviderCheck: !shouldReconcile,
+    skippedReason: providerCheckSkippedReason,
+    isTerminal: publicResult.isPublicTerminal,
+    isAuthorized: publicResult.isAuthorized,
+    nextProviderCheckAfter,
+  });
+
   return NextResponse.json({
     paymentId: paymentTx.id,
-    status: currentStatus,
+    status: publicResult.status,
     amount: paymentTx.amount,
     currency: paymentTx.currency,
     paidAt: currentPaidAt ?? null,
     failedAt: currentFailedAt ?? null,
     jobId: paymentTx.job_id,
+    isTerminal: publicResult.isPublicTerminal,
+    isSuccess: publicResult.status === 'paid',
+    isFailure: ['failed', 'canceled', 'expired'].includes(publicResult.status),
+    isAuthorized: publicResult.isAuthorized,
+    canRetryPayment: retryAllowed,
+    skippedProviderCheck: !shouldReconcile,
+    messageCode: effectiveMessageCode,
+    nextProviderCheckAfter,
+    lastCheckedAt: paymentTx.status_checked_at ?? null,
   });
 }

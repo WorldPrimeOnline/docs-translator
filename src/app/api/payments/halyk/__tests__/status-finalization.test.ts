@@ -211,6 +211,61 @@ describe('fiscal hook — all finalization paths use ensureSaleFiscalReceiptForP
   });
 });
 
+// ─── AUTH invariants — stuck payment diagnosis ─────────────────────────────────
+
+describe('AUTH stuck payment — diagnostic logging invariants', () => {
+  const statusSrc = readRoute('status/[paymentId]/route.ts');
+  const clientSrc = fs.readFileSync(
+    path.join(process.cwd(), 'src/lib/payments/halyk/client.ts'),
+    'utf-8',
+  );
+  const callbackSrc = readRoute('callback/route.ts');
+
+  it('status endpoint logs PAYMENT_STUCK_AUTH warning for long-running AUTH payments', () => {
+    expect(statusSrc).toContain('PAYMENT_STUCK_AUTH');
+    expect(statusSrc).toContain('AUTH_WARNING_THRESHOLD_MS');
+    expect(statusSrc).toContain("providerStatusName === 'AUTH'");
+  });
+
+  it('client logs raw Halyk response details (statusName, transactionId, terminal) for diagnosis', () => {
+    expect(clientSrc).toContain('[halyk/client] checkPaymentStatus raw response');
+    expect(clientSrc).toContain('rawStatusName');
+    expect(clientSrc).toContain('rawTransactionId');
+    expect(clientSrc).toContain('rawTerminal');
+  });
+
+  it('client raw log does NOT include access_token or client_secret', () => {
+    const rawLogStart = clientSrc.indexOf('[halyk/client] checkPaymentStatus raw response');
+    const rawLogEnd = clientSrc.indexOf('});', rawLogStart);
+    const logBlock = clientSrc.slice(rawLogStart, rawLogEnd);
+    expect(logBlock).not.toContain('access_token');
+    expect(logBlock).not.toContain('client_secret');
+    expect(logBlock).not.toContain('secret_hash');
+  });
+
+  it('callback logs codeValue and reasonValue from Halyk payload', () => {
+    expect(callbackSrc).toContain('codeValue');
+    expect(callbackSrc).toContain('reasonValue');
+    expect(callbackSrc).toContain('hasInvoiceId');
+  });
+
+  it('callback logs only a boolean for hasSecretHash, not the value itself', () => {
+    expect(callbackSrc).toContain('hasSecretHash');
+    // The value of secret_hash must never be logged directly
+    expect(callbackSrc).not.toMatch(/['"]secret_hash['"]\s*:\s*payload\[/);
+  });
+
+  it('callback looks up transaction by provider_invoice_id, not by quote_id', () => {
+    expect(callbackSrc).toContain("'provider_invoice_id'");
+    expect(callbackSrc).not.toMatch(/\.eq\(['"]quote_id['"]/);
+  });
+
+  it('AUTH warning hypothesis mentions 2-step AUTH→CAPTURE terminal configuration', () => {
+    expect(statusSrc).toContain('2-step AUTH→CAPTURE');
+    expect(statusSrc).toContain('Halyk merchant portal');
+  });
+});
+
 // ─── Migration: finalize_halyk_payment RPC exists ─────────────────────────────
 
 describe('migration 0015 — finalize_halyk_payment RPC', () => {

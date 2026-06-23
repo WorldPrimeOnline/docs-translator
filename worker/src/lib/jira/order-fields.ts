@@ -102,23 +102,6 @@ const FULFILLMENT_LABELS: Record<string, string> = {
   pickup:   'Самовывоз',
 };
 
-// ─── Stable hash for temporary order price ────────────────────────────────────
-// TODO: replace temporary Jira order price with final pricing engine result
-
-function stableHash(s: string): number {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) {
-    h = Math.imul(31, h) + s.charCodeAt(i);
-    h |= 0; // convert to 32-bit int
-  }
-  return Math.abs(h);
-}
-
-export function temporaryOrderPrice(orderId: string): number {
-  // TODO: replace temporary Jira order price with final pricing engine result
-  return 5000 + (stableHash(orderId) % 10001);
-}
-
 // ─── Payload builder ──────────────────────────────────────────────────────────
 
 export interface JiraIssueFieldsInput {
@@ -133,6 +116,7 @@ export interface JiraIssueFieldsInput {
   deliveryPhone: string | null;
   deliveryAddress: string | null;
   driveUrl: string | null;
+  amountKzt?: number | null;
 }
 
 /**
@@ -153,9 +137,7 @@ export function buildJiraIssueFields(input: JiraIssueFieldsInput): Record<string
     if (input.deliveryAddress) fields[f.deliveryAddress] = input.deliveryAddress;
   }
 
-  // Financial — temporary stable estimate; TODO replace with real pricing
-  fields[f.totalCost] = temporaryOrderPrice(input.orderId);
-  // TODO: calculate translator, notary, delivery and operational internal costs
+  if (input.amountKzt != null && input.amountKzt > 0) fields[f.totalCost] = input.amountKzt;
   fields[f.internalCost] = 0;
 
   // Payment method (single-select)

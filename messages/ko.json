@@ -171,6 +171,7 @@
     "dropzone": "파일을 끌어다 놓거나 클릭하여 선택",
     "dropzoneHint": "PDF, DOCX, JPG, PNG · 총 50 MB 이하",
     "sourceLanguage": "원본 언어",
+    "selectSourceLanguage": "원본 언어를 선택하세요",
     "targetLanguage": "번역 언어",
     "documentType": "문서 유형",
     "uploadBtn": "업로드 및 번역",
@@ -285,10 +286,27 @@
       "phonePlaceholder": "+7 (___) ___-__-__",
       "address": "배달 주소",
       "addressPlaceholder": "도로명, 건물, 호수",
+      "applicantType": "신청인 유형",
+      "individual": "개인",
+      "legalEntity": "법인",
+      "unknownApplicant": "알 수 없음 (운영자 검토)",
+      "extraCopies": "추가 종이 사본",
       "cityRequired": "도시를 선택해 주세요",
       "fulfillmentRequired": "픽업 또는 배달을 선택해 주세요",
       "phoneRequired": "배달에는 전화번호가 필요합니다",
-      "addressRequired": "배달에는 주소가 필요합니다"
+      "addressRequired": "배달에는 주소가 필요합니다",
+      "urgencyLevel": "공증 처리 속도",
+      "urgency": {
+        "standard": "일반 공증",
+        "same_day": "당일 공증",
+        "sameDayHint": "당일 처리는 알마티 시간 12:00 이전에 업로드 및 결제해야 합니다. 12:00 이후 +50%; 18:00 이후 야간 ×2 요금이 적용됩니다.",
+        "cutoffNotice": "결제 마감: {time} (알마티 시간)",
+        "before_noon": "당일 12:00 이전 (추가 요금 없음)",
+        "after_noon": "당일 12:00 이후 (+50%)",
+        "after_18": "18:00 이후 야간 공증 (×2)",
+        "notaryCutoffPassed": "공증 마감 시간이 지나 이 견적이 만료되었습니다. 다시 업로드해 주세요.",
+        "standardHint": "Standard notarization is completed on the next business day for documents uploaded and paid after 12:00 Almaty time. If uploaded before 12:00, same-day completion may be possible subject to translator/notary availability."
+      }
     },
     "inReview": "검토 중",
     "activeOrders": "진행 중인 주문",
@@ -333,7 +351,54 @@
       "unsupportedFileType": "지원되지 않는 파일 형식: {files}",
       "pleaseSelectFile": "파일을 하나 이상 선택해 주세요",
       "failedTermsAcceptance": "이용약관 동의를 저장하지 못했습니다."
-    }
+    },
+    "uploadDocument": "Upload document",
+    "uploadedQuoteReady": "Document uploaded — price: {price} KZT. Confirm payment below.",
+    "uploadedRequiresReview": "Document uploaded. The price will be confirmed by our operator.",
+    "quoteReady": "Price confirmed",
+    "quoteValidUntil": "Valid until {date}",
+    "quoteRequiresReview": "Price is being confirmed by an operator. We will notify you.",
+    "quoteExpired": "Quote expired",
+    "quoteRecalculate": "Recalculate",
+    "quoteCalculating": "Calculating price...",
+    "quoteRecalculating": "Refreshing order status...",
+    "priceHint": "The exact price is calculated after document upload and analysis.",
+    "priceHintElectronic": "Electronic translation — from 2 500 ₸. Final price after upload.",
+    "priceHintOfficial": "Official translation — from 5 500 ₸. Final price after upload.",
+    "priceHintNotarized": "Notarized translation — from 11 000 ₸. Final price after upload.",
+    "urgency": {
+      "label": "긴급도",
+      "standard": "표준",
+      "within_24h": "24시간 이내 (+30%)",
+      "six_to_twelve_hours": "6–12시간 (+60%)",
+      "two_to_four_hours": "2–4시간 (+100%)",
+      "night_or_weekend": "야간 / 주말 (+50%)"
+    },
+    "scanQuality": {
+      "label": "스캔 품질",
+      "normal": "보통",
+      "poor_scan": "불량 스캔 (+15%)",
+      "handwritten": "손글씨 (운영자 검토 필요)"
+    },
+    "layoutComplexity": {
+      "label": "레이아웃 복잡도",
+      "standard": "표준",
+      "tables": "표 포함 (+1 000 ₸/페이지)",
+      "complex_tables": "복잡한 표 (+2 000 ₸/페이지)",
+      "complex_layout": "복잡한 레이아웃 (+25%)",
+      "presentation": "프레젠테이션 (운영자 검토)"
+    },
+    "visualMarks": {
+      "label": "도장 및 인감",
+      "normal": "보통",
+      "many_stamps": "도장 많음 (+1 000 ₸)"
+    },
+    "customerComment": {
+      "label": "ORDER COMMENT",
+      "placeholder": "E.g.: specify formatting requirements, target authority, desired deadline, or other preferences."
+    },
+    "paymentPendingTitle": "Payment is being verified",
+    "paymentPendingDesc": "If money was charged, do not pay again. We will update the status automatically."
   },
   "auth": {
     "login": "로그인",
@@ -949,6 +1014,23 @@
     "processingTitle": "Payment is processing",
     "processingDesc": "Please check your dashboard in a few minutes.",
     "goToDashboard": "Go to Dashboard",
-    "invalidLink": "Invalid payment link."
+    "invalidLink": "Invalid payment link.",
+    "QUOTE_EXPIRED": "The price quote has expired. Please refresh the page.",
+    "QUOTE_ALREADY_PAID": "This order is already paid.",
+    "QUOTE_JOB_MISMATCH": "Invalid quote for this order.",
+    "QUOTE_NOT_FOUND": "Quote not found. Please refresh.",
+    "PRICING_NOT_CONFIGURED": "Pricing is not configured. Please contact support.",
+    "LANGUAGE_PAIR_MUST_DIFFER": "Source and target languages must be different.",
+    "NOTARY_CUTOFF_PASSED": "This price is no longer valid — the notary cutoff time has passed. Please upload again to get a new quote.",
+    "delayedTitle": "Payment not yet confirmed",
+    "delayedDesc": "Sometimes a bank takes longer to confirm. We will check automatically. If money was charged, do not pay again.",
+    "checkAgain": "Check again",
+    "pendingLongTitle": "Confirming payment...",
+    "pendingLongDesc": "This is taking longer than usual. You can go to your account — we will update the status automatically.",
+    "retryPayment": "Return to payment",
+    "paymentPendingTitle": "Payment is being verified",
+    "paymentPendingDesc": "If money was charged, do not pay again. We will update the status automatically.",
+    "authorizedTitle": "Payment authorized",
+    "authorizedDesc": "Your payment is authorized and will be confirmed shortly. Please wait."
   }
 }

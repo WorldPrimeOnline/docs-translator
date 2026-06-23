@@ -171,6 +171,7 @@
     "dropzone": "Файлдарды таштаңыз же басыңыз",
     "dropzoneHint": "PDF, DOCX, JPG, PNG · жалпы 50 МБ чейин",
     "sourceLanguage": "БУЛАК ТИЛ",
+    "selectSourceLanguage": "Булак тилди тандаңыз",
     "targetLanguage": "МАКСАТ ТИЛ",
     "documentType": "ДОКУМЕНТ ТҮРҮ",
     "uploadBtn": "Жүктөп которуу",
@@ -285,10 +286,27 @@
       "phonePlaceholder": "+7 (___) ___-__-__",
       "address": "ЖЕТКИРҮҮ ДАРЕГИ",
       "addressPlaceholder": "Көчө, үй, батир",
+      "applicantType": "ӨТҮНҮЧ БЕРҮҮЧҮНҮН ТҮРҮ",
+      "individual": "Жеке адам",
+      "legalEntity": "Юридикалык жак",
+      "unknownApplicant": "Белгисиз (оператор карайт)",
+      "extraCopies": "КОШУМЧА КАГАЗ НУСКАЛАР",
       "cityRequired": "Шаарды тандаңыз",
       "fulfillmentRequired": "Алуу же жеткирүүнү тандаңыз",
       "phoneRequired": "Жеткирүү үчүн телефон керек",
-      "addressRequired": "Жеткирүү үчүн дарек керек"
+      "addressRequired": "Жеткирүү үчүн дарек керек",
+      "urgencyLevel": "НОТАРИАЛДЫК ТАРИЗДӨӨ МӨӨНӨТҮ",
+      "urgency": {
+        "standard": "Стандарттуу нотариалдык тариздөө",
+        "same_day": "Ошол күнү нотариалдык тариздөө",
+        "sameDayHint": "Алматы убактысы боюнча 12:00гө чейин жүктөп, төлөм жасаңыз. 12:00дөн кийин +50%; 18:00дөн кийин ×2 түнкү коэффициент.",
+        "cutoffNotice": "Төлөм мөөнөтү: {time}чейин (Алматы убактысы)",
+        "before_noon": "Ошол күнү 12:00гө чейин (кошумча акысыз)",
+        "after_noon": "Ошол күнү 12:00дөн кийин (+50%)",
+        "after_18": "18:00дөн кийин түнкү тариздөө (×2)",
+        "notaryCutoffPassed": "Нотариалдык мөөнөт өттү — баа жараксыз. Жаңа эсеп алуу үчүн кайра жүктөңүз.",
+        "standardHint": "Standard notarization is completed on the next business day for documents uploaded and paid after 12:00 Almaty time. If uploaded before 12:00, same-day completion may be possible subject to translator/notary availability."
+      }
     },
     "inReview": "Каралуда",
     "activeOrders": "Активдүү заказдар",
@@ -333,7 +351,54 @@
       "unsupportedFileType": "Колдоо көрсөтүлбөгөн файл түрү: {files}",
       "pleaseSelectFile": "Жок дегенде бир файл тандаңыз",
       "failedTermsAcceptance": "Шарттарды кабыл алууну сактоо ийгиликсиз аяктады."
-    }
+    },
+    "uploadDocument": "Upload document",
+    "uploadedQuoteReady": "Document uploaded — price: {price} KZT. Confirm payment below.",
+    "uploadedRequiresReview": "Document uploaded. The price will be confirmed by our operator.",
+    "quoteReady": "Price confirmed",
+    "quoteValidUntil": "Valid until {date}",
+    "quoteRequiresReview": "Price is being confirmed by an operator. We will notify you.",
+    "quoteExpired": "Quote expired",
+    "quoteRecalculate": "Recalculate",
+    "quoteCalculating": "Calculating price...",
+    "quoteRecalculating": "Refreshing order status...",
+    "priceHint": "The exact price is calculated after document upload and analysis.",
+    "priceHintElectronic": "Electronic translation — from 2 500 ₸. Final price after upload.",
+    "priceHintOfficial": "Official translation — from 5 500 ₸. Final price after upload.",
+    "priceHintNotarized": "Notarized translation — from 11 000 ₸. Final price after upload.",
+    "urgency": {
+      "label": "ШАШЫЛЫШТУУЛУК",
+      "standard": "Стандарт",
+      "within_24h": "24 саат ичинде (+30%)",
+      "six_to_twelve_hours": "6–12 саат (+60%)",
+      "two_to_four_hours": "2–4 саат (+100%)",
+      "night_or_weekend": "Түн / эс алуу (+50%)"
+    },
+    "scanQuality": {
+      "label": "СКАН САПАТЫ",
+      "normal": "Кадимки",
+      "poor_scan": "Начар скан (+15%)",
+      "handwritten": "Кол жазма (оператор карайт)"
+    },
+    "layoutComplexity": {
+      "label": "БАРАКЧАНЫН ТАТААЛДЫГЫ",
+      "standard": "Стандарт",
+      "tables": "Таблицалар бар (+1 000 ₸/бет)",
+      "complex_tables": "Татаал таблицалар (+2 000 ₸/бет)",
+      "complex_layout": "Татаал беттер (+25%)",
+      "presentation": "Презентация (оператор карайт)"
+    },
+    "visualMarks": {
+      "label": "МӨӨРЛӨР ЖАНА ШТАМПТАР",
+      "normal": "Кадимки",
+      "many_stamps": "Көп мөөр/штамп (+1 000 ₸)"
+    },
+    "customerComment": {
+      "label": "ORDER COMMENT",
+      "placeholder": "E.g.: specify formatting requirements, target authority, desired deadline, or other preferences."
+    },
+    "paymentPendingTitle": "Payment is being verified",
+    "paymentPendingDesc": "If money was charged, do not pay again. We will update the status automatically."
   },
   "auth": {
     "login": "Кирүү",
@@ -949,6 +1014,23 @@
     "processingTitle": "Payment is processing",
     "processingDesc": "Please check your dashboard in a few minutes.",
     "goToDashboard": "Go to Dashboard",
-    "invalidLink": "Invalid payment link."
+    "invalidLink": "Invalid payment link.",
+    "QUOTE_EXPIRED": "The price quote has expired. Please refresh the page.",
+    "QUOTE_ALREADY_PAID": "This order is already paid.",
+    "QUOTE_JOB_MISMATCH": "Invalid quote for this order.",
+    "QUOTE_NOT_FOUND": "Quote not found. Please refresh.",
+    "PRICING_NOT_CONFIGURED": "Pricing is not configured. Please contact support.",
+    "LANGUAGE_PAIR_MUST_DIFFER": "Source and target languages must be different.",
+    "NOTARY_CUTOFF_PASSED": "This price is no longer valid — the notary cutoff time has passed. Please upload again to get a new quote.",
+    "delayedTitle": "Payment not yet confirmed",
+    "delayedDesc": "Sometimes a bank takes longer to confirm. We will check automatically. If money was charged, do not pay again.",
+    "checkAgain": "Check again",
+    "pendingLongTitle": "Confirming payment...",
+    "pendingLongDesc": "This is taking longer than usual. You can go to your account — we will update the status automatically.",
+    "retryPayment": "Return to payment",
+    "paymentPendingTitle": "Payment is being verified",
+    "paymentPendingDesc": "If money was charged, do not pay again. We will update the status automatically.",
+    "authorizedTitle": "Payment authorized",
+    "authorizedDesc": "Your payment is authorized and will be confirmed shortly. Please wait."
   }
 }

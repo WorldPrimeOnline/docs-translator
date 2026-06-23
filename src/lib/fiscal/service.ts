@@ -55,18 +55,44 @@ export async function createSaleReceiptForPayment(
   }
 
   // 2. Load payment transaction details
-  const { data: payment } = await supabaseServer
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: payment } = await (supabaseServer as any)
     .from('payment_transactions')
-    .select('id, job_id, document_id, amount, currency, status, provider_environment')
+    .select('id, job_id, document_id, amount, currency, status, provider_environment, quote_id')
     .eq('id', paymentTransactionId)
     .eq('status', 'paid')
-    .maybeSingle();
+    .maybeSingle() as { data: { id: string; job_id: string; document_id: string; amount: number; currency: string; status: string; provider_environment: string; quote_id: string | null } | null };
 
   if (!payment) {
     console.warn('[fiscal/service] createSaleReceipt: payment not found or not paid', {
       paymentTransactionId,
     });
     return null;
+  }
+
+  // 2b. Fiscal/payment/quote amount consistency check
+  if (payment.quote_id) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: quoteRow } = await (supabaseServer as any)
+      .from('price_quotes')
+      .select('amount_kzt')
+      .eq('id', payment.quote_id)
+      .maybeSingle() as { data: { amount_kzt: number } | null };
+
+    if (quoteRow) {
+      const quoteAmountKzt = Math.round(Number(quoteRow.amount_kzt));
+      const paymentAmountKzt = Math.round(payment.amount);
+      if (quoteAmountKzt !== paymentAmountKzt) {
+        // Do not block fiscal receipt — payment is authoritative after CHARGE.
+        // Log as CRITICAL for operator investigation.
+        console.error('[fiscal/service] CRITICAL: AMOUNT_MISMATCH quote vs payment', {
+          paymentTransactionId,
+          quoteId: payment.quote_id,
+          quoteAmountKzt,
+          paymentAmountKzt,
+        });
+      }
+    }
   }
 
   // 3. Load customer email for receipt

@@ -1,7 +1,8 @@
 /**
  * Card-payment upload route.
  * Creates document + job in payment_pending state without consuming subscription quota.
- * Returns job ID and price so the frontend can initiate Halyk ePay payment.
+ * Computes a dynamic price quote via the pricing engine.
+ * Returns job ID, quote ID, and price so the frontend can initiate Halyk ePay payment.
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
@@ -13,7 +14,7 @@ import { convertToPdf, mergePdfs } from '@/lib/convert-to-pdf';
 import { deriveBackcompatBooleans } from '@/lib/translation-workflow/output-plan';
 import { isValidNotaryCity } from '@/lib/notary/cities';
 import { getHalykConfig } from '@/lib/payments/halyk/config';
-import { getPriceKzt } from '@/lib/payments/halyk/pricing';
+import { computeQuoteForJob, saveQuote } from '@/lib/pricing/service';
 import type { Database } from '@/types';
 import type { ServiceLevel } from '@/lib/translation-prompts/types';
 
@@ -26,16 +27,24 @@ const VALID_SERVICE_LEVELS = [
   'notarization_through_partners',
 ] as const;
 
+const VALID_APPLICANT_TYPES = ['individual', 'legal_entity', 'unknown'] as const;
+const VALID_DELIVERY_ZONES = ['almaty_standard', 'remote_area', 'other_city', 'urgent_delivery'] as const;
+const VALID_NOTARY_URGENCY = ['standard', 'same_day'] as const;
+
 const UploadFormSchema = z
   .object({
-    sourceLang: z.string().min(1),
+    sourceLang: z.string().min(1).refine((v) => v !== 'auto', { message: 'Source language must be specified explicitly' }),
     targetLang: z.string().min(1),
     documentType: z.string().min(1),
     serviceLevel: z.enum(VALID_SERVICE_LEVELS).default('electronic'),
+    applicantType: z.enum(VALID_APPLICANT_TYPES).default('individual'),
+    notaryUrgencyLevel: z.enum(VALID_NOTARY_URGENCY).default('standard'),
+    deliveryZone: z.enum(VALID_DELIVERY_ZONES).optional(),
     notaryCity: z.string().optional(),
     fulfillmentMethod: z.enum(['pickup', 'delivery']).optional(),
     deliveryPhone: z.string().max(30).optional(),
     deliveryAddress: z.string().max(500).optional(),
+    customerComment: z.string().max(2000).optional().transform((v) => v?.trim() || undefined),
   })
   .superRefine((data, ctx) => {
     if (data.serviceLevel === 'notarization_through_partners') {
@@ -162,18 +171,49 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
     targetLang: formData.get('targetLang'),
     documentType: formData.get('documentType'),
     serviceLevel: formData.get('serviceLevel') ?? 'electronic',
+    applicantType: formData.get('applicantType') ?? 'individual',
+    notaryUrgencyLevel: formData.get('notaryUrgencyLevel') ?? 'standard',
+    deliveryZone: formData.get('deliveryZone') ?? undefined,
     notaryCity: formData.get('notaryCity') ?? undefined,
     fulfillmentMethod: formData.get('fulfillmentMethod') ?? undefined,
     deliveryPhone: formData.get('deliveryPhone') ?? undefined,
     deliveryAddress: formData.get('deliveryAddress') ?? undefined,
+    customerComment: (formData.get('customerComment') as string | null) ?? undefined,
   });
 
   if (!parsed.success) {
     return NextResponse.json({ error: 'Validation failed', details: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { sourceLang, targetLang, documentType, serviceLevel, notaryCity, fulfillmentMethod, deliveryPhone, deliveryAddress } = parsed.data;
+  // Warn if deprecated system-analysis fields are sent by old client (ignored)
+  if (formData.get('scanQuality') || formData.get('layoutComplexity') || formData.get('urgencyLevel')) {
+    console.warn('[upload-card] deprecated pricing fields received from client, ignoring', {
+      fields: ['scanQuality', 'layoutComplexity', 'urgencyLevel', 'visualMarksComplexity', 'extraPaperCopies'].filter((f) => formData.get(f)),
+    });
+  }
+
+  const {
+    sourceLang, targetLang, documentType, serviceLevel,
+    applicantType, notaryUrgencyLevel, deliveryZone,
+    notaryCity, fulfillmentMethod, deliveryPhone, deliveryAddress, customerComment,
+  } = parsed.data;
+
+  const correlationId = crypto.randomUUID();
+
+  // Reject same source/target language pair
+  if (sourceLang === targetLang) {
+    return NextResponse.json(
+      { error: 'LANGUAGE_PAIR_MUST_DIFFER', correlationId },
+      { status: 422 },
+    );
+  }
+
   const { notarized } = deriveBackcompatBooleans(serviceLevel as ServiceLevel);
+
+  // Strip output-format suffix from documentType for pricing engine.
+  // documents.document_type stores "presentation|pdf" (compound, per CLAUDE.md),
+  // but pricingInput.documentType must be just "presentation".
+  const pricingDocumentType = documentType.includes('|') ? documentType.split('|')[0]! : documentType;
 
   // Convert and merge files
   console.log('[upload-card] step: converting files', rawFiles.length, 'file(s)');
@@ -191,7 +231,6 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
   const safeFilename = rawFiles.length === 1 ? firstName : `${rawFiles.length}_files_${firstName}`;
 
   const docId = crypto.randomUUID();
-  const correlationId = crypto.randomUUID();
   const fileKey = `documents/${user.id}/${docId}/original.pdf`;
   const clientIp = getClientIp(request);
 
@@ -243,25 +282,60 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Failed to create document record' }, { status: 500 });
   }
 
-  // Calculate price in KZT
-  const priceKzt = getPriceKzt(serviceLevel as ServiceLevel);
+  // Dynamic pricing: compute quote from pricing engine
+  const pricingInput = {
+    documentId: doc.id,
+    userId: user.id,
+    sourceLanguage: sourceLang,
+    targetLanguage: targetLang,
+    serviceLevel: serviceLevel as ServiceLevel,
+    documentType: pricingDocumentType,
+    physicalPageCount: 1, // conservative default; OCR hasn't run yet
+    // System-derived defaults — not from customer input
+    urgencyLevel: 'standard' as const,
+    scanQuality: 'normal' as const,
+    layoutComplexity: 'standard' as const,
+    visualMarksComplexity: 'normal' as const,
+    extraPaperCopies: 0,
+    applicantType,
+    notaryUrgencyLevel: notaryUrgencyLevel as 'standard' | 'same_day',
+    deliveryZone: deliveryZone as 'almaty_standard' | 'remote_area' | 'other_city' | 'urgent_delivery' | undefined,
+    fulfillmentMethod: fulfillmentMethod as 'pickup' | 'delivery' | undefined,
+    deliveryRequired: fulfillmentMethod === 'delivery',
+    salesChannel: 'direct' as const,
+  };
 
+  const quoteResult = await computeQuoteForJob(pricingInput);
+
+  if ('error' in quoteResult) {
+    console.error('[upload-card] pricing not configured:', quoteResult.error, { correlationId });
+    await supabaseServer.from('documents').update({ status: 'failed' }).eq('id', docId);
+    return NextResponse.json({ error: 'PRICING_NOT_CONFIGURED' }, { status: 503 });
+  }
+
+  const { result: pricingResult } = quoteResult;
+  const finalPriceKzt = Math.round(pricingResult.amountKzt);
+
+  // Create job with dynamic price
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const jobInsertPayload: any = {
+    document_id: doc.id,
+    status: 'payment_pending',
+    progress_percent: 0,
+    priority: 0,
+    payment_source: 'card_payment',
+    notarized,
+    service_level: serviceLevel,
+    notary_city: notaryCity ?? null,
+    fulfillment_method: fulfillmentMethod ?? null,
+    delivery_phone: deliveryPhone ?? null,
+    delivery_address: deliveryAddress ?? null,
+    price_kzt: finalPriceKzt,
+    customer_comment: customerComment ?? null,
+  };
   const { data: job, error: jobError } = await supabaseServer
     .from('jobs')
-    .insert({
-      document_id: doc.id,
-      status: 'payment_pending',
-      progress_percent: 0,
-      priority: 0,
-      payment_source: 'card_payment',
-      notarized,
-      service_level: serviceLevel,
-      notary_city: notaryCity ?? null,
-      fulfillment_method: fulfillmentMethod ?? null,
-      delivery_phone: deliveryPhone ?? null,
-      delivery_address: deliveryAddress ?? null,
-      price_kzt: priceKzt,
-    })
+    .insert(jobInsertPayload)
     .select()
     .single();
 
@@ -273,12 +347,20 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
       details: jobError?.details,
       hint: jobError?.hint,
     });
-    // Compensation: mark orphaned document as failed so it doesn't clog the dashboard
-    await supabaseServer
-      .from('documents')
-      .update({ status: 'failed' })
-      .eq('id', docId);
+    await supabaseServer.from('documents').update({ status: 'failed' }).eq('id', docId);
     return NextResponse.json({ error: 'Failed to create job' }, { status: 500 });
+  }
+
+  // Save quote with job_id now that job exists.
+  // For same-day notary orders, use the cutoff-aware expiry from the pricing result.
+  const notaryCutoffExpiry = pricingResult.context.notaryCutoff?.quoteExpiresAt;
+  const cutoffExpiresAt = notaryCutoffExpiry && notaryCutoffExpiry.length > 0 ? notaryCutoffExpiry : undefined;
+  const savedQuote = await saveQuote({ ...pricingInput, jobId: job.id }, pricingResult, 24, cutoffExpiresAt);
+  const quoteId = 'quoteId' in savedQuote ? savedQuote.quoteId : null;
+
+  if ('error' in savedQuote) {
+    // Non-fatal: job and price_kzt are set; payment can still proceed using jobs.price_kzt
+    console.error('[upload-card] failed to save quote (non-fatal):', savedQuote.error, { correlationId });
   }
 
   await supabaseServer.from('job_audit_log').insert({
@@ -287,13 +369,16 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
     source: 'upload-card',
     action: 'job_created',
     new_status: 'payment_pending',
-    metadata: { serviceLevel, priceKzt, notaryCity: notaryCity ?? null },
+    metadata: { serviceLevel, priceKzt: finalPriceKzt, quoteId, notaryCity: notaryCity ?? null },
   }).then(({ error: e }) => { if (e) console.error('[upload-card] audit insert failed:', e.message); });
 
   return NextResponse.json({
     jobId: job.id,
     documentId: doc.id,
-    priceKzt,
+    priceKzt: finalPriceKzt,
+    quoteId,
+    requiresOperatorReview: pricingResult.requiresOperatorReview,
+    reviewReasons: pricingResult.requiresOperatorReview ? pricingResult.reviewReasons : undefined,
     currency: 'KZT',
     paymentRequired: true,
   });

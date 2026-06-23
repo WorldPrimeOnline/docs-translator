@@ -12,7 +12,7 @@ import { mergeVisualElements, extractVisualElementsFromTranslated, filterPrinted
 import { analyzeDocumentVisuals } from './lib/page-vision';
 import { runQaChecks } from './lib/qa';
 import { env } from './lib/env';
-import { initializeOrderIntegrations, triggerTranslatorReview } from './lib/integrations';
+import { initializeOrderIntegrations, triggerTranslatorReview, createFinanceReportIssue } from './lib/integrations';
 
 type JobStatus = JobRow['status'];
 type OutputFormat = 'html' | 'pdf' | 'docx';
@@ -103,6 +103,8 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
         paymentSource: jobRow?.payment_source ?? null,
         customerId: doc.user_id,
         sourceFileKey: doc.file_key,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        customerComment: (jobRow as any)?.customer_comment ?? null,
       });
     } catch (initErr) {
       const initMsg = initErr instanceof Error ? initErr.message : String(initErr);
@@ -420,6 +422,51 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
     await updateJob(jobId, 'completed', 100);
 
     console.log(`${tag} ✓ completed (${contentType})`);
+
+    // ── 6b. Finance report Jira issue (non-blocking) ─────────────────────────
+    const jiraKey = integrationResult.jiraIssueKey;
+    if (jiraKey) {
+      void (async () => {
+        try {
+          const { data: quoteData } = await supabase
+            .from('price_quotes' as never)
+            .select('id, pricing_context_json, amount_kzt')
+            .eq('job_id', jobId)
+            .eq('status', 'paid')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle() as { data: Record<string, unknown> | null };
+
+          const { data: txData } = await supabase
+            .from('payment_transactions' as never)
+            .select('id, amount, status')
+            .eq('job_id', jobId)
+            .eq('status', 'paid')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle() as { data: Record<string, unknown> | null };
+
+          await createFinanceReportIssue({
+            jobId,
+            mainIssueKey: jiraKey,
+            pricingSnapshot: (quoteData?.pricing_context_json as Record<string, unknown>) ?? null,
+            quoteId: (quoteData?.id as string) ?? null,
+            serviceLevel: ((jobRow as unknown) as Record<string, unknown>)?.service_level as string ?? '',
+            sourceLanguage: doc.source_language,
+            targetLanguage: doc.target_language,
+            documentType: doc.document_type,
+            paymentTransactionId: (txData?.id as string) ?? null,
+            paymentAmountKzt: (txData?.amount as number) ?? null,
+            paymentStatus: (txData?.status as string) ?? null,
+            fiscalStatus: null,
+            fiscalReceiptId: null,
+            customerComment: ((jobRow as unknown) as Record<string, unknown>)?.customer_comment as string ?? null,
+          });
+        } catch (finErr) {
+          console.error(`${tag} createFinanceReportIssue failed (non-fatal):`, finErr instanceof Error ? finErr.message : String(finErr));
+        }
+      })();
+    }
 
     // ── 7. Send email notification ───────────────────────────────────────────
     if (env.RESEND_API_KEY) {

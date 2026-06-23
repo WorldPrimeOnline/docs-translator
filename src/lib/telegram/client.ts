@@ -234,3 +234,37 @@ export async function notifyOperatorError(params: {
 
   await sendMessage(chatId, lines);
 }
+
+export async function notifyOperatorPaymentAlert(params: {
+  paymentId: string;
+  invoiceId: string | null;
+  jobId: string | null;
+  quoteId?: string | null;
+  amountKzt: number | null;
+  currency: string | null;
+  providerStatus: string | null;
+  reason: string;
+  env: string;
+}): Promise<void> {
+  const chatId = process.env.TELEGRAM_OPERATOR_CHAT_ID;
+  if (!chatId) return;
+
+  const lines = [
+    `⚠️ <b>Payment Alert — Manual Review Required</b>`,
+    `Env: <b>${params.env}</b>`,
+    `Payment: <code>${params.paymentId.slice(0, 8)}</code>`,
+    params.invoiceId ? `Invoice: <code>${params.invoiceId}</code>` : null,
+    params.jobId ? `Job: <code>${params.jobId.slice(0, 8)}</code>` : null,
+    params.quoteId ? `Quote: <code>${params.quoteId.slice(0, 8)}</code>` : null,
+    params.amountKzt != null ? `Amount: ${params.amountKzt} KZT` : null,
+    params.currency && params.currency !== 'KZT' ? `Currency (unexpected): ${params.currency}` : null,
+    params.providerStatus ? `Provider status: ${params.providerStatus}` : null,
+    `Reason: ${params.reason}`,
+  ].filter(Boolean).join('\n');
+
+  try {
+    await sendMessage(chatId, lines);
+  } catch (err) {
+    console.error('[telegram] notifyOperatorPaymentAlert failed (non-fatal):', (err as Error).message);
+  }
+}

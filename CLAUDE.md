@@ -10,6 +10,8 @@ Always read `PROJECT_CONTEXT.md` at the start of every session. It is the author
 
 **Official DOCX pipeline freeze**: The DOCX / official translation pipeline is frozen for a controlled production pilot as of 2026-06-19. See `docs/OFFICIAL_DOCX_PIPELINE_FREEZE.md` for the exact list of what is and is not allowed to change. Do not modify OCR prompts, translation parameters, table-classification logic, or visual-element detection without explicit approval.
 
+**Pipeline reference**: A detailed Russian-language step-by-step breakdown of the AI translation pipeline (OCR → protect values → translate → merge visuals → render DOCX/PDF → QA → integrations) lives in the untracked file `tech-pipline` at the repo root. Read it when debugging the DOCX output path.
+
 ---
 
 ## Branch and Environment Rules
@@ -123,7 +125,7 @@ After every task, report:
 - Where the change should be merged next
 - Any required manual action in Vercel, Railway, Supabase, R2, or payment systems
 
-See `docs/DEPLOYMENT_WORKFLOW.md` for the canonical workflow reference. Additional staging/migration references in `docs/`: `STAGING_SETUP.md`, `STAGING_ENV_VARS.md`, `STAGING_QA_CHECKLIST.md`, `MIGRATION_AUDIT.md`.
+See `docs/DEPLOYMENT_WORKFLOW.md` for the canonical workflow reference. Additional staging/migration references in `docs/`: `STAGING_SETUP.md`, `STAGING_ENV_VARS.md`, `STAGING_QA_CHECKLIST.md`, `MIGRATION_AUDIT.md`. Payment/fiscal setup: `docs/payments/HALYK_EPAY_INTEGRATION.md`, `docs/payments/FISCALIZATION.md`, `docs/payments/REFUNDS.md`, `docs/payments/PRODUCTION_READINESS.md`. Integration setup: `docs/TELEGRAM_NOTIFICATIONS_SETUP.md`, `docs/JIRA_AUTOMATION_SETUP.md`. Acceptance testing: `docs/OFFICIAL_TRANSLATION_ACCEPTANCE.md`.
 
 ---
 
@@ -207,6 +209,8 @@ There are **two separate processors** — do not conflate them.
 **Railway worker** (`worker/src/processor.ts`):
 - Claims jobs atomically via `UPDATE WHERE status='queued'` — prevents double-processing
 - Polls Supabase every 10 s for unclaimed `status = 'queued'` jobs — handles both subscription and pay-per-doc
+- **Payment eligibility gate** (`isEligible()` in `worker/src/index.ts`): subscription jobs are eligible immediately; card_payment jobs must have a `paid` or `completed` row in `payment_transactions` before the worker starts processing. Jobs that fail the gate are skipped silently until a payment arrives.
+- **Graceful shutdown**: handles SIGTERM/SIGINT with up to 120 s for in-flight jobs to complete before `process.exit(0)`.
 - OCR quality gate: aborts early if extracted text is below minimum word/char threshold (saves translation credits)
 - Calls `computeOutputPlan(job.service_level ?? job.notarized)` to determine artifact path: `translation_only` (immediate PDF release) or `translator_review_draft` (DOCX + preview PDF, `workflow_status: awaiting_translator_review`). Pass `service_level` — the boolean `notarized` is a legacy fallback for pre-migration rows.
 - Full pipeline: OCR (returns `{ markdown, pageCount, visualElements }`) → **page-vision analysis** (`analyzeDocumentVisuals` in `worker/src/lib/page-vision.ts`) → merge visual elements → **protect critical identifiers** (`extractProtectedValues` in `worker/src/lib/protected-values.ts`) → translate → restore identifiers → render HTML with visual-elements block → QA check → Puppeteer PDF or DOCX → upload to R2 → upsert `translations` (with `qa_report`) → email
@@ -308,6 +312,8 @@ Subscription state: `subscriptions` table. `POST /api/documents/upload` (subscri
 - `triggerTranslatorReview()` — runs AFTER AI draft: uploads draft PDF to Drive `02_AI_DRAFT` subfolder
 
 **Jira credentials** (all optional — integration silently skips if absent): `JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN`, `JIRA_WEBHOOK_SECRET`. Project configuration (project key, issue type name, field IDs) lives in `worker/src/lib/jira/` (not env vars).
+
+**Jira field security** — never populate Jira fields with: document content, AI draft text, IIN/BIN or document numbers, payment credentials, file attachments. Delivery address and phone go only into `customfield_10076` / `customfield_10075` — never in the issue summary or description. See `worker/src/lib/jira/order-fields.ts` for all field IDs.
 
 **Google Drive** (all optional): `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REFRESH_TOKEN`, `GOOGLE_DRIVE_ROOT_FOLDER_ID`. Logic in `src/lib/google-drive/client.ts` (web) and `worker/src/lib/google-drive.ts` (worker). Drive subfolders per order: `01_ORIGINAL`, `02_AI_DRAFT`, `03_TRANSLATED`, `04_NOTARY`.
 

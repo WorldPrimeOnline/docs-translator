@@ -84,11 +84,13 @@ const processedEventIds = new Set<string>();
 export async function POST(request: NextRequest): Promise<NextResponse> {
   // ── 1. Authenticate ─────────────────────────────────────────────────────────
   const secret = process.env.JIRA_WEBHOOK_SECRET;
+  if (!secret) {
+    console.error('[jira-webhook] JIRA_WEBHOOK_SECRET not configured — rejecting request');
+    return NextResponse.json({ error: 'Webhook not configured' }, { status: 500 });
+  }
   const header = request.headers.get('x-wpo-webhook-secret');
-  if (secret) {
-    if (header !== secret) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  if (header !== secret) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   // ── 2. Parse & validate ─────────────────────────────────────────────────────
