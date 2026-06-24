@@ -1,22 +1,22 @@
 {
   "disclaimer": "РАСМИЙ ЭМЕС КОТОРМО — МААЛЫМАТ МАКСАТЫНДА ГАНА",
   "contactsPage": {
-    "title": "Contacts",
-    "metaTitle": "Contact WPO Translations",
-    "metaDescription": "Provider contact details for WPO Translations. For disputes, refund requests, and data deletion inquiries.",
-    "providerHeading": "Service Provider",
-    "disputesNote": "For disputes, refund requests, and data deletion requests, use the contact details below.",
-    "legalNameLabel": "Legal name",
-    "iinBinLabel": "IIN / BIN",
-    "addressLabel": "Legal / Postal address",
-    "phoneLabel": "Phone",
+    "title": "Байланыштар",
+    "metaTitle": "WPO Котормолору менен байланыш",
+    "metaDescription": "WPO Котормолору провайдерин байланыш маалыматтары. Талаштар, акча кайтаруу суроолору жана маалыматтарды жок кылуу сурамдары үчүн.",
+    "providerHeading": "Кызмат берүүчү",
+    "disputesNote": "Талаштар, акча кайтаруу суроолору жана маалыматтарды жок кылуу сурамдары үчүн төмөнкү байланыш маалыматтарын пайдаланыңыз.",
+    "legalNameLabel": "Юридикалык аталышы",
+    "iinBinLabel": "ЖСН / БСН",
+    "addressLabel": "Юридикалык / Почта дареги",
+    "phoneLabel": "Телефон",
     "emailLabel": "Email",
-    "websiteLabel": "Website"
+    "websiteLabel": "Веб-сайт"
   },
   "mockup": {
-    "statusReady": "Ready",
-    "translationReady": "Translation ready",
-    "pdfGenerated": "PDF generated · ready to download",
-    "download": "Download"
+    "statusReady": "Даяр",
+    "translationReady": "Котормо даяр",
+    "pdfGenerated": "PDF түзүлдү · жүктөп алууга даяр",
+    "download": "Жүктөп алуу"
   }
 }
