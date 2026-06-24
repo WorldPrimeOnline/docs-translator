@@ -59,10 +59,10 @@ describe('calculatePrice', () => {
     expect(minimumItem?.amountKzt).toBe(7500);
   });
 
-  it('electronic RU↔KZ base is 2500', () => {
+  it('electronic RU↔KZ base is 1000', () => {
     const result = calculatePrice(baseInput({ serviceLevel: 'electronic', sourceLanguage: 'ru', targetLanguage: 'kz' }), mockVersion);
     const minimumItem = result.items.find(i => i.itemType === 'minimum_check');
-    expect(minimumItem?.amountKzt).toBe(2500);
+    expect(minimumItem?.amountKzt).toBe(1000);
   });
 
   it('extra words increase price', () => {

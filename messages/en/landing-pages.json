@@ -1,0 +1,417 @@
+{
+  "documentsHub": {
+    "heroBadge": "All Document Types",
+    "heroHeadline": "Translate Any Official Document",
+    "heroAccentLine": "Online, in Minutes",
+    "heroSubheadline": "Upload a scanned or digital PDF and receive a clean translated version. Every major official document type supported — passports, bank statements, diplomas, certificates, and more.",
+    "heroCtaLabel": "Start Translating",
+    "heroTrustLine": "From ₸1,000 · 10+ languages · 2–5 minutes",
+    "finalCtaHeadline": "Start translating your document",
+    "finalCtaSub": "Upload any official PDF and receive a clean translation in 2–5 minutes.",
+    "finalCtaCta": "Upload Document",
+    "faq": [
+      {
+        "q": "Which document types do you support?",
+        "a": "We support all major official document types: passports, ID cards, bank statements, diplomas, transcripts, birth and marriage certificates, employment contracts, medical records, police clearance certificates, driver's licenses, and generic official documents."
+      },
+      {
+        "q": "What languages are supported?",
+        "a": "We support 10+ languages including English, Russian, Chinese, Korean, Japanese, German, French, Spanish, and Arabic. Source language can be auto-detected."
+      },
+      {
+        "q": "Are your translations certified or notarized?",
+        "a": "WPO offers three service levels. Electronic translation is processed automatically and does not include an agent/provider stamp or notarization. Translation with agent stamp includes human review and an agent/provider stamp. Notarized translation is available as a partner process with a notary. The availability and suitability of each service level depends on the requirements of the receiving organization."
+      }
+    ],
+    "pricingHeadline": "Document translation pricing"
+  },
+  "kazakhstan": {
+    "heroBadge": "Kazakhstan · Document Workflows",
+    "heroHeadline": "Document Translation for Kazakhstan",
+    "heroAccentLine": "Study, Migration & Official Workflows",
+    "heroSubheadline": "Translate diplomas, birth certificates, contracts, bank statements, and official documents online. Used by students, migration consultants, notaries, and visa agents for international workflows.",
+    "heroCtaLabel": "Translate a Document",
+    "heroCtaSecondaryLabel": "View Supported Documents",
+    "heroTrustLine": "From ₸1,000 · RU / EN / KZ · 2–5 minutes",
+    "docsHeadline": "Supported document types",
+    "docsSubheadline": "All major document types used in study, migration, and official workflows",
+    "docItem1": "Diploma & Transcript",
+    "docItem2": "Birth & Marriage Certificate",
+    "docItem3": "Passport & National ID",
+    "docItem4": "Bank Statement",
+    "docItem5": "Employment Contract & Letter",
+    "docItem6": "Police Clearance Certificate",
+    "docItem7": "Medical Certificate",
+    "docItem8": "Migration & Residency Documents",
+    "docItem9": "Apostille-Related Documents",
+    "painHeadline": "Document translation in Kazakhstan — common bottlenecks",
+    "pain1Title": "Translation bureaus charge per page and require physical presence",
+    "pain1Desc": "Most certified translation offices in Kazakhstan require you to come in person with originals, wait several days, and pay significant per-page fees for what can be a 2-page diploma.",
+    "pain2Title": "Notary appointments need a complete translation draft in advance",
+    "pain2Desc": "Many notaries and certified translators in Kazakhstan work faster and more accurately when they have a clean first-pass translation to review, rather than starting from scratch.",
+    "pain3Title": "International university applications require precise English formatting",
+    "pain3Desc": "Foreign universities evaluating Kazakhstani diplomas want clean, readable English transcriptions — not literal word-for-word renderings that lose structural context.",
+    "pain4Title": "Migration and apostille workflows involve many documents at once",
+    "pain4Desc": "Preparing for relocation, work abroad, or foreign university admission often means translating 5–10 documents simultaneously. The timeline becomes the main constraint.",
+    "finalCtaHeadline": "Translate your documents online — no bureau visit required",
+    "finalCtaSub": "Upload your PDF and receive a clean translated version in 2–5 minutes.",
+    "finalCtaCta": "Start Translating",
+    "faq": [
+      {
+        "q": "Can I use this translation before visiting a notary?",
+        "a": "Yes. Many notaries and certified translators review an informal translation draft before completing the certified version. A clean, structured WPO translation can speed up that conversation and reduce errors in the final certified document."
+      },
+      {
+        "q": "Which languages do you support for Kazakhstan documents?",
+        "a": "We support Russian ↔ English and English → Russian as the primary pairs. Kazakh ↔ Russian and Kazakh → English are also supported. These cover the main workflows for Kazakhstani documents used internationally."
+      },
+      {
+        "q": "Is this translation accepted by foreign universities?",
+        "a": "Foreign universities typically require certified or notarized translations. WPO offers Translation with agent stamp (human-reviewed, with agent/provider stamp) and Notarized translation (partner process with a notary) as service levels that may meet these requirements. Electronic translation can be used during the application preparation stage or for review by an education consultant. Always confirm the required service level with the target university."
+      },
+      {
+        "q": "Can notaries and visa agents use this service on behalf of clients?",
+        "a": "Yes. Any user can upload a client's document, process it, and receive the translated PDF. A partner dashboard for agencies is planned for a future release."
+      },
+      {
+        "q": "What is an apostille and does translation affect it?",
+        "a": "An apostille is an official authentication stamp applied to a document by a government authority. The apostille applies to the original document. The translation is a separate step, often required after the apostille has been obtained. WPO provides the translation step; the apostille must be obtained from the relevant government authority."
+      }
+    ],
+    "painSectionLabel": "WHY WPO",
+    "painBridgeLabel": "WPO helps",
+    "docsSectionLabel": "SUPPORTED DOCUMENTS",
+    "trustHeadline": "Transparent, Confidential and Legally Accurate",
+    "pricingHeadline": "Simple Per-Document Pricing",
+    "pricingSubheadline": "No subscription. Pay only for the translation you choose.",
+    "seoHeadline": "Document Translation for Kazakhstan — When and How to Use",
+    "seoParagraph1": "In Kazakhstan, document translations are often needed for enrolling in foreign universities, work visas, relocation, immigration procedures, opening bank accounts abroad, and apostille. The traditional route through a translation bureau can require a personal visit, waiting time, and manual document handoff.",
+    "seoParagraph2": "WorldPrimeOnline helps prepare translations online: upload a document, choose a language pair and service level, and receive the result in electronic format. Electronic translation is suitable for preparation and reference. Official translation with translator review, translator signature, and Provider stamp is available as a separate service level. Notarial certification is arranged separately through partners where available.",
+    "seoParagraph3": "Acceptance of translations by third parties is not guaranteed. Before submitting a document to a bank, university, consulate, immigration authority, or notary, verify the requirements of the receiving party."
+  },
+  "kazakhstanNotarized": {
+    "heroBadge": "Kazakhstan · Notary Preparation",
+    "heroHeadline": "Translation for",
+    "heroAccentLine": "Notary Review & Certification",
+    "heroSubheadline": "Upload your document and receive a clean, structured Russian or English translation ready to present to a notary or certified translator. Reduce review time, reduce errors, lower overall cost.",
+    "heroCtaLabel": "Prepare Translation",
+    "heroTrustLine": "From ₸1,000 · 2–5 minutes · Notary-ready output",
+    "docsHeadline": "Document types commonly prepared for notary review",
+    "docItem1": "Diploma & Academic Transcript",
+    "docItem2": "Birth Certificate",
+    "docItem3": "Marriage & Divorce Certificate",
+    "docItem4": "Passport & National ID",
+    "docItem5": "Police Clearance Certificate",
+    "docItem6": "Employment Contract",
+    "docItem7": "Bank Statement",
+    "docItem8": "Power of Attorney",
+    "docItem9": "Medical Document",
+    "painHeadline": "Notary translation appointments take longer than necessary",
+    "pain1Title": "Notaries start from scratch on every document",
+    "pain1Desc": "Without a pre-prepared draft, a notary or certified translator reads the original, dictates, and constructs the translation during the appointment — a slow, billable process.",
+    "pain2Title": "Errors in the first draft cost time and money to correct",
+    "pain2Desc": "Name transliterations, date formatting, and institution names are common error points. A pre-processed draft identifies these before the certified version is produced.",
+    "pain3Title": "Multiple documents multiply the wait time",
+    "pain3Desc": "University or migration packages often involve 5–10 documents. Preparing drafts for all of them before one notary session significantly reduces the overall timeline.",
+    "pain4Title": "Clients arrive unprepared, extending appointment duration",
+    "pain4Desc": "For notaries and visa agents, clients who arrive with a clear draft are faster to process. The translated draft also helps clients understand what they are signing.",
+    "finalCtaHeadline": "Prepare your translation before the notary appointment",
+    "finalCtaSub": "Upload your document and receive a structured translation in 2–5 minutes. From ₸1,000.",
+    "finalCtaCta": "Start Translation",
+    "faq": [
+      {
+        "q": "Is this a certified or notarized translation?",
+        "a": "WPO offers three service levels: Electronic translation (automated, without agent stamp or notarization), Translation with agent stamp (human-reviewed, with agent/provider stamp), and Notarized translation (partner process with a notary). The availability of the Notarized translation level depends on the document type, language pair, and jurisdiction. WPO does not guarantee acceptance by third parties."
+      },
+      {
+        "q": "Will my notary accept a WPO translation draft as a starting point?",
+        "a": "Most notaries and certified translators are willing to work from a pre-prepared draft. It speeds up their work and reduces the likelihood of errors. However, not all notaries accept external drafts — confirm with your specific notary before using this workflow."
+      },
+      {
+        "q": "What languages are supported?",
+        "a": "Russian ↔ English, Kazakh → English, and Kazakh → Russian. These cover the main language pairs for documents prepared in Kazakhstan for international use."
+      },
+      {
+        "q": "Can I use this service as a notary or migration consultant?",
+        "a": "Yes. You can upload client documents and receive translated drafts on their behalf. A dedicated partner workflow is in development."
+      },
+      {
+        "q": "How long does notarization take?",
+        "a": "Electronic translation is typically ready within a few minutes. Official translation and notarization require additional time because a human translator and/or notary partner is involved in the process."
+      }
+    ],
+    "painSectionLabel": "HOW IT WORKS",
+    "painBridgeLabel": "WPO helps organize the process",
+    "docsSectionLabel": "DOCUMENTS FOR NOTARY PROCESS",
+    "pricingHeadline": "Notarized translation pricing"
+  },
+  "kazakhstanUniversity": {
+    "heroBadge": "Kazakhstan · University Applications",
+    "heroHeadline": "Translate Academic Documents",
+    "heroAccentLine": "for International University Applications",
+    "heroSubheadline": "Get clean English translations of diplomas, transcripts, school certificates, and academic records for university applications in the UK, US, Europe, Canada, and beyond.",
+    "heroCtaLabel": "Translate Academic Documents",
+    "heroTrustLine": "From ₸1,000 · Diploma & Transcript formats · RU / EN",
+    "docsHeadline": "Supported academic document types",
+    "docItem1": "Bachelor / Master Diploma",
+    "docItem2": "Academic Transcript",
+    "docItem3": "School Leaving Certificate (Attestat)",
+    "docItem4": "Grade Transcripts & Supplements",
+    "docItem5": "Birth Certificate (for enrollment)",
+    "docItem6": "Passport (for enrollment)",
+    "docItem7": "Research / Employment Certificate",
+    "docItem8": "Medical Certificate (for admission)",
+    "painHeadline": "University application translation — where it gets complicated",
+    "pain1Title": "International universities require precise academic terminology",
+    "pain1Desc": "A diploma from a Kazakhstani university contains specific field-of-study names, department names, and qualification titles that must be translated using internationally recognised terminology.",
+    "pain2Title": "Transcripts have structured tables — poorly formatted output gets rejected",
+    "pain2Desc": "Academic transcripts contain subject names, credit hours, and grades in tabular format. Generic translation tools convert them to unstructured text. WPO preserves the structure.",
+    "pain3Title": "Tight admission deadlines leave no time for agency delays",
+    "pain3Desc": "University application windows are narrow. Getting a translation in 2–5 minutes versus waiting days from a bureau can determine whether you submit on time.",
+    "pain4Title": "Education consultants need fast drafts for multiple clients at once",
+    "pain4Desc": "Agencies handling multiple university applications simultaneously need a scalable, fast translation tool — not a per-client bureau negotiation.",
+    "finalCtaHeadline": "Prepare your university application documents",
+    "finalCtaSub": "Upload your diploma, transcript, or academic certificate and get a clean English translation in minutes.",
+    "finalCtaCta": "Translate My Academic Documents",
+    "pricingHeadline": "Academic document translation pricing",
+    "faq": [
+      {
+        "q": "Will foreign universities accept a WPO translation?",
+        "a": "Requirements vary by university and country. Electronic translation can be used for initial application review at many universities. Translation with agent stamp or Notarized translation may be required at enrollment. Always confirm the specific service level required by your target university."
+      },
+      {
+        "q": "What is a \"school leaving certificate\" (Attestat)?",
+        "a": "The Attestat is the Kazakhstani secondary school completion certificate. It lists final grades in all subjects. We translate the complete document including subject names, grades, and qualification details into clean English."
+      },
+      {
+        "q": "Do you preserve the grade scale and grading system?",
+        "a": "Yes. We preserve the original grades as shown (e.g., 5-point or 100-point scale) and note the grading system in the translated document. We do not convert grades or apply any interpretation."
+      },
+      {
+        "q": "Can you translate documents for IELTS, TOEFL, or credential evaluation purposes?",
+        "a": "Electronic translation is not accepted by IELTS/TOEFL administrative bodies for formal score reporting. It can be used for your own preparation or informal application review. For formal submission, check whether Translation with agent stamp or Notarized translation meets the requirements of your evaluation body."
+      }
+    ],
+    "painSectionLabel": "WHY IT MATTERS",
+    "docsSectionLabel": "ACADEMIC DOCUMENTS"
+  },
+  "passportTranslation": {
+    "heroBadge": "Document Type · Passport & ID",
+    "heroHeadline": "Passport Translation",
+    "heroAccentLine": "Any Language — Online in Minutes",
+    "heroSubheadline": "Upload a passport or ID card scan and receive a clean, structured translation. All biographic data, document numbers, dates, and personal details preserved exactly as shown.",
+    "heroCtaLabel": "Translate My Passport",
+    "heroTrustLine": "₸1,000 per passport · 2–5 minutes · 10+ language pairs",
+    "finalCtaHeadline": "Translate your passport online",
+    "finalCtaSub": "Upload your passport scan and receive a clean, structured English translation in minutes.",
+    "finalCtaCta": "Translate My Passport",
+    "faq": [
+      {
+        "q": "What passport data is included in the translation?",
+        "a": "We translate all visible fields on the passport data page: surname, given name(s), nationality, date of birth, place of birth, gender, date of issue, date of expiry, passport number, issuing authority, and MRZ zone contents. Personal names are transliterated into the target script."
+      },
+      {
+        "q": "What languages can a passport be translated into?",
+        "a": "We support 10+ target languages including English, Russian, Chinese, Korean, Japanese, German, French, Spanish, and Arabic. Source language is auto-detected or can be manually specified."
+      },
+      {
+        "q": "Is the translation accepted for visa applications?",
+        "a": "Acceptance depends on the requirements of the receiving embassy or consulate. Some consulates accept an Electronic translation alongside the original passport. Others require Translation with agent stamp or Notarized translation. Always confirm the required service level with the specific embassy or consulate."
+      },
+      {
+        "q": "How are names handled in the translation?",
+        "a": "Personal names are transliterated following ICAO 9303 standards for passport-style documents where applicable, and standard transliteration conventions for other scripts. Names are never translated semantically."
+      },
+      {
+        "q": "Is my passport data safe?",
+        "a": "Your document is processed and stored on encrypted Cloudflare R2 storage. It is automatically deleted after 30 days. We do not store, share, or use the personal data in your passport for any purpose other than generating the translation."
+      }
+    ],
+    "docsHeadline": "Passport and ID document types supported",
+    "docsSectionLabel": "IDENTITY DOCUMENTS",
+    "docItem1": "Biometric Passport",
+    "docItem2": "Non-Biometric Passport",
+    "docItem3": "National ID Card",
+    "docItem4": "Driver's License (as ID)",
+    "docItem5": "Residence Permit",
+    "docItem6": "Travel Document",
+    "painHeadline": "Why passport translation is needed — and why it is hard to get right",
+    "painSectionLabel": "WHY IT MATTERS",
+    "painBridgeLabel": "WPO solves this",
+    "pain1Title": "Visa applications often require a translated version of a foreign-language passport",
+    "pain1Desc": "Consulates and embassies reviewing applications from non-native-language holders frequently ask for an English translation of the passport data page.",
+    "pain2Title": "Names must be transliterated, not translated",
+    "pain2Desc": "Personal names in a passport must be preserved phonetically in the target language script. Translating the meaning of a name instead of its sound is a common and serious error.",
+    "pain3Title": "MRZ codes and document numbers must be preserved exactly",
+    "pain3Desc": "The machine-readable zone (MRZ) at the bottom of passport data pages contains critical information. Any change to numbers, codes, or dates makes the translation useless.",
+    "pain4Title": "Standard translation tools produce unformatted text dumps",
+    "pain4Desc": "Generic OCR or translation services extract passport data as unstructured text. A usable passport translation must preserve the field structure: surname, given name, nationality, date of birth, etc.",
+    "pricingHeadline": "Passport translation pricing"
+  },
+  "diplomaTranslation": {
+    "heroBadge": "Document Type · Diploma & Transcript",
+    "heroHeadline": "Diploma & Academic Credential",
+    "heroAccentLine": "Translation Online",
+    "heroSubheadline": "Translate diplomas, degree certificates, and academic transcripts for university applications, professional licensing, credential evaluation, and international employment.",
+    "heroCtaLabel": "Translate My Diploma",
+    "heroTrustLine": "₸1,000 per document · Academic terminology preserved · 10+ languages",
+    "docsHeadline": "Academic document types supported",
+    "docItem1": "Bachelor's Diploma",
+    "docItem2": "Master's Diploma",
+    "docItem3": "PhD / Doctoral Certificate",
+    "docItem4": "Academic Transcript",
+    "docItem5": "School Leaving Certificate",
+    "docItem6": "Diploma Supplement",
+    "docItem7": "Academic Reference Letter",
+    "docItem8": "Professional Certification",
+    "painHeadline": "Diploma translation challenges — what goes wrong",
+    "pain1Title": "Academic institution names must be translated with care",
+    "pain1Desc": "University and faculty names have official international forms. Incorrectly translating a university name raises immediate flags with reviewers.",
+    "pain2Title": "Qualification titles are not universal — context matters",
+    "pain2Desc": "A Russian 'specialist' degree is not simply a bachelor's degree. Credential evaluators expect accurate description of the qualification type, duration, and field.",
+    "pain3Title": "Transcripts are tables — not paragraphs",
+    "pain3Desc": "Academic transcripts contain structured course listings with credits, grades, and subject codes. Translation tools that flatten tables into prose produce unusable output.",
+    "pain4Title": "Tight deadlines for credential evaluation services",
+    "pain4Desc": "WES, ICAS, and other credential evaluation bodies often have document submission deadlines. Having a fast translation tool available means you can submit on time.",
+    "finalCtaHeadline": "Translate your diploma or academic transcript",
+    "finalCtaSub": "Upload your academic credential and receive a clean, structured English translation in minutes.",
+    "finalCtaCta": "Translate My Diploma",
+    "pricingHeadline": "Diploma translation pricing",
+    "faq": [
+      {
+        "q": "Is your translation accepted for WES or other credential evaluations?",
+        "a": "WES (World Education Services) and most credential evaluation bodies require certified or notarized translations. WPO offers Translation with agent stamp (human-reviewed, with agent/provider stamp) and Notarized translation (partner process with a notary), which may meet these requirements depending on the body's specific criteria. Electronic translation can be used during preparation or by education consultants. Verify official requirements before submitting."
+      },
+      {
+        "q": "Do you translate diploma supplements and grade explanations?",
+        "a": "Yes. Diploma supplements, grade scale explanations, and attached transcripts are translated as part of the document. Subject names are translated using standard academic English terminology."
+      },
+      {
+        "q": "What languages do you support for diploma translation?",
+        "a": "We support 10+ languages. The most common pairs for diploma translation are Russian → English, Kazakh → English, and Chinese → English. Source language can be auto-detected."
+      },
+      {
+        "q": "How do you handle degree titles and academic grades?",
+        "a": "Degree titles are translated with explanatory context where needed (e.g., \"Specialist degree (5-year integrated program)\"). Grades are preserved in the original scale without conversion."
+      },
+      {
+        "q": "Can I use this for a professional licensing application?",
+        "a": "Many licensing boards require certified or notarized translations of foreign credentials. WPO offers Translation with agent stamp and Notarized translation that may meet these requirements depending on the board's specific criteria. Electronic translation is available for preparation and reference. Confirm the required service level with your licensing board."
+      }
+    ],
+    "painSectionLabel": "WHY IT MATTERS",
+    "docsSectionLabel": "ACADEMIC DOCUMENTS"
+  },
+  "bankStatementTranslation": {
+    "heroBadge": "Document Type · Bank Statement",
+    "heroHeadline": "Bank Statement Translation",
+    "heroAccentLine": "for Visa, Immigration & Income Proof",
+    "heroSubheadline": "Translate bank statements from any language into English or other target languages. All balances, transaction dates, account numbers, and currency amounts preserved exactly as shown.",
+    "heroCtaLabel": "Translate My Bank Statement",
+    "heroTrustLine": "₸1,000 per document · 2–5 minutes · Any bank, any country",
+    "docsHeadline": "Bank and financial document types supported",
+    "docItem1": "Bank Statement (1–6 months)",
+    "docItem2": "Account Balance Certificate",
+    "docItem3": "Income Certificate from Employer",
+    "docItem4": "Tax Return Summary",
+    "docItem5": "Payslip / Salary Statement",
+    "docItem6": "Property or Asset Statement",
+    "painHeadline": "Why getting your bank statement translated is harder than it should be",
+    "pain1Title": "Visa consulates require English bank statements — most banks don't offer them",
+    "pain1Desc": "Banks in Russia, Kazakhstan, and many other countries issue statements only in their local language. Embassies and consulates reviewing visa applications typically require English translations.",
+    "pain2Title": "Numbers and amounts must be perfectly preserved — no rounding, no conversion",
+    "pain2Desc": "Bank statements used for visa or mortgage applications must show exact original amounts in original currency. Any conversion or rounding creates a discrepancy that can cause rejection.",
+    "pain3Title": "Transaction-level detail must be readable and structured",
+    "pain3Desc": "A bank statement with 50 transactions must remain a table — not a paragraph. Generic translation tools collapse structure into unformatted text.",
+    "pain4Title": "Tight visa deadlines make waiting 3–5 days for a bureau unacceptable",
+    "pain4Desc": "DTV, Schengen, and other visa applications have narrow windows. Getting your bank statement translated in minutes, not days, can determine whether your application is ready on time.",
+    "finalCtaHeadline": "Translate your bank statement for visa or immigration",
+    "finalCtaSub": "Upload your bank statement and receive a clean English translation in 2–5 minutes.",
+    "finalCtaCta": "Translate My Bank Statement",
+    "pricingHeadline": "Bank statement translation pricing",
+    "faq": [
+      {
+        "q": "Which visa types require a translated bank statement?",
+        "a": "Schengen visas, UK visitor visas, US B1/B2 visas, and most immigration applications require proof of funds from a bank, typically in English. Other documents like income certificates and payslips are also commonly required."
+      },
+      {
+        "q": "Are currencies and amounts preserved without conversion?",
+        "a": "Yes. All amounts, currencies, and balances are preserved exactly as they appear in the original document. We do not convert currencies, round amounts, or interpret financial data in any way."
+      },
+      {
+        "q": "What if my bank statement is 6 pages long?",
+        "a": "We support bank statements up to 50 pages. The price per document applies regardless of page count within that limit. All pages are translated as one document."
+      },
+      {
+        "q": "Will the translated statement be accepted by my consulate?",
+        "a": "Acceptance depends on the requirements of your consulate. Some consulates accept an Electronic translation alongside the original statement. Others require Translation with agent stamp or Notarized translation. Verify the required service level with your specific consulate or visa agent."
+      },
+      {
+        "q": "Can you translate online banking screenshots or PDF exports?",
+        "a": "Yes. Both scanned paper statements and digital PDF exports from online banking are supported. Scanned documents are processed through OCR before translation."
+      }
+    ],
+    "painSectionLabel": "WHY IT MATTERS",
+    "docsSectionLabel": "FINANCIAL DOCUMENTS"
+  },
+  "kazakhstanCertified": {
+    "heroBadge": "Kazakhstan · Official Translation",
+    "heroHeadline": "Translation with Agent Stamp",
+    "heroAccentLine": "of Documents Online",
+    "heroSubheadline": "Order an official translation with translator review, translator signature, and Provider stamp. For banks, universities, migration, visa, and official purposes.",
+    "heroCtaLabel": "Order Official Translation",
+    "heroTrustLine": "Acceptance of the translation by third parties is not guaranteed and depends on the requirements of the receiving organization.",
+    "painSectionLabel": "WHAT'S INCLUDED",
+    "painBridgeLabel": "WPO helps",
+    "painHeadline": "Official Translation — a Separate Service Level",
+    "pain1Title": "Translator Review",
+    "pain1Desc": "The translation is reviewed by a human translator. OCR errors, terminology, and formatting are corrected as needed.",
+    "pain2Title": "Translator Signature",
+    "pain2Desc": "The final document may include a translator signature and translator block.",
+    "pain3Title": "Provider Stamp",
+    "pain3Desc": "For the official service level, a Provider stamp may be added to the document.",
+    "pain4Title": "No Acceptance Guarantee",
+    "pain4Desc": "Banks, universities, consulates, and other organizations may have their own requirements. These should be verified in advance.",
+    "docsHeadline": "Supported Documents",
+    "docsSectionLabel": "DOCUMENTS",
+    "docsItems": [
+      "Diploma & Transcript",
+      "Birth & Marriage Certificate",
+      "Passport & National ID",
+      "Bank Statement",
+      "Employment Contract & Letter",
+      "Police Clearance Certificate"
+    ],
+    "pricingHeadline": "Document translation pricing in Kazakhstan",
+    "pricingSubheadline": "Electronic translation is the base level. Translation with agent stamp includes human reviewer. Notarization is a separate partner process.",
+    "finalCtaHeadline": "Need an Official Translation?",
+    "finalCtaSub": "Upload a document, choose the official service level, and review the final price before payment.",
+    "finalCtaCta": "Start Translation",
+    "faq": [
+      {
+        "q": "What does certified translation mean at WPO?",
+        "a": "At WPO, certified translation means the official service level: the translation is reviewed by a human translator and may include a translator signature, Provider stamp, date, and translator block. It does not automatically mean notarial certification or guaranteed acceptance by third parties."
+      },
+      {
+        "q": "How does certified translation differ from electronic translation?",
+        "a": "Electronic translation is performed automatically using OCR and AI, without a translator signature, Provider stamp, or notarial certification. Certified / official translation undergoes translator review and may include a translator signature and Provider stamp."
+      },
+      {
+        "q": "Is this a notarized translation?",
+        "a": "No. WPO certified / official translation is not notarial certification by itself. Notarization is arranged separately through a partner process, if this service is available for the selected document, language pair, and jurisdiction."
+      },
+      {
+        "q": "Do you guarantee that the translation will be accepted by a bank, university, or consulate?",
+        "a": "No. Acceptance of a translation depends on the requirements of the specific bank, university, consulate, immigration authority, notary, or other organization. Before using the translation for official purposes, the customer must independently verify the requirements of the receiving party."
+      },
+      {
+        "q": "When is an official translation needed?",
+        "a": "An official translation is usually needed when the receiving party requires a translation with translator review, translator signature, Provider stamp, or additional confirmation. If a standard electronic translation is insufficient, choose the official service level."
+      },
+      {
+        "q": "Can notarial certification be added later?",
+        "a": "In some cases yes, if a partner process is available for the selected document, language, and jurisdiction. Availability, timeline, and cost of notarization are confirmed separately."
+      }
+    ]
+  }
+}

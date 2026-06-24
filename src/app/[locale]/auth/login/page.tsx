@@ -76,7 +76,7 @@ export default function LoginPage() {
             <FormItem>
               <FormLabel>{t('email')}</FormLabel>
               <FormControl>
-                <Input type="email" placeholder="you@example.com" autoComplete="email" {...field} />
+                <Input type="email" placeholder={t('emailPlaceholder')} autoComplete="email" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

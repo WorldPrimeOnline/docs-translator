@@ -1,0 +1,20 @@
+{
+  "nav": {
+    "login": "Кіру",
+    "dashboard": "Кабинет",
+    "signup": "Тіркелу",
+    "getStarted": "Бастау",
+    "kazakhstan": "Қазақстан",
+    "documents": "Құжаттар",
+    "kazakhstanOverview": "Қазақстан шолуы",
+    "translationForNotary": "Нотариус үшін аударма",
+    "universityDocs": "Университет құжаттары",
+    "allDocTypes": "Барлық құжат түрлері",
+    "passportTranslation": "Паспорт аудармасы",
+    "bankStatement": "Банк үзінді-көшірмесі",
+    "diplomaTranslation": "Диплом аудармасы",
+    "certifiedTranslation": "Куәландырылған аударма",
+    "switchLanguage": "Тілді ауыстыру",
+    "toggleMenu": "Мәзірді ашу/жабу"
+  }
+}

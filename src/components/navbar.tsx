@@ -173,7 +173,7 @@ export function Navbar() {
             type="button"
             onClick={() => setMenuOpen(!menuOpen)}
             className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
-            aria-label="Toggle menu"
+            aria-label={t('toggleMenu')}
           >
             {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>

@@ -55,6 +55,10 @@ export default async function KazakhstanNotarizedPage({
       sub: t('finalCtaSub'),
       cta: t('finalCtaCta'),
     },
+    pricing: {
+      ...kazakhstanNotarizedConfig.pricing!,
+      headline: t('pricingHeadline'),
+    },
   };
 
   return <LandingPage config={config} />;

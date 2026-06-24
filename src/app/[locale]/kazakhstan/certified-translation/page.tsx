@@ -47,6 +47,20 @@ export default async function KazakhstanCertifiedPage({
       sub: t('finalCtaSub'),
       cta: t('finalCtaCta'),
     },
+    docs: {
+      ...kazakhstanCertifiedConfig.docs!,
+      headline: t('docsHeadline'),
+      sectionLabel: t('docsSectionLabel'),
+      items: kazakhstanCertifiedConfig.docs!.items.map((item, i) => ({
+        ...item,
+        name: (t.raw('docsItems') as string[])[i] ?? item.name,
+      })),
+    },
+    pricing: {
+      ...kazakhstanCertifiedConfig.pricing!,
+      headline: t('pricingHeadline'),
+      subheadline: t('pricingSubheadline'),
+    },
   };
 
   return <LandingPage config={config} />;

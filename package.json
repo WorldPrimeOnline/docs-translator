@@ -9,7 +9,16 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "jest",
-    "staging:check": "node scripts/staging-check.mjs"
+    "staging:check": "node scripts/staging-check.mjs",
+    "i18n:check": "tsx scripts/i18n/check-messages.ts",
+    "i18n:check:strict": "tsx scripts/i18n/check-messages.ts --strict",
+    "i18n:hardcoded": "tsx scripts/i18n/find-hardcoded-ui-text.ts",
+    "i18n:forbidden": "tsx scripts/i18n/find-forbidden-phrases.ts",
+    "i18n:routes": "tsx scripts/i18n/check-routes.ts",
+    "i18n:language": "tsx scripts/i18n/find-wrong-language.ts",
+    "i18n:validate": "npm run i18n:check && npm run i18n:forbidden && npm run i18n:language",
+    "i18n:rendered": "tsx scripts/i18n/check-rendered-pages.ts",
+    "i18n:validate:rendered": "npm run i18n:validate && npm run i18n:rendered"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",

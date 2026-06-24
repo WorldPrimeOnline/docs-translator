@@ -1,0 +1,12 @@
+{
+  "errors": {
+    "somethingWrong": "Bir zat nädogry boldy",
+    "errorDesc": "Garaşylmadyk ýalňyşlyk ýüze çykdy. Gaýtadan synanyşyň ýa-da dolandyryş paneline gaýdyň.",
+    "tryAgain": "Gaýtadan synanyşmak",
+    "goToDashboard": "Dolandyryş paneline git",
+    "notFound": "Sahypa tapylmady",
+    "notFoundDesc": "Gözleýän sahypaňyz ýok ýa-da başga ýere geçirildi.",
+    "goHome": "Baş sahypa",
+    "dashboard": "Dolandyryş paneli"
+  }
+}

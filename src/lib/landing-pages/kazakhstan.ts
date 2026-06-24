@@ -38,7 +38,7 @@ export const kazakhstanConfig: LandingPageConfig = {
     ctaHref: '/auth/signup',
     ctaSecondaryLabel: 'View Supported Documents',
     ctaSecondaryHref: '#documents',
-    trustLine: 'От 2 290 ₸ · RU / EN / KZ · 2–5 minutes',
+    trustLine: 'From ₸1,000 · RU / EN / KZ · 2–5 minutes',
   },
 
   howItWorks: {
@@ -63,8 +63,8 @@ export const kazakhstanConfig: LandingPageConfig = {
 
   pain: {
     headline: 'Document translation in Kazakhstan — common bottlenecks',
-    sectionLabel: 'ПРЕИМУЩЕСТВА',
-    bridgeLabel: 'WPO помогает',
+    sectionLabel: 'ADVANTAGES',
+    bridgeLabel: 'WPO helps',
     points: [
       {
         title: 'Translation bureaus charge per page and require physical presence',
@@ -86,13 +86,13 @@ export const kazakhstanConfig: LandingPageConfig = {
   },
 
   trust: {
-    headline: 'Прозрачно, конфиденциально и юридически аккуратно',
+    headline: 'Transparent, Confidential and Legally Accurate',
     items: defaultTrustItems,
   },
 
   pricing: {
-    headline: 'Простая цена за документ',
-    subheadline: 'Без подписки. Оплата только за выбранный перевод.',
+    headline: 'Simple Per-Document Pricing',
+    subheadline: 'No subscription. Pay only for the translation you choose.',
     tiers: defaultPricingTiers,
     footnote: defaultPricingFootnote,
   },
@@ -109,7 +109,7 @@ export const kazakhstanConfig: LandingPageConfig = {
       },
       {
         q: 'Is this translation accepted by foreign universities?',
-        a: 'Foreign universities typically require certified or notarized translations. WPO provides unofficial translations that can be used during the application preparation stage, for review by an education consultant, or as a reference draft for a certified translator. Always confirm official requirements with the target university.',
+        a: 'Foreign universities typically require certified or notarized translations. WPO offers Translation with agent stamp (human-reviewed, with agent/provider stamp) and Notarized translation (partner process with a notary) as service levels that may meet these requirements. Electronic translation can be used during the application preparation stage or for review by an education consultant. Always confirm the required service level with the target university.',
       },
       {
         q: 'Can notaries and visa agents use this service on behalf of clients?',
@@ -129,7 +129,7 @@ export const kazakhstanConfig: LandingPageConfig = {
   },
 
   seoContent: {
-    headline: 'Перевод документов для Казахстана — когда и как использовать',
+    headline: 'Document Translation for Kazakhstan — When and How to Use',
     paragraphs: [
       'В Казахстане переводы документов часто нужны для поступления в зарубежные университеты, рабочих виз, релокации, миграционных процедур, открытия банковских счетов за границей и апостиля. Обычный путь через бюро переводов может требовать личного визита, ожидания и ручной передачи документов.',
       'WorldPrimeOnline помогает подготовить перевод онлайн: загрузите документ, выберите языковую пару и уровень услуги, получите результат в электронном формате. Электронный перевод подходит для подготовки и ознакомления. Официальный перевод с проверкой переводчиком, подписью переводчика и печатью Исполнителя доступен как отдельный уровень услуги. Нотариальное удостоверение оформляется отдельно через партнёров, если такая услуга доступна.',
@@ -169,7 +169,7 @@ export const kazakhstanNotarizedConfig: LandingPageConfig = {
       'Upload your document and receive a clean, structured Russian or English translation ready to present to a notary or certified translator. Reduce review time, reduce errors, lower overall cost.',
     ctaLabel: 'Prepare Translation Draft',
     ctaHref: '/auth/signup',
-    trustLine: 'От 2 290 ₸ · 2–5 minutes · Notary-ready output',
+    trustLine: 'From ₸1,000 · 2–5 minutes · Notary-ready output',
   },
 
   howItWorks: {
@@ -209,8 +209,8 @@ export const kazakhstanNotarizedConfig: LandingPageConfig = {
 
   pain: {
     headline: 'Notary translation appointments take longer than necessary',
-    sectionLabel: 'КАК ЭТО РАБОТАЕТ',
-    bridgeLabel: 'WPO помогает организовать процесс',
+    sectionLabel: 'HOW IT WORKS',
+    bridgeLabel: 'WPO organises the process',
     points: [
       {
         title: 'Notaries start from scratch on every document',
@@ -271,7 +271,7 @@ export const kazakhstanNotarizedConfig: LandingPageConfig = {
 
   finalCta: {
     headline: 'Prepare a clean translation draft before your notary appointment',
-    sub: 'Upload your document and receive a structured translation in 2–5 minutes. От 2 290 ₸.',
+    sub: 'Upload your document and receive a structured translation in 2–5 minutes. From ₸1,000.',
     cta: 'Create Translation Draft',
   },
 
@@ -307,7 +307,7 @@ export const kazakhstanUniversityConfig: LandingPageConfig = {
       'Get clean English translations of diplomas, transcripts, school certificates, and academic records for university applications in the UK, US, Europe, Canada, and beyond.',
     ctaLabel: 'Translate Academic Documents',
     ctaHref: '/auth/signup',
-    trustLine: 'От 2 590 ₸ · Diploma & Transcript formats · RU / EN',
+    trustLine: 'From ₸1,000 · Diploma & Transcript formats · RU / EN',
   },
 
   howItWorks: {
@@ -376,7 +376,7 @@ export const kazakhstanUniversityConfig: LandingPageConfig = {
       },
       {
         q: 'Can you translate documents for IELTS, TOEFL, or credential evaluation purposes?',
-        a: 'WPO translations are unofficial. They are not accepted by IELTS/TOEFL administrative bodies for formal score reporting. However, they can be used for your own preparation, for informal application review, or as input to a certified translation workflow.',
+        a: 'Electronic translation is not accepted by IELTS/TOEFL administrative bodies for formal score reporting. It can be used for your own preparation or informal application review. For formal submission, check whether Translation with agent stamp or Notarized translation meets the requirements of your evaluation body.',
       },
     ],
   },
@@ -401,67 +401,67 @@ export const kazakhstanUniversityConfig: LandingPageConfig = {
 };
 
 export const kazakhstanCertifiedConfig: LandingPageConfig = {
-  title: 'Сертифицированный перевод документов в Казахстане — WPO Translations',
+  title: 'Translation with Agent Stamp — Kazakhstan — WPO Translations',
   description:
-    'Официальный перевод с проверкой переводчиком, подписью переводчика и печатью Исполнителя. Для банков, университетов, миграции, визовых и официальных задач.',
+    'Official translation with human translator review and provider stamp. For banks, universities, migration, and official purposes in Kazakhstan.',
 
   breadcrumb: [
     { label: 'WPO Translations', href: '/' },
-    { label: 'Казахстан', href: '/kazakhstan' },
-    { label: 'Сертифицированный перевод', href: '/kazakhstan/certified-translation' },
+    { label: 'Kazakhstan', href: '/kazakhstan' },
+    { label: 'Translation with Agent Stamp', href: '/kazakhstan/certified-translation' },
   ],
 
   hero: {
-    badge: 'Казахстан · Официальный перевод',
-    headline: 'Сертифицированный перевод',
-    accentLine: 'документов онлайн',
+    badge: 'Kazakhstan · Official Translation',
+    headline: 'Translation with Agent Stamp',
+    accentLine: 'of Documents Online',
     subheadline:
-      'Закажите официальный перевод с проверкой переводчиком, подписью переводчика и печатью Исполнителя. Для банков, университетов, миграции, визовых и официальных задач.',
-    ctaLabel: 'Заказать официальный перевод',
+      'Order an official translation with translator review, translator signature, and Provider stamp. For banks, universities, migration, visa, and official purposes.',
+    ctaLabel: 'Order Official Translation',
     ctaHref: '/auth/signup',
-    trustLine: 'Принятие перевода третьими лицами не гарантируется и зависит от требований принимающей организации.',
+    trustLine: 'Acceptance of the translation by third parties is not guaranteed and depends on the requirements of the receiving organization.',
   },
 
   docs: {
-    headline: 'Поддерживаемые документы',
-    sectionLabel: 'ДОКУМЕНТЫ',
+    headline: 'Supported Documents',
+    sectionLabel: 'DOCUMENTS',
     items: [
-      { icon: GraduationCap, name: 'Диплом и транскрипт' },
-      { icon: FileHeart, name: 'Свидетельство о рождении и браке' },
-      { icon: IdCard, name: 'Паспорт и удостоверение личности' },
-      { icon: Landmark, name: 'Банковская выписка' },
-      { icon: Briefcase, name: 'Трудовой договор и справка' },
-      { icon: Shield, name: 'Справка об отсутствии судимости' },
+      { icon: GraduationCap, name: 'Diploma & Transcript' },
+      { icon: FileHeart, name: 'Birth & Marriage Certificate' },
+      { icon: IdCard, name: 'Passport & National ID' },
+      { icon: Landmark, name: 'Bank Statement' },
+      { icon: Briefcase, name: 'Employment Contract & Letter' },
+      { icon: Shield, name: 'Police Clearance Certificate' },
     ],
   },
 
   pain: {
-    headline: 'Официальный перевод — отдельный уровень услуги',
-    sectionLabel: 'ЧТО ВКЛЮЧЕНО',
-    bridgeLabel: 'WPO помогает',
+    headline: 'Official Translation — a Separate Service Level',
+    sectionLabel: 'WHAT\'S INCLUDED',
+    bridgeLabel: 'WPO helps',
     points: [
       {
-        title: 'Проверка переводчиком',
-        desc: 'Перевод проверяется человеком-переводчиком. При необходимости исправляются ошибки OCR, терминология и формат.',
+        title: 'Translator Review',
+        desc: 'The translation is reviewed by a human translator. OCR errors, terminology, and formatting are corrected as needed.',
       },
       {
-        title: 'Подпись переводчика',
-        desc: 'Итоговый документ может содержать подпись переводчика и блок переводчика.',
+        title: 'Translator Signature',
+        desc: 'The final document may include a translator signature and translator block.',
       },
       {
-        title: 'Печать Исполнителя',
-        desc: 'Для официального уровня в документ может быть добавлена печать Исполнителя.',
+        title: 'Provider Stamp',
+        desc: 'For the official service level, a Provider stamp may be added to the document.',
       },
       {
-        title: 'Без гарантии принятия',
-        desc: 'Банки, университеты, консульства и другие организации могут иметь собственные требования. Их нужно проверить заранее.',
+        title: 'No Acceptance Guarantee',
+        desc: 'Banks, universities, consulates, and other organizations may have their own requirements. These should be verified in advance.',
       },
     ],
   },
 
   pricing: {
-    headline: 'Цены',
-    subheadline: 'Электронный перевод оплачивается по базовой цене. Официальный перевод является отдельным уровнем услуги.',
+    headline: 'Pricing',
+    subheadline: 'Electronic translation is the base service level. Translation with agent stamp is a separate service level with human translator review.',
     tiers: defaultPricingTiers,
     footnote: defaultPricingFootnote,
   },
@@ -469,40 +469,40 @@ export const kazakhstanCertifiedConfig: LandingPageConfig = {
   faq: {
     items: [
       {
-        q: 'Это нотариальный перевод?',
-        a: 'Нет. Сертифицированный / официальный перевод WPO сам по себе не является нотариальным удостоверением. Нотариальное удостоверение оформляется отдельно через партнёрский процесс, если такая услуга доступна.',
+        q: 'Is this a notarized translation?',
+        a: 'No. WPO certified / official translation is not notarial certification by itself. Notarization is arranged separately through a partner process, if this service is available for the selected document, language pair, and jurisdiction.',
       },
       {
-        q: 'Что входит в официальный перевод?',
-        a: 'Проверка переводчиком, подпись переводчика, печать Исполнителя, дата и блок переводчика, если такой уровень услуги доступен и выбран при оформлении заказа.',
+        q: "What's included in an official translation?",
+        a: 'Translator review, translator signature, Provider stamp, date, and translator block — if this service level is available and selected when placing the order.',
       },
       {
-        q: 'Гарантируете ли вы принятие перевода?',
-        a: 'Нет. Принятие перевода зависит от требований конкретного банка, университета, консульства, миграционного органа, нотариуса или другой организации.',
+        q: 'Do you guarantee the translation will be accepted?',
+        a: 'No. Acceptance of the translation depends on the requirements of the specific bank, university, consulate, immigration authority, notary, or other organization.',
       },
       {
-        q: 'Когда нужен официальный перевод?',
-        a: 'Обычно он нужен, когда принимающая сторона требует перевод с подписью переводчика, печатью исполнителя или дополнительным подтверждением, а обычного электронного перевода недостаточно.',
+        q: 'When is an official translation needed?',
+        a: 'Usually when the receiving party requires a translation with translator signature, provider stamp, or additional confirmation — and a standard electronic translation is not sufficient.',
       },
       {
-        q: 'Можно ли потом добавить нотариальное удостоверение?',
-        a: 'В некоторых случаях да, если доступен партнёрский процесс для выбранного документа, языка и юрисдикции. Возможность и стоимость подтверждаются отдельно.',
+        q: 'Can notarial certification be added later?',
+        a: 'In some cases yes, if a partner process is available for the selected document, language, and jurisdiction. Availability and cost are confirmed separately.',
       },
     ],
   },
 
   finalCta: {
-    headline: 'Нужен официальный перевод?',
-    sub: 'Загрузите документ, выберите официальный уровень услуги и проверьте итоговую стоимость до оплаты.',
-    cta: 'Начать перевод',
+    headline: 'Need an Official Translation?',
+    sub: 'Upload a document, choose the official service level, and review the final price before payment.',
+    cta: 'Start Translation',
   },
 
   structuredData: [
     {
       '@context': 'https://schema.org',
       '@type': 'Service',
-      name: 'Сертифицированный перевод — Казахстан — WPO Translations',
-      description: 'Официальный перевод с проверкой переводчиком, подписью переводчика и печатью Исполнителя для Казахстана.',
+      name: 'Translation with Agent Stamp — Kazakhstan — WPO Translations',
+      description: 'Official translation with human translator review and Provider stamp for Kazakhstan.',
       provider: { '@type': 'Organization', name: 'WPO Translations', url: 'https://wpotranslations.org' },
       areaServed: 'Kazakhstan',
       serviceType: 'Document Translation',

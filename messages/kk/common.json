@@ -1,0 +1,22 @@
+{
+  "disclaimer": "РЕСМИ ЕМЕС АУДАРМА — ТЕК АҚПАРАТТЫҚ МАҚСАТТА",
+  "contactsPage": {
+    "title": "Contacts",
+    "metaTitle": "Contact WPO Translations",
+    "metaDescription": "Provider contact details for WPO Translations. For disputes, refund requests, and data deletion inquiries.",
+    "providerHeading": "Service Provider",
+    "disputesNote": "For disputes, refund requests, and data deletion requests, use the contact details below.",
+    "legalNameLabel": "Legal name",
+    "iinBinLabel": "IIN / BIN",
+    "addressLabel": "Legal / Postal address",
+    "phoneLabel": "Phone",
+    "emailLabel": "Email",
+    "websiteLabel": "Website"
+  },
+  "mockup": {
+    "statusReady": "Дайын",
+    "translationReady": "Аударма дайын",
+    "pdfGenerated": "PDF жасалды · жүктеуге дайын",
+    "download": "Жүктеу"
+  }
+}

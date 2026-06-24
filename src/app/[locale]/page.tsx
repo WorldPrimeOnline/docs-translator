@@ -438,7 +438,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
       </section>
 
       {/* ═══════════════════════════════════════════
-          PRICING
+          PRICING — 3 service levels, pay per document
       ═══════════════════════════════════════════ */}
       <section className="border-y border-white/[0.07] bg-card px-4 py-16 lg:py-20">
         <div className="mx-auto max-w-[900px]">
@@ -453,21 +453,20 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
           </div>
 
           <div className="grid gap-4 sm:grid-cols-3">
-            {/* PAYG */}
+            {/* Electronic translation */}
             <div className="flex flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-background">
               <div className="border-b border-white/[0.06] px-7 py-6">
                 <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/60">
-                  {t('pricing.payg')}
+                  {t('pricing.electronic')}
                 </p>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-[2rem] font-extrabold tracking-tight text-foreground">2 290 ₸</span>
-                  <span className="text-[13px] text-muted-foreground">{t('pricing.perDoc')}</span>
+                <div className="space-y-0.5">
+                  <div className="whitespace-nowrap text-[2rem] font-extrabold tracking-tight text-foreground">{t('pricing.electronicPrice')}</div>
+                  <div className="text-[13px] text-muted-foreground">{t('pricing.perDoc')}</div>
                 </div>
-                <p className="mt-2 text-[12px] text-muted-foreground">{t('pricing.paygNote')}</p>
               </div>
               <div className="flex flex-1 flex-col px-7 py-6">
                 <ul className="mb-7 flex-1 space-y-2.5">
-                  {[t('pricing.feature1'), t('pricing.feature2'), t('pricing.feature3'), t('pricing.feature4')].map((f) => (
+                  {[t('pricing.electronicF1'), t('pricing.electronicF2'), t('pricing.electronicF3'), t('pricing.electronicF4')].map((f) => (
                     <li key={f} className="flex items-start gap-2.5 text-[13px] text-muted-foreground">
                       <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/35" />
                       {f}
@@ -480,31 +479,26 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
               </div>
             </div>
 
-            {/* BASIC — highlighted */}
+            {/* Agent stamp — highlighted */}
             <div className="relative flex flex-col overflow-hidden rounded-2xl border border-primary/40 bg-background shadow-[0_0_60px_rgba(201,168,76,0.08)]">
-              {/* Top glow line */}
               <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
-
-              {/* Popular badge — inline so overflow-hidden doesn't clip it */}
               <div className="flex justify-center pt-5">
                 <span className="rounded-full bg-primary px-4 py-1 text-[10px] font-bold uppercase tracking-widest text-primary-foreground shadow-lg">
                   {t('pricing.mostPopular')}
                 </span>
               </div>
-
               <div className="border-b border-primary/[0.12] px-7 pb-6 pt-3">
                 <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.12em] text-primary">
-                  {t('pricing.basic')}
+                  {t('pricing.agentStamp')}
                 </p>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-[2rem] font-extrabold tracking-tight text-foreground">4 990 ₸</span>
-                  <span className="text-[13px] text-muted-foreground">{t('pricing.perMonth')}</span>
+                <div className="space-y-0.5">
+                  <div className="whitespace-nowrap text-[2rem] font-extrabold tracking-tight text-foreground">{t('pricing.agentStampPrice')}</div>
+                  <div className="text-[13px] text-muted-foreground">{t('pricing.perDoc')}</div>
                 </div>
-                <p className="mt-2 text-[12px] text-muted-foreground">10 {t('pricing.docs')}</p>
               </div>
               <div className="flex flex-1 flex-col px-7 py-6">
                 <ul className="mb-7 flex-1 space-y-2.5">
-                  {[`10 ${t('pricing.docs')}`, t('pricing.allDocTypes'), t('pricing.aiTranslation'), t('pricing.cleanPdf'), t('pricing.dayAccess')].map((f) => (
+                  {[t('pricing.agentStampF1'), t('pricing.agentStampF2'), t('pricing.agentStampF3'), t('pricing.agentStampF4')].map((f) => (
                     <li key={f} className="flex items-start gap-2.5 text-[13px] text-muted-foreground">
                       <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary/70" />
                       {f}
@@ -512,34 +506,33 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
                   ))}
                 </ul>
                 <Link href="/auth/signup" className="inline-flex w-full items-center justify-center rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground transition-all hover:bg-gold-dark hover:brightness-110">
-                  {t('pricing.subscribe')}
+                  {t('pricing.startTranslating')}
                 </Link>
               </div>
             </div>
 
-            {/* PRO */}
+            {/* Notarized translation */}
             <div className="flex flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-background">
               <div className="border-b border-white/[0.06] px-7 py-6">
                 <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/60">
-                  {t('pricing.pro')}
+                  {t('pricing.notarized')}
                 </p>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-[2rem] font-extrabold tracking-tight text-foreground">12 990 ₸</span>
-                  <span className="text-[13px] text-muted-foreground">{t('pricing.perMonth')}</span>
+                <div className="space-y-0.5">
+                  <div className="whitespace-nowrap text-[2rem] font-extrabold tracking-tight text-foreground">{t('pricing.notarizedPrice')}</div>
+                  <div className="text-[13px] text-muted-foreground">{t('pricing.perDoc')}</div>
                 </div>
-                <p className="mt-2 text-[12px] text-muted-foreground">40 {t('pricing.docs')}</p>
               </div>
               <div className="flex flex-1 flex-col px-7 py-6">
                 <ul className="mb-7 flex-1 space-y-2.5">
-                  {[`40 ${t('pricing.docs')}`, t('pricing.allDocTypes'), t('pricing.aiTranslation'), t('pricing.cleanPdf'), t('pricing.priorityProcessing')].map((f) => (
+                  {[t('pricing.notarizedF1'), t('pricing.notarizedF2'), t('pricing.notarizedF3'), t('pricing.notarizedF4')].map((f) => (
                     <li key={f} className="flex items-start gap-2.5 text-[13px] text-muted-foreground">
-                      <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary/60" />
+                      <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/35" />
                       {f}
                     </li>
                   ))}
                 </ul>
                 <Link href="/auth/signup" className="inline-flex w-full items-center justify-center rounded-xl border border-white/[0.12] bg-white/[0.04] py-3 text-sm font-semibold text-foreground/80 transition-all hover:border-white/25 hover:bg-white/[0.08] hover:text-foreground">
-                  {t('pricing.subscribe')}
+                  {t('pricing.startTranslating')}
                 </Link>
               </div>
             </div>

@@ -1,0 +1,293 @@
+  Технический пайплайн: AI-перевод документа с генерацией DOCX
+
+  Контекст системы
+
+  Проект: WPO Translations (wpotranslations.org)
+  Воркер: Node.js сервис на Railway, worker/src/
+  Веб-приложение: Next.js 15, src/
+  База данных: Supabase (PostgreSQL)
+  Хранилище файлов: Cloudflare R2
+  OCR: Mistral OCR API (mistral-ocr-latest)
+  Перевод: Anthropic Claude (claude-sonnet-4-5-20250929) через @anthropic-ai/sdk
+  DOCX-генератор: библиотека docx (npm)
+  PDF-генератор: Puppeteer + @sparticuz/chromium
+
+  ---
+  Шаг 0 — Триггер (каждые 10 секунд)
+  
+  Воркер (worker/src/index.ts) опрашивает Supabase:
+  UPDATE jobs SET status='ocr_in_progress' WHERE status='queued' LIMIT 1
+  RETURNING *
+  Атомарный UPDATE предотвращает двойную обработку. Для certified/notarized
+  заказов веб-приложение (Vercel) не запускает обработку — оставляет
+  status=queued для воркера.
+
+  ---
+  Шаг 1 — Определение режима вывода (computeOutputPlan)
+
+  Файл: worker/src/lib/output-plan.ts
+
+  По полю jobs.service_level определяется план:
+
+  service_level: electronic
+  plan.mode: translation_only
+  DOCX?: нет      
+  Preview PDF?: нет
+  Отдаётся клиенту сразу?: да
+  ────────────────────────────────────────
+  service_level: official_with_translator_signature_and_provider_stamp
+  plan.mode: translator_review_draft
+  DOCX?: да
+  Preview PDF?: да
+  Отдаётся клиенту сразу?: нет
+  ────────────────────────────────────────
+  service_level: notarization_through_partners
+  plan.mode: notarization_package
+  DOCX?: да
+  Preview PDF?: да
+  Отдаётся клиенту сразу?: нет
+
+  Для режимов translator_review_draft и notarization_package создаётся
+  DOCX-черновик. jobs.workflow_status устанавливается в
+  awaiting_translator_review. Клиенту документ не выдаётся до ручного
+  подтверждения переводчика.
+
+  ---
+  Шаг 2 — OCR (worker/src/lib/ocr.ts)
+  
+  PDF-файл скачивается из R2, кодируется в base64, отправляется в Mistral OCR
+  API:
+  POST https://api.mistral.ai/v1/ocr
+  model: mistral-ocr-latest
+  document: { type: "document_url", document_url:
+  "data:application/pdf;base64,..." }
+  
+  Ответ — массив страниц, каждая страница возвращает Markdown с встроенными
+  изображениями в формате ![alt](data:image/...base64...).
+
+  Что делает OCR-парсер:
+  1. Из сырого markdown до стриппинга извлекаются визуальные элементы —
+  изображения, bracket-маркеры [stamp], [signature], MRZ-строки, верификационные
+  URL.
+  2. Base64 изображения удаляются из markdown (stripImageRefs), остаётся только
+  текст.
+  3. Страницы склеиваются через \n\n.
+
+  Quality gate — если OCR вернул < 10 слов или < 50 символов, или доля
+  "мусорных" символов > 30% — джоб завершается с status=failed.
+
+  Результат OCR: объект { markdown: string, pageCount: number, visualElements: 
+  VisualElement[] }
+
+  ---
+  Шаг 3 — Извлечение визуальных элементов (worker/src/lib/visual-elements.ts)
+  
+  Из сырого OCR-markdown извлекаются визуальные элементы двух типов:
+
+  Из изображений Mistral (source: 'mistral_ocr'):
+  ![alt](src) → alt-текст классифицируется по ключевым словам → тип stamp,
+  signature, qr, photo, logo, emblem, watermark, electronic_approval,
+  unknown_image
+
+  Из bracket-маркеров (source: 'markdown_marker'):
+  [round stamp], [подпись], [QR-код присутствует] и т.д. → классифицируются по
+  словарю
+
+  Регулярками (source: 'regex'):
+  - URL-паттерны → verification_string
+  - Строки из 30+ символов [A-Z0-9<] подряд (2+ строки) → mrz
+
+  Типы визуальных элементов: logo, emblem, photo, qr, barcode, stamp, signature,
+  watermark, verification_string, mrz, handwritten_note, electronic_approval,
+  unknown_image
+
+  Структура каждого элемента:
+  { page?: number, kind: VisualElementKind, text?: string, description?: string,
+  position?: string, confidence?: number, source: '...' }
+
+  ---
+  Шаг 4 — Перевод (worker/src/lib/translator.ts)
+
+  Разбивка на чанки: если документ > 3000 слов — разбивается по параграфам
+  (\n\n). Чанки переводятся параллельно (Promise.all). Результаты склеиваются
+  через \n\n.
+
+  Построение промпта (worker/src/lib/translation-prompts/):
+
+  buildTranslationPrompt({ sourceLanguage, targetLanguage, documentType })
+  собирает промпт из трёх слоёв:
+
+  1. buildBasePrompt (base.ts) — базовые правила + две глобальные политики:
+    - OFFICIAL_VISUAL_ELEMENT_POLICY — как рендерить печати, подписи, QR, фото,
+  MRZ (использовать нейтральные маркеры в квадратных скобках; маркеры
+  локализуются на целевой язык: для RU — [печать], [подпись], для EN — [stamp],
+  [signature])
+    - FIELD_VALUE_TRANSLATION_POLICY — что переводить (значения полей, страны,
+  статусы), что защищать дословно (номера документов, IBAN, SWIFT, MRZ, имена в
+  паспортном написании), как транслитерировать имена (ICAO 9303), self-check в
+  конце
+  2. DOCUMENT_TYPE_PROMPTS[documentType] (document-prompts.ts) — дополнительные
+  правила для конкретного типа документа (паспорт, диплом, банковская выписка и
+  т.д.)
+  3. outputModeClause — инструкция по режиму вывода:
+    - notarization_package → «подготовить чистый формально структурированный
+  перевод для последующей подписи переводчиком»
+    - translator_review_draft → аналогично
+    - clean_official_translation → стандартный режим
+
+  Вызов Claude:
+  client.messages.create({
+    model: 'claude-sonnet-4-5-20250929',
+    max_tokens: 8192,
+    system: systemPrompt,
+    messages: [{ role: 'user', content: `${userPrompt}\n\n${markdownChunk}` }]
+  })
+  
+  Ожидаемый output: чистый структурированный Markdown — ## заголовки,
+  двухколоночные Markdown-таблицы для key-value полей, bullet-списки,
+  нейтральные маркеры для визуальных элементов.
+
+  ---
+  Шаг 5 — Merge визуальных элементов
+
+  const translatedVisualElements =
+  extractVisualElementsFromTranslated(translatedMarkdown);
+  // повторно ищет bracket-маркеры в тексте перевода
+  const allVisualElements = mergeVisualElements(ocrVisualElements,
+  translatedVisualElements);
+  // дедупликация по key `${kind}:${text}`
+
+  ---
+  Шаг 6 — Генерация DOCX (worker/src/lib/docx-renderer.ts)
+
+  Функция: renderToDocx(translatedMarkdown, meta, allVisualElements)
+
+  Шаг 6.1 — Добавление блока визуальных элементов (ensureVisualElementsBlock):
+  Если в markdown нет паттерна "описание нетекстовых элементов" / "description
+  of non-text elements" — в конец добавляется таблица визуальных элементов:
+  ## Описание нетекстовых элементов оригинала
+  
+  | Страница оригинала | Элемент | Расположение | Передача в переводе |
+  |---|---|---|---|
+  | 1 | Печать | — | [round stamp] |
+  | 1 | Подпись | — | [signature] |
+  
+  Шаг 6.2 — Парсинг markdown в DOCX-элементы (parseMarkdownToDocx):
+
+  Построчный парсер:
+
+  ┌─────────────────────────────────────┬────────────────────────────────────┐
+  │          Паттерн markdown           │            DOCX-элемент            │
+  ├─────────────────────────────────────┼────────────────────────────────────┤
+  │ # Заголовок                         │ Paragraph { heading: HEADING_1 }   │
+  ├─────────────────────────────────────┼────────────────────────────────────┤
+  │ ## Заголовок                        │ Paragraph { heading: HEADING_2 }   │
+  ├─────────────────────────────────────┼────────────────────────────────────┤
+  │ ### Заголовок                       │ Paragraph { heading: HEADING_3 }   │
+  ├─────────────────────────────────────┼────────────────────────────────────┤
+  │ - пункт или * пункт                 │ Paragraph { bullet: { level: 0 } } │
+  ├─────────────────────────────────────┼────────────────────────────────────┤
+  │ Строка с | + следующая строка |---| │ Table (Markdown-таблица)           │
+  ├─────────────────────────────────────┼────────────────────────────────────┤
+  │ Пустая строка                       │ Paragraph { text: '' }             │
+  ├─────────────────────────────────────┼────────────────────────────────────┤
+  │ Всё остальное                       │ Paragraph с inline-разметкой       │
+  └─────────────────────────────────────┴────────────────────────────────────┘
+
+  Inline-разметка (parseInlineMarkdown):
+  - **текст** → TextRun { bold: true }
+  - *текст* → TextRun { italics: true }
+  - [маркер] → TextRun { italics: true, color: '333333' } (визуальные маркеры)
+  - Обычный текст → TextRun { text }
+
+  Шаг 6.3 — Сборка Document:
+  new Document({
+    sections: [{
+      properties: { page: { margin: { top:1440, bottom:1440, left:1440,
+  right:1440 } } },
+      children: [
+        header,          // "RU → EN  |  passport_id  |  2026-06-17"
+        ...parsedChildren
+      ] 
+    }]
+  })
+
+  Заголовок документа: <SourceLang> → <TargetLang>  |  <documentType>  |  <date>
+
+  Таблицы: общая ширина 9000 DXA, колонки равноделённые, border SINGLE/BBBBBB,
+  header-строка с серым фоном F5F5F5.
+
+  Результат: Buffer → загружается в R2 как
+  documents/{userId}/{documentId}/translator_draft.docx
+
+  ---
+  Шаг 7 — Preview PDF (для certified/notarized)
+  
+  Параллельно с DOCX генерируется preview PDF через renderToHtml + Puppeteer.
+  Если Puppeteer падает — ошибка логируется как non-fatal, preview PDF просто не
+  создаётся (DOCX остаётся).
+
+  ---
+  Шаг 8 — QA-чеки (worker/src/lib/qa.ts)
+  
+  Запускается на HTML (не на DOCX). Проверяет:
+  - Наличие forbidden terms: Claude, Mistral, OCR, JSON, Markdown, renderer,
+  parser
+  - Сломанные глифы: □, □□□, \uFFFD
+  - Table overflow:hidden (риск обрезки в PDF)
+  - Для translator_review_draft/notarization_package — наличие блока переводчика
+  и блока визуальных элементов
+  
+  QA-отчёт (TranslationQaReport) сохраняется в translations.qa_report как JSON.
+
+  ---
+  Шаг 9 — Запись в БД и интеграции
+
+  INSERT/UPDATE translations SET
+    translated_pdf_key = 'documents/.../translator_draft.docx',
+    translated_docx_key = 'documents/.../translator_draft.docx',
+    translated_preview_pdf_key = 'documents/.../preview.pdf',
+    qa_report = { ... }
+
+  UPDATE jobs SET
+    status = 'completed',
+    progress_percent = 100,
+    workflow_status = 'awaiting_translator_review'
+
+  UPDATE documents SET status = 'in_review'
+
+  После этого:
+  - triggerTranslatorReview() — загружает DOCX в Google Drive папку
+  02_AI_DRAFT/ai_draft.docx, уведомляет через Jira Automation 
+  - Клиенту отправляется email «документ получен, проходит проверку»
+  (sendDocumentReceivedForReview)
+  - Клиент не видит кнопку скачивания (статус in_review, а не completed)
+
+  ---
+  Ключевые точки отказа и частые баги
+  
+  1. Непереведённые поля — Claude оставил значение в исходном языке. Причина:
+  нарушение FIELD_VALUE_TRANSLATION_POLICY. Место:
+  worker/src/lib/translation-prompts/base.ts, блок
+  FIELD_VALUE_TRANSLATION_POLICY.
+  2. Потерянные маркеры визуальных элементов ([stamp] есть в OCR но нет в DOCX).
+  Причина: Claude не включил маркер в перевод, или
+  extractVisualElementsFromTranslated не нашёл его в тексте. Место:
+  worker/src/lib/visual-elements.ts:extractVisualElementsFromTranslated.
+  3. Сломанные таблицы в DOCX — таблица рендерится как текст с |. Причина:
+  parseMarkdownTable не прошёл валидацию (sepLine не совпал с regex
+  /^\|?[\s\-|:]+\|?$/). Место:
+  worker/src/lib/docx-renderer.ts:parseMarkdownTable.
+  4. Заголовок H1 вместо H2 — неверный уровень heading. Причина: Claude иногда
+  использует #  (один #) для всего. Место: parseMarkdownToDocx в
+  docx-renderer.ts.
+  5. Визуальные элементы задвоены — один и тот же [stamp] в OCR и в переводе.
+  Причина: дедупликация по ключу ${kind}:${text} не сработала (разный text).
+  Место: visual-elements.ts:deduplicateElements.
+  6. Маркеры на английском в русском переводе — Claude написал [stamp] вместо
+  [печать]. Причина: нарушение правила локализации маркеров в
+  FIELD_VALUE_TRANSLATION_POLICY. Место: base.ts, секция VISUAL ELEMENT MARKERS 
+  — LOCALIZE TO TARGET LANGUAGE.
+  7. DOCX не генерируется, только HTML — plan.mode = translation_only вместо
+  translator_review_draft. Причина: jobs.service_level не заполнен или содержит
+  неожиданное значение. Место: output-plan.ts:computeOutputPlan.

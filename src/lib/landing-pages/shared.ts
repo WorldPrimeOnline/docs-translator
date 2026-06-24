@@ -47,34 +47,13 @@ export const defaultTrustItems: TrustItem[] = [
   },
 ];
 
-// Feature strings use translation keys from the landing namespace.
-// PricingSection detects keys that start with "pricing" and translates them via getTranslations('landing').
+// Tier IDs correspond to keys in the pricing.tiers namespace.
+// PricingSection resolves all display text (title, price, unit, features, cta)
+// from getTranslations('pricing') using these IDs.
 export const defaultPricingTiers: PricingTier[] = [
-  {
-    name: 'pricingPassport',
-    price: '2 290 ₸',
-    features: [
-      'pricingFeaturePassportDoc',
-      'pricingFeatureClaudeTranslation',
-      'pricingFeatureCleanPdf',
-      'pricingFeatureDelivery',
-      'pricingFeatureLanguages',
-    ],
-    cta: 'pricingCta',
-    highlighted: true,
-  },
-  {
-    name: 'pricingOtherDocs',
-    price: '2 590 ₸',
-    features: [
-      'pricingFeatureDiplomas',
-      'pricingFeatureBankMedical',
-      'pricingFeatureClaudeTranslation',
-      'pricingFeatureCleanPdf',
-      'pricingFeatureDelivery',
-    ],
-    cta: 'pricingCta',
-  },
+  { id: 'electronic' },
+  { id: 'agentStamp', highlighted: true },
+  { id: 'notarized' },
 ];
 
-export const defaultPricingFootnote = 'pricingFootnote';
+export const defaultPricingFootnote = 'allPricesNote';

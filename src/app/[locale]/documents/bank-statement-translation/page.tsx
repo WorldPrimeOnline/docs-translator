@@ -31,6 +31,7 @@ export default async function BankStatementTranslationPage({
     docs: {
       ...bankStatementTranslationConfig.docs,
       headline: t('docsHeadline'),
+      sectionLabel: t('docsSectionLabel'),
       items: bankStatementTranslationConfig.docs!.items.map((item, i) => ({
         ...item,
         name: t(`docItem${i + 1}`),
@@ -38,6 +39,7 @@ export default async function BankStatementTranslationPage({
     },
     pain: {
       headline: t('painHeadline'),
+      sectionLabel: t('painSectionLabel'),
       points: bankStatementTranslationConfig.pain!.points.map((_, i) => ({
         title: t(`pain${i + 1}Title`),
         desc: t(`pain${i + 1}Desc`),
@@ -51,6 +53,10 @@ export default async function BankStatementTranslationPage({
       headline: t('finalCtaHeadline'),
       sub: t('finalCtaSub'),
       cta: t('finalCtaCta'),
+    },
+    pricing: {
+      ...bankStatementTranslationConfig.pricing!,
+      headline: t('pricingHeadline'),
     },
   };
 

@@ -1,0 +1,20 @@
+{
+  "nav": {
+    "login": "登录",
+    "dashboard": "控制台",
+    "signup": "注册",
+    "getStarted": "开始使用",
+    "kazakhstan": "哈萨克斯坦",
+    "documents": "文件",
+    "kazakhstanOverview": "哈萨克斯坦概览",
+    "translationForNotary": "公证翻译",
+    "universityDocs": "大学申请文件",
+    "allDocTypes": "所有文件类型",
+    "passportTranslation": "护照翻译",
+    "bankStatement": "银行流水",
+    "diplomaTranslation": "文凭翻译",
+    "certifiedTranslation": "经认证的翻译",
+    "switchLanguage": "Switch language",
+    "toggleMenu": "Toggle menu"
+  }
+}

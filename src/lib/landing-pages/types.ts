@@ -28,10 +28,7 @@ export interface TrustItem {
 }
 
 export interface PricingTier {
-  name: string;
-  price: string;
-  features: string[];
-  cta: string;
+  id: string;
   highlighted?: boolean;
 }
 

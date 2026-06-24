@@ -1,0 +1,417 @@
+{
+  "documentsHub": {
+    "heroBadge": "所有文件类型",
+    "heroHeadline": "翻译任何官方文件",
+    "heroAccentLine": "在线，几分钟内完成",
+    "heroSubheadline": "上传扫描或数字PDF，获取干净的翻译版本。支持所有主要官方文件类型——护照、银行对账单、学历证书等。",
+    "heroCtaLabel": "开始翻译",
+    "heroTrustLine": "起价 2 290 ₸ · 10种以上语言 · 2–5分钟",
+    "finalCtaHeadline": "开始翻译您的文件",
+    "finalCtaSub": "上传任何官方PDF，2–5分钟内获得干净的翻译。",
+    "finalCtaCta": "上传文件",
+    "faq": [
+      {
+        "q": "您支持哪些文件类型？",
+        "a": "我们支持所有主要官方文件类型：护照、身份证、银行对账单、学历证书、成绩单、出生和结婚证明、劳动合同、病历、无犯罪记录证明、驾驶执照及其他官方文件。"
+      },
+      {
+        "q": "支持哪些语言？",
+        "a": "我们支持10种以上语言，包括中文、英语、俄语、韩语、日语、德语、法语、西班牙语和阿拉伯语。源语言可自动检测。"
+      },
+      {
+        "q": "您的翻译是认证或公证翻译吗？",
+        "a": "不是。所有翻译均为非官方翻译，仅供参考。每页翻译都会显示免责声明。如需认证或公证翻译，请联系持牌翻译员或公证机构。"
+      }
+    ],
+    "pricingHeadline": "Стоимость перевода документов"
+  },
+  "kazakhstan": {
+    "heroBadge": "哈萨克斯坦 · 文件流程",
+    "heroHeadline": "哈萨克斯坦文件翻译",
+    "heroAccentLine": "留学、移民与官方流程",
+    "heroSubheadline": "在线翻译学历证书、出生证明、合同、银行对账单等官方文件，适用于留学申请、移民咨询、公证准备等场景。",
+    "heroCtaLabel": "翻译文件",
+    "heroCtaSecondaryLabel": "查看支持的文件",
+    "heroTrustLine": "起价 2 290 ₸ · 俄语/英语/哈萨克语 · 2–5分钟",
+    "finalCtaHeadline": "在线翻译文件——无需前往翻译局",
+    "finalCtaSub": "上传PDF，2–5分钟内获得干净翻译版本。",
+    "finalCtaCta": "开始翻译",
+    "faq": [
+      {
+        "q": "我可以在前往公证处之前使用此翻译吗？",
+        "a": "可以。许多公证人和认证翻译员在完成认证版本之前会查看非正式翻译草稿。干净、结构化的WPO翻译可以加快这一过程并减少最终认证文件中的错误。"
+      },
+      {
+        "q": "您支持哪些哈萨克斯坦文件的语言？",
+        "a": "我们主要支持俄语↔英语互译。同时也支持哈萨克语↔俄语和哈萨克语→英语，涵盖哈萨克斯坦文件在国际上使用的主要语言对。"
+      },
+      {
+        "q": "外国大学会接受此翻译吗？",
+        "a": "外国大学通常要求认证或公证翻译。WPO提供的非官方翻译可用于申请准备阶段、供教育顾问审阅，或作为认证翻译员的参考草稿。请向目标大学确认官方要求。"
+      },
+      {
+        "q": "公证人和签证代理人可以代表客户使用此服务吗？",
+        "a": "可以。任何用户都可以上传客户的文件进行处理并获取翻译PDF。面向机构的合作伙伴面板计划在未来版本中推出。"
+      },
+      {
+        "q": "什么是附加认证（Apostille），它与翻译有何关系？",
+        "a": "附加认证是由政府机构在文件上加盖的官方认证章。附加认证针对原始文件，翻译是单独的步骤，通常在获得附加认证后才需要。WPO提供翻译服务；附加认证需从相关政府机构获取。"
+      }
+    ],
+    "docsHeadline": "支持的文件类型",
+    "docsSubheadline": "涵盖学习、移民和官方流程中所有主要文件类型",
+    "docItem1": "学历证书及成绩单",
+    "docItem2": "出生证明及结婚证",
+    "docItem3": "护照及国家身份证",
+    "docItem4": "银行流水",
+    "docItem5": "劳动合同及在职证明",
+    "docItem6": "无犯罪记录证明",
+    "docItem7": "体检报告",
+    "docItem8": "移民及居住文件",
+    "docItem9": "附认证相关文件",
+    "painHeadline": "哈萨克斯坦文件翻译的常见障碍",
+    "pain1Title": "翻译机构按页收费且要求亲自到场",
+    "pain1Desc": "哈萨克斯坦大多数认证翻译机构要求携带原件亲自到场，等待数日，并为两页的学历证书支付高额费用。",
+    "pain2Title": "公证预约最好提前准备好翻译草稿",
+    "pain2Desc": "哈萨克斯坦的许多公证人和认证翻译在有现成草稿可供审核时，工作更快且更准确，而不是从头开始。",
+    "pain3Title": "国际大学申请要求精准的英文格式",
+    "pain3Desc": "评估哈萨克斯坦学历的外国大学需要清晰可读的英文翻译，而非逐字直译后丢失结构背景的版本。",
+    "pain4Title": "移民和认证流程需要同时翻译大量文件",
+    "pain4Desc": "准备移居、海外工作或申请外国大学往往意味着同时翻译 5–10 份文件，时间成为主要制约因素。",
+    "painSectionLabel": "WHY WPO",
+    "painBridgeLabel": "WPO helps",
+    "docsSectionLabel": "SUPPORTED DOCUMENTS",
+    "trustHeadline": "Transparent, Confidential and Legally Accurate",
+    "pricingHeadline": "Simple Per-Document Pricing",
+    "pricingSubheadline": "No subscription. Pay only for the translation you choose.",
+    "seoHeadline": "Document Translation for Kazakhstan — When and How to Use",
+    "seoParagraph1": "In Kazakhstan, document translations are often needed for enrolling in foreign universities, work visas, relocation, immigration procedures, opening bank accounts abroad, and apostille. The traditional route through a translation bureau can require a personal visit, waiting time, and manual document handoff.",
+    "seoParagraph2": "WorldPrimeOnline helps prepare translations online: upload a document, choose a language pair and service level, and receive the result in electronic format. Electronic translation is suitable for preparation and reference. Official translation with translator review, translator signature, and Provider stamp is available as a separate service level. Notarial certification is arranged separately through partners where available.",
+    "seoParagraph3": "Acceptance of translations by third parties is not guaranteed. Before submitting a document to a bank, university, consulate, immigration authority, or notary, verify the requirements of the receiving party."
+  },
+  "kazakhstanNotarized": {
+    "heroBadge": "哈萨克斯坦 · 公证准备",
+    "heroHeadline": "为公证准备翻译",
+    "heroAccentLine": "认证与公证准备",
+    "heroSubheadline": "上传文件，获取干净、结构化的俄语或英语翻译，可直接提交给公证人或认证翻译员审核。",
+    "heroCtaLabel": "准备翻译",
+    "heroTrustLine": "起价 2 290 ₸ · 2–5 分钟 · 公证就绪输出",
+    "finalCtaHeadline": "在公证预约前准备好翻译",
+    "finalCtaSub": "上传文件，2–5分钟内获得结构化翻译。起价 2 290 ₸。",
+    "finalCtaCta": "开始翻译",
+    "faq": [
+      {
+        "q": "这是认证或公证翻译吗？",
+        "a": "不是。WPO提供非官方翻译草稿，仅用于参考和准备目的。认证或公证翻译必须由持牌翻译员或公证人出具。WPO草稿可作为该流程的输入材料。"
+      },
+      {
+        "q": "我的公证人会接受WPO翻译草稿作为起点吗？",
+        "a": "大多数公证人和认证翻译员愿意使用预先准备的草稿，这可以加快工作效率并减少错误。但并非所有公证人都接受外部草稿——请在使用此工作流程之前向您的具体公证人确认。"
+      },
+      {
+        "q": "支持哪些语言？",
+        "a": "俄语↔英语、哈萨克语→英语和哈萨克语→俄语，涵盖在哈萨克斯坦准备用于国际用途的文件所需的主要语言对。"
+      },
+      {
+        "q": "我可以作为公证人或移民顾问使用此服务吗？",
+        "a": "可以。您可以代表客户上传文件并获取翻译草稿。专属合作伙伴工作流程正在开发中。"
+      },
+      {
+        "q": "TODO_I18N Сколько времени занимает нотариальное удостоверение?",
+        "a": "TODO_I18N Электронный перевод обычно готов за несколько минут. Официальный перевод и нотариальное удостоверение требуют дополнительного времени, потому что в процесс вовлекаются переводчик и/или нотариус-партнёр."
+      }
+    ],
+    "docsHeadline": "常见的公证审核文件类型",
+    "docItem1": "学历证书及成绩单",
+    "docItem2": "出生证明",
+    "docItem3": "结婚证及离婚证",
+    "docItem4": "护照及国家身份证",
+    "docItem5": "无犯罪记录证明",
+    "docItem6": "劳动合同",
+    "docItem7": "银行流水",
+    "docItem8": "授权委托书",
+    "docItem9": "医疗文件",
+    "painHeadline": "公证翻译预约往往耗费比必要更多的时间",
+    "pain1Title": "公证人每份文件都从零开始",
+    "pain1Desc": "没有预备草稿，公证人或认证翻译需在预约时阅读原件、口述并构建翻译——过程缓慢且按时计费。",
+    "pain2Title": "初稿中的错误需要花费时间和金钱来纠正",
+    "pain2Desc": "人名音译、日期格式和机构名称是常见错误点。预处理草稿可在制作认证版本之前发现这些问题。",
+    "pain3Title": "多份文件成倍延长等待时间",
+    "pain3Desc": "大学或移民申请包通常包含 5–10 份文件。在一次公证预约前备好所有草稿可大幅缩短整体时间线。",
+    "pain4Title": "客户到场时准备不足，延长预约时长",
+    "pain4Desc": "对公证人和签证中介而言，携带清晰草稿到场的客户处理速度更快。翻译草稿也有助于客户理解所签内容。",
+    "painSectionLabel": "HOW IT WORKS",
+    "painBridgeLabel": "WPO helps organize the process",
+    "docsSectionLabel": "DOCUMENTS FOR NOTARY PROCESS",
+    "pricingHeadline": "Стоимость нотариально заверенного перевода"
+  },
+  "kazakhstanUniversity": {
+    "heroBadge": "哈萨克斯坦 · 大学申请",
+    "heroHeadline": "学术文件翻译",
+    "heroAccentLine": "用于国际大学申请",
+    "heroSubheadline": "获取学历证书、成绩单、学校证明和学术记录的干净英文翻译，用于申请英国、美国、欧洲、加拿大等地的大学。",
+    "heroCtaLabel": "翻译学术文件",
+    "heroTrustLine": "起价 2 590 ₸ · 保留学历格式 · 俄语/英语",
+    "finalCtaHeadline": "准备您的大学申请文件",
+    "finalCtaSub": "上传学历证书、成绩单或学术证明，几分钟内获得干净的英文翻译。",
+    "finalCtaCta": "翻译我的学术文件",
+    "faq": [
+      {
+        "q": "外国大学会接受WPO翻译吗？",
+        "a": "要求因大学和国家而异。许多大学在初步申请审核时接受非官方翻译，正式入学时才要求认证翻译。请向目标大学确认具体要求。"
+      },
+      {
+        "q": "什么是\"学业证明书\"（Attestat）？",
+        "a": "Attestat是哈萨克斯坦的高中毕业证明，列出所有科目的最终成绩。我们将完整翻译该文件，包括科目名称、成绩和资质详情，译成干净的英文。"
+      },
+      {
+        "q": "您会保留成绩等级体系吗？",
+        "a": "会的。我们按原样保留原始成绩（如5分制或100分制），并在翻译文件中注明评分体系。我们不转换成绩，也不进行任何解读。"
+      },
+      {
+        "q": "可以为IELTS、TOEFL或资质评估翻译文件吗？",
+        "a": "WPO翻译属于非官方翻译，不被IELTS/TOEFL官方机构接受用于正式成绩申报。但可用于个人准备、非正式申请审阅，或作为认证翻译流程的输入材料。"
+      }
+    ],
+    "docsHeadline": "支持的学术文件类型",
+    "docItem1": "学士 / 硕士学历证书",
+    "docItem2": "学业成绩单",
+    "docItem3": "高中毕业证书（Attestat）",
+    "docItem4": "成绩单及附件",
+    "docItem5": "出生证明（用于入学）",
+    "docItem6": "护照（用于入学）",
+    "docItem7": "科研 / 在职证明",
+    "docItem8": "体检报告（用于入学）",
+    "painHeadline": "大学申请翻译——复杂之处在哪里",
+    "pain1Title": "国际大学要求精准的学术术语",
+    "pain1Desc": "哈萨克斯坦大学颁发的学历证书包含具体的专业名称、院系名称和学位称谓，必须使用国际通用术语进行翻译。",
+    "pain2Title": "成绩单有表格结构——格式错乱的输出会被拒绝",
+    "pain2Desc": "学业成绩单以表格形式列有课程名称、学分和成绩。通用翻译工具将其转换为无结构文本。WPO 保留原有结构。",
+    "pain3Title": "紧迫的录取截止日期不允许等待机构耽误",
+    "pain3Desc": "大学申请窗口很短。2–5 分钟内获得翻译而非等待机构数日，可能决定您是否能按时提交。",
+    "pain4Title": "教育顾问需要同时为多位客户快速生成草稿",
+    "pain4Desc": "同时处理多份大学申请的机构需要可扩展的快速翻译工具，而不是逐个客户与机构谈判。",
+    "pricingHeadline": "Стоимость перевода учебных документов",
+    "painSectionLabel": "ПОЧЕМУ ЭТО ВАЖНО",
+    "docsSectionLabel": "АКАДЕМИЧЕСКИЕ ДОКУМЕНТЫ"
+  },
+  "passportTranslation": {
+    "heroBadge": "文件类型 · 护照和身份证",
+    "heroHeadline": "护照翻译",
+    "heroAccentLine": "任何语言 — 在线几分钟完成",
+    "heroSubheadline": "上传护照或身份证扫描件，获取干净、结构化的翻译。所有传记数据、文件编号、日期和个人信息完整保留。",
+    "heroCtaLabel": "翻译我的护照",
+    "heroTrustLine": "每本护照 2 290 ₸ · 2–5分钟 · 10种以上语言对",
+    "finalCtaHeadline": "在线翻译您的护照",
+    "finalCtaSub": "上传护照扫描件，几分钟内获得干净、结构化的英文翻译。",
+    "finalCtaCta": "翻译我的护照",
+    "faq": [
+      {
+        "q": "翻译包含护照哪些数据？",
+        "a": "我们翻译护照数据页上所有可见字段：姓氏、名字、国籍、出生日期、出生地、性别、签发日期、有效期、护照号码、签发机构和机器可读区（MRZ）内容。人名音译为目标文字。"
+      },
+      {
+        "q": "护照可以翻译成哪些语言？",
+        "a": "我们支持10种以上目标语言，包括英语、俄语、中文、韩语、日语、德语、法语、西班牙语和阿拉伯语。源语言自动检测或可手动指定。"
+      },
+      {
+        "q": "翻译可用于签证申请吗？",
+        "a": "我们的翻译属于非官方翻译，仅供参考。部分领事馆接受非官方翻译副本与原护照一起提交，其他领事馆则要求认证翻译。请向具体大使馆或领事馆确认所需的翻译级别。"
+      },
+      {
+        "q": "如何处理人名？",
+        "a": "人名按照护照类文件的ICAO 9303标准进行音译，其他文字采用标准音译规则。人名从不进行语义翻译。"
+      },
+      {
+        "q": "我的护照数据安全吗？",
+        "a": "您的文件在加密的Cloudflare R2存储上处理和存储，30天后自动删除。我们不存储、共享或将护照中的个人数据用于翻译以外的任何目的。"
+      }
+    ],
+    "docsHeadline": "Поддерживаемые типы паспортов и удостоверений личности",
+    "docsSectionLabel": "ДОКУМЕНТЫ",
+    "docItem1": "Биометрический паспорт",
+    "docItem2": "Небиометрический паспорт",
+    "docItem3": "Удостоверение личности",
+    "docItem4": "Водительское удостоверение (как удостоверение личности)",
+    "docItem5": "Вид на жительство",
+    "docItem6": "Проездной документ",
+    "painHeadline": "Зачем нужен перевод паспорта — и почему здесь важна точность",
+    "painSectionLabel": "ПОЧЕМУ ЭТО ВАЖНО",
+    "painBridgeLabel": "WPO решает эту проблему",
+    "pain1Title": "Для визовых заявок часто требуется перевод паспорта на иностранный язык",
+    "pain1Desc": "Консульства и посольства при рассмотрении заявок иностранных граждан нередко запрашивают перевод страницы с данными паспорта на английский язык.",
+    "pain2Title": "Имена должны транслитерироваться, а не переводиться",
+    "pain2Desc": "Личные имена в паспорте должны передаваться фонетически в целевой системе записи. Перевод значения имени вместо его звучания — распространённая и серьёзная ошибка.",
+    "pain3Title": "Коды МРЗ и номера документов должны сохраняться без изменений",
+    "pain3Desc": "Машиночитаемая зона (МРЗ) в нижней части страницы данных паспорта содержит критически важную информацию. Любое изменение чисел, кодов или дат делает перевод непригодным к использованию.",
+    "pain4Title": "Стандартные инструменты перевода выдают неструктурированный текст",
+    "pain4Desc": "Обычные OCR-сервисы или переводчики извлекают данные паспорта в виде неструктурированного текста. Правильный перевод паспорта должен сохранять структуру полей: фамилия, имя, гражданство, дата рождения и т. д.",
+    "pricingHeadline": "Стоимость перевода паспорта"
+  },
+  "diplomaTranslation": {
+    "heroBadge": "文件类型 · 学历证书和成绩单",
+    "heroHeadline": "学历证书翻译",
+    "heroAccentLine": "在线翻译",
+    "heroSubheadline": "翻译学历证书、学位证书和学术成绩单，用于大学申请、职业许可、资质评估和国际就业。",
+    "heroCtaLabel": "翻译我的学历证书",
+    "heroTrustLine": "每份文件 2 590 ₸ · 保留学术术语 · 10种以上语言",
+    "finalCtaHeadline": "翻译您的学历证书或学术成绩单",
+    "finalCtaSub": "上传学术证书，几分钟内获得干净、结构化的英文翻译。",
+    "finalCtaCta": "翻译我的学历证书",
+    "faq": [
+      {
+        "q": "您的翻译可用于WES或其他资质评估吗？",
+        "a": "WES（世界教育服务）和大多数资质评估机构要求认证或公证翻译。WPO提供非官方翻译，可用于准备阶段、教育顾问参考，或作为认证翻译工作流程的输入材料。提交前请确认官方要求。"
+      },
+      {
+        "q": "您翻译学历补充说明和成绩说明吗？",
+        "a": "是的。学历补充说明、成绩体系说明和附件成绩单作为文件的一部分进行翻译。科目名称使用标准英语学术术语翻译。"
+      },
+      {
+        "q": "学历证书翻译支持哪些语言？",
+        "a": "我们支持10种以上语言。学历证书翻译最常见的语言对是俄语→英语、哈萨克语→英语和中文→英语。源语言可自动检测。"
+      },
+      {
+        "q": "如何处理学位名称和成绩？",
+        "a": "学位名称在必要时附有解释性说明（如「专家学位（5年综合课程）」）。成绩按原始等级保留，不进行换算。"
+      },
+      {
+        "q": "可以用于职业许可申请吗？",
+        "a": "许多许可委员会要求外国学历证件的认证或公证翻译。WPO提供非官方翻译供准备和参考之用。请向您的许可委员会确认认证要求。"
+      }
+    ],
+    "docsHeadline": "支持的学术文件类型",
+    "docItem1": "学士学位证书",
+    "docItem2": "硕士学位证书",
+    "docItem3": "博士 / 博士后证书",
+    "docItem4": "学业成绩单",
+    "docItem5": "高中毕业证书",
+    "docItem6": "学历补充说明",
+    "docItem7": "学术推荐信",
+    "docItem8": "职业资格证书",
+    "painHeadline": "学历证书翻译的难点——哪些地方容易出错",
+    "pain1Title": "学术机构名称必须谨慎翻译",
+    "pain1Desc": "大学和院系名称有官方国际形式。错误翻译大学名称会立即引起审查人员的疑虑。",
+    "pain2Title": "学位称谓不具有普遍性——背景至关重要",
+    "pain2Desc": "俄罗斯的专家学位并非简单等同于学士学位。资质评估机构期望准确描述学位类型、学制和专业领域。",
+    "pain3Title": "成绩单是表格，而非段落",
+    "pain3Desc": "学业成绩单包含有学分、成绩和课程代码的结构化课程列表。将表格转为正文的翻译工具会产生无法使用的输出。",
+    "pain4Title": "资质评估服务的截止日期紧迫",
+    "pain4Desc": "WES、ICAS 及其他资质评估机构通常有文件提交截止日期。拥有快速翻译工具意味着您可以按时提交。",
+    "pricingHeadline": "Стоимость перевода диплома",
+    "painSectionLabel": "ПОЧЕМУ ЭТО ВАЖНО",
+    "docsSectionLabel": "АКАДЕМИЧЕСКИЕ ДОКУМЕНТЫ"
+  },
+  "bankStatementTranslation": {
+    "heroBadge": "文件类型 · 银行对账单",
+    "heroHeadline": "银行对账单翻译",
+    "heroAccentLine": "用于签证、移民和收入证明",
+    "heroSubheadline": "将任何语言的银行对账单翻译成英语或其他目标语言。所有余额、交易日期、账号和货币金额完整保留。",
+    "heroCtaLabel": "翻译我的银行对账单",
+    "heroTrustLine": "每份文件 2 590 ₸ · 2–5分钟 · 任何银行，任何国家",
+    "finalCtaHeadline": "翻译您的银行对账单用于签证或移民",
+    "finalCtaSub": "上传银行对账单，2–5分钟内获得干净的英文翻译。",
+    "finalCtaCta": "翻译我的银行对账单",
+    "faq": [
+      {
+        "q": "哪些签证类型需要翻译银行对账单？",
+        "a": "申根签证、英国访客签证、美国B1/B2签证以及大多数移民申请都需要银行提供的资金证明，通常要求英文版本。收入证明和工资单也经常需要。"
+      },
+      {
+        "q": "货币和金额会被转换吗？",
+        "a": "不会。所有金额、货币和余额都完整保留，与原始文件完全一致。我们不转换货币、不四舍五入金额，也不以任何方式解读财务数据。"
+      },
+      {
+        "q": "如果我的银行对账单有6页怎么办？",
+        "a": "我们支持最多50页的银行对账单。在此限制内，无论页数多少，按文件计价。所有页面作为一份文件进行翻译。"
+      },
+      {
+        "q": "翻译后的对账单会被领事馆接受吗？",
+        "a": "我们的翻译是非官方的。许多领事馆接受与原始对账单一起提交的非官方翻译。其他领事馆要求认证翻译。请向您的具体领事馆或签证代理确认要求。"
+      },
+      {
+        "q": "可以翻译网银截图或PDF导出文件吗？",
+        "a": "可以。扫描的纸质对账单和网上银行的数字PDF导出文件均支持。扫描文件在翻译前经过OCR处理。"
+      }
+    ],
+    "docsHeadline": "支持的银行及金融文件类型",
+    "docItem1": "银行流水（1–6 个月）",
+    "docItem2": "账户余额证明",
+    "docItem3": "雇主收入证明",
+    "docItem4": "纳税申报摘要",
+    "docItem5": "工资单 / 薪资证明",
+    "docItem6": "房产或资产证明",
+    "painHeadline": "为什么翻译银行流水比想象中更难",
+    "pain1Title": "签证领事馆要求英文银行流水——大多数银行不提供",
+    "pain1Desc": "俄罗斯、哈萨克斯坦及许多其他国家的银行只提供本地语言的流水。大使馆和领事馆在审查签证申请时通常要求英文翻译。",
+    "pain2Title": "金额必须完整保留——不得四舍五入，不得换算",
+    "pain2Desc": "用于签证或房贷申请的银行流水必须显示原始货币的精确原始金额。任何换算或四舍五入都会造成差异，可能导致申请被拒。",
+    "pain3Title": "交易明细必须可读且结构清晰",
+    "pain3Desc": "含 50 笔交易的银行流水必须保持表格形式，而非段落。通用翻译工具会破坏原有结构。",
+    "pain4Title": "紧迫的签证截止日期使等待机构 3–5 天不可接受",
+    "pain4Desc": "DTV、申根及其他签证申请有严格的时间窗口。几分钟内完成银行流水翻译而非等待数日，可能决定您的申请能否按时就绪。",
+    "pricingHeadline": "Стоимость перевода банковской выписки",
+    "painSectionLabel": "ПОЧЕМУ ЭТО ВАЖНО",
+    "docsSectionLabel": "ФИНАНСОВЫЕ ДОКУМЕНТЫ"
+  },
+  "kazakhstanCertified": {
+    "heroBadge": "Kazakhstan · Official Translation",
+    "heroHeadline": "Certified Translation",
+    "heroAccentLine": "of Documents Online",
+    "heroSubheadline": "Order an official translation with translator review, translator signature, and Provider stamp. For banks, universities, migration, visa, and official purposes.",
+    "heroCtaLabel": "Order Official Translation",
+    "heroTrustLine": "Acceptance of the translation by third parties is not guaranteed and depends on the requirements of the receiving organization.",
+    "painSectionLabel": "WHAT'S INCLUDED",
+    "painBridgeLabel": "WPO helps",
+    "painHeadline": "Official Translation — a Separate Service Level",
+    "pain1Title": "Translator Review",
+    "pain1Desc": "The translation is reviewed by a human translator. OCR errors, terminology, and formatting are corrected as needed.",
+    "pain2Title": "Translator Signature",
+    "pain2Desc": "The final document may include a translator signature and translator block.",
+    "pain3Title": "Provider Stamp",
+    "pain3Desc": "For the official service level, a Provider stamp may be added to the document.",
+    "pain4Title": "No Acceptance Guarantee",
+    "pain4Desc": "Banks, universities, consulates, and other organizations may have their own requirements. These should be verified in advance.",
+    "finalCtaHeadline": "Need an Official Translation?",
+    "finalCtaSub": "Upload a document, choose the official service level, and review the final price before payment.",
+    "finalCtaCta": "Start Translation",
+    "faq": [
+      {
+        "q": "What does certified translation mean at WPO?",
+        "a": "At WPO, certified translation means the official service level: the translation is reviewed by a human translator and may include a translator signature, Provider stamp, date, and translator block. It does not automatically mean notarial certification or guaranteed acceptance by third parties."
+      },
+      {
+        "q": "How does certified translation differ from electronic translation?",
+        "a": "Electronic translation is performed automatically using OCR and AI, without a translator signature, Provider stamp, or notarial certification. Certified / official translation undergoes translator review and may include a translator signature and Provider stamp."
+      },
+      {
+        "q": "Is this a notarized translation?",
+        "a": "No. WPO certified / official translation is not notarial certification by itself. Notarization is arranged separately through a partner process, if this service is available for the selected document, language pair, and jurisdiction."
+      },
+      {
+        "q": "Do you guarantee that the translation will be accepted by a bank, university, or consulate?",
+        "a": "No. Acceptance of a translation depends on the requirements of the specific bank, university, consulate, immigration authority, notary, or other organization. Before using the translation for official purposes, the customer must independently verify the requirements of the receiving party."
+      },
+      {
+        "q": "When is an official translation needed?",
+        "a": "An official translation is usually needed when the receiving party requires a translation with translator review, translator signature, Provider stamp, or additional confirmation. If a standard electronic translation is insufficient, choose the official service level."
+      },
+      {
+        "q": "Can notarial certification be added later?",
+        "a": "In some cases yes, if a partner process is available for the selected document, language, and jurisdiction. Availability, timeline, and cost of notarization are confirmed separately."
+      }
+    ],
+    "docsHeadline": "Supported Documents",
+    "docsSectionLabel": "DOCUMENTS",
+    "docsItems": [
+      "Diploma & Transcript",
+      "Birth & Marriage Certificate",
+      "Passport & National ID",
+      "Bank Statement",
+      "Employment Contract & Letter",
+      "Police Clearance Certificate"
+    ],
+    "pricingHeadline": "Pricing",
+    "pricingSubheadline": "Electronic translation is the base service level. Translation with agent stamp is a separate service level with human translator review."
+  }
+}

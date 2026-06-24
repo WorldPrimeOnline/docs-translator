@@ -1,0 +1,417 @@
+{
+  "documentsHub": {
+    "heroBadge": "Бардык документ түрлөрү",
+    "heroHeadline": "Каалаган расмий документти которуңуз",
+    "heroAccentLine": "Онлайн, мүнөттөрдө",
+    "heroSubheadline": "Сканерленген же санариптик PDF жүктөп, тазаланган которулган нускасын алыңыз. Бардык негизги расмий документ түрлөрү колдоого алынган — паспорттор, банк көчүрмөлөрү, дипломдор, күбөлүктөр жана башкалар.",
+    "heroCtaLabel": "Котормону баштоо",
+    "heroTrustLine": "2 290 ₸ дан · 10+ тил · 2–5 мүнөт",
+    "finalCtaHeadline": "Документиңиздин котормосун баштаңыз",
+    "finalCtaSub": "Каалаган расмий PDF жүктөп, 2–5 мүнөттө тазаланган котормо алыңыз.",
+    "finalCtaCta": "Документти жүктөө",
+    "faq": [
+      {
+        "q": "Кандай документ түрлөрүн колдойсуңуз?",
+        "a": "Биз бардык негизги расмий документ түрлөрүн колдойбуз: паспорттор, ID карталар, банк көчүрмөлөрү, дипломдор, академиялык транскрипттер, туулгандык жана никах күбөлүктөрү, эмгек келишимдери, медициналык жазуулар, полициядан арылткандыгы жөнүндө маалымкаттар, айдоочулук күбөлүктөр жана жалпы расмий документтер."
+      },
+      {
+        "q": "Кандай тилдер колдоого алынган?",
+        "a": "Биз англис, орус, кытай, корей, япон, немис, француз, испан жана арапты кошкондо 10+ тилди колдойбуз. Булак тил автоматтык түрдө аныкталышы мүмкүн."
+      },
+      {
+        "q": "Котормолоруңуз тастыкталганбы же нотариус күбөлөндүргөнбү?",
+        "a": "Жок. Бардык котормолор расмий эмес жана маалымат максатында гана. Которулган ар бир баракта көрүнгөн эскертүү чыгат. Тастыкталган же нотариус күбөлөндүргөн котормолор лицензиясы бар которуучудан же нотариустан алынышы керек."
+      }
+    ],
+    "pricingHeadline": "Стоимость перевода документов"
+  },
+  "kazakhstan": {
+    "heroBadge": "Казакстан · Документ иш агымдары",
+    "heroHeadline": "Казакстан үчүн документ котормосу",
+    "heroAccentLine": "Окуу, миграция жана расмий иш агымдары",
+    "heroSubheadline": "Дипломдорду, туулгандык күбөлүктөрдү, келишимдерди, банк көчүрмөлөрүн жана расмий документтерди онлайн которуңуз. Эл аралык иш агымдары үчүн студенттер, миграция консультанттары, нотариустар жана виза агенттери тарабынан колдонулат.",
+    "heroCtaLabel": "Документти которуу",
+    "heroCtaSecondaryLabel": "Колдоого алынган документтерди көрүү",
+    "heroTrustLine": "2 290 ₸ дан · RU / EN / KZ · 2–5 мүнөт",
+    "finalCtaHeadline": "Документтериңизди онлайн которуңуз — бюрого бармай",
+    "finalCtaSub": "PDF жүктөп, 2–5 мүнөттө тазаланган которулган нускасын алыңыз.",
+    "finalCtaCta": "Котормону баштоо",
+    "faq": [
+      {
+        "q": "Нотариуска баруудан мурун бул котормону колдонсо болобу?",
+        "a": "Ооба. Нотариустардын жана тастыкталган которуучулардын көпчүлүгү тастыкталган нускасын аяктоодон мурун расмий эмес котормо долбоору менен иштешет. Тазаланган, структураланган WPO котормосу бул маектешүүнү тездетип, акыркы тастыкталган документтеги каталарды азайтышы мүмкүн."
+      },
+      {
+        "q": "Казакстандык документтер үчүн кандай тилдерди колдойсуңуз?",
+        "a": "Биз негизги жуп катары орус ↔ англис жана англис → орусту колдойбуз. Казак ↔ орус жана казак → англис да колдоого алынган. Булар эл аралык максаттарда колдонулган казакстандык документтер үчүн негизги иш агымдарын камтыйт."
+      },
+      {
+        "q": "Бул котормону чет өлкөлүк университеттер кабыл алабы?",
+        "a": "Чет өлкөлүк университеттер адатта тастыкталган же нотариус күбөлөндүргөн котормолорду талап кылат. WPO өтүнмө даярдоо этабында, билим берүү консультанты тарабынан карап чыгуу үчүн же тастыкталган которуучу үчүн шилтеме долбоор катары колдонулушу мүмкүн болгон расмий эмес котормолорду берет."
+      },
+      {
+        "q": "Нотариустар жана виза агенттери кардарлардын атынан бул кызматты колдоно алабы?",
+        "a": "Ооба. Кандай болсо да колдонуучу кардардын документин жүктөп, иштетип, которулган PDF алышы мүмкүн. Агенттиктер үчүн өнөктөш башкаруу панели келечектеги версияда пландалган."
+      },
+      {
+        "q": "Апостиль деген эмне жана котормо ага таасир берерби?",
+        "a": "Апостиль — мамлекеттик орган тарабынан документке коюлган расмий аутентификация мөөрү. Апостиль баштапкы документке тиешелүү. Котормо — апостиль алынгандан кийин көп учурда талап кылынган өзүнчө кадам. WPO котормо кадамын камсыздайт; апостиль тиешелүү мамлекеттик органдан алынышы керек."
+      }
+    ],
+    "docsHeadline": "Supported document types",
+    "docsSubheadline": "All major document types used in study, migration, and official workflows",
+    "docItem1": "Diploma & Transcript",
+    "docItem2": "Birth & Marriage Certificate",
+    "docItem3": "Passport & National ID",
+    "docItem4": "Bank Statement",
+    "docItem5": "Employment Contract & Letter",
+    "docItem6": "Police Clearance Certificate",
+    "docItem7": "Medical Certificate",
+    "docItem8": "Migration & Residency Documents",
+    "docItem9": "Apostille-Related Documents",
+    "painHeadline": "Document translation in Kazakhstan — common bottlenecks",
+    "pain1Title": "Translation bureaus charge per page and require physical presence",
+    "pain1Desc": "Most certified translation offices in Kazakhstan require you to come in person with originals, wait several days, and pay significant per-page fees for what can be a 2-page diploma.",
+    "pain2Title": "Notary appointments need a complete translation draft in advance",
+    "pain2Desc": "Many notaries and certified translators in Kazakhstan work faster and more accurately when they have a clean first-pass translation to review, rather than starting from scratch.",
+    "pain3Title": "International university applications require precise English formatting",
+    "pain3Desc": "Foreign universities evaluating Kazakhstani diplomas want clean, readable English transcriptions — not literal word-for-word renderings that lose structural context.",
+    "pain4Title": "Migration and apostille workflows involve many documents at once",
+    "pain4Desc": "Preparing for relocation, work abroad, or foreign university admission often means translating 5–10 documents simultaneously. The timeline becomes the main constraint.",
+    "painSectionLabel": "WHY WPO",
+    "painBridgeLabel": "WPO helps",
+    "docsSectionLabel": "SUPPORTED DOCUMENTS",
+    "trustHeadline": "Transparent, Confidential and Legally Accurate",
+    "pricingHeadline": "Simple Per-Document Pricing",
+    "pricingSubheadline": "No subscription. Pay only for the translation you choose.",
+    "seoHeadline": "Document Translation for Kazakhstan — When and How to Use",
+    "seoParagraph1": "In Kazakhstan, document translations are often needed for enrolling in foreign universities, work visas, relocation, immigration procedures, opening bank accounts abroad, and apostille. The traditional route through a translation bureau can require a personal visit, waiting time, and manual document handoff.",
+    "seoParagraph2": "WorldPrimeOnline helps prepare translations online: upload a document, choose a language pair and service level, and receive the result in electronic format. Electronic translation is suitable for preparation and reference. Official translation with translator review, translator signature, and Provider stamp is available as a separate service level. Notarial certification is arranged separately through partners where available.",
+    "seoParagraph3": "Acceptance of translations by third parties is not guaranteed. Before submitting a document to a bank, university, consulate, immigration authority, or notary, verify the requirements of the receiving party."
+  },
+  "kazakhstanNotarized": {
+    "heroBadge": "Казакстан · Нотариат даярдыгы",
+    "heroHeadline": "Котормо",
+    "heroAccentLine": "Нотариат карап чыгуу жана тастыктоо үчүн",
+    "heroSubheadline": "Документиңизди жүктөп, нотариуска же тастыкталган которуучуга тапшырууга даяр тазаланган, структураланган орус же англис котормосун алыңыз. Карап чыгуу убактысын кыскартыңыз, каталарды азайтыңыз, жалпы чыгымды төмөндөтүңүз.",
+    "heroCtaLabel": "Котормону даярдоо",
+    "heroTrustLine": "2 290 ₸ дан · 2–5 мүнөт · Нотариатка даяр чыгаруу",
+    "finalCtaHeadline": "Нотариат жолугушуусуна чейин котормоңузду даярлаңыз",
+    "finalCtaSub": "Документиңизди жүктөп, 2–5 мүнөттө структураланган котормо алыңыз. 2 290 ₸ дан.",
+    "finalCtaCta": "Котормону баштоо",
+    "faq": [
+      {
+        "q": "Бул тастыкталган же нотариус күбөлөндүргөн котормобу?",
+        "a": "Жок. WPO маалымат жана даярдоо максатында расмий эмес котормо долбоорлорун берет. Тастыкталган же нотариус күбөлөндүргөн котормо лицензиясы бар которуучу же нотариус тарабынан даярдалышы керек. WPO долбоорлорун бул процесске кириш катары колдонсо болот, бирок алардын ордун баса албайт."
+      },
+      {
+        "q": "Нотариус WPO котормо долбоорун баштапкы чекит катары кабыл алабы?",
+        "a": "Нотариустардын жана тастыкталган которуучулардын көпчүлүгү алдын ала даярдалган долбоор менен иштөөгө даяр. Бул алардын ишин тездетет жана ката ыктымалдыгын азайтат. Бирок бардык нотариустар тышкы долбоорлорду кабыл албайт — бул иш агымын колдонуудан мурун өзүңүздүн нотариусуңуз менен тастыктаңыз."
+      },
+      {
+        "q": "Кандай тилдер колдоого алынган?",
+        "a": "Орус ↔ англис, казак → англис жана казак → орус. Булар эл аралык максаттарда Казакстанда даярдалган документтер үчүн негизги тил жуптарын камтыйт."
+      },
+      {
+        "q": "Нотариус же миграция консультанты катары бул кызматты колдоно аламбы?",
+        "a": "Ооба. Сиз кардардын документтерин жүктөп, алардын атынан которулган долбоорлорду ала аласыз. Атайын өнөктөш иш агымы иштелип чыгылууда."
+      },
+      {
+        "q": "TODO_I18N Сколько времени занимает нотариальное удостоверение?",
+        "a": "TODO_I18N Электронный перевод обычно готов за несколько минут. Официальный перевод и нотариальное удостоверение требуют дополнительного времени, потому что в процесс вовлекаются переводчик и/или нотариус-партнёр."
+      }
+    ],
+    "docsHeadline": "Document types commonly prepared for notary review",
+    "docItem1": "Diploma & Academic Transcript",
+    "docItem2": "Birth Certificate",
+    "docItem3": "Marriage & Divorce Certificate",
+    "docItem4": "Passport & National ID",
+    "docItem5": "Police Clearance Certificate",
+    "docItem6": "Employment Contract",
+    "docItem7": "Bank Statement",
+    "docItem8": "Power of Attorney",
+    "docItem9": "Medical Document",
+    "painHeadline": "Notary translation appointments take longer than necessary",
+    "pain1Title": "Notaries start from scratch on every document",
+    "pain1Desc": "Without a pre-prepared draft, a notary or certified translator reads the original, dictates, and constructs the translation during the appointment — a slow, billable process.",
+    "pain2Title": "Errors in the first draft cost time and money to correct",
+    "pain2Desc": "Name transliterations, date formatting, and institution names are common error points. A pre-processed draft identifies these before the certified version is produced.",
+    "pain3Title": "Multiple documents multiply the wait time",
+    "pain3Desc": "University or migration packages often involve 5–10 documents. Preparing drafts for all of them before one notary session significantly reduces the overall timeline.",
+    "pain4Title": "Clients arrive unprepared, extending appointment duration",
+    "pain4Desc": "For notaries and visa agents, clients who arrive with a clear draft are faster to process. The translated draft also helps clients understand what they are signing.",
+    "painSectionLabel": "HOW IT WORKS",
+    "painBridgeLabel": "WPO helps organize the process",
+    "docsSectionLabel": "DOCUMENTS FOR NOTARY PROCESS",
+    "pricingHeadline": "Стоимость нотариально заверенного перевода"
+  },
+  "kazakhstanUniversity": {
+    "heroBadge": "Казакстан · Университет өтүнмөлөрү",
+    "heroHeadline": "Академиялык документтерди которуңуз",
+    "heroAccentLine": "Эл аралык университет өтүнмөлөрү үчүн",
+    "heroSubheadline": "Улуу Британия, АКШ, Европа, Канада жана башка өлкөлөрдөгү университеттерге өтүнмө берүү үчүн дипломдордун, академиялык транскрипттердин, мектеп күбөлүктөрүнүн жана академиялык жазуулардын тазаланган англисче котормолорун алыңыз.",
+    "heroCtaLabel": "Академиялык документтерди которуу",
+    "heroTrustLine": "2 590 ₸ дан · Диплом жана транскрипт форматтары · RU / EN",
+    "finalCtaHeadline": "Университет өтүнмө документтериңизди даярлаңыз",
+    "finalCtaSub": "Дипломуңузду, академиялык транскриптиңизди же академиялык күбөлүгүңүздү жүктөп, бир нече мүнөттө тазаланган англисче котормо алыңыз.",
+    "finalCtaCta": "Академиялык документтеримди которуу",
+    "faq": [
+      {
+        "q": "Чет өлкөлүк университеттер WPO котормосун кабыл алабы?",
+        "a": "Талаптар университет жана өлкө боюнча айырмаланат. Көп университеттер баштапкы өтүнмөнү карап чыгуу үчүн расмий эмес котормолорду кабыл алышат, тастыкталган котормолор кабыл алынгандан кийин же катталуу учурунда гана талап кылынат. Максаттуу университетиңиздин конкреттүү талаптарын ар дайым текшериңиз."
+      },
+      {
+        "q": "«Мектепти аяктоо күбөлүгү» (Аттестат) деген эмне?",
+        "a": "Аттестат — Казакстандын орто мектепти аяктоо күбөлүгү. Бардык предметтер боюнча акыркы баалоолорду катталат. Биз предметтердин аттарын, баалоолорду жана квалификация чоо-жайларын камтыган толук документти тазаланган англисче которобуз."
+      },
+      {
+        "q": "Баалоо шкаласын жана баалоо системасын сакташат бы?",
+        "a": "Ооба. Баштапкы баалоолорду көрсөтүлгөндөй (мис., 5 баллдык же 100 баллдык шкала) сактайбыз жана которулган документте баалоо системасын белгилейбиз. Баалоолорду конвертациялабайбыз же эч кандай чечмелөө колдонбойбуз."
+      },
+      {
+        "q": "IELTS, TOEFL же квалификация баалоо максатында документтерди которсо болобу?",
+        "a": "WPO котормолору расмий эмес. Алар IELTS/TOEFL административдик органдары тарабынан расмий упай берүү үчүн кабыл алынбайт. Бирок алар өзүңүздүн даярдыгыңыз, расмий эмес өтүнмө карап чыгуу же тастыкталган котормо иш агымына кириш үчүн колдонулушу мүмкүн."
+      }
+    ],
+    "docsHeadline": "Supported academic document types",
+    "docItem1": "Bachelor / Master Diploma",
+    "docItem2": "Academic Transcript",
+    "docItem3": "School Leaving Certificate (Attestat)",
+    "docItem4": "Grade Transcripts & Supplements",
+    "docItem5": "Birth Certificate (for enrollment)",
+    "docItem6": "Passport (for enrollment)",
+    "docItem7": "Research / Employment Certificate",
+    "docItem8": "Medical Certificate (for admission)",
+    "painHeadline": "University application translation — where it gets complicated",
+    "pain1Title": "International universities require precise academic terminology",
+    "pain1Desc": "A diploma from a Kazakhstani university contains specific field-of-study names, department names, and qualification titles that must be translated using internationally recognised terminology.",
+    "pain2Title": "Transcripts have structured tables — poorly formatted output gets rejected",
+    "pain2Desc": "Academic transcripts contain subject names, credit hours, and grades in tabular format. Generic translation tools convert them to unstructured text. WPO preserves the structure.",
+    "pain3Title": "Tight admission deadlines leave no time for agency delays",
+    "pain3Desc": "University application windows are narrow. Getting a translation in 2–5 minutes versus waiting days from a bureau can determine whether you submit on time.",
+    "pain4Title": "Education consultants need fast drafts for multiple clients at once",
+    "pain4Desc": "Agencies handling multiple university applications simultaneously need a scalable, fast translation tool — not a per-client bureau negotiation.",
+    "pricingHeadline": "Стоимость перевода учебных документов",
+    "painSectionLabel": "ПОЧЕМУ ЭТО ВАЖНО",
+    "docsSectionLabel": "АКАДЕМИЧЕСКИЕ ДОКУМЕНТЫ"
+  },
+  "passportTranslation": {
+    "heroBadge": "Документ түрү · Паспорт жана ID",
+    "heroHeadline": "Паспорт котормосу",
+    "heroAccentLine": "Каалаган тил — Бир нече мүнөттө онлайн",
+    "heroSubheadline": "Паспорт же ID картанын сканын жүктөп, тазаланган, структураланган котормо алыңыз. Бардык биографиялык маалымат, документ номерлери, күндөр жана жеке маалымат дал көрсөтүлгөндөй сакталат.",
+    "heroCtaLabel": "Паспортумду которуу",
+    "heroTrustLine": "Паспортко 2 290 ₸ · 2–5 мүнөт · 10+ тил жуптары",
+    "finalCtaHeadline": "Паспортуңузду онлайн которуңуз",
+    "finalCtaSub": "Паспортуңуздун сканын жүктөп, бир нече мүнөттө тазаланган, структураланган англисче котормо алыңыз.",
+    "finalCtaCta": "Паспортумду которуу",
+    "faq": [
+      {
+        "q": "Котормого кандай паспорт маалыматтары кирет?",
+        "a": "Биз паспорттун маалымат барагындагы бардык көрүнгөн талааларды которобуз: фамилия, ысым(дар), жарандыгы, туулган күнү, туулган жери, жынысы, берилген датасы, мөөнөтү, паспорт номери, берүүчү орган жана MRZ зонасынын мазмуну. Жеке аттар максаттуу жазуу системасына транслитерация кылынат."
+      },
+      {
+        "q": "Паспортту кандай тилдерге которсо болот?",
+        "a": "Биз англис, орус, кытай, корей, япон, немис, француз, испан жана арапты кошкондо 10+ максат тилди колдойбуз. Булак тил автоматтык түрдө аныкталышы же кол менен көрсөтүлүшү мүмкүн."
+      },
+      {
+        "q": "Котормо виза өтүнмөлөрү үчүн кабыл алынабы?",
+        "a": "Биздин котормолор расмий эмес жана маалымат максатында. Кээ бир консулдуктар баштапкы паспорт менен бирге расмий эмес которулган нускаларды кабыл алат. Башкалары тастыкталган котормолорду талап кылат. Өзүңүздүн элчиликтен же консулдуктан кандай деңгээлдеги котормо талап кылынарын ар дайым тастыктаңыз."
+      },
+      {
+        "q": "Аттар котормодо кантип иштетилет?",
+        "a": "Жеке аттар паспорт стилиндеги документтер үчүн ICAO 9303 стандарттарына ылайык жана башка жазуу системалары үчүн стандарттуу транслитерация конвенциясы боюнча транслитерация кылынат. Аттар эч качан семантикалык жактан которулбайт."
+      },
+      {
+        "q": "Паспортумдун маалыматы коопсузбу?",
+        "a": "Документиңиз шифрленген Cloudflare R2 сакталгычында иштетилип сакталат. Ал 30 күндөн кийин автоматтык түрдө жок кылынат. Биз паспортуңуздагы жеке маалыматтарды котормо жасоодон башка максаттарда сактабайбыз, бөлүшпөйбүз же колдонбойбуз."
+      }
+    ],
+    "docsHeadline": "Поддерживаемые типы паспортов и удостоверений личности",
+    "docsSectionLabel": "ДОКУМЕНТЫ",
+    "docItem1": "Биометрический паспорт",
+    "docItem2": "Небиометрический паспорт",
+    "docItem3": "Удостоверение личности",
+    "docItem4": "Водительское удостоверение (как удостоверение личности)",
+    "docItem5": "Вид на жительство",
+    "docItem6": "Проездной документ",
+    "painHeadline": "Зачем нужен перевод паспорта — и почему здесь важна точность",
+    "painSectionLabel": "ПОЧЕМУ ЭТО ВАЖНО",
+    "painBridgeLabel": "WPO решает эту проблему",
+    "pain1Title": "Для визовых заявок часто требуется перевод паспорта на иностранный язык",
+    "pain1Desc": "Консульства и посольства при рассмотрении заявок иностранных граждан нередко запрашивают перевод страницы с данными паспорта на английский язык.",
+    "pain2Title": "Имена должны транслитерироваться, а не переводиться",
+    "pain2Desc": "Личные имена в паспорте должны передаваться фонетически в целевой системе записи. Перевод значения имени вместо его звучания — распространённая и серьёзная ошибка.",
+    "pain3Title": "Коды МРЗ и номера документов должны сохраняться без изменений",
+    "pain3Desc": "Машиночитаемая зона (МРЗ) в нижней части страницы данных паспорта содержит критически важную информацию. Любое изменение чисел, кодов или дат делает перевод непригодным к использованию.",
+    "pain4Title": "Стандартные инструменты перевода выдают неструктурированный текст",
+    "pain4Desc": "Обычные OCR-сервисы или переводчики извлекают данные паспорта в виде неструктурированного текста. Правильный перевод паспорта должен сохранять структуру полей: фамилия, имя, гражданство, дата рождения и т. д.",
+    "pricingHeadline": "Стоимость перевода паспорта"
+  },
+  "diplomaTranslation": {
+    "heroBadge": "Документ түрү · Диплом жана Академиялык транскрипт",
+    "heroHeadline": "Диплом жана Академиялык Эсептик дата",
+    "heroAccentLine": "Онлайн котормо",
+    "heroSubheadline": "Университет өтүнмөлөрү, кесиптик лиценз, эсептик дата баалоосу жана эл аралык жумуш ишине арналган дипломдорду, даража күбөлүктөрүн жана академиялык транскрипттерди которуңуз.",
+    "heroCtaLabel": "Дипломумду которуу",
+    "heroTrustLine": "Документке 2 590 ₸ · Академиялык терминология сакталат · 10+ тил",
+    "finalCtaHeadline": "Диплом же академиялык транскриптиңизди которуңуз",
+    "finalCtaSub": "Академиялык эсептик датаңызды жүктөп, бир нече мүнөттө тазаланган, структураланган англисче котормо алыңыз.",
+    "finalCtaCta": "Дипломумду которуу",
+    "faq": [
+      {
+        "q": "Котормоңуз WES же башка эсептик дата баалоосу үчүн кабыл алынабы?",
+        "a": "WES (World Education Services) жана эсептик дата баалоо органдарынын көпчүлүгү тастыкталган же нотариус күбөлөндүргөн котормолорду талап кылат. WPO даярдоо учурунда, билим берүү консультанттарынын карап чыгуусу үчүн же тастыкталган котормо иш агымына кириш катары колдонулушу мүмкүн болгон расмий эмес котормолорду берет. Тапшыруудан мурун расмий талаптарды текшериңиз."
+      },
+      {
+        "q": "Диплом кошумчаларын жана баалоо чечмелөөлөрүн которосузбу?",
+        "a": "Ооба. Диплом кошумчалары, баалоо шкаласынын чечмелөөлөрү жана тиркелген академиялык транскрипттер документтин бир бөлүгү катары которулат. Предмет аттары стандарттуу академиялык англисче терминологиясы менен которулат."
+      },
+      {
+        "q": "Диплом котормосу үчүн кандай тилдерди колдойсуңуз?",
+        "a": "Биз 10+ тилди колдойбуз. Диплом котормосу үчүн эң кеңири таралган жуптар: орус → англис, казак → англис жана кытай → англис. Булак тил автоматтык түрдө аныкталышы мүмкүн."
+      },
+      {
+        "q": "Даража аттарын жана академиялык баалоолорду кантип иштетесиз?",
+        "a": "Даража аттары зарыл болгон жерде чечмелөө контексти менен которулат (мис., «Адиске дайындоо даражасы (5 жылдык интеграцияланган программа)»). Баалоолор конвертациясыз баштапкы шкала боюнча сакталат."
+      },
+      {
+        "q": "Бул кесиптик лиценз өтүнмөсү үчүн колдонсо болобу?",
+        "a": "Лиценз берүүчү кеңештердин көпчүлүгү чет өлкөлүк эсептик даталардын тастыкталган же нотариус күбөлөндүргөн котормолорун талап кылат. WPO даярдоо жана шилтеме максатында расмий эмес котормолорду берет. Лиценз берүүчү кеңешиңиздин тастыктоо талаптарын текшериңиз."
+      }
+    ],
+    "docsHeadline": "Academic document types supported",
+    "docItem1": "Bachelor's Diploma",
+    "docItem2": "Master's Diploma",
+    "docItem3": "PhD / Doctoral Certificate",
+    "docItem4": "Academic Transcript",
+    "docItem5": "School Leaving Certificate",
+    "docItem6": "Diploma Supplement",
+    "docItem7": "Academic Reference Letter",
+    "docItem8": "Professional Certification",
+    "painHeadline": "Diploma translation challenges — what goes wrong",
+    "pain1Title": "Academic institution names must be translated with care",
+    "pain1Desc": "University and faculty names have official international forms. Incorrectly translating a university name raises immediate flags with reviewers.",
+    "pain2Title": "Qualification titles are not universal — context matters",
+    "pain2Desc": "A Russian 'specialist' degree is not simply a bachelor's degree. Credential evaluators expect accurate description of the qualification type, duration, and field.",
+    "pain3Title": "Transcripts are tables — not paragraphs",
+    "pain3Desc": "Academic transcripts contain structured course listings with credits, grades, and subject codes. Translation tools that flatten tables into prose produce unusable output.",
+    "pain4Title": "Tight deadlines for credential evaluation services",
+    "pain4Desc": "WES, ICAS, and other credential evaluation bodies often have document submission deadlines. Having a fast translation tool available means you can submit on time.",
+    "pricingHeadline": "Стоимость перевода диплома",
+    "painSectionLabel": "ПОЧЕМУ ЭТО ВАЖНО",
+    "docsSectionLabel": "АКАДЕМИЧЕСКИЕ ДОКУМЕНТЫ"
+  },
+  "bankStatementTranslation": {
+    "heroBadge": "Документ түрү · Банк көчүрмөсү",
+    "heroHeadline": "Банк көчүрмөсүнүн котормосу",
+    "heroAccentLine": "Виза, иммиграция жана киреше далили үчүн",
+    "heroSubheadline": "Банк көчүрмөлөрүн каалаган тилден англисчеге же башка максат тилдерге которуңуз. Бардык калдыктар, транзакция күндөрү, эсеп номерлери жана валюта суммалары дал көрсөтүлгөндөй сакталат.",
+    "heroCtaLabel": "Банк көчүрмөмдү которуу",
+    "heroTrustLine": "Документке 2 590 ₸ · 2–5 мүнөт · Каалаган банк, каалаган өлкө",
+    "finalCtaHeadline": "Виза же иммиграция үчүн банк көчүрмөңүздү которуңуз",
+    "finalCtaSub": "Банк көчүрмөңүздү жүктөп, 2–5 мүнөттө тазаланган англисче котормо алыңыз.",
+    "finalCtaCta": "Банк көчүрмөмдү которуу",
+    "faq": [
+      {
+        "q": "Кандай виза түрлөрү которулган банк көчүрмөсүн талап кылат?",
+        "a": "Шенген визалары, Улуу Британиянын мейман визалары, АКШнын B1/B2 визалары жана иммиграция өтүнмөлөрүнүн көпчүлүгү адатта англисче банктан каражат далилин талап кылат. Киреше күбөлүктөрү жана эмгек акы тилкемелери сыяктуу башка документтер да нийтлэг талап кылынат."
+      },
+      {
+        "q": "Валюталар жана суммалар конвертациясыз сакталабы?",
+        "a": "Ооба. Бардык суммалар, валюталар жана калдыктар баштапкы документте көрсөтүлгөндөй сакталат. Биз валюталарды конвертациялабайбыз, суммаларды юрлатабайбыз же каржы маалыматтарын эч кандай жол менен чечмелебейбиз."
+      },
+      {
+        "q": "Банк көчүрмөм 6 барак болсо эмне болот?",
+        "a": "Биз 50 баракка чейин банк көчүрмөлөрүн колдойбуз. Документтин баасы ошол чек ара ичиндеги барак санынан бейкаттан колдонулат. Бардык барактар бир документ катары которулат."
+      },
+      {
+        "q": "Которулган көчүрмөнү консулдугум кабыл алабы?",
+        "a": "Биздин котормолор расмий эмес. Консулдуктардын көпчүлүгү баштапкы көчүрмө менен бирге расмий эмес котормолорду кабыл алат. Башкалары тастыкталган котормону талап кылат. Өзүңүздүн консулдугуңуздан же виза агентиңизден талаптарды текшериңиз."
+      },
+      {
+        "q": "Онлайн банктын скриншоттарын же PDF экспорттарын которсо болобу?",
+        "a": "Ооба. Сканерленген кагаз көчүрмөлөрү да, онлайн банктан санариптик PDF экспорттору да колдоого алынган. Сканерленген документтер которуудан мурун OCR аркылуу иштетилет."
+      }
+    ],
+    "docsHeadline": "Bank and financial document types supported",
+    "docItem1": "Bank Statement (1–6 months)",
+    "docItem2": "Account Balance Certificate",
+    "docItem3": "Income Certificate from Employer",
+    "docItem4": "Tax Return Summary",
+    "docItem5": "Payslip / Salary Statement",
+    "docItem6": "Property or Asset Statement",
+    "painHeadline": "Why getting your bank statement translated is harder than it should be",
+    "pain1Title": "Visa consulates require English bank statements — most banks don't offer them",
+    "pain1Desc": "Banks in Russia, Kazakhstan, and many other countries issue statements only in their local language. Embassies and consulates reviewing visa applications typically require English translations.",
+    "pain2Title": "Numbers and amounts must be perfectly preserved — no rounding, no conversion",
+    "pain2Desc": "Bank statements used for visa or mortgage applications must show exact original amounts in original currency. Any conversion or rounding creates a discrepancy that can cause rejection.",
+    "pain3Title": "Transaction-level detail must be readable and structured",
+    "pain3Desc": "A bank statement with 50 transactions must remain a table — not a paragraph. Generic translation tools collapse structure into unformatted text.",
+    "pain4Title": "Tight visa deadlines make waiting 3–5 days for a bureau unacceptable",
+    "pain4Desc": "DTV, Schengen, and other visa applications have narrow windows. Getting your bank statement translated in minutes, not days, can determine whether your application is ready on time.",
+    "pricingHeadline": "Стоимость перевода банковской выписки",
+    "painSectionLabel": "ПОЧЕМУ ЭТО ВАЖНО",
+    "docsSectionLabel": "ФИНАНСОВЫЕ ДОКУМЕНТЫ"
+  },
+  "kazakhstanCertified": {
+    "heroBadge": "Kazakhstan · Official Translation",
+    "heroHeadline": "Certified Translation",
+    "heroAccentLine": "of Documents Online",
+    "heroSubheadline": "Order an official translation with translator review, translator signature, and Provider stamp. For banks, universities, migration, visa, and official purposes.",
+    "heroCtaLabel": "Order Official Translation",
+    "heroTrustLine": "Acceptance of the translation by third parties is not guaranteed and depends on the requirements of the receiving organization.",
+    "painSectionLabel": "WHAT'S INCLUDED",
+    "painBridgeLabel": "WPO helps",
+    "painHeadline": "Official Translation — a Separate Service Level",
+    "pain1Title": "Translator Review",
+    "pain1Desc": "The translation is reviewed by a human translator. OCR errors, terminology, and formatting are corrected as needed.",
+    "pain2Title": "Translator Signature",
+    "pain2Desc": "The final document may include a translator signature and translator block.",
+    "pain3Title": "Provider Stamp",
+    "pain3Desc": "For the official service level, a Provider stamp may be added to the document.",
+    "pain4Title": "No Acceptance Guarantee",
+    "pain4Desc": "Banks, universities, consulates, and other organizations may have their own requirements. These should be verified in advance.",
+    "finalCtaHeadline": "Need an Official Translation?",
+    "finalCtaSub": "Upload a document, choose the official service level, and review the final price before payment.",
+    "finalCtaCta": "Start Translation",
+    "faq": [
+      {
+        "q": "What does certified translation mean at WPO?",
+        "a": "At WPO, certified translation means the official service level: the translation is reviewed by a human translator and may include a translator signature, Provider stamp, date, and translator block. It does not automatically mean notarial certification or guaranteed acceptance by third parties."
+      },
+      {
+        "q": "How does certified translation differ from electronic translation?",
+        "a": "Electronic translation is performed automatically using OCR and AI, without a translator signature, Provider stamp, or notarial certification. Certified / official translation undergoes translator review and may include a translator signature and Provider stamp."
+      },
+      {
+        "q": "Is this a notarized translation?",
+        "a": "No. WPO certified / official translation is not notarial certification by itself. Notarization is arranged separately through a partner process, if this service is available for the selected document, language pair, and jurisdiction."
+      },
+      {
+        "q": "Do you guarantee that the translation will be accepted by a bank, university, or consulate?",
+        "a": "No. Acceptance of a translation depends on the requirements of the specific bank, university, consulate, immigration authority, notary, or other organization. Before using the translation for official purposes, the customer must independently verify the requirements of the receiving party."
+      },
+      {
+        "q": "When is an official translation needed?",
+        "a": "An official translation is usually needed when the receiving party requires a translation with translator review, translator signature, Provider stamp, or additional confirmation. If a standard electronic translation is insufficient, choose the official service level."
+      },
+      {
+        "q": "Can notarial certification be added later?",
+        "a": "In some cases yes, if a partner process is available for the selected document, language, and jurisdiction. Availability, timeline, and cost of notarization are confirmed separately."
+      }
+    ],
+    "docsHeadline": "Supported Documents",
+    "docsSectionLabel": "DOCUMENTS",
+    "docsItems": [
+      "Diploma & Transcript",
+      "Birth & Marriage Certificate",
+      "Passport & National ID",
+      "Bank Statement",
+      "Employment Contract & Letter",
+      "Police Clearance Certificate"
+    ],
+    "pricingHeadline": "Pricing",
+    "pricingSubheadline": "Electronic translation is the base service level. Translation with agent stamp is a separate service level with human translator review."
+  }
+}

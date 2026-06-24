@@ -105,7 +105,7 @@ export default async function DocumentsHubPage({
       </section>
 
       {c.trust && <TrustSection />}
-      {c.pricing && <PricingSection {...c.pricing} />}
+      {c.pricing && <PricingSection {...c.pricing} headline={tHub('pricingHeadline')} />}
       {c.faq && <FAQSection items={faqItems} />}
       {c.finalCta && (
         <FinalCTASection

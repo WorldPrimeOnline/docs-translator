@@ -1,0 +1,20 @@
+{
+  "nav": {
+    "login": "Iniciar sesión",
+    "dashboard": "Panel",
+    "signup": "Registrarse",
+    "getStarted": "Comenzar",
+    "kazakhstan": "Kazajistán",
+    "documents": "Documentos",
+    "kazakhstanOverview": "Resumen de Kazajistán",
+    "translationForNotary": "Traducción para notario",
+    "universityDocs": "Documentos universitarios",
+    "allDocTypes": "Todos los tipos de documentos",
+    "passportTranslation": "Traducción de pasaporte",
+    "bankStatement": "Extracto bancario",
+    "diplomaTranslation": "Traducción de diploma",
+    "certifiedTranslation": "Traducción certificada",
+    "switchLanguage": "Cambiar idioma",
+    "toggleMenu": "Alternar menú"
+  }
+}

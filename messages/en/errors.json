@@ -1,0 +1,12 @@
+{
+  "errors": {
+    "somethingWrong": "Something went wrong",
+    "errorDesc": "An unexpected error occurred. Please try again or return to the dashboard.",
+    "tryAgain": "Try again",
+    "goToDashboard": "Go to Dashboard",
+    "notFound": "Page not found",
+    "notFoundDesc": "The page you're looking for doesn't exist or has been moved.",
+    "goHome": "Go home",
+    "dashboard": "Dashboard"
+  }
+}

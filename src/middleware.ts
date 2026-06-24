@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import createIntlMiddleware from 'next-intl/middleware';
 import { routing } from '@/i18n/routing';
+import { DISABLED_LOCALE_CODES, DEFAULT_LOCALE } from '@/i18n/locales';
 
 // ---------------------------------------------------------------------------
 // In-memory rate limiter — per-instance, per-IP, good enough for MVP
@@ -31,14 +32,12 @@ function isRateLimited(ip: string, limit: number): boolean {
 }
 
 // ---------------------------------------------------------------------------
-// Locale helpers
+// Locale helpers (localePrefix: 'always' — every locale has a /{code}/ prefix)
 // ---------------------------------------------------------------------------
-const NON_DEFAULT_LOCALES = routing.locales.filter(
-  (l) => l !== routing.defaultLocale,
-) as string[];
+const ALL_LOCALES = routing.locales as string[];
 
 function localeFromPath(pathname: string): string {
-  for (const locale of NON_DEFAULT_LOCALES) {
+  for (const locale of ALL_LOCALES) {
     if (pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`) {
       return locale;
     }
@@ -47,7 +46,7 @@ function localeFromPath(pathname: string): string {
 }
 
 function stripLocalePrefix(pathname: string): string {
-  for (const locale of NON_DEFAULT_LOCALES) {
+  for (const locale of ALL_LOCALES) {
     if (pathname.startsWith(`/${locale}/`)) return pathname.slice(locale.length + 1);
     if (pathname === `/${locale}`) return '/';
   }
@@ -112,7 +111,18 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     return apiResponse;
   }
 
-  // 3. Page routes: i18n + Supabase session refresh
+  // 3. Disabled-locale guard — redirect /zh/..., /ko/..., etc. to /ru/...
+  //    Must run before handleI18n so next-intl never serves a disabled locale.
+  for (const disabledCode of DISABLED_LOCALE_CODES) {
+    if (pathname.startsWith(`/${disabledCode}/`) || pathname === `/${disabledCode}`) {
+      const rest = pathname === `/${disabledCode}` ? '' : pathname.slice(disabledCode.length + 1);
+      const url = request.nextUrl.clone();
+      url.pathname = `/${DEFAULT_LOCALE}${rest}`;
+      return NextResponse.redirect(url, { status: 307 });
+    }
+  }
+
+  // 4. Page routes: i18n + Supabase session refresh
   const i18nResponse = handleI18n(request) as NextResponse;
 
   // Let i18n locale redirects pass straight through
@@ -143,10 +153,11 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  // 4. Auth redirects (locale-aware)
+  // 5. Auth redirects (locale-aware)
   const cleanPath = stripLocalePrefix(pathname);
   const locale = localeFromPath(pathname);
-  const prefix = locale !== routing.defaultLocale ? `/${locale}` : '';
+  // With localePrefix: 'always', every locale has a /{code}/ prefix including the default
+  const prefix = `/${locale}`;
 
   if (!user && cleanPath.startsWith('/dashboard')) {
     const url = request.nextUrl.clone();
