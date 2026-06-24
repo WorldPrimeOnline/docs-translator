@@ -15,7 +15,7 @@ export const LOCALES: LocaleDefinition[] = [
   { code: 'zh', label: 'Chinese',    nativeLabel: '中文',       flag: '🇨🇳', enabled: false },
   { code: 'ko', label: 'Korean',     nativeLabel: '한국어',     flag: '🇰🇷', enabled: false },
   { code: 'tj', label: 'Tajik',      nativeLabel: 'Тоҷикӣ',   flag: '🇹🇯', enabled: false },
-  { code: 'uz', label: 'Uzbek',      nativeLabel: "O'zbek",    flag: '🇺🇿', enabled: false },
+  { code: 'uz', label: 'Uzbek',      nativeLabel: "O'zbek",    flag: '🇺🇿', enabled: true  },
   { code: 'tk', label: 'Turkmen',    nativeLabel: 'Türkmen',   flag: '🇹🇲', enabled: false },
   { code: 'mn', label: 'Mongolian',  nativeLabel: 'Монгол',    flag: '🇲🇳', enabled: false },
   { code: 'ky', label: 'Kyrgyz',     nativeLabel: 'Кыргызча',  flag: '🇰🇬', enabled: false },

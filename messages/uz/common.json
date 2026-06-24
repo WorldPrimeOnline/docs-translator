@@ -1,22 +1,22 @@
 {
   "disclaimer": "NORASMIY TARJIMA — FAQAT MA'LUMOT OLISH UCHUN",
-  "contactsPage": {
-    "title": "Contacts",
-    "metaTitle": "Contact WPO Translations",
-    "metaDescription": "Provider contact details for WPO Translations. For disputes, refund requests, and data deletion inquiries.",
-    "providerHeading": "Service Provider",
-    "disputesNote": "For disputes, refund requests, and data deletion requests, use the contact details below.",
-    "legalNameLabel": "Legal name",
-    "iinBinLabel": "IIN / BIN",
-    "addressLabel": "Legal / Postal address",
-    "phoneLabel": "Phone",
-    "emailLabel": "Email",
-    "websiteLabel": "Website"
-  },
   "mockup": {
-    "statusReady": "Ready",
-    "translationReady": "Translation ready",
-    "pdfGenerated": "PDF generated · ready to download",
-    "download": "Download"
+    "statusReady": "Tayyor",
+    "translationReady": "Tarjima tayyor",
+    "pdfGenerated": "PDF yaratildi · yuklab olishga tayyor",
+    "download": "Yuklab olish"
+  },
+  "contactsPage": {
+    "title": "Kontaktlar",
+    "metaTitle": "Kontaktlar — WPO Translations",
+    "metaDescription": "WPO Translations provayderi aloqa ma'lumotlari va rekvizitlari. Nizolar, qaytarish va ma'lumotlarni o'chirish bo'yicha murojaat uchun.",
+    "providerHeading": "Xizmat provayderi",
+    "disputesNote": "Nizolar, qaytarish va ma'lumotlarni o'chirish bo'yicha savollarda ko'rsatilgan kontaktlarga murojaat qiling.",
+    "legalNameLabel": "Yuridik nomi",
+    "iinBinLabel": "IIN / BIN",
+    "addressLabel": "Yuridik / pochta manzili",
+    "phoneLabel": "Telefon",
+    "emailLabel": "Email",
+    "websiteLabel": "Veb-sayt"
   }
 }

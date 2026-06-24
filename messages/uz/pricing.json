@@ -1,77 +1,77 @@
 {
   "pricing": {
-    "label": "ЦЕНЫ",
-    "title": "Оплата за документ",
-    "subtitle": "Без подписки. Итоговая цена зависит от типа документа, языка, срочности и уровня услуги.",
-    "perDoc": "за документ",
-    "mostPopular": "Популярный выбор",
-    "startTranslating": "Начать перевод",
-    "allPricesNote": "Все цены в ₸ (тенге) · Без подписки · Итоговая цена рассчитывается после загрузки документа",
-    "paygNote": "от 1 000 ₸ — электронный перевод. от 5 500 ₸ — перевод под печать агента.",
-    "electronic": "Электронный перевод",
-    "electronicPrice": "от 1 000 ₸",
-    "electronicF1": "AI/OCR-черновик и автоматическое форматирование",
-    "electronicF2": "PDF/DOCX результат",
-    "electronicF3": "Готовность 2–5 минут",
-    "electronicF4": "Без подписи переводчика и печати агента",
-    "agentStamp": "Перевод под печать агента",
-    "agentStampPrice": "от 5 500 ₸",
-    "agentStampF1": "Проверка человеком-переводчиком",
-    "agentStampF2": "Печать агента/Исполнителя",
-    "agentStampF3": "Итоговый PDF с оформлением",
-    "agentStampF4": "Без нотариального заверения",
-    "notarized": "Нотариально заверенный перевод",
-    "notarizedPrice": "от 11 000 ₸",
-    "notarizedF1": "Перевод под печать агента/Исполнителя",
-    "notarizedF2": "Партнёрский процесс с нотариусом",
-    "notarizedF3": "Нотариальное удостоверение подписи переводчика",
-    "notarizedF4": "Срок зависит от документа, города и доступности нотариуса",
+    "label": "NARXLAR",
+    "title": "Hujjat uchun to'lov",
+    "subtitle": "Obunasiз. Yakuniy narx hujjat turiga, tiliga, shoshilinchligiga va xizmat darajasiga bog'liq.",
+    "perDoc": "bir hujjat uchun",
+    "mostPopular": "Mashhur tanlov",
+    "startTranslating": "Tarjimani boshlash",
+    "allPricesNote": "Barcha narxlar ₸ (tenge) da · Obunasiз · Yakuniy narx hujjat yuklanganidan so'ng hisoblanadi",
+    "paygNote": "1 000 ₸ dan — elektron tarjima. 5 500 ₸ dan — agent muhri bilan tarjima.",
+    "electronic": "Elektron tarjima",
+    "electronicPrice": "1 000 ₸ dan",
+    "electronicF1": "AI/OCR-qoralama va avtomatik formatlash",
+    "electronicF2": "PDF/DOCX natijasi",
+    "electronicF3": "Tayyor bo'lish vaqti 2–5 daqiqa",
+    "electronicF4": "Tarjimon imzosi va agent muhrisiz",
+    "agentStamp": "Agent muhri bilan tarjima",
+    "agentStampPrice": "5 500 ₸ dan",
+    "agentStampF1": "Inson tarjimoni tomonidan tekshiruv",
+    "agentStampF2": "Agent/Ijrochi muhri",
+    "agentStampF3": "Rasmiylashtirilgan yakuniy PDF",
+    "agentStampF4": "Notarial tasdiqlashsiz",
+    "notarized": "Notarial tasdiqlangan tarjima",
+    "notarizedPrice": "11 000 ₸ dan",
+    "notarizedF1": "Agent/Ijrochi muhri bilan tarjima",
+    "notarizedF2": "Notarius bilan hamkorlik jarayoni",
+    "notarizedF3": "Tarjimon imzosini notarial tasdiqlash",
+    "notarizedF4": "Muddat hujjat, shahar va notarius mavjudligiga bog'liq",
     "tiers": {
       "electronic": {
-        "title": "Электронный перевод",
-        "price": "от 1 000 ₸",
-        "unit": "за документ",
+        "title": "Elektron tarjima",
+        "price": "1 000 ₸ dan",
+        "unit": "bir hujjat uchun",
         "features": [
-          "AI/OCR-черновик и автоматическое форматирование",
-          "PDF/DOCX результат",
-          "Обычно 2–5 минут",
-          "Без подписи переводчика и печати агента"
+          "AI/OCR-qoralama va avtomatik formatlash",
+          "PDF/DOCX natijasi",
+          "Odatda 2–5 daqiqa",
+          "Tarjimon imzosi va agent muhrisiz"
         ],
-        "cta": "Начать перевод"
+        "cta": "Tarjimani boshlash"
       },
       "agentStamp": {
-        "title": "Перевод под печать агента",
-        "price": "от 5 500 ₸",
-        "unit": "за документ",
+        "title": "Agent muhri bilan tarjima",
+        "price": "5 500 ₸ dan",
+        "unit": "bir hujjat uchun",
         "features": [
-          "Проверка человеком",
-          "Оформление итогового PDF",
-          "Печать агента/исполнителя",
-          "Без нотариального заверения"
+          "Inson tomonidan tekshiruv",
+          "Yakuniy PDFni rasmiylashtirish",
+          "Agent/ijrochi muhri",
+          "Notarial tasdiqlashsiz"
         ],
-        "cta": "Начать перевод"
+        "cta": "Tarjimani boshlash"
       },
       "notarized": {
-        "title": "Нотариально заверенный перевод",
-        "price": "от 11 000 ₸",
-        "unit": "за документ",
+        "title": "Notarial tasdiqlangan tarjima",
+        "price": "11 000 ₸ dan",
+        "unit": "bir hujjat uchun",
         "features": [
-          "Перевод под печать агента/исполнителя",
-          "Партнёрский процесс с нотариусом",
-          "Нотариальное удостоверение",
-          "Срок зависит от документа, города и доступности нотариуса"
+          "Agent/ijrochi muhri bilan tarjima",
+          "Notarius bilan hamkorlik jarayoni",
+          "Notarial tasdiqlash",
+          "Muddat hujjat, shahar va notarius mavjudligiga bog'liq"
         ],
-        "cta": "Начать перевод"
+        "cta": "Tarjimani boshlash"
       }
     },
-    "noAcceptGuarantee": "Принятие перевода третьими лицами не гарантируется",
-    "payg": "Оплата за документ",
-    "feature1": "Без обязательств",
-    "feature2": "Все типы документов",
-    "feature3": "AI/OCR-черновик и автоматическое форматирование",
-    "feature4": "Готовый PDF на выходе",
-    "allDocTypes": "Все типы документов",
-    "cleanPdf": "Готовый PDF на выходе",
-    "translateNow": "Перевести сейчас"
+    "noAcceptGuarantee": "Tarjimaning uchinchi tomonlar tomonidan qabul qilinishi kafolatlanmaydi",
+    "payg": "Hujjat uchun to'lov",
+    "feature1": "Majburiyatsiz",
+    "feature2": "Barcha hujjat turlari",
+    "feature3": "AI/OCR-qoralama va avtomatik formatlash",
+    "feature4": "Tayyor PDF natijasi",
+    "allDocTypes": "Barcha hujjat turlari",
+    "cleanPdf": "Tayyor PDF natijasi",
+    "translateNow": "Hozir tarjima qilish"
   }
 }
