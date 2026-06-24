@@ -71,11 +71,11 @@ export async function PricingSection({ headline, subheadline, tiers, footnote }:
                 <p className={`mb-0.5 text-[10px] font-bold uppercase tracking-[0.12em] ${tier.highlighted ? 'text-primary' : 'text-muted-foreground/70'}`}>
                   {tr(tier.name)}
                 </p>
-                <div className="flex items-baseline gap-1">
-                  <span className="whitespace-nowrap text-3xl font-extrabold tracking-[-0.02em] text-foreground">
+                <div className="space-y-0.5">
+                  <div className="whitespace-nowrap text-3xl font-extrabold tracking-[-0.02em] text-foreground">
                     {tier.price}
-                  </span>
-                  <span className="text-xs text-muted-foreground">{t('landing.perDocument')}</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground">{t('landing.perDocument')}</div>
                 </div>
               </div>
 

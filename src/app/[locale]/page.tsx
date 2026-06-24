@@ -459,9 +459,9 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
                 <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/60">
                   {t('pricing.electronic')}
                 </p>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="whitespace-nowrap text-[2rem] font-extrabold tracking-tight text-foreground">{t('pricing.electronicPrice')}</span>
-                  <span className="text-[13px] text-muted-foreground">{t('pricing.perDoc')}</span>
+                <div className="space-y-0.5">
+                  <div className="whitespace-nowrap text-[2rem] font-extrabold tracking-tight text-foreground">{t('pricing.electronicPrice')}</div>
+                  <div className="text-[13px] text-muted-foreground">{t('pricing.perDoc')}</div>
                 </div>
               </div>
               <div className="flex flex-1 flex-col px-7 py-6">
@@ -491,9 +491,9 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
                 <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.12em] text-primary">
                   {t('pricing.agentStamp')}
                 </p>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="whitespace-nowrap text-[2rem] font-extrabold tracking-tight text-foreground">{t('pricing.agentStampPrice')}</span>
-                  <span className="text-[13px] text-muted-foreground">{t('pricing.perDoc')}</span>
+                <div className="space-y-0.5">
+                  <div className="whitespace-nowrap text-[2rem] font-extrabold tracking-tight text-foreground">{t('pricing.agentStampPrice')}</div>
+                  <div className="text-[13px] text-muted-foreground">{t('pricing.perDoc')}</div>
                 </div>
               </div>
               <div className="flex flex-1 flex-col px-7 py-6">
@@ -517,9 +517,9 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
                 <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/60">
                   {t('pricing.notarized')}
                 </p>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="whitespace-nowrap text-[2rem] font-extrabold tracking-tight text-foreground">{t('pricing.notarizedPrice')}</span>
-                  <span className="text-[13px] text-muted-foreground">{t('pricing.perDoc')}</span>
+                <div className="space-y-0.5">
+                  <div className="whitespace-nowrap text-[2rem] font-extrabold tracking-tight text-foreground">{t('pricing.notarizedPrice')}</div>
+                  <div className="text-[13px] text-muted-foreground">{t('pricing.perDoc')}</div>
                 </div>
               </div>
               <div className="flex flex-1 flex-col px-7 py-6">
