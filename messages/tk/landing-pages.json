@@ -22,7 +22,8 @@
         "q": "Terjimeleriňiz sertifikatlanandyrmy ýa-da notarius tassyklananmy?",
         "a": "Ýok. Ähli terjimeler resmi däl we diňe maglumat üçin. Her terjime edilen sahypada görünýän duýduryş pikirlendirme teksti peýda bolýar. Sertifikatlanan ýa-da notarius tassyklanan terjimeler litsenzirlenedilen terjimeçi ýa-da notariusdan alynmalydyr."
       }
-    ]
+    ],
+    "pricingHeadline": "Стоимость перевода документов"
   },
   "kazakhstan": {
     "heroBadge": "Gazagystan · Resminama iş akymlary",
@@ -141,7 +142,8 @@
     "pain4Desc": "For notaries and visa agents, clients who arrive with a clear draft are faster to process. The translated draft also helps clients understand what they are signing.",
     "painSectionLabel": "HOW IT WORKS",
     "painBridgeLabel": "WPO helps organize the process",
-    "docsSectionLabel": "DOCUMENTS FOR NOTARY PROCESS"
+    "docsSectionLabel": "DOCUMENTS FOR NOTARY PROCESS",
+    "pricingHeadline": "Стоимость нотариально заверенного перевода"
   },
   "kazakhstanUniversity": {
     "heroBadge": "Gazagystan · Uniwersitet arzalary",
@@ -189,7 +191,9 @@
     "pain3Desc": "University application windows are narrow. Getting a translation in 2–5 minutes versus waiting days from a bureau can determine whether you submit on time.",
     "pain4Title": "Education consultants need fast drafts for multiple clients at once",
     "pain4Desc": "Agencies handling multiple university applications simultaneously need a scalable, fast translation tool — not a per-client bureau negotiation.",
-    "pricingHeadline": "Стоимость перевода учебных документов"
+    "pricingHeadline": "Стоимость перевода учебных документов",
+    "painSectionLabel": "ПОЧЕМУ ЭТО ВАЖНО",
+    "docsSectionLabel": "АКАДЕМИЧЕСКИЕ ДОКУМЕНТЫ"
   },
   "passportTranslation": {
     "heroBadge": "Resminama görnüşi · Pasport we ID",
@@ -222,7 +226,27 @@
         "q": "Pasport maglumatlarym howpsuzmy?",
         "a": "Resminamaňyz şifrelenmedik Cloudflare R2 saklaýjyda işlenýär we saklanýar. Ol 30 günden soň awtomatik pozulýar. Pasportyňyzdaky şahsy maglumatlary terjimäni döretmekden başga maksatlar üçin saklamaýarys, paýlaşmaýarys ýa-da ulanmaýarys."
       }
-    ]
+    ],
+    "docsHeadline": "Поддерживаемые типы паспортов и удостоверений личности",
+    "docsSectionLabel": "ДОКУМЕНТЫ",
+    "docItem1": "Биометрический паспорт",
+    "docItem2": "Небиометрический паспорт",
+    "docItem3": "Удостоверение личности",
+    "docItem4": "Водительское удостоверение (как удостоверение личности)",
+    "docItem5": "Вид на жительство",
+    "docItem6": "Проездной документ",
+    "painHeadline": "Зачем нужен перевод паспорта — и почему здесь важна точность",
+    "painSectionLabel": "ПОЧЕМУ ЭТО ВАЖНО",
+    "painBridgeLabel": "WPO решает эту проблему",
+    "pain1Title": "Для визовых заявок часто требуется перевод паспорта на иностранный язык",
+    "pain1Desc": "Консульства и посольства при рассмотрении заявок иностранных граждан нередко запрашивают перевод страницы с данными паспорта на английский язык.",
+    "pain2Title": "Имена должны транслитерироваться, а не переводиться",
+    "pain2Desc": "Личные имена в паспорте должны передаваться фонетически в целевой системе записи. Перевод значения имени вместо его звучания — распространённая и серьёзная ошибка.",
+    "pain3Title": "Коды МРЗ и номера документов должны сохраняться без изменений",
+    "pain3Desc": "Машиночитаемая зона (МРЗ) в нижней части страницы данных паспорта содержит критически важную информацию. Любое изменение чисел, кодов или дат делает перевод непригодным к использованию.",
+    "pain4Title": "Стандартные инструменты перевода выдают неструктурированный текст",
+    "pain4Desc": "Обычные OCR-сервисы или переводчики извлекают данные паспорта в виде неструктурированного текста. Правильный перевод паспорта должен сохранять структуру полей: фамилия, имя, гражданство, дата рождения и т. д.",
+    "pricingHeadline": "Стоимость перевода паспорта"
   },
   "diplomaTranslation": {
     "heroBadge": "Resminama görnüşi · Diplom we Transkript",
@@ -274,7 +298,9 @@
     "pain3Desc": "Academic transcripts contain structured course listings with credits, grades, and subject codes. Translation tools that flatten tables into prose produce unusable output.",
     "pain4Title": "Tight deadlines for credential evaluation services",
     "pain4Desc": "WES, ICAS, and other credential evaluation bodies often have document submission deadlines. Having a fast translation tool available means you can submit on time.",
-    "pricingHeadline": "Стоимость перевода диплома"
+    "pricingHeadline": "Стоимость перевода диплома",
+    "painSectionLabel": "ПОЧЕМУ ЭТО ВАЖНО",
+    "docsSectionLabel": "АКАДЕМИЧЕСКИЕ ДОКУМЕНТЫ"
   },
   "bankStatementTranslation": {
     "heroBadge": "Resminama görnüşi · Bank beýannamasy",
@@ -324,7 +350,9 @@
     "pain3Desc": "A bank statement with 50 transactions must remain a table — not a paragraph. Generic translation tools collapse structure into unformatted text.",
     "pain4Title": "Tight visa deadlines make waiting 3–5 days for a bureau unacceptable",
     "pain4Desc": "DTV, Schengen, and other visa applications have narrow windows. Getting your bank statement translated in minutes, not days, can determine whether your application is ready on time.",
-    "pricingHeadline": "Стоимость перевода банковской выписки"
+    "pricingHeadline": "Стоимость перевода банковской выписки",
+    "painSectionLabel": "ПОЧЕМУ ЭТО ВАЖНО",
+    "docsSectionLabel": "ФИНАНСОВЫЕ ДОКУМЕНТЫ"
   },
   "kazakhstanCertified": {
     "heroBadge": "Kazakhstan · Official Translation",

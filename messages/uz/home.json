@@ -47,7 +47,8 @@
     "hubLabel": "Hujjat turlari",
     "hubTitle": "Hujjat turini tanlang",
     "hubSubtitle": "Ba'zi hujjat turlarida maxsus ko'rsatmalar bilan alohida sahifalar mavjud",
-    "otherOfficial": "Boshqa rasmiy hujjat"
+    "otherOfficial": "Boshqa rasmiy hujjat",
+    "sectionLabel": "ДОКУМЕНТЫ"
   },
   "trust": {
     "label": "NIMA UCHUN WPO TARJIMALARI",
@@ -195,5 +196,8 @@
     "bankingDesc": "Bank statements, employment contracts, and proof of income documents.",
     "relocation": "Relocation and Expat Life",
     "relocationDesc": "Any official document you need to translate to live, work, or register abroad."
+  },
+  "common": {
+    "wpoSolvesThis": "WPO решает эту проблему"
   }
 }

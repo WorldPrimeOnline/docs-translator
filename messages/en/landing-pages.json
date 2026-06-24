@@ -22,7 +22,8 @@
         "q": "Are your translations certified or notarized?",
         "a": "No. All translations are unofficial and for informational use only. A visible disclaimer appears on every translated page. Certified or notarized translations must be obtained from a licensed translator or notary."
       }
-    ]
+    ],
+    "pricingHeadline": "Document translation pricing"
   },
   "kazakhstan": {
     "heroBadge": "Kazakhstan · Document Workflows",
@@ -141,7 +142,8 @@
     ],
     "painSectionLabel": "HOW IT WORKS",
     "painBridgeLabel": "WPO helps organize the process",
-    "docsSectionLabel": "DOCUMENTS FOR NOTARY PROCESS"
+    "docsSectionLabel": "DOCUMENTS FOR NOTARY PROCESS",
+    "pricingHeadline": "Notarized translation pricing"
   },
   "kazakhstanUniversity": {
     "heroBadge": "Kazakhstan · University Applications",
@@ -189,7 +191,9 @@
         "q": "Can you translate documents for IELTS, TOEFL, or credential evaluation purposes?",
         "a": "WPO translations are unofficial. They are not accepted by IELTS/TOEFL administrative bodies for formal score reporting. However, they can be used for your own preparation, for informal application review, or as input to a certified translation workflow."
       }
-    ]
+    ],
+    "painSectionLabel": "WHY IT MATTERS",
+    "docsSectionLabel": "ACADEMIC DOCUMENTS"
   },
   "passportTranslation": {
     "heroBadge": "Document Type · Passport & ID",
@@ -222,7 +226,27 @@
         "q": "Is my passport data safe?",
         "a": "Your document is processed and stored on encrypted Cloudflare R2 storage. It is automatically deleted after 30 days. We do not store, share, or use the personal data in your passport for any purpose other than generating the translation."
       }
-    ]
+    ],
+    "docsHeadline": "Passport and ID document types supported",
+    "docsSectionLabel": "IDENTITY DOCUMENTS",
+    "docItem1": "Biometric Passport",
+    "docItem2": "Non-Biometric Passport",
+    "docItem3": "National ID Card",
+    "docItem4": "Driver's License (as ID)",
+    "docItem5": "Residence Permit",
+    "docItem6": "Travel Document",
+    "painHeadline": "Why passport translation is needed — and why it is hard to get right",
+    "painSectionLabel": "WHY IT MATTERS",
+    "painBridgeLabel": "WPO solves this",
+    "pain1Title": "Visa applications often require a translated version of a foreign-language passport",
+    "pain1Desc": "Consulates and embassies reviewing applications from non-native-language holders frequently ask for an English translation of the passport data page.",
+    "pain2Title": "Names must be transliterated, not translated",
+    "pain2Desc": "Personal names in a passport must be preserved phonetically in the target language script. Translating the meaning of a name instead of its sound is a common and serious error.",
+    "pain3Title": "MRZ codes and document numbers must be preserved exactly",
+    "pain3Desc": "The machine-readable zone (MRZ) at the bottom of passport data pages contains critical information. Any change to numbers, codes, or dates makes the translation useless.",
+    "pain4Title": "Standard translation tools produce unformatted text dumps",
+    "pain4Desc": "Generic OCR or translation services extract passport data as unstructured text. A usable passport translation must preserve the field structure: surname, given name, nationality, date of birth, etc.",
+    "pricingHeadline": "Passport translation pricing"
   },
   "diplomaTranslation": {
     "heroBadge": "Document Type · Diploma & Transcript",
@@ -274,7 +298,9 @@
         "q": "Can I use this for a professional licensing application?",
         "a": "Many licensing boards require certified or notarized translations of foreign credentials. WPO provides unofficial translations for preparation and reference. Confirm certification requirements with your licensing board."
       }
-    ]
+    ],
+    "painSectionLabel": "WHY IT MATTERS",
+    "docsSectionLabel": "ACADEMIC DOCUMENTS"
   },
   "bankStatementTranslation": {
     "heroBadge": "Document Type · Bank Statement",
@@ -324,7 +350,9 @@
         "q": "Can you translate online banking screenshots or PDF exports?",
         "a": "Yes. Both scanned paper statements and digital PDF exports from online banking are supported. Scanned documents are processed through OCR before translation."
       }
-    ]
+    ],
+    "painSectionLabel": "WHY IT MATTERS",
+    "docsSectionLabel": "FINANCIAL DOCUMENTS"
   },
   "kazakhstanCertified": {
     "heroBadge": "Kazakhstan · Official Translation",
@@ -346,7 +374,14 @@
     "pain4Desc": "Banks, universities, consulates, and other organizations may have their own requirements. These should be verified in advance.",
     "docsHeadline": "Supported Documents",
     "docsSectionLabel": "DOCUMENTS",
-    "docsItems": ["Diploma & Transcript", "Birth & Marriage Certificate", "Passport & National ID", "Bank Statement", "Employment Contract & Letter", "Police Clearance Certificate"],
+    "docsItems": [
+      "Diploma & Transcript",
+      "Birth & Marriage Certificate",
+      "Passport & National ID",
+      "Bank Statement",
+      "Employment Contract & Letter",
+      "Police Clearance Certificate"
+    ],
     "pricingHeadline": "Document translation pricing in Kazakhstan",
     "pricingSubheadline": "Electronic translation is the base level. Translation with agent stamp includes human reviewer. Notarization is a separate partner process.",
     "finalCtaHeadline": "Need an Official Translation?",

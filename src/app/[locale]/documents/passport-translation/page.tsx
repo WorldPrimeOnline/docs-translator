@@ -28,6 +28,25 @@ export default async function PassportTranslationPage({
       ctaLabel: t('heroCtaLabel'),
       trustLine: t('heroTrustLine'),
     },
+    docs: {
+      ...passportTranslationConfig.docs,
+      headline: t('docsHeadline'),
+      sectionLabel: t('docsSectionLabel'),
+      items: passportTranslationConfig.docs!.items.map((item, i) => ({
+        ...item,
+        name: t(`docItem${i + 1}` as Parameters<typeof t>[0]),
+      })),
+    },
+    pain: {
+      ...passportTranslationConfig.pain!,
+      headline: t('painHeadline'),
+      sectionLabel: t('painSectionLabel'),
+      bridgeLabel: t('painBridgeLabel'),
+      points: passportTranslationConfig.pain!.points.map((_, i) => ({
+        title: t(`pain${i + 1}Title` as Parameters<typeof t>[0]),
+        desc: t(`pain${i + 1}Desc` as Parameters<typeof t>[0]),
+      })),
+    },
     faq: {
       items: t.raw('faq') as Array<{ q: string; a: string }>,
     },
@@ -36,6 +55,10 @@ export default async function PassportTranslationPage({
       headline: t('finalCtaHeadline'),
       sub: t('finalCtaSub'),
       cta: t('finalCtaCta'),
+    },
+    pricing: {
+      ...passportTranslationConfig.pricing!,
+      headline: t('pricingHeadline'),
     },
   };
 

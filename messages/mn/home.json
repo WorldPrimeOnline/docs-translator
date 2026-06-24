@@ -47,7 +47,8 @@
     "hubLabel": "Баримт бичгийн төрлүүд",
     "hubTitle": "Баримт бичгийн төрлийг сонгох",
     "hubSubtitle": "Зарим баримт бичгийн төрлүүдэд тусгай заавар бүхий тусдаа хуудсууд байдаг",
-    "otherOfficial": "Бусад албан ёсны баримт бичиг"
+    "otherOfficial": "Бусад албан ёсны баримт бичиг",
+    "sectionLabel": "ДОКУМЕНТЫ"
   },
   "trust": {
     "label": "ЯАГААД WPO ОРЧУУЛГА ВЭ",
@@ -195,5 +196,8 @@
     "bankingDesc": "Bank statements, employment contracts, and proof of income documents.",
     "relocation": "Relocation and Expat Life",
     "relocationDesc": "Any official document you need to translate to live, work, or register abroad."
+  },
+  "common": {
+    "wpoSolvesThis": "WPO решает эту проблему"
   }
 }

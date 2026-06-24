@@ -47,7 +47,8 @@
     "hubLabel": "Resminama görnüşleri",
     "hubTitle": "Resminama görnüşini saýlaň",
     "hubSubtitle": "Käbir resminama görnüşleriniň ýörite görkezmeler bilen aýratyn sahypalary bar",
-    "otherOfficial": "Beýleki resmi resminama"
+    "otherOfficial": "Beýleki resmi resminama",
+    "sectionLabel": "ДОКУМЕНТЫ"
   },
   "trust": {
     "label": "NÄME ÜÇIN WPO TERJIMELERI",
@@ -195,5 +196,8 @@
     "bankingDesc": "Bank statements, employment contracts, and proof of income documents.",
     "relocation": "Relocation and Expat Life",
     "relocationDesc": "Any official document you need to translate to live, work, or register abroad."
+  },
+  "common": {
+    "wpoSolvesThis": "WPO решает эту проблему"
   }
 }

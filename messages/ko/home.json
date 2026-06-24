@@ -47,7 +47,8 @@
     "hubLabel": "문서 유형",
     "hubTitle": "문서 유형을 선택하세요",
     "hubSubtitle": "일부 문서 유형은 상세 안내가 있는 전용 페이지가 있습니다",
-    "otherOfficial": "기타 공식 문서"
+    "otherOfficial": "기타 공식 문서",
+    "sectionLabel": "ДОКУМЕНТЫ"
   },
   "trust": {
     "label": "WPO TRANSLATIONS를 선택하는 이유",
@@ -195,5 +196,8 @@
     "bankingDesc": "Bank statements, employment contracts, and proof of income documents.",
     "relocation": "Relocation and Expat Life",
     "relocationDesc": "Any official document you need to translate to live, work, or register abroad."
+  },
+  "common": {
+    "wpoSolvesThis": "WPO решает эту проблему"
   }
 }

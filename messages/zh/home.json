@@ -47,7 +47,8 @@
     "hubLabel": "文件类型",
     "hubTitle": "选择您的文件类型",
     "hubSubtitle": "部分文件类型有专属页面，提供详细指引",
-    "otherOfficial": "其他官方文件"
+    "otherOfficial": "其他官方文件",
+    "sectionLabel": "ДОКУМЕНТЫ"
   },
   "trust": {
     "label": "为何选择 WPO 翻译",
@@ -195,5 +196,8 @@
     "bankingDesc": "Bank statements, employment contracts, and proof of income documents.",
     "relocation": "Relocation and Expat Life",
     "relocationDesc": "Any official document you need to translate to live, work, or register abroad."
+  },
+  "common": {
+    "wpoSolvesThis": "WPO решает эту проблему"
   }
 }

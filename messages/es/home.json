@@ -57,7 +57,8 @@
     "hubLabel": "Tipos de documentos",
     "hubTitle": "Elige el tipo de documento",
     "hubSubtitle": "Algunos tipos tienen páginas dedicadas con orientación específica",
-    "otherOfficial": "Otro documento oficial"
+    "otherOfficial": "Otro documento oficial",
+    "sectionLabel": "ДОКУМЕНТЫ"
   },
   "trust": {
     "label": "POR QUÉ WPO TRANSLATIONS",
@@ -195,5 +196,8 @@
     "bankingDesc": "Bank statements, employment contracts, and proof of income documents.",
     "relocation": "Relocation and Expat Life",
     "relocationDesc": "Any official document you need to translate to live, work, or register abroad."
+  },
+  "common": {
+    "wpoSolvesThis": "WPO решает эту проблему"
   }
 }

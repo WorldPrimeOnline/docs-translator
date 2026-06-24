@@ -31,6 +31,7 @@ export default async function KazakhstanUniversityPage({
     docs: {
       ...kazakhstanUniversityConfig.docs,
       headline: t('docsHeadline'),
+      sectionLabel: t('docsSectionLabel'),
       items: kazakhstanUniversityConfig.docs!.items.map((item, i) => ({
         ...item,
         name: t(`docItem${i + 1}`),
@@ -38,6 +39,7 @@ export default async function KazakhstanUniversityPage({
     },
     pain: {
       headline: t('painHeadline'),
+      sectionLabel: t('painSectionLabel'),
       points: kazakhstanUniversityConfig.pain!.points.map((_, i) => ({
         title: t(`pain${i + 1}Title`),
         desc: t(`pain${i + 1}Desc`),

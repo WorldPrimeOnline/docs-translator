@@ -31,6 +31,7 @@ export default async function DiplomaTranslationPage({
     docs: {
       ...diplomaTranslationConfig.docs,
       headline: t('docsHeadline'),
+      sectionLabel: t('docsSectionLabel'),
       items: diplomaTranslationConfig.docs!.items.map((item, i) => ({
         ...item,
         name: t(`docItem${i + 1}`),
@@ -38,6 +39,7 @@ export default async function DiplomaTranslationPage({
     },
     pain: {
       headline: t('painHeadline'),
+      sectionLabel: t('painSectionLabel'),
       points: diplomaTranslationConfig.pain!.points.map((_, i) => ({
         title: t(`pain${i + 1}Title`),
         desc: t(`pain${i + 1}Desc`),

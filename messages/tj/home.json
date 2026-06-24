@@ -57,7 +57,8 @@
     "hubLabel": "Намудҳои ҳуҷҷат",
     "hubTitle": "Намуди ҳуҷҷатро интихоб кунед",
     "hubSubtitle": "Баъзе намудҳо саҳифаҳои махсус бо роҳнамоии мушаxxас доранд",
-    "otherOfficial": "Ҳуҷҷати расмии дигар"
+    "otherOfficial": "Ҳуҷҷати расмии дигар",
+    "sectionLabel": "ДОКУМЕНТЫ"
   },
   "trust": {
     "label": "ЧАРО WPO TRANSLATIONS",
@@ -195,5 +196,8 @@
     "bankingDesc": "Bank statements, employment contracts, and proof of income documents.",
     "relocation": "Relocation and Expat Life",
     "relocationDesc": "Any official document you need to translate to live, work, or register abroad."
+  },
+  "common": {
+    "wpoSolvesThis": "WPO решает эту проблему"
   }
 }

@@ -1,3 +1,4 @@
+import { getTranslations } from 'next-intl/server';
 import type { SupportedDoc } from '@/lib/landing-pages/types';
 
 interface DocGroup {
@@ -23,7 +24,8 @@ interface PropsGrouped {
 
 type Props = PropsFlat | PropsGrouped;
 
-export function SupportedDocumentsSection({ headline, subheadline, sectionLabel, items, groups }: Props) {
+export async function SupportedDocumentsSection({ headline, subheadline, sectionLabel, items, groups }: Props) {
+  const t = await getTranslations();
   const hasGroups = Boolean(groups);
 
   return (
@@ -31,7 +33,7 @@ export function SupportedDocumentsSection({ headline, subheadline, sectionLabel,
       <div className="mx-auto max-w-6xl">
         <div className="mb-12 text-center">
           <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.15em] text-primary/70">
-            {sectionLabel ?? 'Supported Documents'}
+            {sectionLabel ?? t('documents.sectionLabel')}
           </p>
           <h2 className="text-2xl font-bold tracking-[-0.025em] text-foreground sm:text-[1.85rem]">
             {headline}

@@ -47,7 +47,8 @@
     "hubLabel": "Документ түрлөрү",
     "hubTitle": "Документ түрүн тандаңыз",
     "hubSubtitle": "Кээ бир документ түрлөрүндө атайын нускамалар менен өзүнчө баракчалар бар",
-    "otherOfficial": "Башка расмий документ"
+    "otherOfficial": "Башка расмий документ",
+    "sectionLabel": "ДОКУМЕНТЫ"
   },
   "trust": {
     "label": "ЭМНЕ ҮЧҮН WPO КОТОРМОЛОРУ",
@@ -195,5 +196,8 @@
     "bankingDesc": "Bank statements, employment contracts, and proof of income documents.",
     "relocation": "Relocation and Expat Life",
     "relocationDesc": "Any official document you need to translate to live, work, or register abroad."
+  },
+  "common": {
+    "wpoSolvesThis": "WPO решает эту проблему"
   }
 }

@@ -16,7 +16,9 @@
     "i18n:forbidden": "tsx scripts/i18n/find-forbidden-phrases.ts",
     "i18n:routes": "tsx scripts/i18n/check-routes.ts",
     "i18n:language": "tsx scripts/i18n/find-wrong-language.ts",
-    "i18n:validate": "npm run i18n:check && npm run i18n:forbidden && npm run i18n:language"
+    "i18n:validate": "npm run i18n:check && npm run i18n:forbidden && npm run i18n:language",
+    "i18n:rendered": "tsx scripts/i18n/check-rendered-pages.ts",
+    "i18n:validate:rendered": "npm run i18n:validate && npm run i18n:rendered"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",

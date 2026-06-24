@@ -1,4 +1,5 @@
 import { AlertCircle, Zap } from 'lucide-react';
+import { getTranslations } from 'next-intl/server';
 import type { PainPoint } from '@/lib/landing-pages/types';
 
 interface Props {
@@ -8,7 +9,8 @@ interface Props {
   bridgeLabel?: string;
 }
 
-export function PainSection({ headline, points, sectionLabel, bridgeLabel }: Props) {
+export async function PainSection({ headline, points, sectionLabel, bridgeLabel }: Props) {
+  const t = await getTranslations();
   return (
     <section className="border-b border-white/[0.07] bg-card px-4 py-16 lg:py-20">
       <div className="mx-auto max-w-6xl">
@@ -46,7 +48,7 @@ export function PainSection({ headline, points, sectionLabel, bridgeLabel }: Pro
           <div className="h-px flex-1 bg-gradient-to-r from-transparent to-white/[0.06]" />
           <div className="flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-xs font-medium text-primary">
             <Zap className="h-3 w-3" />
-            {bridgeLabel ?? 'WPO solves this'}
+            {bridgeLabel ?? t('common.wpoSolvesThis')}
           </div>
           <div className="h-px flex-1 bg-gradient-to-l from-transparent to-white/[0.06]" />
         </div>
