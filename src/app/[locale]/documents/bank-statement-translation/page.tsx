@@ -52,6 +52,10 @@ export default async function BankStatementTranslationPage({
       sub: t('finalCtaSub'),
       cta: t('finalCtaCta'),
     },
+    pricing: {
+      ...bankStatementTranslationConfig.pricing!,
+      headline: t('pricingHeadline'),
+    },
   };
 
   return <LandingPage config={config} />;

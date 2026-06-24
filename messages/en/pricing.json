@@ -30,6 +30,45 @@
     "notarizedF3": "Notarial certification of translator's signature",
     "notarizedF4": "Timeline depends on document, city, and notary availability",
 
+    "tiers": {
+      "electronic": {
+        "title": "Electronic translation",
+        "price": "from ₸2,500",
+        "unit": "per document",
+        "features": [
+          "AI/OCR draft and automated formatting",
+          "PDF/DOCX result",
+          "Usually 2–5 minutes",
+          "No translator signature or agent stamp"
+        ],
+        "cta": "Start translation"
+      },
+      "agentStamp": {
+        "title": "Translation with agent stamp",
+        "price": "from ₸5,500",
+        "unit": "per document",
+        "features": [
+          "Human review",
+          "Final PDF formatting",
+          "Agent/provider stamp",
+          "No notarization"
+        ],
+        "cta": "Start translation"
+      },
+      "notarized": {
+        "title": "Notarized translation",
+        "price": "from ₸11,000",
+        "unit": "per document",
+        "features": [
+          "Translation with agent/provider stamp",
+          "Partner process with a notary",
+          "Notarial certification",
+          "Timing depends on document type, city and notary availability"
+        ],
+        "cta": "Start translation"
+      }
+    },
+
     "noAcceptGuarantee": "Acceptance by third parties is not guaranteed",
     "payg": "Pay per document",
     "feature1": "No commitment",

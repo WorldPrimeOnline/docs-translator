@@ -83,20 +83,7 @@ export const passportTranslationConfig: LandingPageConfig = {
 
   pricing: {
     headline: 'Passport translation pricing',
-    subheadline: '$4.39 per document — the lowest of our pricing tiers',
-    tiers: [
-      {
-        ...defaultPricingTiers[0]!,
-        name: 'Passport & ID',
-        features: [
-          'Passport, ID card, travel document',
-          'All biographic data preserved',
-          'Names transliterated (not translated)',
-          'Document numbers and dates exact',
-          'Disclaimer footer on every page',
-        ],
-      },
-    ],
+    tiers: defaultPricingTiers,
     footnote: defaultPricingFootnote,
   },
 

@@ -47,6 +47,17 @@ const SUBSCRIPTION_BANNED_IN_PRICING = [
   'құжат / ай',
 ];
 
+// Raw i18n key patterns — if these appear as values they were never resolved
+const RAW_KEY_PATTERNS = [
+  /pricingElectronic[A-Z]/,
+  /pricingAgentStamp[A-Z]/,
+  /pricingNotarizat/,
+  /pricingFeature[A-Z]/,
+  /landingPricing[A-Z]/,
+  /commonPricing[A-Z]/,
+  /servicePricing[A-Z]/,
+];
+
 // Terms banned everywhere in enabled locale message files
 const BANNED_TERMS = [
   'Translation by Claude Sonnet',
@@ -116,6 +127,18 @@ function checkFile(filePath: string, locale: string, ns: string): void {
       for (const term of SUBSCRIPTION_BANNED_IN_PRICING) {
         if (line.includes(term)) {
           fail(rel, ln, `Subscription/monthly label in pricing namespace: "${term}"`);
+        }
+      }
+    }
+
+    // Raw i18n key patterns: only flag when pattern appears as a JSON VALUE (after ": ")
+    // This catches unresolved keys leaked into i18n values; not JSON key names themselves.
+    const valueMatch = line.match(/:\s*"([^"]+)"/);
+    if (valueMatch) {
+      const value = valueMatch[1]!;
+      for (const pattern of RAW_KEY_PATTERNS) {
+        if (pattern.test(value)) {
+          fail(rel, ln, `Raw i18n key pattern "${pattern}" appears as a VALUE — key was never resolved`);
         }
       }
     }

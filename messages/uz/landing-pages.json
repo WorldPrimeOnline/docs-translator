@@ -188,7 +188,8 @@
     "pain3Title": "Tight admission deadlines leave no time for agency delays",
     "pain3Desc": "University application windows are narrow. Getting a translation in 2–5 minutes versus waiting days from a bureau can determine whether you submit on time.",
     "pain4Title": "Education consultants need fast drafts for multiple clients at once",
-    "pain4Desc": "Agencies handling multiple university applications simultaneously need a scalable, fast translation tool — not a per-client bureau negotiation."
+    "pain4Desc": "Agencies handling multiple university applications simultaneously need a scalable, fast translation tool — not a per-client bureau negotiation.",
+    "pricingHeadline": "Стоимость перевода учебных документов"
   },
   "passportTranslation": {
     "heroBadge": "Hujjat turi · Pasport va ID",
@@ -272,7 +273,8 @@
     "pain3Title": "Transcripts are tables — not paragraphs",
     "pain3Desc": "Academic transcripts contain structured course listings with credits, grades, and subject codes. Translation tools that flatten tables into prose produce unusable output.",
     "pain4Title": "Tight deadlines for credential evaluation services",
-    "pain4Desc": "WES, ICAS, and other credential evaluation bodies often have document submission deadlines. Having a fast translation tool available means you can submit on time."
+    "pain4Desc": "WES, ICAS, and other credential evaluation bodies often have document submission deadlines. Having a fast translation tool available means you can submit on time.",
+    "pricingHeadline": "Стоимость перевода диплома"
   },
   "bankStatementTranslation": {
     "heroBadge": "Hujjat turi · Bank ko'chirmasi",
@@ -321,7 +323,8 @@
     "pain3Title": "Transaction-level detail must be readable and structured",
     "pain3Desc": "A bank statement with 50 transactions must remain a table — not a paragraph. Generic translation tools collapse structure into unformatted text.",
     "pain4Title": "Tight visa deadlines make waiting 3–5 days for a bureau unacceptable",
-    "pain4Desc": "DTV, Schengen, and other visa applications have narrow windows. Getting your bank statement translated in minutes, not days, can determine whether your application is ready on time."
+    "pain4Desc": "DTV, Schengen, and other visa applications have narrow windows. Getting your bank statement translated in minutes, not days, can determine whether your application is ready on time.",
+    "pricingHeadline": "Стоимость перевода банковской выписки"
   },
   "kazakhstanCertified": {
     "heroBadge": "Kazakhstan · Official Translation",

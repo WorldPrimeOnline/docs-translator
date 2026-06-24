@@ -52,6 +52,10 @@ export default async function DiplomaTranslationPage({
       sub: t('finalCtaSub'),
       cta: t('finalCtaCta'),
     },
+    pricing: {
+      ...diplomaTranslationConfig.pricing!,
+      headline: t('pricingHeadline'),
+    },
   };
 
   return <LandingPage config={config} />;

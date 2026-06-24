@@ -52,6 +52,10 @@ export default async function KazakhstanUniversityPage({
       sub: t('finalCtaSub'),
       cta: t('finalCtaCta'),
     },
+    pricing: {
+      ...kazakhstanUniversityConfig.pricing!,
+      headline: t('pricingHeadline'),
+    },
   };
 
   return <LandingPage config={config} />;

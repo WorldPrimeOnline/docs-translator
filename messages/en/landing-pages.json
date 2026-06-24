@@ -171,6 +171,7 @@
     "finalCtaHeadline": "Prepare your university application documents",
     "finalCtaSub": "Upload your diploma, transcript, or academic certificate and get a clean English translation in minutes.",
     "finalCtaCta": "Translate My Academic Documents",
+    "pricingHeadline": "Academic document translation pricing",
     "faq": [
       {
         "q": "Will foreign universities accept a WPO translation?",
@@ -251,6 +252,7 @@
     "finalCtaHeadline": "Translate your diploma or academic transcript",
     "finalCtaSub": "Upload your academic credential and receive a clean, structured English translation in minutes.",
     "finalCtaCta": "Translate My Diploma",
+    "pricingHeadline": "Diploma translation pricing",
     "faq": [
       {
         "q": "Is your translation accepted for WES or other credential evaluations?",
@@ -300,6 +302,7 @@
     "finalCtaHeadline": "Translate your bank statement for visa or immigration",
     "finalCtaSub": "Upload your bank statement and receive a clean English translation in 2–5 minutes.",
     "finalCtaCta": "Translate My Bank Statement",
+    "pricingHeadline": "Bank statement translation pricing",
     "faq": [
       {
         "q": "Which visa types require a translated bank statement?",
@@ -344,8 +347,8 @@
     "docsHeadline": "Supported Documents",
     "docsSectionLabel": "DOCUMENTS",
     "docsItems": ["Diploma & Transcript", "Birth & Marriage Certificate", "Passport & National ID", "Bank Statement", "Employment Contract & Letter", "Police Clearance Certificate"],
-    "pricingHeadline": "Pricing",
-    "pricingSubheadline": "Electronic translation is the base service level. Translation with agent stamp is a separate service level with human translator review.",
+    "pricingHeadline": "Document translation pricing in Kazakhstan",
+    "pricingSubheadline": "Electronic translation is the base level. Translation with agent stamp includes human reviewer. Notarization is a separate partner process.",
     "finalCtaHeadline": "Need an Official Translation?",
     "finalCtaSub": "Upload a document, choose the official service level, and review the final price before payment.",
     "finalCtaCta": "Start Translation",

@@ -81,8 +81,8 @@
     "painBridgeLabel": "WPO helps",
     "docsSectionLabel": "SUPPORTED DOCUMENTS",
     "trustHeadline": "Transparent, Confidential and Legally Accurate",
-    "pricingHeadline": "Simple Per-Document Pricing",
-    "pricingSubheadline": "No subscription. Pay only for the translation you choose.",
+    "pricingHeadline": "Қазақстандағы құжат аудармасының бағасы",
+    "pricingSubheadline": "Жазылымсыз. Таңдаған аударма деңгейі үшін ғана төлейсіз.",
     "seoHeadline": "Document Translation for Kazakhstan — When and How to Use",
     "seoParagraph1": "In Kazakhstan, document translations are often needed for enrolling in foreign universities, work visas, relocation, immigration procedures, opening bank accounts abroad, and apostille. The traditional route through a translation bureau can require a personal visit, waiting time, and manual document handoff.",
     "seoParagraph2": "WorldPrimeOnline helps prepare translations online: upload a document, choose a language pair and service level, and receive the result in electronic format. Electronic translation is suitable for preparation and reference. Official translation with translator review, translator signature, and Provider stamp is available as a separate service level. Notarial certification is arranged separately through partners where available.",
@@ -153,6 +153,7 @@
     "finalCtaHeadline": "Университетке түсу құжаттарыңызды дайындаңыз",
     "finalCtaSub": "Дипломды, транскриптті немесе академиялық анықтаманы жүктеп, бірнеше минутта таза ағылшынша аударма алыңыз.",
     "finalCtaCta": "Академиялық құжаттарымды аудару",
+    "pricingHeadline": "Оқу құжаттарын аудару бағасы",
     "faq": [
       {
         "q": "Шетел университеттері WPO аударманы қабылдай ма?",
@@ -233,6 +234,7 @@
     "finalCtaHeadline": "Дипломыңызды немесе академиялық транскриптіңізді аударыңыз",
     "finalCtaSub": "Академиялық куәлігіңізді жүктеп, бірнеше минутта таза, құрылымдалған ағылшынша аударма алыңыз.",
     "finalCtaCta": "Дипломымды аудару",
+    "pricingHeadline": "Диплом аудармасының бағасы",
     "faq": [
       {
         "q": "WES немесе басқа біліктілікті бағалау үшін аудармаңыз қабылдана ма?",
@@ -284,6 +286,7 @@
     "finalCtaHeadline": "Виза немесе иммиграция үшін банк үзіндісіңізді аударыңыз",
     "finalCtaSub": "Банк үзіндісіңізді жүктеп, 2–5 минутта таза ағылшынша аударма алыңыз.",
     "finalCtaCta": "Банк үзіндісін аудару",
+    "pricingHeadline": "Банктік үзінді көшірме аудармасының бағасы",
     "faq": [
       {
         "q": "Қандай виза түрлері аударылған банк үзіндісін талап етеді?",
@@ -344,8 +347,8 @@
     "docsHeadline": "Қолдау көрсетілетін құжаттар",
     "docsSectionLabel": "ҚҰЖАТТАР",
     "docsItems": ["Диплом және транскрипт", "Туу және некеге тұру туралы куәлік", "Төлқұжат және жеке куәлік", "Банктік үзінді-көшірме", "Еңбек шарты және анықтама", "Қылмысы жоқтығы туралы анықтама"],
-    "pricingHeadline": "Бағалар",
-    "pricingSubheadline": "Электрондық аударма — базалық деңгей. Агент мөрімен аударма — аудармашы тексеруімен бөлек қызмет деңгейі.",
+    "pricingHeadline": "Қазақстандағы құжат аудармасының бағасы",
+    "pricingSubheadline": "Электрондық аударма — базалық деңгей. Агент мөрімен аударма — адам тексеруімен. Нотариалды куәландыру — серіктестік процесс арқылы.",
     "finalCtaHeadline": "Ресми аударма қажет пе?",
     "finalCtaSub": "Құжатты жүктеп, ресми қызмет деңгейін таңдап, төлемге дейін соңғы бағаны тексеріңіз.",
     "finalCtaCta": "Аударуды бастау",
