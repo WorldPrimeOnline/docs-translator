@@ -199,5 +199,9 @@
   },
   "common": {
     "wpoSolvesThis": "WPO решает эту проблему"
+  },
+  "pricing": {
+    "pricingElectronicPrice": "from ₸1,000",
+    "priceDesc": "From ₸1,000 per document vs ₸15,000–25,000 at a translation bureau."
   }
 }

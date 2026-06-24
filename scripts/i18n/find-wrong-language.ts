@@ -31,6 +31,12 @@ const KK_FORBIDDEN_RUSSIAN_PHRASES = [
 const OLD_PRICE_PATTERNS = ['2 290', '2290', '2 590', '2590', '4 990', '4990', '12 990', '12990'];
 const PRICE_SENSITIVE_NAMESPACES = new Set(['pricing', 'order', 'checkout', 'landing-pages', 'home']);
 
+// Old electronic-level prices that must not appear as electronic-tier UI labels
+// Pattern: these exact strings represent the old "from 2500" electronic price in public UI
+const OLD_ELECTRONIC_PRICE_PATTERNS_RU = ['от 2 500 ₸', 'от 2500 ₸'];
+const OLD_ELECTRONIC_PRICE_PATTERNS_EN = ['from ₸2,500', '₸2,500 per'];
+const OLD_ELECTRONIC_PRICE_PATTERNS_KK = ['2 500 ₸ бастап', '2500 ₸ бастап'];
+
 // Subscription/monthly plan labels banned from public UI message files
 // Checked in price-sensitive namespaces only (to avoid false positives in serviceTerms etc.)
 const SUBSCRIPTION_BANNED_IN_PRICING = [
@@ -121,6 +127,20 @@ function checkFile(filePath: string, locale: string, ns: string): void {
       for (const oldPrice of OLD_PRICE_PATTERNS) {
         if (line.includes(oldPrice)) {
           fail(rel, ln, `Old price "${oldPrice}" found in ${ns} namespace`);
+        }
+      }
+      // Old electronic-level prices (updated from 2500 → 1000)
+      if (locale === 'ru') {
+        for (const p of OLD_ELECTRONIC_PRICE_PATTERNS_RU) {
+          if (line.includes(p)) fail(rel, ln, `Old electronic price "${p}" — update to 1 000 ₸`);
+        }
+      } else if (locale === 'en') {
+        for (const p of OLD_ELECTRONIC_PRICE_PATTERNS_EN) {
+          if (line.includes(p)) fail(rel, ln, `Old electronic price "${p}" — update to ₸1,000`);
+        }
+      } else if (locale === 'kk') {
+        for (const p of OLD_ELECTRONIC_PRICE_PATTERNS_KK) {
+          if (line.includes(p)) fail(rel, ln, `Old electronic price "${p}" — update to 1 000 ₸ бастап`);
         }
       }
       // Subscription/monthly labels in pricing namespaces

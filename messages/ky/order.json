@@ -196,7 +196,7 @@
     "quoteCalculating": "Calculating price...",
     "quoteRecalculating": "Refreshing order status...",
     "priceHint": "The exact price is calculated after document upload and analysis.",
-    "priceHintElectronic": "Electronic translation — from 2 500 ₸. Final price after upload.",
+    "priceHintElectronic": "Electronic translation — from ₸1,000. Final price after upload.",
     "priceHintOfficial": "Official translation — from 5 500 ₸. Final price after upload.",
     "priceHintNotarized": "Notarized translation — from 11 000 ₸. Final price after upload.",
     "urgency": {

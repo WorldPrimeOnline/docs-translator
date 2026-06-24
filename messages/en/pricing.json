@@ -7,33 +7,29 @@
     "mostPopular": "Most popular",
     "startTranslating": "Start translation",
     "allPricesNote": "All prices in ₸ (tenge) · No subscription · Final price calculated after document upload",
-    "paygNote": "From ₸2,500 — electronic translation. From ₸5,500 — translation with agent stamp.",
-
+    "paygNote": "From ₸1,000 — electronic translation. From ₸5,500 — translation with agent stamp.",
     "electronic": "Electronic translation",
-    "electronicPrice": "from ₸2,500",
+    "electronicPrice": "from ₸1,000",
     "electronicF1": "AI/OCR draft and automated formatting",
     "electronicF2": "PDF/DOCX output",
     "electronicF3": "Ready in 2–5 minutes",
     "electronicF4": "No translator signature or agent stamp",
-
     "agentStamp": "Translation with agent stamp",
     "agentStampPrice": "from ₸5,500",
     "agentStampF1": "Human translator review",
     "agentStampF2": "Agent / provider stamp",
     "agentStampF3": "Formatted final PDF",
     "agentStampF4": "Not a notarized translation",
-
     "notarized": "Notarized translation",
     "notarizedPrice": "from ₸11,000",
     "notarizedF1": "Translation with agent / provider stamp",
     "notarizedF2": "Partner process with a notary",
     "notarizedF3": "Notarial certification of translator's signature",
     "notarizedF4": "Timeline depends on document, city, and notary availability",
-
     "tiers": {
       "electronic": {
         "title": "Electronic translation",
-        "price": "from ₸2,500",
+        "price": "from ₸1,000",
         "unit": "per document",
         "features": [
           "AI/OCR draft and automated formatting",
@@ -68,7 +64,6 @@
         "cta": "Start translation"
       }
     },
-
     "noAcceptGuarantee": "Acceptance by third parties is not guaranteed",
     "payg": "Pay per document",
     "feature1": "No commitment",
