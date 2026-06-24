@@ -460,7 +460,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
                   {t('pricing.electronic')}
                 </p>
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-[2rem] font-extrabold tracking-tight text-foreground">{t('pricing.electronicPrice')}</span>
+                  <span className="whitespace-nowrap text-[2rem] font-extrabold tracking-tight text-foreground">{t('pricing.electronicPrice')}</span>
                   <span className="text-[13px] text-muted-foreground">{t('pricing.perDoc')}</span>
                 </div>
               </div>
@@ -492,7 +492,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
                   {t('pricing.agentStamp')}
                 </p>
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-[2rem] font-extrabold tracking-tight text-foreground">{t('pricing.agentStampPrice')}</span>
+                  <span className="whitespace-nowrap text-[2rem] font-extrabold tracking-tight text-foreground">{t('pricing.agentStampPrice')}</span>
                   <span className="text-[13px] text-muted-foreground">{t('pricing.perDoc')}</span>
                 </div>
               </div>
@@ -518,7 +518,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
                   {t('pricing.notarized')}
                 </p>
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-[2rem] font-extrabold tracking-tight text-foreground">{t('pricing.notarizedPrice')}</span>
+                  <span className="whitespace-nowrap text-[2rem] font-extrabold tracking-tight text-foreground">{t('pricing.notarizedPrice')}</span>
                   <span className="text-[13px] text-muted-foreground">{t('pricing.perDoc')}</span>
                 </div>
               </div>

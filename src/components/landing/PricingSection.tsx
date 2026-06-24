@@ -72,7 +72,7 @@ export async function PricingSection({ headline, subheadline, tiers, footnote }:
                   {tr(tier.name)}
                 </p>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-extrabold tracking-[-0.02em] text-foreground">
+                  <span className="whitespace-nowrap text-3xl font-extrabold tracking-[-0.02em] text-foreground">
                     {tier.price}
                   </span>
                   <span className="text-xs text-muted-foreground">{t('landing.perDocument')}</span>
