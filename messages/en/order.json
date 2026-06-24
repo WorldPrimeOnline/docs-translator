@@ -63,31 +63,31 @@
     "signedIn": "Signed in as",
     "logout": "Log out",
     "usingPlan": "Using your {plan} plan · {remaining} docs remaining — no payment required",
-    "limitReached": "Monthly limit reached. Upgrade or pay per document.",
-    "upgradeToPro": "Upgrade to Pro",
+    "limitReached": "Subscription documents used up. Pay per document for the next order.",
+    "upgradeToPro": "Pay per document",
     "viewPlans": "View plans",
     "docsUsed": "Documents used",
     "expires": "Expires",
-    "allDocsUsed": "All {n} documents used this month.",
+    "allDocsUsed": "All {n} subscription documents used.",
     "docsRemaining": "{n} documents remaining",
     "noTranslations": "No translations yet.",
     "noTranslationsHint": "Upload your first document above to get started.",
     "downloadTranslation": "Download Translation",
-    "basicPlan": "Basic Plan",
-    "proPlan": "Pro Plan",
+    "basicPlan": "Standard Plan",
+    "proPlan": "Extended Plan",
     "jobTitle": "Translation in progress",
-    "subBannerTitle": "Translate faster with a subscription",
-    "subBannerDesc": "From 4 990 ₸/mo — 10 documents, no per-doc payments",
+    "subBannerTitle": "Pay per document",
+    "subBannerDesc": "From ₸2,500 per document — no subscription required",
     "usingPlanSub": "Using your {plan} plan · {remaining} doc{s} remaining — no payment required",
     "serviceLevel": {
       "label": "SERVICE LEVEL",
       "certified": {
-        "label": "Certified translation",
-        "desc": "Translation is reviewed by a qualified human translator, signed by the translator, and stamped with the WPO seal. No notarization."
+        "label": "Translation with agent stamp",
+        "desc": "Translation is reviewed by a qualified human translator and stamped with the provider seal. No notarization."
       },
       "notarization": {
-        "label": "Certified translation with notarization",
-        "desc": "Translation is reviewed and signed by a translator, stamped with the WPO seal, then forwarded to a partner notary to certify the translator's signature."
+        "label": "Notarized translation",
+        "desc": "Translation is reviewed by a translator and stamped with the provider seal, then forwarded to a partner notary to certify the translator's signature."
       }
     },
     "notary": {

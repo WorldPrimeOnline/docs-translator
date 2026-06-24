@@ -28,16 +28,36 @@ const KK_FORBIDDEN_RUSSIAN_PHRASES = [
 ];
 
 // Old prices that must not appear in pricing-related namespaces
-const OLD_PRICE_PATTERNS = ['2 290', '2290', '2 590', '2590'];
+const OLD_PRICE_PATTERNS = ['2 290', '2290', '2 590', '2590', '4 990', '4990', '12 990', '12990'];
 const PRICE_SENSITIVE_NAMESPACES = new Set(['pricing', 'order', 'checkout', 'landing-pages', 'home']);
 
-// Banned AI/certified terminology
+// Subscription/monthly plan labels banned from public UI message files
+// Checked in price-sensitive namespaces only (to avoid false positives in serviceTerms etc.)
+const SUBSCRIPTION_BANNED_IN_PRICING = [
+  '/ месяц',
+  'в месяц',
+  'документов / месяц',
+  'документов/месяц',
+  '/ month',
+  'documents / month',
+  'documents/month',
+  '/mo',
+  '/ ай',
+  'документов / ай',
+  'құжат / ай',
+];
+
+// Terms banned everywhere in enabled locale message files
 const BANNED_TERMS = [
   'Translation by Claude Sonnet',
+  'Translation by Claude',
   'Claude Sonnet AI',
   'Claude Sonnet translates',
   'Claude Sonnet аударады',
   'Claude Sonnet переводит',
+  'Перевод с помощью ИИ Claude',
+  'Перевод ИИ через Claude',
+  'Перевод с помощью Claude',
 ];
 
 let errors = 0;
@@ -92,9 +112,15 @@ function checkFile(filePath: string, locale: string, ns: string): void {
           fail(rel, ln, `Old price "${oldPrice}" found in ${ns} namespace`);
         }
       }
+      // Subscription/monthly labels in pricing namespaces
+      for (const term of SUBSCRIPTION_BANNED_IN_PRICING) {
+        if (line.includes(term)) {
+          fail(rel, ln, `Subscription/monthly label in pricing namespace: "${term}"`);
+        }
+      }
     }
 
-    // Banned AI/certified terminology
+    // Banned AI/certified terminology (everywhere)
     for (const term of BANNED_TERMS) {
       if (line.toLowerCase().includes(term.toLowerCase())) {
         fail(rel, ln, `Banned term: "${term}"`);
