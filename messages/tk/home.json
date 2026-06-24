@@ -145,7 +145,17 @@
     "pricingFootnote": "Ähli bahalar KZT · Abuna gerek däl · Gizlin töleg ýok",
     "simplePricing": "Ýönekeý bahalar",
     "noSubscriptionPay": "Abuna ýok. Diňe terjime edeninde tölä.",
-    "faqTitle": "Köplenç soralýan soraglar"
+    "faqTitle": "Köplenç soralýan soraglar",
+    "pricingFeatureAiDraft": "AI/OCR draft and automated formatting",
+    "pricingElectronic": "Electronic Translation",
+    "pricingAgentStamp": "Translation with Agent Stamp",
+    "pricingNotarization": "Translation with Notarization",
+    "pricingElectronicPrice": "from ₸2,500",
+    "pricingAgentStampPrice": "from ₸5,500",
+    "pricingNotarizationPrice": "from ₸11,000",
+    "pricingFeatureHumanReview": "Human translator review",
+    "pricingFeatureProviderStamp": "Provider stamp included",
+    "pricingFeatureNotaryPartner": "Notary partner process"
   },
   "pain": {
     "label": "THE PROBLEM",

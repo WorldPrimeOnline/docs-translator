@@ -48,14 +48,13 @@ export const defaultTrustItems: TrustItem[] = [
 ];
 
 // Feature strings use translation keys from the landing namespace.
-// PricingSection detects keys that start with "pricing" and translates them via getTranslations('landing').
+// PricingSection detects keys in PRICING_KEYS and translates them via getTranslations('landing').
 export const defaultPricingTiers: PricingTier[] = [
   {
-    name: 'pricingPassport',
-    price: '2 290 ₸',
+    name: 'pricingElectronic',
+    price: 'pricingElectronicPrice',
     features: [
-      'pricingFeaturePassportDoc',
-      'pricingFeatureClaudeTranslation',
+      'pricingFeatureAiDraft',
       'pricingFeatureCleanPdf',
       'pricingFeatureDelivery',
       'pricingFeatureLanguages',
@@ -64,13 +63,23 @@ export const defaultPricingTiers: PricingTier[] = [
     highlighted: true,
   },
   {
-    name: 'pricingOtherDocs',
-    price: '2 590 ₸',
+    name: 'pricingAgentStamp',
+    price: 'pricingAgentStampPrice',
     features: [
-      'pricingFeatureDiplomas',
-      'pricingFeatureBankMedical',
-      'pricingFeatureClaudeTranslation',
+      'pricingFeatureHumanReview',
+      'pricingFeatureProviderStamp',
       'pricingFeatureCleanPdf',
+      'pricingFeatureDelivery',
+    ],
+    cta: 'pricingCta',
+  },
+  {
+    name: 'pricingNotarization',
+    price: 'pricingNotarizationPrice',
+    features: [
+      'pricingFeatureHumanReview',
+      'pricingFeatureProviderStamp',
+      'pricingFeatureNotaryPartner',
       'pricingFeatureDelivery',
     ],
     cta: 'pricingCta',

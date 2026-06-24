@@ -145,7 +145,17 @@
     "pricingFootnote": "Barcha narxlar KZT da · Obuna kerak emas · Yashirin komissiya yo'q",
     "simplePricing": "Oddiy narxlash",
     "noSubscriptionPay": "Obuna yo'q. Faqat tarjima qilganingizda to'lang.",
-    "faqTitle": "Ko'p so'raladigan savollar"
+    "faqTitle": "Ko'p so'raladigan savollar",
+    "pricingFeatureAiDraft": "AI/OCR draft and automated formatting",
+    "pricingElectronic": "Electronic Translation",
+    "pricingAgentStamp": "Translation with Agent Stamp",
+    "pricingNotarization": "Translation with Notarization",
+    "pricingElectronicPrice": "from ₸2,500",
+    "pricingAgentStampPrice": "from ₸5,500",
+    "pricingNotarizationPrice": "from ₸11,000",
+    "pricingFeatureHumanReview": "Human translator review",
+    "pricingFeatureProviderStamp": "Provider stamp included",
+    "pricingFeatureNotaryPartner": "Notary partner process"
   },
   "pain": {
     "label": "THE PROBLEM",

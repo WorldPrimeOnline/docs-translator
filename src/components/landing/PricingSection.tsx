@@ -13,10 +13,13 @@ interface Props {
 
 // Keys in defaultPricingTiers that should be looked up in the landing namespace
 const PRICING_KEYS = new Set([
-  'pricingPassport', 'pricingOtherDocs', 'pricingFeaturePassportDoc',
-  'pricingFeatureClaudeTranslation', 'pricingFeatureCleanPdf', 'pricingFeatureDelivery',
-  'pricingFeatureLanguages', 'pricingFeatureDiplomas', 'pricingFeatureBankMedical',
+  'pricingPassport', 'pricingOtherDocs', 'pricingElectronic', 'pricingAgentStamp', 'pricingNotarization',
+  'pricingFeaturePassportDoc', 'pricingFeatureClaudeTranslation', 'pricingFeatureAiDraft',
+  'pricingFeatureCleanPdf', 'pricingFeatureDelivery', 'pricingFeatureLanguages',
+  'pricingFeatureDiplomas', 'pricingFeatureBankMedical',
+  'pricingFeatureHumanReview', 'pricingFeatureProviderStamp', 'pricingFeatureNotaryPartner',
   'pricingCta', 'pricingFootnote', 'simplePricing', 'noSubscriptionPay', 'faqTitle',
+  'pricingElectronicPrice', 'pricingAgentStampPrice', 'pricingNotarizationPrice',
 ]);
 
 export async function PricingSection({ headline, subheadline, tiers, footnote }: Props) {

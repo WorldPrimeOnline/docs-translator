@@ -369,6 +369,18 @@
         "q": "Can notarial certification be added later?",
         "a": "In some cases yes, if a partner process is available for the selected document, language, and jurisdiction. Availability, timeline, and cost of notarization are confirmed separately."
       }
-    ]
+    ],
+    "docsHeadline": "Supported Documents",
+    "docsSectionLabel": "DOCUMENTS",
+    "docsItems": [
+      "Diploma & Transcript",
+      "Birth & Marriage Certificate",
+      "Passport & National ID",
+      "Bank Statement",
+      "Employment Contract & Letter",
+      "Police Clearance Certificate"
+    ],
+    "pricingHeadline": "Pricing",
+    "pricingSubheadline": "Electronic translation is the base service level. Translation with agent stamp is a separate service level with human translator review."
   }
 }

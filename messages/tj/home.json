@@ -145,7 +145,17 @@
     "pricingFootnote": "Ҳамаи нархҳо бо KZT · Обуна лозим нест · Ҳаққи пинҳонӣ нест",
     "simplePricing": "Нархгузории оддӣ",
     "noSubscriptionPay": "Бе обуна. Танҳо ҳангоми тарҷума пардохт кунед.",
-    "faqTitle": "Саволҳои зуд-зуд додашаванда"
+    "faqTitle": "Саволҳои зуд-зуд додашаванда",
+    "pricingFeatureAiDraft": "AI/OCR draft and automated formatting",
+    "pricingElectronic": "Electronic Translation",
+    "pricingAgentStamp": "Translation with Agent Stamp",
+    "pricingNotarization": "Translation with Notarization",
+    "pricingElectronicPrice": "from ₸2,500",
+    "pricingAgentStampPrice": "from ₸5,500",
+    "pricingNotarizationPrice": "from ₸11,000",
+    "pricingFeatureHumanReview": "Human translator review",
+    "pricingFeatureProviderStamp": "Provider stamp included",
+    "pricingFeatureNotaryPartner": "Notary partner process"
   },
   "pain": {
     "label": "THE PROBLEM",
