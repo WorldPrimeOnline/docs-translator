@@ -20,7 +20,7 @@
       },
       {
         "q": "Are your translations certified or notarized?",
-        "a": "No. All translations are unofficial and for informational use only. A visible disclaimer appears on every translated page. Certified or notarized translations must be obtained from a licensed translator or notary."
+        "a": "WPO offers three service levels. Electronic translation is processed automatically and does not include an agent/provider stamp or notarization. Translation with agent stamp includes human review and an agent/provider stamp. Notarized translation is available as a partner process with a notary. The availability and suitability of each service level depends on the requirements of the receiving organization."
       }
     ],
     "pricingHeadline": "Document translation pricing"
@@ -67,7 +67,7 @@
       },
       {
         "q": "Is this translation accepted by foreign universities?",
-        "a": "Foreign universities typically require certified or notarized translations. WPO provides unofficial translations that can be used during the application preparation stage, for review by an education consultant, or as a reference draft for a certified translator. Always confirm official requirements with the target university."
+        "a": "Foreign universities typically require certified or notarized translations. WPO offers Translation with agent stamp (human-reviewed, with agent/provider stamp) and Notarized translation (partner process with a notary) as service levels that may meet these requirements. Electronic translation can be used during the application preparation stage or for review by an education consultant. Always confirm the required service level with the target university."
       },
       {
         "q": "Can notaries and visa agents use this service on behalf of clients?",
@@ -121,7 +121,7 @@
     "faq": [
       {
         "q": "Is this a certified or notarized translation?",
-        "a": "No. WPO provides unofficial translation drafts for informational and preparation purposes. A certified or notarized translation must be produced by a licensed translator or notary. WPO drafts can be used as input to that process, not as a replacement."
+        "a": "WPO offers three service levels: Electronic translation (automated, without agent stamp or notarization), Translation with agent stamp (human-reviewed, with agent/provider stamp), and Notarized translation (partner process with a notary). The availability of the Notarized translation level depends on the document type, language pair, and jurisdiction. WPO does not guarantee acceptance by third parties."
       },
       {
         "q": "Will my notary accept a WPO translation draft as a starting point?",
@@ -177,7 +177,7 @@
     "faq": [
       {
         "q": "Will foreign universities accept a WPO translation?",
-        "a": "Requirements vary by university and country. Many universities accept unofficial translations for initial application review, with certified translations required only after acceptance or at enrollment. Always check the specific requirements for your target university."
+        "a": "Requirements vary by university and country. Electronic translation can be used for initial application review at many universities. Translation with agent stamp or Notarized translation may be required at enrollment. Always confirm the specific service level required by your target university."
       },
       {
         "q": "What is a \"school leaving certificate\" (Attestat)?",
@@ -189,7 +189,7 @@
       },
       {
         "q": "Can you translate documents for IELTS, TOEFL, or credential evaluation purposes?",
-        "a": "WPO translations are unofficial. They are not accepted by IELTS/TOEFL administrative bodies for formal score reporting. However, they can be used for your own preparation, for informal application review, or as input to a certified translation workflow."
+        "a": "Electronic translation is not accepted by IELTS/TOEFL administrative bodies for formal score reporting. It can be used for your own preparation or informal application review. For formal submission, check whether Translation with agent stamp or Notarized translation meets the requirements of your evaluation body."
       }
     ],
     "painSectionLabel": "WHY IT MATTERS",
@@ -216,7 +216,7 @@
       },
       {
         "q": "Is the translation accepted for visa applications?",
-        "a": "Our translations are unofficial and for informational use. Some consulates accept informal translated copies alongside the original passport. Others require certified translations. Always confirm with the specific embassy or consulate what level of translation they require."
+        "a": "Acceptance depends on the requirements of the receiving embassy or consulate. Some consulates accept an Electronic translation alongside the original passport. Others require Translation with agent stamp or Notarized translation. Always confirm the required service level with the specific embassy or consulate."
       },
       {
         "q": "How are names handled in the translation?",
@@ -280,7 +280,7 @@
     "faq": [
       {
         "q": "Is your translation accepted for WES or other credential evaluations?",
-        "a": "WES (World Education Services) and most credential evaluation bodies require certified or notarized translations. WPO provides unofficial translations that can be used during preparation, by education consultants, or as input to a certified translation workflow. Verify official requirements before submitting."
+        "a": "WES (World Education Services) and most credential evaluation bodies require certified or notarized translations. WPO offers Translation with agent stamp (human-reviewed, with agent/provider stamp) and Notarized translation (partner process with a notary), which may meet these requirements depending on the body's specific criteria. Electronic translation can be used during preparation or by education consultants. Verify official requirements before submitting."
       },
       {
         "q": "Do you translate diploma supplements and grade explanations?",
@@ -296,7 +296,7 @@
       },
       {
         "q": "Can I use this for a professional licensing application?",
-        "a": "Many licensing boards require certified or notarized translations of foreign credentials. WPO provides unofficial translations for preparation and reference. Confirm certification requirements with your licensing board."
+        "a": "Many licensing boards require certified or notarized translations of foreign credentials. WPO offers Translation with agent stamp and Notarized translation that may meet these requirements depending on the board's specific criteria. Electronic translation is available for preparation and reference. Confirm the required service level with your licensing board."
       }
     ],
     "painSectionLabel": "WHY IT MATTERS",
@@ -344,7 +344,7 @@
       },
       {
         "q": "Will the translated statement be accepted by my consulate?",
-        "a": "Our translations are unofficial. Many consulates accept informal translations accompanying the original statement. Others require a certified translation. Verify the requirements with your specific consulate or visa agent."
+        "a": "Acceptance depends on the requirements of your consulate. Some consulates accept an Electronic translation alongside the original statement. Others require Translation with agent stamp or Notarized translation. Verify the required service level with your specific consulate or visa agent."
       },
       {
         "q": "Can you translate online banking screenshots or PDF exports?",

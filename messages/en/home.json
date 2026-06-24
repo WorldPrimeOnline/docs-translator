@@ -74,7 +74,7 @@
     "label": "FAQ",
     "title": "Frequently asked questions",
     "q1": "Is this translation accepted by consulates or universities?",
-    "a1": "Our translations are for informational use only. They are not certified or notarized. Always check with your institution whether an unofficial translation is sufficient.",
+    "a1": "WPO offers three service levels: Electronic translation (automated, without an agent/provider stamp or notarization), Translation with agent stamp (human-reviewed, with agent/provider stamp), and Notarized translation (partner process with a notary). Acceptance depends on the requirements of the receiving institution. Always confirm which service level is required before ordering.",
     "q2": "How long does it take?",
     "a2": "Most documents are translated in 2–5 minutes. Complex or long documents may take up to 10 minutes.",
     "q3": "What languages do you support?",
@@ -183,7 +183,7 @@
     "item4Title": "Delete on request",
     "item4Desc": "You can request immediate deletion from your dashboard at any time.",
     "disclaimer": "UNOFFICIAL TRANSLATION — FOR INFORMATIONAL PURPOSES ONLY",
-    "disclaimerSub": "Not certified or notarized. Always verify with the receiving institution."
+    "disclaimerSub": "Electronic translation does not include an agent/provider stamp or notarization. Always verify requirements with the receiving institution."
   },
   "useCases": {
     "label": "USE CASES",

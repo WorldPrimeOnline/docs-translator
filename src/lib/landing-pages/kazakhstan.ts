@@ -109,7 +109,7 @@ export const kazakhstanConfig: LandingPageConfig = {
       },
       {
         q: 'Is this translation accepted by foreign universities?',
-        a: 'Foreign universities typically require certified or notarized translations. WPO provides unofficial translations that can be used during the application preparation stage, for review by an education consultant, or as a reference draft for a certified translator. Always confirm official requirements with the target university.',
+        a: 'Foreign universities typically require certified or notarized translations. WPO offers Translation with agent stamp (human-reviewed, with agent/provider stamp) and Notarized translation (partner process with a notary) as service levels that may meet these requirements. Electronic translation can be used during the application preparation stage or for review by an education consultant. Always confirm the required service level with the target university.',
       },
       {
         q: 'Can notaries and visa agents use this service on behalf of clients?',
@@ -376,7 +376,7 @@ export const kazakhstanUniversityConfig: LandingPageConfig = {
       },
       {
         q: 'Can you translate documents for IELTS, TOEFL, or credential evaluation purposes?',
-        a: 'WPO translations are unofficial. They are not accepted by IELTS/TOEFL administrative bodies for formal score reporting. However, they can be used for your own preparation, for informal application review, or as input to a certified translation workflow.',
+        a: 'Electronic translation is not accepted by IELTS/TOEFL administrative bodies for formal score reporting. It can be used for your own preparation or informal application review. For formal submission, check whether Translation with agent stamp or Notarized translation meets the requirements of your evaluation body.',
       },
     ],
   },

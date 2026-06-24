@@ -99,7 +99,7 @@ export const passportTranslationConfig: LandingPageConfig = {
       },
       {
         q: 'Is the translation accepted for visa applications?',
-        a: 'Our translations are unofficial and for informational use. Some consulates accept informal translated copies alongside the original passport. Others require certified translations. Always confirm with the specific embassy or consulate what level of translation they require.',
+        a: 'Acceptance depends on the requirements of the receiving embassy or consulate. Some consulates accept an Electronic translation alongside the original passport. Others require Translation with agent stamp or Notarized translation. Always confirm the required service level with the specific embassy or consulate.',
       },
       {
         q: 'How are names handled in the translation?',
@@ -216,7 +216,7 @@ export const bankStatementTranslationConfig: LandingPageConfig = {
       },
       {
         q: 'Will the translated statement be accepted by my consulate?',
-        a: 'Our translations are unofficial. Many consulates accept informal translations accompanying the original statement. Others require a certified translation. Verify the requirements with your specific consulate or visa agent.',
+        a: 'Acceptance depends on the requirements of your consulate. Some consulates accept an Electronic translation alongside the original statement. Others require Translation with agent stamp or Notarized translation. Verify the required service level with your specific consulate or visa agent.',
       },
       {
         q: 'Can you translate online banking screenshots or PDF exports?',
@@ -319,7 +319,7 @@ export const diplomaTranslationConfig: LandingPageConfig = {
     items: [
       {
         q: 'Is your translation accepted for WES or other credential evaluations?',
-        a: 'WES (World Education Services) and most credential evaluation bodies require certified or notarized translations. WPO provides unofficial translations that can be used during preparation, by education consultants, or as input to a certified translation workflow. Verify official requirements before submitting.',
+        a: 'WES (World Education Services) and most credential evaluation bodies require certified or notarized translations. WPO offers Translation with agent stamp and Notarized translation, which may meet these requirements depending on the body\'s specific criteria. Electronic translation can be used during preparation or by education consultants. Verify official requirements before submitting.',
       },
       {
         q: 'Do you translate diploma supplements and grade explanations?',
@@ -335,7 +335,7 @@ export const diplomaTranslationConfig: LandingPageConfig = {
       },
       {
         q: 'Can I use this for a professional licensing application?',
-        a: 'Many licensing boards require certified or notarized translations of foreign credentials. WPO provides unofficial translations for preparation and reference. Confirm certification requirements with your licensing board.',
+        a: 'Many licensing boards require certified or notarized translations of foreign credentials. WPO offers Translation with agent stamp and Notarized translation that may meet these requirements depending on the board\'s criteria. Electronic translation is available for preparation and reference. Confirm the required service level with your licensing board.',
       },
     ],
   },
@@ -417,7 +417,7 @@ export const documentsHubConfig: LandingPageConfig = {
       },
       {
         q: 'Are your translations certified or notarized?',
-        a: 'No. All translations are unofficial and for informational use only. A visible disclaimer appears on every translated page. Certified or notarized translations must be obtained from a licensed translator or notary.',
+        a: 'WPO offers three service levels. Electronic translation is processed automatically and does not include an agent/provider stamp or notarization. Translation with agent stamp includes human review and an agent/provider stamp. Notarized translation is available as a partner process with a notary. The availability and suitability of each service level depends on the requirements of the receiving organization.',
       },
     ],
   },

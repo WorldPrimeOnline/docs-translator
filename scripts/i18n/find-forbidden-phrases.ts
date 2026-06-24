@@ -19,6 +19,7 @@ const SCAN_DIRS = [
   path.join(ROOT, 'src/app'),
   path.join(ROOT, 'src/components'),
   path.join(ROOT, 'src/lib/legal'),
+  path.join(ROOT, 'src/lib/landing-pages'),
 ];
 
 const SCAN_EXTENSIONS = new Set(['.json', '.tsx', '.ts', '.mdx', '.md']);
@@ -40,6 +41,30 @@ const FORBIDDEN: Array<[string, RegExp]> = [
   ['гарантируем принятие',             /гарантируем\s+принятие/i],
   ['guaranteed to be accepted',        /guaranteed\s+to\s+be\s+accepted/i],
   ['notarization automatically',       /notarizati\w+\s+automatically/i],
+
+  // ── NEW: phrases that falsely describe ALL WPO translations as not certified/notarized ──
+  // English patterns
+  ['not certified or notarized',              /not certified or notarized/i],
+  ['not certified, notarized, sworn',         /not certified,\s*notarized,\s*sworn/i],
+  ['all translations are unofficial',         /all translations are unofficial/i],
+  ['WPO provides unofficial translations',    /WPO provides unofficial translations/i],
+  ['our translations are unofficial',         /our translations are unofficial/i],
+  ['translations are unofficial and for info',/translations are unofficial and for informational/i],
+  ['WPO translations are unofficial',         /WPO translations are unofficial/i],
+  ['not an official translation',             /not an official translation/i],
+
+  // Russian patterns
+  ['не является нотариально',   /не является нотариально/i],
+  ['не является нотариальным',  /не является нотариальным/i],
+  ['не нотариальн',             /не нотариальн/i],
+  ['не является заверенным',    /не является заверенным/i],
+  ['не сертифицировано',        /не сертифицировано/i],
+  ['не заверенный перевод',     /не заверенный перевод/i],
+
+  // Kazakh patterns
+  ['барлық аудармалар бейресми', /[Бб]арлық аудармалар бейресми/],
+  ['аудармаларымыз бейресми',    /[Аа]удармаларымыз бейресми/],
+  ['куәландырылмаған және нотариалды расталмаған', /куәландырылмаған және нотариалды расталмаған/],
 ];
 
 let found = 0;
