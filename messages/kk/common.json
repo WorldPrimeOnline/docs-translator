@@ -1,22 +1,28 @@
 {
   "disclaimer": "РЕСМИ ЕМЕС АУДАРМА — ТЕК АҚПАРАТТЫҚ МАҚСАТТА",
   "contactsPage": {
-    "title": "Contacts",
-    "metaTitle": "Contact WPO Translations",
-    "metaDescription": "Provider contact details for WPO Translations. For disputes, refund requests, and data deletion inquiries.",
-    "providerHeading": "Service Provider",
-    "disputesNote": "For disputes, refund requests, and data deletion requests, use the contact details below.",
-    "legalNameLabel": "Legal name",
-    "iinBinLabel": "IIN / BIN",
-    "addressLabel": "Legal / Postal address",
-    "phoneLabel": "Phone",
+    "title": "Байланыс",
+    "metaTitle": "WPO Translations байланыс",
+    "metaDescription": "WPO Translations провайдерінің байланыс мәліметтері. Даулар, ақша қайтару және деректерді жою мәселелері бойынша.",
+    "providerHeading": "Қызмет провайдері",
+    "disputesNote": "Даулар, ақша қайтару және деректерді жою мәселелері бойынша төмендегі байланыс деректерін пайдаланыңыз.",
+    "legalNameLabel": "Заңды атауы",
+    "iinBinLabel": "ЖСН / БСН",
+    "addressLabel": "Заңды / пошталық мекенжай",
+    "phoneLabel": "Телефон",
     "emailLabel": "Email",
-    "websiteLabel": "Website"
+    "websiteLabel": "Веб-сайт"
   },
   "mockup": {
     "statusReady": "Дайын",
     "translationReady": "Аударма дайын",
     "pdfGenerated": "PDF жасалды · жүктеуге дайын",
-    "download": "Жүктеу"
+    "download": "Жүктеу",
+    "processingPipeline": "Өңдеу процесі",
+    "ocrExtract": "OCR",
+    "aiTranslate": "ЖИ-аударма",
+    "pdfGenerate": "PDF",
+    "langRu": "Орысша",
+    "langEn": "Ағылшынша"
   }
 }

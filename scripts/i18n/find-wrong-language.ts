@@ -12,7 +12,7 @@ import fs from 'fs';
 import path from 'path';
 
 const ROOT = path.resolve(__dirname, '../..');
-const ENABLED_LOCALES = ['ru', 'en', 'kk'];
+const ENABLED_LOCALES = ['ru', 'en', 'kk', 'uz', 'ky'];
 
 // Russian phrases that are NOT legitimate Kazakh Cyrillic — they're Russian words
 const KK_FORBIDDEN_RUSSIAN_PHRASES = [
@@ -122,6 +122,76 @@ function checkFile(filePath: string, locale: string, ns: string): void {
       }
     }
 
+    // UZ: forbidden Russian fallback phrases
+    if (locale === 'uz') {
+      const UZ_FORBIDDEN_RUSSIAN = [
+        'Цены', 'Документы', 'Начать перевод', 'Электронный перевод',
+        'Нотариальное', 'Поддерживаемые', 'Банковская выписка',
+        'Стоимость перевода', 'Почему это важно', 'Финансовые документы',
+        'Академические документы',
+      ];
+      const UZ_FORBIDDEN_ENGLISH = [
+        'Simple pricing', 'per document', 'How it works', 'Use cases',
+        'Supported document types', 'WHY WPO', 'HOW IT WORKS',
+        'PRIVACY AND SECURITY', 'SUPPORTED DOCUMENTS', 'FINANCIAL DOCUMENTS',
+        'ACADEMIC DOCUMENTS', 'DOCUMENTS FOR NOTARY PROCESS',
+        'Upload document', 'Awaiting payment', 'Payment is being verified',
+        'Card payments are processed', 'Accepted payment methods',
+        'Cancellation & Refund', 'Reprocessing & Correction',
+        'Pay {amount}', 'Payment successful', 'Payment not completed',
+        'Go to Dashboard', 'Translation Service Levels',
+        'When you use WPO Translations, we collect',
+      ];
+      for (const phrase of UZ_FORBIDDEN_RUSSIAN) {
+        if (line.includes(phrase)) {
+          fail(rel, ln, `Russian fallback in UZ locale: "${phrase}"`);
+        }
+      }
+      for (const phrase of UZ_FORBIDDEN_ENGLISH) {
+        if (line.includes(phrase)) {
+          fail(rel, ln, `English fallback in UZ locale: "${phrase}"`);
+        }
+      }
+    }
+
+    // KY: forbidden Russian/English fallback phrases
+    if (locale === 'ky') {
+      const KY_FORBIDDEN_RUSSIAN = [
+        'Цены', 'Документы', 'Начать перевод', 'Электронный перевод',
+        'Нотариальное', 'Поддерживаемые', 'Банковская выписка',
+        'Стоимость перевода', 'Почему это важно', 'Финансовые документы',
+        'Академические документы',
+      ];
+      const KY_FORBIDDEN_ENGLISH = [
+        'Simple pricing', 'per document', 'How it works', 'Use cases',
+        'Supported document types', 'WHY WPO', 'HOW IT WORKS',
+        'PRIVACY AND SECURITY', 'SUPPORTED DOCUMENTS', 'FINANCIAL DOCUMENTS',
+        'ACADEMIC DOCUMENTS', 'DOCUMENTS FOR NOTARY PROCESS',
+        'Upload document', 'Awaiting payment', 'Payment is being verified',
+        'Card payments are processed', 'Accepted payment methods',
+        'Cancellation & Refund', 'Reprocessing & Correction',
+        'Pay {amount}', 'Payment successful', 'Payment not completed',
+        'Go to Dashboard', 'Translation Service Levels',
+        'When you use WPO Translations, we collect',
+      ];
+      const OLD_KY_PRICES = ['2 290 ₸', '2 590 ₸', '4 990 ₸', '12 990 ₸'];
+      for (const phrase of KY_FORBIDDEN_RUSSIAN) {
+        if (line.includes(phrase)) {
+          fail(rel, ln, `Russian fallback in KY locale: "${phrase}"`);
+        }
+      }
+      for (const phrase of KY_FORBIDDEN_ENGLISH) {
+        if (line.includes(phrase)) {
+          fail(rel, ln, `English fallback in KY locale: "${phrase}"`);
+        }
+      }
+      if (PRICE_SENSITIVE_NAMESPACES.has(ns)) {
+        for (const p of OLD_KY_PRICES) {
+          if (line.includes(p)) fail(rel, ln, `Old price "${p}" in KY locale — update to 1 000 ₸ баштап`);
+        }
+      }
+    }
+
     // Old prices in price-sensitive namespaces
     if (PRICE_SENSITIVE_NAMESPACES.has(ns)) {
       for (const oldPrice of OLD_PRICE_PATTERNS) {
@@ -141,6 +211,11 @@ function checkFile(filePath: string, locale: string, ns: string): void {
       } else if (locale === 'kk') {
         for (const p of OLD_ELECTRONIC_PRICE_PATTERNS_KK) {
           if (line.includes(p)) fail(rel, ln, `Old electronic price "${p}" — update to 1 000 ₸ бастап`);
+        }
+      } else if (locale === 'uz') {
+        const OLD_UZ_PRICES = ['2 290 ₸', '2 590 ₸', '4 990 ₸', '12 990 ₸'];
+        for (const p of OLD_UZ_PRICES) {
+          if (line.includes(p)) fail(rel, ln, `Old price "${p}" in UZ locale — update to 1 000 ₸ dan`);
         }
       }
       // Subscription/monthly labels in pricing namespaces

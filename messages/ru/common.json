@@ -4,7 +4,13 @@
     "statusReady": "Готово",
     "translationReady": "Перевод готов",
     "pdfGenerated": "PDF создан · готов к скачиванию",
-    "download": "Скачать"
+    "download": "Скачать",
+    "processingPipeline": "Процесс обработки",
+    "ocrExtract": "OCR",
+    "aiTranslate": "ИИ-перевод",
+    "pdfGenerate": "PDF",
+    "langRu": "Русский",
+    "langEn": "Английский"
   },
   "contactsPage": {
     "title": "Контакты",

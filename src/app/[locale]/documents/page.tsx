@@ -52,15 +52,15 @@ export default async function DocumentsHubPage({
   const faqItems = (tHub.raw('faq') as Array<{ q: string; a: string }>);
 
   const DOCUMENT_LINKS = [
-    { icon: IdCard,       name: t('documents.passport'), href: '/documents/passport-translation',    price: '2 290 ₸' },
-    { icon: Landmark,     name: t('documents.bank'),     href: '/documents/bank-statement-translation', price: '2 590 ₸' },
-    { icon: GraduationCap,name: t('documents.diploma'),  href: '/documents/diploma-translation',     price: '2 590 ₸' },
-    { icon: FileHeart,    name: t('documents.birth'),    href: '/auth/signup',                       price: '2 590 ₸' },
-    { icon: Briefcase,    name: t('documents.employment'),href: '/auth/signup',                      price: '2 590 ₸' },
-    { icon: HeartPulse,   name: t('documents.medical'),  href: '/auth/signup',                       price: '2 590 ₸' },
-    { icon: Shield,       name: t('documents.police'),   href: '/auth/signup',                       price: '2 590 ₸' },
-    { icon: Car,          name: t('documents.driver'),   href: '/auth/signup',                       price: '2 290 ₸' },
-    { icon: FileText,     name: t('documents.otherOfficial'), href: '/auth/signup',                  price: '2 590 ₸' },
+    { icon: IdCard,       name: t('documents.passport'), href: '/documents/passport-translation' },
+    { icon: Landmark,     name: t('documents.bank'),     href: '/documents/bank-statement-translation' },
+    { icon: GraduationCap,name: t('documents.diploma'),  href: '/documents/diploma-translation' },
+    { icon: FileHeart,    name: t('documents.birth'),    href: '/auth/signup' },
+    { icon: Briefcase,    name: t('documents.employment'),href: '/auth/signup' },
+    { icon: HeartPulse,   name: t('documents.medical'),  href: '/auth/signup' },
+    { icon: Shield,       name: t('documents.police'),   href: '/auth/signup' },
+    { icon: Car,          name: t('documents.driver'),   href: '/auth/signup' },
+    { icon: FileText,     name: t('documents.otherOfficial'), href: '/auth/signup' },
   ];
 
   return (
@@ -85,19 +85,16 @@ export default async function DocumentsHubPage({
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {DOCUMENT_LINKS.map(({ icon: Icon, name, href, price }) => (
+            {DOCUMENT_LINKS.map(({ icon: Icon, name, href }) => (
               <Link
                 key={name}
                 href={href}
-                className="flex items-center justify-between rounded-lg border border-white/8 bg-card p-4 transition-colors hover:border-white/20 hover:bg-card/80"
+                className="flex items-center gap-3 rounded-lg border border-white/8 bg-card p-4 transition-colors hover:border-white/20 hover:bg-card/80"
               >
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/10">
-                    <Icon className="h-4 w-4 text-primary" />
-                  </div>
-                  <span className="text-sm font-medium text-foreground">{name}</span>
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                  <Icon className="h-4 w-4 text-primary" />
                 </div>
-                <span className="ml-2 shrink-0 text-xs font-semibold text-primary">{price}</span>
+                <span className="text-sm font-medium text-foreground">{name}</span>
               </Link>
             ))}
           </div>

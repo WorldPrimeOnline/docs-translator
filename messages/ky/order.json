@@ -31,11 +31,11 @@
     "basicPlan": "Негизги план",
     "proPlan": "Про план",
     "jobTitle": "Котормо уланууда",
-    "subBannerTitle": "Жазылуу менен тезирээк которуңуз",
-    "subBannerDesc": "4 990 ₸/айдан — 10 документ, ар бир документ үчүн төлөмсүз",
+    "subBannerTitle": "Документ котормосун буйрутуңуз",
+    "subBannerDesc": "Электрондук котормо — 1 000 ₸ баштап. Акыркы баа жүктөлгөндөн кийин.",
     "usingPlanSub": "{plan} планыңыз колдонулууда · {remaining} документ калды — төлөм талап кылынбайт",
     "status": {
-      "paymentPending": "Awaiting payment",
+      "paymentPending": "Төлөм күтүүдө",
       "queued": "Кезекте — башталышын күтүүдө…",
       "ocr": "Текст чыгарылууда… ({pct}%)",
       "ocrDone": "OCR аяктады, котормо башталууда… ({pct}%)",
@@ -138,7 +138,7 @@
         "after_noon": "Ошол күнү 12:00дөн кийин (+50%)",
         "after_18": "18:00дөн кийин түнкү тариздөө (×2)",
         "notaryCutoffPassed": "Нотариалдык мөөнөт өттү — баа жараксыз. Жаңа эсеп алуу үчүн кайра жүктөңүз.",
-        "standardHint": "Standard notarization is completed on the next business day for documents uploaded and paid after 12:00 Almaty time. If uploaded before 12:00, same-day completion may be possible subject to translator/notary availability."
+        "standardHint": "Стандарттуу нотариалдык тариздөө документ Алматы убактысы боюнча 12:00дөн кийин жүктөлүп, төлөнгөн болсо, кийинки жумуш күнү аяктайт. 12:00гө чейин жүктөлсө, котормочу/нотариустун жеткиликтүүлүгүнө жараша ошол күнү аяктоо мүмкүн."
       }
     },
     "inReview": "Каралуда",
@@ -175,8 +175,8 @@
       "serviceCertified": "Күбөлөндүрүлгөн",
       "serviceNotarized": "Нотариалдык"
     },
-    "uploadAndPay": "Upload & Pay by card",
-    "uploadedPaymentPending": "File uploaded — pay {price} to start translation",
+    "uploadAndPay": "Жүктөп карта менен төлөңүз",
+    "uploadedPaymentPending": "Файл жүктөлдү — которууну баштоо үчүн {price} төлөңүз",
     "errors": {
       "serverError": "Сервер катасы. Кайра аракет кылыңыз.",
       "uploadFailed": "Жүктөө катасы",
@@ -185,20 +185,20 @@
       "pleaseSelectFile": "Жок дегенде бир файл тандаңыз",
       "failedTermsAcceptance": "Шарттарды кабыл алууну сактоо ийгиликсиз аяктады."
     },
-    "uploadDocument": "Upload document",
-    "uploadedQuoteReady": "Document uploaded — price: {price} KZT. Confirm payment below.",
-    "uploadedRequiresReview": "Document uploaded. The price will be confirmed by our operator.",
-    "quoteReady": "Price confirmed",
-    "quoteValidUntil": "Valid until {date}",
-    "quoteRequiresReview": "Price is being confirmed by an operator. We will notify you.",
-    "quoteExpired": "Quote expired",
-    "quoteRecalculate": "Recalculate",
-    "quoteCalculating": "Calculating price...",
-    "quoteRecalculating": "Refreshing order status...",
-    "priceHint": "The exact price is calculated after document upload and analysis.",
-    "priceHintElectronic": "Electronic translation — from ₸1,000. Final price after upload.",
-    "priceHintOfficial": "Official translation — from 5 500 ₸. Final price after upload.",
-    "priceHintNotarized": "Notarized translation — from 11 000 ₸. Final price after upload.",
+    "uploadDocument": "Документти жүктөңүз",
+    "uploadedQuoteReady": "Документ жүктөлдү — баасы: {price} ₸. Төмөндө төлөмдү ырастаңыз.",
+    "uploadedRequiresReview": "Документ жүктөлдү. Баасы оператор тарабынан ырасталат.",
+    "quoteReady": "Баа ырасталды",
+    "quoteValidUntil": "{date}чейин жарактуу",
+    "quoteRequiresReview": "Баа оператор тарабынан ырасталууда. Биз сизге кабарлайбыз.",
+    "quoteExpired": "Баа жараксыз болуп калды",
+    "quoteRecalculate": "Кайра эсептөө",
+    "quoteCalculating": "Баа эсептелүүдө...",
+    "quoteRecalculating": "Буйрутма абалы жаңыртылууда...",
+    "priceHint": "Так баа документти жүктөп, анализдегенден кийин эсептелет.",
+    "priceHintElectronic": "Электрондук котормо — 1 000 ₸ баштап. Жүктөгөндөн кийин акыркы баа.",
+    "priceHintOfficial": "Расмий котормо — 5 500 ₸ баштап. Жүктөгөндөн кийин акыркы баа.",
+    "priceHintNotarized": "Нотариалдык котормо — 11 000 ₸ баштап. Жүктөгөндөн кийин акыркы баа.",
     "urgency": {
       "label": "ШАШЫЛЫШТУУЛУК",
       "standard": "Стандарт",
@@ -227,10 +227,10 @@
       "many_stamps": "Көп мөөр/штамп (+1 000 ₸)"
     },
     "customerComment": {
-      "label": "ORDER COMMENT",
-      "placeholder": "E.g.: specify formatting requirements, target authority, desired deadline, or other preferences."
+      "label": "БУЙРУТМАГА КОММЕНТАРИЙ",
+      "placeholder": "Мис.: форматтоо талаптарын, максаттуу органды, каалаган мөөнөттү же башка каалоолорду белгилеңиз."
     },
-    "paymentPendingTitle": "Payment is being verified",
-    "paymentPendingDesc": "If money was charged, do not pay again. We will update the status automatically."
+    "paymentPendingTitle": "Төлөм текшерилүүдө",
+    "paymentPendingDesc": "Эгер акча алынып салынган болсо, кайра төлөбөңүз. Биз абалды автоматтык түрдө жаңыртабыз."
   }
 }

@@ -18,12 +18,12 @@
     "signedIn": "Tizimga kirgan:",
     "logout": "Chiqish",
     "usingPlan": "{plan} rejangizdan foydalanilmoqda · {remaining} hujjat qoldi — to'lov talab qilinmaydi",
-    "limitReached": "Oylik limit tugadi. Yangilang yoki hujjat uchun to'lang.",
-    "upgradeToPro": "Pro ga yangilash",
-    "viewPlans": "Rejalarni ko'rish",
+    "limitReached": "Obuna hujjatlari tugadi. Keyingi hujjatni alohida to'lang.",
+    "upgradeToPro": "Alohida to'lash",
+    "viewPlans": "Tarif rejalarini ko'rish",
     "docsUsed": "Ishlatilgan hujjatlar",
     "expires": "Muddati tugaydi",
-    "allDocsUsed": "Shu oy barcha {n} ta hujjat ishlatildi.",
+    "allDocsUsed": "Obuna bo'yicha barcha {n} ta hujjat ishlatildi.",
     "docsRemaining": "{n} ta hujjat qoldi",
     "noTranslations": "Hali tarjimalar yo'q.",
     "noTranslationsHint": "Boshlash uchun yuqorida birinchi hujjatingizni yuklang.",
@@ -31,11 +31,11 @@
     "basicPlan": "Asosiy reja",
     "proPlan": "Pro reja",
     "jobTitle": "Tarjima davom etmoqda",
-    "subBannerTitle": "Obuna bilan tezroq tarjima qiling",
-    "subBannerDesc": "4 990 ₸/oy dan — 10 ta hujjat, har bir hujjat uchun to'lovsiz",
+    "subBannerTitle": "Hujjat uchun to'lov",
+    "subBannerDesc": "1 000 ₸ dan bir hujjat uchun — obunasiз",
     "usingPlanSub": "{plan} rejangizdan foydalanilmoqda · {remaining} ta hujjat qoldi — to'lov talab qilinmaydi",
     "status": {
-      "paymentPending": "Awaiting payment",
+      "paymentPending": "To'lov kutilmoqda",
       "queued": "Navbatda — boshlanishini kutmoqda…",
       "ocr": "Matn ajratilmoqda… ({pct}%)",
       "ocrDone": "OCR tugadi, tarjima boshlanmoqda… ({pct}%)",
@@ -138,7 +138,7 @@
         "after_noon": "Shu kuni 12:00 dan keyin (+50%)",
         "after_18": "18:00 dan keyin tungi tasdiqlash (×2)",
         "notaryCutoffPassed": "Notarial muddat o'tdi — narx amal qilmaydi. Yangi narx olish uchun qayta yuklang.",
-        "standardHint": "Standard notarization is completed on the next business day for documents uploaded and paid after 12:00 Almaty time. If uploaded before 12:00, same-day completion may be possible subject to translator/notary availability."
+        "standardHint": "Standart notarial tasdiqlash Olmaota vaqti bilan 12:00 dan keyin yuklangan va to'langan hujjatlar uchun keyingi ish kunida yakunlanadi. 12:00 gacha yuklansa, tarjimon va notarius mavjudligiga qarab shu kuni bajarilishi mumkin."
       }
     },
     "inReview": "Ko'rib chiqilmoqda",
@@ -175,8 +175,8 @@
       "serviceCertified": "Tasdiqlangan",
       "serviceNotarized": "Notarial"
     },
-    "uploadAndPay": "Upload & Pay by card",
-    "uploadedPaymentPending": "File uploaded — pay {price} to start translation",
+    "uploadAndPay": "Yuklash va karta orqali to'lash",
+    "uploadedPaymentPending": "Fayl yuklandi — tarjimani boshlash uchun {price} to'lang",
     "errors": {
       "serverError": "Server xatosi. Iltimos, qayta urinib ko'ring.",
       "uploadFailed": "Yuklash xatosi",
@@ -185,20 +185,20 @@
       "pleaseSelectFile": "Kamida bitta fayl tanlang",
       "failedTermsAcceptance": "Shartlarni qabul qilishni saqlash muvaffaqiyatsiz tugadi."
     },
-    "uploadDocument": "Upload document",
-    "uploadedQuoteReady": "Document uploaded — price: {price} KZT. Confirm payment below.",
-    "uploadedRequiresReview": "Document uploaded. The price will be confirmed by our operator.",
-    "quoteReady": "Price confirmed",
-    "quoteValidUntil": "Valid until {date}",
-    "quoteRequiresReview": "Price is being confirmed by an operator. We will notify you.",
-    "quoteExpired": "Quote expired",
-    "quoteRecalculate": "Recalculate",
-    "quoteCalculating": "Calculating price...",
-    "quoteRecalculating": "Refreshing order status...",
-    "priceHint": "The exact price is calculated after document upload and analysis.",
-    "priceHintElectronic": "Electronic translation — from ₸1,000. Final price after upload.",
-    "priceHintOfficial": "Official translation — from 5 500 ₸. Final price after upload.",
-    "priceHintNotarized": "Notarized translation — from 11 000 ₸. Final price after upload.",
+    "uploadDocument": "Hujjat yuklash",
+    "uploadedQuoteReady": "Hujjat yuklandi — narx: {price} ₸. Quyida to'lovni tasdiqlang.",
+    "uploadedRequiresReview": "Hujjat yuklandi. Narx operatorimiz tomonidan tasdiqlanadi.",
+    "quoteReady": "Narx tasdiqlandi",
+    "quoteValidUntil": "{date} gacha amal qiladi",
+    "quoteRequiresReview": "Narx operator tomonidan tasdiqlanmoqda. Siz bilan bog'lanamiz.",
+    "quoteExpired": "Narx muddati o'tdi",
+    "quoteRecalculate": "Qayta hisoblash",
+    "quoteCalculating": "Narx hisoblanmoqda...",
+    "quoteRecalculating": "Buyurtma holati yangilanmoqda...",
+    "priceHint": "Aniq narx hujjat yuklanganidan va tahlil qilinganidan so'ng hisoblanadi.",
+    "priceHintElectronic": "Elektron tarjima — 1 000 ₸ dan. Yakuniy narx yuklanganidan so'ng.",
+    "priceHintOfficial": "Rasmiy tarjima — 5 500 ₸ dan. Yakuniy narx yuklanganidan so'ng.",
+    "priceHintNotarized": "Notarial tasdiqlangan tarjima — 11 000 ₸ dan. Yakuniy narx yuklanganidan so'ng.",
     "urgency": {
       "label": "SHOSHILINCHLIK",
       "standard": "Standart",
@@ -227,10 +227,10 @@
       "many_stamps": "Ko'p muhr/tamg'a (+1 000 ₸)"
     },
     "customerComment": {
-      "label": "ORDER COMMENT",
-      "placeholder": "E.g.: specify formatting requirements, target authority, desired deadline, or other preferences."
+      "label": "BUYURTMA IZOHI",
+      "placeholder": "Masalan: formatlash talablari, maqsadli muassasa, kerakli muddat yoki boshqa afzalliklarni ko'rsating."
     },
-    "paymentPendingTitle": "Payment is being verified",
-    "paymentPendingDesc": "If money was charged, do not pay again. We will update the status automatically."
+    "paymentPendingTitle": "To'lov tekshirilmoqda",
+    "paymentPendingDesc": "Agar mablag' yechilgan bo'lsa, qayta to'lamang. Holatni avtomatik yangilaymiz."
   }
 }

@@ -17,6 +17,12 @@
     "statusReady": "Ready",
     "translationReady": "Translation ready",
     "pdfGenerated": "PDF generated · ready to download",
-    "download": "Download"
+    "download": "Download",
+    "processingPipeline": "Processing pipeline",
+    "ocrExtract": "OCR Extract",
+    "aiTranslate": "AI Translate",
+    "pdfGenerate": "PDF Generate",
+    "langRu": "Russian",
+    "langEn": "English"
   }
 }

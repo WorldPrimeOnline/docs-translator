@@ -1,22 +1,28 @@
 {
   "disclaimer": "ТАРҶУМАИ РАСМӢ НЕ — ТАНҲО БАРОИ ИТТИЛООТ",
   "contactsPage": {
-    "title": "Contacts",
-    "metaTitle": "Contact WPO Translations",
-    "metaDescription": "Provider contact details for WPO Translations. For disputes, refund requests, and data deletion inquiries.",
-    "providerHeading": "Service Provider",
-    "disputesNote": "For disputes, refund requests, and data deletion requests, use the contact details below.",
-    "legalNameLabel": "Legal name",
+    "title": "Тамос",
+    "metaTitle": "Тамос бо WPO Translations",
+    "metaDescription": "Маълумоти тамос бо провайдери WPO Translations. Барои баҳсҳо, бозгашт ва нест кардани маълумот.",
+    "providerHeading": "Провайдери хизматрасонӣ",
+    "disputesNote": "Барои баҳсҳо, бозгашт ва нест кардани маълумот, маълумоти тамоси зеринро истифода баред.",
+    "legalNameLabel": "Номи ҳуқуқӣ",
     "iinBinLabel": "IIN / BIN",
-    "addressLabel": "Legal / Postal address",
-    "phoneLabel": "Phone",
+    "addressLabel": "Суроғаи ҳуқуқӣ / почтавӣ",
+    "phoneLabel": "Телефон",
     "emailLabel": "Email",
-    "websiteLabel": "Website"
+    "websiteLabel": "Вебсайт"
   },
   "mockup": {
-    "statusReady": "Ready",
-    "translationReady": "Translation ready",
-    "pdfGenerated": "PDF generated · ready to download",
-    "download": "Download"
+    "statusReady": "Омода",
+    "translationReady": "Тарҷума омода аст",
+    "pdfGenerated": "PDF сохта шуд · барои зеркашӣ омода",
+    "download": "Зеркашӣ",
+    "processingPipeline": "Раванди коркард",
+    "ocrExtract": "OCR",
+    "aiTranslate": "Тарҷумаи AI",
+    "pdfGenerate": "PDF",
+    "langRu": "Русӣ",
+    "langEn": "Англисӣ"
   }
 }

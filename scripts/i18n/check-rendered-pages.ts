@@ -178,7 +178,7 @@ async function checkPage(locale: string, route: string): Promise<PageResult> {
     }
   }
 
-  if (locale === 'ru' || locale === 'kk') {
+  if (locale === 'ru' || locale === 'kk' || locale === 'uz' || locale === 'ky') {
     for (const phrase of EN_PHRASES_BANNED_ON_RU_KK) {
       if (!isAllowlisted(phrase) && text.includes(phrase)) {
         result.errors.push(`ENGLISH ON ${locale.toUpperCase()}: "${phrase}"`);
@@ -198,7 +198,7 @@ async function checkPage(locale: string, route: string): Promise<PageResult> {
 }
 
 async function main() {
-  const locales = ['ru', 'en', 'kk'];
+  const locales = ['ru', 'en', 'kk', 'uz', 'ky'];
   const allResults: PageResult[] = [];
 
   console.log(`\nWPO i18n Rendered-Page Audit`);

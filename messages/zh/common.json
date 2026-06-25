@@ -1,22 +1,28 @@
 {
   "disclaimer": "非官方翻译——仅供参考",
   "contactsPage": {
-    "title": "Contacts",
-    "metaTitle": "Contact WPO Translations",
-    "metaDescription": "Provider contact details for WPO Translations. For disputes, refund requests, and data deletion inquiries.",
-    "providerHeading": "Service Provider",
-    "disputesNote": "For disputes, refund requests, and data deletion requests, use the contact details below.",
-    "legalNameLabel": "Legal name",
+    "title": "联系方式",
+    "metaTitle": "联系 WPO Translations",
+    "metaDescription": "WPO Translations 服务提供商联系方式。用于争议、退款及数据删除请求。",
+    "providerHeading": "服务提供商",
+    "disputesNote": "如需提交争议、退款或数据删除请求，请使用以下联系方式。",
+    "legalNameLabel": "法定名称",
     "iinBinLabel": "IIN / BIN",
-    "addressLabel": "Legal / Postal address",
-    "phoneLabel": "Phone",
-    "emailLabel": "Email",
-    "websiteLabel": "Website"
+    "addressLabel": "法定/邮政地址",
+    "phoneLabel": "电话",
+    "emailLabel": "电子邮件",
+    "websiteLabel": "网站"
   },
   "mockup": {
-    "statusReady": "Ready",
-    "translationReady": "Translation ready",
-    "pdfGenerated": "PDF generated · ready to download",
-    "download": "Download"
+    "statusReady": "就绪",
+    "translationReady": "翻译已完成",
+    "pdfGenerated": "PDF 已生成 · 可下载",
+    "download": "下载",
+    "processingPipeline": "处理流程",
+    "ocrExtract": "OCR识别",
+    "aiTranslate": "AI翻译",
+    "pdfGenerate": "PDF生成",
+    "langRu": "俄语",
+    "langEn": "英语"
   }
 }

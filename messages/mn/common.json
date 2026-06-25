@@ -1,22 +1,28 @@
 {
   "disclaimer": "АЛБАН БУС ОРЧУУЛГА — ЗӨВХӨН МЭДЭЭЛЛИЙН ЗОРИУЛАЛТТАЙ",
   "contactsPage": {
-    "title": "Contacts",
-    "metaTitle": "Contact WPO Translations",
-    "metaDescription": "Provider contact details for WPO Translations. For disputes, refund requests, and data deletion inquiries.",
-    "providerHeading": "Service Provider",
-    "disputesNote": "For disputes, refund requests, and data deletion requests, use the contact details below.",
-    "legalNameLabel": "Legal name",
+    "title": "Холбоо барих",
+    "metaTitle": "WPO Translations холбоо барих",
+    "metaDescription": "WPO Translations үйлчилгээ үзүүлэгчийн холбоо барих мэдээлэл. Маргаан, буцаалт, өгөгдөл устгах хүсэлт.",
+    "providerHeading": "Үйлчилгээ үзүүлэгч",
+    "disputesNote": "Маргаан, буцаалт, өгөгдөл устгах хүсэлтийн тухайд доорх холбоо барих мэдээллийг ашиглана уу.",
+    "legalNameLabel": "Хуулийн нэр",
     "iinBinLabel": "IIN / BIN",
-    "addressLabel": "Legal / Postal address",
-    "phoneLabel": "Phone",
-    "emailLabel": "Email",
-    "websiteLabel": "Website"
+    "addressLabel": "Хуулийн / шуудангийн хаяг",
+    "phoneLabel": "Утас",
+    "emailLabel": "Имэйл",
+    "websiteLabel": "Веб сайт"
   },
   "mockup": {
-    "statusReady": "Ready",
-    "translationReady": "Translation ready",
-    "pdfGenerated": "PDF generated · ready to download",
-    "download": "Download"
+    "statusReady": "Бэлэн",
+    "translationReady": "Орчуулга бэлэн болсон",
+    "pdfGenerated": "PDF үүсгэгдсэн · татаж авах боломжтой",
+    "download": "Татаж авах",
+    "processingPipeline": "Боловсруулалтын дараалал",
+    "ocrExtract": "OCR",
+    "aiTranslate": "AI орчуулга",
+    "pdfGenerate": "PDF",
+    "langRu": "Орос",
+    "langEn": "Англи"
   }
 }
