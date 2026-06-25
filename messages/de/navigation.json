@@ -1,0 +1,20 @@
+{
+  "nav": {
+    "login": "Anmelden",
+    "dashboard": "Mein Konto",
+    "signup": "Registrieren",
+    "getStarted": "Loslegen",
+    "kazakhstan": "Kasachstan",
+    "documents": "Dokumente",
+    "kazakhstanOverview": "Kasachstan — Überblick",
+    "translationForNotary": "Übersetzung für den Notar",
+    "universityDocs": "Universitätsdokumente",
+    "allDocTypes": "Alle Dokumenttypen",
+    "passportTranslation": "Reisepassübersetzung",
+    "bankStatement": "Kontoauszug",
+    "diplomaTranslation": "Diplomübersetzung",
+    "certifiedTranslation": "Übersetzung mit Agenturstempel",
+    "switchLanguage": "Sprache wechseln",
+    "toggleMenu": "Menü öffnen/schließen"
+  }
+}

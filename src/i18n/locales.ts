@@ -13,13 +13,15 @@ export const LOCALES: LocaleDefinition[] = [
   { code: 'ru', label: 'Russian',    nativeLabel: 'Русский',   nativeShortLabel: 'Рус',  flag: '🇷🇺', enabled: true  },
   { code: 'en', label: 'English',    nativeLabel: 'English',   nativeShortLabel: 'Eng',  flag: '🇬🇧', enabled: true  },
   { code: 'kk', label: 'Kazakh',     nativeLabel: 'Қазақша',   nativeShortLabel: 'Қаз',  flag: '🇰🇿', enabled: true  },
-  { code: 'zh', label: 'Chinese',    nativeLabel: '中文',       nativeShortLabel: '中文',  flag: '🇨🇳', enabled: false },
+  { code: 'zh', label: 'Chinese',    nativeLabel: '中文',       nativeShortLabel: '中',   flag: '🇨🇳', enabled: true  },
   { code: 'ko', label: 'Korean',     nativeLabel: '한국어',     nativeShortLabel: '한국어', flag: '🇰🇷', enabled: false },
   { code: 'tj', label: 'Tajik',      nativeLabel: 'Тоҷикӣ',   nativeShortLabel: 'Тоҷ',  flag: '🇹🇯', enabled: false },
   { code: 'uz', label: 'Uzbek',      nativeLabel: "O'zbek",    nativeShortLabel: "O'z",  flag: '🇺🇿', enabled: true  },
   { code: 'tk', label: 'Turkmen',    nativeLabel: 'Türkmen',   nativeShortLabel: 'Tkm',  flag: '🇹🇲', enabled: false },
   { code: 'mn', label: 'Mongolian',  nativeLabel: 'Монгол',    nativeShortLabel: 'Мон',  flag: '🇲🇳', enabled: false },
   { code: 'ky', label: 'Kyrgyz',     nativeLabel: 'Кыргызча',  nativeShortLabel: 'Кыр',  flag: '🇰🇬', enabled: true  },
+  { code: 'de', label: 'German',     nativeLabel: 'Deutsch',   nativeShortLabel: 'De',   flag: '🇩🇪', enabled: true  },
+  { code: 'tr', label: 'Turkish',    nativeLabel: 'Türkçe',    nativeShortLabel: 'TR',   flag: '🇹🇷', enabled: true  },
   { code: 'es', label: 'Spanish',    nativeLabel: 'Español',   nativeShortLabel: 'Esp',  flag: '🇪🇸', enabled: false },
 ];
 

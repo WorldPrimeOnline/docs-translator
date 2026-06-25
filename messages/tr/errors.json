@@ -1,0 +1,12 @@
+{
+  "errors": {
+    "somethingWrong": "Bir şeyler ters gitti",
+    "errorDesc": "Beklenmedik bir hata oluştu. Tekrar deneyin veya panele dönün.",
+    "tryAgain": "Tekrar dene",
+    "goToDashboard": "Panele git",
+    "notFound": "Sayfa bulunamadı",
+    "notFoundDesc": "Bu sayfa mevcut değil veya taşınmış.",
+    "goHome": "Ana sayfaya git",
+    "dashboard": "Kontrol paneli"
+  }
+}

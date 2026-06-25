@@ -1,0 +1,417 @@
+{
+  "documentsHub": {
+    "heroBadge": "Tüm belge türleri",
+    "heroHeadline": "Her resmi belgeyi çevirin",
+    "heroAccentLine": "Çevrimiçi, dakikalar içinde",
+    "heroSubheadline": "Taranmış veya dijital PDF yükleyin ve temiz bir çeviri alın. Tüm temel resmi belge türleri desteklenmektedir — pasaportlar, banka ekstreleri, diplomalar, belgeler ve daha fazlası.",
+    "heroCtaLabel": "Çeviriyi başlat",
+    "heroTrustLine": "1.000 ₸'den başlayan · 10+ dil · 2–5 dakika",
+    "finalCtaHeadline": "Belgenizi çevirmeye başlayın",
+    "finalCtaSub": "Herhangi bir resmi PDF yükleyin ve 2–5 dakikada temiz bir çeviri alın.",
+    "finalCtaCta": "Belge yükle",
+    "faq": [
+      {
+        "q": "Hangi belge türlerini destekliyorsunuz?",
+        "a": "Tüm temel resmi belge türlerini destekliyoruz: pasaportlar, kimlik belgeleri, banka ekstreleri, diplomalar, transkriptler, doğum ve evlilik belgeleri, iş sözleşmeleri, tıbbi raporlar, sabıka kaydı belgeleri, sürücü belgeleri ve diğer resmi belgeler."
+      },
+      {
+        "q": "Hangi diller destekleniyor?",
+        "a": "İngilizce, Rusça, Çince, Korece, Japonca, Almanca, Fransızca, İspanyolca ve Arapça dahil 10'dan fazla dil desteklenmektedir. Kaynak dil otomatik olarak algılanabilir."
+      },
+      {
+        "q": "Çevirileriniz resmi veya noter onaylı mı?",
+        "a": "WPO üç hizmet düzeyi sunmaktadır. Elektronik çeviri otomatik olarak işlenir; acente/sağlayıcı kaşesi ve noter onayı içermez. Acente kaşeli çeviri insan incelemesi ve acente/sağlayıcı kaşesi içerir. Noter onaylı çeviri, hizmet mevcutsa bir noterle yürütülen partner süreci olarak sunulmaktadır. Her hizmet düzeyinin uygunluğu ve kullanılabilirliği, kabul eden kuruluşun gerekliliklerine bağlıdır. Üçüncü taraflarca kabul garantisi yoktur."
+      }
+    ],
+    "pricingHeadline": "Belge çeviri fiyatları"
+  },
+  "kazakhstan": {
+    "heroBadge": "Kazakistan · Belge işlemleri",
+    "heroHeadline": "Kazakistan için belge çevirisi",
+    "heroAccentLine": "Eğitim, Göç ve Resmi İşlemler",
+    "heroSubheadline": "Diplomaları, doğum belgelerini, sözleşmeleri, banka ekstrelerini ve resmi belgeleri çevrimiçi çevirin. Öğrenciler, göç danışmanları, noterler ve vize acenteleri tarafından kullanılmaktadır.",
+    "heroCtaLabel": "Belge çevir",
+    "heroCtaSecondaryLabel": "Desteklenen belgeler",
+    "heroTrustLine": "1.000 ₸'den başlayan · RU / EN / KZ · 2–5 dakika",
+    "finalCtaHeadline": "Belgeleri çevrimiçi çevirin — büro ziyareti gerekmez",
+    "finalCtaSub": "Belgeyi yükleyin ve çeviriyi çevrimiçi alın. Elektronik çeviri genellikle 2–5 dakikada hazırdır.",
+    "finalCtaCta": "Çeviriyi başlat",
+    "faq": [
+      {
+        "q": "Noter ziyaretinden önce çeviriyi kullanabilir miyim?",
+        "a": "Evet. Elektronik çeviri, notere veya partnere başvurmadan önce hazırlık materyali olarak kullanılabilir. Elektronik çeviri, acente/sağlayıcı kaşesi ve noter onayı içermez. İnsan çevirmen incelemesi, çevirmen imzası ve Sağlayıcı kaşesiyle resmi çeviri ayrı bir hizmet düzeyi olarak mevcuttur. Noter onayı, seçilen belge, dil çifti ve yargı bölgesi için hizmet mevcutsa WPO partnerleri aracılığıyla düzenlenebilir."
+      },
+      {
+        "q": "Kazakistan belgelerini hangi dillere çeviriyorsunuz?",
+        "a": "Kazakistan belgeleri için Rusça, Kazakça ve İngilizce dahil yaygın dil çiftleri genellikle mevcuttur. Gerçek dil müsaitliği seçilen belgeye ve hizmet düzeyine bağlıdır. Resmi çeviri ve noter onayı için çevirmen veya partner müsaitliği ayrıca onaylanır."
+      },
+      {
+        "q": "Çeviri yabancı üniversiteler tarafından kabul edilir mi?",
+        "a": "Bazı üniversiteler başvurunun ilk incelemesi için elektronik çeviri kabul eder; ancak gereksinimler farklılık gösterir. Üniversite çevirmen imzası, kaşe veya noter onayı istiyorsa resmi düzey veya mevcutsa noter onayı için partner süreci seçilmelidir. Üçüncü taraflarca kabul garantisi yoktur."
+      },
+      {
+        "q": "Noterler, vize acenteleri ve danışmanlar müşterileri adına hizmeti kullanabilir mi?",
+        "a": "Evet. Noterler, vize acenteleri, eğitim ve göç danışmanları, bu belgeleri işleme ve iletme yetkisine sahiplerse müşteri belgelerinin çevirisini hazırlamak için hizmeti kullanabilir. Resmi çeviri ve noter onayı için ayrı partner koşulları geçerli olabilir."
+      },
+      {
+        "q": "Apostil nedir ve çeviriyle nasıl ilişkilidir?",
+        "a": "Apostil, bir belgenin uluslararası kullanım için ayrı bir özgünlük onayıdır. Çeviri ve apostil farklı prosedürlerdir. Bazen önce apostil sonra çeviri, bazen de tersi gerekebilir — bu, kabul eden tarafın gereksinimlerine bağlıdır. WPO çeviri hizmetleri sunar; noter onayı ve ek prosedürler yalnızca hizmet mevcutsa partner süreci aracılığıyla sunulmaktadır."
+      }
+    ],
+    "docsHeadline": "Desteklenen belge türleri",
+    "docsSubheadline": "Eğitim, göç, bankacılık ve resmi işlemler için temel belge türleri",
+    "docItem1": "Diploma ve transkript",
+    "docItem2": "Doğum ve evlilik belgesi",
+    "docItem3": "Pasaport ve kimlik belgesi",
+    "docItem4": "Banka ekstresi",
+    "docItem5": "İş sözleşmesi ve işe alım belgesi",
+    "docItem6": "Sabıka kaydı belgesi",
+    "docItem7": "Tıbbi rapor",
+    "docItem8": "Göç ve kayıt belgeleri",
+    "docItem9": "Apostil ile ilgili belgeler",
+    "painHeadline": "Kazakistan için çevrimiçi belge çevirisi — gereksiz bürokratik işlem yok",
+    "pain1Title": "Büro ziyareti yerine çevrimiçi",
+    "pain1Desc": "Belgeyi çevrimiçi yükleyin ve sonucu hesabınızda alın. Resmi çeviri ve noter onayı için ayrı hizmet düzeyleri mevcuttur.",
+    "pain2Title": "Noter için çeviri hazırlama",
+    "pain2Desc": "Elektronik çeviri hazırlık materyali olarak kullanılabilir. Noter onayı, hizmet mevcutsa ayrıca partner süreci aracılığıyla düzenlenir.",
+    "pain3Title": "Eğitim, bankacılık ve göç için uygun",
+    "pain3Desc": "Çeviri, uluslararası işlemler için diplomaların, belgelerin, ekstrelerin ve diğer belgelerin hazırlanmasına yardımcı olur. Kabul eden tarafın gereksinimleri önceden doğrulanmalıdır.",
+    "pain4Title": "Belge paketleri için uygun",
+    "pain4Desc": "Taşınma, eğitim, bankacılık veya yurt dışı kaydı için birden fazla belge sırayla işlenebilir. Süre hizmet düzeyine ve hacme bağlıdır.",
+    "painSectionLabel": "AVANTAJLAR",
+    "painBridgeLabel": "WPO yardımcı olur",
+    "docsSectionLabel": "DESTEKLENEn BELGELER",
+    "trustHeadline": "Şeffaf, gizli ve hukuki açıdan doğru",
+    "pricingHeadline": "Belge başına basit fiyat",
+    "pricingSubheadline": "Abonelik yok. Yalnızca seçilen çeviri için ödeme yapın.",
+    "seoHeadline": "Kazakistan için belge çevirisi — ne zaman ve nasıl kullanılır",
+    "seoParagraph1": "Kazakistan'da belge çevirileri genellikle yabancı üniversitelere kayıt, çalışma vizesi, taşınma, göç prosedürleri, yurt dışında banka hesabı açma ve apostil için gereklidir. Çeviri bürosu aracılığıyla yapılan geleneksel süreç, yüz yüze ziyaret, bekleme ve manuel belge teslimini gerektirebilir.",
+    "seoParagraph2": "WorldPrimeOnline çeviriyi çevrimiçi hazırlamaya yardımcı olur: belgeyi yükleyin, dil çiftini ve hizmet düzeyini seçin, sonucu elektronik biçimde alın. Elektronik çeviri hazırlık ve bilgilendirme için uygundur. İnsan çevirmen incelemesi, çevirmen imzası ve Sağlayıcı kaşesiyle resmi çeviri ayrı bir hizmet düzeyi olarak mevcuttur. Noter onayı, hizmet mevcutsa partner süreci aracılığıyla ayrıca düzenlenir.",
+    "seoParagraph3": "Üçüncü taraflarca kabul garantisi yoktur. Bir belgeyi bankaya, üniversiteye, konsolosluğa, göç kurumuna veya notere sunmadan önce kabul eden tarafın gereksinimleri doğrulanmalıdır."
+  },
+  "kazakhstanNotarized": {
+    "heroBadge": "Kazakistan · Partner süreci ile noter onayı",
+    "heroHeadline": "Noter onayı için",
+    "heroAccentLine": "belge çevirisi",
+    "heroSubheadline": "Çeviriyi çevrimiçi hazırlayın; hizmet mevcutsa WPO partner süreci aracılığıyla resmi çeviri veya noter onayı düzenleyin.",
+    "heroCtaLabel": "Çeviriyi hazırla",
+    "heroTrustLine": "Elektronik çeviri 1.000 ₸'den başlayan · Resmi çeviri ve noter onayı ayrıca onaylanır",
+    "finalCtaHeadline": "Çeviriyi hazırlayın ve noter onayı imkânını kontrol edin",
+    "finalCtaSub": "Belgeyi çevrimiçi yükleyin. Elektronik çeviri genellikle 2–5 dakikada hazırdır. Resmi çeviri ve noter onayı ayrıca onaylanır.",
+    "finalCtaCta": "Çeviriyi başlat",
+    "faq": [
+      {
+        "q": "Bu resmi veya noter onaylı bir çeviri mi?",
+        "a": "Elektronik çeviri, acente/sağlayıcı kaşesi ve noter onayı içermez. İnsan çevirmen incelemesi, çevirmen imzası ve Sağlayıcı kaşesiyle resmi çeviri ayrı bir hizmet düzeyi olarak mevcuttur. Noter onayı, seçilen belge, dil çifti ve yargı bölgesi için hizmet mevcutsa WPO partnerleri aracılığıyla düzenlenebilir."
+      },
+      {
+        "q": "WPO aracılığıyla noter onayı düzenlenebilir mi?",
+        "a": "Evet, seçilen belge, dil ve yargı bölgesi için partner süreci mevcutsa. Belgenin atanmış çevirmene veya noter partnere iletilmesini düzenleyebiliriz. İmkân, süre ve maliyet ayrıca onaylanır."
+      },
+      {
+        "q": "Noterin çeviriyi onaylayacağını garanti ediyor musunuz?",
+        "a": "Hayır. Noter onayı, ilgili noterin, belgenin, dilin ve uygulanabilir prosedürün gereksinimlerine bağlıdır. WPO, her sipariş için noter onayının mümkün olduğunu garanti etmez."
+      },
+      {
+        "q": "Elektronik çeviriyi noter için taslak olarak kullanabilir miyim?",
+        "a": "Evet. Elektronik çeviri inceleme için hazırlık materyali olarak kullanılabilir. Elektronik çeviri, acente/sağlayıcı kaşesi ve noter onayı içermez."
+      },
+      {
+        "q": "Noter onayı ne kadar sürer?",
+        "a": "Elektronik çeviri genellikle birkaç dakikada hazırdır. Resmi çeviri ve noter onayı, sürece insan çevirmen ve/veya noter partner dahil olduğundan daha fazla zaman gerektirir."
+      }
+    ],
+    "docsHeadline": "Noter süreci için belgeler",
+    "docItem1": "Diploma ve akademik transkript",
+    "docItem2": "Doğum belgesi",
+    "docItem3": "Evlilik ve boşanma belgesi",
+    "docItem4": "Pasaport ve kimlik belgesi",
+    "docItem5": "Sabıka kaydı belgesi",
+    "docItem6": "İş sözleşmesi",
+    "docItem7": "Banka ekstresi",
+    "docItem8": "Vekaletname",
+    "docItem9": "Tıbbi belge",
+    "painHeadline": "Noter onayı doğru süreci gerektirir",
+    "pain1Title": "Önce çeviri hazırlanır",
+    "pain1Desc": "Elektronik çeviri hazırlık için kullanılabilir. Resmi düzeyde belge, çevirmen tarafından incelenir; ardından çevirmen imzası ve Sağlayıcı kaşesi eklenebilir.",
+    "pain2Title": "Ardından partner müsaitliği kontrol edilir",
+    "pain2Desc": "Noter onayı, belgeye, dil çiftine, şehre ve çevirmen veya noter partnerin müsaitliğine bağlıdır.",
+    "pain3Title": "Süreci partner aracılığıyla düzenleyebiliriz",
+    "pain3Desc": "Hizmet mevcutsa WPO, siparişin tamamlanması için gerekli ölçüde belgeyi atanmış çevirmene veya noter partnere iletir.",
+    "pain4Title": "Otomatik vaat yok",
+    "pain4Desc": "Her sipariş için noter onayı garanti edilmez. Süre, maliyet ve düzenleme imkânı ayrıca onaylanır.",
+    "painSectionLabel": "NASIL ÇALIŞIR",
+    "painBridgeLabel": "WPO süreç organizasyonuna yardımcı olur",
+    "docsSectionLabel": "NOTER SÜRECİ İÇİN BELGELER",
+    "pricingHeadline": "Noter onaylı çeviri fiyatları"
+  },
+  "kazakhstanUniversity": {
+    "heroBadge": "Kazakistan · Üniversite başvuruları",
+    "heroHeadline": "Akademik belge çevirisi",
+    "heroAccentLine": "uluslararası üniversite başvuruları için",
+    "heroSubheadline": "Birleşik Krallık, ABD, Avrupa, Kanada ve diğer ülkelerdeki üniversite başvuruları için diploma, transkript, lise diploması ve akademik belgelerinin temiz İngilizce çevirilerini alın.",
+    "heroCtaLabel": "Akademik belgeleri çevir",
+    "heroTrustLine": "1.000 ₸'den başlayan · Diploma ve transkript biçimleri · RU / EN",
+    "finalCtaHeadline": "Başvuru belgelerinizi hazırlayın",
+    "finalCtaSub": "Diplomanızı, transkriptinizi veya akademik belgenizi yükleyin ve dakikalar içinde temiz İngilizce çeviriyi alın.",
+    "finalCtaCta": "Akademik belgelerimi çevir",
+    "pricingHeadline": "Eğitim belgesi çeviri fiyatları",
+    "faq": [
+      {
+        "q": "Yabancı üniversiteler WPO çevirisini kabul eder mi?",
+        "a": "Gereksinimler üniversiteye ve ülkeye göre değişir. Bazı üniversiteler ilk başvuru incelemesi için elektronik çeviri kabul eder. Üniversite çevirmen imzası, kaşe veya noter onayı istiyorsa mevcutsa resmi düzey veya noter onayı için partner süreci seçilmelidir. Üçüncü taraflarca kabul garantisi yoktur. Hedef üniversitedeki özel gereksinimleri doğrulayın."
+      },
+      {
+        "q": "Attestat nedir?",
+        "a": "Attestat, Kazakistan ortaöğretim mezuniyet belgesidir. Tüm derslerdeki son notları listeler. Belgeyi, ders adları, notlar ve yeterlilik bilgileri dahil olmak üzere tam olarak temiz İngilizceye çeviriyoruz."
+      },
+      {
+        "q": "Not skalasını koruyor musunuz?",
+        "a": "Evet. Orijinal notları özgün biçimleriyle (örneğin 5'li veya 100'lü skalada) koruyoruz ve çevrilmiş belgede değerlendirme sistemini belirtiyoruz. Notları dönüştürmüyor veya yorumlamıyoruz."
+      },
+      {
+        "q": "IELTS, TOEFL veya yeterlilik değerlendirmesi için çeviri kullanılabilir mi?",
+        "a": "Elektronik çeviri, resmi başvuru için IELTS/TOEFL idareci kurumları tarafından kabul edilmez. Kendi hazırlığınız veya gayri resmi inceleme için kullanılabilir. Resmi başvuru için değerlendirme kuruluşunuzun gereksinimlerini karşılayıp karşılamadığını doğrulayın."
+      }
+    ],
+    "docsHeadline": "Desteklenen akademik belge türleri",
+    "docItem1": "Lisans / Yüksek lisans diploması",
+    "docItem2": "Akademik transkript",
+    "docItem3": "Lise mezuniyet belgesi (Attestat)",
+    "docItem4": "Not dökümleri ve ekler",
+    "docItem5": "Doğum belgesi (kayıt için)",
+    "docItem6": "Pasaport (kayıt için)",
+    "docItem7": "Araştırma / çalışma belgesi",
+    "docItem8": "Tıbbi rapor (başvuru için)",
+    "painHeadline": "Üniversite başvurusu için çeviri — zorluklar nerede ortaya çıkar",
+    "pain1Title": "Uluslararası üniversiteler kesin akademik terminoloji gerektirir",
+    "pain1Desc": "Kazak üniversite diploması, uluslararası alanda tanınan terminolojiyle çevrilmesi gereken belirli uzmanlık, bölüm ve yeterlilik adları içerir.",
+    "pain2Title": "Transkriptler tablo yapısındadır — yanlış biçimlendirme reddedilir",
+    "pain2Desc": "Akademik transkriptler, ders adları, kredi saatleri ve notları tablo biçiminde içerir. Genel çeviri araçları bunları yapılandırılmamış metne dönüştürür. WPO yapıyı korur.",
+    "pain3Title": "Sıkı başvuru tarihleri büroda beklemeye zaman bırakmaz",
+    "pain3Desc": "Üniversite başvuru pencereleri dardır. Günler yerine dakikalar içinde çeviri almak, belgelerinizi zamanında sunup sunamayacağınızı belirleyebilir.",
+    "pain4Title": "Eğitim danışmanlarının aynı anda birden fazla müşteri için hızlı taslağa ihtiyacı vardır",
+    "pain4Desc": "Aynı anda birden fazla üniversite başvurusunu yöneten ajanslar, her müşteri için bürolarla müzakere yapmak yerine ölçeklenebilir hızlı bir çeviri aracına ihtiyaç duyar.",
+    "painSectionLabel": "NEDEN ÖNEMLİ",
+    "docsSectionLabel": "AKADEMİK BELGELER"
+  },
+  "passportTranslation": {
+    "heroBadge": "Belge türü · Pasaport ve kimlik",
+    "heroHeadline": "Pasaport çevirisi",
+    "heroAccentLine": "Her dile — dakikalar içinde çevrimiçi",
+    "heroSubheadline": "Pasaport veya kimlik belgesi taraması yükleyin ve temiz yapılandırılmış çeviri alın. Tüm kişisel bilgiler, belge numaraları, tarihler ve kişisel veriler olduğu gibi korunmaktadır.",
+    "heroCtaLabel": "Pasaportumu çevir",
+    "heroTrustLine": "Pasaport başına 1.000 ₸ · 2–5 dakika · 10+ dil çifti",
+    "finalCtaHeadline": "Pasaportunuzu çevrimiçi çevirin",
+    "finalCtaSub": "Pasaport taramanızı yükleyin ve dakikalar içinde temiz yapılandırılmış İngilizce çeviri alın.",
+    "finalCtaCta": "Pasaportumu çevir",
+    "faq": [
+      {
+        "q": "Hangi pasaport verileri çeviriye dahil edilir?",
+        "a": "Pasaport veri sayfasındaki tüm görünür alanları çeviriyoruz: soyad, ad(lar), uyruk, doğum tarihi, doğum yeri, cinsiyet, düzenleme tarihi, son geçerlilik tarihi, pasaport numarası, düzenleyen makam ve makine okunur bölge (MRZ) içeriği. Kişi adları hedef alfabeye translitere edilir."
+      },
+      {
+        "q": "Pasaport hangi dillere çevrilebilir?",
+        "a": "İngilizce, Rusça, Çince, Korece, Japonca, Almanca, Fransızca, İspanyolca ve Arapça dahil 10'dan fazla hedef dil desteklenmektedir. Kaynak dil otomatik olarak algılanır veya manuel olarak belirtilebilir."
+      },
+      {
+        "q": "Çeviri vize başvuruları için kabul edilir mi?",
+        "a": "Kabul, ilgili konsolosluk veya büyükelçiliğin gereksinimlerine bağlıdır. Bazı konsolosluklar orijinal pasaportla birlikte elektronik çeviriyi kabul eder. Diğerleri acente kaşeli çeviri veya noter onaylı çeviri talep edebilir. Gerekli hizmet düzeyini ilgili konsolosluk veya büyükelçilikten doğrulayın."
+      },
+      {
+        "q": "İsimler çeviride nasıl işlenir?",
+        "a": "Kişi adları, pasaport benzeri belgeler için ICAO-9303 standartlarına uygun olarak translitere edilir ve diğer alfabeler için standart transliterasyon kuralları uygulanır. İsimler hiçbir zaman anlamsal olarak çevrilmez."
+      },
+      {
+        "q": "Pasaport verilerim güvende mi?",
+        "a": "Belgeniz işlenir ve şifreli Cloudflare R2 depolamasında saklanır. 30 gün sonra otomatik olarak silinir. Kişisel verilerinizi çeviriyi oluşturmak dışında hiçbir amaçla saklamıyor, paylaşmıyor veya kullanmıyoruz."
+      }
+    ],
+    "docsHeadline": "Desteklenen pasaport ve kimlik türleri",
+    "docsSectionLabel": "KİMLİK BELGELERİ",
+    "docItem1": "Biyometrik pasaport",
+    "docItem2": "Biyometrik olmayan pasaport",
+    "docItem3": "Kimlik kartı",
+    "docItem4": "Sürücü belgesi (kimlik olarak)",
+    "docItem5": "Oturma izni",
+    "docItem6": "Seyahat belgesi",
+    "painHeadline": "Pasaport çevirisine neden ihtiyaç duyulur — ve neden doğru yapması zordur",
+    "painSectionLabel": "NEDEN ÖNEMLİ",
+    "painBridgeLabel": "WPO bu sorunu çözer",
+    "pain1Title": "Vize başvuruları genellikle yabancı dildeki pasaportun çevirisini gerektirir",
+    "pain1Desc": "Yabancı uyruklu başvuranların dosyalarını inceleyen konsolosluklar ve büyükelçilikler çoğunlukla pasaport veri sayfasının İngilizce çevirisini talep eder.",
+    "pain2Title": "İsimler çevrilmeli değil, translitere edilmelidir",
+    "pain2Desc": "Pasaporttaki kişi adları hedef yazı sistemine fonetik olarak aktarılmalıdır. İsmin telaffuzu yerine anlamının çevrilmesi yaygın ve ciddi bir hatadır.",
+    "pain3Title": "MRZ kodları ve belge numaraları değiştirilmeden korunmalıdır",
+    "pain3Desc": "Pasaport veri sayfalarının alt kısmındaki makine okunur bölge (MRZ) kritik bilgiler içerir. Sayılar, kodlar veya tarihlerde yapılacak herhangi bir değişiklik çeviriyi kullanılamaz hâle getirir.",
+    "pain4Title": "Standart çeviri araçları yapılandırılmamış metin döker",
+    "pain4Desc": "Genel OCR veya çeviri hizmetleri pasaport verilerini yapılandırılmamış metin olarak çıkarır. Kullanışlı bir pasaport çevirisi alan yapısını korumalıdır: soyad, ad, uyruk, doğum tarihi vb.",
+    "pricingHeadline": "Pasaport çevirisi fiyatları"
+  },
+  "diplomaTranslation": {
+    "heroBadge": "Belge türü · Diploma ve transkript",
+    "heroHeadline": "Diploma ve akademik belge",
+    "heroAccentLine": "çevirisi çevrimiçi",
+    "heroSubheadline": "Üniversite başvuruları, mesleki lisanslama, yeterlilik değerlendirmesi ve uluslararası istihdam için diploma, eğitim sertifikası ve akademik transkriptleri çevirin.",
+    "heroCtaLabel": "Diplomamı çevir",
+    "heroTrustLine": "Belge başına 1.000 ₸ · Akademik terminoloji korunur · 10+ dil",
+    "finalCtaHeadline": "Diplomanızı veya akademik transkriptinizi çevirin",
+    "finalCtaSub": "Akademik belgenizi yükleyin ve dakikalar içinde temiz yapılandırılmış İngilizce çeviri alın.",
+    "finalCtaCta": "Diplomamı çevir",
+    "pricingHeadline": "Diploma çevirisi fiyatları",
+    "faq": [
+      {
+        "q": "Çeviriniz WES veya diğer yeterlilik değerlendirme hizmetleri için kabul edilir mi?",
+        "a": "WES (World Education Services) ve çoğu değerlendirme kuruluşu, resmi veya noter onaylı çevirileri şart koşar. WPO, bu gereksinimleri kuruluşun özel kriterlerine bağlı olarak karşılayabilecek acente kaşeli çeviri (insan incelemeli, acente/sağlayıcı kaşeli) ve noter onaylı çeviri (notarla partner süreci) sunmaktadır. Elektronik çeviri hazırlık veya eğitim danışmanları tarafından kullanılabilir. Başvuru öncesinde resmi gereksinimleri doğrulayın."
+      },
+      {
+        "q": "Diploma ekleri ve not açıklamalarını da çeviriyor musunuz?",
+        "a": "Evet. Diploma ekleri, not skalası açıklamaları ve ekli transkriptler belgenin bir parçası olarak çevrilir. Ders adları standart akademik İngilizce terminoloji kullanılarak çevrilir."
+      },
+      {
+        "q": "Diploma çevirileri için hangi diller destekleniyor?",
+        "a": "10'dan fazla dil desteklenmektedir. Diploma çevirileri için en yaygın çiftler şunlardır: Rusça → İngilizce, Kazakça → İngilizce ve Çince → İngilizce. Kaynak dil otomatik olarak algılanabilir."
+      },
+      {
+        "q": "Akademik unvanları ve notları nasıl ele alıyorsunuz?",
+        "a": "Akademik unvanlar gerektiğinde açıklayıcı bağlamla çevrilir (örneğin, 'Uzman Derecesi (5 Yıllık Entegre Program)'). Notlar, dönüştürme yapılmadan orijinal skalada korunur."
+      },
+      {
+        "q": "Çeviriyi mesleki lisans başvurusu için kullanabilir miyim?",
+        "a": "Birçok lisanslama kurumu yabancı yeterliliklerin resmi veya noter onaylı çevirilerini şart koşar. WPO, kuruluşun özel kriterlerine bağlı olarak bu gereksinimleri karşılayabilecek acente kaşeli çeviri ve noter onaylı çeviri sunmaktadır. Elektronik çeviri hazırlık ve bilgilendirme için mevcuttur. Gerekli hizmet düzeyini lisanslama kuruluşunuzla doğrulayın."
+      }
+    ],
+    "docsHeadline": "Desteklenen akademik belge türleri",
+    "docItem1": "Lisans diploması",
+    "docItem2": "Yüksek lisans diploması",
+    "docItem3": "Doktora sertifikası",
+    "docItem4": "Akademik transkript",
+    "docItem5": "Lise mezuniyet belgesi",
+    "docItem6": "Diploma eki",
+    "docItem7": "Akademik referans mektubu",
+    "docItem8": "Mesleki sertifika",
+    "painHeadline": "Diploma çevirisindeki zorluklar — nerelerde sorun çıkar",
+    "pain1Title": "Eğitim kurumu adları dikkatli çevrilmelidir",
+    "pain1Desc": "Üniversite ve fakülte adlarının resmi uluslararası biçimleri vardır. Bir üniversite adının yanlış çevrilmesi değerlendiricilerin dikkatini anında çeker.",
+    "pain2Title": "Yeterlilik unvanları evrensel değildir — bağlam belirleyicidir",
+    "pain2Desc": "Rus 'uzman' derecesi basitçe lisans değildir. Değerlendirme kurumları, yeterlilik türünün, süresinin ve alanının kesin açıklamasını bekler.",
+    "pain3Title": "Transkriptler paragraf değil, tablodur",
+    "pain3Desc": "Akademik transkriptler, kredi, not ve ders kodlarıyla yapılandırılmış ders listeleri içerir. Tabloları düz metne dönüştüren çeviri araçları kullanılamaz sonuçlar üretir.",
+    "pain4Title": "Yeterlilik değerlendirme hizmetleri için sıkı son tarihler",
+    "pain4Desc": "WES, ICAS ve diğer değerlendirme hizmetleri çoğunlukla belge başvurusu için son tarihler belirler. Hızlı çeviri aracına sahip olmak zamanında başvuru yapmanızı sağlar.",
+    "painSectionLabel": "NEDEN ÖNEMLİ",
+    "docsSectionLabel": "AKADEMİK BELGELER"
+  },
+  "bankStatementTranslation": {
+    "heroBadge": "Belge türü · Banka ekstresi",
+    "heroHeadline": "Banka ekstresi çevirisi",
+    "heroAccentLine": "vize, göç ve gelir kanıtı için",
+    "heroSubheadline": "Banka ekstrelerini herhangi bir dilden İngilizceye veya diğer hedef dillere çevirin. Tüm bakiyeler, işlem tarihleri, hesap numaraları ve döviz tutarları olduğu gibi korunmaktadır.",
+    "heroCtaLabel": "Banka ekstremi çevir",
+    "heroTrustLine": "Belge başına 1.000 ₸ · 2–5 dakika · Her banka, her ülke",
+    "finalCtaHeadline": "Banka ekstrenizi vize veya göç için çevirin",
+    "finalCtaSub": "Banka ekstrenizi yükleyin ve 2–5 dakikada temiz İngilizce çeviri alın.",
+    "finalCtaCta": "Banka ekstremi çevir",
+    "pricingHeadline": "Banka ekstresi çevirisi fiyatları",
+    "faq": [
+      {
+        "q": "Hangi vize türleri için çevrilmiş banka ekstresi gerekir?",
+        "a": "Schengen vizesi, Birleşik Krallık ziyaretçi vizesi, ABD B1/B2 vizesi ve çoğu göç başvurusu genellikle İngilizce olarak bankadan mali kaynak kanıtı talep eder. Gelir belgeleri ve maaş bordroları da sıklıkla istenen belgeler arasındadır."
+      },
+      {
+        "q": "Dövizler ve tutarlar dönüştürme yapılmadan korunuyor mu?",
+        "a": "Evet. Tüm tutarlar, dövizler ve bakiyeler orijinal belgede göründükleri gibi korunur. Döviz dönüştürmesi yapmıyor, tutarları yuvarlamamıyor ve finansal verileri yorumlamıyoruz."
+      },
+      {
+        "q": "Banka ekstresi 6 sayfa ise ne olur?",
+        "a": "50 sayfaya kadar banka ekstrelerini destekliyoruz. Belge başına fiyat bu sınır dahilinde sayfa sayısından bağımsız olarak uygulanır. Tüm sayfalar tek belge olarak çevrilir."
+      },
+      {
+        "q": "Çevrilen ekstre konsolosluğum tarafından kabul edilir mi?",
+        "a": "Kabul, konsolosluğunuzun gereksinimlerine bağlıdır. Bazı konsolosluklar orijinal ekstre ile birlikte elektronik çeviriyi kabul eder. Diğerleri acente kaşeli çeviri veya noter onaylı çeviri talep edebilir. Gerekli hizmet düzeyini konsolosluğunuzdan veya vize acentenizden doğrulayın."
+      },
+      {
+        "q": "İnternet bankacılığı ekran görüntülerini veya PDF dışa aktarmalarını çevirebilir misiniz?",
+        "a": "Evet. Taranmış kağıt ekstreler ve internet bankacılığından dijital PDF dışa aktarmalar desteklenmektedir. Taranmış belgeler, çeviri öncesinde OCR işleminden geçirilir."
+      }
+    ],
+    "docsHeadline": "Desteklenen banka ve finansal belge türleri",
+    "docItem1": "Banka ekstresi (1–6 aylık)",
+    "docItem2": "Bakiye teyit belgesi",
+    "docItem3": "İşverenden gelir belgesi",
+    "docItem4": "Vergi beyannamesi özeti",
+    "docItem5": "Maaş bordrosu",
+    "docItem6": "Mülkiyet veya varlık kanıtı",
+    "painHeadline": "Banka ekstresi çevirisi neden göründüğünden zordur",
+    "pain1Title": "Konsolosluklar İngilizce banka ekstresi ister — çoğu banka bunu sağlamaz",
+    "pain1Desc": "Rusya, Kazakistan ve pek çok başka ülkedeki bankalar ekstreleri yalnızca yerel dilde düzenler. Vize başvurularını inceleyen büyükelçilikler ve konsolosluklar genellikle İngilizce çeviri talep eder.",
+    "pain2Title": "Rakamlar ve tutarlar kesin olarak korunmalıdır — yuvarlama veya dönüştürme yapılamaz",
+    "pain2Desc": "Vize veya ipotek başvuruları için banka ekstreleri, orijinal döviz cinsinden tam orijinal tutarları göstermelidir. Herhangi bir dönüştürme veya yuvarlama, redde yol açabilecek tutarsızlık oluşturur.",
+    "pain3Title": "İşlem ayrıntıları okunabilir ve yapılandırılmış olmalıdır",
+    "pain3Desc": "50 işlemli bir banka ekstresi tablo olarak kalmalıdır — düz metne dönüşmemelidir. Genel çeviri araçları yapıları yapılandırılmamış metne dönüştürür.",
+    "pain4Title": "Sıkı vize tarihleri, büroda 3–5 gün beklemeyi kabul edilemez kılar",
+    "pain4Desc": "DTV, Schengen ve diğer vize başvurularının dar başvuru pencereleri vardır. Banka ekstrenizi günler değil dakikalar içinde çevirmek, başvurunuzun zamanında hazır olup olmadığını belirleyebilir.",
+    "painSectionLabel": "NEDEN ÖNEMLİ",
+    "docsSectionLabel": "FİNANSAL BELGELER"
+  },
+  "kazakhstanCertified": {
+    "heroBadge": "Kazakistan · Resmi çeviri",
+    "heroHeadline": "Acente kaşeli çeviri",
+    "heroAccentLine": "belgeleri çevrimiçi",
+    "heroSubheadline": "İnsan çevirmen incelemesi, çevirmen imzası ve Sağlayıcı kaşesiyle resmi çeviri sipariş edin. Bankalar, üniversiteler, göç, vize ve resmi işlemler için.",
+    "heroCtaLabel": "Resmi çeviri sipariş et",
+    "heroTrustLine": "Üçüncü taraflarca kabul garantisi yoktur ve kabul eden kuruluşun gerekliliklerine bağlıdır.",
+    "painSectionLabel": "NELERI KAPSAYOR",
+    "painBridgeLabel": "WPO yardımcı olur",
+    "painHeadline": "Resmi çeviri — ayrı bir hizmet düzeyi",
+    "pain1Title": "Çevirmen incelemesi",
+    "pain1Desc": "Çeviri insan çevirmen tarafından incelenir. Gerektiğinde OCR hataları, terminoloji ve biçimlendirme düzeltilir.",
+    "pain2Title": "Çevirmen imzası",
+    "pain2Desc": "Nihai belge, çevirmen imzası ve çevirmen bloğu içerebilir.",
+    "pain3Title": "Sağlayıcı kaşesi",
+    "pain3Desc": "Resmi düzeyde belgeye Sağlayıcı kaşesi eklenebilir.",
+    "pain4Title": "Kabul garantisi yok",
+    "pain4Desc": "Bankaların, üniversitelerin, konsoloslukların ve diğer kuruluşların kendi gereksinimleri olabilir. Bunlar önceden doğrulanmalıdır.",
+    "docsHeadline": "Desteklenen belgeler",
+    "docsSectionLabel": "BELGELER",
+    "docsItems": [
+      "Diploma ve transkript",
+      "Doğum ve evlilik belgesi",
+      "Pasaport ve kimlik belgesi",
+      "Banka ekstresi",
+      "İş sözleşmesi ve belgesi",
+      "Sabıka kaydı belgesi"
+    ],
+    "pricingHeadline": "Acente kaşeli çeviri fiyatları",
+    "pricingSubheadline": "Elektronik çeviri temel düzeydir. Acente kaşeli çeviri insan incelemesi içerir. Noter onayı ayrı bir partner sürecidir.",
+    "finalCtaHeadline": "Resmi çeviriye mi ihtiyacınız var?",
+    "finalCtaSub": "Belge yükleyin, resmi hizmet düzeyini seçin ve ödeme öncesinde nihai fiyatı kontrol edin.",
+    "finalCtaCta": "Çeviriyi başlat",
+    "faq": [
+      {
+        "q": "WPO'da resmi çeviri ne anlama gelir?",
+        "a": "WPO'da resmi çeviri, çevirinin insan çevirmen tarafından incelendiği ve çevirmen imzası, Sağlayıcı kaşesi, tarih ve çevirmen bloğu içerebileceği resmi hizmet düzeyi anlamına gelir. Noter onayı, partner süreci aracılığıyla sunulan ayrı bir hizmet düzeyidir. Üçüncü taraflarca kabul garantisi yoktur."
+      },
+      {
+        "q": "Resmi çeviri elektronik çeviriden nasıl farklıdır?",
+        "a": "Elektronik çeviri, çevirmen imzası, Sağlayıcı kaşesi ve noter onayı olmaksızın OCR ve yapay zekâ kullanılarak otomatik olarak işlenir. Resmi / acente kaşeli çeviri ise çevirmen tarafından incelenir ve çevirmen imzası ile Sağlayıcı kaşesi içerebilir."
+      },
+      {
+        "q": "Bu noter onaylı çeviri midir?",
+        "a": "Hayır. WPO'nun acente kaşeli çevirisi kendi başına noter onayını kapsamaz. Noter onayı, seçilen belge, dil çifti ve yargı bölgesi için hizmet mevcutsa partner süreci aracılığıyla ayrıca düzenlenir."
+      },
+      {
+        "q": "Çevirinin bankada, üniversitede veya konsolosluğa kabul edileceğini garanti ediyor musunuz?",
+        "a": "Hayır. Çevirinin kabulü, ilgili bankanın, üniversitenin, konsolosluğun, göç kurumunun, noterin veya başka bir kuruluşun gereksinimlerine bağlıdır. Çeviriyi resmi amaçlarla kullanmadan önce müşteri, kabul eden tarafın gereksinimlerini bağımsız olarak doğrulamalıdır."
+      },
+      {
+        "q": "Resmi çeviri ne zaman gereklidir?",
+        "a": "Kabul eden taraf, çevirmen incelemesi, çevirmen imzası, Sağlayıcı kaşesi veya ek onay içeren çeviri talep ettiğinde genellikle resmi çeviri gereklidir. Standart elektronik çeviri yeterliyse resmi düzey seçilmelidir."
+      },
+      {
+        "q": "Daha sonra noter onayı eklenebilir mi?",
+        "a": "Bazı durumlarda evet; seçilen belge, dil ve yargı bölgesi için partner süreci mevcutsa. Noter onayının imkânı, süresi ve maliyeti ayrıca onaylanır."
+      }
+    ]
+  }
+}

@@ -28,14 +28,14 @@
     "noTranslations": "暂无翻译记录。",
     "noTranslationsHint": "请上传您的第一份文件开始翻译。",
     "downloadTranslation": "下载译文",
-    "basicPlan": "基础版套餐",
-    "proPlan": "专业版套餐",
+    "basicPlan": "标准方案",
+    "proPlan": "扩展方案",
     "jobTitle": "翻译进行中",
-    "subBannerTitle": "订阅后享受更快翻译",
-    "subBannerDesc": "低至 4 990 ₸/月——10 份文件，无需按次付费",
+    "subBannerTitle": "按文件计费",
+    "subBannerDesc": "每份文件 1,000 ₸ 起——无需订阅",
     "usingPlanSub": "使用 {plan} 计划 · 剩余 {remaining} 份文件 — 无需付款",
     "status": {
-      "paymentPending": "Awaiting payment",
+      "paymentPending": "等待支付",
       "queued": "排队中——等待开始…",
       "ocr": "正在提取文字… ({pct}%)",
       "ocrDone": "OCR 完成，正在开始翻译… ({pct}%)",
@@ -100,12 +100,12 @@
     "serviceLevel": {
       "label": "服务级别",
       "certified": {
-        "label": "认证翻译",
-        "desc": "翻译由合格译员审核、签字，并加盖WPO印章。不含公证。"
+        "label": "加盖代理机构印章的翻译",
+        "desc": "翻译由合格译员审核、签字，并加盖 WPO 印章。不含公证。"
       },
       "notarization": {
-        "label": "认证翻译（含公证）",
-        "desc": "翻译由译员审核、签字，加盖WPO印章，随后转交合作公证机构对译员签名进行公证。"
+        "label": "加盖代理机构印章的翻译（含公证）",
+        "desc": "翻译由译员审核、签字，加盖 WPO 印章，随后转交合作公证机构对译员签名进行公证。"
       }
     },
     "notary": {
@@ -138,8 +138,12 @@
         "after_noon": "当日12:00后（+50%）",
         "after_18": "18:00后夜间办理（×2）",
         "notaryCutoffPassed": "公证截止时间已过，报价无效。请重新上传以获取新报价。",
-        "standardHint": "Standard notarization is completed on the next business day for documents uploaded and paid after 12:00 Almaty time. If uploaded before 12:00, same-day completion may be possible subject to translator/notary availability."
+        "standardHint": "标准公证办理在阿拉木图时间12:00后上传并付款的文件于下一个工作日完成。12:00前上传的，在译者和公证人档期允许的情况下，可能当日完成。"
       }
+    },
+    "customerComment": {
+      "label": "订单备注",
+      "placeholder": "例如：说明格式要求、目标机构、期望截止日期或其他偏好。"
     },
     "inReview": "审核中",
     "activeOrders": "进行中的订单",
@@ -172,11 +176,11 @@
       "created": "创建时间",
       "updated": "更新时间",
       "serviceElectronic": "电子版",
-      "serviceCertified": "认证翻译",
+      "serviceCertified": "加盖代理机构印章的翻译",
       "serviceNotarized": "公证翻译"
     },
-    "uploadAndPay": "Upload & Pay by card",
-    "uploadedPaymentPending": "File uploaded — pay {price} to start translation",
+    "uploadAndPay": "上传并以银行卡付款",
+    "uploadedPaymentPending": "文件已上传——请支付 {price} 以开始翻译",
     "errors": {
       "serverError": "服务器错误，请重试。",
       "uploadFailed": "上传失败",
@@ -185,20 +189,20 @@
       "pleaseSelectFile": "请至少选择一个文件",
       "failedTermsAcceptance": "保存服务条款接受状态失败。"
     },
-    "uploadDocument": "Upload document",
-    "uploadedQuoteReady": "Document uploaded — price: {price} KZT. Confirm payment below.",
-    "uploadedRequiresReview": "Document uploaded. The price will be confirmed by our operator.",
-    "quoteReady": "Price confirmed",
-    "quoteValidUntil": "Valid until {date}",
-    "quoteRequiresReview": "Price is being confirmed by an operator. We will notify you.",
-    "quoteExpired": "Quote expired",
-    "quoteRecalculate": "Recalculate",
-    "quoteCalculating": "Calculating price...",
-    "quoteRecalculating": "Refreshing order status...",
-    "priceHint": "The exact price is calculated after document upload and analysis.",
-    "priceHintElectronic": "Electronic translation — from ₸1,000. Final price after upload.",
-    "priceHintOfficial": "Official translation — from 5 500 ₸. Final price after upload.",
-    "priceHintNotarized": "Notarized translation — from 11 000 ₸. Final price after upload.",
+    "uploadDocument": "上传文件",
+    "uploadedQuoteReady": "文件已上传——价格：{price} ₸。请在下方确认付款。",
+    "uploadedRequiresReview": "文件已上传，价格将由操作员确认。",
+    "quoteReady": "价格已确认",
+    "quoteValidUntil": "有效期至 {date}",
+    "quoteRequiresReview": "价格正由操作员确认，我们会通知您。",
+    "quoteExpired": "报价已过期",
+    "quoteRecalculate": "重新计算",
+    "quoteCalculating": "正在计算价格...",
+    "quoteRecalculating": "正在刷新订单状态...",
+    "priceHint": "精确价格在文件上传和分析后计算。",
+    "priceHintElectronic": "电子翻译——1,000 ₸ 起。上传后显示最终价格。",
+    "priceHintOfficial": "官方翻译——5,500 ₸ 起。上传后显示最终价格。",
+    "priceHintNotarized": "公证翻译——11,000 ₸ 起。上传后显示最终价格。",
     "urgency": {
       "label": "紧急程度",
       "standard": "标准",
@@ -216,21 +220,17 @@
     "layoutComplexity": {
       "label": "版面复杂度",
       "standard": "标准",
-      "tables": "含表格 (+1 000 ₸/页)",
-      "complex_tables": "复杂表格 (+2 000 ₸/页)",
+      "tables": "含表格 (+1,000 ₸/页)",
+      "complex_tables": "复杂表格 (+2,000 ₸/页)",
       "complex_layout": "复杂版面 (+25%)",
       "presentation": "演示文稿 (需人工审核)"
     },
     "visualMarks": {
       "label": "印章与封印",
       "normal": "正常",
-      "many_stamps": "多处印章 (+1 000 ₸)"
+      "many_stamps": "多处印章 (+1,000 ₸)"
     },
-    "customerComment": {
-      "label": "ORDER COMMENT",
-      "placeholder": "E.g.: specify formatting requirements, target authority, desired deadline, or other preferences."
-    },
-    "paymentPendingTitle": "Payment is being verified",
-    "paymentPendingDesc": "If money was charged, do not pay again. We will update the status automatically."
+    "paymentPendingTitle": "支付验证中",
+    "paymentPendingDesc": "如已扣款，请勿重复支付，我们将自动更新状态。"
   }
 }
