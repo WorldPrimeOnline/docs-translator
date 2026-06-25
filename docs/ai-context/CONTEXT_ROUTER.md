@@ -31,10 +31,11 @@ For every non-trivial task:
 npx tsx scripts/context/suggest-context.ts "<task description>"
 ```
 
-**Before committing context-system changes**, validate the system:
+**Before committing context-system or high-risk code changes**, run the pre-commit guard:
 ```bash
-npx tsx scripts/context/check-context.ts
+npx tsx scripts/context/pre-commit-context-check.ts
 ```
+This runs `check-context.ts` automatically when context files changed, and warns when high-risk files changed without context doc updates.
 
 ## Context Budget
 

@@ -26,6 +26,24 @@ Each decision uses:
 
 ## Decisions
 
+### 2026-06-25 — Pre-commit context guard uses a script, not a git hook
+
+**Decision:**
+The pre-commit context guard (`scripts/context/pre-commit-context-check.ts`) is run explicitly via `npx tsx`, not wired as a git hook. It is not added to `.husky/`, `.git/hooks/`, or `package.json` pre-commit scripts.
+
+**Rationale:**
+Git hooks require hook installation (e.g. `husky install`) which adds a setup step for every developer and CI environment. An explicit script is always available, can be inspected, can be bypassed intentionally, and has no installation friction. Claude is instructed to run it before committing context-system or high-risk changes.
+
+**Impacted files/docs:**
+- `scripts/context/pre-commit-context-check.ts`
+- `docs/ai-context/96_CONTEXT_MAINTENANCE_RULES.md`
+- `docs/ai-context/CONTEXT_ROUTER.md`
+
+**Risks / caveats:**
+A script that must be run manually can be forgotten. Mitigation: CLAUDE.md §2 and `96_CONTEXT_MAINTENANCE_RULES.md` both remind Claude to run it before committing context-system or high-risk changes. If the team later wants automatic enforcement, the script can be registered as a husky hook without modification.
+
+---
+
 ### 2026-06-25 — AI context routing uses lightweight repo-local scripts, not a vector database
 
 **Decision:**

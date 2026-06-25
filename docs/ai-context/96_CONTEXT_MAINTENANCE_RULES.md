@@ -75,13 +75,21 @@ If no context docs were updated, explain why the task did not introduce durable 
 
 ## Validation before committing
 
-Before committing any changes to `CLAUDE.md` or `docs/ai-context/`, run:
+Before committing any changes to `CLAUDE.md`, `docs/ai-context/`, or high-risk project areas, run:
+
+```bash
+npx tsx scripts/context/pre-commit-context-check.ts
+```
+
+This detects context-system changes and high-risk code area changes, runs `check-context.ts` automatically when context files changed, warns when high-risk files changed without corresponding context doc updates, and checks CLAUDE.md size limits. Exits 0 on PASS (including warnings), 1 on hard failure.
+
+For context-system-only validation without git state:
 
 ```bash
 npx tsx scripts/context/check-context.ts
 ```
 
-This validates: CLAUDE.md character count, required file presence, relative link integrity, INDEX/MANIFEST coverage, and router invariants. The check exits 0 on PASS and 1 on FAIL.
+This validates: CLAUDE.md character count, required file presence, relative link integrity, INDEX/MANIFEST coverage, and router invariants. Exits 0 on PASS and 1 on FAIL.
 
 ## Safety
 
