@@ -26,7 +26,7 @@ Do not read all context docs by default. After loading `PROJECT_CONTEXT.md` and 
 - Context router: [docs/ai-context/CONTEXT_ROUTER.md](docs/ai-context/CONTEXT_ROUTER.md)
 - Quick catalog: [docs/ai-context/CONTEXT_MANIFEST.md](docs/ai-context/CONTEXT_MANIFEST.md)
 
-For ambiguous tasks, run `npx tsx scripts/context/suggest-context.ts "<task>"` to select the smallest context set. Before committing context-system or high-risk changes, run `npx tsx scripts/context/pre-commit-context-check.ts`.
+For ambiguous tasks, run `npx tsx scripts/context/suggest-context.ts "<task>"` to select the smallest context set. Before committing context-system or high-risk changes, run `npx tsx scripts/context/pre-commit-context-check.ts`. Run `npx tsx scripts/context/freshness-audit.ts` after changes that may make context claims stale, especially payments, fiscalization, refunds, pipeline, integrations, or deployment rules.
 
 ---
 

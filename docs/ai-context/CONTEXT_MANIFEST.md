@@ -32,3 +32,4 @@ Short catalog of WPO AI context files. Use this to identify which file to load b
 | `DECISIONS.md` | Permanent architectural/product/ops decisions with rationale. |
 | `CONTEXT_ROUTER.md` | Task-domain routing table and low-token retrieval algorithm. |
 | `CONTEXT_MANIFEST.md` | This file — quick catalog for file selection. |
+| `FRESHNESS_AUDIT.md` | When and how to run the context freshness audit; what each of the 12 checks covers. |

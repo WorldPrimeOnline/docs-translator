@@ -58,6 +58,7 @@ npx tsx scripts/finance/backfill-legacy-quotes.ts       # One-time backfill for 
 ```bash
 npx tsx scripts/context/check-context.ts                                    # Validate context system (links, files, coverage, CLAUDE.md size)
 npx tsx scripts/context/pre-commit-context-check.ts                         # Pre-commit guard: detect high-risk changes, run check-context if needed
+npx tsx scripts/context/freshness-audit.ts                                  # Freshness audit: check if 12 context claims still match codebase
 npx tsx scripts/context/suggest-context.ts "fix Halyk callback amount mismatch"  # Suggest smallest context set for a task
 npx tsx scripts/context/search-context.ts "verifyQuotePayable"              # Search context docs only
 npx tsx scripts/context/search-context.ts "verifyQuotePayable" --code       # Search context docs + src/ + worker/

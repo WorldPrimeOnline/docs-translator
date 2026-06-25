@@ -26,6 +26,25 @@ Each decision uses:
 
 ## Decisions
 
+### 2026-06-25 — Context freshness is checked with deterministic repo-local audits
+
+**Decision:**
+`scripts/context/freshness-audit.ts` uses deterministic file/regex checks only — no vector search, no external APIs, no embedding models. It checks 12 specific claims about WPO product state against the source files that implement them.
+
+**Rationale:**
+WPO's high-risk claims are narrow and concrete (e.g. "cardPaymentsActive is false", "Halyk routes exist", "pipeline freeze doc is present"). A deterministic audit is faster, cheaper, offline-capable, and produces zero false positives from semantic drift. If a claim cannot be verified by a file-existence or regex check, it belongs in a code review, not a freshness audit.
+
+**Impacted files/docs:**
+- `scripts/context/freshness-audit.ts`
+- `docs/ai-context/FRESHNESS_AUDIT.md`
+- `docs/ai-context/96_CONTEXT_MAINTENANCE_RULES.md` (run rule)
+- `docs/ai-context/CONTEXT_ROUTER.md` (post-change prompt)
+
+**Risks / caveats:**
+The audit checks file presence and regex patterns — it does not read or validate the full prose in context docs. A context doc that references a symbol correctly by name but describes its behaviour wrong will not be caught. Human review of changed context docs remains necessary after significant product decisions.
+
+---
+
 ### 2026-06-25 — Pre-commit context guard uses a script, not a git hook
 
 **Decision:**

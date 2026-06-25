@@ -73,6 +73,16 @@ Context maintenance:
 
 If no context docs were updated, explain why the task did not introduce durable knowledge.
 
+## Freshness audit after high-risk changes
+
+After changing payments, fiscalization, refunds, translation pipeline, Jira/Telegram integrations, or deployment/env rules, run:
+
+```bash
+npx tsx scripts/context/freshness-audit.ts
+```
+
+This performs 12 deterministic checks — file existence, key symbol presence, and known code-vs-context claim comparisons. Output is PASS / WARN / FAIL. WARN items should be reviewed but do not block commits. FAIL blocks. See [FRESHNESS_AUDIT.md](./FRESHNESS_AUDIT.md) for the full check list and interpretation guide.
+
 ## Validation before committing
 
 Before committing any changes to `CLAUDE.md`, `docs/ai-context/`, or high-risk project areas, run:

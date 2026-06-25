@@ -37,6 +37,12 @@ npx tsx scripts/context/pre-commit-context-check.ts
 ```
 This runs `check-context.ts` automatically when context files changed, and warns when high-risk files changed without context doc updates.
 
+**After changes to payments, fiscalization, refunds, translation pipeline, integrations, or deployment rules**, run the freshness audit to check whether context claims still match the codebase:
+```bash
+npx tsx scripts/context/freshness-audit.ts
+```
+See [FRESHNESS_AUDIT.md](./FRESHNESS_AUDIT.md) for the full list of checks and how to interpret PASS/WARN/FAIL.
+
 ## Context Budget
 
 Default maximum initial context:

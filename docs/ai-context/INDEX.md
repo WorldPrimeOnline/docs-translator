@@ -19,6 +19,7 @@ For any task, load the relevant domain file before touching code:
 
 | Task | Read first |
 |---|---|
+| Context freshness audit (after payments/pipeline/integration changes) | [FRESHNESS_AUDIT.md](./FRESHNESS_AUDIT.md) |
 | PROJECT_CONTEXT.md caveats, pipeline freeze, `tech-pipline` reference | [00_CONTEXT_LOADING_RULES.md](./00_CONTEXT_LOADING_RULES.md) |
 | Branch, git, deploy, migration | [10_BRANCH_DEPLOYMENT_RULES.md](./10_BRANCH_DEPLOYMENT_RULES.md) |
 | Running commands, tests, scripts | [20_COMMANDS_AND_TESTS.md](./20_COMMANDS_AND_TESTS.md) |
