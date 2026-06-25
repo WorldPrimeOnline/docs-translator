@@ -165,8 +165,8 @@
     "item1Desc": "Elektron tarjima odatda bir necha daqiqa ichida tayyor bo'ladi. Rasmiy tarjima va notarial tasdiqlash ko'proq vaqt talab qiladi.",
     "item2Title": "Jarayon shaxsiy kabinetda",
     "item2Desc": "Yuklash, buyurtma holati va tayyor tarjima onlayn mavjud.",
-    "item3Title": "To'lovdan oldin narx",
-    "item3Desc": "Yakuniy narx to'lovga o'tishdan oldin ko'rsatiladi. Qo'shimcha xizmat darajalari alohida tanlanadi.",
+    "item3Title": "Xizmat darajasiga qarab hisoblash",
+    "item3Desc": "Xizmat darajasini tanlang: elektron tarjima, agent muhri bilan tarjima yoki notarial tasdiqlangan tarjima. Yakuniy narx tanlangan format, hujjat turi va shoshilinchlikka qarab hisoblanadi.",
     "item4Title": "Chet eldan qulay",
     "item4Desc": "Hujjatni yuklab, ofisga tashrifсиз onlayn natijani olish mumkin."
   },

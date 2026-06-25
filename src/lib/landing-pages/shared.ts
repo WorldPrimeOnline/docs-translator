@@ -56,4 +56,12 @@ export const defaultPricingTiers: PricingTier[] = [
   { id: 'notarized' },
 ];
 
+export const agentStampPricingTiers: PricingTier[] = [
+  { id: 'agentStamp', highlighted: true },
+];
+
+export const notarizedPricingTiers: PricingTier[] = [
+  { id: 'notarized', highlighted: true },
+];
+
 export const defaultPricingFootnote = 'allPricesNote';

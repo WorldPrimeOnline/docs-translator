@@ -15,6 +15,8 @@ import {
   defaultHowItWorksSteps,
   defaultTrustItems,
   defaultPricingTiers,
+  agentStampPricingTiers,
+  notarizedPricingTiers,
   defaultPricingFootnote,
 } from './shared';
 
@@ -132,7 +134,7 @@ export const kazakhstanConfig: LandingPageConfig = {
     headline: 'Document Translation for Kazakhstan — When and How to Use',
     paragraphs: [
       'В Казахстане переводы документов часто нужны для поступления в зарубежные университеты, рабочих виз, релокации, миграционных процедур, открытия банковских счетов за границей и апостиля. Обычный путь через бюро переводов может требовать личного визита, ожидания и ручной передачи документов.',
-      'WorldPrimeOnline помогает подготовить перевод онлайн: загрузите документ, выберите языковую пару и уровень услуги, получите результат в электронном формате. Электронный перевод подходит для подготовки и ознакомления. Официальный перевод с проверкой переводчиком, подписью переводчика и печатью Исполнителя доступен как отдельный уровень услуги. Нотариальное удостоверение оформляется отдельно через партнёров, если такая услуга доступна.',
+      'WorldPrimeOnline помогает подготовить перевод онлайн: загрузите документ, выберите языковую пару и уровень услуги, получите результат в электронном формате. Электронный перевод подходит для подготовки и ознакомления. Официальный перевод с проверкой переводчиком, подписью переводчика и печатью Исполнителя доступен как отдельный уровень услуги. Нотариальное заверение оформляется отдельно через партнёров, если такая услуга доступна.',
       'Принятие перевода третьими лицами не гарантируется. Перед подачей документа в банк, университет, консульство, миграционный орган или нотариусу необходимо проверить требования принимающей стороны.',
     ],
   },
@@ -151,9 +153,9 @@ export const kazakhstanConfig: LandingPageConfig = {
 };
 
 export const kazakhstanNotarizedConfig: LandingPageConfig = {
-  title: 'Перевод для нотариального удостоверения — Казахстан — WPO Translations',
+  title: 'Перевод для нотариального заверения — Казахстан — WPO Translations',
   description:
-    'Подготовьте перевод онлайн и оформите официальный перевод или нотариальное удостоверение через партнёрский процесс WPO. Для Казахстана.',
+    'Подготовьте перевод онлайн и оформите официальный перевод или нотариальное заверение через партнёрский процесс WPO. Для Казахстана.',
 
   breadcrumb: [
     { label: 'WPO Translations', href: '/' },
@@ -244,7 +246,7 @@ export const kazakhstanNotarizedConfig: LandingPageConfig = {
 
   pricing: {
     headline: 'Pricing',
-    tiers: defaultPricingTiers,
+    tiers: notarizedPricingTiers,
     footnote: defaultPricingFootnote,
   },
 
@@ -462,7 +464,7 @@ export const kazakhstanCertifiedConfig: LandingPageConfig = {
   pricing: {
     headline: 'Pricing',
     subheadline: 'Electronic translation is the base service level. Translation with agent stamp is a separate service level with human translator review.',
-    tiers: defaultPricingTiers,
+    tiers: agentStampPricingTiers,
     footnote: defaultPricingFootnote,
   },
 
