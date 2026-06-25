@@ -1,0 +1,77 @@
+{
+  "pricing": {
+    "label": "FİYATLAR",
+    "title": "Belge başına ödeme",
+    "subtitle": "Abonelik yok. Nihai fiyat belge türüne, dile, aciliyete ve hizmet düzeyine göre değişir.",
+    "perDoc": "belge başına",
+    "mostPopular": "En çok tercih edilen",
+    "startTranslating": "Çeviriyi başlat",
+    "allPricesNote": "Tüm fiyatlar ₸ (Tenge) cinsinden · Abonelik yok · Nihai fiyat belge yüklendikten sonra hesaplanır",
+    "paygNote": "1.000 ₸'den başlayan — elektronik çeviri. 5.500 ₸'den başlayan — acente kaşeli çeviri.",
+    "electronic": "Elektronik çeviri",
+    "electronicPrice": "1.000 ₸'den başlayan",
+    "electronicF1": "AI/OCR taslağı ve otomatik biçimlendirme",
+    "electronicF2": "PDF/DOCX çıktısı",
+    "electronicF3": "2–5 dakikada hazır",
+    "electronicF4": "Çevirmen imzası ve acente kaşesi yoktur",
+    "agentStamp": "Acente kaşeli çeviri",
+    "agentStampPrice": "5.500 ₸'den başlayan",
+    "agentStampF1": "İnsan çevirmen tarafından inceleme",
+    "agentStampF2": "Acente/Sağlayıcı kaşesi",
+    "agentStampF3": "Düzenlenmiş nihai PDF",
+    "agentStampF4": "Noter onayı dahil değildir",
+    "notarized": "Noter onaylı çeviri",
+    "notarizedPrice": "11.000 ₸'den başlayan",
+    "notarizedF1": "Acente/Sağlayıcı kaşeli çeviri",
+    "notarizedF2": "Noterle yürütülen partner süreci",
+    "notarizedF3": "Çevirmen imzasının noter onayı",
+    "notarizedF4": "Süre belgeye, şehre ve noterin müsaitliğine bağlıdır",
+    "tiers": {
+      "electronic": {
+        "title": "Elektronik çeviri",
+        "price": "1.000 ₸'den başlayan",
+        "unit": "belge başına",
+        "features": [
+          "AI/OCR taslağı ve otomatik biçimlendirme",
+          "PDF/DOCX çıktısı",
+          "Genellikle 2–5 dakika",
+          "Çevirmen imzası ve acente kaşesi yoktur"
+        ],
+        "cta": "Çeviriyi başlat"
+      },
+      "agentStamp": {
+        "title": "Acente kaşeli çeviri",
+        "price": "5.500 ₸'den başlayan",
+        "unit": "belge başına",
+        "features": [
+          "İnsan tarafından inceleme",
+          "Nihai PDF düzenlemesi",
+          "Acente/Sağlayıcı kaşesi",
+          "Noter onayı dahil değildir"
+        ],
+        "cta": "Çeviriyi başlat"
+      },
+      "notarized": {
+        "title": "Noter onaylı çeviri",
+        "price": "11.000 ₸'den başlayan",
+        "unit": "belge başına",
+        "features": [
+          "Acente/Sağlayıcı kaşeli çeviri",
+          "Noterle yürütülen partner süreci",
+          "Noter onayı",
+          "Süre belgeye, şehre ve noterin müsaitliğine bağlıdır"
+        ],
+        "cta": "Çeviriyi başlat"
+      }
+    },
+    "noAcceptGuarantee": "Üçüncü taraflarca kabul garantisi yoktur",
+    "payg": "Belge başına ödeme",
+    "feature1": "Taahhüt yok",
+    "feature2": "Tüm belge türleri",
+    "feature3": "AI/OCR taslağı ve otomatik biçimlendirme",
+    "feature4": "Hazır PDF çıktısı",
+    "allDocTypes": "Tüm belge türleri",
+    "cleanPdf": "Hazır PDF çıktısı",
+    "translateNow": "Şimdi çevir"
+  }
+}

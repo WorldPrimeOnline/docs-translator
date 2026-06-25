@@ -1,0 +1,20 @@
+{
+  "nav": {
+    "login": "Giriş yap",
+    "dashboard": "Hesabım",
+    "signup": "Kayıt ol",
+    "getStarted": "Başla",
+    "kazakhstan": "Kazakistan",
+    "documents": "Belgeler",
+    "kazakhstanOverview": "Kazakistan Genel Bakış",
+    "translationForNotary": "Noter için çeviri",
+    "universityDocs": "Üniversite belgeleri",
+    "allDocTypes": "Tüm belge türleri",
+    "passportTranslation": "Pasaport çevirisi",
+    "bankStatement": "Banka ekstresi",
+    "diplomaTranslation": "Diploma çevirisi",
+    "certifiedTranslation": "Resmi çeviri",
+    "switchLanguage": "Dil değiştir",
+    "toggleMenu": "Menüyü aç/kapat"
+  }
+}

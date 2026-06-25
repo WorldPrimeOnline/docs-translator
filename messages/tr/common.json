@@ -1,0 +1,28 @@
+{
+  "disclaimer": "RESMİ OLMAYAN ÇEVİRİ — YALNIZCA BİLGİLENDİRME AMAÇLIDIR",
+  "mockup": {
+    "statusReady": "Hazır",
+    "translationReady": "Çeviri hazır",
+    "pdfGenerated": "PDF oluşturuldu · indirmeye hazır",
+    "download": "İndir",
+    "processingPipeline": "İşlem süreci",
+    "ocrExtract": "OCR",
+    "aiTranslate": "Yapay zekâ çevirisi",
+    "pdfGenerate": "PDF",
+    "langRu": "Rusça",
+    "langEn": "İngilizce"
+  },
+  "contactsPage": {
+    "title": "İletişim",
+    "metaTitle": "İletişim — WPO Translations",
+    "metaDescription": "WPO Translations hizmet sağlayıcısına ait iletişim bilgileri ve hesap bilgileri. Anlaşmazlıklar, iadeler ve veri silme talepleri için.",
+    "providerHeading": "Hizmet Sağlayıcı",
+    "disputesNote": "Anlaşmazlıklar, iadeler ve veri silme talepleri için belirtilen iletişim bilgilerini kullanın.",
+    "legalNameLabel": "Ticari unvan",
+    "iinBinLabel": "KİN / VKN",
+    "addressLabel": "Hukuki / posta adresi",
+    "phoneLabel": "Telefon",
+    "emailLabel": "E-posta",
+    "websiteLabel": "Web sitesi"
+  }
+}
