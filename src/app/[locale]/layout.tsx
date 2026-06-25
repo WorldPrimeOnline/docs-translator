@@ -54,8 +54,7 @@ export default async function LocaleLayout({
 
               {/* Provider ID block — required for Halyk Bank internet acquiring */}
               <div className="mt-3 flex flex-col gap-1 text-xs text-muted-foreground/70">
-                <span className="font-semibold text-muted-foreground/90">{BUSINESS_PROFILE.legalName}</span>
-                <span className="text-muted-foreground/60">{BUSINESS_PROFILE.latinName}</span>
+                <span className="font-semibold text-muted-foreground/90">{tFooter('legalEntity')}</span>
                 <span>{tContacts('iinBinLabel')}: {BUSINESS_PROFILE.iinBin}</span>
                 <a
                   href={`mailto:${BUSINESS_PROFILE.email}`}
@@ -64,9 +63,7 @@ export default async function LocaleLayout({
                   {BUSINESS_PROFILE.email}
                 </a>
                 <span>{BUSINESS_PROFILE.phone}</span>
-                {BUSINESS_PROFILE.legalAddress !== 'TODO: Юридический / почтовый адрес' && (
-                  <span>{BUSINESS_PROFILE.legalAddress}</span>
-                )}
+                <span>{tFooter('city')}</span>
                 <Link href="/contacts" className="mt-1 text-primary/70 transition-colors hover:text-primary">
                   {tContacts('title')} →
                 </Link>

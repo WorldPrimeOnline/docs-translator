@@ -4,7 +4,13 @@
     "statusReady": "Tayyor",
     "translationReady": "Tarjima tayyor",
     "pdfGenerated": "PDF yaratildi · yuklab olishga tayyor",
-    "download": "Yuklab olish"
+    "download": "Yuklab olish",
+    "processingPipeline": "Ishlov berish jarayoni",
+    "ocrExtract": "OCR",
+    "aiTranslate": "AI-tarjima",
+    "pdfGenerate": "PDF",
+    "langRu": "Ruscha",
+    "langEn": "Inglizcha"
   },
   "contactsPage": {
     "title": "Kontaktlar",

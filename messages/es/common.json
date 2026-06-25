@@ -1,22 +1,28 @@
 {
   "disclaimer": "TRADUCCIÓN NO OFICIAL — SOLO PARA FINES INFORMATIVOS",
   "contactsPage": {
-    "title": "Contacts",
-    "metaTitle": "Contact WPO Translations",
-    "metaDescription": "Provider contact details for WPO Translations. For disputes, refund requests, and data deletion inquiries.",
-    "providerHeading": "Service Provider",
-    "disputesNote": "For disputes, refund requests, and data deletion requests, use the contact details below.",
-    "legalNameLabel": "Legal name",
+    "title": "Contactos",
+    "metaTitle": "Contactar WPO Translations",
+    "metaDescription": "Datos de contacto del proveedor WPO Translations. Para disputas, solicitudes de reembolso y eliminación de datos.",
+    "providerHeading": "Proveedor de servicios",
+    "disputesNote": "Para disputas, solicitudes de reembolso y eliminación de datos, utilice los datos de contacto a continuación.",
+    "legalNameLabel": "Nombre legal",
     "iinBinLabel": "IIN / BIN",
-    "addressLabel": "Legal / Postal address",
-    "phoneLabel": "Phone",
+    "addressLabel": "Dirección legal / postal",
+    "phoneLabel": "Teléfono",
     "emailLabel": "Email",
-    "websiteLabel": "Website"
+    "websiteLabel": "Sitio web"
   },
   "mockup": {
-    "statusReady": "Ready",
-    "translationReady": "Translation ready",
-    "pdfGenerated": "PDF generated · ready to download",
-    "download": "Download"
+    "statusReady": "Listo",
+    "translationReady": "Traducción lista",
+    "pdfGenerated": "PDF generado · listo para descargar",
+    "download": "Descargar",
+    "processingPipeline": "Flujo de procesamiento",
+    "ocrExtract": "Extracción OCR",
+    "aiTranslate": "Traducción IA",
+    "pdfGenerate": "Generar PDF",
+    "langRu": "Ruso",
+    "langEn": "Inglés"
   }
 }

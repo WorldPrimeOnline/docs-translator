@@ -1,22 +1,28 @@
 {
   "disclaimer": "비공식 번역 — 정보 제공 목적으로만 사용",
   "contactsPage": {
-    "title": "Contacts",
-    "metaTitle": "Contact WPO Translations",
-    "metaDescription": "Provider contact details for WPO Translations. For disputes, refund requests, and data deletion inquiries.",
-    "providerHeading": "Service Provider",
-    "disputesNote": "For disputes, refund requests, and data deletion requests, use the contact details below.",
-    "legalNameLabel": "Legal name",
+    "title": "연락처",
+    "metaTitle": "WPO Translations 연락처",
+    "metaDescription": "WPO Translations 서비스 제공업체 연락처. 분쟁, 환불 요청 및 데이터 삭제 문의.",
+    "providerHeading": "서비스 제공업체",
+    "disputesNote": "분쟁, 환불 요청 및 데이터 삭제 요청은 아래 연락처를 이용하세요.",
+    "legalNameLabel": "법인명",
     "iinBinLabel": "IIN / BIN",
-    "addressLabel": "Legal / Postal address",
-    "phoneLabel": "Phone",
-    "emailLabel": "Email",
-    "websiteLabel": "Website"
+    "addressLabel": "법적/우편 주소",
+    "phoneLabel": "전화",
+    "emailLabel": "이메일",
+    "websiteLabel": "웹사이트"
   },
   "mockup": {
-    "statusReady": "Ready",
-    "translationReady": "Translation ready",
-    "pdfGenerated": "PDF generated · ready to download",
-    "download": "Download"
+    "statusReady": "완료",
+    "translationReady": "번역 완료",
+    "pdfGenerated": "PDF 생성됨 · 다운로드 가능",
+    "download": "다운로드",
+    "processingPipeline": "처리 파이프라인",
+    "ocrExtract": "OCR 추출",
+    "aiTranslate": "AI 번역",
+    "pdfGenerate": "PDF 생성",
+    "langRu": "러시아어",
+    "langEn": "영어"
   }
 }

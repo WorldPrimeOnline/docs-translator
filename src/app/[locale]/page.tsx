@@ -156,16 +156,12 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
 
                 {/* Pipeline */}
                 <div className="border-b border-white/[0.06] px-5 py-4">
-                  <p className="mb-2.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">Processing pipeline</p>
+                  <p className="mb-2.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">{t('mockup.processingPipeline')}</p>
                   <div className="grid grid-cols-3 gap-1.5">
-                    {[
-                      { label: 'OCR Extract', done: true },
-                      { label: 'AI Translate', done: true },
-                      { label: 'PDF Generate', done: true },
-                    ].map((s) => (
-                      <div key={s.label} className="flex items-center justify-center gap-1 rounded-md bg-emerald-500/[0.08] px-2 py-2 text-[10px] font-medium text-emerald-400">
+                    {[t('mockup.ocrExtract'), t('mockup.aiTranslate'), t('mockup.pdfGenerate')].map((label) => (
+                      <div key={label} className="flex items-center justify-center gap-1 rounded-md bg-emerald-500/[0.08] px-2 py-2 text-[10px] font-medium text-emerald-400">
                         <CheckCircle2 className="h-3 w-3 shrink-0" />
-                        {s.label}
+                        {label}
                       </div>
                     ))}
                   </div>
@@ -175,12 +171,12 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
                 <div className="flex items-center gap-3 border-b border-white/[0.06] px-5 py-3.5">
                   <div className="flex items-center gap-1.5 rounded-lg border border-white/[0.07] bg-white/[0.03] px-3 py-1.5">
                     <span className="text-base">🇷🇺</span>
-                    <span className="text-[11px] font-medium text-foreground/80">Russian</span>
+                    <span className="text-[11px] font-medium text-foreground/80">{t('mockup.langRu')}</span>
                   </div>
                   <ArrowRight className="h-3.5 w-3.5 text-primary/40 shrink-0" />
                   <div className="flex items-center gap-1.5 rounded-lg border border-white/[0.07] bg-white/[0.03] px-3 py-1.5">
                     <span className="text-base">🇬🇧</span>
-                    <span className="text-[11px] font-medium text-foreground/80">English</span>
+                    <span className="text-[11px] font-medium text-foreground/80">{t('mockup.langEn')}</span>
                   </div>
                   <div className="ml-auto flex items-center gap-1.5 text-[10px] text-muted-foreground/60">
                     <Zap className="h-3 w-3 text-primary/60" />
