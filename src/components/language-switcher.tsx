@@ -67,7 +67,8 @@ export function LanguageSwitcher() {
         aria-label={tNav('switchLanguage')}
       >
         <span className="text-sm leading-none">{current.flag}</span>
-        <span>{current.code.toUpperCase()}</span>
+        <span className="hidden sm:inline">{current.nativeLabel}</span>
+        <span className="sm:hidden">{current.nativeShortLabel}</span>
         <ChevronDown
           className={`h-3 w-3 transition-transform duration-150 ${open ? 'rotate-180' : ''}`}
         />
