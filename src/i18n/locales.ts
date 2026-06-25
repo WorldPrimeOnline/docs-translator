@@ -20,6 +20,7 @@ export const LOCALES: LocaleDefinition[] = [
   { code: 'tk', label: 'Turkmen',    nativeLabel: 'Türkmen',   nativeShortLabel: 'Tkm',  flag: '🇹🇲', enabled: false },
   { code: 'mn', label: 'Mongolian',  nativeLabel: 'Монгол',    nativeShortLabel: 'Мон',  flag: '🇲🇳', enabled: false },
   { code: 'ky', label: 'Kyrgyz',     nativeLabel: 'Кыргызча',  nativeShortLabel: 'Кыр',  flag: '🇰🇬', enabled: true  },
+  { code: 'de', label: 'German',     nativeLabel: 'Deutsch',   nativeShortLabel: 'De',   flag: '🇩🇪', enabled: true  },
   { code: 'es', label: 'Spanish',    nativeLabel: 'Español',   nativeShortLabel: 'Esp',  flag: '🇪🇸', enabled: false },
 ];
 

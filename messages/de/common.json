@@ -1,0 +1,28 @@
+{
+  "disclaimer": "INOFFIZIELLE ÜBERSETZUNG — NUR ZU INFORMATIONSZWECKEN",
+  "mockup": {
+    "statusReady": "Fertig",
+    "translationReady": "Übersetzung bereit",
+    "pdfGenerated": "PDF erstellt · zum Download bereit",
+    "download": "Herunterladen",
+    "processingPipeline": "Verarbeitungsprozess",
+    "ocrExtract": "OCR",
+    "aiTranslate": "KI-Übersetzung",
+    "pdfGenerate": "PDF",
+    "langRu": "Russisch",
+    "langEn": "Englisch"
+  },
+  "contactsPage": {
+    "title": "Kontakt",
+    "metaTitle": "Kontakt — WPO Translations",
+    "metaDescription": "Kontaktinformationen und Anbieterdetails von WPO Translations. Bei Fragen zu Streitigkeiten, Rückerstattungen und Datenlöschung.",
+    "providerHeading": "Dienstanbieter",
+    "disputesNote": "Bei Fragen zu Streitigkeiten, Rückerstattungen und Datenlöschung wenden Sie sich bitte an die angegebenen Kontakte.",
+    "legalNameLabel": "Rechtliche Bezeichnung",
+    "iinBinLabel": "IIN / BIN",
+    "addressLabel": "Rechtliche / Postanschrift",
+    "phoneLabel": "Telefon",
+    "emailLabel": "E-Mail",
+    "websiteLabel": "Website"
+  }
+}
