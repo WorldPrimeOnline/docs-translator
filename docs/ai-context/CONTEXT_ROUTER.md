@@ -43,6 +43,13 @@ npx tsx scripts/context/freshness-audit.ts
 ```
 See [FRESHNESS_AUDIT.md](./FRESHNESS_AUDIT.md) for the full list of checks and how to interpret PASS/WARN/FAIL.
 
+**To record a permanent architectural/product/ops decision**, use the capture helper instead of manually editing DECISIONS.md:
+```bash
+npx tsx scripts/context/add-decision.ts \
+  --title "..." --decision "..." --rationale "..."
+```
+See [DECISION_CAPTURE.md](./DECISION_CAPTURE.md) for when to record, when not to, and examples.
+
 ## Context Budget
 
 Default maximum initial context:

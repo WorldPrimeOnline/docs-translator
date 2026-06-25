@@ -99,3 +99,19 @@ The previous `CLAUDE.md` exceeded 40,000 characters and mixed operational rules 
 
 **Risks / caveats:**
 Claude must actually read `INDEX.md` and the relevant context files before risky work. The end-of-task context maintenance check (see `docs/ai-context/96_CONTEXT_MAINTENANCE_RULES.md`) is required to prevent the docs from becoming stale.
+
+---
+
+### 2026-06-25 — Permanent decisions are captured via add-decision.ts, not manual DECISIONS.md edits
+
+**Decision:**  
+All new permanent architectural/product/ops decisions must be appended to docs/ai-context/DECISIONS.md using scripts/context/add-decision.ts. Manual free-form edits to DECISIONS.md are discouraged.
+
+**Rationale:**  
+Manual edits have historically produced inconsistent formatting (missing trailing two-spaces on bold headers, inconsistent separators, raw meeting notes dumped as entries). The script enforces the required template, warns on duplicate titles, and blocks if secret-like strings are detected.
+
+**Impacted files/docs:**  
+scripts/context/add-decision.ts, docs/ai-context/DECISIONS.md, docs/ai-context/DECISION_CAPTURE.md, docs/ai-context/96_CONTEXT_MAINTENANCE_RULES.md, CLAUDE.md
+
+**Risks / caveats:**  
+Claude and engineers can still manually edit DECISIONS.md if the script is unavailable. The script does not validate existing entries — only new ones appended through it.

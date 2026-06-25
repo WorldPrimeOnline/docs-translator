@@ -57,6 +57,7 @@ const REQUIRED_FILES = [
   "docs/ai-context/96_CONTEXT_MAINTENANCE_RULES.md",
   "docs/ai-context/DECISIONS.md",
   "docs/ai-context/FRESHNESS_AUDIT.md",
+  "docs/ai-context/DECISION_CAPTURE.md",
 ];
 
 const LINK_SOURCE_FILES = [

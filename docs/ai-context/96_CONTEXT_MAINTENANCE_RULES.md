@@ -32,7 +32,7 @@ Use this routing:
 | Security invariants and sensitive-data rules | `docs/ai-context/90_SECURITY_INVARIANTS.md` |
 | Codebase Memory MCP usage | `docs/ai-context/95_CODEBASE_MEMORY_MCP_RULES.md` |
 | Context update process itself | `docs/ai-context/96_CONTEXT_MAINTENANCE_RULES.md` |
-| Permanent decisions and rationale | `docs/ai-context/DECISIONS.md` |
+| Permanent decisions and rationale | `docs/ai-context/DECISIONS.md` via `scripts/context/add-decision.ts` |
 
 ## When to update `CLAUDE.md`
 
@@ -72,6 +72,23 @@ Context maintenance:
 ```
 
 If no context docs were updated, explain why the task did not introduce durable knowledge.
+
+## Recording permanent decisions
+
+When a task introduces a permanent architectural, product, or operational decision, record it using the capture helper:
+
+```bash
+npx tsx scripts/context/add-decision.ts \
+  --title "Decision title" \
+  --decision "Decision text" \
+  --rationale "Rationale text" \
+  --impacted "CLAUDE.md, docs/ai-context/INDEX.md" \
+  --risks "Risks or caveats"
+```
+
+Do not manually append free-form entries to `DECISIONS.md` — the script enforces the required template, warns on duplicate titles, and blocks if secret-like strings are detected.
+
+Do not dump long meeting notes into `DECISIONS.md`. Record the *outcome* only. See [DECISION_CAPTURE.md](./DECISION_CAPTURE.md) for when to record, when not to, and worked examples.
 
 ## Freshness audit after high-risk changes
 
