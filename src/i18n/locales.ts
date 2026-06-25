@@ -13,7 +13,7 @@ export const LOCALES: LocaleDefinition[] = [
   { code: 'ru', label: 'Russian',    nativeLabel: 'Русский',   nativeShortLabel: 'Рус',  flag: '🇷🇺', enabled: true  },
   { code: 'en', label: 'English',    nativeLabel: 'English',   nativeShortLabel: 'Eng',  flag: '🇬🇧', enabled: true  },
   { code: 'kk', label: 'Kazakh',     nativeLabel: 'Қазақша',   nativeShortLabel: 'Қаз',  flag: '🇰🇿', enabled: true  },
-  { code: 'zh', label: 'Chinese',    nativeLabel: '中文',       nativeShortLabel: '中文',  flag: '🇨🇳', enabled: false },
+  { code: 'zh', label: 'Chinese',    nativeLabel: '中文',       nativeShortLabel: '中',   flag: '🇨🇳', enabled: true  },
   { code: 'ko', label: 'Korean',     nativeLabel: '한국어',     nativeShortLabel: '한국어', flag: '🇰🇷', enabled: false },
   { code: 'tj', label: 'Tajik',      nativeLabel: 'Тоҷикӣ',   nativeShortLabel: 'Тоҷ',  flag: '🇹🇯', enabled: false },
   { code: 'uz', label: 'Uzbek',      nativeLabel: "O'zbek",    nativeShortLabel: "O'z",  flag: '🇺🇿', enabled: true  },
