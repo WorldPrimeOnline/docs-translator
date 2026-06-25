@@ -53,6 +53,15 @@ npx tsx scripts/finance/list-refundable-payments.ts     # Find payments eligible
 npx tsx scripts/finance/backfill-legacy-quotes.ts       # One-time backfill for pre-quote orders
 ```
 
+## AI context tooling
+
+```bash
+npx tsx scripts/context/check-context.ts                                    # Validate context system (links, files, coverage, CLAUDE.md size)
+npx tsx scripts/context/suggest-context.ts "fix Halyk callback amount mismatch"  # Suggest smallest context set for a task
+npx tsx scripts/context/search-context.ts "verifyQuotePayable"              # Search context docs only
+npx tsx scripts/context/search-context.ts "verifyQuotePayable" --code       # Search context docs + src/ + worker/
+```
+
 ## Reference env files
 
 - `.env.example` and `.env.staging.example` — web app

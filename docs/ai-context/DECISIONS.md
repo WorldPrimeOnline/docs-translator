@@ -26,6 +26,26 @@ Each decision uses:
 
 ## Decisions
 
+### 2026-06-25 — AI context routing uses lightweight repo-local scripts, not a vector database
+
+**Decision:**
+The AI context retrieval system uses three lightweight `npx tsx` scripts (`check-context.ts`, `suggest-context.ts`, `search-context.ts`) in `scripts/context/`. No vector database, embedding store, or external service is used for context retrieval.
+
+**Rationale:**
+Deterministic keyword routing is sufficient for a focused codebase with stable, well-named domains. Vector search adds infrastructure complexity, requires embeddings to stay current, and introduces an external dependency that could fail silently. Repo-local scripts have zero cold-start cost, run without network access, and are auditable in version control.
+
+**Impacted files/docs:**
+- `scripts/context/check-context.ts`
+- `scripts/context/suggest-context.ts`
+- `scripts/context/search-context.ts`
+- `docs/ai-context/CONTEXT_ROUTER.md`
+- `docs/ai-context/20_COMMANDS_AND_TESTS.md`
+
+**Risks / caveats:**
+Keyword matching can miss novel task descriptions that don't use expected vocabulary. Mitigation: `suggest-context.ts` defaults to the `general_code` domain when no keywords match, and always includes the bootloader docs. The routing table in `CONTEXT_ROUTER.md` should be expanded as new domains emerge.
+
+---
+
 ### 2026-06-25 — CLAUDE.md is a compact bootloader, not the full project knowledge base
 
 **Decision:**

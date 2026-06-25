@@ -17,7 +17,20 @@ Do **not** reposition WPO as a generic AI translator.
 
 ---
 
-## 2. Non-negotiable Safety Rules
+## 2. Low-token Context Retrieval
+
+Do not read all context docs by default. After loading `PROJECT_CONTEXT.md` and `docs/ai-context/INDEX.md`, read `docs/ai-context/CONTEXT_ROUTER.md` and select the smallest relevant context set.
+
+**Default initial budget:** up to 3 primary domain docs + up to 2 secondary docs when justified. Use exact search (`rg`) before opening large files. For high-risk code areas, follow `docs/ai-context/95_CODEBASE_MEMORY_MCP_RULES.md`.
+
+- Context router: [docs/ai-context/CONTEXT_ROUTER.md](docs/ai-context/CONTEXT_ROUTER.md)
+- Quick catalog: [docs/ai-context/CONTEXT_MANIFEST.md](docs/ai-context/CONTEXT_MANIFEST.md)
+
+For ambiguous tasks, run `npx tsx scripts/context/suggest-context.ts "<task>"` to select the smallest context set. Before committing context-system changes, run `npx tsx scripts/context/check-context.ts`.
+
+---
+
+## 3. Non-negotiable Safety Rules
 
 These are always active — no exceptions without explicit written approval.
 
@@ -35,7 +48,7 @@ These are always active — no exceptions without explicit written approval.
 
 ---
 
-## 3. Mandatory Pre-task Check
+## 4. Mandatory Pre-task Check
 
 Before making any change, always run and report all three:
 
@@ -47,7 +60,7 @@ git log -1 --oneline
 
 ---
 
-## 4. Branch / Deployment Summary
+## 5. Branch / Deployment Summary
 
 | Branch | Environment | Deployed to |
 |---|---|---|
@@ -62,7 +75,7 @@ git log -1 --oneline
 
 ---
 
-## 5. Core Commands
+## 6. Core Commands
 
 ### Web app (`/`)
 ```bash
@@ -94,7 +107,7 @@ Full command list and helper scripts: [20_COMMANDS_AND_TESTS.md](docs/ai-context
 
 ---
 
-## 6. Critical Architecture Pointers
+## 7. Critical Architecture Pointers
 
 - **Web app** — `src/` — Next.js 15 App Router on Vercel
 - **Worker** — `worker/` — standalone Node.js on Railway (Docker)
@@ -107,7 +120,7 @@ Full details: [30_ARCHITECTURE_OVERVIEW.md](docs/ai-context/30_ARCHITECTURE_OVER
 
 ---
 
-## 7. Context Map
+## 8. Context Map
 
 Load the relevant file for your task before touching code:
 
@@ -125,10 +138,12 @@ Load the relevant file for your task before touching code:
 | Codebase-memory-mcp queries | [95_CODEBASE_MEMORY_MCP_RULES.md](docs/ai-context/95_CODEBASE_MEMORY_MCP_RULES.md) |
 | Context maintenance rules, end-of-task update checklist | [96_CONTEXT_MAINTENANCE_RULES.md](docs/ai-context/96_CONTEXT_MAINTENANCE_RULES.md) |
 | Permanent architectural/product/ops decisions | [DECISIONS.md](docs/ai-context/DECISIONS.md) |
+| Task-domain routing, low-token retrieval | [CONTEXT_ROUTER.md](docs/ai-context/CONTEXT_ROUTER.md) |
+| Quick catalog of all context files | [CONTEXT_MANIFEST.md](docs/ai-context/CONTEXT_MANIFEST.md) |
 
 ---
 
-## 8. Context Maintenance
+## 9. Context Maintenance
 
 At the end of every non-trivial task, perform a **Context Maintenance Check**:
 
@@ -154,7 +169,7 @@ Full rules: [96_CONTEXT_MAINTENANCE_RULES.md](docs/ai-context/96_CONTEXT_MAINTEN
 
 ---
 
-## 9. Codebase Memory MCP (compact)
+## 10. Codebase Memory MCP (compact)
 
 Use codebase-memory-mcp as the **first step** before non-trivial analysis or code changes. Required workflow:
 

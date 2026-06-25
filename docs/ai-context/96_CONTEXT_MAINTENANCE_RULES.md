@@ -73,6 +73,16 @@ Context maintenance:
 
 If no context docs were updated, explain why the task did not introduce durable knowledge.
 
+## Validation before committing
+
+Before committing any changes to `CLAUDE.md` or `docs/ai-context/`, run:
+
+```bash
+npx tsx scripts/context/check-context.ts
+```
+
+This validates: CLAUDE.md character count, required file presence, relative link integrity, INDEX/MANIFEST coverage, and router invariants. The check exits 0 on PASS and 1 on FAIL.
+
 ## Safety
 
 - Never write secrets, real client document content, payment credentials, IIN/BIN, passport/document numbers, or private customer data into context docs.

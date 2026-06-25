@@ -13,6 +13,8 @@
 Read `CLAUDE.md` and `PROJECT_CONTEXT.md` at the start of every session.
 For PROJECT_CONTEXT.md caveats (TON payments, pipeline freeze, positioning): [00_CONTEXT_LOADING_RULES.md](./00_CONTEXT_LOADING_RULES.md).
 
+**For non-trivial tasks, do not read every context file.** Use [CONTEXT_ROUTER.md](./CONTEXT_ROUTER.md) to select the smallest relevant context set, then use exact search (`rg`) to locate code/docs details. Use [CONTEXT_MANIFEST.md](./CONTEXT_MANIFEST.md) to quickly identify which file covers an area.
+
 For any task, load the relevant domain file before touching code:
 
 | Task | Read first |
@@ -30,6 +32,8 @@ For any task, load the relevant domain file before touching code:
 | Codebase-memory-mcp usage | [95_CODEBASE_MEMORY_MCP_RULES.md](./95_CODEBASE_MEMORY_MCP_RULES.md) |
 | Context maintenance rules, end-of-task update checklist | [96_CONTEXT_MAINTENANCE_RULES.md](./96_CONTEXT_MAINTENANCE_RULES.md) |
 | Permanent architectural/product/ops decisions | [DECISIONS.md](./DECISIONS.md) |
+| Task-domain routing, low-token retrieval algorithm | [CONTEXT_ROUTER.md](./CONTEXT_ROUTER.md) |
+| Quick catalog of all context files | [CONTEXT_MANIFEST.md](./CONTEXT_MANIFEST.md) |
 
 > **Context maintenance:** After any non-trivial task, check whether durable knowledge changed and update the relevant context file. See [96_CONTEXT_MAINTENANCE_RULES.md](./96_CONTEXT_MAINTENANCE_RULES.md).
 
