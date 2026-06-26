@@ -188,6 +188,24 @@ describe('finalize-payment.ts source invariants', () => {
     expect(src).toContain("payment_source: 'card_payment'");
   });
 
+  it('jobs update payload does NOT include updated_at (column does not exist on jobs table)', async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+    const src = fs.readFileSync(
+      path.join(process.cwd(), 'src/lib/payments/finalize-payment.ts'),
+      'utf-8',
+    );
+    // Find all .from('jobs') update blocks and verify none include updated_at
+    const jobsUpdateRegex = /\.from\('jobs'\)[\s\S]{0,200}\.update\(\{([^}]+)\}/g;
+    let match: RegExpExecArray | null;
+    let foundJobsUpdate = false;
+    while ((match = jobsUpdateRegex.exec(src)) !== null) {
+      foundJobsUpdate = true;
+      expect(match[1]).not.toContain('updated_at');
+    }
+    expect(foundJobsUpdate).toBe(true);
+  });
+
   it('calls markQuotePaid equivalent (price_quotes status=paid)', async () => {
     const fs = await import('fs');
     const path = await import('path');

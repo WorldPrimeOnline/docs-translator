@@ -179,7 +179,7 @@ async function repairHalfFinalizedPayment(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error: jobErr } = await (db as any)
     .from('jobs')
-    .update({ status: 'queued', payment_source: 'card_payment', updated_at: now })
+    .update({ status: 'queued', payment_source: 'card_payment' })
     .eq('id', job.id)
     .eq('status', 'payment_pending');
 
@@ -289,7 +289,7 @@ async function finalizeViaStagingBypass(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error: jobErr } = await (db as any)
     .from('jobs')
-    .update({ status: 'queued', payment_source: 'card_payment', updated_at: now })
+    .update({ status: 'queued', payment_source: 'card_payment' })
     .eq('id', job.id)
     .eq('status', 'payment_pending');
 
