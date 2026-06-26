@@ -12,15 +12,67 @@
  *   npx tsx scripts/staging/confirm-payment-paid.ts --transaction-id <uuid>
  *   npx tsx scripts/staging/confirm-payment-paid.ts --transaction-id <uuid> --reason "Jira flow test"
  *
- * Required env vars (from .env.local or shell):
+ * Env loading (in priority order — earlier file wins for keys already set in shell):
+ *   .env.staging.local  ← preferred for staging credentials
+ *   .env.local          ← fallback
+ *
+ * Required env vars:
  *   NEXT_PUBLIC_SUPABASE_URL
  *   SUPABASE_SERVICE_ROLE_KEY
  *   ALLOW_STAGING_PAYMENT_OVERRIDE=true
+ *   NEXT_PUBLIC_APP_ENV=staging  (or APP_ENV=staging)
  *
  * Do NOT use in production. Do NOT use for real customer transactions.
  */
 
-import { finalizePaymentForStaging, checkStagingGuards } from '../../src/lib/payments/finalize-payment';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as dotenv from 'dotenv';
+
+// ─── Env loading — must happen before any module that reads process.env ────────
+// dotenv.config() never overwrites keys already set in the shell environment.
+
+const ROOT = path.resolve(process.cwd());
+
+function loadEnvFile(filename: string): boolean {
+  const filepath = path.join(ROOT, filename);
+  if (fs.existsSync(filepath)) {
+    dotenv.config({ path: filepath });
+    return true;
+  }
+  return false;
+}
+
+// Load .env.staging.local first (preferred), then .env.local as fallback.
+const stagingLoaded = loadEnvFile('.env.staging.local');
+const localLoaded   = loadEnvFile('.env.local');
+
+// ─── Masked diagnostics ───────────────────────────────────────────────────────
+
+function maskUrl(url: string | undefined): string {
+  if (!url) return '(not set)';
+  try {
+    const parsed = new URL(url);
+    // Show scheme + hostname only (hides path and any embedded credentials)
+    return `${parsed.protocol}//${parsed.hostname}`;
+  } catch {
+    return '(invalid URL)';
+  }
+}
+
+function printDiagnostics(): void {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  console.log('\n[staging-confirm] Environment diagnostics:');
+  console.log(`  Env files loaded  : ${[stagingLoaded && '.env.staging.local', localLoaded && '.env.local'].filter(Boolean).join(', ') || '(none)'}`);
+  console.log(`  APP_ENV           : ${process.env.APP_ENV ?? '(not set)'}`);
+  console.log(`  NEXT_PUBLIC_APP_ENV: ${process.env.NEXT_PUBLIC_APP_ENV ?? '(not set)'}`);
+  console.log(`  ALLOW_STAGING_PAYMENT_OVERRIDE: ${process.env.ALLOW_STAGING_PAYMENT_OVERRIDE ?? '(not set)'}`);
+  console.log(`  SUPABASE_URL      : ${maskUrl(supabaseUrl)}`);
+  console.log(`  SERVICE_ROLE_KEY  : ${serviceKey ? `set (${serviceKey.length} chars, starts ${serviceKey.slice(0, 8)}...)` : '(not set)'}`);
+  console.log('');
+}
 
 // ─── CLI arg parsing ──────────────────────────────────────────────────────────
 
@@ -43,6 +95,9 @@ function parseArgs(): { transactionId: string; reason: string } {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
+  // Dynamic import AFTER env loading so the module reads already-populated process.env
+  const { finalizePaymentForStaging, checkStagingGuards } = await import('../../src/lib/payments/finalize-payment');
+
   const { transactionId, reason } = parseArgs();
 
   if (!transactionId) {
@@ -58,15 +113,18 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
+  // Print diagnostics before guard check so missing vars are visible
+  printDiagnostics();
+
   // Pre-flight guard check
   const guard = checkStagingGuards();
   if (!guard.allowed) {
-    console.error(`\n[BLOCKED] ${guard.reason}\n`);
+    console.error(`[BLOCKED] ${guard.reason}\n`);
     process.exit(1);
   }
 
   const appEnv = process.env.NEXT_PUBLIC_APP_ENV ?? process.env.APP_ENV ?? 'unknown';
-  console.log(`\n[staging-confirm] Starting manual payment confirmation`);
+  console.log(`[staging-confirm] Starting manual payment confirmation`);
   console.log(`  Transaction ID : ${transactionId}`);
   console.log(`  Reason         : ${reason}`);
   console.log(`  APP_ENV        : ${appEnv}`);

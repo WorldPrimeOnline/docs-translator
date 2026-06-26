@@ -286,4 +286,71 @@ describe('confirm-payment-paid.ts CLI script', () => {
     expect(src).toContain('payment_transactions.paid_at');
     expect(src).toContain('JIRA_PRICE_BREAKDOWN_ISSUE_ENABLED');
   });
+
+  it('loads .env.staging.local before .env.local via dotenv', async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+    const src = fs.readFileSync(
+      path.join(process.cwd(), 'scripts/staging/confirm-payment-paid.ts'),
+      'utf-8',
+    );
+    expect(src).toContain('dotenv');
+    expect(src).toContain('.env.staging.local');
+    expect(src).toContain('.env.local');
+    // .env.staging.local must be loaded first (appears earlier in source)
+    const stagingIdx = src.indexOf('.env.staging.local');
+    const localIdx   = src.indexOf('.env.local');
+    expect(stagingIdx).toBeLessThan(localIdx);
+  });
+
+  it('uses dynamic import of finalize-payment AFTER env loading', async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+    const src = fs.readFileSync(
+      path.join(process.cwd(), 'scripts/staging/confirm-payment-paid.ts'),
+      'utf-8',
+    );
+    // Static import of finalize-payment must NOT appear at top level
+    expect(src).not.toMatch(/^import\s+\{[^}]*finalizePaymentForStaging/m);
+    // Dynamic import must appear inside main()
+    expect(src).toContain("await import('../../src/lib/payments/finalize-payment')");
+  });
+
+  it('prints masked SUPABASE_URL (hostname only, no credentials)', async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+    const src = fs.readFileSync(
+      path.join(process.cwd(), 'scripts/staging/confirm-payment-paid.ts'),
+      'utf-8',
+    );
+    expect(src).toContain('maskUrl');
+    expect(src).toContain('SUPABASE_URL');
+    // Must show only hostname, not full URL with path/tokens
+    expect(src).toContain('parsed.hostname');
+  });
+
+  it('prints whether SUPABASE_SERVICE_ROLE_KEY is set (masked)', async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+    const src = fs.readFileSync(
+      path.join(process.cwd(), 'scripts/staging/confirm-payment-paid.ts'),
+      'utf-8',
+    );
+    expect(src).toContain('SERVICE_ROLE_KEY');
+    expect(src).toContain('(not set)');
+  });
+
+  it('prints diagnostics before the guard check', async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+    const src = fs.readFileSync(
+      path.join(process.cwd(), 'scripts/staging/confirm-payment-paid.ts'),
+      'utf-8',
+    );
+    const diagIdx  = src.indexOf('printDiagnostics()');
+    const guardIdx = src.indexOf('checkStagingGuards()');
+    expect(diagIdx).toBeGreaterThan(-1);
+    expect(guardIdx).toBeGreaterThan(-1);
+    expect(diagIdx).toBeLessThan(guardIdx);
+  });
 });
