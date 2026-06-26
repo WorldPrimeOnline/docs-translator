@@ -7,22 +7,22 @@
     "mostPopular": "热门选择",
     "startTranslating": "开始翻译",
     "allPricesNote": "所有价格以 ₸（坚戈）计 · 无需订阅 · 最终价格在上传文件后计算",
-    "paygNote": "1,000 ₸ 起——电子翻译。5,500 ₸ 起——加盖代理机构印章的翻译。",
+    "paygNote": "1,000 ₸ 起——电子翻译。5,500 ₸ 起——加盖服务商印章的翻译。",
     "electronic": "电子翻译",
     "electronicPrice": "1,000 ₸ 起",
     "electronicF1": "AI/OCR 草稿和自动格式化",
     "electronicF2": "PDF/DOCX 输出",
     "electronicF3": "通常 2–5 分钟内完成",
-    "electronicF4": "不含译者签名和代理机构印章",
-    "agentStamp": "加盖代理机构印章的翻译",
+    "electronicF4": "不含译者签名和服务商印章",
+    "agentStamp": "加盖服务商印章的翻译",
     "agentStampPrice": "5,500 ₸ 起",
     "agentStampF1": "人工译者审核",
-    "agentStampF2": "代理机构/服务商印章",
+    "agentStampF2": "服务商印章",
     "agentStampF3": "最终格式化 PDF",
     "agentStampF4": "不含公证",
     "notarized": "公证翻译",
     "notarizedPrice": "11,000 ₸ 起",
-    "notarizedF1": "加盖代理机构/服务商印章的翻译",
+    "notarizedF1": "加盖服务商印章的翻译",
     "notarizedF2": "公证合作方流程",
     "notarizedF3": "公证人对译者签名的认证",
     "notarizedF4": "时间取决于文件、城市和公证人档期",
@@ -35,18 +35,18 @@
           "AI/OCR 草稿和自动格式化",
           "PDF/DOCX 输出",
           "通常 2–5 分钟内完成",
-          "不含译者签名和代理机构印章"
+          "不含译者签名和服务商印章"
         ],
         "cta": "开始翻译"
       },
       "agentStamp": {
-        "title": "加盖代理机构印章的翻译",
+        "title": "加盖服务商印章的翻译",
         "price": "5,500 ₸ 起",
         "unit": "每份文件",
         "features": [
           "人工审核",
           "最终格式化 PDF",
-          "代理机构/服务商印章",
+          "服务商印章",
           "不含公证"
         ],
         "cta": "开始翻译"
@@ -56,7 +56,7 @@
         "price": "11,000 ₸ 起",
         "unit": "每份文件",
         "features": [
-          "加盖代理机构/服务商印章的翻译",
+          "加盖服务商印章的翻译",
           "公证合作方流程",
           "公证认证",
           "时间取决于文件、城市和公证人档期"

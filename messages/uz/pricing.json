@@ -7,22 +7,22 @@
     "mostPopular": "Mashhur tanlov",
     "startTranslating": "Tarjimani boshlash",
     "allPricesNote": "Barcha narxlar ₸ (tenge) da · Obunasiз · Yakuniy narx hujjat yuklanganidan so'ng hisoblanadi",
-    "paygNote": "1 000 ₸ dan — elektron tarjima. 5 500 ₸ dan — agent muhri bilan tarjima.",
+    "paygNote": "1 000 ₸ dan — elektron tarjima. 5 500 ₸ dan — ijrochi muhri bilan tarjima.",
     "electronic": "Elektron tarjima",
     "electronicPrice": "1 000 ₸ dan",
     "electronicF1": "AI/OCR-qoralama va avtomatik formatlash",
     "electronicF2": "PDF/DOCX natijasi",
     "electronicF3": "Tayyor bo'lish vaqti 2–5 daqiqa",
-    "electronicF4": "Tarjimon imzosi va agent muhrisiz",
-    "agentStamp": "Agent muhri bilan tarjima",
+    "electronicF4": "Tarjimon imzosi va ijrochi muhrisiz",
+    "agentStamp": "Ijrochi muhri bilan tarjima",
     "agentStampPrice": "5 500 ₸ dan",
     "agentStampF1": "Inson tarjimoni tomonidan tekshiruv",
-    "agentStampF2": "Agent/Ijrochi muhri",
+    "agentStampF2": "Ijrochi muhri",
     "agentStampF3": "Rasmiylashtirilgan yakuniy PDF",
     "agentStampF4": "Notarial tasdiqlashsiz",
-    "notarized": "Notarial tasdiqlangan tarjima",
+    "notarized": "Notarial tasdiqli tarjima",
     "notarizedPrice": "11 000 ₸ dan",
-    "notarizedF1": "Agent/Ijrochi muhri bilan tarjima",
+    "notarizedF1": "Ijrochi muhri bilan tarjima",
     "notarizedF2": "Notarius bilan hamkorlik jarayoni",
     "notarizedF3": "Tarjimon imzosini notarial tasdiqlash",
     "notarizedF4": "Muddat hujjat, shahar va notarius mavjudligiga bog'liq",
@@ -35,28 +35,28 @@
           "AI/OCR-qoralama va avtomatik formatlash",
           "PDF/DOCX natijasi",
           "Odatda 2–5 daqiqa",
-          "Tarjimon imzosi va agent muhrisiz"
+          "Tarjimon imzosi va ijrochi muhrisiz"
         ],
         "cta": "Tarjimani boshlash"
       },
       "agentStamp": {
-        "title": "Agent muhri bilan tarjima",
+        "title": "Ijrochi muhri bilan tarjima",
         "price": "5 500 ₸ dan",
         "unit": "bir hujjat uchun",
         "features": [
           "Inson tomonidan tekshiruv",
           "Yakuniy PDFni rasmiylashtirish",
-          "Agent/ijrochi muhri",
+          "Ijrochi muhri",
           "Notarial tasdiqlashsiz"
         ],
         "cta": "Tarjimani boshlash"
       },
       "notarized": {
-        "title": "Notarial tasdiqlangan tarjima",
+        "title": "Notarial tasdiqli tarjima",
         "price": "11 000 ₸ dan",
         "unit": "bir hujjat uchun",
         "features": [
-          "Agent/ijrochi muhri bilan tarjima",
+          "Ijrochi muhri bilan tarjima",
           "Notarius bilan hamkorlik jarayoni",
           "Notarial tasdiqlash",
           "Muddat hujjat, shahar va notarius mavjudligiga bog'liq"

@@ -101,13 +101,17 @@
     "addMoreFiles": "Daha fazla ekle",
     "serviceLevel": {
       "label": "HİZMET DÜZEYİ",
+      "electronic": {
+        "label": "Elektronik çeviri",
+        "desc": "Çeviri yapay zeka ve OCR ile gerçekleştirilir. Çevirmen imzası ve sağlayıcı kaşesi yoktur. 2–5 dakikada hazır."
+      },
       "certified": {
-        "label": "Acente kaşeli çeviri",
-        "desc": "Çeviri nitelikli bir çevirmen tarafından incelenir, çevirmen tarafından imzalanır ve WPO kaşesi basılır. Noter onayı dahil değildir."
+        "label": "Sağlayıcı kaşeli çeviri",
+        "desc": "Çeviri nitelikli bir çevirmen tarafından incelenir, çevirmen tarafından imzalanır ve sağlayıcı kaşesi basılır. Noter onayı dahil değildir."
       },
       "notarization": {
-        "label": "Acente kaşeli ve noter onaylı çeviri",
-        "desc": "Çeviri incelenir ve çevirmen tarafından imzalanır, WPO kaşesi basılır; ardından çevirmen imzasının noter onayı için partner notere iletilir."
+        "label": "Sağlayıcı kaşeli ve noter onaylı çeviri",
+        "desc": "Çeviri incelenir ve çevirmen tarafından imzalanır, sağlayıcı kaşesi basılır; ardından çevirmen imzasının noter onayı için partner notere iletilir."
       }
     },
     "notary": {
@@ -178,7 +182,7 @@
       "created": "Oluşturuldu",
       "updated": "Güncellendi",
       "serviceElectronic": "Elektronik",
-      "serviceCertified": "Kaşeli",
+      "serviceCertified": "Sağlayıcı kaşeli",
       "serviceNotarized": "Noter onaylı"
     },
     "errors": {
@@ -203,7 +207,7 @@
     "quoteRecalculating": "Sipariş durumu güncelleniyor...",
     "priceHint": "Kesin fiyat belge yüklendikten ve analiz edildikten sonra hesaplanır.",
     "priceHintElectronic": "Elektronik çeviri — 1.000 ₸'den başlayan. Nihai fiyat yüklemeden sonra.",
-    "priceHintOfficial": "Acente kaşeli çeviri — 5.500 ₸'den başlayan. Nihai fiyat yüklemeden sonra.",
+    "priceHintOfficial": "Sağlayıcı kaşeli çeviri — 5.500 ₸'den başlayan. Nihai fiyat yüklemeden sonra.",
     "priceHintNotarized": "Noter onaylı çeviri — 11.000 ₸'den başlayan. Nihai fiyat yüklemeden sonra.",
     "urgency": {
       "label": "ACİLİYET",
