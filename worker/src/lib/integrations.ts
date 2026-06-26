@@ -30,6 +30,12 @@ import {
   type FinanceReportParams,
   type PricingResult,
 } from './jira/finance-report';
+import {
+  buildPriceBreakdownPayload,
+  getPriceBreakdownConfig,
+  type PriceBreakdownParams,
+  type PriceBreakdownPricingResult,
+} from './jira/price-breakdown';
 
 // ─── Jira helpers ─────────────────────────────────────────────────────────────
 
@@ -285,6 +291,106 @@ export async function createFinanceReportIssue(params: {
   return issueKey;
 }
 
+// ─── Price breakdown issue ────────────────────────────────────────────────────
+
+/**
+ * Create a Price Breakdown Story in Jira for the given order.
+ * Called immediately after the main Jira issue is created, at order initialisation time.
+ * Shows client-visible pricing line items only — no internal costs, margins, or payment data.
+ * Controlled by env var JIRA_PRICE_BREAKDOWN_ISSUE_ENABLED=true.
+ *
+ * Always non-blocking — never throws to the caller; returns issue key or null.
+ * Idempotent via jobs.price_jira_issue_key.
+ */
+export async function createPriceBreakdownIssue(params: {
+  jobId: string;
+  mainIssueKey: string;
+  pricingSnapshot: Record<string, unknown> | null;
+  quoteId: string | null;
+  serviceLevel: string;
+  sourceLanguage: string;
+  targetLanguage: string;
+  documentType: string;
+  paymentSource: string | null;
+}): Promise<string | null> {
+  const tag = `[price-breakdown-jira:${params.jobId.slice(0, 8)}]`;
+  const config = getPriceBreakdownConfig();
+
+  if (!config.enabled) {
+    console.log(`${tag} JIRA_PRICE_BREAKDOWN_ISSUE_ENABLED not set — skipping`);
+    return null;
+  }
+
+  if (!getJiraAuth()) {
+    console.log(`${tag} Jira not configured — skipping price breakdown issue`);
+    return null;
+  }
+
+  // Idempotency check
+  const { data: existingJob } = await supabase
+    .from('jobs')
+    .select('price_jira_issue_key')
+    .eq('id', params.jobId)
+    .maybeSingle();
+
+  const existingKey = (existingJob as Record<string, unknown> | null)?.price_jira_issue_key as string | null;
+  if (existingKey) {
+    console.log(`${tag} Price breakdown issue already exists: ${existingKey}`);
+    return existingKey;
+  }
+
+  const breakdownParams: PriceBreakdownParams = {
+    jobId: params.jobId,
+    mainIssueKey: params.mainIssueKey,
+    quoteId: params.quoteId,
+    serviceLevel: params.serviceLevel,
+    sourceLanguage: params.sourceLanguage,
+    targetLanguage: params.targetLanguage,
+    documentType: params.documentType,
+    paymentSource: params.paymentSource,
+    pricingResult: params.pricingSnapshot as PriceBreakdownPricingResult | null,
+  };
+
+  const payload = buildPriceBreakdownPayload(breakdownParams);
+
+  const res = await jiraFetch('/issue', { method: 'POST', body: JSON.stringify(payload) });
+  if (!res) return null;
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    console.error(`${tag} Jira create price breakdown issue failed: ${res.status} ${text.slice(0, 300)}`);
+    await supabase.from('jobs').update({
+      price_jira_sync_status: 'failed',
+      price_jira_last_error: `HTTP ${res.status}: ${text.slice(0, 200)}`,
+    } as Record<string, unknown>).eq('id', params.jobId);
+    return null;
+  }
+
+  const data = await res.json() as { id: string; key: string };
+  const issueKey = data.key;
+  const issueId = data.id;
+  const auth = getJiraAuth()!;
+  const issueUrl = `${auth.baseUrl}/browse/${issueKey}`;
+
+  await supabase.from('jobs').update({
+    price_jira_issue_id: issueId,
+    price_jira_issue_key: issueKey,
+    price_jira_issue_url: issueUrl,
+    price_jira_sync_status: 'synced',
+    price_jira_synced_at: new Date().toISOString(),
+  } as Record<string, unknown>).eq('id', params.jobId);
+
+  // Link to main order issue (non-fatal on failure)
+  try {
+    await createJiraIssueLink(issueKey, params.mainIssueKey);
+  } catch (err) {
+    console.warn(`${tag} Failed to link price breakdown issue (non-fatal):`, err instanceof Error ? err.message : String(err));
+  }
+
+  console.log(`${tag} ✓ Price breakdown Jira issue created: ${issueKey} → linked to ${params.mainIssueKey}`);
+  return issueKey;
+}
+
 // ─── Telegram helper ──────────────────────────────────────────────────────────
 
 async function sendTelegram(chatId: string, text: string): Promise<void> {
@@ -468,6 +574,33 @@ export async function initializeOrderIntegrations(params: {
             jira_sync_status: 'created',
           });
           console.log(`${tag} ✓ Jira issue created: ${issue.issueKey}`);
+
+          // Create price breakdown issue immediately after main issue (non-blocking)
+          void (async () => {
+            try {
+              const { data: quoteData } = await supabase
+                .from('price_quotes' as never)
+                .select('id, pricing_context_json, amount_kzt')
+                .eq('job_id', params.jobId)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle() as { data: Record<string, unknown> | null };
+
+              await createPriceBreakdownIssue({
+                jobId: params.jobId,
+                mainIssueKey: issue.issueKey,
+                pricingSnapshot: (quoteData?.pricing_context_json as Record<string, unknown>) ?? null,
+                quoteId: (quoteData?.id as string) ?? null,
+                serviceLevel: params.serviceLevel,
+                sourceLanguage: params.sourceLang,
+                targetLanguage: params.targetLang,
+                documentType: params.documentType,
+                paymentSource: params.paymentSource ?? null,
+              });
+            } catch (pbErr) {
+              console.error(`${tag} createPriceBreakdownIssue failed (non-fatal):`, pbErr instanceof Error ? pbErr.message : String(pbErr));
+            }
+          })();
 
           const auth = getJiraAuth();
           const chatId = process.env.TELEGRAM_OPERATOR_CHAT_ID ?? process.env.TELEGRAM_TRANSLATOR_CHAT_ID;

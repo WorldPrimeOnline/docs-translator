@@ -4,7 +4,14 @@
 
 WPO creates **ONE Jira issue per order** and then hands off — Jira Automation handles all internal transitions (assignee, security level, status, notifications). WPO never calls Jira API for transitions.
 
-After job completion a separate **Finance Report Story** is created and linked to the main issue (`relates to`); its key is stored in `jobs.finance_jira_issue_key`. Never put internal cost fields (margins, reserves) into the main order issue — finance fields go only in the Finance Report Story.
+Two additional issues are linked to the main Заказ:
+
+| Issue | When created | Content | DB column |
+|---|---|---|---|
+| **Price Breakdown Story** | At order init (before OCR) | Client-visible line items, total, pricing context | `jobs.price_jira_issue_key` |
+| **Finance Report Story** | After order completion | Internal unit economics: margins, reserves, payment, fiscal | `jobs.finance_jira_issue_key` |
+
+Both are linked to the main issue via `relates to`. Never put internal cost fields (margins, reserves) into the main order issue or the Price Breakdown Story — those go only in the Finance Report Story.
 
 Jira Automation sends callbacks to `/api/webhooks/jira` when statuses change; that route only updates Supabase and fires Telegram/email notifications — it does NOT create Jira issues or call Jira API.
 
@@ -18,9 +25,10 @@ Jira Automation sends callbacks to `/api/webhooks/jira` when statuses change; th
 
 ## Worker integration (`worker/src/lib/integrations.ts`)
 
-Two phases:
-- `initializeOrderIntegrations()` — runs BEFORE OCR: creates Drive folder + Jira issue
+Three phases:
+- `initializeOrderIntegrations()` — runs BEFORE OCR: creates Drive folder + Jira issue + Price Breakdown Story (if `JIRA_PRICE_BREAKDOWN_ISSUE_ENABLED=true`)
 - `triggerTranslatorReview()` — runs AFTER AI draft: uploads draft PDF to Drive `02_AI_DRAFT` subfolder
+- `createFinanceReportIssue()` — called AFTER order completion: creates Finance Report Story with payment, fiscal, margin data
 
 ## Jira
 
@@ -28,6 +36,24 @@ Two phases:
 - `JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN`, `JIRA_WEBHOOK_SECRET`
 
 Project configuration (project key, issue type name, field IDs) lives in `worker/src/lib/jira/` (not env vars).
+
+### Price Breakdown Story env vars
+
+- `JIRA_PRICE_BREAKDOWN_ISSUE_ENABLED` — `"true"` to enable (default: disabled). Opt-in per environment.
+- `JIRA_PRICE_BREAKDOWN_PROJECT_KEY` — Jira project (default: `JIRA_FINANCE_PROJECT_KEY` → `WO`)
+- `JIRA_PRICE_BREAKDOWN_ISSUE_TYPE` — issue type name (default: `Story`)
+- `JIRA_PRICE_BREAKDOWN_LABELS` — comma-separated labels (default: `wpo-price-breakdown`)
+
+Builder: `worker/src/lib/jira/price-breakdown.ts`. Idempotent via `jobs.price_jira_issue_key`.
+
+### Finance Report Story env vars
+
+- `JIRA_FINANCE_PROJECT_KEY` — Jira project (default: `WO`)
+- `JIRA_FINANCE_ISSUE_TYPE` — issue type name (default: `Story`)
+- `JIRA_FINANCE_SECURITY_LEVEL_ID` — optional Jira security level ID
+- `JIRA_FINANCE_LABELS` — comma-separated labels (default: `wpo-finance,confidential,internal-finance`)
+
+Builder: `worker/src/lib/jira/finance-report.ts`. Idempotent via `jobs.finance_jira_issue_key`.
 
 ### Jira field security — critical
 
