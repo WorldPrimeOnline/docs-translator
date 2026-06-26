@@ -115,3 +115,19 @@ scripts/context/add-decision.ts, docs/ai-context/DECISIONS.md, docs/ai-context/D
 
 **Risks / caveats:**  
 Claude and engineers can still manually edit DECISIONS.md if the script is unavailable. The script does not validate existing entries — only new ones appended through it.
+
+---
+
+### 2026-06-26 — Price Breakdown Story is created at order init, Finance Report at completion
+
+**Decision:**  
+Two Jira Stories are linked to every certified/notarized order: (1) Price Breakdown Story created at order initialisation via createPriceBreakdownIssue() — contains client-visible line items only; (2) Finance Report Story created post-completion via createFinanceReportIssue() — contains internal unit economics. Controlled separately by JIRA_PRICE_BREAKDOWN_ISSUE_ENABLED and the Finance Report is always attempted when Jira is configured.
+
+**Rationale:**  
+Separating the two issues by timing and audience prevents internal cost data from being visible to translators/notaries who see the main Jira issue, while giving operators an immediate price breakdown without waiting for order completion.
+
+**Impacted files/docs:**  
+worker/src/lib/jira/price-breakdown.ts, worker/src/lib/integrations.ts, supabase/migrations/0028_jobs_price_breakdown_jira.sql, docs/ai-context/60_INTEGRATIONS_JIRA_DRIVE_TELEGRAM.md
+
+**Risks / caveats:**  
+Price Breakdown is opt-in via feature flag. If the quote is not yet persisted when initializeOrderIntegrations runs, the breakdown will show null pricing — this is handled gracefully with a fallback message.
