@@ -32,9 +32,16 @@ import {
 } from './jira/finance-report';
 import {
   buildPriceBreakdownPayload,
+  buildPriceBreakdownDescription,
   getPriceBreakdownConfig,
-  type PriceBreakdownParams,
-  type PriceBreakdownPricingResult,
+  mapPriceQuote,
+  mapPriceQuoteItem,
+  mapCostReservation,
+  type PriceBreakdownFullParams,
+  type DbPriceQuote,
+  type DbPriceQuoteItem,
+  type DbCostReservation,
+  buildPriceBreakdownSummary,
 } from './jira/price-breakdown';
 
 // ─── Jira helpers ─────────────────────────────────────────────────────────────
@@ -294,9 +301,76 @@ export async function createFinanceReportIssue(params: {
 // ─── Price breakdown issue ────────────────────────────────────────────────────
 
 /**
+ * Load all price breakdown data for a job from the DB.
+ * Source of truth: price_quotes → price_quote_items → cost_reservations.
+ * Never uses pricing_context_json as primary source — that's a config snapshot, not line items.
+ */
+async function loadPriceBreakdownData(jobId: string, tag: string): Promise<{
+  quote: DbPriceQuote | null;
+  items: DbPriceQuoteItem[];
+  reservations: DbCostReservation[];
+  documentId: string | null;
+  paymentTransactionId: string | null;
+}> {
+  // Load most recent price quote for this job
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: quoteRow } = await (supabase as any)
+    .from('price_quotes')
+    .select('id, document_id, amount_kzt, currency, status, source_language, target_language, language_pair, document_type, service_level, physical_page_count, included_page_count, included_word_count, source_word_count, urgency_level, sales_channel, fulfillment_method, pricing_version_id, pricing_context_json, internal_cost_json, margin_json, breakdown_json')
+    .eq('job_id', jobId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const quoteRowData = quoteRow as Record<string, unknown> | null;
+  const quote = quoteRowData ? mapPriceQuote(quoteRowData) : null;
+  const quoteId = quote?.id ?? null;
+  const documentId = (quoteRowData?.document_id as string | null) ?? null;
+
+  // Load price_quote_items (all items for operator view — not filtered by is_client_visible)
+  let items: DbPriceQuoteItem[] = [];
+  if (quoteId) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: itemRows } = await (supabase as any)
+      .from('price_quote_items')
+      .select('id, item_type, label, quantity, unit_price_kzt, amount_kzt, is_client_visible, is_cost, sort_order, metadata_json')
+      .eq('quote_id', quoteId)
+      .order('sort_order', { ascending: true });
+    items = ((itemRows as Record<string, unknown>[] | null) ?? []).map(mapPriceQuoteItem);
+  }
+
+  // Load cost_reservations
+  let reservations: DbCostReservation[] = [];
+  if (quoteId) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: resRows } = await (supabase as any)
+      .from('cost_reservations')
+      .select('id, cost_type, amount_kzt, status, payable_to_type, payable_to_id, notes')
+      .eq('quote_id', quoteId)
+      .order('created_at', { ascending: true });
+    reservations = ((resRows as Record<string, unknown>[] | null) ?? []).map(mapCostReservation);
+  }
+
+  // Load payment_transaction_id for context (most recent for this job)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: txRow } = await (supabase as any)
+    .from('payment_transactions')
+    .select('id')
+    .eq('job_id', jobId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const paymentTransactionId = (txRow as Record<string, unknown> | null)?.id as string | null ?? null;
+
+  console.log(`${tag} data loaded — quote=${quoteId ?? 'null'} items=${items.length} reservations=${reservations.length} margin=${Object.keys(quote?.marginJson ?? {}).length > 0}`);
+
+  return { quote, items, reservations, documentId, paymentTransactionId };
+}
+
+/**
  * Create a Price Breakdown Story in Jira for the given order.
  * Called immediately after the main Jira issue is created, at order initialisation time.
- * Shows client-visible pricing line items only — no internal costs, margins, or payment data.
+ * Loads price_quotes, price_quote_items, and cost_reservations from the DB directly.
  * Controlled by env var JIRA_PRICE_BREAKDOWN_ISSUE_ENABLED=true.
  *
  * Always non-blocking — never throws to the caller; returns issue key or null.
@@ -305,8 +379,6 @@ export async function createFinanceReportIssue(params: {
 export async function createPriceBreakdownIssue(params: {
   jobId: string;
   mainIssueKey: string;
-  pricingSnapshot: Record<string, unknown> | null;
-  quoteId: string | null;
   serviceLevel: string;
   sourceLanguage: string;
   targetLanguage: string;
@@ -339,19 +411,37 @@ export async function createPriceBreakdownIssue(params: {
     return existingKey;
   }
 
-  const breakdownParams: PriceBreakdownParams = {
+  // Load all price data from DB (primary source of truth)
+  const { quote, items, reservations, documentId, paymentTransactionId } =
+    await loadPriceBreakdownData(params.jobId, tag);
+
+  // Diagnostics
+  const revenueItems = items.filter(i => !i.isCost);
+  const costItems = items.filter(i => i.isCost);
+  console.log(`${tag} quote.amount_kzt=${quote?.amountKzt ?? 'null'} revenue=${revenueItems.length} cost=${costItems.length} reservations=${reservations.length} description building...`);
+  if (items.length === 0) {
+    console.warn(`${tag} WARNING: price_quote_items is empty — description will show warning block`);
+  }
+
+  const fullParams: PriceBreakdownFullParams = {
     jobId: params.jobId,
     mainIssueKey: params.mainIssueKey,
-    quoteId: params.quoteId,
+    paymentTransactionId,
+    paymentSource: params.paymentSource,
+    documentId,
     serviceLevel: params.serviceLevel,
     sourceLanguage: params.sourceLanguage,
     targetLanguage: params.targetLanguage,
     documentType: params.documentType,
-    paymentSource: params.paymentSource,
-    pricingResult: params.pricingSnapshot as PriceBreakdownPricingResult | null,
+    quote,
+    items,
+    reservations,
   };
 
-  const payload = buildPriceBreakdownPayload(breakdownParams);
+  const description = buildPriceBreakdownDescription(fullParams);
+  console.log(`${tag} description built — ${JSON.stringify(description).length} chars`);
+
+  const payload = buildPriceBreakdownPayload(fullParams);
 
   const res = await jiraFetch('/issue', { method: 'POST', body: JSON.stringify(payload) });
   if (!res) return null;
@@ -389,6 +479,67 @@ export async function createPriceBreakdownIssue(params: {
 
   console.log(`${tag} ✓ Price breakdown Jira issue created: ${issueKey} → linked to ${params.mainIssueKey}`);
   return issueKey;
+}
+
+/**
+ * Update the description of an existing Jira price breakdown issue.
+ * Used by the rebuild script to fix an already-created but empty issue.
+ */
+export async function updatePriceBreakdownIssueDescription(params: {
+  jobId: string;
+  issueKey: string;
+  serviceLevel: string;
+  sourceLanguage: string;
+  targetLanguage: string;
+  documentType: string;
+  paymentSource: string | null;
+}): Promise<boolean> {
+  const tag = `[price-breakdown-rebuild:${params.jobId.slice(0, 8)}]`;
+
+  if (!getJiraAuth()) {
+    console.error(`${tag} Jira not configured`);
+    return false;
+  }
+
+  const { quote, items, reservations, documentId, paymentTransactionId } =
+    await loadPriceBreakdownData(params.jobId, tag);
+
+  console.log(`${tag} items=${items.length} reservations=${reservations.length}`);
+
+  const fullParams: PriceBreakdownFullParams = {
+    jobId: params.jobId,
+    mainIssueKey: params.issueKey, // used only in buildPriceBreakdownSummary inside payload
+    paymentTransactionId,
+    paymentSource: params.paymentSource,
+    documentId,
+    serviceLevel: params.serviceLevel,
+    sourceLanguage: params.sourceLanguage,
+    targetLanguage: params.targetLanguage,
+    documentType: params.documentType,
+    quote,
+    items,
+    reservations,
+  };
+
+  const description = buildPriceBreakdownDescription(fullParams);
+
+  // PUT updates description only; Jira ignores unchanged fields
+  const res = await jiraFetch(`/issue/${params.issueKey}`, {
+    method: 'PUT',
+    body: JSON.stringify({ fields: { description } }),
+  });
+
+  if (!res) return false;
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    console.error(`${tag} Jira update description failed: ${res.status} ${text.slice(0, 300)}`);
+    return false;
+  }
+
+  // 204 No Content on success
+  console.log(`${tag} ✓ Jira issue ${params.issueKey} description updated`);
+  return true;
 }
 
 // ─── Telegram helper ──────────────────────────────────────────────────────────
@@ -575,22 +726,13 @@ export async function initializeOrderIntegrations(params: {
           });
           console.log(`${tag} ✓ Jira issue created: ${issue.issueKey}`);
 
-          // Create price breakdown issue immediately after main issue (non-blocking)
+          // Create price breakdown issue immediately after main issue (non-blocking).
+          // loadPriceBreakdownData inside createPriceBreakdownIssue fetches all data from DB.
           void (async () => {
             try {
-              const { data: quoteData } = await supabase
-                .from('price_quotes' as never)
-                .select('id, pricing_context_json, amount_kzt')
-                .eq('job_id', params.jobId)
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .maybeSingle() as { data: Record<string, unknown> | null };
-
               await createPriceBreakdownIssue({
                 jobId: params.jobId,
                 mainIssueKey: issue.issueKey,
-                pricingSnapshot: (quoteData?.pricing_context_json as Record<string, unknown>) ?? null,
-                quoteId: (quoteData?.id as string) ?? null,
                 serviceLevel: params.serviceLevel,
                 sourceLanguage: params.sourceLang,
                 targetLanguage: params.targetLang,

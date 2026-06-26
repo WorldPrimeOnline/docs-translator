@@ -8,10 +8,10 @@ Two additional issues are linked to the main Заказ:
 
 | Issue | When created | Content | DB column |
 |---|---|---|---|
-| **Price Breakdown Story** | At order init (before OCR) | Client-visible line items, total, pricing context | `jobs.price_jira_issue_key` |
-| **Finance Report Story** | After order completion | Internal unit economics: margins, reserves, payment, fiscal | `jobs.finance_jira_issue_key` |
+| **Price Breakdown Story** | At order init (before OCR) | Operator audit view: ALL line items (client-visible + internal costs), cost reservations, margin summary, reconciliation, debug JSON | `jobs.price_jira_issue_key` |
+| **Finance Report Story** | After order completion | Actual payment/fiscal/payout data post-completion | `jobs.finance_jira_issue_key` |
 
-Both are linked to the main issue via `relates to`. Never put internal cost fields (margins, reserves) into the main order issue or the Price Breakdown Story — those go only in the Finance Report Story.
+Both are linked to the main issue via `relates to`. Never put internal cost fields (margins, reserves) into the **main order issue** description. The Price Breakdown Story is intentionally an operator-only full-audit view — it DOES include internal costs and margin.
 
 Jira Automation sends callbacks to `/api/webhooks/jira` when statuses change; that route only updates Supabase and fires Telegram/email notifications — it does NOT create Jira issues or call Jira API.
 
@@ -44,7 +44,11 @@ Project configuration (project key, issue type name, field IDs) lives in `worker
 - `JIRA_PRICE_BREAKDOWN_ISSUE_TYPE` — issue type name (default: `Story`)
 - `JIRA_PRICE_BREAKDOWN_LABELS` — comma-separated labels (default: `wpo-price-breakdown`)
 
-Builder: `worker/src/lib/jira/price-breakdown.ts`. Idempotent via `jobs.price_jira_issue_key`.
+Builder: `worker/src/lib/jira/price-breakdown.ts`. Description format: ADF (headings, tables, codeBlock — no plain-text pseudo-tables).
+
+**Idempotency**: checks `jobs.price_jira_issue_key` first; if null, falls back to Jira search by `labels=wpo-price-breakdown AND summary="Price Breakdown for WO-XXX"`. Never creates duplicates if an existing issue is found.
+
+**Rebuild script**: `scripts/staging/rebuild-jira-price-breakdown.ts` — supports `--quote-id`, `--job-id`, `--main-issue-key`, `--dry-run`, `--dedupe`. Searches Jira before creating, adopts existing issue if found, links to main order issue.
 
 ### Finance Report Story env vars
 

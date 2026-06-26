@@ -10,42 +10,73 @@ import {
   buildPriceBreakdownDescription,
   buildPriceBreakdownPayload,
   getPriceBreakdownConfig,
-  type PriceBreakdownParams,
-  type PriceBreakdownPricingResult,
+  type PriceBreakdownFullParams,
+  type DbPriceQuoteItem,
+  type DbPriceQuote,
 } from '../jira/price-breakdown';
 
-const SAMPLE_PRICING: PriceBreakdownPricingResult = {
-  amountKzt: 15000,
-  currency: 'KZT',
-  status: 'quoted',
-  pricingVersionCode: 'v3',
-  items: [
-    { itemType: 'base_translation', label: 'Translation fee', quantity: 1, unitPriceKzt: 10000, amountKzt: 10000, isClientVisible: true, isCost: false, sortOrder: 1 },
-    { itemType: 'urgency_surcharge', label: 'Urgency (1.5×)', quantity: 1, unitPriceKzt: 5000, amountKzt: 5000, isClientVisible: true, isCost: false, sortOrder: 2 },
-    { itemType: 'internal_tax_reserve', label: 'Tax reserve', quantity: 1, unitPriceKzt: 450, amountKzt: 450, isClientVisible: false, isCost: true, sortOrder: 10 },
-  ],
-  context: {
-    languagePair: 'ru-kk',
-    baseMinimumKzt: 8000,
-    extraWords: 0,
-    additionalPages: 0,
-    documentCoefficient: 1.2,
-    urgencyCoefficient: 1.5,
-    includedWordCount: 300,
-    includedPageCount: 2,
-  },
-};
+function makeItem(overrides: Partial<DbPriceQuoteItem> = {}): DbPriceQuoteItem {
+  return {
+    id: 'item-1',
+    itemType: 'minimum_check',
+    label: 'Base minimum',
+    quantity: 1,
+    unitPriceKzt: 5500,
+    amountKzt: 5500,
+    isClientVisible: true,
+    isCost: false,
+    sortOrder: 0,
+    metadataJson: {},
+    ...overrides,
+  };
+}
 
-const BASE_PARAMS: PriceBreakdownParams = {
+function makeQuote(overrides: Partial<DbPriceQuote> = {}): DbPriceQuote {
+  return {
+    id: 'quote-abc',
+    amountKzt: 15000,
+    currency: 'KZT',
+    status: 'quoted',
+    sourceLanguage: 'ru',
+    targetLanguage: 'en',
+    languagePair: 'ru→en',
+    documentType: 'passport',
+    serviceLevel: 'official_with_translator_signature_and_provider_stamp',
+    physicalPageCount: 1,
+    includedPageCount: 1,
+    includedWordCount: 250,
+    sourceWordCount: 200,
+    urgencyLevel: 'standard',
+    salesChannel: 'direct',
+    fulfillmentMethod: null,
+    pricingVersionId: 'v3-uuid',
+    pricingContextJson: { languagePair: 'ru→en', baseMinimumKzt: 8000 },
+    internalCostJson: { taxReserve: 450 },
+    marginJson: { grossRevenue: 15000, totalCosts: 6000, targetProfit: 3750, estimatedMarginKzt: 9000, estimatedMarginRate: 0.60 },
+    breakdownJson: { items: [] },
+    ...overrides,
+  };
+}
+
+const SAMPLE_ITEMS: DbPriceQuoteItem[] = [
+  makeItem({ itemType: 'minimum_check', label: 'Base minimum', amountKzt: 10000, isClientVisible: true, isCost: false }),
+  makeItem({ id: 'i2', itemType: 'urgency_fee', label: 'Urgency (1.5×)', amountKzt: 5000, isClientVisible: true, isCost: false, sortOrder: 2 }),
+  makeItem({ id: 'i3', itemType: 'tax_reserve', label: 'Tax reserve', amountKzt: 450, isClientVisible: false, isCost: true, sortOrder: 10 }),
+];
+
+const BASE_PARAMS: PriceBreakdownFullParams = {
   jobId: 'test-job-id-1234',
   mainIssueKey: 'WO-42',
-  quoteId: 'quote-abc',
+  paymentTransactionId: null,
+  paymentSource: 'subscription',
+  documentId: null,
   serviceLevel: 'official_with_translator_signature_and_provider_stamp',
   sourceLanguage: 'ru',
   targetLanguage: 'en',
   documentType: 'passport',
-  paymentSource: 'subscription',
-  pricingResult: SAMPLE_PRICING,
+  quote: makeQuote(),
+  items: SAMPLE_ITEMS,
+  reservations: [],
 };
 
 // ─── Summary ──────────────────────────────────────────────────────────────────
@@ -74,37 +105,55 @@ describe('buildPriceBreakdownDescription', () => {
     expect(text).toContain('quote-abc');
   });
 
-  it('includes client-visible line items', () => {
-    const desc = buildPriceBreakdownDescription(BASE_PARAMS);
-    const text = JSON.stringify(desc);
-    expect(text).toContain('Translation fee');
-    expect(text).toContain('Urgency (1.5×)');
-    // toLocaleString('ru-RU') uses a narrow no-break space (U+202F or U+00A0)
-    expect(text).toMatch(/15[\s  ]000/);
+  it('section A includes source and target language', () => {
+    const text = JSON.stringify(buildPriceBreakdownDescription(BASE_PARAMS));
+    expect(text).toContain('ru');
+    expect(text).toContain('en');
+    expect(text).toContain('standard'); // urgency_level
+    expect(text).toContain('direct');   // sales_channel
   });
 
-  it('does NOT include internal (non-client-visible) line items', () => {
-    const desc = buildPriceBreakdownDescription(BASE_PARAMS);
-    const text = JSON.stringify(desc);
-    expect(text).not.toContain('Tax reserve');
-    expect(text).not.toContain('internal_tax_reserve');
+  it('includes client-visible revenue items', () => {
+    const text = JSON.stringify(buildPriceBreakdownDescription(BASE_PARAMS));
+    expect(text).toContain('minimum_check');
+    expect(text).toContain('Base minimum');
+    expect(text).toContain('urgency_fee');
   });
 
-  it('handles missing pricingResult gracefully', () => {
-    const desc = buildPriceBreakdownDescription({ ...BASE_PARAMS, pricingResult: null });
-    const text = JSON.stringify(desc);
-    expect(text).toContain('quote not available');
+  it('ALSO includes internal cost items (operator audit view)', () => {
+    const text = JSON.stringify(buildPriceBreakdownDescription(BASE_PARAMS));
+    expect(text).toContain('Tax reserve');
+    expect(text).toContain('tax_reserve');
   });
 
-  it('does not contain internal cost or margin fields', () => {
-    const desc = buildPriceBreakdownDescription(BASE_PARAMS);
+  it('handles null quote gracefully', () => {
+    const desc = buildPriceBreakdownDescription({ ...BASE_PARAMS, quote: null });
     const text = JSON.stringify(desc);
-    // These appear only in the Finance Report — not here
-    expect(text).not.toContain('CONFIDENTIAL');
-    expect(text).not.toContain('Margin');
-    expect(text).not.toContain('margin');
-    expect(text).not.toContain('fiscal');
-    expect(text).not.toContain('Payment TX');
+    expect(text).toContain('—');
+  });
+
+  it('shows margin fields including target_profit', () => {
+    const text = JSON.stringify(buildPriceBreakdownDescription(BASE_PARAMS));
+    expect(text).toContain('Margin');
+    expect(text).toContain('Target profit');
+    expect(text).toContain('3750.00');
+  });
+
+  it('shows Payment TX in section A', () => {
+    const params: PriceBreakdownFullParams = { ...BASE_PARAMS, paymentTransactionId: 'tx-123' };
+    const text = JSON.stringify(buildPriceBreakdownDescription(params));
+    expect(text).toContain('Payment TX');
+    expect(text).toContain('tx-123');
+  });
+
+  it('shows reconciliation section', () => {
+    const text = JSON.stringify(buildPriceBreakdownDescription(BASE_PARAMS));
+    expect(text).toContain('Reconciliation');
+  });
+
+  it('shows WARNING when items are empty (legacy quote)', () => {
+    const text = JSON.stringify(buildPriceBreakdownDescription({ ...BASE_PARAMS, items: [] }));
+    expect(text).toContain('WARNING');
   });
 });
 
@@ -165,7 +214,6 @@ describe('integrations.ts wiring', () => {
     );
     expect(src).toContain('createPriceBreakdownIssue');
     expect(src).toContain("from './jira/price-breakdown'");
-    // Verify it is called after the main Jira issue is created
     expect(src).toMatch(/jira_sync_status.*'created'[\s\S]{0,2000}createPriceBreakdownIssue/);
   });
 
@@ -176,7 +224,6 @@ describe('integrations.ts wiring', () => {
       path.join(process.cwd(), 'worker/src/lib/integrations.ts'),
       'utf-8',
     );
-    // Should be wrapped in void (async () => { ... })() to be non-blocking
     expect(src).toMatch(/void\s*\(\s*async\s*\(\s*\)\s*=>\s*\{[\s\S]{0,3000}createPriceBreakdownIssue/);
   });
 
