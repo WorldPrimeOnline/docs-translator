@@ -44,6 +44,23 @@ npx tsx scripts/telegram-list-updates.ts                # List Telegram bot upda
 cd worker && npx tsx src/scripts/gen-acceptance.ts      # Generate acceptance-test DOCX fixtures into /tmp/wpo-acceptance/
 ```
 
+### Staging developer scripts
+
+```bash
+# Manually confirm a test payment when Halyk callback is unreachable.
+# SAFETY: only works on staging. Requires ALLOW_STAGING_PAYMENT_OVERRIDE=true.
+npx tsx scripts/staging/confirm-payment-paid.ts --transaction-id <uuid>
+npx tsx scripts/staging/confirm-payment-paid.ts --transaction-id <uuid> --reason "Jira flow test"
+```
+
+Required env vars for staging scripts:
+- `NEXT_PUBLIC_SUPABASE_URL` (staging Supabase)
+- `SUPABASE_SERVICE_ROLE_KEY` (staging service role key)
+- `ALLOW_STAGING_PAYMENT_OVERRIDE=true`
+- `NEXT_PUBLIC_APP_ENV=staging` (must NOT be `production`)
+
+After running, check: `payment_transactions.paid_at` set, `jobs.status = queued`, `price_quotes.status = paid`.
+
 ### Finance / pricing scripts (run from repo root)
 
 ```bash
