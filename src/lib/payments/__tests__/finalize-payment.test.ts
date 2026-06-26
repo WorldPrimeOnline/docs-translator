@@ -88,9 +88,9 @@ describe('checkStagingGuards', () => {
 // ─── Source invariant tests ───────────────────────────────────────────────────
 
 describe('finalize-payment.ts source invariants', () => {
-  it('exported from correct path', () => {
+  it('exported from correct path', async () => {
     // Verify the module exports the expected functions
-    const mod = require('../finalize-payment');
+    const mod = await import('../finalize-payment');
     expect(typeof mod.checkStagingGuards).toBe('function');
     expect(typeof mod.finalizePaymentForStaging).toBe('function');
   });
