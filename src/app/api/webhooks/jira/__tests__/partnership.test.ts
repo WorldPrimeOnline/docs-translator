@@ -307,4 +307,92 @@ describe('POST /api/webhooks/jira/partnership', () => {
     const res = await POST(req);
     expect(res.status).toBe(401);
   });
+
+  // ── Ё/Е normalization ─────────────────────────────────────────────────────
+
+  it('accepts "АКТИВНОЕ ПАРТНЕРСТВО" (without Ё) as activation', async () => {
+    const app = makeApp();
+    const partner = { id: 'partner-uuid-norm-01', referral_code: 'VISACENTERABCD' };
+
+    let callCount = 0;
+    mockFrom.mockImplementation((table: string) => {
+      callCount++;
+      if (table === 'partner_applications' && callCount === 1) return chainMaybeSingle(app);
+      if (table === 'partners' && callCount === 2) return chainMaybeSingle(null);
+      if (table === 'partners' && callCount === 3) return chainInsertSelect(partner);
+      if (table === 'partner_applications' && callCount === 4) return chainUpdate();
+      return chainMaybeSingle(null);
+    });
+
+    const res = await POST(makeRequest({ issue: { key: 'WPO-20', status: 'АКТИВНОЕ ПАРТНЕРСТВО' } }));
+    expect(res.status).toBe(200);
+    const body = await res.json() as { action: string };
+    expect(body.action).toBe('created');
+  });
+
+  it('accepts "АКТИВНОЕ ПАРТНЁРСТВО" (with Ё) as activation', async () => {
+    const app = makeApp();
+    const partner = { id: 'partner-uuid-norm-02', referral_code: 'VISACENTEREFGH' };
+
+    let callCount = 0;
+    mockFrom.mockImplementation((table: string) => {
+      callCount++;
+      if (table === 'partner_applications' && callCount === 1) return chainMaybeSingle(app);
+      if (table === 'partners' && callCount === 2) return chainMaybeSingle(null);
+      if (table === 'partners' && callCount === 3) return chainInsertSelect(partner);
+      if (table === 'partner_applications' && callCount === 4) return chainUpdate();
+      return chainMaybeSingle(null);
+    });
+
+    const res = await POST(makeRequest({ issue: { key: 'WPO-21', status: 'АКТИВНОЕ ПАРТНЁРСТВО' } }));
+    expect(res.status).toBe(200);
+    const body = await res.json() as { action: string };
+    expect(body.action).toBe('created');
+  });
+
+  it('accepts "ПАРТНЕРСТВО ОТМЕНЕНО" (without Ё) as deactivation', async () => {
+    const app = makeApp({ approved_partner_id: 'partner-deact-norm-01' });
+
+    let callCount = 0;
+    mockFrom.mockImplementation((table: string) => {
+      callCount++;
+      if (table === 'partner_applications' && callCount === 1) return chainMaybeSingle(app);
+      if (table === 'partner_applications' && callCount === 2) return chainUpdate();
+      if (table === 'partners' && callCount === 3) return chainUpdate();
+      return chainMaybeSingle(null);
+    });
+
+    const res = await POST(makeRequest({ issue: { key: 'WPO-22', status: 'ПАРТНЕРСТВО ОТМЕНЕНО' } }));
+    expect(res.status).toBe(200);
+    const body = await res.json() as { action: string };
+    expect(body.action).toBe('deactivated');
+  });
+
+  it('accepts "ПАРТНЁРСТВО ОТМЕНЕНО" (with Ё) as deactivation', async () => {
+    const app = makeApp({ approved_partner_id: 'partner-deact-norm-02' });
+
+    let callCount = 0;
+    mockFrom.mockImplementation((table: string) => {
+      callCount++;
+      if (table === 'partner_applications' && callCount === 1) return chainMaybeSingle(app);
+      if (table === 'partner_applications' && callCount === 2) return chainUpdate();
+      if (table === 'partners' && callCount === 3) return chainUpdate();
+      return chainMaybeSingle(null);
+    });
+
+    const res = await POST(makeRequest({ issue: { key: 'WPO-23', status: 'ПАРТНЁРСТВО ОТМЕНЕНО' } }));
+    expect(res.status).toBe(200);
+    const body = await res.json() as { action: string };
+    expect(body.action).toBe('deactivated');
+  });
+
+  it('unknown status returns 200 no_op and does not call Supabase', async () => {
+    const res = await POST(makeRequest({ issue: { key: 'WPO-24', status: 'НА РАССМОТРЕНИИ' } }));
+    expect(res.status).toBe(200);
+    const body = await res.json() as { ok: boolean; action: string };
+    expect(body.ok).toBe(true);
+    expect(body.action).toBe('no_op');
+    // Supabase must not have been called
+    expect(mockFrom).not.toHaveBeenCalled();
+  });
 });

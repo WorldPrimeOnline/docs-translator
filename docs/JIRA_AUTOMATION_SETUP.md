@@ -274,8 +274,8 @@ Partnership issues are created automatically when a partner submits the `/partne
 2. WPO creates a Jira issue in project `WPO`, issue type `Partnership`.
 3. Operator reviews the issue in Jira.
 4. Operator transitions the issue to:
-   - **АКТИВНОЕ ПАРТНЁРСТВО** → WPO creates (or re-activates) the partner account.
-   - **ПАРТНЁРСТВО ОТМЕНЕНО** → WPO deactivates the partner account.
+   - **АКТИВНОЕ ПАРТНЕРСТВО** → WPO creates (or re-activates) the partner account.
+   - **ПАРТНЕРСТВО ОТМЕНЕНО** → WPO deactivates the partner account.
 5. Any other status transition → WPO no-ops (returns `{ ok: true, action: 'no_op' }`).
 
 ### Webhook endpoint
@@ -286,13 +286,13 @@ POST https://<site-domain>/api/webhooks/jira/partnership
 
 Authentication: `x-wpo-webhook-secret: <JIRA_WEBHOOK_SECRET>` (same secret as the order webhook).
 
-### Jira Automation rule — АКТИВНОЕ ПАРТНЁРСТВО
+### Jira Automation rule — АКТИВНОЕ ПАРТНЕРСТВО
 
 **Trigger:** Issue transitioned  
 **Conditions:**
 - Project = `WPO`
 - Issue type = `Partnership`
-- To status = `АКТИВНОЕ ПАРТНЁРСТВО`
+- To status = `АКТИВНОЕ ПАРТНЕРСТВО`
 
 **Action:** Send web request  
 - **URL:** `https://<site-domain>/api/webhooks/jira/partnership`
@@ -314,9 +314,9 @@ Authentication: `x-wpo-webhook-secret: <JIRA_WEBHOOK_SECRET>` (same secret as th
   }
   ```
 
-### Jira Automation rule — ПАРТНЁРСТВО ОТМЕНЕНО
+### Jira Automation rule — ПАРТНЕРСТВО ОТМЕНЕНО
 
-Same as above, but **To status = `ПАРТНЁРСТВО ОТМЕНЕНО`** and `eventId` suffix `cancel`.
+Same as above, but **To status = `ПАРТНЕРСТВО ОТМЕНЕНО`** and `eventId` suffix `cancel`.
 
 **Body:**
 ```json
@@ -339,7 +339,7 @@ The Jira issue description always contains `Application ID: <uuid>` so operators
 
 ### Activation behavior
 
-On **АКТИВНОЕ ПАРТНЁРСТВО**:
+On **АКТИВНОЕ ПАРТНЕРСТВО**:
 - If `partner_applications.approved_partner_id` already exists → set `partners.is_active = true` (idempotent re-activation).
 - Else → create new `partners` row with:
   - `referral_code` from `application.ref_code` (normalized) if unique, otherwise auto-generated from org/name
@@ -349,7 +349,7 @@ On **АКТИВНОЕ ПАРТНЁРСТВО**:
 
 ### Deactivation behavior
 
-On **ПАРТНЁРСТВО ОТМЕНЕНО**:
+On **ПАРТНЕРСТВО ОТМЕНЕНО**:
 - Sets `partners.is_active = false`, `deactivated_at`, `deactivation_reason`.
 - Sets `partner_applications.canceled_at`, `canceled_by = 'jira-webhook'`, `cancellation_reason`.
 - Does **not** delete partner, partner_referrals, or orders — all history is preserved.
@@ -372,6 +372,17 @@ Submitted: <ISO timestamp>
 ```
 
 **Important:** Email and phone are visible in the Jira issue description to operators. Do not put IIN, passport numbers, or payment credentials in partner application messages.
+
+### Status normalization (Е / Ё)
+
+The backend normalizes Jira status strings before comparison:
+1. `trim()` — removes leading/trailing whitespace
+2. `toUpperCase()` — case-insensitive match
+3. Replace `Ё → Е` — accepts both Russian Ё and Е in any status string
+
+This means both `АКТИВНОЕ ПАРТНЕРСТВО` (without Ё) and `АКТИВНОЕ ПАРТНЁРСТВО` (with Ё) resolve to the same canonical status. Configure Jira workflows with either variant — the backend handles both.
+
+The Jira Automation rules in this document use `АКТИВНОЕ ПАРТНЕРСТВО` / `ПАРТНЕРСТВО ОТМЕНЕНО` (without Ё) because that is what the actual Jira workflow status names use.
 
 ### Staging vs production routing
 

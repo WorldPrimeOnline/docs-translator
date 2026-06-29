@@ -4,9 +4,13 @@
  * Jira Automation → WPO partner lifecycle webhook.
  *
  * Jira Automation triggers on Partnership issue transitions:
- *   "АКТИВНОЕ ПАРТНЁРСТВО"  → create or re-activate partner
- *   "ПАРТНЁРСТВО ОТМЕНЕНО"  → deactivate partner (preserve history)
+ *   "АКТИВНОЕ ПАРТНЕРСТВО"  → create or re-activate partner  (Ё and Е both accepted)
+ *   "ПАРТНЕРСТВО ОТМЕНЕНО"  → deactivate partner (preserve history)
  *   Any other status        → no-op, returns { ok: true, action: 'no_op' }
+ *
+ * Status matching uses normalizeStatus() which uppercases, trims, and replaces
+ * Ё→Е so that Jira Automation's "АКТИВНОЕ ПАРТНЕРСТВО" and
+ * "АКТИВНОЕ ПАРТНЁРСТВО" both resolve to the same canonical string.
  *
  * Authentication: X-WPO-Webhook-Secret header must equal JIRA_WEBHOOK_SECRET.
  *
@@ -14,7 +18,7 @@
  * {
  *   "issue": {
  *     "key": "WPO-123",
- *     "status": "АКТИВНОЕ ПАРТНЁРСТВО",
+ *     "status": "АКТИВНОЕ ПАРТНЕРСТВО",
  *     "summary": "[Partner Application] Visa Center — <applicationId>"
  *   },
  *   "partner_application_id": "<uuid>",  // optional — preferred lookup key
@@ -34,8 +38,20 @@ import { supabaseServer } from '@/lib/supabase/server';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const STATUS_ACTIVATE   = 'АКТИВНОЕ ПАРТНЁРСТВО';
-const STATUS_DEACTIVATE = 'ПАРТНЁРСТВО ОТМЕНЕНО';
+// Canonical forms use Е (without Ё) — normalizeStatus() maps Ё→Е before comparison.
+// Jira Automation sends "АКТИВНОЕ ПАРТНЕРСТВО" (without Ё); both variants are accepted.
+const STATUS_ACTIVATE   = 'АКТИВНОЕ ПАРТНЕРСТВО';
+const STATUS_DEACTIVATE = 'ПАРТНЕРСТВО ОТМЕНЕНО';
+
+/**
+ * Normalize a Jira status for comparison:
+ *   1. trim whitespace
+ *   2. uppercase
+ *   3. replace Ё with Е (Jira may send either depending on workflow config)
+ */
+function normalizeStatus(s: string): string {
+  return s.trim().toUpperCase().replace(/Ё/g, 'Е');
+}
 
 const DEFAULT_COMMISSION_RATE              = 0.05;
 const DEFAULT_DISCOUNT_ENABLED            = true;
@@ -293,24 +309,53 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const payload: Payload = parsed.data;
   const { issue } = payload;
-  const status = issue.status.trim();
+  const rawStatus    = issue.status;
+  const normalStatus = normalizeStatus(rawStatus);
+  const lookupMethod = payload.partner_application_id ? 'partner_application_id' : 'jira_issue_key';
 
   // 3. No-op for unrecognized statuses
-  if (status !== STATUS_ACTIVATE && status !== STATUS_DEACTIVATE) {
-    return NextResponse.json({ ok: true, action: 'no_op', receivedStatus: status });
+  if (normalStatus !== STATUS_ACTIVATE && normalStatus !== STATUS_DEACTIVATE) {
+    console.log(JSON.stringify({
+      event: 'partnership_webhook',
+      issueKey: issue.key,
+      rawStatus,
+      normalizedStatus: normalStatus,
+      action: 'no_op',
+      lookupMethod,
+    }));
+    return NextResponse.json({ ok: true, action: 'no_op', receivedStatus: rawStatus });
   }
+
+  const resolvedAction = normalStatus === STATUS_ACTIVATE ? 'activate' : 'deactivate';
 
   // 4. Load application
   const app = await loadApplication(payload);
   if (!app) {
-    const lookup = payload.partner_application_id
-      ? `partner_application_id=${payload.partner_application_id}`
-      : `jira_issue_key=${issue.key}`;
-    console.warn(`[jira/partnership] application not found: ${lookup}`);
+    console.warn(JSON.stringify({
+      event: 'partnership_webhook',
+      issueKey: issue.key,
+      rawStatus,
+      normalizedStatus: normalStatus,
+      action: resolvedAction,
+      lookupMethod,
+      error: 'application_not_found',
+    }));
     return NextResponse.json({ error: 'Partner application not found' }, { status: 404 });
   }
 
+  console.log(JSON.stringify({
+    event: 'partnership_webhook',
+    issueKey: issue.key,
+    rawStatus,
+    normalizedStatus: normalStatus,
+    action: resolvedAction,
+    lookupMethod,
+    applicationId: app.id,
+    existingPartnerId: app.approved_partner_id ?? null,
+    supabaseOperationAttempted: true,
+  }));
+
   // 5. Dispatch
-  if (status === STATUS_ACTIVATE) return activatePartner(app, issue.key);
+  if (normalStatus === STATUS_ACTIVATE) return activatePartner(app, issue.key);
   return deactivatePartner(app, issue.key);
 }
