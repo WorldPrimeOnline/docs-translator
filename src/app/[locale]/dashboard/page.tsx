@@ -49,6 +49,9 @@ interface OrderEntry {
   isTerminal: boolean;
   stages: { key: string; labelKey: string; done: boolean; current: boolean }[];
   priceKzt: number | null;
+  priceBeforeDiscountKzt: number | null;
+  discountAppliedKzt: number | null;
+  discountCode: string | null;
   latestQuoteId: string | null;
   quoteStatus: string | null;
   quoteAmountKzt: number | null;
@@ -338,7 +341,19 @@ function ActiveOrderCard({ entry, locale, onRecalculate }: { entry: OrderEntry; 
                 <span className="text-xs text-muted-foreground">{t('quoteValidUntil', { date: formattedExpiry })}</span>
               </div>
               <div className="mb-3">
-                <span className="text-xl font-bold text-foreground">{entry.quoteAmountKzt!.toLocaleString()} {entry.quoteCurrency ?? 'KZT'}</span>
+                {entry.discountAppliedKzt && entry.discountAppliedKzt > 0 ? (
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-sm text-muted-foreground line-through">
+                      {(entry.priceBeforeDiscountKzt ?? 0).toLocaleString()} {entry.quoteCurrency ?? 'KZT'}
+                    </span>
+                    <span className="text-xs text-emerald-400">
+                      − {entry.discountAppliedKzt.toLocaleString()} ₸{entry.discountCode ? ` (${entry.discountCode})` : ''}
+                    </span>
+                    <span className="text-xl font-bold text-foreground">{entry.quoteAmountKzt!.toLocaleString()} {entry.quoteCurrency ?? 'KZT'}</span>
+                  </div>
+                ) : (
+                  <span className="text-xl font-bold text-foreground">{entry.quoteAmountKzt!.toLocaleString()} {entry.quoteCurrency ?? 'KZT'}</span>
+                )}
               </div>
               <HalykPayButton
                 jobId={entry.jobId}
@@ -574,6 +589,9 @@ export default function DashboardPage() {
             workflowStatus: string | null;
             serviceLevel: string;
             fulfillmentMethod: 'pickup' | 'delivery' | null;
+            priceBeforeDiscountKzt: number | null;
+            discountAppliedKzt: number | null;
+            discountCode: string | null;
             latestQuoteId: string | null;
             quoteStatus: string | null;
             quoteAmountKzt: number | null;

@@ -93,8 +93,14 @@ export type Database = {
           progress_percent: number;
           priority: number;
           payment_source: 'card_payment' | 'subscription' | null;
-          /** Price in KZT (whole tenge). Set at creation for card payment orders. */
+          /** Price in KZT (whole tenge). Set at creation for card payment orders. Post-discount final price. */
           price_kzt: number | null;
+          /** Original price before partner client discount was applied. Null when no discount. */
+          price_before_discount_kzt: number | null;
+          /** KZT discount amount subtracted from price_before_discount_kzt. Null when no discount. */
+          discount_applied_kzt: number | null;
+          /** Partner referral code that generated the discount. Null when no discount. */
+          discount_code: string | null;
           /** @deprecated Use service_level instead. Kept for backward compat. */
           notarized: boolean;
           started_at: string | null;
@@ -129,6 +135,9 @@ export type Database = {
           priority?: number;
           payment_source?: 'card_payment' | 'subscription' | null;
           price_kzt?: number | null;
+          price_before_discount_kzt?: number | null;
+          discount_applied_kzt?: number | null;
+          discount_code?: string | null;
           notarized?: boolean;
           started_at?: string | null;
           completed_at?: string | null;
@@ -671,6 +680,9 @@ export type Database = {
           jira_sync_status: 'pending' | 'synced' | 'failed';
           jira_error: string | null;
           jira_created_at: string | null;
+          approved_partner_id: string | null;
+          approved_at: string | null;
+          approved_by: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -702,6 +714,9 @@ export type Database = {
           jira_sync_status?: 'pending' | 'synced' | 'failed';
           jira_error?: string | null;
           jira_created_at?: string | null;
+          approved_partner_id?: string | null;
+          approved_at?: string | null;
+          approved_by?: string | null;
           updated_at?: string;
         };
         Relationships: [];

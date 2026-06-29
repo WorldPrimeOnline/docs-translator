@@ -193,3 +193,39 @@ Never trust client-supplied financial values. Referral logic must be invisible t
 **UI:** Dashboard has a visible promo code / partner code field pre-filled from localStorage captured ref. `POST /api/partners/validate-code` returns public discount info (never commission_rate). Client discount is applied only on the card-payment path (subscription orders have no per-order price).
 
 **Scope:** No payout automation, no partner dashboard, no Telegram/email notifications, no multi-level referral, no anti-spam.
+
+---
+
+### 2026-06-29 — Partner approval flow: operator-only, CRON_SECRET auth, code auto-generation
+
+**Decision:**
+Active partner records can only be created by an operator via `POST /api/admin/partners/approve-application`. No public endpoint or background process creates partners. The only auth mechanism for admin partner routes is `Authorization: Bearer ${CRON_SECRET}` (same pattern as cron routes). No additional admin auth system was added.
+
+**Partner approval flow:**
+1. Application arrives via `POST /api/partners/apply` (public) → `partner_applications.status = 'pending'`
+2. Operator reviews at `/{locale}/admin/partners` (client-side page, auth via CRON_SECRET in sessionStorage)
+3. Operator submits approval form → `POST /api/admin/partners/approve-application` → creates `partners` row + updates application to `approved`
+4. Referral code auto-generated from `organization ?? name` (uppercase, non-alphanumeric stripped, max 10 chars + 4-char random suffix). Operator can override.
+5. `partner_applications.approved_partner_id/at/by` written for audit trail.
+
+**Rationale:**
+No full admin auth system exists. CRON_SECRET bearer reuses existing pattern without new env vars. Simple code generation avoids manual entry errors while allowing operator override. Uniqueness collision is handled by a retry with extended suffix.
+
+**Impacted files/docs:**
+`src/app/api/admin/partners/approve-application/route.ts`, `src/app/api/admin/partners/applications/route.ts`, `src/app/[locale]/admin/partners/page.tsx`, `supabase/migrations/0033_partner_approval_discount_fields.sql`, `src/types/supabase.ts`, `docs/ai-context/70_DATABASE_AND_API_SURFACE.md`
+
+---
+
+### 2026-06-29 — Discount applied to price_quotes.amount_kzt (fixes Halyk payment amount bug)
+
+**Decision:**
+Before calling `saveQuote()` in `upload-card/route.ts`, `pricingResult.amountKzt` is patched to `finalPriceKzt` when a discount applies. This ensures `price_quotes.amount_kzt` (what Halyk ePay actually charges) equals the discounted price.
+
+**Bug that was fixed:**
+Without this patch, `price_quotes.amount_kzt` stored the pre-discount base price. `HalykPayButton` uses `quoteAmountKzt` from the quote, so customers would have been charged full price regardless of discount code.
+
+**Discount audit trail:**
+`jobs.price_kzt` = final post-discount price. `jobs.price_before_discount_kzt` = original price (null if no discount). `jobs.discount_applied_kzt` = KZT savings (null if no discount). `jobs.discount_code` = ref code that generated discount. Migration `0033`.
+
+**Impacted files/docs:**
+`src/app/api/documents/upload-card/route.ts`, `src/app/api/jobs/route.ts`, `src/app/api/jobs/[jobId]/route.ts`, `src/app/[locale]/dashboard/page.tsx`, `supabase/migrations/0033_partner_approval_discount_fields.sql`

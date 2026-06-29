@@ -314,7 +314,7 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'PRICING_NOT_CONFIGURED' }, { status: 503 });
   }
 
-  const { result: pricingResult } = quoteResult;
+  let { result: pricingResult } = quoteResult;
   const basePreDiscountKzt = Math.round(pricingResult.amountKzt);
 
   // Apply partner client discount server-side (re-validate; never trust client value)
@@ -351,6 +351,13 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
 
   const finalPriceKzt = basePreDiscountKzt - discountKzt;
 
+  // Patch pricingResult so the saved quote amount equals what the customer actually pays.
+  // Without this, price_quotes.amount_kzt stays at the pre-discount base and Halyk
+  // would charge the original price instead of the discounted one.
+  if (discountKzt > 0) {
+    pricingResult = { ...pricingResult, amountKzt: finalPriceKzt };
+  }
+
   // Create job with dynamic price
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const jobInsertPayload: any = {
@@ -366,6 +373,9 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
     delivery_phone: deliveryPhone ?? null,
     delivery_address: deliveryAddress ?? null,
     price_kzt: finalPriceKzt,
+    price_before_discount_kzt: discountKzt > 0 ? basePreDiscountKzt : null,
+    discount_applied_kzt: discountKzt > 0 ? discountKzt : null,
+    discount_code: discountKzt > 0 ? refCodeForDiscount : null,
     customer_comment: customerComment ?? null,
   };
   const { data: job, error: jobError } = await supabaseServer
@@ -430,7 +440,9 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
     jobId: job.id,
     documentId: doc.id,
     priceKzt: finalPriceKzt,
+    priceBeforeDiscountKzt: discountKzt > 0 ? basePreDiscountKzt : undefined,
     discountAppliedKzt: discountKzt > 0 ? discountKzt : undefined,
+    discountCode: discountKzt > 0 ? refCodeForDiscount : undefined,
     quoteId,
     requiresOperatorReview: pricingResult.requiresOperatorReview,
     reviewReasons: pricingResult.requiresOperatorReview ? pricingResult.reviewReasons : undefined,
