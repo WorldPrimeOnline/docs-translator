@@ -760,11 +760,16 @@ export type Database = {
           utm_source: string | null;
           utm_medium: string | null;
           utm_campaign: string | null;
+          utm_content: string | null;
+          utm_term: string | null;
+          order_amount_kzt: number | null;
+          commission_rate: number | null;
           captured_at: string;
           order_completed_at: string | null;
           commission_base_kzt: number | null;
           commission_kzt: number | null;
-          status: 'pending' | 'completed' | 'excluded' | 'refunded';
+          /** pending | confirmed | refunded | canceled | paid | excluded */
+          status: string;
           payout_id: string | null;
           created_at: string;
         };
@@ -777,11 +782,15 @@ export type Database = {
           utm_source?: string | null;
           utm_medium?: string | null;
           utm_campaign?: string | null;
+          utm_content?: string | null;
+          utm_term?: string | null;
+          order_amount_kzt?: number | null;
+          commission_rate?: number | null;
           captured_at?: string;
           order_completed_at?: string | null;
           commission_base_kzt?: number | null;
           commission_kzt?: number | null;
-          status?: 'pending' | 'completed' | 'excluded' | 'refunded';
+          status?: string;
           payout_id?: string | null;
           created_at?: string;
         };
@@ -789,7 +798,7 @@ export type Database = {
           order_completed_at?: string | null;
           commission_base_kzt?: number | null;
           commission_kzt?: number | null;
-          status?: 'pending' | 'completed' | 'excluded' | 'refunded';
+          status?: string;
           payout_id?: string | null;
         };
         Relationships: [

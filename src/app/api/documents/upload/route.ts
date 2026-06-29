@@ -9,6 +9,7 @@ import { processJob } from '@/lib/jobs/processor';
 import { SUBSCRIPTION_PLANS } from '@/lib/subscriptions/config';
 import { deriveBackcompatBooleans } from '@/lib/translation-workflow/output-plan';
 import { isValidNotaryCity } from '@/lib/notary/cities';
+import { attachReferralToOrder } from '@/lib/referral/server';
 import type { Database } from '@/types';
 import type { ServiceLevel } from '@/lib/translation-prompts/types';
 
@@ -307,6 +308,24 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
       const jobId = result.job_id!;
       console.log('[upload] job created via RPC:', jobId);
+
+      // Best-effort referral attachment (subscription orders have no per-order KZT price).
+      const refCode = (formData.get('refCode') as string | null) || null;
+      if (refCode) {
+        void attachReferralToOrder({
+          jobId,
+          userId: user.id,
+          refCode,
+          utmSource:   (formData.get('utmSource')   as string | null) || null,
+          utmMedium:   (formData.get('utmMedium')   as string | null) || null,
+          utmCampaign: (formData.get('utmCampaign') as string | null) || null,
+          utmContent:  (formData.get('utmContent')  as string | null) || null,
+          utmTerm:     (formData.get('utmTerm')     as string | null) || null,
+          orderAmountKzt: null, // subscription — no per-order KZT price
+        }).catch(err => {
+          console.error('[upload] referral attach failed (non-fatal):', (err as Error).message);
+        });
+      }
 
       // Integration init (Jira + Drive) is handled by the Railway worker before OCR.
       // Running it here on Vercel is unreliable because the serverless function may be

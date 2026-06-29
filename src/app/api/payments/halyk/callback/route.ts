@@ -20,6 +20,7 @@ import { getHalykConfig } from '@/lib/payments/halyk/config';
 import { ensureSaleFiscalReceiptForPaidPayment } from '@/lib/fiscal/service';
 import { markQuotePaid } from '@/lib/pricing/service';
 import { notifyOperatorPaymentAlert } from '@/lib/telegram/client';
+import { confirmReferral } from '@/lib/referral/server';
 
 const MAX_BODY_BYTES = 64 * 1024; // 64 KB
 
@@ -367,6 +368,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           });
         });
       }
+
+      // Best-effort referral confirmation — move pending referral to confirmed, calculate commission.
+      void confirmReferral(result.job_id, quoteId).catch(err => {
+        console.error('[halyk/callback] confirmReferral failed (non-fatal):', (err as Error).message, {
+          jobId: result.job_id,
+          paymentId: paymentTx.id,
+        });
+      });
     }
     console.log('[halyk/callback] rpc result', {
       correlationId,

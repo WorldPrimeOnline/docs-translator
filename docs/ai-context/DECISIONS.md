@@ -163,3 +163,19 @@ Env var reads silently fell back to wrong defaults ('WO'/'Task'), causing every 
 
 **Risks / caveats:**  
 If WPO ever changes the Jira project key or renames the issue type, this constant must be updated. Migration 0030 renames `jira_last_error` → `jira_error`; any admin tooling that queried the old column name must be updated.
+
+---
+
+### 2026-06-29 — Referral-to-order wiring: server-side only, best-effort, card payment auto-confirms
+
+**Decision:**
+Referral wiring is best-effort: failures never block order creation or payment. Client sends only `refCode` + UTMs; server reads `commission_rate` from `partners` table and calculates all commission amounts. Commission base = `order_amount_kzt` minus pass-through items (`notary_official_fee`, `delivery_fee`) from `price_quote_items`. Card payment orders auto-confirm via Halyk ePay callback. Subscription orders stay `pending` (no per-order KZT price; manual resolution or future batch process). `cancelReferral` is implemented but not yet wired — must be connected when admin refund route exits 501 placeholder.
+
+**Rationale:**
+Never trust client-supplied financial values. Referral logic must be invisible to order creation reliability. Subscription orders lack a clear per-order payment event, so deferring commission calculation is safer than guessing.
+
+**Impacted files/docs:**
+`src/lib/referral/server.ts`, `src/app/api/documents/upload-card/route.ts`, `src/app/api/documents/upload/route.ts`, `src/app/api/payments/halyk/callback/route.ts`, `src/app/[locale]/dashboard/page.tsx`, `supabase/migrations/0031_partner_referrals_ext.sql`, `docs/ai-context/30_ARCHITECTURE_OVERVIEW.md`, `docs/ai-context/70_DATABASE_AND_API_SURFACE.md`
+
+**Risks / caveats:**
+`cancelReferral` is not wired to the refund route (501). Referrals for refunded orders will stay `confirmed` until manually corrected or the admin refund route is enabled. Subscription referrals require manual or batch commission settlement.

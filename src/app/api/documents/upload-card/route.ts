@@ -15,6 +15,7 @@ import { deriveBackcompatBooleans } from '@/lib/translation-workflow/output-plan
 import { isValidNotaryCity } from '@/lib/notary/cities';
 import { getHalykConfig } from '@/lib/payments/halyk/config';
 import { computeQuoteForJob, saveQuote } from '@/lib/pricing/service';
+import { attachReferralToOrder } from '@/lib/referral/server';
 import type { Database } from '@/types';
 import type { ServiceLevel } from '@/lib/translation-prompts/types';
 
@@ -371,6 +372,24 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
     new_status: 'payment_pending',
     metadata: { serviceLevel, priceKzt: finalPriceKzt, quoteId, notaryCity: notaryCity ?? null },
   }).then(({ error: e }) => { if (e) console.error('[upload-card] audit insert failed:', e.message); });
+
+  // Best-effort referral attachment — must not block order creation or payment.
+  const refCode = (formData.get('refCode') as string | null) || null;
+  if (refCode) {
+    void attachReferralToOrder({
+      jobId: job.id,
+      userId: user.id,
+      refCode,
+      utmSource:   (formData.get('utmSource')   as string | null) || null,
+      utmMedium:   (formData.get('utmMedium')   as string | null) || null,
+      utmCampaign: (formData.get('utmCampaign') as string | null) || null,
+      utmContent:  (formData.get('utmContent')  as string | null) || null,
+      utmTerm:     (formData.get('utmTerm')     as string | null) || null,
+      orderAmountKzt: finalPriceKzt,
+    }).catch(err => {
+      console.error('[upload-card] referral attach failed (non-fatal):', (err as Error).message);
+    });
+  }
 
   return NextResponse.json({
     jobId: job.id,

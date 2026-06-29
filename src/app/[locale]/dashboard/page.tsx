@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Link } from '@/i18n/navigation';
 import { NOTARY_CITIES } from '@/lib/notary/cities';
 import { getCustomerOrderState } from '@/lib/translation-workflow/customer-order-state';
+import { loadReferralParams } from '@/lib/referral/capture';
 
 type ServiceLevel =
   | 'electronic'
@@ -753,6 +754,15 @@ export default function DashboardPage() {
       if (isDelivery) { form.append('deliveryPhone', deliveryPhone); form.append('deliveryAddress', deliveryAddress); }
     }
     if (customerComment.trim()) form.append('customerComment', customerComment.trim());
+
+    // Attach stored referral params (client only sends code + UTMs; server validates and calculates commission).
+    const referralParams = loadReferralParams();
+    if (referralParams?.refCode)    form.append('refCode',      referralParams.refCode);
+    if (referralParams?.utmSource)  form.append('utmSource',    referralParams.utmSource);
+    if (referralParams?.utmMedium)  form.append('utmMedium',    referralParams.utmMedium);
+    if (referralParams?.utmCampaign) form.append('utmCampaign', referralParams.utmCampaign);
+    if (referralParams?.utmContent) form.append('utmContent',   referralParams.utmContent);
+    if (referralParams?.utmTerm)    form.append('utmTerm',      referralParams.utmTerm);
 
     // Staging/dev debug: log actual payload values to diagnose mapping issues
     if (process.env.NODE_ENV !== 'production') {
