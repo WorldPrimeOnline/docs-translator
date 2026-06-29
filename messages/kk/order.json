@@ -235,6 +235,18 @@
       "placeholder": "E.g.: specify formatting requirements, target authority, desired deadline, or other preferences."
     },
     "paymentPendingTitle": "Payment is being verified",
-    "paymentPendingDesc": "If money was charged, do not pay again. We will update the status automatically."
+    "paymentPendingDesc": "If money was charged, do not pay again. We will update the status automatically.",
+    "promoCode": {
+      "label": "ПРОМОКОД / СЕРІКТЕС КОДЫ",
+      "placeholder": "Мысалы: VISAALMATY",
+      "helperText": "Егер сізге WPO серіктесі, виза орталығы, кеңесші немесе аудармашы жіберсе, оның кодын енгізіңіз.",
+      "apply": "Қолдану",
+      "checking": "Тексерілуде…",
+      "valid": "Код қабылданды",
+      "invalid": "Код табылмады немесе белсенді емес",
+      "discountFixed": "Жеңілдік −{amount} ₸",
+      "discountPercent": "Жеңілдік −{pct}%",
+      "remove": "Алып тастау"
+    }
   }
 }

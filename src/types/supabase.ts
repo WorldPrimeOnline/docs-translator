@@ -718,6 +718,11 @@ export type Database = {
           commission_rate: number;
           is_active: boolean;
           notes: string | null;
+          client_discount_enabled: boolean;
+          client_discount_type: string | null;
+          client_discount_value: number | null;
+          client_discount_min_order_amount: number | null;
+          client_discount_max_amount: number | null;
           created_at: string;
           updated_at: string;
         };
@@ -732,6 +737,11 @@ export type Database = {
           commission_rate?: number;
           is_active?: boolean;
           notes?: string | null;
+          client_discount_enabled?: boolean;
+          client_discount_type?: string | null;
+          client_discount_value?: number | null;
+          client_discount_min_order_amount?: number | null;
+          client_discount_max_amount?: number | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -744,6 +754,11 @@ export type Database = {
           commission_rate?: number;
           is_active?: boolean;
           notes?: string | null;
+          client_discount_enabled?: boolean;
+          client_discount_type?: string | null;
+          client_discount_value?: number | null;
+          client_discount_min_order_amount?: number | null;
+          client_discount_max_amount?: number | null;
           updated_at?: string;
         };
         Relationships: [
@@ -763,6 +778,7 @@ export type Database = {
           utm_content: string | null;
           utm_term: string | null;
           order_amount_kzt: number | null;
+          client_discount_applied_kzt: number | null;
           commission_rate: number | null;
           captured_at: string;
           order_completed_at: string | null;
@@ -785,6 +801,7 @@ export type Database = {
           utm_content?: string | null;
           utm_term?: string | null;
           order_amount_kzt?: number | null;
+          client_discount_applied_kzt?: number | null;
           commission_rate?: number | null;
           captured_at?: string;
           order_completed_at?: string | null;
@@ -798,6 +815,7 @@ export type Database = {
           order_completed_at?: string | null;
           commission_base_kzt?: number | null;
           commission_kzt?: number | null;
+          client_discount_applied_kzt?: number | null;
           status?: string;
           payout_id?: string | null;
         };

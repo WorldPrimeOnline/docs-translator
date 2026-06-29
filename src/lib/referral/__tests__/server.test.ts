@@ -342,14 +342,121 @@ describe('confirmReferral — commission base calculation', () => {
 
 describe('commission values cannot be submitted by client', () => {
   it('server.ts has no parameter for client-supplied commission amount', () => {
-    // attachReferralToOrder accepts refCode, UTMs, and orderAmountKzt only.
+    // attachReferralToOrder accepts refCode, UTMs, orderAmountKzt, and clientDiscountAppliedKzt only.
     // commission_rate is read from partners table server-side.
     // commission_kzt / commission_base_kzt are calculated server-side only.
-    // This is a compile-time guarantee: the AttachReferralParams type must not
-    // include commissionKzt or commissionBase.
     const params = BASE_PARAMS as Record<string, unknown>;
     expect(params['commissionKzt']).toBeUndefined();
     expect(params['commissionBase']).toBeUndefined();
     expect(params['commission_kzt']).toBeUndefined();
+  });
+});
+
+// ─── 11. Discount stored in referral; commission base deducted after discount ──
+
+describe('client discount integration', () => {
+  it('stores clientDiscountAppliedKzt in the partner_referrals insert', async () => {
+    const insertMock = jest.fn().mockResolvedValue({ error: null });
+    mockFrom
+      .mockReturnValueOnce(makePartnerChain(ACTIVE_PARTNER))
+      .mockReturnValueOnce({ insert: insertMock });
+
+    await attachReferralToOrder({ ...BASE_PARAMS, orderAmountKzt: 15000, clientDiscountAppliedKzt: 1000 });
+
+    expect(insertMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        order_amount_kzt: 15000,
+        client_discount_applied_kzt: 1000,
+      }),
+    );
+  });
+
+  it('commission base deducts client discount before pass-through exclusion', async () => {
+    // Order: 20000 gross, 1000 discount → 19000 net.
+    // Pass-through (notary 5000 + delivery 2000) → commission base = 19000 - 7000 = 12000.
+    // Commission = 12000 × 0.05 = 600.
+    const REFERRAL = {
+      id: 'ref-uuid',
+      order_amount_kzt: 20000,
+      client_discount_applied_kzt: 1000,
+      commission_rate: 0.05,
+    };
+
+    const updateMock = jest.fn().mockReturnValue({
+      eq: jest.fn().mockResolvedValue({ error: null }),
+    });
+
+    mockFrom
+      .mockReturnValueOnce({
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              maybeSingle: jest.fn().mockResolvedValue({ data: REFERRAL, error: null }),
+            }),
+          }),
+        }),
+      })
+      .mockReturnValueOnce({
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            in: jest.fn().mockResolvedValue({
+              data: [{ amount_kzt: 5000 }, { amount_kzt: 2000 }],
+              error: null,
+            }),
+          }),
+        }),
+      })
+      .mockReturnValueOnce({ update: updateMock });
+
+    await confirmReferral('job-uuid', 'quote-uuid');
+
+    expect(updateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        commission_base_kzt: 12000,
+        commission_kzt: 600,
+        status: 'confirmed',
+      }),
+    );
+  });
+
+  it('commission base is 0 when discount + pass-throughs exceed order amount', async () => {
+    const REFERRAL = {
+      id: 'ref-uuid',
+      order_amount_kzt: 6000,
+      client_discount_applied_kzt: 2000, // 6000 - 2000 = 4000 net
+      commission_rate: 0.05,
+    };
+
+    const updateMock = jest.fn().mockReturnValue({
+      eq: jest.fn().mockResolvedValue({ error: null }),
+    });
+
+    mockFrom
+      .mockReturnValueOnce({
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              maybeSingle: jest.fn().mockResolvedValue({ data: REFERRAL, error: null }),
+            }),
+          }),
+        }),
+      })
+      .mockReturnValueOnce({
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            in: jest.fn().mockResolvedValue({
+              data: [{ amount_kzt: 5000 }], // pass-through 5000 > net 4000
+              error: null,
+            }),
+          }),
+        }),
+      })
+      .mockReturnValueOnce({ update: updateMock });
+
+    await confirmReferral('job-uuid', 'quote-uuid');
+
+    expect(updateMock).toHaveBeenCalledWith(
+      expect.objectContaining({ commission_base_kzt: 0, commission_kzt: 0 }),
+    );
   });
 });

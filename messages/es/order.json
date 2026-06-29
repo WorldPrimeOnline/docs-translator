@@ -235,6 +235,18 @@
       "placeholder": "E.g.: specify formatting requirements, target authority, desired deadline, or other preferences."
     },
     "paymentPendingTitle": "Payment is being verified",
-    "paymentPendingDesc": "If money was charged, do not pay again. We will update the status automatically."
+    "paymentPendingDesc": "If money was charged, do not pay again. We will update the status automatically.",
+    "promoCode": {
+      "label": "CÓDIGO PROMOCIONAL / CÓDIGO DE SOCIO",
+      "placeholder": "Ej. VISAALMATY",
+      "helperText": "Si fue referido por un socio de WPO, centro de visas, consultor o traductor, ingrese su código.",
+      "apply": "Aplicar",
+      "checking": "Verificando…",
+      "valid": "Código aceptado",
+      "invalid": "Código no encontrado o inactivo",
+      "discountFixed": "Descuento −{amount} ₸",
+      "discountPercent": "Descuento −{pct}%",
+      "remove": "Eliminar"
+    }
   }
 }

@@ -24,8 +24,10 @@ export interface AttachReferralParams {
   utmCampaign?: string | null;
   utmContent?: string | null;
   utmTerm?: string | null;
-  /** Raw order price in KZT. Present for card-payment orders; null for subscription. */
+  /** Raw (pre-discount) order price in KZT. Present for card-payment orders; null for subscription. */
   orderAmountKzt?: number | null;
+  /** KZT discount already subtracted from the customer-facing price at order creation. */
+  clientDiscountAppliedKzt?: number | null;
 }
 
 /**
@@ -65,6 +67,7 @@ export async function attachReferralToOrder(params: AttachReferralParams): Promi
         utm_content: params.utmContent ?? null,
         utm_term: params.utmTerm ?? null,
         order_amount_kzt: params.orderAmountKzt ?? null,
+        client_discount_applied_kzt: params.clientDiscountAppliedKzt ?? null,
         commission_rate: partner.commission_rate,
         status: 'pending',
         captured_at: new Date().toISOString(),
@@ -95,7 +98,7 @@ export async function confirmReferral(jobId: string, quoteId?: string | null): P
   try {
     const { data: referral } = await supabaseServer
       .from('partner_referrals')
-      .select('id, order_amount_kzt, commission_rate')
+      .select('id, order_amount_kzt, client_discount_applied_kzt, commission_rate')
       .eq('job_id', jobId)
       .eq('status', 'pending')
       .maybeSingle();
@@ -119,7 +122,13 @@ export async function confirmReferral(jobId: string, quoteId?: string | null): P
         0,
       );
 
-      commissionBaseKzt = Math.max(0, Number(referral.order_amount_kzt) - passThroughTotal);
+      // Commission base = gross order amount − client discount − pass-through costs.
+      // Partner earns commission only on WPO's net service revenue after discount.
+      const discountApplied = Number(referral.client_discount_applied_kzt ?? 0);
+      commissionBaseKzt = Math.max(
+        0,
+        Number(referral.order_amount_kzt) - discountApplied - passThroughTotal,
+      );
       const rate = Number(referral.commission_rate ?? 0.05);
       commissionKzt = Math.round(commissionBaseKzt * rate * 100) / 100;
     }

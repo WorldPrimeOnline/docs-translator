@@ -235,6 +235,18 @@
       "many_stamps": "多处印章 (+1,000 ₸)"
     },
     "paymentPendingTitle": "支付验证中",
-    "paymentPendingDesc": "如已扣款，请勿重复支付，我们将自动更新状态。"
+    "paymentPendingDesc": "如已扣款，请勿重复支付，我们将自动更新状态。",
+    "promoCode": {
+      "label": "促销码 / 合作伙伴码",
+      "placeholder": "例如：VISAALMATY",
+      "helperText": "如果您是由WPO合作伙伴、签证中心、顾问或翻译介绍来的，请输入他们的代码。",
+      "apply": "应用",
+      "checking": "检查中…",
+      "valid": "代码已接受",
+      "invalid": "未找到代码或代码未激活",
+      "discountFixed": "折扣 −{amount} ₸",
+      "discountPercent": "折扣 −{pct}%",
+      "remove": "删除"
+    }
   }
 }

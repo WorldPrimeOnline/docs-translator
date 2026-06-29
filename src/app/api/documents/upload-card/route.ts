@@ -315,7 +315,41 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
   }
 
   const { result: pricingResult } = quoteResult;
-  const finalPriceKzt = Math.round(pricingResult.amountKzt);
+  const basePreDiscountKzt = Math.round(pricingResult.amountKzt);
+
+  // Apply partner client discount server-side (re-validate; never trust client value)
+  let discountKzt = 0;
+  const refCodeForDiscount = (formData.get('refCode') as string | null)?.trim().toUpperCase() || null;
+  if (refCodeForDiscount) {
+    const { data: discountPartner } = await supabaseServer
+      .from('partners')
+      .select('client_discount_enabled, client_discount_type, client_discount_value, client_discount_min_order_amount, client_discount_max_amount, is_active')
+      .eq('referral_code', refCodeForDiscount)
+      .maybeSingle();
+
+    if (
+      discountPartner?.is_active &&
+      discountPartner.client_discount_enabled &&
+      discountPartner.client_discount_type &&
+      discountPartner.client_discount_value != null
+    ) {
+      const minOrder = Number(discountPartner.client_discount_min_order_amount ?? 0);
+      if (basePreDiscountKzt >= minOrder) {
+        const raw =
+          discountPartner.client_discount_type === 'percent'
+            ? Math.round((basePreDiscountKzt * Number(discountPartner.client_discount_value)) / 100)
+            : Math.round(Number(discountPartner.client_discount_value));
+
+        const cap = discountPartner.client_discount_max_amount != null
+          ? Number(discountPartner.client_discount_max_amount)
+          : Infinity;
+
+        discountKzt = Math.min(raw, cap, basePreDiscountKzt);
+      }
+    }
+  }
+
+  const finalPriceKzt = basePreDiscountKzt - discountKzt;
 
   // Create job with dynamic price
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -385,7 +419,8 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
       utmCampaign: (formData.get('utmCampaign') as string | null) || null,
       utmContent:  (formData.get('utmContent')  as string | null) || null,
       utmTerm:     (formData.get('utmTerm')     as string | null) || null,
-      orderAmountKzt: finalPriceKzt,
+      orderAmountKzt: basePreDiscountKzt,
+      clientDiscountAppliedKzt: discountKzt > 0 ? discountKzt : null,
     }).catch(err => {
       console.error('[upload-card] referral attach failed (non-fatal):', (err as Error).message);
     });
@@ -395,6 +430,7 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
     jobId: job.id,
     documentId: doc.id,
     priceKzt: finalPriceKzt,
+    discountAppliedKzt: discountKzt > 0 ? discountKzt : undefined,
     quoteId,
     requiresOperatorReview: pricingResult.requiresOperatorReview,
     reviewReasons: pricingResult.requiresOperatorReview ? pricingResult.reviewReasons : undefined,

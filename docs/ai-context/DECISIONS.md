@@ -179,3 +179,17 @@ Never trust client-supplied financial values. Referral logic must be invisible t
 
 **Risks / caveats:**
 `cancelReferral` is not wired to the refund route (501). Referrals for refunded orders will stay `confirmed` until manually corrected or the admin refund route is enabled. Subscription referrals require manual or batch commission settlement.
+
+---
+
+## Partner client discount: data-driven, server-calculated, commission base after discount (2026-06-29)
+
+**Decision:** Partner client discounts are configured per-partner in the DB (`client_discount_enabled`, `client_discount_type`, `client_discount_value`, `client_discount_min_order_amount`, `client_discount_max_amount`). No global discount for all partners.
+
+**Server flow:** Upload-card route re-validates the ref code and recalculates the discount from the DB. `finalPriceKzt = basePreDiscountKzt − discountKzt`. Client can never submit discount amounts.
+
+**Commission base:** `order_amount_kzt − client_discount_applied_kzt − pass_through_items`. Partner commission is always calculated on WPO's net revenue after the client discount is deducted.
+
+**UI:** Dashboard has a visible promo code / partner code field pre-filled from localStorage captured ref. `POST /api/partners/validate-code` returns public discount info (never commission_rate). Client discount is applied only on the card-payment path (subscription orders have no per-order price).
+
+**Scope:** No payout automation, no partner dashboard, no Telegram/email notifications, no multi-level referral, no anti-spam.

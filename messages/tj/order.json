@@ -235,6 +235,18 @@
       "placeholder": "E.g.: specify formatting requirements, target authority, desired deadline, or other preferences."
     },
     "paymentPendingTitle": "Payment is being verified",
-    "paymentPendingDesc": "If money was charged, do not pay again. We will update the status automatically."
+    "paymentPendingDesc": "If money was charged, do not pay again. We will update the status automatically.",
+    "promoCode": {
+      "label": "ПРОМОКОД / РАМЗИ ШАРИК",
+      "placeholder": "Масалан: VISAALMATY",
+      "helperText": "Агар шарики WPO, маркази виза, мушовир ё тарҷумон шуморо фиристода бошад, рамзи ӯро ворид кунед.",
+      "apply": "Истифода",
+      "checking": "Санҷида мешавад…",
+      "valid": "Рамз қабул шуд",
+      "invalid": "Рамз ёфт нашуд ё фаъол нест",
+      "discountFixed": "Тахфиф −{amount} ₸",
+      "discountPercent": "Тахфиф −{pct}%",
+      "remove": "Хориҷ кардан"
+    }
   }
 }

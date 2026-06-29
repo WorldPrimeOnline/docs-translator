@@ -235,6 +235,18 @@
       "unsupportedFileType": "Unsupported file type: {files}",
       "pleaseSelectFile": "Please select at least one file",
       "failedTermsAcceptance": "Failed to save terms acceptance."
+    },
+    "promoCode": {
+      "label": "PROMO CODE / PARTNER CODE",
+      "placeholder": "E.g. VISAALMATY",
+      "helperText": "If you were referred by a WPO partner, visa center, consultant or translator, enter their code.",
+      "apply": "Apply",
+      "checking": "Checking…",
+      "valid": "Code accepted",
+      "invalid": "Code not found or inactive",
+      "discountFixed": "Discount −{amount} ₸",
+      "discountPercent": "Discount −{pct}%",
+      "remove": "Remove"
     }
   }
 }

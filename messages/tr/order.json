@@ -235,6 +235,18 @@
       "label": "KAŞE VE MÜHÜRLER",
       "normal": "Standart",
       "many_stamps": "Çok sayıda kaşe/mühür (+1.000 ₸)"
+    },
+    "promoCode": {
+      "label": "PROMOSYON KODU / ORTAK KODU",
+      "placeholder": "Ör: VISAALMATY",
+      "helperText": "Sizi bir WPO ortağı, vize merkezi, danışman veya çevirmen yönlendirdiyse kodunu girin.",
+      "apply": "Uygula",
+      "checking": "Kontrol ediliyor…",
+      "valid": "Kod kabul edildi",
+      "invalid": "Kod bulunamadı veya etkin değil",
+      "discountFixed": "İndirim −{amount} ₸",
+      "discountPercent": "İndirim −{pct}%",
+      "remove": "Kaldır"
     }
   }
 }

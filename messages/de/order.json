@@ -235,6 +235,18 @@
       "label": "STEMPEL UND SIEGEL",
       "normal": "Standard",
       "many_stamps": "Viele Stempel/Siegel (+1.000 ₸)"
+    },
+    "promoCode": {
+      "label": "PROMO-CODE / PARTNERCODE",
+      "placeholder": "Z.B. VISAALMATY",
+      "helperText": "Wenn Sie von einem WPO-Partner, einem Visazentrum, Berater oder Übersetzer empfohlen wurden, geben Sie dessen Code ein.",
+      "apply": "Anwenden",
+      "checking": "Wird geprüft…",
+      "valid": "Code akzeptiert",
+      "invalid": "Code nicht gefunden oder inaktiv",
+      "discountFixed": "Rabatt −{amount} ₸",
+      "discountPercent": "Rabatt −{pct}%",
+      "remove": "Entfernen"
     }
   }
 }
