@@ -121,6 +121,12 @@ export function Navbar() {
               )}
             </div>
           ))}
+          <Link
+            href="/partners"
+            className="inline-flex items-center rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-white/5"
+          >
+            {t('partners')}
+          </Link>
         </nav>
 
         {/* Desktop auth + language switcher */}
@@ -202,6 +208,12 @@ export function Navbar() {
             ))}
 
             <div className="mt-4 border-t border-white/10 pt-4">
+              <Link
+                href="/partners"
+                className="block rounded-md px-2 py-2 text-sm text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
+              >
+                {t('partners')}
+              </Link>
               {!isLoggedIn && (
                 <Link
                   href="/auth/login"

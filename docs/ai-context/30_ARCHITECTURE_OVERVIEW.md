@@ -74,7 +74,7 @@ Implemented sub-pages:
 
 Both `kazakhstan/` and `documents/` also have a root `page.tsx` (the vertical landing index).
 
-Other locale-prefixed pages: `contacts` (`src/app/[locale]/contacts/`), `auth` (login/callback), `dashboard`, `legal`, `privacy` (alias), `tos` (alias), `partners` (`src/app/[locale]/partners/`) — Partner Program landing page with application form.
+Other locale-prefixed pages: `contacts` (`src/app/[locale]/contacts/`), `auth` (login/callback), `dashboard`, `legal`, `privacy` (alias), `tos` (alias), `partners` (`src/app/[locale]/partners/`) — Partner Program landing page with application form. The /partners link appears in the Navbar (flat link, no dropdown, using `nav.partners` i18n key) and in the footer Col 1 (brand section) after the Contacts link — NOT in the legal documents section.
 
 ## Referral capture
 

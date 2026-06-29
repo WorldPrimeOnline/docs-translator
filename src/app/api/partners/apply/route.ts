@@ -60,18 +60,21 @@ export async function POST(request: Request): Promise<NextResponse> {
         .from('partner_applications')
         .update({
           jira_issue_key: issue.issueKey,
+          jira_issue_url: issue.issueUrl,
           jira_sync_status: 'synced',
+          jira_created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
         .eq('id', inserted.id);
     }
   } catch (jiraErr) {
-    console.error('[partners/apply] Jira issue creation failed (non-fatal):', jiraErr);
+    const sanitizedError = String(jiraErr).replace(/https?:\/\/[^\s]+/g, '[url]').slice(0, 500);
+    console.error(`[partners/apply] Jira issue creation failed (non-fatal) appId=${inserted.id}:`, sanitizedError);
     await supabaseServer
       .from('partner_applications')
       .update({
         jira_sync_status: 'failed',
-        jira_last_error: String(jiraErr).slice(0, 500),
+        jira_error: sanitizedError,
         updated_at: new Date().toISOString(),
       })
       .eq('id', inserted.id);

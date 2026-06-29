@@ -160,7 +160,12 @@ describe('POST /api/partners/apply — Jira fallback behavior', () => {
     const res = await POST(makeRequest(VALID_BODY));
     expect(res.status).toBe(200);
     expect(mockUpdateFn).toHaveBeenCalledWith(
-      expect.objectContaining({ jira_issue_key: 'WO-999', jira_sync_status: 'synced' }),
+      expect.objectContaining({
+        jira_issue_key: 'WO-999',
+        jira_issue_url: 'https://jira.example.com/browse/WO-999',
+        jira_sync_status: 'synced',
+        jira_created_at: expect.any(String),
+      }),
     );
   });
 
@@ -184,7 +189,7 @@ describe('POST /api/partners/apply — Jira fallback behavior', () => {
     expect(mockUpdateFn).toHaveBeenCalledWith(
       expect.objectContaining({
         jira_sync_status: 'failed',
-        jira_last_error: expect.stringContaining('Jira createPartnerIssue failed'),
+        jira_error: expect.stringContaining('Jira createPartnerIssue failed'),
       }),
     );
   });

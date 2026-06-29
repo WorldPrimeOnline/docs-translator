@@ -667,8 +667,10 @@ export type Database = {
           utm_campaign: string | null;
           status: 'pending' | 'reviewing' | 'approved' | 'rejected';
           jira_issue_key: string | null;
+          jira_issue_url: string | null;
           jira_sync_status: 'pending' | 'synced' | 'failed';
-          jira_last_error: string | null;
+          jira_error: string | null;
+          jira_created_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -686,16 +688,20 @@ export type Database = {
           utm_campaign?: string | null;
           status?: 'pending' | 'reviewing' | 'approved' | 'rejected';
           jira_issue_key?: string | null;
+          jira_issue_url?: string | null;
           jira_sync_status?: 'pending' | 'synced' | 'failed';
-          jira_last_error?: string | null;
+          jira_error?: string | null;
+          jira_created_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
         Update: {
           status?: 'pending' | 'reviewing' | 'approved' | 'rejected';
           jira_issue_key?: string | null;
+          jira_issue_url?: string | null;
           jira_sync_status?: 'pending' | 'synced' | 'failed';
-          jira_last_error?: string | null;
+          jira_error?: string | null;
+          jira_created_at?: string | null;
           updated_at?: string;
         };
         Relationships: [];
