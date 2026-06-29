@@ -247,6 +247,7 @@
       "discountFixed": "Тахфиф −{amount} ₸",
       "discountPercent": "Тахфиф −{pct}%",
       "remove": "Хориҷ кардан"
-    }
+    },
+    "uploadedQuoteReadyWithDiscount": "Ҳуҷҷат бор карда шуд — нарх: {price} ₸ ({saved} ₸ бо рамзи шарик сарфа шуд). Пардохтро тасдиқ кунед."
   }
 }

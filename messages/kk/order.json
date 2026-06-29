@@ -247,6 +247,7 @@
       "discountFixed": "Жеңілдік −{amount} ₸",
       "discountPercent": "Жеңілдік −{pct}%",
       "remove": "Алып тастау"
-    }
+    },
+    "uploadedQuoteReadyWithDiscount": "Құжат жүктелді — құны: {price} ₸ (серіктес коды бойынша {saved} ₸ үнемделді). Төлемді растаңыз."
   }
 }

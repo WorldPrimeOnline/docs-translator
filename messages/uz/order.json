@@ -247,6 +247,7 @@
       "discountFixed": "Chegirma −{amount} ₸",
       "discountPercent": "Chegirma −{pct}%",
       "remove": "O'chirish"
-    }
+    },
+    "uploadedQuoteReadyWithDiscount": "Hujjat yuklandi — narx: {price} ₸ (sherik kodi bilan {saved} ₸ tejaldi). To'lovni tasdiqlang."
   }
 }

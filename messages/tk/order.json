@@ -247,6 +247,7 @@
       "discountFixed": "Arzanlaşyk −{amount} ₸",
       "discountPercent": "Arzanlaşyk −{pct}%",
       "remove": "Aýyrmak"
-    }
+    },
+    "uploadedQuoteReadyWithDiscount": "Resminama ýüklendi — bahasy: {price} ₸ (hyzmatdaş kody bilen {saved} ₸ tygşytlandy). Tölegi tassyklaň."
   }
 }

@@ -247,6 +247,7 @@
       "discountFixed": "İndirim −{amount} ₸",
       "discountPercent": "İndirim −{pct}%",
       "remove": "Kaldır"
-    }
+    },
+    "uploadedQuoteReadyWithDiscount": "Belge yüklendi — fiyat: {price} ₸ (ortak koduyla {saved} ₸ tasarruf edildi). Aşağıdan ödemeyi onaylayın."
   }
 }

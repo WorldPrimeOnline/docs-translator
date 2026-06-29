@@ -810,6 +810,11 @@ export default function DashboardPage() {
     setFiles([]);
     if (data.requiresOperatorReview) {
       toast.success(t('uploadedRequiresReview'));
+    } else if (data.discountAppliedKzt && data.discountAppliedKzt > 0) {
+      toast.success(t('uploadedQuoteReadyWithDiscount', {
+        price: (data.priceKzt ?? 0).toLocaleString(),
+        saved: data.discountAppliedKzt.toLocaleString(),
+      }));
     } else {
       toast.success(t('uploadedQuoteReady', { price: (data.priceKzt ?? 0).toLocaleString() }));
     }

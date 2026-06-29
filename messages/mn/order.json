@@ -247,6 +247,7 @@
       "discountFixed": "Хөнгөлөлт −{amount} ₸",
       "discountPercent": "Хөнгөлөлт −{pct}%",
       "remove": "Устгах"
-    }
+    },
+    "uploadedQuoteReadyWithDiscount": "Баримт бичиг байршуулагдлаа — үнэ: {price} ₸ (түншийн кодоор {saved} ₸ хэмнэгдлээ). Доороос төлбөрийг баталгаажуулна уу."
   }
 }

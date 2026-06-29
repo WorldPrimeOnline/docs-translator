@@ -247,6 +247,7 @@
       "discountFixed": "할인 −{amount} ₸",
       "discountPercent": "할인 −{pct}%",
       "remove": "제거"
-    }
+    },
+    "uploadedQuoteReadyWithDiscount": "문서가 업로드되었습니다 — 가격: {price} ₸ (파트너 코드로 {saved} ₸ 절약). 아래에서 결제를 확인하세요."
   }
 }

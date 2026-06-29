@@ -247,6 +247,7 @@
       "discountFixed": "Скидка −{amount} ₸",
       "discountPercent": "Скидка −{pct}%",
       "remove": "Убрать"
-    }
+    },
+    "uploadedQuoteReadyWithDiscount": "Документ загружен — стоимость: {price} ₸ (экономия {saved} ₸ по коду партнёра). Подтвердите оплату ниже."
   }
 }

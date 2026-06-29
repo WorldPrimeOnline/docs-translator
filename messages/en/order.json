@@ -247,6 +247,7 @@
       "discountFixed": "Discount −{amount} ₸",
       "discountPercent": "Discount −{pct}%",
       "remove": "Remove"
-    }
+    },
+    "uploadedQuoteReadyWithDiscount": "Document uploaded — price: {price} ₸ (saved {saved} ₸ with partner code). Confirm payment below."
   }
 }

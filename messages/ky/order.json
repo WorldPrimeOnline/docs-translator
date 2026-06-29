@@ -247,6 +247,7 @@
       "discountFixed": "Арзандатуу −{amount} ₸",
       "discountPercent": "Арзандатуу −{pct}%",
       "remove": "Алып салуу"
-    }
+    },
+    "uploadedQuoteReadyWithDiscount": "Документ жүктөлдү — баасы: {price} ₸ ({saved} ₸ өнөктөш коду менен үнөмдөлдү). Төлөмдү ырастаңыз."
   }
 }

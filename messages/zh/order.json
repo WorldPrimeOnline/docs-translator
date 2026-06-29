@@ -247,6 +247,7 @@
       "discountFixed": "折扣 −{amount} ₸",
       "discountPercent": "折扣 −{pct}%",
       "remove": "删除"
-    }
+    },
+    "uploadedQuoteReadyWithDiscount": "文档已上传 — 价格：{price} ₸（通过合作伙伴码节省了 {saved} ₸）。请在下方确认付款。"
   }
 }

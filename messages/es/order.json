@@ -247,6 +247,7 @@
       "discountFixed": "Descuento −{amount} ₸",
       "discountPercent": "Descuento −{pct}%",
       "remove": "Eliminar"
-    }
+    },
+    "uploadedQuoteReadyWithDiscount": "Documento cargado — precio: {price} ₸ (ahorro de {saved} ₸ con código de socio). Confirme el pago abajo."
   }
 }
