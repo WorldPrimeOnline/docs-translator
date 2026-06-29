@@ -1,0 +1,117 @@
+{
+  "partnersPage": {
+    "metaTitle": "Ortaklık Programı — WPO Translations",
+    "metaDescription": "WPO Translations ortaklık ağına katılın. Referans komisyonu kazanın veya çevirmen ya da noter olarak uzmanlığınızı sunun. Hemen başvurun.",
+    "hero": {
+      "badge": "Ortaklık Programı",
+      "title": "WPO Translations ile birlikte büyüyün",
+      "subtitle": "Kazakistan'ın profesyonel belge çeviri bürosunun ortaklık ağına katılın. Referans komisyonu kazanın, uzmanlığınızı katkıda bulunun veya müşterilerinizi yönlendirin.",
+      "cta": "Ortak olmak için başvurun"
+    },
+    "whoCanPartner": {
+      "title": "Kim ortak olabilir",
+      "translatorTitle": "Çevirmenler",
+      "translatorDesc": "Resmi ve noter onaylı çeviri siparişlerini üstlenmek isteyen sertifikalı profesyoneller.",
+      "notaryTitle": "Noterler",
+      "notaryDesc": "Ortaklık mekanizması aracılığıyla noter onaylı çeviri iş akışlarına katılan noterler.",
+      "agencyTitle": "Çeviri ajansları",
+      "agencyDesc": "Profesyonel belge çevirisine ihtiyaç duyan müşterileri yönlendiren ajanslar.",
+      "visaCenterTitle": "Vize merkezleri",
+      "visaCenterDesc": "Müşterileri vize başvuruları için düzenli olarak çevrilmiş belgelere ihtiyaç duyan merkezler.",
+      "migrationConsultantTitle": "Göç danışmanları",
+      "migrationConsultantDesc": "Müşterilere göç, oturma izni ve vatandaşlık belgeleri konusunda yardım eden danışmanlar.",
+      "educationAgencyTitle": "Eğitim ajansları",
+      "educationAgencyDesc": "Çevrilmiş belge gerektiren üniversite başvurularında öğrencilere yardım eden ajanslar.",
+      "legalFirmTitle": "Hukuk firmaları",
+      "legalFirmDesc": "Müşterileri resmi belge çevirisine ihtiyaç duyan hukuk firmaları ve hukuki danışmanlar.",
+      "corporateTitle": "Kuruluşlar ve İK",
+      "corporateDesc": "Sürekli belge çevirisi ihtiyacı olan şirketler ve İK departmanları."
+    },
+    "howItWorks": {
+      "title": "Nasıl çalışır",
+      "step1Title": "Başvurunuzu gönderin",
+      "step1Desc": "Ortaklık başvuru formunu doldurun. Rolünüz ve iş birliği planınız hakkında bize bilgi verin.",
+      "step2Title": "İnceleme ve katılım",
+      "step2Desc": "Ekibimiz başvurunuzu inceler ve koşulları görüşmek ile ortaklık hesabınızı oluşturmak için sizinle iletişime geçer.",
+      "step3Title": "Referans bağlantınızı alın",
+      "step3Desc": "Müşterilerinizle paylaşmak veya iletişimlerinize eklemek için kişisel bir referans kodu alırsınız.",
+      "step4Title": "Komisyon kazanın",
+      "step4Desc": "Komisyonlar, bağlantınız aracılığıyla yönlendirilen tamamlanan siparişlerden elde edilen WPO hizmet geliri üzerinden hesaplanır ve aylık ödenir."
+    },
+    "forTranslators": {
+      "title": "Çevirmenler için",
+      "desc": "WPO Translations, resmi ve noter onaylı çeviri siparişleri için profesyonel sertifikalı çevirmenlerle çalışır. Dijital iş akışını, müşteri kabulünü ve ödemeleri biz hallederiz — siz kaliteye odaklanın.",
+      "point1": "Çevirmen imzası ve büro mührü ile resmi çeviri siparişlerinde çalışmak",
+      "point2": "Yapılandırılmış bir ortaklık sürecinin parçası olarak noter onaylı çeviri işlemlerini yürütmek",
+      "point3": "Dil çifti, belge türü, hacim ve karmaşıklığa dayalı şeffaf ödeme sistemi",
+      "point4": "WPO'ya diğer nitelikli çevirmenleri yönlendirdiğinizde kazanım ödülü almak"
+    },
+    "forNotaries": {
+      "title": "Noterler için",
+      "desc": "WPO Translations'ta noter onaylı çeviri, ortak noter süreci aracılığıyla kolaylaştırılır. Noter, sertifikalı çeviriyi inceler ve kendi gereksinimlerine göre onay verir.",
+      "point1": "Yapılandırılmış ortak düzenleme aracılığıyla noter onaylı çeviri iş akışlarına katılmak",
+      "point2": "Gereksinimler ve prosedürler noterin bireysel uygulamalarına bağlı olarak belirlenir",
+      "point3": "WPO, herhangi bir noter, makam veya kurum tarafından kabul edileceğini garanti etmez"
+    },
+    "forOrganizations": {
+      "title": "Kuruluşlar ve ajanslar için",
+      "desc": "Müşterilerinizi WPO Translations'a yönlendirin ve tamamlanan her ücretli sipariş için referans komisyonu kazanın. Vize merkezleri, göç danışmanları, eğitim ajansları, hukuk firmaları ve kurumsal İK için uygundur.",
+      "point1": "Aylık 1–10 yönlendirilen sipariş için %5 komisyon",
+      "point2": "Aylık 10 sipariş sonrasında %7",
+      "point3": "Aylık 30 sipariş sonrasında %10",
+      "point4": "Komisyon, noter ücretleri, kurye, banka ücretleri ve diğer geçici maliyetler hariç WPO hizmet geliri üzerinden hesaplanır"
+    },
+    "rewards": {
+      "title": "Ortak ödülleri",
+      "orgTitle": "Kuruluş referans komisyonu",
+      "orgTier1": "Aylık 1–10 sipariş: %5",
+      "orgTier2": "Aylık 11–30 sipariş: %7",
+      "orgTier3": "Aylık 31+ sipariş: %10",
+      "translatorClientTitle": "Çevirmen — müşteri referansı",
+      "translatorClientDesc": "Kişisel referans kodunuz aracılığıyla yönlendirdiğiniz müşterilerin siparişlerinden %5 komisyon.",
+      "translatorAcquisitionTitle": "Çevirmen — kazanım ödülü",
+      "translatorAcquisitionDesc": "Yönlendirilen çevirmen ilk 5 siparişini tamamladıktan sonra 5.000 KZT. 20 tamamlanan sipariş sonrasında 10.000 KZT.",
+      "payoutTitle": "Ödeme takvimi",
+      "payoutDesc": "Aylık ödemeler. Minimum ödeme eşiği: 10.000 KZT.",
+      "commissionBaseTitle": "Komisyon tabanı",
+      "commissionBaseDesc": "Komisyonlar, noter ücretleri, kurye, banka ücretleri, devlet harçları, iade edilen siparişler ve diğer geçici maliyetler hariç WPO net hizmet geliri üzerinden hesaplanır."
+    },
+    "disclaimer": {
+      "title": "Önemli",
+      "acceptance": "WPO Translations, çevrilmiş belgelerin bankalar, vize merkezleri, üniversiteler, devlet kurumları, noterler veya başka herhangi bir alıcı tarafından kabul edileceğini garanti etmez. Kabul gereksinimleri kuruma göre değişir.",
+      "notarization": "Noter onaylı çeviri, ortak bir süreç aracılığıyla kolaylaştırılır. Noterin gereksinimleri ve onay kapsamı noter tarafından bağımsız olarak belirlenir.",
+      "rewards": "Ortak ödülleri yalnızca iade olmaksızın tamamen tamamlanmış ve ödenmiş siparişler için ödenir. WPO, makul bir bildirimle komisyon oranlarını ayarlama hakkını saklı tutar.",
+      "passThrough": "Noter ücretleri, kurye ve teslimat, banka ücretleri, devlet harçları ve diğer geçici giderler gibi dış maliyetler komisyon hesaplama tabanından hariç tutulur."
+    },
+    "form": {
+      "title": "Ortak olmak için başvurun",
+      "subtitle": "Kendiniz ve WPO Translations ile nasıl çalışmak istediğiniz hakkında bize bilgi verin.",
+      "typeLabel": "Ortak türü",
+      "typePlaceholder": "Türünüzü seçin",
+      "nameLabel": "Tam ad",
+      "namePlaceholder": "Adınız",
+      "emailLabel": "E-posta",
+      "emailPlaceholder": "you@example.com",
+      "phoneLabel": "Telefon (isteğe bağlı)",
+      "phonePlaceholder": "+7...",
+      "orgLabel": "Kuruluş (isteğe bağlı)",
+      "orgPlaceholder": "Şirket veya bireysel",
+      "messageLabel": "Mesaj (isteğe bağlı)",
+      "messagePlaceholder": "Deneyiminiz, müşteri hacminiz veya sorularınız hakkında bilgi verin.",
+      "submit": "Başvuruyu gönder",
+      "submitting": "Gönderiliyor...",
+      "successTitle": "Başvuru alındı",
+      "successMessage": "Teşekkürler. Ekibimiz başvurunuzu inceleyecek ve birkaç iş günü içinde sizinle iletişime geçecek.",
+      "errorGeneric": "Bir şeyler yanlış gitti. Lütfen tekrar deneyin.",
+      "typeTranslator": "Çevirmen",
+      "typeNotary": "Noter",
+      "typeAgency": "Çeviri ajansı",
+      "typeVisaCenter": "Vize merkezi",
+      "typeMigrationConsultant": "Göç danışmanı",
+      "typeEducationAgency": "Eğitim ajansı",
+      "typeLegalFirm": "Hukuk firması",
+      "typeCorporate": "Kuruluş / İK",
+      "typeOther": "Diğer"
+    }
+  }
+}

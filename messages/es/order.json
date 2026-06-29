@@ -99,6 +99,10 @@
     "addMoreFiles": "Agregar más",
     "serviceLevel": {
       "label": "NIVEL DE SERVICIO",
+      "electronic": {
+        "label": "Traducción electrónica",
+        "desc": "Traducción procesada con IA y OCR. Sin firma del traductor ni sello del proveedor. Lista en 2–5 minutos."
+      },
       "certified": {
         "label": "Traducción certificada",
         "desc": "Un traductor cualificado revisa la traducción, la firma y la sella con el sello de WPO. Sin notarización."

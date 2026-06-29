@@ -1,0 +1,117 @@
+{
+  "partnersPage": {
+    "metaTitle": "Programa de Socios — WPO Translations",
+    "metaDescription": "Únase a la red de socios de WPO Translations. Gane comisiones por referidos u ofrezca su experiencia como traductor o notario. Solicite hoy.",
+    "hero": {
+      "badge": "Programa de Socios",
+      "title": "Crezca junto a WPO Translations",
+      "subtitle": "Únase a la red de socios de la agencia profesional de traducción de documentos de Kazajistán. Gane comisiones por referidos, aporte su experiencia o refiera a sus clientes.",
+      "cta": "Solicitar ser socio"
+    },
+    "whoCanPartner": {
+      "title": "Quién puede ser socio",
+      "translatorTitle": "Traductores",
+      "translatorDesc": "Profesionales certificados que desean tomar pedidos de traducción oficial y notarial.",
+      "notaryTitle": "Notarios",
+      "notaryDesc": "Notarios que participan en flujos de trabajo de traducción notarial a través de un proceso de socio.",
+      "agencyTitle": "Agencias de traducción",
+      "agencyDesc": "Agencias que refieren clientes que necesitan traducción profesional de documentos.",
+      "visaCenterTitle": "Centros de visas",
+      "visaCenterDesc": "Centros cuyos clientes necesitan regularmente documentos traducidos para solicitudes de visa.",
+      "migrationConsultantTitle": "Consultores de migración",
+      "migrationConsultantDesc": "Consultores que trabajan con clientes en documentación de reubicación, residencia y ciudadanía.",
+      "educationAgencyTitle": "Agencias educativas",
+      "educationAgencyDesc": "Agencias que ayudan a estudiantes con solicitudes universitarias que requieren documentos traducidos.",
+      "legalFirmTitle": "Bufetes de abogados",
+      "legalFirmDesc": "Bufetes de abogados y asesores legales cuyos clientes requieren traducciones oficiales de documentos.",
+      "corporateTitle": "Organizaciones y RRHH",
+      "corporateDesc": "Empresas y departamentos de recursos humanos con necesidades recurrentes de traducción de documentos."
+    },
+    "howItWorks": {
+      "title": "Cómo funciona",
+      "step1Title": "Envíe su solicitud",
+      "step1Desc": "Complete el formulario de solicitud de socio. Cuéntenos sobre su rol y cómo planea colaborar.",
+      "step2Title": "Revisión e incorporación",
+      "step2Desc": "Nuestro equipo revisa su solicitud y se pone en contacto para discutir los términos y configurar su cuenta de socio.",
+      "step3Title": "Obtenga su enlace de referido",
+      "step3Desc": "Recibirá un código de referido personal para compartir con clientes o incorporar en sus comunicaciones.",
+      "step4Title": "Gane comisiones",
+      "step4Desc": "Las comisiones se calculan sobre los ingresos del servicio WPO de los pedidos completados referidos a través de su enlace, pagadas mensualmente."
+    },
+    "forTranslators": {
+      "title": "Para traductores",
+      "desc": "WPO Translations trabaja con traductores certificados profesionales para pedidos de traducción oficial y notarial. Nos encargamos del flujo de trabajo digital, la atención al cliente y los pagos — usted se concentra en la calidad.",
+      "point1": "Trabajar en pedidos de traducción oficial con firma del traductor y sello de la agencia",
+      "point2": "Gestionar traducciones notariales como parte de un proceso de socio estructurado",
+      "point3": "Sistema de pago transparente basado en par de idiomas, tipo de documento, volumen y complejidad",
+      "point4": "Ganar recompensas de captación al referir a otros traductores calificados a WPO"
+    },
+    "forNotaries": {
+      "title": "Para notarios",
+      "desc": "La traducción notarial en WPO Translations se facilita a través de un proceso notarial de socio. El notario revisa la traducción certificada y proporciona la notarización según sus requisitos.",
+      "point1": "Participar en flujos de trabajo de traducción notarial mediante un acuerdo de socio estructurado",
+      "point2": "Los requisitos y procedimientos dependen de las prácticas individuales del notario",
+      "point3": "WPO no garantiza la aceptación por parte de ningún notario, autoridad o institución específica"
+    },
+    "forOrganizations": {
+      "title": "Para organizaciones y agencias",
+      "desc": "Refiera a sus clientes a WPO Translations y gane una comisión por referido en cada pedido completado y pagado. Adecuado para centros de visas, consultores de migración, agencias educativas, bufetes de abogados y RRHH corporativo.",
+      "point1": "5% de comisión por 1–10 pedidos referidos por mes",
+      "point2": "7% a partir de 10 pedidos por mes",
+      "point3": "10% a partir de 30 pedidos por mes",
+      "point4": "Comisión calculada sobre los ingresos del servicio WPO, excluyendo honorarios notariales, mensajería, comisiones bancarias y otros costos de paso"
+    },
+    "rewards": {
+      "title": "Recompensas para socios",
+      "orgTitle": "Comisión por referido de organización",
+      "orgTier1": "1–10 pedidos / mes: 5%",
+      "orgTier2": "11–30 pedidos / mes: 7%",
+      "orgTier3": "31+ pedidos / mes: 10%",
+      "translatorClientTitle": "Traductor — referido de cliente",
+      "translatorClientDesc": "5% de comisión sobre pedidos de clientes que refirió mediante su código de referido personal.",
+      "translatorAcquisitionTitle": "Traductor — recompensa de captación",
+      "translatorAcquisitionDesc": "5.000 KZT tras completar los primeros 5 pedidos el traductor referido. 10.000 KZT tras 20 pedidos completados.",
+      "payoutTitle": "Calendario de pagos",
+      "payoutDesc": "Pagos mensuales. Umbral mínimo de pago: 10.000 KZT.",
+      "commissionBaseTitle": "Base de comisión",
+      "commissionBaseDesc": "Las comisiones se calculan sobre los ingresos netos del servicio WPO, excluyendo honorarios notariales, mensajería, comisiones bancarias, tasas gubernamentales, pedidos reembolsados y otros costos de paso."
+    },
+    "disclaimer": {
+      "title": "Importante",
+      "acceptance": "WPO Translations no garantiza la aceptación de ningún documento traducido por parte de bancos, centros de visas, universidades, organismos gubernamentales, notarios o cualquier otra parte receptora. Los requisitos de aceptación varían según la institución.",
+      "notarization": "La traducción notarial se facilita a través de un proceso de socio. Los requisitos del notario y el alcance de la certificación son determinados de forma independiente por el notario.",
+      "rewards": "Las recompensas para socios se pagan únicamente por pedidos completamente finalizados y pagados sin reembolsos. WPO se reserva el derecho de ajustar las tasas de comisión con aviso razonable.",
+      "passThrough": "Los costos externos como honorarios notariales, mensajería y entrega, comisiones bancarias, tasas gubernamentales y otros gastos de paso quedan excluidos del cálculo de la base de comisión."
+    },
+    "form": {
+      "title": "Solicitar ser socio",
+      "subtitle": "Cuéntenos sobre usted y cómo le gustaría trabajar con WPO Translations.",
+      "typeLabel": "Tipo de socio",
+      "typePlaceholder": "Seleccione su tipo",
+      "nameLabel": "Nombre completo",
+      "namePlaceholder": "Su nombre",
+      "emailLabel": "Correo electrónico",
+      "emailPlaceholder": "you@example.com",
+      "phoneLabel": "Teléfono (opcional)",
+      "phonePlaceholder": "+7...",
+      "orgLabel": "Organización (opcional)",
+      "orgPlaceholder": "Empresa o particular",
+      "messageLabel": "Mensaje (opcional)",
+      "messagePlaceholder": "Cuéntenos sobre su experiencia, volumen de clientes o cualquier pregunta.",
+      "submit": "Enviar solicitud",
+      "submitting": "Enviando...",
+      "successTitle": "Solicitud recibida",
+      "successMessage": "Gracias. Nuestro equipo revisará su solicitud y se pondrá en contacto con usted en pocos días hábiles.",
+      "errorGeneric": "Algo salió mal. Por favor, inténtelo de nuevo.",
+      "typeTranslator": "Traductor",
+      "typeNotary": "Notario",
+      "typeAgency": "Agencia de traducción",
+      "typeVisaCenter": "Centro de visas",
+      "typeMigrationConsultant": "Consultor de migración",
+      "typeEducationAgency": "Agencia educativa",
+      "typeLegalFirm": "Bufete de abogados",
+      "typeCorporate": "Organización / RRHH",
+      "typeOther": "Otro"
+    }
+  }
+}

@@ -99,6 +99,10 @@
     "addMoreFiles": "Goşmak",
     "serviceLevel": {
       "label": "HYZMAT DEREJESI",
+      "electronic": {
+        "label": "Elektron terjime",
+        "desc": "Terjime AI we OCR arkaly amala aşyrylýar. Terjimeçiniň goly we ýerine ýetirijiniň möhüri ýok. 2–5 minutda taýyn."
+      },
       "certified": {
         "label": "Tassyklanan terjime",
         "desc": "Terjime hünärmen terjimeçi tarapyndan barlanýar, gol çekilýär we WPO möhüri bilen tassyklanýar. Notariat resminamasy ýok."

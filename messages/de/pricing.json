@@ -7,22 +7,22 @@
     "mostPopular": "Beliebteste Wahl",
     "startTranslating": "Übersetzung starten",
     "allPricesNote": "Alle Preise in ₸ (Tenge) · Kein Abonnement · Endpreis wird nach dem Hochladen berechnet",
-    "paygNote": "ab 1.000 ₸ — Elektronische Übersetzung. ab 5.500 ₸ — Übersetzung mit Agenturstempel.",
+    "paygNote": "ab 1.000 ₸ — Elektronische Übersetzung. ab 5.500 ₸ — Übersetzung mit Anbieterstempel.",
     "electronic": "Elektronische Übersetzung",
     "electronicPrice": "ab 1.000 ₸",
     "electronicF1": "AI/OCR-Entwurf und automatische Formatierung",
     "electronicF2": "PDF/DOCX-Ergebnis",
     "electronicF3": "Bereit in 2–5 Minuten",
-    "electronicF4": "Ohne Übersetzerunterschrift und Agenturstempel",
-    "agentStamp": "Übersetzung mit Agenturstempel",
+    "electronicF4": "Ohne Übersetzerunterschrift und Anbieterstempel",
+    "agentStamp": "Übersetzung mit Anbieterstempel",
     "agentStampPrice": "ab 5.500 ₸",
     "agentStampF1": "Prüfung durch einen menschlichen Übersetzer",
-    "agentStampF2": "Agentur-/Anbieterstempel",
+    "agentStampF2": "Anbieterstempel",
     "agentStampF3": "Finales PDF mit Formatierung",
     "agentStampF4": "Ohne notarielle Beglaubigung",
     "notarized": "Notariell beglaubigte Übersetzung",
     "notarizedPrice": "ab 11.000 ₸",
-    "notarizedF1": "Übersetzung mit Agentur-/Anbieterstempel",
+    "notarizedF1": "Übersetzung mit Anbieterstempel",
     "notarizedF2": "Partnerprozess mit einem Notar",
     "notarizedF3": "Notarielle Beglaubigung der Übersetzerunterschrift",
     "notarizedF4": "Dauer abhängig von Dokument, Stadt und Verfügbarkeit des Notars",
@@ -35,18 +35,18 @@
           "AI/OCR-Entwurf und automatische Formatierung",
           "PDF/DOCX-Ergebnis",
           "Üblicherweise 2–5 Minuten",
-          "Ohne Übersetzerunterschrift und Agenturstempel"
+          "Ohne Übersetzerunterschrift und Anbieterstempel"
         ],
         "cta": "Übersetzung starten"
       },
       "agentStamp": {
-        "title": "Übersetzung mit Agenturstempel",
+        "title": "Übersetzung mit Anbieterstempel",
         "price": "ab 5.500 ₸",
         "unit": "pro Dokument",
         "features": [
           "Prüfung durch einen Menschen",
           "Erstellung des finalen PDF",
-          "Agentur-/Anbieterstempel",
+          "Anbieterstempel",
           "Ohne notarielle Beglaubigung"
         ],
         "cta": "Übersetzung starten"
@@ -56,7 +56,7 @@
         "price": "ab 11.000 ₸",
         "unit": "pro Dokument",
         "features": [
-          "Übersetzung mit Agentur-/Anbieterstempel",
+          "Übersetzung mit Anbieterstempel",
           "Partnerprozess mit einem Notar",
           "Notarielle Beglaubigung",
           "Dauer abhängig von Dokument, Stadt und Verfügbarkeit des Notars"

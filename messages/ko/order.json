@@ -99,6 +99,10 @@
     "addMoreFiles": "파일 추가",
     "serviceLevel": {
       "label": "서비스 수준",
+      "electronic": {
+        "label": "전자 번역",
+        "desc": "AI 및 OCR로 번역을 처리합니다. 번역가 서명 및 공급업체 도장 없음. 2–5분 내 완료."
+      },
       "certified": {
         "label": "공인 번역",
         "desc": "자격을 갖춘 번역가가 번역을 검토하고 서명하며 WPO 직인을 날인합니다. 공증 미포함."

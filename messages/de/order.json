@@ -101,13 +101,17 @@
     "addMoreFiles": "Weitere hinzufügen",
     "serviceLevel": {
       "label": "SERVICELEVEL",
+      "electronic": {
+        "label": "Elektronische Übersetzung",
+        "desc": "Übersetzung per KI und OCR. Ohne Übersetzerunterschrift und Anbieterstempel. In 2–5 Minuten fertig."
+      },
       "certified": {
-        "label": "Übersetzung mit Agenturstempel",
-        "desc": "Die Übersetzung wird von einem qualifizierten Übersetzer geprüft, vom Übersetzer unterschrieben und mit dem WPO-Stempel versehen. Ohne notarielle Beglaubigung."
+        "label": "Übersetzung mit Anbieterstempel",
+        "desc": "Die Übersetzung wird von einem qualifizierten Übersetzer geprüft, vom Übersetzer unterschrieben und mit dem Anbieterstempel versehen. Ohne notarielle Beglaubigung."
       },
       "notarization": {
-        "label": "Übersetzung mit Agenturstempel und notarieller Beglaubigung",
-        "desc": "Die Übersetzung wird geprüft und vom Übersetzer unterschrieben, mit dem WPO-Stempel versehen und anschließend an einen Partnernotar zur Beglaubigung der Übersetzerunterschrift weitergeleitet."
+        "label": "Übersetzung mit Anbieterstempel und notarieller Beglaubigung",
+        "desc": "Die Übersetzung wird geprüft und vom Übersetzer unterschrieben, mit dem Anbieterstempel versehen und anschließend an einen Partnernotar zur notariellen Beglaubigung der Übersetzerunterschrift weitergeleitet."
       }
     },
     "notary": {
@@ -178,7 +182,7 @@
       "created": "Erstellt",
       "updated": "Aktualisiert",
       "serviceElectronic": "Elektronisch",
-      "serviceCertified": "Mit Agenturstempel",
+      "serviceCertified": "Mit Anbieterstempel",
       "serviceNotarized": "Notariell beglaubigt"
     },
     "errors": {
@@ -203,7 +207,7 @@
     "quoteRecalculating": "Auftragsstatus wird aktualisiert...",
     "priceHint": "Der genaue Preis wird nach dem Hochladen und der Analyse des Dokuments berechnet.",
     "priceHintElectronic": "Elektronische Übersetzung — ab 1.000 ₸. Endpreis nach dem Hochladen.",
-    "priceHintOfficial": "Übersetzung mit Agenturstempel — ab 5.500 ₸. Endpreis nach dem Hochladen.",
+    "priceHintOfficial": "Übersetzung mit Anbieterstempel — ab 5.500 ₸. Endpreis nach dem Hochladen.",
     "priceHintNotarized": "Notarielle Übersetzung — ab 11.000 ₸. Endpreis nach dem Hochladen.",
     "urgency": {
       "label": "DRINGLICHKEIT",

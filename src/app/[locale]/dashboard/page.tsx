@@ -877,6 +877,7 @@ export default function DashboardPage() {
           <div className="flex flex-col gap-2">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('serviceLevel.label')}</p>
             <div className="flex flex-col gap-2">
+              <ServiceLevelCard value="electronic" current={serviceLevel} label={t('serviceLevel.electronic.label')} description={t('serviceLevel.electronic.desc')} onChange={handleServiceLevelChange} />
               <ServiceLevelCard value="official_with_translator_signature_and_provider_stamp" current={serviceLevel} label={t('serviceLevel.certified.label')} description={t('serviceLevel.certified.desc')} onChange={handleServiceLevelChange} />
               <ServiceLevelCard value="notarization_through_partners" current={serviceLevel} label={t('serviceLevel.notarization.label')} description={t('serviceLevel.notarization.desc')} onChange={handleServiceLevelChange} />
             </div>

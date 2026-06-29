@@ -1,0 +1,117 @@
+{
+  "partnersPage": {
+    "metaTitle": "Hyzmatdaşlyk Maksatnamasy — WPO Translations",
+    "metaDescription": "WPO Translations hyzmatdaşlyk ulgamyna goşulyň. Ugradyjy komissiýa gazanyň ýa-da terjimeçi ýa-da notarius hökmünde tejribäňizi hödürläň.",
+    "hero": {
+      "badge": "Hyzmatdaşlyk Maksatnamasy",
+      "title": "WPO Translations bilen bile ösüň",
+      "subtitle": "Gazagystanyň hünärli resminamalary terjime etmek býurasynyň hyzmatdaşlyk ulgamyna goşulyň. Ugradyjy komissiýa gazanyň, tejribäňizi goşuň ýa-da müşderileriňizi ugradyň.",
+      "cta": "Hyzmatdaş bolmak üçin ýüz tutuň"
+    },
+    "whoCanPartner": {
+      "title": "Kim hyzmatdaş bolup biler",
+      "translatorTitle": "Terjimeçiler",
+      "translatorDesc": "Resmi we notarial terjime sargytlaryny ýerine ýetirmek isleýän güwäli hünärmenler.",
+      "notaryTitle": "Notariuslar",
+      "notaryDesc": "Hyzmatdaşlyk mehanizmi arkaly notarial tassyklama iş proseslerine gatnaşýan notariuslar.",
+      "agencyTitle": "Terjime agentlikleri",
+      "agencyDesc": "Hünärli resminamalary terjime etmeli müşderileri ugradýan agentlikler.",
+      "visaCenterTitle": "Wiza merkezleri",
+      "visaCenterDesc": "Müşderileri wiza ýüz tutmalar üçin yzygiderli terjime edilmedik resminamalara mätäç bolan merkezler.",
+      "migrationConsultantTitle": "Migrasiýa geňeşçileri",
+      "migrationConsultantDesc": "Müşderilere göçmek, ýaşamak hukugy we raýatlyk resminamalary boýunça kömek berýän geňeşçiler.",
+      "educationAgencyTitle": "Bilim agentlikleri",
+      "educationAgencyDesc": "Terjime resminamalaryny talap edýän uniwersitete okuwa girmekde talyplara kömek edýän agentlikler.",
+      "legalFirmTitle": "Hukuk firmalary",
+      "legalFirmDesc": "Müşderileri resmi resminamalary terjimelenmegine mätäç bolan hukuk kompaniýalary we geňeşçiler.",
+      "corporateTitle": "Guramalar we HR",
+      "corporateDesc": "Yzygiderli resminamalary terjime etmek zerurlygy bolan kompaniýalar we HR bölümleri."
+    },
+    "howItWorks": {
+      "title": "Nähili işleýär",
+      "step1Title": "Ýüz tutmaňyzy iberiň",
+      "step1Desc": "Hyzmatdaşlyk ýüz tutma formasyny dolduryň. Roluňyz we hyzmatdaşlyk meýilnamaňyz barada bize aýdyň.",
+      "step2Title": "Gözden geçiriş we goşulma",
+      "step2Desc": "Toparymyz ýüz tutmaňyzy gözden geçirýär we şertleri ara alyp maslahatlaşmak we hyzmatdaşlyk hasabyňyzy düzmek üçin siz bilen habarlaşýar.",
+      "step3Title": "Ugradyjy baglanyşygyňyzy alyň",
+      "step3Desc": "Müşderiler bilen paýlaşmak ýa-da aragatnaşykyňyza goşmak üçin şahsy ugradyjy kodyny alarsyňyz.",
+      "step4Title": "Komissiýa gazanyň",
+      "step4Desc": "Komissiýalar siziň baglanyşygyňyz arkaly ugradylan ýerine ýetirilen sargytlardan WPO hyzmat girdejisine esaslanyp hasaplanýar we aýlyk tölenýär."
+    },
+    "forTranslators": {
+      "title": "Terjimeçiler üçin",
+      "desc": "WPO Translations resmi we notarial terjime sargytlary üçin hünärli güwäli terjimeçiler bilen işleýär. Sanly iş prosesini, müşderi kabul etmegi we tölegleri biz üstlenýäris — siz hile ünsüňizi jemläň.",
+      "point1": "Terjimeçiniň goly we ýerine ýetirijiniň möhüri bilen resmi terjime sargytlaryny ýerine ýetirmek",
+      "point2": "Gurluşlaşdyrylan hyzmatdaşlyk prosesiniň bir bölegi hökmünde notarial tassyklamada gatnaşmak",
+      "point3": "Dil jufty, resminamanyň görnüşi, göwrüm we çylşyrymlylyga esaslanýan aç-açan töleg ulgamy",
+      "point4": "WPO-a başga hünärli terjimeçileri çekenimizde baýrak almak"
+    },
+    "forNotaries": {
+      "title": "Notariuslar üçin",
+      "desc": "WPO Translations-da notarial terjime hyzmatdaş notarial proses arkaly amala aşyrylýar. Notarius güwäli terjimeleri gözden geçirýär we öz talaplary boýunça tassyklaýar.",
+      "point1": "Gurluşlaşdyrylan hyzmatdaşlyk ylalaşygy arkaly notarial terjime iş proseslerine gatnaşmak",
+      "point2": "Talaplaryňyz we tertiplar notariusyň şahsy tejribesine bagly kesgitlenýär",
+      "point3": "WPO belli bir notarius, organ ýa-da edaranyň kabul etmegini kepillendirmeýär"
+    },
+    "forOrganizations": {
+      "title": "Guramalar we agentlikler üçin",
+      "desc": "Müşderileriňizi WPO Translations-a ugradyň we her ýerine ýetirilen, tölenilen sargyt üçin ugradyjy komissiýa gazanyň. Wiza merkezleri, migrasiýa geňeşçileri, bilim agentlikleri, hukuk firmalary we korporatiw HR üçin amatly.",
+      "point1": "Aýda 1–10 ugradylan sargyt üçin 5% komissiýa",
+      "point2": "Aýda 10 sargytdan soň 7%",
+      "point3": "Aýda 30 sargytdan soň 10%",
+      "point4": "Komissiýa WPO hyzmat girdejisine esaslanyp hasaplanýar, notarial tölegleri, eltip bermegi, bank töleglerini we beýleki tranzit çykdajylary hasaba almazdan"
+    },
+    "rewards": {
+      "title": "Hyzmatdaş sylaglary",
+      "orgTitle": "Guramalar üçin ugradyjy komissiýa",
+      "orgTier1": "Aýda 1–10 sargyt: 5%",
+      "orgTier2": "Aýda 11–30 sargyt: 7%",
+      "orgTier3": "Aýda 31+ sargyt: 10%",
+      "translatorClientTitle": "Terjimeçi — müşderi ugratmak",
+      "translatorClientDesc": "Şahsy ugradyjy koduňyz arkaly çeken müşderileriň sargytlaryndan 5% komissiýa.",
+      "translatorAcquisitionTitle": "Terjimeçi — çekmek sylagy",
+      "translatorAcquisitionDesc": "Çekilen terjimeçi ilkinji 5 sargydy ýerine ýetireninden soň 5 000 KZT. 20 ýerine ýetirilen sargytdan soň 10 000 KZT.",
+      "payoutTitle": "Töleg tertibi",
+      "payoutDesc": "Aýlyk tölegler. Iň az töleg möçberi: 10 000 KZT.",
+      "commissionBaseTitle": "Komissiýa esasy",
+      "commissionBaseDesc": "Komissiýalar WPO arassa hyzmat girdejisine esaslanyp hasaplanýar, notarial tölegleri, eltip bermegi, bank töleglerini, döwlet töleglerini, yzyna gaýtarylan sargytlary we beýleki tranzit çykdajylary hasaba almazdan."
+    },
+    "disclaimer": {
+      "title": "Möhüm",
+      "acceptance": "WPO Translations terjime edilen resminamalaryň banklar, wiza merkezleri, uniwersitetler, döwlet edaralary, notariuslar ýa-da islendik başga kabul ediji tarapyndan kabul edilmegini kepillendirmeýär. Kabul ediş talaplary edaradan edaryna tapawutlanýar.",
+      "notarization": "Notarial terjime hyzmatdaşlyk proses arkaly amala aşyrylýar. Notariusyň talaplary we tassyklaýyş çägi notarius tarapyndan özbaşdak kesgitlenýär.",
+      "rewards": "Hyzmatdaş sylaglary diňe doly ýerine ýetirilen we yzyna gaýtarylmadyk tölenilen sargytlar üçin tölenýär. WPO makul bildiriş bilen komissiýa nyrhlary sazlamak hukugyny özünde saklaýar.",
+      "passThrough": "Notarial tölegler, eltip bermek, bank tölegleri, döwlet tölegleri we beýleki tranzit çykdajylar ýaly daşarky çykdajylar komissiýa hasaplama esasyndan çykarylyp tutulýar."
+    },
+    "form": {
+      "title": "Hyzmatdaşlyk üçin ýüz tutmak",
+      "subtitle": "Özüňiz we WPO Translations bilen nähili işleşmek isleýändigiňiz barada bize aýdyň.",
+      "typeLabel": "Hyzmatdaşyň görnüşi",
+      "typePlaceholder": "Görnüşi saýlaň",
+      "nameLabel": "Doly ady",
+      "namePlaceholder": "Adyňyz",
+      "emailLabel": "Elektron poçta",
+      "emailPlaceholder": "you@example.com",
+      "phoneLabel": "Telefon (hökmany däl)",
+      "phonePlaceholder": "+7...",
+      "orgLabel": "Gurama (hökmany däl)",
+      "orgPlaceholder": "Kompaniýa ýa-da şahsy",
+      "messageLabel": "Habar (hökmany däl)",
+      "messagePlaceholder": "Tejribäňiz, müşderi mukdary ýa-da soraglar barada aýdyň.",
+      "submit": "Ýüz tutmany iberiň",
+      "submitting": "Iberilýär...",
+      "successTitle": "Ýüz tutma kabul edildi",
+      "successMessage": "Sag boluň. Toparymyz ýüz tutmaňyzy gözden geçirer we birnäçe iş güni içinde siz bilen habarlaşar.",
+      "errorGeneric": "Bir zat nädogry boldy. Gaýtadan synanyşyň.",
+      "typeTranslator": "Terjimeçi",
+      "typeNotary": "Notarius",
+      "typeAgency": "Terjime agentligi",
+      "typeVisaCenter": "Wiza merkezi",
+      "typeMigrationConsultant": "Migrasiýa geňeşçisi",
+      "typeEducationAgency": "Bilim agentligi",
+      "typeLegalFirm": "Hukuk firmasy",
+      "typeCorporate": "Gurama / HR",
+      "typeOther": "Beýleki"
+    }
+  }
+}

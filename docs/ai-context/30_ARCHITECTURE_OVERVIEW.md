@@ -74,7 +74,11 @@ Implemented sub-pages:
 
 Both `kazakhstan/` and `documents/` also have a root `page.tsx` (the vertical landing index).
 
-Other locale-prefixed pages: `contacts` (`src/app/[locale]/contacts/`), `auth` (login/callback), `dashboard`, `legal`, `privacy` (alias), `tos` (alias).
+Other locale-prefixed pages: `contacts` (`src/app/[locale]/contacts/`), `auth` (login/callback), `dashboard`, `legal`, `privacy` (alias), `tos` (alias), `partners` (`src/app/[locale]/partners/`) — Partner Program landing page with application form. The /partners link appears in the Navbar (flat link, no dropdown, using `nav.partners` i18n key) and in the footer Col 1 (brand section) after the Contacts link — NOT in the legal documents section.
+
+## Referral capture
+
+`src/lib/referral/capture.ts` — pure utility: `extractReferralParams(search)`, `saveReferralParams()`, `loadReferralParams()`, `clearReferralParams()`. Uses sessionStorage (browser-only). `src/components/referral/ReferralCapture.tsx` — client component (wrapped in Suspense in locale layout) that captures `ref` + UTM params on every page load and stores them for future attachment to order creation.
 
 ## Legal system
 

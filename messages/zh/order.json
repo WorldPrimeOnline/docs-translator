@@ -99,13 +99,17 @@
     "addMoreFiles": "添加更多",
     "serviceLevel": {
       "label": "服务级别",
+      "electronic": {
+        "label": "电子翻译",
+        "desc": "翻译通过 AI 和 OCR 完成。不含译者签名和服务商印章。通常 2–5 分钟内完成。"
+      },
       "certified": {
-        "label": "加盖代理机构印章的翻译",
-        "desc": "翻译由合格译员审核、签字，并加盖 WPO 印章。不含公证。"
+        "label": "加盖服务商印章的翻译",
+        "desc": "翻译由合格译员审核、签字，并加盖服务商印章。不含公证。"
       },
       "notarization": {
-        "label": "加盖代理机构印章的翻译（含公证）",
-        "desc": "翻译由译员审核、签字，加盖 WPO 印章，随后转交合作公证机构对译员签名进行公证。"
+        "label": "加盖服务商印章的翻译（含公证）",
+        "desc": "翻译由译员审核、签字，加盖服务商印章，随后转交合作公证机构对译员签名进行公证。"
       }
     },
     "notary": {
@@ -176,8 +180,8 @@
       "created": "创建时间",
       "updated": "更新时间",
       "serviceElectronic": "电子版",
-      "serviceCertified": "加盖代理机构印章的翻译",
-      "serviceNotarized": "公证翻译"
+      "serviceCertified": "加盖服务商印章的翻译",
+      "serviceNotarized": "含公证的翻译"
     },
     "uploadAndPay": "上传并以银行卡付款",
     "uploadedPaymentPending": "文件已上传——请支付 {price} 以开始翻译",
@@ -201,7 +205,7 @@
     "quoteRecalculating": "正在刷新订单状态...",
     "priceHint": "精确价格在文件上传和分析后计算。",
     "priceHintElectronic": "电子翻译——1,000 ₸ 起。上传后显示最终价格。",
-    "priceHintOfficial": "官方翻译——5,500 ₸ 起。上传后显示最终价格。",
+    "priceHintOfficial": "加盖服务商印章的翻译——5,500 ₸ 起。上传后显示最终价格。",
     "priceHintNotarized": "公证翻译——11,000 ₸ 起。上传后显示最终价格。",
     "urgency": {
       "label": "紧急程度",

@@ -1,0 +1,117 @@
+{
+  "partnersPage": {
+    "metaTitle": "파트너 프로그램 — WPO Translations",
+    "metaDescription": "WPO Translations 파트너 네트워크에 참여하세요. 추천 수수료를 받거나 번역가 또는 공증인으로서 전문성을 제공하세요. 지금 신청하세요.",
+    "hero": {
+      "badge": "파트너 프로그램",
+      "title": "WPO Translations와 함께 성장하세요",
+      "subtitle": "카자흐스탄의 전문 문서 번역 기관 파트너 네트워크에 참여하세요. 추천 수수료를 받고, 전문성을 기여하거나, 고객을 소개하세요.",
+      "cta": "파트너 신청하기"
+    },
+    "whoCanPartner": {
+      "title": "파트너가 될 수 있는 분",
+      "translatorTitle": "번역가",
+      "translatorDesc": "공식 번역 및 공증 번역 주문을 처리하고자 하는 인증 전문가.",
+      "notaryTitle": "공증인",
+      "notaryDesc": "파트너 프로세스를 통해 공증 번역 워크플로우에 참여하는 공증인.",
+      "agencyTitle": "번역 에이전시",
+      "agencyDesc": "전문 문서 번역이 필요한 고객을 소개하는 에이전시.",
+      "visaCenterTitle": "비자 센터",
+      "visaCenterDesc": "고객이 비자 신청을 위해 정기적으로 번역 서류가 필요한 센터.",
+      "migrationConsultantTitle": "이민 컨설턴트",
+      "migrationConsultantDesc": "이주, 거주권, 시민권 서류 작업에서 고객을 지원하는 컨설턴트.",
+      "educationAgencyTitle": "교육 에이전시",
+      "educationAgencyDesc": "번역 서류가 필요한 대학 입학 절차에서 학생을 지원하는 에이전시.",
+      "legalFirmTitle": "법률 회사",
+      "legalFirmDesc": "고객에게 공식 문서 번역이 필요한 법률 회사 및 법률 고문.",
+      "corporateTitle": "기업 및 HR",
+      "corporateDesc": "정기적인 문서 번역이 필요한 기업 및 인사 부서."
+    },
+    "howItWorks": {
+      "title": "진행 방식",
+      "step1Title": "신청서 제출",
+      "step1Desc": "파트너 신청 양식을 작성하세요. 역할과 협력 계획을 알려주세요.",
+      "step2Title": "검토 및 온보딩",
+      "step2Desc": "팀이 신청서를 검토하고 조건을 논의하며 파트너 계정을 설정하기 위해 연락드립니다.",
+      "step3Title": "추천 링크 받기",
+      "step3Desc": "고객과 공유하거나 커뮤니케이션에 삽입할 수 있는 개인 추천 코드를 받습니다.",
+      "step4Title": "수수료 적립",
+      "step4Desc": "수수료는 귀하의 링크를 통해 소개된 완료 주문의 WPO 서비스 수익을 기준으로 계산되어 매월 지급됩니다."
+    },
+    "forTranslators": {
+      "title": "번역가를 위한 안내",
+      "desc": "WPO Translations는 공식 및 공증 번역 주문을 위해 전문 인증 번역가와 협력합니다. 디지털 워크플로우, 고객 접수 및 결제는 저희가 처리합니다 — 귀하는 품질에 집중하세요.",
+      "point1": "번역가 서명과 기관 직인이 포함된 공식 번역 주문 처리",
+      "point2": "구조화된 파트너 프로세스의 일환으로 공증 번역 처리",
+      "point3": "언어 쌍, 문서 유형, 분량 및 복잡도에 따른 투명한 지급 시스템",
+      "point4": "WPO에 다른 자격 있는 번역가를 소개하면 모집 보상 획득"
+    },
+    "forNotaries": {
+      "title": "공증인을 위한 안내",
+      "desc": "WPO Translations의 공증 번역은 파트너 공증 프로세스를 통해 진행됩니다. 공증인이 인증 번역을 검토하고 자체 요건에 따라 공증을 제공합니다.",
+      "point1": "구조화된 파트너 협약을 통해 공증 번역 워크플로우에 참여",
+      "point2": "요건 및 절차는 공증인의 개별 관행에 따라 결정됩니다",
+      "point3": "WPO는 특정 공증인, 기관 또는 단체의 수락을 보장하지 않습니다"
+    },
+    "forOrganizations": {
+      "title": "기관 및 에이전시를 위한 안내",
+      "desc": "고객을 WPO Translations에 소개하고 완료된 모든 결제 주문에 대한 추천 수수료를 받으세요. 비자 센터, 이민 컨설턴트, 교육 에이전시, 법률 회사 및 기업 HR에 적합합니다.",
+      "point1": "월 1–10건 소개 주문에 대해 5% 수수료",
+      "point2": "월 10건 초과 후 7%",
+      "point3": "월 30건 초과 후 10%",
+      "point4": "수수료는 WPO 서비스 수익 기준으로 산정되며 공증비, 배송비, 은행 수수료 및 기타 통과 비용은 제외됩니다"
+    },
+    "rewards": {
+      "title": "파트너 보상",
+      "orgTitle": "기관 추천 수수료",
+      "orgTier1": "월 1–10건: 5%",
+      "orgTier2": "월 11–30건: 7%",
+      "orgTier3": "월 31건 이상: 10%",
+      "translatorClientTitle": "번역가 — 고객 추천",
+      "translatorClientDesc": "개인 추천 코드로 소개한 고객의 주문에 대해 5% 수수료.",
+      "translatorAcquisitionTitle": "번역가 — 모집 보상",
+      "translatorAcquisitionDesc": "소개한 번역가가 첫 5건 주문을 완료한 후 5,000 KZT. 20건 완료 후 10,000 KZT.",
+      "payoutTitle": "지급 일정",
+      "payoutDesc": "매월 지급. 최소 지급 기준액: 10,000 KZT.",
+      "commissionBaseTitle": "수수료 기준",
+      "commissionBaseDesc": "수수료는 WPO 순 서비스 수익을 기준으로 산정되며 공증비, 배송비, 은행 수수료, 정부 수수료, 환불 주문 및 기타 통과 비용은 제외됩니다."
+    },
+    "disclaimer": {
+      "title": "중요 안내",
+      "acceptance": "WPO Translations는 번역된 문서가 은행, 비자 센터, 대학교, 정부 기관, 공증인 또는 기타 수령 기관에 의해 수락될 것을 보장하지 않습니다. 수락 요건은 기관마다 다릅니다.",
+      "notarization": "공증 번역은 파트너 프로세스를 통해 진행됩니다. 공증인의 요건 및 인증 범위는 공증인이 독립적으로 결정합니다.",
+      "rewards": "파트너 보상은 환불 없이 완전히 완료되고 결제된 주문에 대해서만 지급됩니다. WPO는 합리적인 통지 후 수수료율을 조정할 권리를 보유합니다.",
+      "passThrough": "공증비, 배송비, 은행 수수료, 정부 수수료 및 기타 통과 비용 등의 외부 비용은 수수료 산정 기준에서 제외됩니다."
+    },
+    "form": {
+      "title": "파트너 신청하기",
+      "subtitle": "귀하와 WPO Translations와의 협력 방식에 대해 알려주세요.",
+      "typeLabel": "파트너 유형",
+      "typePlaceholder": "유형 선택",
+      "nameLabel": "성명",
+      "namePlaceholder": "이름을 입력하세요",
+      "emailLabel": "이메일",
+      "emailPlaceholder": "you@example.com",
+      "phoneLabel": "전화번호 (선택사항)",
+      "phonePlaceholder": "+7...",
+      "orgLabel": "소속 기관 (선택사항)",
+      "orgPlaceholder": "회사 또는 개인",
+      "messageLabel": "메시지 (선택사항)",
+      "messagePlaceholder": "경험, 고객 규모 또는 문의 사항을 알려주세요.",
+      "submit": "신청서 제출",
+      "submitting": "제출 중...",
+      "successTitle": "신청이 접수되었습니다",
+      "successMessage": "감사합니다. 팀이 신청서를 검토하고 며칠 내로 연락드리겠습니다.",
+      "errorGeneric": "문제가 발생했습니다. 다시 시도해 주세요.",
+      "typeTranslator": "번역가",
+      "typeNotary": "공증인",
+      "typeAgency": "번역 에이전시",
+      "typeVisaCenter": "비자 센터",
+      "typeMigrationConsultant": "이민 컨설턴트",
+      "typeEducationAgency": "교육 에이전시",
+      "typeLegalFirm": "법률 회사",
+      "typeCorporate": "기업 / HR",
+      "typeOther": "기타"
+    }
+  }
+}

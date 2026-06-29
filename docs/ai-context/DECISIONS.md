@@ -131,3 +131,35 @@ worker/src/lib/jira/price-breakdown.ts, worker/src/lib/integrations.ts, supabase
 
 **Risks / caveats:**  
 Price Breakdown is opt-in via feature flag. If the quote is not yet persisted when initializeOrderIntegrations runs, the breakdown will show null pricing — this is handled gracefully with a fallback message.
+
+---
+
+### 2026-06-28 — Partner Program MVP architecture and commission rules
+
+**Decision:**  
+Partner Program MVP ships as: (1) public /partners landing page with application form; (2) POST /api/partners/apply route saving to partner_applications table; (3) Jira issue created best-effort on submission; (4) referral capture via sessionStorage (ref+UTM) in ReferralCapture client component in locale layout; (5) four new Supabase tables: partner_applications, partners, partner_referrals, partner_payouts. Commission rules: orgs get 5%/7%/10% tiered by order volume; translator client referral 5%; translator acquisition 5k+10k KZT milestones. All commission calculated on WPO service income excluding pass-through costs. Minimum payout 10k KZT, monthly cadence.
+
+**Rationale:**  
+Partner program is a growth channel for WPO. MVP validates the model without building full payout automation. Jira non-blocking fallback ensures no application is lost due to Jira outage. Referral capture is foundation-only in MVP — wiring to order creation is deferred.
+
+**Impacted files/docs:**  
+`Not specified`
+
+**Risks / caveats:**  
+`Not specified`
+
+---
+
+### 2026-06-29 — Jira partner issue project key and type hardcoded, not env-driven
+
+**Decision:**  
+`src/lib/jira/partner-client.ts` uses hardcoded module-level constants `PARTNER_JIRA_PROJECT_KEY = 'WPO'` and `PARTNER_JIRA_ISSUE_TYPE = 'Partnership'`. Do NOT read from `JIRA_PARTNER_PROJECT_KEY` or `JIRA_PARTNER_ISSUE_TYPE` env vars. On first 400, the client retries without labels (handles Jira screen/field config restrictions). On success, `jira_issue_url` and `jira_created_at` are stored alongside `jira_issue_key`.
+
+**Rationale:**  
+Env var reads silently fell back to wrong defaults ('WO'/'Task'), causing every submission to fail Jira creation. Hardcoding eliminates the entire failure class. The correct project is WPO; Partnership is the correct issue type in that project. The label-retry pattern handles restrictive Jira field configurations without breaking the core flow.
+
+**Impacted files/docs:**  
+`src/lib/jira/partner-client.ts`, `src/app/api/partners/apply/route.ts`, `src/types/supabase.ts`, `supabase/migrations/0030_partner_applications_jira_fields.sql`, `docs/ai-context/70_DATABASE_AND_API_SURFACE.md`
+
+**Risks / caveats:**  
+If WPO ever changes the Jira project key or renames the issue type, this constant must be updated. Migration 0030 renames `jira_last_error` → `jira_error`; any admin tooling that queried the old column name must be updated.

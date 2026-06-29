@@ -25,7 +25,7 @@
     "quoteRecalculating": "Refreshing order status...",
     "priceHint": "The exact price is calculated after document upload and analysis.",
     "priceHintElectronic": "Electronic translation — from ₸1,000. Final price after upload.",
-    "priceHintOfficial": "Official translation — from 5 500 ₸. Final price after upload.",
+    "priceHintOfficial": "Translation with provider stamp — from 5 500 ₸. Final price after upload.",
     "priceHintNotarized": "Notarized translation — from 11 000 ₸. Final price after upload.",
     "urgency": {
       "label": "URGENCY",
@@ -81,13 +81,17 @@
     "usingPlanSub": "Using your {plan} plan · {remaining} doc{s} remaining — no payment required",
     "serviceLevel": {
       "label": "SERVICE LEVEL",
+      "electronic": {
+        "label": "Electronic translation",
+        "desc": "Translation processed using AI and OCR. No translator signature or provider stamp. Ready in 2–5 minutes."
+      },
       "certified": {
-        "label": "Translation with agent stamp",
-        "desc": "Translation is reviewed by a qualified human translator and stamped with the provider seal. No notarization."
+        "label": "Translation with provider stamp",
+        "desc": "Translation is reviewed by a qualified human translator, signed by the translator, and stamped with the provider seal. No notarization."
       },
       "notarization": {
-        "label": "Notarized translation",
-        "desc": "Translation is reviewed by a translator and stamped with the provider seal, then forwarded to a partner notary to certify the translator's signature."
+        "label": "Translation with notarization",
+        "desc": "Translation is reviewed by a translator and stamped with the provider seal, then forwarded to a partner notary to notarize the translator's signature."
       }
     },
     "notary": {
@@ -221,7 +225,7 @@
       "created": "Created",
       "updated": "Updated",
       "serviceElectronic": "Electronic",
-      "serviceCertified": "Certified",
+      "serviceCertified": "Provider stamp",
       "serviceNotarized": "Notarized"
     },
     "errors": {

@@ -99,13 +99,17 @@
     "addMoreFiles": "Қосу",
     "serviceLevel": {
       "label": "ҚЫЗМЕТ ДЕҢГЕЙІ",
+      "electronic": {
+        "label": "Электрондық аударма",
+        "desc": "Аударма AI және OCR арқылы орындалады. Аудармашы қолтаңбасы және орындаушы мөрі жоқ. 2–5 минутта дайын."
+      },
       "certified": {
-        "label": "Куәландырылған аударма",
-        "desc": "Аударманы білікті аудармашы тексеріп, қол қояды және WPO мөрімен растайды. Нотариалдық куәландырусыз."
+        "label": "Орындаушы мөрімен аударма",
+        "desc": "Аударманы білікті аудармашы тексеріп, қол қояды және орындаушы мөрімен расталады. Нотариалдық куәландырусыз."
       },
       "notarization": {
-        "label": "Нотариалдық куәландырумен куәландырылған аударма",
-        "desc": "Аударманы аудармашы тексеріп қол қояды, WPO мөрімен расталады, содан кейін аудармашының қолын куәландыру үшін серіктес нотариусқа жіберіледі."
+        "label": "Нотариалдық куәландырумен аударма",
+        "desc": "Аударманы аудармашы тексеріп қол қояды, орындаушы мөрімен расталады, содан кейін аудармашының қолын нотариалдық куәландыру үшін серіктес нотариусқа жіберіледі."
       }
     },
     "notary": {
@@ -172,8 +176,8 @@
       "created": "Жасалды",
       "updated": "Жаңартылды",
       "serviceElectronic": "Электрондық",
-      "serviceCertified": "Куәландырылған",
-      "serviceNotarized": "Нотариалдық"
+      "serviceCertified": "Орындаушы мөрімен",
+      "serviceNotarized": "Нотариалдық куәландырумен"
     },
     "uploadAndPay": "Upload & Pay by card",
     "uploadedPaymentPending": "File uploaded — pay {price} to start translation",
@@ -197,7 +201,7 @@
     "quoteRecalculating": "Refreshing order status...",
     "priceHint": "The exact price is calculated after document upload and analysis.",
     "priceHintElectronic": "Электрондық аударма — 1 000 ₸ бастап. Соңғы баға жүктелгеннен кейін есептеледі.",
-    "priceHintOfficial": "Official translation — from 5 500 ₸. Final price after upload.",
+    "priceHintOfficial": "Орындаушы мөрімен аударма — 5 500 ₸ бастап. Жүктегеннен кейін нақты баға.",
     "priceHintNotarized": "Notarized translation — from 11 000 ₸. Final price after upload.",
     "urgency": {
       "label": "ШҰҒЫЛДЫҚ",
