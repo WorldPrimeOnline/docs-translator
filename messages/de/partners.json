@@ -1,0 +1,117 @@
+{
+  "partnersPage": {
+    "metaTitle": "Partnerprogramm — WPO Translations",
+    "metaDescription": "Werden Sie Teil des WPO Translations Partnernetzwerks. Verdienen Sie Empfehlungsprovisionen oder bieten Sie Ihre Expertise als Übersetzer oder Notar an. Jetzt bewerben.",
+    "hero": {
+      "badge": "Partnerprogramm",
+      "title": "Wachsen Sie gemeinsam mit WPO Translations",
+      "subtitle": "Treten Sie dem Partnernetzwerk des professionellen Dokumentenübersetzungsbüros in Kasachstan bei. Verdienen Sie Empfehlungsprovisionen, bringen Sie Ihre Expertise ein oder empfehlen Sie Ihre Kunden.",
+      "cta": "Als Partner bewerben"
+    },
+    "whoCanPartner": {
+      "title": "Wer kann Partner werden",
+      "translatorTitle": "Übersetzer",
+      "translatorDesc": "Zertifizierte Fachleute, die offizielle und notariell beglaubigte Übersetzungsaufträge übernehmen möchten.",
+      "notaryTitle": "Notare",
+      "notaryDesc": "Notare, die über einen Partnerprozess an notariell beglaubigten Übersetzungsabläufen teilnehmen.",
+      "agencyTitle": "Übersetzungsagenturen",
+      "agencyDesc": "Agenturen, die Kunden mit Bedarf an professioneller Dokumentenübersetzung weiterleiten.",
+      "visaCenterTitle": "Visazentren",
+      "visaCenterDesc": "Zentren, deren Kunden regelmäßig übersetzte Dokumente für Visumsanträge benötigen.",
+      "migrationConsultantTitle": "Migrationsberater",
+      "migrationConsultantDesc": "Berater, die Kunden bei Umsiedlung, Aufenthaltsrecht und Staatsbürgerschaftsdokumentation unterstützen.",
+      "educationAgencyTitle": "Bildungsagenturen",
+      "educationAgencyDesc": "Agenturen, die Studierenden bei Hochschulbewerbungen helfen, die übersetzte Dokumente erfordern.",
+      "legalFirmTitle": "Anwaltskanzleien",
+      "legalFirmDesc": "Rechtsanwaltskanzleien und Rechtsberater, deren Mandanten offizielle Dokumentenübersetzungen benötigen.",
+      "corporateTitle": "Unternehmen und HR",
+      "corporateDesc": "Unternehmen und HR-Abteilungen mit regelmäßigem Bedarf an Dokumentenübersetzungen."
+    },
+    "howItWorks": {
+      "title": "So funktioniert es",
+      "step1Title": "Bewerbung einreichen",
+      "step1Desc": "Füllen Sie das Partnerbewerbungsformular aus. Erzählen Sie uns von Ihrer Rolle und Ihrer Kooperationsplanung.",
+      "step2Title": "Prüfung und Onboarding",
+      "step2Desc": "Unser Team prüft Ihre Bewerbung und meldet sich, um die Konditionen zu besprechen und Ihr Partnerkonto einzurichten.",
+      "step3Title": "Empfehlungslink erhalten",
+      "step3Desc": "Sie erhalten einen persönlichen Empfehlungscode zum Teilen mit Kunden oder zur Einbindung in Ihre Kommunikation.",
+      "step4Title": "Provisionen verdienen",
+      "step4Desc": "Provisionen werden auf Basis des WPO-Dienstleistungseinkommens aus über Ihren Link vermittelten abgeschlossenen Aufträgen berechnet und monatlich ausgezahlt."
+    },
+    "forTranslators": {
+      "title": "Für Übersetzer",
+      "desc": "WPO Translations arbeitet mit professionellen zertifizierten Übersetzern für offizielle und notariell beglaubigte Übersetzungsaufträge zusammen. Wir übernehmen den digitalen Workflow, die Kundenbetreuung und Zahlungen — Sie konzentrieren sich auf Qualität.",
+      "point1": "Offizielle Übersetzungsaufträge mit Übersetzerunterschrift und Bürostempel bearbeiten",
+      "point2": "Notariell beglaubigte Übersetzungen im Rahmen eines strukturierten Partnerprozesses bearbeiten",
+      "point3": "Transparentes Vergütungssystem basierend auf Sprachpaar, Dokumententyp, Umfang und Komplexität",
+      "point4": "Anwerbungsprämien erhalten, wenn Sie andere qualifizierte Übersetzer an WPO empfehlen"
+    },
+    "forNotaries": {
+      "title": "Für Notare",
+      "desc": "Notariell beglaubigte Übersetzungen bei WPO Translations werden über einen Partner-Notarprozess abgewickelt. Der Notar prüft die zertifizierte Übersetzung und beglaubigt sie gemäß seinen Anforderungen.",
+      "point1": "An notariell beglaubigten Übersetzungsabläufen über eine strukturierte Partnervereinbarung teilnehmen",
+      "point2": "Anforderungen und Verfahren richten sich nach der individuellen Praxis des Notars",
+      "point3": "WPO garantiert keine Akzeptanz durch einen bestimmten Notar, eine Behörde oder Institution"
+    },
+    "forOrganizations": {
+      "title": "Für Organisationen und Agenturen",
+      "desc": "Empfehlen Sie Ihre Kunden an WPO Translations und verdienen Sie eine Empfehlungsprovision für jeden abgeschlossenen, bezahlten Auftrag. Geeignet für Visazentren, Migrationsberater, Bildungsagenturen, Anwaltskanzleien und Unternehmens-HR.",
+      "point1": "5% Provision für 1–10 vermittelte Aufträge pro Monat",
+      "point2": "7% ab 10 Aufträgen pro Monat",
+      "point3": "10% ab 30 Aufträgen pro Monat",
+      "point4": "Provision wird auf das WPO-Dienstleistungseinkommen berechnet, ohne Notargebühren, Kurier, Bankgebühren und andere Durchlaufkosten"
+    },
+    "rewards": {
+      "title": "Partnerprämien",
+      "orgTitle": "Empfehlungsprovision für Organisationen",
+      "orgTier1": "1–10 Aufträge / Monat: 5%",
+      "orgTier2": "11–30 Aufträge / Monat: 7%",
+      "orgTier3": "31+ Aufträge / Monat: 10%",
+      "translatorClientTitle": "Übersetzer — Kundenempfehlung",
+      "translatorClientDesc": "5% Provision auf Aufträge von Kunden, die Sie über Ihren persönlichen Empfehlungscode vermittelt haben.",
+      "translatorAcquisitionTitle": "Übersetzer — Anwerbungsprämie",
+      "translatorAcquisitionDesc": "5.000 KZT, nachdem der empfohlene Übersetzer seine ersten 5 Aufträge abgeschlossen hat. 10.000 KZT nach 20 abgeschlossenen Aufträgen.",
+      "payoutTitle": "Auszahlungsplan",
+      "payoutDesc": "Monatliche Auszahlungen. Mindestauszahlungsschwelle: 10.000 KZT.",
+      "commissionBaseTitle": "Provisionsbasis",
+      "commissionBaseDesc": "Provisionen werden auf das WPO-Nettodienstleistungseinkommen berechnet, ohne Notargebühren, Kurier, Bankgebühren, Behördengebühren, erstattete Aufträge und andere Durchlaufkosten."
+    },
+    "disclaimer": {
+      "title": "Wichtiger Hinweis",
+      "acceptance": "WPO Translations garantiert nicht die Akzeptanz von übersetzten Dokumenten durch Banken, Visazentren, Universitäten, Behörden, Notare oder andere Empfänger. Annahmeanforderungen variieren je nach Institution.",
+      "notarization": "Notariell beglaubigte Übersetzungen werden über einen Partnerprozess abgewickelt. Die Anforderungen des Notars und der Umfang der Beglaubigung werden vom Notar eigenständig festgelegt.",
+      "rewards": "Partnerprämien werden nur für vollständig abgeschlossene und bezahlte Aufträge ohne Rückerstattungen ausgezahlt. WPO behält sich vor, Provisionssätze mit angemessener Vorankündigung anzupassen.",
+      "passThrough": "Externe Kosten wie Notargebühren, Kurier- und Liefergebühren, Bankgebühren, Behördengebühren und andere Durchlaufkosten werden von der Provisionsbasis ausgeschlossen."
+    },
+    "form": {
+      "title": "Als Partner bewerben",
+      "subtitle": "Erzählen Sie uns von sich und wie Sie mit WPO Translations zusammenarbeiten möchten.",
+      "typeLabel": "Partnertyp",
+      "typePlaceholder": "Typ auswählen",
+      "nameLabel": "Vollständiger Name",
+      "namePlaceholder": "Ihr Name",
+      "emailLabel": "E-Mail",
+      "emailPlaceholder": "you@example.com",
+      "phoneLabel": "Telefon (optional)",
+      "phonePlaceholder": "+7...",
+      "orgLabel": "Organisation (optional)",
+      "orgPlaceholder": "Unternehmen oder Einzelperson",
+      "messageLabel": "Nachricht (optional)",
+      "messagePlaceholder": "Erzählen Sie uns von Ihrer Erfahrung, Ihrem Kundenstamm oder stellen Sie Fragen.",
+      "submit": "Bewerbung einreichen",
+      "submitting": "Wird eingereicht...",
+      "successTitle": "Bewerbung erhalten",
+      "successMessage": "Vielen Dank. Unser Team wird Ihre Bewerbung prüfen und sich innerhalb einiger Werktage bei Ihnen melden.",
+      "errorGeneric": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.",
+      "typeTranslator": "Übersetzer",
+      "typeNotary": "Notar",
+      "typeAgency": "Übersetzungsagentur",
+      "typeVisaCenter": "Visazentrum",
+      "typeMigrationConsultant": "Migrationsberater",
+      "typeEducationAgency": "Bildungsagentur",
+      "typeLegalFirm": "Anwaltskanzlei",
+      "typeCorporate": "Organisation / HR",
+      "typeOther": "Sonstiges"
+    }
+  }
+}

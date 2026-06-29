@@ -1,0 +1,117 @@
+{
+  "partnersPage": {
+    "metaTitle": "Hamkorlik dasturi — WPO Translations",
+    "metaDescription": "WPO Translations hamkorlik tarmog'iga qo'shiling. Referal komissiyasi oling yoki tarjimon yoki notarius sifatida tajribangizni taqdim eting.",
+    "hero": {
+      "badge": "Hamkorlik dasturi",
+      "title": "WPO Translations bilan birga o'sing",
+      "subtitle": "Qozog'istonning professional hujjat tarjimasi byurosining hamkorlik tarmog'iga qo'shiling. Referal komissiyasi oling, tajribangizni kiriting yoki mijozlaringizni yo'llang.",
+      "cta": "Hamkor bo'lish uchun ariza topshiring"
+    },
+    "whoCanPartner": {
+      "title": "Kim hamkor bo'la oladi",
+      "translatorTitle": "Tarjimonlar",
+      "translatorDesc": "Rasmiy va notarial tarjima buyurtmalarini bajarishni istagan sertifikatlangan mutaxassislar.",
+      "notaryTitle": "Notariuslar",
+      "notaryDesc": "Hamkorlik mexanizmi orqali notarial tasdiqlash jarayonida ishtirok etadigan notariuslar.",
+      "agencyTitle": "Tarjima agentliklari",
+      "agencyDesc": "Professional hujjat tarjimasiga muhtoj mijozlarni yo'naltiruvchi agentliklar.",
+      "visaCenterTitle": "Viza markazlari",
+      "visaCenterDesc": "Mijozlari viza arizalari uchun doimiy ravishda tarjima hujjatlariga muhtoj bo'lgan markazlar.",
+      "migrationConsultantTitle": "Migratsiya maslahatchilari",
+      "migrationConsultantDesc": "Mijozlarga ko'chish, yashash huquqi va fuqarolik hujjatlari bilan yordam beruvchi maslahatchilar.",
+      "educationAgencyTitle": "Ta'lim agentliklari",
+      "educationAgencyDesc": "Tarjima hujjatlarini talab qiladigan universitetga kirish jarayonida talabalaraga yordam beruvchi agentliklar.",
+      "legalFirmTitle": "Yuridik firmalar",
+      "legalFirmDesc": "Mijozlari rasmiy hujjat tarjimasiga muhtoj bo'lgan yuridik kompaniyalar va maslahatchilar.",
+      "corporateTitle": "Tashkilotlar va HR",
+      "corporateDesc": "Doimiy hujjat tarjimasi ehtiyojlariga ega kompaniyalar va HR bo'limlari."
+    },
+    "howItWorks": {
+      "title": "Qanday ishlaydi",
+      "step1Title": "Arizangizni yuboring",
+      "step1Desc": "Hamkorlik ariza shaklini to'ldiring. Rolingiz va hamkorlik rejangiz haqida gapirib bering.",
+      "step2Title": "Ko'rib chiqish va qo'shilish",
+      "step2Desc": "Jamoamiz arizangizni ko'rib chiqadi va shartlarni muhokama qilish hamda hamkorlik hisobingizni sozlash uchun siz bilan bog'lanadi.",
+      "step3Title": "Referal havolangizni oling",
+      "step3Desc": "Mijozlar bilan bo'lishish yoki muloqotlaringizga joylashtirish uchun shaxsiy referal kodini olasiz.",
+      "step4Title": "Komissiya ishing",
+      "step4Desc": "Komissiyalar sizning havolangiz orqali kelgan bajarilgan buyurtmalardan WPO xizmat daromadiga asoslanib hisoblanadi va oylik to'lanadi."
+    },
+    "forTranslators": {
+      "title": "Tarjimonlar uchun",
+      "desc": "WPO Translations rasmiy va notarial tarjima buyurtmalari uchun professional sertifikatlangan tarjimonlar bilan ishlaydi. Biz raqamli ish oqimini, mijozlarni qabul qilishni va to'lovlarni o'z zimmamizga olamiz — siz sifatga e'tibor qarating.",
+      "point1": "Tarjimon imzosi va ijrochi muhrli rasmiy tarjima buyurtmalarini bajarish",
+      "point2": "Tuzilgan hamkorlik jarayonining bir qismi sifatida notarial tasdiqlashda ishtirok etish",
+      "point3": "Til juftligi, hujjat turi, hajm va murakkablikka asoslangan shaffof to'lov tizimi",
+      "point4": "WPO ga boshqa malakali tarjimonlarni jalb qilganda mukofot olish"
+    },
+    "forNotaries": {
+      "title": "Notariuslar uchun",
+      "desc": "WPO Translations da notarial tarjima hamkor notarial jarayon orqali amalga oshiriladi. Notarius sertifikatlangan tarjimani ko'rib chiqadi va o'z talablariga muvofiq tasdiqni amalga oshiradi.",
+      "point1": "Tuzilgan hamkorlik kelishuvi orqali notarial tarjima jarayonida ishtirok etish",
+      "point2": "Talablar va tartiblar notariusning individual amaliyotiga bog'liq holda belgilanadi",
+      "point3": "WPO muayyan notarius, organ yoki muassasa tomonidan qabul qilinishini kafolatlamaydi"
+    },
+    "forOrganizations": {
+      "title": "Tashkilotlar va agentliklar uchun",
+      "desc": "Mijozlaringizni WPO Translations ga yo'llang va har bir bajarilgan, to'langan buyurtma uchun referal komissiyasi oling. Viza markazlari, migratsiya maslahatchilari, ta'lim agentliklari, yuridik firmalar va korporativ HR uchun mos.",
+      "point1": "Oyiga 1–10 yo'llangan buyurtma uchun 5% komissiya",
+      "point2": "Oyiga 10 ta buyurtmadan keyin 7%",
+      "point3": "Oyiga 30 ta buyurtmadan keyin 10%",
+      "point4": "Komissiya WPO xizmat daromadiga asoslangan holda hisoblanadi, notarial to'lovlar, yetkazib berish, bank to'lovlari va boshqa tranzit xarajatlar hisobga olinmaydi"
+    },
+    "rewards": {
+      "title": "Hamkor mukofotlari",
+      "orgTitle": "Tashkilotlar uchun referal komissiyasi",
+      "orgTier1": "Oyiga 1–10 buyurtma: 5%",
+      "orgTier2": "Oyiga 11–30 buyurtma: 7%",
+      "orgTier3": "Oyiga 31+ buyurtma: 10%",
+      "translatorClientTitle": "Tarjimon — mijoz refarali",
+      "translatorClientDesc": "Shaxsiy referal kodingiz orqali jalb qilgan mijozlar buyurtmalaridan 5% komissiya.",
+      "translatorAcquisitionTitle": "Tarjimon — jalb qilish mukofoti",
+      "translatorAcquisitionDesc": "Jalb qilingan tarjimon birinchi 5 buyurtmani bajargandan so'ng 5 000 KZT. 20 bajarilgan buyurtmadan so'ng 10 000 KZT.",
+      "payoutTitle": "To'lov jadvali",
+      "payoutDesc": "Oylik to'lovlar. Minimal to'lov chegarasi: 10 000 KZT.",
+      "commissionBaseTitle": "Komissiya asosi",
+      "commissionBaseDesc": "Komissiyalar WPO sof xizmat daromadiga asoslanib hisoblanadi, notarial to'lovlar, yetkazib berish, bank to'lovlari, davlat to'lovlari, qaytarilgan buyurtmalar va boshqa tranzit xarajatlar hisobga olinmaydi."
+    },
+    "disclaimer": {
+      "title": "Muhim",
+      "acceptance": "WPO Translations tarjima qilingan hujjatlarning banklar, viza markazlari, universitetlar, davlat organlari, notariuslar yoki boshqa qabul qiluvchi tomonlar tomonidan qabul qilinishini kafolatlamaydi. Qabul qilish talablari muassasaga qarab farq qiladi.",
+      "notarization": "Notarial tarjima hamkorlik jarayoni orqali amalga oshiriladi. Notariusning talablari va tasdiqlash doirasi notarius tomonidan mustaqil ravishda belgilanadi.",
+      "rewards": "Hamkor mukofotlari faqat to'liq bajarilgan va qaytarishsiz to'langan buyurtmalar uchun to'lanadi. WPO makul bildirishnoma bilan komissiya stavkalarini o'zgartirish huquqini o'zida saqlab qoladi.",
+      "passThrough": "Notarial to'lovlar, yetkazib berish, bank to'lovlari, davlat to'lovlari va boshqa tranzit xarajatlar kabi tashqi xarajatlar komissiya hisoblash bazasidan chiqarib tashlanadi."
+    },
+    "form": {
+      "title": "Hamkorlikka ariza topshirish",
+      "subtitle": "O'zingiz va WPO Translations bilan qanday hamkorlik qilmoqchiligi-ngiz haqida gapirib bering.",
+      "typeLabel": "Hamkor turi",
+      "typePlaceholder": "Turni tanlang",
+      "nameLabel": "To'liq ism",
+      "namePlaceholder": "Ismingiz",
+      "emailLabel": "Elektron pochta",
+      "emailPlaceholder": "you@example.com",
+      "phoneLabel": "Telefon (ixtiyoriy)",
+      "phonePlaceholder": "+7...",
+      "orgLabel": "Tashkilot (ixtiyoriy)",
+      "orgPlaceholder": "Kompaniya yoki jismoniy shaxs",
+      "messageLabel": "Xabar (ixtiyoriy)",
+      "messagePlaceholder": "Tajriba, mijozlar soni yoki savollaringiz haqida gapirib bering.",
+      "submit": "Arizani yuborish",
+      "submitting": "Yuborilmoqda...",
+      "successTitle": "Ariza qabul qilindi",
+      "successMessage": "Rahmat. Jamoamiz arizangizni ko'rib chiqadi va bir necha ish kuni ichida siz bilan bog'lanadi.",
+      "errorGeneric": "Xatolik yuz berdi. Iltimos, qayta urinib ko'ring.",
+      "typeTranslator": "Tarjimon",
+      "typeNotary": "Notarius",
+      "typeAgency": "Tarjima agentligi",
+      "typeVisaCenter": "Viza markazi",
+      "typeMigrationConsultant": "Migratsiya maslahatchisi",
+      "typeEducationAgency": "Ta'lim agentligi",
+      "typeLegalFirm": "Yuridik firma",
+      "typeCorporate": "Tashkilot / HR",
+      "typeOther": "Boshqa"
+    }
+  }
+}

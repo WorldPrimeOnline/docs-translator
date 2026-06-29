@@ -1,0 +1,117 @@
+{
+  "partnersPage": {
+    "metaTitle": "Partner Program — WPO Translations",
+    "metaDescription": "Join the WPO Translations partner network. Earn referral commissions or offer your expertise as a translator or notary. Apply today.",
+    "hero": {
+      "badge": "Partner Program",
+      "title": "Grow together with WPO Translations",
+      "subtitle": "Join the partner network of Kazakhstan's professional document translation bureau. Earn referral commissions, contribute your expertise, or refer your clients.",
+      "cta": "Apply to become a partner"
+    },
+    "whoCanPartner": {
+      "title": "Who can become a partner",
+      "translatorTitle": "Translators",
+      "translatorDesc": "Certified professionals who want to take on official and notarized translation orders.",
+      "notaryTitle": "Notaries",
+      "notaryDesc": "Notaries participating in notarized translation workflows through a partner process.",
+      "agencyTitle": "Translation agencies",
+      "agencyDesc": "Agencies referring clients who need professional document translation.",
+      "visaCenterTitle": "Visa centers",
+      "visaCenterDesc": "Centers whose clients regularly need translated documents for visa applications.",
+      "migrationConsultantTitle": "Migration consultants",
+      "migrationConsultantDesc": "Consultants working with clients on relocation, residency, and citizenship documentation.",
+      "educationAgencyTitle": "Education agencies",
+      "educationAgencyDesc": "Agencies helping students with university applications that require translated documents.",
+      "legalFirmTitle": "Legal firms",
+      "legalFirmDesc": "Law firms and legal advisors whose clients require official document translations.",
+      "corporateTitle": "Organizations and HR",
+      "corporateDesc": "Companies and HR departments with recurring document translation needs."
+    },
+    "howItWorks": {
+      "title": "How it works",
+      "step1Title": "Submit your application",
+      "step1Desc": "Fill in the partner application form. Tell us about your role and how you plan to collaborate.",
+      "step2Title": "Review and onboarding",
+      "step2Desc": "Our team reviews your application and reaches out to discuss terms and set up your partner account.",
+      "step3Title": "Get your referral link",
+      "step3Desc": "You receive a personal referral code to share with clients or embed in your communications.",
+      "step4Title": "Earn commissions",
+      "step4Desc": "Commissions are calculated on WPO service income from completed orders referred through your link, paid monthly."
+    },
+    "forTranslators": {
+      "title": "For translators",
+      "desc": "WPO Translations works with professional certified translators for official and notarized translation orders. We handle the digital workflow, client intake, and payments — you focus on quality.",
+      "point1": "Work on official translation orders with translator signature and bureau stamp",
+      "point2": "Handle notarized translation as part of a structured partner process",
+      "point3": "Transparent payout system based on language pair, document type, volume, and complexity",
+      "point4": "Earn acquisition rewards when you refer other qualified translators to WPO"
+    },
+    "forNotaries": {
+      "title": "For notaries",
+      "desc": "Notarized translation at WPO Translations is facilitated through a partner notary process. The notary reviews the certified translation and provides notarization according to their requirements.",
+      "point1": "Participate in notarized translation workflows via a structured partner arrangement",
+      "point2": "Requirements and procedures depend on the notary's individual practices",
+      "point3": "WPO does not guarantee acceptance by any specific notary, authority, or institution"
+    },
+    "forOrganizations": {
+      "title": "For organizations and agencies",
+      "desc": "Refer your clients to WPO Translations and earn a referral commission on every completed, paid order. Suitable for visa centers, migration consultants, education agencies, legal firms, and corporate HR.",
+      "point1": "5% commission for 1–10 referred orders per month",
+      "point2": "7% after 10 orders per month",
+      "point3": "10% after 30 orders per month",
+      "point4": "Commission calculated on WPO service income, excluding notary fees, courier, bank fees, and other pass-through costs"
+    },
+    "rewards": {
+      "title": "Partner rewards",
+      "orgTitle": "Organization referral commission",
+      "orgTier1": "1–10 orders / month: 5%",
+      "orgTier2": "11–30 orders / month: 7%",
+      "orgTier3": "31+ orders / month: 10%",
+      "translatorClientTitle": "Translator — client referral",
+      "translatorClientDesc": "5% commission on orders from clients you referred via your personal referral code.",
+      "translatorAcquisitionTitle": "Translator — acquisition reward",
+      "translatorAcquisitionDesc": "5,000 KZT after the referred translator completes their first 5 orders. 10,000 KZT after 20 completed orders.",
+      "payoutTitle": "Payout schedule",
+      "payoutDesc": "Monthly payouts. Minimum payout threshold: 10,000 KZT.",
+      "commissionBaseTitle": "Commission base",
+      "commissionBaseDesc": "Commissions are calculated on WPO net service income, excluding notary fees, courier, bank fees, government fees, refunded orders, and other pass-through costs."
+    },
+    "disclaimer": {
+      "title": "Important",
+      "acceptance": "WPO Translations does not guarantee acceptance of any translated document by banks, visa centers, universities, government bodies, notaries, or any other receiving party. Acceptance requirements vary by institution.",
+      "notarization": "Notarized translation is facilitated through a partner process. The notary's requirements and scope of certification are determined by the notary independently.",
+      "rewards": "Partner rewards are paid only for fully completed and paid orders without refunds. WPO reserves the right to adjust commission rates with reasonable notice.",
+      "passThrough": "External costs such as notary fees, courier and delivery, bank fees, government fees, and other pass-through expenses are excluded from commission calculation."
+    },
+    "form": {
+      "title": "Apply to become a partner",
+      "subtitle": "Tell us about yourself and how you'd like to work with WPO Translations.",
+      "typeLabel": "Partner type",
+      "typePlaceholder": "Select your type",
+      "nameLabel": "Full name",
+      "namePlaceholder": "Your name",
+      "emailLabel": "Email",
+      "emailPlaceholder": "you@example.com",
+      "phoneLabel": "Phone (optional)",
+      "phonePlaceholder": "+7...",
+      "orgLabel": "Organization (optional)",
+      "orgPlaceholder": "Company or individual",
+      "messageLabel": "Message (optional)",
+      "messagePlaceholder": "Tell us about your experience, client volume, or any questions.",
+      "submit": "Submit application",
+      "submitting": "Submitting...",
+      "successTitle": "Application received",
+      "successMessage": "Thank you. Our team will review your application and contact you within a few business days.",
+      "errorGeneric": "Something went wrong. Please try again.",
+      "typeTranslator": "Translator",
+      "typeNotary": "Notary",
+      "typeAgency": "Translation agency",
+      "typeVisaCenter": "Visa center",
+      "typeMigrationConsultant": "Migration consultant",
+      "typeEducationAgency": "Education agency",
+      "typeLegalFirm": "Legal firm",
+      "typeCorporate": "Organization / HR",
+      "typeOther": "Other"
+    }
+  }
+}

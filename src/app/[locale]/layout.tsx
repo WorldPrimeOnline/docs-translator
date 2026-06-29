@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
@@ -8,6 +9,7 @@ import { Link } from '@/i18n/navigation';
 import { routing } from '@/i18n/routing';
 import { PaymentComplianceBlock } from '@/components/payment/PaymentComplianceBlock';
 import { BUSINESS_PROFILE } from '@/lib/business-profile';
+import { ReferralCapture } from '@/components/referral/ReferralCapture';
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -35,6 +37,9 @@ export default async function LocaleLayout({
 
   return (
     <NextIntlClientProvider messages={messages}>
+      <Suspense fallback={null}>
+        <ReferralCapture />
+      </Suspense>
       <Navbar />
       {children}
       <footer className="border-t border-white/8 bg-navy">
@@ -96,6 +101,9 @@ export default async function LocaleLayout({
                 </Link>
                 <Link href="/legal/partners" className="transition-colors hover:text-foreground">
                   {tLegal('partners')}
+                </Link>
+                <Link href="/partners" className="transition-colors hover:text-foreground">
+                  {tFooter('partnerProgram')}
                 </Link>
               </nav>
             </div>

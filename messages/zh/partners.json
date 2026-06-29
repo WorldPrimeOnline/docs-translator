@@ -1,0 +1,117 @@
+{
+  "partnersPage": {
+    "metaTitle": "合作伙伴计划 — WPO Translations",
+    "metaDescription": "加入WPO Translations合作伙伴网络。赚取推荐佣金，或以翻译师或公证员身份提供专业服务。立即申请。",
+    "hero": {
+      "badge": "合作伙伴计划",
+      "title": "与WPO Translations共同成长",
+      "subtitle": "加入哈萨克斯坦专业文件翻译机构的合作伙伴网络。赚取推荐佣金，贡献您的专业知识，或推荐您的客户。",
+      "cta": "申请成为合作伙伴"
+    },
+    "whoCanPartner": {
+      "title": "谁可以成为合作伙伴",
+      "translatorTitle": "翻译师",
+      "translatorDesc": "希望承接官方及公证翻译订单的专业认证翻译师。",
+      "notaryTitle": "公证员",
+      "notaryDesc": "通过合作流程参与公证翻译工作的公证员。",
+      "agencyTitle": "翻译机构",
+      "agencyDesc": "为需要专业文件翻译的客户提供推荐的机构。",
+      "visaCenterTitle": "签证中心",
+      "visaCenterDesc": "客户经常需要为签证申请翻译文件的中心。",
+      "migrationConsultantTitle": "移民顾问",
+      "migrationConsultantDesc": "协助客户办理迁居、居留权及国籍相关文件的顾问。",
+      "educationAgencyTitle": "教育机构",
+      "educationAgencyDesc": "协助学生办理需要翻译文件的大学申请的机构。",
+      "legalFirmTitle": "律师事务所",
+      "legalFirmDesc": "客户需要官方文件翻译的律师事务所及法律顾问。",
+      "corporateTitle": "企业及人力资源",
+      "corporateDesc": "有定期文件翻译需求的公司及人力资源部门。"
+    },
+    "howItWorks": {
+      "title": "如何运作",
+      "step1Title": "提交申请",
+      "step1Desc": "填写合作伙伴申请表。告诉我们您的角色及合作计划。",
+      "step2Title": "审核与入驻",
+      "step2Desc": "我们的团队将审核您的申请，并与您联系讨论条款及设置合作伙伴账户。",
+      "step3Title": "获取推荐链接",
+      "step3Desc": "您将收到个人推荐码，可与客户分享或嵌入到您的通讯中。",
+      "step4Title": "赚取佣金",
+      "step4Desc": "佣金基于通过您的链接推荐的已完成订单的WPO服务收入计算，每月支付。"
+    },
+    "forTranslators": {
+      "title": "面向翻译师",
+      "desc": "WPO Translations与专业认证翻译师合作处理官方及公证翻译订单。我们负责数字化工作流程、客户接待和付款——您专注于质量。",
+      "point1": "承接带有翻译师签名和机构印章的官方翻译订单",
+      "point2": "作为结构化合作流程的一部分处理公证翻译",
+      "point3": "基于语言对、文件类型、数量和复杂程度的透明支付系统",
+      "point4": "推荐其他合格翻译师加入WPO可获得奖励"
+    },
+    "forNotaries": {
+      "title": "面向公证员",
+      "desc": "WPO Translations的公证翻译通过合作公证流程完成。公证员审核认证翻译，并根据其要求提供公证服务。",
+      "point1": "通过结构化合作安排参与公证翻译工作流程",
+      "point2": "要求和程序取决于公证员的个人执业规范",
+      "point3": "WPO不保证任何特定公证员、机构或组织的接受"
+    },
+    "forOrganizations": {
+      "title": "面向机构和代理",
+      "desc": "将您的客户推荐给WPO Translations，每完成一笔付费订单即可赚取推荐佣金。适合签证中心、移民顾问、教育机构、律师事务所和企业人力资源。",
+      "point1": "每月1–10个推荐订单享5%佣金",
+      "point2": "每月超过10个订单后享7%",
+      "point3": "每月超过30个订单后享10%",
+      "point4": "佣金基于WPO服务收入计算，不含公证费、快递费、银行手续费及其他过路成本"
+    },
+    "rewards": {
+      "title": "合作伙伴奖励",
+      "orgTitle": "机构推荐佣金",
+      "orgTier1": "每月1–10个订单：5%",
+      "orgTier2": "每月11–30个订单：7%",
+      "orgTier3": "每月31+个订单：10%",
+      "translatorClientTitle": "翻译师 — 客户推荐",
+      "translatorClientDesc": "通过您的个人推荐码推荐的客户订单可获5%佣金。",
+      "translatorAcquisitionTitle": "翻译师 — 招募奖励",
+      "translatorAcquisitionDesc": "被推荐翻译师完成首5个订单后获5,000 KZT。完成20个订单后获10,000 KZT。",
+      "payoutTitle": "支付时间表",
+      "payoutDesc": "每月支付。最低支付门槛：10,000 KZT。",
+      "commissionBaseTitle": "佣金基准",
+      "commissionBaseDesc": "佣金基于WPO净服务收入计算，不含公证费、快递费、银行手续费、政府规费、退款订单及其他过路成本。"
+    },
+    "disclaimer": {
+      "title": "重要说明",
+      "acceptance": "WPO Translations不保证任何翻译文件被银行、签证中心、大学、政府机构、公证员或任何其他接收方接受。接受要求因机构而异。",
+      "notarization": "公证翻译通过合作流程完成。公证员的要求和认证范围由公证员独立确定。",
+      "rewards": "合作伙伴奖励仅针对完全完成且已付款且无退款的订单支付。WPO保留在合理通知后调整佣金比率的权利。",
+      "passThrough": "公证费、快递配送费、银行手续费、政府规费等外部成本及其他过路费用不计入佣金计算基础。"
+    },
+    "form": {
+      "title": "申请成为合作伙伴",
+      "subtitle": "告诉我们您的情况以及您希望如何与WPO Translations合作。",
+      "typeLabel": "合作伙伴类型",
+      "typePlaceholder": "选择您的类型",
+      "nameLabel": "全名",
+      "namePlaceholder": "您的姓名",
+      "emailLabel": "电子邮件",
+      "emailPlaceholder": "you@example.com",
+      "phoneLabel": "电话（可选）",
+      "phonePlaceholder": "+7...",
+      "orgLabel": "机构（可选）",
+      "orgPlaceholder": "公司或个人",
+      "messageLabel": "留言（可选）",
+      "messagePlaceholder": "告诉我们您的经验、客户量或任何问题。",
+      "submit": "提交申请",
+      "submitting": "提交中...",
+      "successTitle": "申请已收到",
+      "successMessage": "感谢您的申请。我们的团队将审核您的申请，并在几个工作日内与您联系。",
+      "errorGeneric": "出现问题，请重试。",
+      "typeTranslator": "翻译师",
+      "typeNotary": "公证员",
+      "typeAgency": "翻译机构",
+      "typeVisaCenter": "签证中心",
+      "typeMigrationConsultant": "移民顾问",
+      "typeEducationAgency": "教育机构",
+      "typeLegalFirm": "律师事务所",
+      "typeCorporate": "企业 / HR",
+      "typeOther": "其他"
+    }
+  }
+}

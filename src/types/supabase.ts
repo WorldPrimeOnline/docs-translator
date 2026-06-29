@@ -652,6 +652,188 @@ export type Database = {
           { foreignKeyName: 'refund_transactions_fiscal_refund_receipt_id_fkey'; columns: ['fiscal_refund_receipt_id']; referencedRelation: 'fiscal_receipts'; referencedColumns: ['id'] },
         ];
       };
+      partner_applications: {
+        Row: {
+          id: string;
+          partner_type: 'translator' | 'notary' | 'agency' | 'visa_center' | 'migration_consultant' | 'education_agency' | 'legal_firm' | 'corporate' | 'other';
+          name: string;
+          email: string;
+          phone: string | null;
+          organization: string | null;
+          message: string | null;
+          ref_code: string | null;
+          utm_source: string | null;
+          utm_medium: string | null;
+          utm_campaign: string | null;
+          status: 'pending' | 'reviewing' | 'approved' | 'rejected';
+          jira_issue_key: string | null;
+          jira_sync_status: 'pending' | 'synced' | 'failed';
+          jira_last_error: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          partner_type: 'translator' | 'notary' | 'agency' | 'visa_center' | 'migration_consultant' | 'education_agency' | 'legal_firm' | 'corporate' | 'other';
+          name: string;
+          email: string;
+          phone?: string | null;
+          organization?: string | null;
+          message?: string | null;
+          ref_code?: string | null;
+          utm_source?: string | null;
+          utm_medium?: string | null;
+          utm_campaign?: string | null;
+          status?: 'pending' | 'reviewing' | 'approved' | 'rejected';
+          jira_issue_key?: string | null;
+          jira_sync_status?: 'pending' | 'synced' | 'failed';
+          jira_last_error?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          status?: 'pending' | 'reviewing' | 'approved' | 'rejected';
+          jira_issue_key?: string | null;
+          jira_sync_status?: 'pending' | 'synced' | 'failed';
+          jira_last_error?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      partners: {
+        Row: {
+          id: string;
+          application_id: string | null;
+          partner_type: string;
+          name: string;
+          email: string;
+          organization: string | null;
+          referral_code: string;
+          commission_rate: number;
+          is_active: boolean;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          application_id?: string | null;
+          partner_type: string;
+          name: string;
+          email: string;
+          organization?: string | null;
+          referral_code: string;
+          commission_rate?: number;
+          is_active?: boolean;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          partner_type?: string;
+          name?: string;
+          email?: string;
+          organization?: string | null;
+          referral_code?: string;
+          commission_rate?: number;
+          is_active?: boolean;
+          notes?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          { foreignKeyName: 'partners_application_id_fkey'; columns: ['application_id']; referencedRelation: 'partner_applications'; referencedColumns: ['id'] },
+        ];
+      };
+      partner_referrals: {
+        Row: {
+          id: string;
+          partner_id: string;
+          job_id: string | null;
+          user_id: string | null;
+          ref_code: string;
+          utm_source: string | null;
+          utm_medium: string | null;
+          utm_campaign: string | null;
+          captured_at: string;
+          order_completed_at: string | null;
+          commission_base_kzt: number | null;
+          commission_kzt: number | null;
+          status: 'pending' | 'completed' | 'excluded' | 'refunded';
+          payout_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          partner_id: string;
+          job_id?: string | null;
+          user_id?: string | null;
+          ref_code: string;
+          utm_source?: string | null;
+          utm_medium?: string | null;
+          utm_campaign?: string | null;
+          captured_at?: string;
+          order_completed_at?: string | null;
+          commission_base_kzt?: number | null;
+          commission_kzt?: number | null;
+          status?: 'pending' | 'completed' | 'excluded' | 'refunded';
+          payout_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          order_completed_at?: string | null;
+          commission_base_kzt?: number | null;
+          commission_kzt?: number | null;
+          status?: 'pending' | 'completed' | 'excluded' | 'refunded';
+          payout_id?: string | null;
+        };
+        Relationships: [
+          { foreignKeyName: 'partner_referrals_partner_id_fkey'; columns: ['partner_id']; referencedRelation: 'partners'; referencedColumns: ['id'] },
+          { foreignKeyName: 'partner_referrals_job_id_fkey'; columns: ['job_id']; referencedRelation: 'jobs'; referencedColumns: ['id'] },
+          { foreignKeyName: 'partner_referrals_user_id_fkey'; columns: ['user_id']; referencedRelation: 'users'; referencedColumns: ['id'] },
+        ];
+      };
+      partner_payouts: {
+        Row: {
+          id: string;
+          partner_id: string;
+          period_start: string;
+          period_end: string;
+          gross_kzt: number;
+          net_kzt: number;
+          referral_count: number;
+          status: 'pending' | 'approved' | 'paid' | 'cancelled';
+          payment_details: Json | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          partner_id: string;
+          period_start: string;
+          period_end: string;
+          gross_kzt?: number;
+          net_kzt?: number;
+          referral_count?: number;
+          status?: 'pending' | 'approved' | 'paid' | 'cancelled';
+          payment_details?: Json | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          gross_kzt?: number;
+          net_kzt?: number;
+          referral_count?: number;
+          status?: 'pending' | 'approved' | 'paid' | 'cancelled';
+          payment_details?: Json | null;
+          notes?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          { foreignKeyName: 'partner_payouts_partner_id_fkey'; columns: ['partner_id']; referencedRelation: 'partners'; referencedColumns: ['id'] },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

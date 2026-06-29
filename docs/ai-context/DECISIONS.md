@@ -131,3 +131,19 @@ worker/src/lib/jira/price-breakdown.ts, worker/src/lib/integrations.ts, supabase
 
 **Risks / caveats:**  
 Price Breakdown is opt-in via feature flag. If the quote is not yet persisted when initializeOrderIntegrations runs, the breakdown will show null pricing — this is handled gracefully with a fallback message.
+
+---
+
+### 2026-06-28 — Partner Program MVP architecture and commission rules
+
+**Decision:**  
+Partner Program MVP ships as: (1) public /partners landing page with application form; (2) POST /api/partners/apply route saving to partner_applications table; (3) Jira issue created best-effort on submission; (4) referral capture via sessionStorage (ref+UTM) in ReferralCapture client component in locale layout; (5) four new Supabase tables: partner_applications, partners, partner_referrals, partner_payouts. Commission rules: orgs get 5%/7%/10% tiered by order volume; translator client referral 5%; translator acquisition 5k+10k KZT milestones. All commission calculated on WPO service income excluding pass-through costs. Minimum payout 10k KZT, monthly cadence.
+
+**Rationale:**  
+Partner program is a growth channel for WPO. MVP validates the model without building full payout automation. Jira non-blocking fallback ensures no application is lost due to Jira outage. Referral capture is foundation-only in MVP — wiring to order creation is deferred.
+
+**Impacted files/docs:**  
+`Not specified`
+
+**Risks / caveats:**  
+`Not specified`

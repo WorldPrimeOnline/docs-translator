@@ -1,4 +1,8 @@
-# CLAUDE.md — Bootloader
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Bootloader
 
 ## 1. Read First (every session)
 
@@ -98,9 +102,19 @@ npm run staging:check  # Validate worker env vars
 
 ### Tests (from repo root)
 ```bash
-npm test
-npx jest src/lib/translation-workflow
-npx jest --testPathPattern qa
+npm test                                      # all tests
+npx jest path/to/file.test.ts                 # single file
+npx jest src/lib/translation-workflow         # by directory
+npx jest --testPathPattern qa                 # by pattern
+```
+
+### i18n validation (from repo root)
+```bash
+npm run i18n:check          # missing keys
+npm run i18n:hardcoded      # untranslated strings in JSX
+npm run i18n:forbidden      # banned phrases
+npm run i18n:routes         # locale route coverage
+npm run i18n:validate       # full suite
 ```
 
 Full command list and helper scripts: [20_COMMANDS_AND_TESTS.md](docs/ai-context/20_COMMANDS_AND_TESTS.md)
@@ -113,7 +127,7 @@ Full command list and helper scripts: [20_COMMANDS_AND_TESTS.md](docs/ai-context
 - **Worker** — `worker/` — standalone Node.js on Railway (Docker)
 - Shared: Supabase DB + Cloudflare R2 (independent env configs)
 - Two separate job processors — do not conflate them (web app: HTML-only; worker: PDF/DOCX/full pipeline)
-- Several modules are duplicated between web/worker and must be kept in sync manually
+- Modules duplicated between web (`src/lib/translation-workflow/`) and worker (`worker/src/lib/`) — kept in sync manually: `output-plan.ts`, `visual-elements.ts`, `qa.ts`, `renderer.ts`, `renderer-helpers.ts`, `docx-renderer.ts`. Worker copies have a comment pointing back to the canonical web version. `docx-visual-block.ts` is worker-only — do not create a web counterpart.
 - `customer-order-state.ts` is the canonical function for all customer-visible order state — never duplicate it
 
 Full details: [30_ARCHITECTURE_OVERVIEW.md](docs/ai-context/30_ARCHITECTURE_OVERVIEW.md)
