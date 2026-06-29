@@ -683,6 +683,9 @@ export type Database = {
           approved_partner_id: string | null;
           approved_at: string | null;
           approved_by: string | null;
+          canceled_at: string | null;
+          canceled_by: string | null;
+          cancellation_reason: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -717,6 +720,9 @@ export type Database = {
           approved_partner_id?: string | null;
           approved_at?: string | null;
           approved_by?: string | null;
+          canceled_at?: string | null;
+          canceled_by?: string | null;
+          cancellation_reason?: string | null;
           updated_at?: string;
         };
         Relationships: [];
@@ -732,6 +738,8 @@ export type Database = {
           referral_code: string;
           commission_rate: number;
           is_active: boolean;
+          deactivated_at: string | null;
+          deactivation_reason: string | null;
           notes: string | null;
           client_discount_enabled: boolean;
           client_discount_type: string | null;
@@ -751,6 +759,8 @@ export type Database = {
           referral_code: string;
           commission_rate?: number;
           is_active?: boolean;
+          deactivated_at?: string | null;
+          deactivation_reason?: string | null;
           notes?: string | null;
           client_discount_enabled?: boolean;
           client_discount_type?: string | null;
@@ -768,6 +778,8 @@ export type Database = {
           referral_code?: string;
           commission_rate?: number;
           is_active?: boolean;
+          deactivated_at?: string | null;
+          deactivation_reason?: string | null;
           notes?: string | null;
           client_discount_enabled?: boolean;
           client_discount_type?: string | null;

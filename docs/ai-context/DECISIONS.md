@@ -229,3 +229,28 @@ Without this patch, `price_quotes.amount_kzt` stored the pre-discount base price
 
 **Impacted files/docs:**
 `src/app/api/documents/upload-card/route.ts`, `src/app/api/jobs/route.ts`, `src/app/api/jobs/[jobId]/route.ts`, `src/app/[locale]/dashboard/page.tsx`, `supabase/migrations/0033_partner_approval_discount_fields.sql`
+
+---
+
+### 2026-06-29 — Jira is the operator UI for partner activation (remove website admin cabinet)
+
+**Decision:**
+Partner approval and cancellation happen exclusively through Jira workflow transitions, not through a website admin cabinet. The `/admin/partners` page and `/api/admin/partners/approve-application` + `/api/admin/partners/applications` routes were removed. Active partners can only be created via the `POST /api/webhooks/jira/partnership` webhook (authenticated via `JIRA_WEBHOOK_SECRET`).
+
+**Business flow:**
+1. Partner submits form → saved in `partner_applications` + Jira Partnership issue created.
+2. Operator transitions Jira issue to "АКТИВНОЕ ПАРТНЁРСТВО" → webhook creates partner.
+3. Operator transitions to "ПАРТНЁРСТВО ОТМЕНЕНО" → webhook deactivates partner.
+
+**Auth pattern:**
+`x-wpo-webhook-secret: ${JIRA_WEBHOOK_SECRET}` (same pattern as the order webhook).
+
+**No browser admin panel.** No CRON_SECRET login in browser. Jira is the only activation UI.
+
+**Default commercial settings on activation:**
+`commission_rate = 0.05`, `client_discount_enabled = true`, `type = fixed`, `value = 1000 ₸`, `min_order = 5000 ₸`.
+
+**Deactivation is non-destructive:** `is_active = false`, sets `deactivated_at` + `deactivation_reason`. Partner row, referrals, and orders preserved.
+
+**Impacted files/docs:**
+`src/app/api/webhooks/jira/partnership/route.ts`, `supabase/migrations/0034_partner_deactivation_fields.sql`, `docs/JIRA_AUTOMATION_SETUP.md`, `docs/ai-context/70_DATABASE_AND_API_SURFACE.md`. Removed: `src/app/[locale]/admin/partners/`, `src/app/api/admin/partners/`.

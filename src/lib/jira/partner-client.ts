@@ -20,6 +20,8 @@ export interface CreatePartnerApplicationIssueParams {
   applicationId: string;
   partnerType: PartnerType;
   name: string;
+  email: string;
+  phone?: string | null;
   organization?: string | null;
   message?: string | null;
   createdAt: string;
@@ -51,7 +53,9 @@ function buildDescription(params: CreatePartnerApplicationIssueParams): object {
     `Application ID: ${params.applicationId}`,
     `Partner type: ${typeLabel}`,
     `Name: ${params.name}`,
+    `Email: ${params.email}`,
   ];
+  if (params.phone) lines.push(`Phone: ${params.phone}`);
   if (params.organization) lines.push(`Organization: ${params.organization}`);
   if (params.message) {
     const excerpt = params.message.length > 300
