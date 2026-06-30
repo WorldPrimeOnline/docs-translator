@@ -58,7 +58,9 @@
       "outForDelivery": "Курьерге берілді",
       "delivered": "Тапсырыс жеткізілді",
       "pickedUp": "Тапсырыс берілді",
-      "operatorProcessing": "Оператор өңдеуде"
+      "operatorProcessing": "Оператор өңдеуде",
+      "refunded": "Қаражат қайтарылды",
+      "canceled": "Тапсырыс бас тартылды"
     },
     "langs": {
       "auto": "Автоанықтау",

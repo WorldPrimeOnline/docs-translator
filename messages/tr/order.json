@@ -60,7 +60,9 @@
       "outForDelivery": "Sipariş kurye teslim edildi",
       "delivered": "Sipariş teslim edildi",
       "pickedUp": "Sipariş alındı",
-      "operatorProcessing": "Sipariş operatör tarafından işleniyor"
+      "operatorProcessing": "Sipariş operatör tarafından işleniyor",
+      "refunded": "Geri ödendi",
+      "canceled": "İptal edildi"
     },
     "langs": {
       "auto": "Otomatik algılama",

@@ -39,6 +39,8 @@ export type CustomerStatus =
   | 'notary_declined'
   | 'completed'
   | 'failed'
+  | 'refunded'
+  | 'canceled'
   | 'operator_processing';
 
 export interface OrderStage {
@@ -174,6 +176,8 @@ function deriveCustomerStatus(
 ): CustomerStatus {
   if (jobStatus === 'payment_pending') return 'payment_pending';
   if (jobStatus === 'failed') return 'failed';
+  if (jobStatus === 'refunded') return 'refunded';
+  if (jobStatus === 'canceled') return 'canceled';
   if (workflowStatus === 'translator_declined') return 'translator_declined';
   if (workflowStatus === 'notary_declined') return 'notary_declined';
 
@@ -245,7 +249,9 @@ export function isCustomerOrderTerminal(customerStatus: CustomerStatus): boolean
     customerStatus === 'delivered' ||
     customerStatus === 'picked_up' ||
     customerStatus === 'translator_declined' ||
-    customerStatus === 'notary_declined'
+    customerStatus === 'notary_declined' ||
+    customerStatus === 'refunded' ||
+    customerStatus === 'canceled'
   );
 }
 

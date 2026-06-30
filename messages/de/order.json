@@ -60,7 +60,9 @@
       "outForDelivery": "Auftrag an Kurier übergeben",
       "delivered": "Auftrag geliefert",
       "pickedUp": "Auftrag abgeholt",
-      "operatorProcessing": "Auftrag wird vom Operator bearbeitet"
+      "operatorProcessing": "Auftrag wird vom Operator bearbeitet",
+      "refunded": "Rückerstattet",
+      "canceled": "Storniert"
     },
     "langs": {
       "auto": "Automatische Erkennung",

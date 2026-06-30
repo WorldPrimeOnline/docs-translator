@@ -58,7 +58,9 @@
       "outForDelivery": "Ба курьер дода шуд",
       "delivered": "Фармоиш расонида шуд",
       "pickedUp": "Фармоиш дода шуд",
-      "operatorProcessing": "Оператор коркард мекунад"
+      "operatorProcessing": "Оператор коркард мекунад",
+      "refunded": "Баргардонида шуд",
+      "canceled": "Бекор карда шуд"
     },
     "langs": {
       "auto": "Худкор муайян кардан",

@@ -359,6 +359,66 @@ describe('getCustomerOrderState — security: download gating', () => {
   });
 });
 
+describe('getCustomerOrderState — refunded / canceled (P0 production fix)', () => {
+  it('refunded → customerStatus=refunded, terminal, not downloadable', () => {
+    const s = getCustomerOrderState({ jobStatus: 'refunded', progressPercent: 0, workflowStatus: null, serviceLevel: 'electronic' });
+    expect(s.customerStatus).toBe('refunded');
+    expect(s.isTerminal).toBe(true);
+    expect(s.canDownload).toBe(false);
+    expect(s.isActive).toBe(false);
+  });
+
+  it('canceled → customerStatus=canceled, terminal, not downloadable', () => {
+    const s = getCustomerOrderState({ jobStatus: 'canceled', progressPercent: 0, workflowStatus: null, serviceLevel: 'electronic' });
+    expect(s.customerStatus).toBe('canceled');
+    expect(s.isTerminal).toBe(true);
+    expect(s.canDownload).toBe(false);
+    expect(s.isActive).toBe(false);
+  });
+
+  it('isCustomerOrderTerminal returns true for refunded', () => {
+    expect(isCustomerOrderTerminal('refunded')).toBe(true);
+  });
+
+  it('isCustomerOrderTerminal returns true for canceled', () => {
+    expect(isCustomerOrderTerminal('canceled')).toBe(true);
+  });
+
+  it('refunded on certified service level → terminal, never downloadable', () => {
+    const s = getCustomerOrderState({
+      jobStatus: 'refunded',
+      progressPercent: 0,
+      workflowStatus: null,
+      serviceLevel: 'official_with_translator_signature_and_provider_stamp',
+    });
+    expect(s.customerStatus).toBe('refunded');
+    expect(s.isTerminal).toBe(true);
+    expect(s.canDownload).toBe(false);
+  });
+
+  it('refunded on notarized service level → terminal, never downloadable', () => {
+    const s = getCustomerOrderState({
+      jobStatus: 'refunded',
+      progressPercent: 0,
+      workflowStatus: null,
+      serviceLevel: 'notarization_through_partners',
+    });
+    expect(s.customerStatus).toBe('refunded');
+    expect(s.isTerminal).toBe(true);
+    expect(s.canDownload).toBe(false);
+  });
+
+  it('refunded takes priority over workflowStatus (no accidental terminal bypass)', () => {
+    const s = getCustomerOrderState({
+      jobStatus: 'refunded',
+      progressPercent: 0,
+      workflowStatus: 'awaiting_translator_review',
+      serviceLevel: 'official_with_translator_signature_and_provider_stamp',
+    });
+    expect(s.customerStatus).toBe('refunded');
+  });
+});
+
 describe('getCustomerOrderState — progress never premature 100%', () => {
   it('electronic pdf_rendering at 80% is NOT 100%', () => {
     const s = getCustomerOrderState({ jobStatus: 'pdf_rendering', progressPercent: 80, workflowStatus: null, serviceLevel: 'electronic' });

@@ -2,7 +2,7 @@ import { env } from './lib/env';
 import { supabase, type JobRow, type PaymentTransactionRow } from './lib/supabase';
 import { processJob } from './processor';
 import { closeBrowser } from './lib/pdf';
-import { reconcileFiscalAndRefunds } from './lib/fiscal-reconciliation';
+import { reconcileFiscalAndRefunds, triggerReconcilePayments, triggerReconcileRefunds } from './lib/fiscal-reconciliation';
 import { logDriveAuthMode } from './lib/google-drive';
 
 // ── State ──────────────────────────────────────────────────────────────────
@@ -221,6 +221,25 @@ async function main(): Promise<void> {
       console.error('[worker] fiscal reconciliation error:', (err as Error).message);
     });
   }, FISCAL_RECONCILE_INTERVAL_MS);
+
+  // Reconcile pending Halyk payments (payment_pending → paid) every 15 minutes.
+  // Runs the Next.js /api/cron/reconcile-payments endpoint since vercel.json
+  // cannot host additional crons on the Vercel Hobby plan.
+  const PAYMENTS_RECONCILE_INTERVAL_MS = 15 * 60 * 1000;
+  setInterval(() => {
+    void triggerReconcilePayments().catch((err: unknown) => {
+      console.error('[worker] reconcile-payments trigger error:', (err as Error).message);
+    });
+  }, PAYMENTS_RECONCILE_INTERVAL_MS);
+
+  // Reconcile Halyk cabinet refunds (paid → refunded) every 30 minutes.
+  // Detects manual refunds issued by the operator in the Halyk merchant cabinet.
+  const REFUNDS_RECONCILE_INTERVAL_MS = 30 * 60 * 1000;
+  setInterval(() => {
+    void triggerReconcileRefunds().catch((err: unknown) => {
+      console.error('[worker] reconcile-refunds trigger error:', (err as Error).message);
+    });
+  }, REFUNDS_RECONCILE_INTERVAL_MS);
 }
 
 void main();

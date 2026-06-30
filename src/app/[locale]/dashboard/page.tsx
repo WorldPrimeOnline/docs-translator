@@ -83,6 +83,14 @@ function StatusBadge({ customerStatus }: { customerStatus: string | null }) {
       </span>
     );
   }
+  if (status === 'refunded' || status === 'canceled') {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-slate-500/10 px-2.5 py-0.5 text-xs font-medium text-slate-400">
+        <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+        {t(status === 'refunded' ? 'status.refunded' : 'status.canceled')}
+      </span>
+    );
+  }
   if (status === 'payment_pending') {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-400">
@@ -221,6 +229,8 @@ function useStatusLabel() {
       case 'notary_declined':            return t('status.notaryDeclined');
       case 'completed':            return t('status.completed');
       case 'failed':               return t('status.failed');
+      case 'refunded':             return t('status.refunded');
+      case 'canceled':             return t('status.canceled');
       default:                     return t('processing');
     }
   };

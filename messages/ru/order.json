@@ -60,7 +60,9 @@
       "outForDelivery": "Заказ передан курьеру",
       "delivered": "Заказ доставлен",
       "pickedUp": "Заказ выдан",
-      "operatorProcessing": "Заказ обрабатывается оператором"
+      "operatorProcessing": "Заказ обрабатывается оператором",
+      "refunded": "Возврат оформлен",
+      "canceled": "Заказ отменён"
     },
     "langs": {
       "auto": "Автоопределение",

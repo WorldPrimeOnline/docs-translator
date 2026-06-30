@@ -158,7 +158,9 @@
       "outForDelivery": "Transferred to courier",
       "delivered": "Order delivered",
       "pickedUp": "Order picked up",
-      "operatorProcessing": "Being processed by operator"
+      "operatorProcessing": "Being processed by operator",
+      "refunded": "Refunded",
+      "canceled": "Canceled"
     },
     "langs": {
       "auto": "Auto-detect",

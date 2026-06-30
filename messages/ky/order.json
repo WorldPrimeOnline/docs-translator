@@ -58,7 +58,9 @@
       "outForDelivery": "Курьерге берилди",
       "delivered": "Буйрутма жеткирилди",
       "pickedUp": "Буйрутма берилди",
-      "operatorProcessing": "Оператор иштеп жатат"
+      "operatorProcessing": "Оператор иштеп жатат",
+      "refunded": "Акча кайтарылды",
+      "canceled": "Буйрутма жокко чыгарылды"
     },
     "langs": {
       "auto": "Автоматтык аныктоо",
