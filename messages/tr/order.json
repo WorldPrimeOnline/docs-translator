@@ -239,7 +239,7 @@
     "promoCode": {
       "label": "PROMOSYON KODU / ORTAK KODU",
       "placeholder": "Ör: VISAALMATY",
-      "helperText": "Sizi bir WPO ortağı, vize merkezi, danışman veya çevirmen yönlendirdiyse kodunu girin.",
+      "helperText": "Sizi bir WPO ortağı, vize merkezi, danışman veya çevirmen yönlendirdiyse kodunu girin ve siparişinizde indirim alın.",
       "apply": "Uygula",
       "checking": "Kontrol ediliyor…",
       "valid": "Kod kabul edildi",
@@ -248,7 +248,9 @@
       "invalid": "Kod bulunamadı veya etkin değil",
       "discountFixed": "İndirim −{amount} ₸",
       "discountPercent": "İndirim −{pct}%",
-      "remove": "Kaldır"
+      "remove": "Kaldır",
+      "discountPercentCapped": "İndirim: {pct}%, ancak {max} ₸'dan fazla değil",
+      "discountMinOrderHint": "{min} ₸'dan başlayan siparişlerde"
     },
     "uploadedQuoteReadyWithDiscount": "Belge yüklendi — fiyat: {price} ₸ (ortak koduyla {saved} ₸ tasarruf edildi). Aşağıdan ödemeyi onaylayın."
   }

@@ -160,19 +160,19 @@ function formatDiscount(p: PartnerActivationCommentParams): string {
   if (!p.clientDiscountEnabled || !p.clientDiscountType || p.clientDiscountValue == null) {
     return 'не настроена';
   }
-  const parts: string[] = [];
+  let result: string;
   if (p.clientDiscountType === 'percent') {
-    parts.push(`${p.clientDiscountValue}%`);
+    result = `${p.clientDiscountValue}%`;
+    if (p.clientDiscountMaxAmount) {
+      result += `, но не более ${fmtNum(p.clientDiscountMaxAmount)} ₸`;
+    }
   } else {
-    parts.push(`${fmtNum(p.clientDiscountValue)} ₸`);
+    result = `${fmtNum(p.clientDiscountValue)} ₸ фиксированно`;
   }
   if (p.clientDiscountMinOrderAmount) {
-    parts.push(`от заказа от ${fmtNum(p.clientDiscountMinOrderAmount)} ₸`);
+    result += `, для заказов от ${fmtNum(p.clientDiscountMinOrderAmount)} ₸`;
   }
-  if (p.clientDiscountMaxAmount) {
-    parts.push(`максимум ${fmtNum(p.clientDiscountMaxAmount)} ₸`);
-  }
-  return parts.join(', ');
+  return result;
 }
 
 function buildActivationCommentAdf(p: PartnerActivationCommentParams): object {

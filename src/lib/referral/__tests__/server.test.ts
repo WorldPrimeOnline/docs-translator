@@ -459,4 +459,47 @@ describe('client discount integration', () => {
       expect.objectContaining({ commission_base_kzt: 0, commission_kzt: 0 }),
     );
   });
+
+  it('commission base is reduced by client discount before commission calculation', async () => {
+    // Order: 10000 KZT, client discount 500 KZT (5% capped at 500), no pass-through fees
+    // commission base = 10000 - 500 = 9500; commission = 9500 × 0.05 = 475
+    const REFERRAL = {
+      id: 'ref-uuid',
+      order_amount_kzt: 10000,
+      client_discount_applied_kzt: 500,
+      commission_rate: 0.05,
+    };
+
+    const updateMock = jest.fn().mockReturnValue({
+      eq: jest.fn().mockResolvedValue({ error: null }),
+    });
+
+    mockFrom
+      .mockReturnValueOnce({
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              maybeSingle: jest.fn().mockResolvedValue({ data: REFERRAL, error: null }),
+            }),
+          }),
+        }),
+      })
+      .mockReturnValueOnce({
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            in: jest.fn().mockResolvedValue({ data: [], error: null }),
+          }),
+        }),
+      })
+      .mockReturnValueOnce({ update: updateMock });
+
+    await confirmReferral('job-uuid', 'quote-uuid');
+
+    expect(updateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        commission_base_kzt: 9500,
+        commission_kzt: 475,
+      }),
+    );
+  });
 });

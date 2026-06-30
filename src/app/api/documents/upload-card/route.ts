@@ -16,6 +16,7 @@ import { isValidNotaryCity } from '@/lib/notary/cities';
 import { getHalykConfig } from '@/lib/payments/halyk/config';
 import { computeQuoteForJob, saveQuote } from '@/lib/pricing/service';
 import { attachReferralToOrder } from '@/lib/referral/server';
+import { calculatePartnerDiscount } from '@/lib/partners/discount';
 import type { Database } from '@/types';
 import type { ServiceLevel } from '@/lib/translation-prompts/types';
 
@@ -327,26 +328,7 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
       .eq('referral_code', refCodeForDiscount)
       .maybeSingle();
 
-    if (
-      discountPartner?.is_active &&
-      discountPartner.client_discount_enabled &&
-      discountPartner.client_discount_type &&
-      discountPartner.client_discount_value != null
-    ) {
-      const minOrder = Number(discountPartner.client_discount_min_order_amount ?? 0);
-      if (basePreDiscountKzt >= minOrder) {
-        const raw =
-          discountPartner.client_discount_type === 'percent'
-            ? Math.round((basePreDiscountKzt * Number(discountPartner.client_discount_value)) / 100)
-            : Math.round(Number(discountPartner.client_discount_value));
-
-        const cap = discountPartner.client_discount_max_amount != null
-          ? Number(discountPartner.client_discount_max_amount)
-          : Infinity;
-
-        discountKzt = Math.min(raw, cap, basePreDiscountKzt);
-      }
-    }
+    discountKzt = calculatePartnerDiscount(basePreDiscountKzt, discountPartner);
   }
 
   const finalPriceKzt = basePreDiscountKzt - discountKzt;

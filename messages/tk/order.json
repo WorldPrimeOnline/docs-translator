@@ -239,7 +239,7 @@
     "promoCode": {
       "label": "PROMO KOD / HYZMATDAŞ KODY",
       "placeholder": "Mysal üçin: VISAALMATY",
-      "helperText": "Eger sizi WPO hyzmatdaşy, wiza merkezi, maslahatçy ýa-da terjimeçi iberendigi bolsa, onuň kodyny giriziň.",
+      "helperText": "Eger sizi WPO hyzmatdaşy, wiza merkezi, maslahatçy ýa-da terjimeçi iberendigi bolsa, onuň kodyny girizip, sargydyňyza arzanlaşyk alyň.",
       "apply": "Ulanmak",
       "checking": "Barlanýar…",
       "valid": "Kod kabul edildi",
@@ -248,7 +248,9 @@
       "invalid": "Kod tapylmady ýa-da işjeň däl",
       "discountFixed": "Arzanlaşyk −{amount} ₸",
       "discountPercent": "Arzanlaşyk −{pct}%",
-      "remove": "Aýyrmak"
+      "remove": "Aýyrmak",
+      "discountPercentCapped": "Arzanlaşyk: {pct}%, ýöne {max} ₸-dan köp däl",
+      "discountMinOrderHint": "{min} ₸-dan sargyt üçin"
     },
     "uploadedQuoteReadyWithDiscount": "Resminama ýüklendi — bahasy: {price} ₸ (hyzmatdaş kody bilen {saved} ₸ tygşytlandy). Tölegi tassyklaň."
   }

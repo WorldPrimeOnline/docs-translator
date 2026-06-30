@@ -344,18 +344,19 @@ On **АКТИВНОЕ ПАРТНЕРСТВО**:
 - Else → create new `partners` row with:
   - `referral_code` from `application.ref_code` (normalized) if unique, otherwise auto-generated from org/name
   - `commission_rate = 0.05`
-  - `client_discount_enabled = false` (attribution model by default — no automatic client discount)
-  - all `client_discount_*` fields = null (must be explicitly configured per partner)
+  - `client_discount_enabled = true`, `client_discount_type = 'percent'`, `client_discount_value = 5`
+  - `client_discount_min_order_amount = 2500`, `client_discount_max_amount = 500`
+  - Meaning: 5% off, capped at 500 KZT, for orders ≥ 2500 KZT
   - `partner_link = https://www.wpotranslations.org/ru?ref=CODE`
   - `qr_code_url = https://www.wpotranslations.org/api/partners/qr/CODE`
 - Sets `partner_applications.status = approved`, `approved_partner_id`, `approved_at`, `approved_by = 'jira-webhook'`.
 - **Best-effort Jira comment**: after activation, WPO posts a comment to the Partnership issue containing:
   - Partner code, referral link, QR code URL
   - Ready-to-send client message (Russian)
-  - Commission rate; discount says "не применяется по умолчанию" unless explicitly enabled
+  - Commission rate and discount terms: "5%, но не более 500 ₸, для заказов от 2 500 ₸"
   - Stored in `partners.activation_comment_added_at` on success; `activation_comment_error` on failure (non-fatal).
 - **QR code endpoint**: `GET /api/partners/qr/{CODE}` — public, returns PNG, 404 for inactive partners.
-- **Client price**: unchanged by default. Partner commission is already part of the commercial price model. Discount must be explicitly enabled in `partners` table to apply a client-facing reduction.
+- **Client price**: default 5% discount capped at 500 KZT for orders ≥ 2500 KZT. Can be adjusted per partner in the `partners` table. Commission base = order_amount − client_discount − pass-through fees.
 
 ### Deactivation behavior
 

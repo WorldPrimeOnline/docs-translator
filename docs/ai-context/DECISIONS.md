@@ -247,9 +247,9 @@ Partner approval and cancellation happen exclusively through Jira workflow trans
 
 **No browser admin panel.** No CRON_SECRET login in browser. Jira is the only activation UI.
 
-**Default commercial settings on activation (corrected 2026-06-30):**
-`commission_rate = 0.05`, `client_discount_enabled = false`, all discount fields = null.
-Client discount is NOT applied by default. See "2026-06-30 — Partner economics correction" decision below.
+**Default commercial settings on activation (corrected 2026-06-30 #2):**
+`commission_rate = 0.05`, `client_discount_enabled = true`, `client_discount_type = 'percent'`, `client_discount_value = 5`, `client_discount_min_order_amount = 2500`, `client_discount_max_amount = 500`.
+Meaning: 5% off, capped at 500 KZT, for orders ≥ 2500 KZT. See "2026-06-30 — Partner economics correction #2" decision below.
 
 **Deactivation is non-destructive:** `is_active = false`, sets `deactivated_at` + `deactivation_reason`. Partner row, referrals, and orders preserved.
 
@@ -287,3 +287,28 @@ With `client_discount_applied_kzt = 0` (default), commission base = full paid am
 
 **Impacted files:**
 `src/app/api/webhooks/jira/partnership/route.ts`, `src/lib/jira/partner-client.ts`, `src/app/[locale]/dashboard/page.tsx`, `messages/*/order.json` (13 locales), `supabase/migrations/0036_partner_discount_default_correction.sql`, `docs/JIRA_AUTOMATION_SETUP.md`.
+
+---
+
+### 2026-06-30 — Partner economics correction #2: small default client incentive
+
+**Decision:**
+Partner codes now grant a small default client discount (5%, capped at 500 KZT, for orders ≥ 2500 KZT) on activation. This supersedes the "attribution-only by default" decision from earlier the same day.
+
+**Rationale:**
+Without a client incentive, clients have no motivation to enter the partner code manually. A 5% discount capped at 500 KZT is small enough to remain economically viable (given ~15–20% gross margin) while giving the client a concrete reason to enter the code.
+
+**Commission base is after discount:**
+`commission_base = order_amount_kzt − client_discount_applied_kzt − pass_throughs`.
+Partner earns 5% of `commission_base`, not the full order amount.
+
+**What changed:**
+- `DEFAULT_DISCOUNT_ENABLED = true`, `DEFAULT_DISCOUNT_TYPE = 'percent'`, `DEFAULT_DISCOUNT_VALUE = 5`, `DEFAULT_DISCOUNT_MIN_ORDER = 2500`, `DEFAULT_DISCOUNT_MAX = 500` in partnership webhook.
+- Migration 0037 applies new defaults to existing active attribution-only partners.
+- Dashboard UI: shows "Скидка: {pct}%, но не более {max} ₸" + "При заказе от {min} ₸" hint.
+- Jira activation comment: "Скидка клиенту: 5%, но не более 500 ₸, для заказов от 2 500 ₸".
+- i18n: added `discountPercentCapped` and `discountMinOrderHint` keys in all 13 locales; updated `helperText` to mention discount.
+- New pure helper `src/lib/partners/discount.ts` (`calculatePartnerDiscount`) — 18 unit tests.
+
+**Impacted files:**
+`src/app/api/webhooks/jira/partnership/route.ts`, `src/lib/jira/partner-client.ts`, `src/app/[locale]/dashboard/page.tsx`, `src/lib/partners/discount.ts`, `src/app/api/documents/upload-card/route.ts`, `messages/*/order.json` (13 locales), `supabase/migrations/0037_partner_discount_new_default.sql`, `docs/JIRA_AUTOMATION_SETUP.md`.

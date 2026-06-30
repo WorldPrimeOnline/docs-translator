@@ -1134,13 +1134,18 @@ export default function DashboardPage() {
                   <span className="text-xs text-emerald-400/80">
                     {promoDiscount.discountType === 'fixed'
                       ? t('promoCode.discountFixed', { amount: promoDiscount.discountValue.toLocaleString() })
-                      : t('promoCode.discountPercent', { pct: promoDiscount.discountValue })}
+                      : promoDiscount.discountMaxKzt != null
+                        ? t('promoCode.discountPercentCapped', { pct: promoDiscount.discountValue, max: promoDiscount.discountMaxKzt.toLocaleString() })
+                        : t('promoCode.discountPercent', { pct: promoDiscount.discountValue })}
                   </span>
                 )}
               </div>
             )}
             {promoState === 'valid' && !promoDiscount && (
               <p className="text-xs text-muted-foreground/70">{t('promoCode.attributionHint')}</p>
+            )}
+            {promoState === 'valid' && promoDiscount?.discountMinOrderKzt != null && promoDiscount.discountMinOrderKzt > 0 && (
+              <p className="text-xs text-muted-foreground/60">{t('promoCode.discountMinOrderHint', { min: promoDiscount.discountMinOrderKzt.toLocaleString() })}</p>
             )}
             {promoState === 'invalid' && (
               <p className="text-xs text-red-400">{t('promoCode.invalid')}</p>

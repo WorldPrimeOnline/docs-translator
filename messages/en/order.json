@@ -239,7 +239,7 @@
     "promoCode": {
       "label": "PROMO CODE / PARTNER CODE",
       "placeholder": "E.g. VISAALMATY",
-      "helperText": "If you were referred by a WPO partner, visa center, consultant or translator, enter their code.",
+      "helperText": "If you were referred by a WPO partner, visa center, consultant or translator, enter their code and get a discount on your order.",
       "apply": "Apply",
       "checking": "Checking…",
       "valid": "Code accepted",
@@ -248,6 +248,8 @@
       "invalid": "Code not found or inactive",
       "discountFixed": "Discount −{amount} ₸",
       "discountPercent": "Discount −{pct}%",
+      "discountPercentCapped": "Discount: {pct}%, up to {max} ₸",
+      "discountMinOrderHint": "For orders from {min} ₸",
       "remove": "Remove"
     },
     "uploadedQuoteReadyWithDiscount": "Document uploaded — price: {price} ₸ (saved {saved} ₸ with partner code). Confirm payment below."

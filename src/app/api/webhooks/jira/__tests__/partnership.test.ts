@@ -245,11 +245,11 @@ describe('POST /api/webhooks/jira/partnership', () => {
     expect(calledParams.partnerLink).toBe('https://www.wpotranslations.org/ru?ref=TESTCODE');
     expect(calledParams.qrCodeUrl).toBe('https://www.wpotranslations.org/api/partners/qr/TESTCODE');
     expect(calledParams.commissionRate).toBe(0.05);
-    // Partner codes are attribution-only by default — no automatic client discount
-    expect(calledParams.clientDiscountEnabled).toBe(false);
+    // Default: 5% discount capped at 500 KZT, min order 2500 KZT
+    expect(calledParams.clientDiscountEnabled).toBe(true);
   });
 
-  it('creates partner with client_discount_enabled=false by default', async () => {
+  it('creates partner with 5% default discount (capped 500 KZT, min order 2500 KZT)', async () => {
     const app = makeApp();
     const partner = { id: 'partner-uuid-defaults', referral_code: 'DEFAULTTEST' };
     let capturedInsert: ReturnType<typeof chainInsertSelect> | null = null;
@@ -265,10 +265,11 @@ describe('POST /api/webhooks/jira/partnership', () => {
     await POST(makeRequest({ issue: { key: 'WPO-defaults', status: ACTIVATE } }));
 
     const insertArg = (capturedInsert!.insert as jest.Mock).mock.calls[0][0] as Record<string, unknown>;
-    expect(insertArg.client_discount_enabled).toBe(false);
-    expect(insertArg.client_discount_type).toBeNull();
-    expect(insertArg.client_discount_value).toBeNull();
-    expect(insertArg.client_discount_min_order_amount).toBeNull();
+    expect(insertArg.client_discount_enabled).toBe(true);
+    expect(insertArg.client_discount_type).toBe('percent');
+    expect(insertArg.client_discount_value).toBe(5);
+    expect(insertArg.client_discount_min_order_amount).toBe(2500);
+    expect(insertArg.client_discount_max_amount).toBe(500);
   });
 
   it('Jira comment failure is non-fatal — response still 200 and stores error', async () => {

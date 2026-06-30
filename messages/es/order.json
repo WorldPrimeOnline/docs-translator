@@ -239,7 +239,7 @@
     "promoCode": {
       "label": "CÓDIGO PROMOCIONAL / CÓDIGO DE SOCIO",
       "placeholder": "Ej. VISAALMATY",
-      "helperText": "Si fue referido por un socio de WPO, centro de visas, consultor o traductor, ingrese su código.",
+      "helperText": "Si fue referido por un socio de WPO, centro de visas, consultor o traductor, ingrese su código y obtenga un descuento en su pedido.",
       "apply": "Aplicar",
       "checking": "Verificando…",
       "valid": "Código aceptado",
@@ -248,7 +248,9 @@
       "invalid": "Código no encontrado o inactivo",
       "discountFixed": "Descuento −{amount} ₸",
       "discountPercent": "Descuento −{pct}%",
-      "remove": "Eliminar"
+      "remove": "Eliminar",
+      "discountPercentCapped": "Descuento: {pct}%, hasta {max} ₸",
+      "discountMinOrderHint": "Para pedidos desde {min} ₸"
     },
     "uploadedQuoteReadyWithDiscount": "Documento cargado — precio: {price} ₸ (ahorro de {saved} ₸ con código de socio). Confirme el pago abajo."
   }

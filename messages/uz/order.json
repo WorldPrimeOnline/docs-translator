@@ -239,7 +239,7 @@
     "promoCode": {
       "label": "PROMOKOD / SHERIK KODI",
       "placeholder": "Masalan: VISAALMATY",
-      "helperText": "Agar sizni WPO sherigi, viza markazi, maslahatchi yoki tarjimon yo'llagan bo'lsa, uning kodini kiriting.",
+      "helperText": "Agar sizni WPO sherigi, viza markazi, maslahatchi yoki tarjimon yo'llagan bo'lsa, uning kodini kiritib, buyurtmangizga chegirma oling.",
       "apply": "Qo'llash",
       "checking": "Tekshirilmoqda…",
       "valid": "Kod qabul qilindi",
@@ -248,7 +248,9 @@
       "invalid": "Kod topilmadi yoki faol emas",
       "discountFixed": "Chegirma −{amount} ₸",
       "discountPercent": "Chegirma −{pct}%",
-      "remove": "O'chirish"
+      "remove": "O'chirish",
+      "discountPercentCapped": "Chegirma: {pct}%, lekin {max} ₸ dan ko'p emas",
+      "discountMinOrderHint": "{min} ₸ dan buyurtma berish uchun"
     },
     "uploadedQuoteReadyWithDiscount": "Hujjat yuklandi — narx: {price} ₸ (sherik kodi bilan {saved} ₸ tejaldi). To'lovni tasdiqlang."
   }
