@@ -243,6 +243,8 @@
       "apply": "Uygula",
       "checking": "Kontrol ediliyor…",
       "valid": "Kod kabul edildi",
+      "validAttribution": "Ortak kodu uygulandı",
+      "attributionHint": "Bu sipariş bir WPO iş ortağıyla ilişkilendirilecektir.",
       "invalid": "Kod bulunamadı veya etkin değil",
       "discountFixed": "İndirim −{amount} ₸",
       "discountPercent": "İndirim −{pct}%",

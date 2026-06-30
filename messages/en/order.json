@@ -243,6 +243,8 @@
       "apply": "Apply",
       "checking": "Checking…",
       "valid": "Code accepted",
+      "validAttribution": "Partner code applied",
+      "attributionHint": "This order will be linked to a WPO partner.",
       "invalid": "Code not found or inactive",
       "discountFixed": "Discount −{amount} ₸",
       "discountPercent": "Discount −{pct}%",

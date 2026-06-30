@@ -176,6 +176,11 @@ function formatDiscount(p: PartnerActivationCommentParams): string {
 }
 
 function buildActivationCommentAdf(p: PartnerActivationCommentParams): object {
+  const discountLine =
+    p.clientDiscountEnabled && p.clientDiscountType && p.clientDiscountValue != null
+      ? `- Скидка клиенту: ${formatDiscount(p)}`
+      : '- Скидка клиенту: не применяется по умолчанию';
+
   const lines = [
     'Партнёр активирован.',
     '',
@@ -187,12 +192,13 @@ function buildActivationCommentAdf(p: PartnerActivationCommentParams): object {
     'QR-код:',
     p.qrCodeUrl,
     '',
-    'Текст для отправки клиенту:',
+    'Текст для клиента:',
     `"Для перевода документов используйте WPO Translations:\n${p.partnerLink}\n\nИли введите код ${p.referralCode} в поле «Промокод / код партнёра» при оформлении заказа."`,
     '',
-    'Условия:',
-    `- Комиссия партнёра: ${formatCommission(p.commissionRate)}`,
-    `- Скидка клиенту: ${formatDiscount(p)}`,
+    'Внутренние условия:',
+    `- Партнёрская комиссия: ${formatCommission(p.commissionRate)}`,
+    discountLine,
+    '- Комиссия выплачивается только по оплаченным и не возвращённым заказам',
   ];
   return {
     type: 'doc',

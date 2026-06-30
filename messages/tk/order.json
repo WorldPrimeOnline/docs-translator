@@ -243,6 +243,8 @@
       "apply": "Ulanmak",
       "checking": "Barlanýar…",
       "valid": "Kod kabul edildi",
+      "validAttribution": "Hyzmatdaş kody ulanylydy",
+      "attributionHint": "Bu sargyt WPO hyzmatdaşy bilen baglanyşdyrylar.",
       "invalid": "Kod tapylmady ýa-da işjeň däl",
       "discountFixed": "Arzanlaşyk −{amount} ₸",
       "discountPercent": "Arzanlaşyk −{pct}%",

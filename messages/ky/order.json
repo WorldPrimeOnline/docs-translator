@@ -243,6 +243,8 @@
       "apply": "Колдонуу",
       "checking": "Текшерилүүдө…",
       "valid": "Код кабыл алынды",
+      "validAttribution": "Өнөктөш коду колдонулду",
+      "attributionHint": "Буйрутма WPO өнөктөшү менен байланыштырылат.",
       "invalid": "Код табылган жок же активдүү эмес",
       "discountFixed": "Арзандатуу −{amount} ₸",
       "discountPercent": "Арзандатуу −{pct}%",

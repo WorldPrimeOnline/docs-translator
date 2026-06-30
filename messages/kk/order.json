@@ -243,6 +243,8 @@
       "apply": "Қолдану",
       "checking": "Тексерілуде…",
       "valid": "Код қабылданды",
+      "validAttribution": "Серіктес коды қолданылды",
+      "attributionHint": "Тапсырыс WPO серіктесімен байланыстырылады.",
       "invalid": "Код табылмады немесе белсенді емес",
       "discountFixed": "Жеңілдік −{amount} ₸",
       "discountPercent": "Жеңілдік −{pct}%",

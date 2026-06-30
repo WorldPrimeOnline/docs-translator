@@ -247,10 +247,43 @@ Partner approval and cancellation happen exclusively through Jira workflow trans
 
 **No browser admin panel.** No CRON_SECRET login in browser. Jira is the only activation UI.
 
-**Default commercial settings on activation:**
-`commission_rate = 0.05`, `client_discount_enabled = true`, `type = fixed`, `value = 1000 ₸`, `min_order = 5000 ₸`.
+**Default commercial settings on activation (corrected 2026-06-30):**
+`commission_rate = 0.05`, `client_discount_enabled = false`, all discount fields = null.
+Client discount is NOT applied by default. See "2026-06-30 — Partner economics correction" decision below.
 
 **Deactivation is non-destructive:** `is_active = false`, sets `deactivated_at` + `deactivation_reason`. Partner row, referrals, and orders preserved.
 
 **Impacted files/docs:**
 `src/app/api/webhooks/jira/partnership/route.ts`, `supabase/migrations/0034_partner_deactivation_fields.sql`, `docs/JIRA_AUTOMATION_SETUP.md`, `docs/ai-context/70_DATABASE_AND_API_SURFACE.md`. Removed: `src/app/[locale]/admin/partners/`, `src/app/api/admin/partners/`.
+
+---
+
+### 2026-06-30 — Partner economics correction: referral codes are attribution by default
+
+**Decision:**
+Partner referral codes are attribution codes, not automatic client discount codes. The default activation settings now create partners with `client_discount_enabled = false` and all discount fields null.
+
+**Rationale:**
+Partner commission is already baked into the WPO commercial price model (replaces most of the marketing/CAC reserve). Automatically granting a client discount on top creates a double cost: commission out + discount given to client. This is economically incorrect for the default case.
+
+Two partner models are supported:
+- **Referral model** — client pays normal retail price; partner earns commission after paid/completed order; `client_discount_enabled = false`.
+- **Reseller model** — partner gets closed/wholesale price (12–15% below retail) and sets their own client price; no additional referral commission. (Not yet fully implemented; managed manually by operator.)
+
+**What changed:**
+- `DEFAULT_DISCOUNT_ENABLED = false`, `DEFAULT_DISCOUNT_TYPE = null`, `DEFAULT_DISCOUNT_VALUE = null`, `DEFAULT_DISCOUNT_MIN_ORDER = null` in the partnership webhook.
+- Migration 0036 resets all staging/production partners where discount matches the old automatic default (fixed 1000 ₸, min 5000 ₸, no cap).
+- `GET /api/partners/validate-code` already returned `discountEnabled: false` correctly; no change.
+- Dashboard UI now shows "Код партнёра применён / Заказ будет привязан к партнёру WPO." for attribution-only codes (no discount), and discount amount only when explicitly configured.
+- Jira activation comment now says "Скидка клиенту: не применяется по умолчанию" by default; shows actual discount terms only if explicitly enabled.
+- `upload-card` logic was already correct: discount only applied when `client_discount_enabled = true`; partner referral always created regardless.
+
+**Pricing model (correct):**
+Final price = min check + word_count × rate + layout + human review + translator signature + provider stamp + notary + urgency + acquiring/tax/ops reserve + partner commission.
+Partner commission **replaces** most marketing/CAC reserve (marketing reserve should be 0–2% when a partner code is present).
+
+**Commission base:** `order_amount_kzt − client_discount_applied_kzt − pass_throughs (notary_official_fee, delivery_fee)`.
+With `client_discount_applied_kzt = 0` (default), commission base = full paid amount minus pass-throughs.
+
+**Impacted files:**
+`src/app/api/webhooks/jira/partnership/route.ts`, `src/lib/jira/partner-client.ts`, `src/app/[locale]/dashboard/page.tsx`, `messages/*/order.json` (13 locales), `supabase/migrations/0036_partner_discount_default_correction.sql`, `docs/JIRA_AUTOMATION_SETUP.md`.

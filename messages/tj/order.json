@@ -243,6 +243,8 @@
       "apply": "Истифода",
       "checking": "Санҷида мешавад…",
       "valid": "Рамз қабул шуд",
+      "validAttribution": "Рамзи шарик истифода шуд",
+      "attributionHint": "Фармоиш бо шарики WPO пайваст мешавад.",
       "invalid": "Рамз ёфт нашуд ё фаъол нест",
       "discountFixed": "Тахфиф −{amount} ₸",
       "discountPercent": "Тахфиф −{pct}%",

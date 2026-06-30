@@ -236,12 +236,39 @@ describe('POST /api/webhooks/jira/partnership', () => {
     await POST(makeRequest({ issue: { key: 'WPO-31', status: ACTIVATE } }));
 
     expect(mockActivationComment).toHaveBeenCalledTimes(1);
-    const [calledKey, calledParams] = mockActivationComment.mock.calls[0] as [string, { referralCode: string; partnerLink: string; qrCodeUrl: string; commissionRate: number }];
+    const [calledKey, calledParams] = mockActivationComment.mock.calls[0] as [string, {
+      referralCode: string; partnerLink: string; qrCodeUrl: string;
+      commissionRate: number; clientDiscountEnabled: boolean;
+    }];
     expect(calledKey).toBe('WPO-31');
     expect(calledParams.referralCode).toBe('TESTCODE');
     expect(calledParams.partnerLink).toBe('https://www.wpotranslations.org/ru?ref=TESTCODE');
     expect(calledParams.qrCodeUrl).toBe('https://www.wpotranslations.org/api/partners/qr/TESTCODE');
     expect(calledParams.commissionRate).toBe(0.05);
+    // Partner codes are attribution-only by default — no automatic client discount
+    expect(calledParams.clientDiscountEnabled).toBe(false);
+  });
+
+  it('creates partner with client_discount_enabled=false by default', async () => {
+    const app = makeApp();
+    const partner = { id: 'partner-uuid-defaults', referral_code: 'DEFAULTTEST' };
+    let capturedInsert: ReturnType<typeof chainInsertSelect> | null = null;
+
+    callQueue = [
+      () => chainMaybeSingle(app),
+      () => chainMaybeSingle(null),
+      () => { capturedInsert = chainInsertSelect(partner); return capturedInsert; },
+      () => chainUpdate(),
+      () => chainUpdate(),
+    ];
+
+    await POST(makeRequest({ issue: { key: 'WPO-defaults', status: ACTIVATE } }));
+
+    const insertArg = (capturedInsert!.insert as jest.Mock).mock.calls[0][0] as Record<string, unknown>;
+    expect(insertArg.client_discount_enabled).toBe(false);
+    expect(insertArg.client_discount_type).toBeNull();
+    expect(insertArg.client_discount_value).toBeNull();
+    expect(insertArg.client_discount_min_order_amount).toBeNull();
   });
 
   it('Jira comment failure is non-fatal — response still 200 and stores error', async () => {

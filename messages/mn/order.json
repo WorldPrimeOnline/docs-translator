@@ -243,6 +243,8 @@
       "apply": "Хэрэглэх",
       "checking": "Шалгаж байна…",
       "valid": "Код хүлээн авлаа",
+      "validAttribution": "Түншийн код хэрэглэгдлээ",
+      "attributionHint": "Энэ захиалга WPO-ийн түнштэй холбогдоно.",
       "invalid": "Код олдсонгүй эсвэл идэвхгүй байна",
       "discountFixed": "Хөнгөлөлт −{amount} ₸",
       "discountPercent": "Хөнгөлөлт −{pct}%",

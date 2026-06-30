@@ -60,12 +60,14 @@ function normalizeStatus(s: string): string {
   return s.trim().toUpperCase().replace(/Ё/g, 'Е');
 }
 
-const DEFAULT_COMMISSION_RATE              = 0.05;
-const DEFAULT_DISCOUNT_ENABLED            = true;
-const DEFAULT_DISCOUNT_TYPE               = 'fixed';
-const DEFAULT_DISCOUNT_VALUE              = 1000;
-const DEFAULT_DISCOUNT_MIN_ORDER          = 5000;
-const DEFAULT_DISCOUNT_MAX: null          = null;
+const DEFAULT_COMMISSION_RATE          = 0.05;
+// Partners are attribution codes by default — no automatic client discount.
+// Discounts must be explicitly configured per partner after activation.
+const DEFAULT_DISCOUNT_ENABLED         = false;
+const DEFAULT_DISCOUNT_TYPE: null      = null;
+const DEFAULT_DISCOUNT_VALUE: null     = null;
+const DEFAULT_DISCOUNT_MIN_ORDER: null = null;
+const DEFAULT_DISCOUNT_MAX: null       = null;
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 

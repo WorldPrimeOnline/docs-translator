@@ -243,6 +243,8 @@
       "apply": "Применить",
       "checking": "Проверяется…",
       "valid": "Код принят",
+      "validAttribution": "Код партнёра применён",
+      "attributionHint": "Заказ будет привязан к партнёру WPO.",
       "invalid": "Код не найден или неактивен",
       "discountFixed": "Скидка −{amount} ₸",
       "discountPercent": "Скидка −{pct}%",

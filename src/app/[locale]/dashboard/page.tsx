@@ -1127,7 +1127,9 @@ export default function DashboardPage() {
             </div>
             {promoState === 'valid' && (
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs font-medium text-emerald-400">✓ {t('promoCode.valid')}</span>
+                <span className="text-xs font-medium text-emerald-400">
+                  ✓ {promoDiscount ? t('promoCode.valid') : t('promoCode.validAttribution')}
+                </span>
                 {promoDiscount && (
                   <span className="text-xs text-emerald-400/80">
                     {promoDiscount.discountType === 'fixed'
@@ -1136,6 +1138,9 @@ export default function DashboardPage() {
                   </span>
                 )}
               </div>
+            )}
+            {promoState === 'valid' && !promoDiscount && (
+              <p className="text-xs text-muted-foreground/70">{t('promoCode.attributionHint')}</p>
             )}
             {promoState === 'invalid' && (
               <p className="text-xs text-red-400">{t('promoCode.invalid')}</p>

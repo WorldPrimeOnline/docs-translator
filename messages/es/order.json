@@ -243,6 +243,8 @@
       "apply": "Aplicar",
       "checking": "Verificando…",
       "valid": "Código aceptado",
+      "validAttribution": "Código de socio aplicado",
+      "attributionHint": "Este pedido estará vinculado a un socio de WPO.",
       "invalid": "Código no encontrado o inactivo",
       "discountFixed": "Descuento −{amount} ₸",
       "discountPercent": "Descuento −{pct}%",

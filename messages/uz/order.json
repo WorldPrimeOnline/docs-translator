@@ -243,6 +243,8 @@
       "apply": "Qo'llash",
       "checking": "Tekshirilmoqda…",
       "valid": "Kod qabul qilindi",
+      "validAttribution": "Hamkor kodi qoʻllanildi",
+      "attributionHint": "Buyurtma WPO hamkori bilan bog'lanadi.",
       "invalid": "Kod topilmadi yoki faol emas",
       "discountFixed": "Chegirma −{amount} ₸",
       "discountPercent": "Chegirma −{pct}%",

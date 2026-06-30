@@ -243,6 +243,8 @@
       "apply": "应用",
       "checking": "检查中…",
       "valid": "代码已接受",
+      "validAttribution": "合作伙伴代码已应用",
+      "attributionHint": "此订单将与WPO合作伙伴关联。",
       "invalid": "未找到代码或代码未激活",
       "discountFixed": "折扣 −{amount} ₸",
       "discountPercent": "折扣 −{pct}%",
