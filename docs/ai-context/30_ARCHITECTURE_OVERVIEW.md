@@ -76,9 +76,25 @@ Both `kazakhstan/` and `documents/` also have a root `page.tsx` (the vertical la
 
 Other locale-prefixed pages: `contacts` (`src/app/[locale]/contacts/`), `auth` (login/callback), `dashboard`, `legal`, `privacy` (alias), `tos` (alias), `partners` (`src/app/[locale]/partners/`) — Partner Program landing page with application form. The /partners link appears in the Navbar (flat link, no dropdown, using `nav.partners` i18n key) and in the footer Col 1 (brand section) after the Contacts link — NOT in the legal documents section.
 
-## Referral capture
+## Referral capture and wiring
 
-`src/lib/referral/capture.ts` — pure utility: `extractReferralParams(search)`, `saveReferralParams()`, `loadReferralParams()`, `clearReferralParams()`. Uses sessionStorage (browser-only). `src/components/referral/ReferralCapture.tsx` — client component (wrapped in Suspense in locale layout) that captures `ref` + UTM params on every page load and stores them for future attachment to order creation.
+`src/lib/referral/capture.ts` — pure client utility: `extractReferralParams(search)`, `saveReferralParams()`, `loadReferralParams()`, `clearReferralParams()`. Saves to both localStorage (30-day TTL) and sessionStorage. `loadReferralParams()` prefers localStorage (survives tab close) and discards expired entries. `src/components/referral/ReferralCapture.tsx` — client component (wrapped in Suspense in locale layout) that captures `ref` + UTM params on every page load and stores them.
+
+`src/lib/referral/server.ts` — server-side partner referral logic (three best-effort functions):
+- `attachReferralToOrder(params)` — called from upload routes after job creation; looks up active partner by `referral_code`, inserts `partner_referrals` row with `status=pending`. No-op if code absent, partner not found, or inactive.
+- `confirmReferral(jobId, quoteId?)` — called from Halyk ePay callback after successful `finalize_halyk_payment` RPC; calculates `commission_base_kzt` (excludes `notary_official_fee` and `delivery_fee` from `price_quote_items`), applies snapshotted `commission_rate`, sets `status=confirmed`.
+- `cancelReferral(jobId, reason)` — sets `status=refunded|canceled`, zeros commission. Wire to admin refund route when it moves out of 501 placeholder.
+
+Client sends `refCode` + UTMs via FormData. Commission calculation and discount application are server-only. Dashboard wiring: the dashboard has a visible **promo code field** (`dashboard.promoCode.*` i18n keys) that is pre-filled from `loadReferralParams()` on mount. User can edit or apply the code manually; `POST /api/partners/validate-code` returns discount info for display. The field value (not storage) is used as `refCode` on submit. Server recalculates discount from DB — client values are never trusted.
+
+**Partner client discount flow** (upload-card only):
+1. Server re-validates `refCode` against `partners` table.
+2. If `client_discount_enabled = true`, computes `discountKzt` (percent or fixed, capped by `client_discount_max_amount`, gated by `client_discount_min_order_amount`).
+3. `finalPriceKzt = basePreDiscountKzt − discountKzt` — this is what the customer pays.
+4. Referral stored with `order_amount_kzt = basePreDiscountKzt` and `client_discount_applied_kzt = discountKzt`.
+5. `confirmReferral` calculates `commission_base_kzt = order_amount_kzt − client_discount_applied_kzt − pass_throughs`.
+
+Referral statuses: `pending | confirmed | refunded | canceled | paid | excluded`. Unique index on `partner_referrals.job_id` (where not null) prevents duplicate referrals per order.
 
 ## Legal system
 

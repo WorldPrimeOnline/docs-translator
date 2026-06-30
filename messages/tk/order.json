@@ -235,6 +235,26 @@
       "placeholder": "E.g.: specify formatting requirements, target authority, desired deadline, or other preferences."
     },
     "paymentPendingTitle": "Payment is being verified",
-    "paymentPendingDesc": "If money was charged, do not pay again. We will update the status automatically."
+    "paymentPendingDesc": "If money was charged, do not pay again. We will update the status automatically.",
+    "promoCode": {
+      "label": "PROMO KOD / HYZMATDAŞ KODY",
+      "placeholder": "Mysal üçin: VISAALMATY",
+      "helperText": "Eger sizi WPO hyzmatdaşy, wiza merkezi, maslahatçy ýa-da terjimeçi iberendigi bolsa, onuň kodyny girizip, sargydyňyza 10% arzanlaşyk alyň.",
+      "apply": "Ulanmak",
+      "checking": "Barlanýar…",
+      "valid": "Kod kabul edildi",
+      "validAttribution": "Hyzmatdaş kody ulanylydy",
+      "attributionHint": "Bu sargyt WPO hyzmatdaşy bilen baglanyşdyrylar.",
+      "invalid": "Kod tapylmady ýa-da işjeň däl",
+      "discountFixed": "Arzanlaşyk: −{amount} ₸",
+      "discountPercent": "Arzanlaşyk: {pct}%",
+      "remove": "Aýyrmak",
+      "discountPercentCapped": "Arzanlaşyk: {pct}%, iň köp {max} ₸",
+      "discountMinOrderHint": "{min} ₸-dan sargyt üçin"
+    },
+    "uploadedQuoteReadyWithDiscount": "Resminama ýüklendi — bahasy: {price} ₸ (hyzmatdaş kody bilen {saved} ₸ tygşytlandy). Tölegi tassyklaň.",
+    "priceBeforeDiscount": "Arzanlaşykdan öňki baha",
+    "discountByCode": "Hyzmatdaş arzanlaşygy",
+    "finalPrice": "Töleg möçberi"
   }
 }

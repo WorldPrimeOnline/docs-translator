@@ -10,6 +10,15 @@ import { createClient } from '@/lib/supabase/client';
 import { Link } from '@/i18n/navigation';
 import { NOTARY_CITIES } from '@/lib/notary/cities';
 import { getCustomerOrderState } from '@/lib/translation-workflow/customer-order-state';
+import { loadReferralParams } from '@/lib/referral/capture';
+
+interface PromoDiscountInfo {
+  discountType: string;
+  discountValue: number;
+  discountMinOrderKzt?: number;
+  discountMaxKzt?: number;
+  partnerName: string;
+}
 
 type ServiceLevel =
   | 'electronic'
@@ -40,6 +49,9 @@ interface OrderEntry {
   isTerminal: boolean;
   stages: { key: string; labelKey: string; done: boolean; current: boolean }[];
   priceKzt: number | null;
+  priceBeforeDiscountKzt: number | null;
+  discountAppliedKzt: number | null;
+  discountCode: string | null;
   latestQuoteId: string | null;
   quoteStatus: string | null;
   quoteAmountKzt: number | null;
@@ -329,7 +341,21 @@ function ActiveOrderCard({ entry, locale, onRecalculate }: { entry: OrderEntry; 
                 <span className="text-xs text-muted-foreground">{t('quoteValidUntil', { date: formattedExpiry })}</span>
               </div>
               <div className="mb-3">
-                <span className="text-xl font-bold text-foreground">{entry.quoteAmountKzt!.toLocaleString()} {entry.quoteCurrency ?? 'KZT'}</span>
+                {entry.discountAppliedKzt && entry.discountAppliedKzt > 0 ? (
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-xs text-muted-foreground">
+                      {t('priceBeforeDiscount')}: {(entry.priceBeforeDiscountKzt ?? 0).toLocaleString()} {entry.quoteCurrency ?? 'KZT'}
+                    </span>
+                    <span className="text-xs text-emerald-400">
+                      {t('discountByCode')}: −{entry.discountAppliedKzt.toLocaleString()} ₸{entry.discountCode ? ` (${entry.discountCode})` : ''}
+                    </span>
+                    <span className="text-xl font-bold text-foreground">
+                      {t('finalPrice')}: {entry.quoteAmountKzt!.toLocaleString()} {entry.quoteCurrency ?? 'KZT'}
+                    </span>
+                  </div>
+                ) : (
+                  <span className="text-xl font-bold text-foreground">{entry.quoteAmountKzt!.toLocaleString()} {entry.quoteCurrency ?? 'KZT'}</span>
+                )}
               </div>
               <HalykPayButton
                 jobId={entry.jobId}
@@ -474,6 +500,11 @@ export default function DashboardPage() {
   const [termsAccepted, setTermsAccepted] = useState<boolean | null>(null);
   const [consentChecked, setConsentChecked] = useState(false);
 
+  // Promo / partner code
+  const [promoCode, setPromoCode] = useState('');
+  const [promoState, setPromoState] = useState<'idle' | 'checking' | 'valid' | 'invalid'>('idle');
+  const [promoDiscount, setPromoDiscount] = useState<PromoDiscountInfo | null>(null);
+
   // Auto-reset targetLang if it matches a newly selected sourceLang
   useEffect(() => {
     if (sourceLang && targetLang && sourceLang === targetLang) {
@@ -482,6 +513,12 @@ export default function DashboardPage() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sourceLang]);
+
+  // Pre-fill promo code from stored referral params (URL capture or prior visit)
+  useEffect(() => {
+    const stored = loadReferralParams();
+    if (stored?.refCode) setPromoCode(stored.refCode);
+  }, []);
 
   // All orders loaded from Supabase — source of truth
   const [orders, setOrders] = useState<OrderEntry[]>([]);
@@ -554,6 +591,9 @@ export default function DashboardPage() {
             workflowStatus: string | null;
             serviceLevel: string;
             fulfillmentMethod: 'pickup' | 'delivery' | null;
+            priceBeforeDiscountKzt: number | null;
+            discountAppliedKzt: number | null;
+            discountCode: string | null;
             latestQuoteId: string | null;
             quoteStatus: string | null;
             quoteAmountKzt: number | null;
@@ -754,13 +794,24 @@ export default function DashboardPage() {
     }
     if (customerComment.trim()) form.append('customerComment', customerComment.trim());
 
+    // Attach referral params — promo field takes precedence over stored URL capture.
+    // Server re-validates the code; client cannot influence discount or commission amounts.
+    const activeCode = promoCode.trim();
+    if (activeCode) form.append('refCode', activeCode);
+    const referralParams = loadReferralParams();
+    if (referralParams?.utmSource)   form.append('utmSource',   referralParams.utmSource);
+    if (referralParams?.utmMedium)   form.append('utmMedium',   referralParams.utmMedium);
+    if (referralParams?.utmCampaign) form.append('utmCampaign', referralParams.utmCampaign);
+    if (referralParams?.utmContent)  form.append('utmContent',  referralParams.utmContent);
+    if (referralParams?.utmTerm)     form.append('utmTerm',     referralParams.utmTerm);
+
     // Staging/dev debug: log actual payload values to diagnose mapping issues
     if (process.env.NODE_ENV !== 'production') {
       console.info('[upload-card payload]', { sourceLanguage: sourceLang, targetLanguage: targetLang, documentType: `${documentType}|${outputFormat}`, serviceLevel });
     }
 
     const res = await fetch('/api/documents/upload-card', { method: 'POST', body: form });
-    let data: { jobId?: string; documentId?: string; error?: string; priceKzt?: number; quoteId?: string; requiresOperatorReview?: boolean; currency?: string } = {};
+    let data: { jobId?: string; documentId?: string; error?: string; priceKzt?: number; quoteId?: string; requiresOperatorReview?: boolean; currency?: string; discountAppliedKzt?: number } = {};
     try {
       data = await res.json() as typeof data;
     } catch {
@@ -779,6 +830,11 @@ export default function DashboardPage() {
     setFiles([]);
     if (data.requiresOperatorReview) {
       toast.success(t('uploadedRequiresReview'));
+    } else if (data.discountAppliedKzt && data.discountAppliedKzt > 0) {
+      toast.success(t('uploadedQuoteReadyWithDiscount', {
+        price: (data.priceKzt ?? 0).toLocaleString(),
+        saved: data.discountAppliedKzt.toLocaleString(),
+      }));
     } else {
       toast.success(t('uploadedQuoteReady', { price: (data.priceKzt ?? 0).toLocaleString() }));
     }
@@ -991,6 +1047,113 @@ export default function DashboardPage() {
               <p className="text-xs text-muted-foreground text-right">
                 {customerComment.length}/2000
               </p>
+            )}
+          </div>
+
+          {/* Promo / partner code */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              {t('promoCode.label')}
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={promoCode}
+                onChange={(e) => {
+                  const val = e.target.value.toUpperCase();
+                  setPromoCode(val);
+                  setPromoState('idle');
+                  setPromoDiscount(null);
+                }}
+                placeholder={t('promoCode.placeholder')}
+                className={`${inputClass} flex-1`}
+                maxLength={100}
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck={false}
+              />
+              {promoCode.trim() && promoState !== 'valid' && (
+                <button
+                  type="button"
+                  disabled={promoState === 'checking'}
+                  onClick={async () => {
+                    setPromoState('checking');
+                    setPromoDiscount(null);
+                    try {
+                      const res = await fetch('/api/partners/validate-code', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ code: promoCode.trim() }),
+                      });
+                      const json = await res.json() as {
+                        valid: boolean;
+                        partnerName?: string;
+                        discountEnabled?: boolean;
+                        discountType?: string;
+                        discountValue?: number;
+                        discountMinOrderKzt?: number;
+                        discountMaxKzt?: number;
+                      };
+                      if (json.valid) {
+                        setPromoState('valid');
+                        if (json.discountEnabled && json.discountType && json.discountValue != null) {
+                          setPromoDiscount({
+                            discountType: json.discountType,
+                            discountValue: json.discountValue,
+                            discountMinOrderKzt: json.discountMinOrderKzt,
+                            discountMaxKzt: json.discountMaxKzt,
+                            partnerName: json.partnerName ?? '',
+                          });
+                        }
+                      } else {
+                        setPromoState('invalid');
+                      }
+                    } catch {
+                      setPromoState('invalid');
+                    }
+                  }}
+                  className="shrink-0 inline-flex items-center justify-center rounded-md border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:border-white/20 hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+                >
+                  {promoState === 'checking' ? t('promoCode.checking') : t('promoCode.apply')}
+                </button>
+              )}
+              {promoState === 'valid' && (
+                <button
+                  type="button"
+                  onClick={() => { setPromoCode(''); setPromoState('idle'); setPromoDiscount(null); }}
+                  className="shrink-0 inline-flex items-center justify-center rounded-md border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:border-white/20 hover:text-foreground"
+                >
+                  {t('promoCode.remove')}
+                </button>
+              )}
+            </div>
+            {promoState === 'valid' && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-medium text-emerald-400">
+                  ✓ {promoDiscount ? t('promoCode.valid') : t('promoCode.validAttribution')}
+                </span>
+                {promoDiscount && (
+                  <span className="text-xs text-emerald-400/80">
+                    {promoDiscount.discountType === 'fixed'
+                      ? t('promoCode.discountFixed', { amount: promoDiscount.discountValue.toLocaleString() })
+                      : promoDiscount.discountMaxKzt != null
+                        ? t('promoCode.discountPercentCapped', { pct: promoDiscount.discountValue, max: promoDiscount.discountMaxKzt.toLocaleString() })
+                        : t('promoCode.discountPercent', { pct: promoDiscount.discountValue })}
+                  </span>
+                )}
+              </div>
+            )}
+            {promoState === 'valid' && !promoDiscount && (
+              <p className="text-xs text-muted-foreground/70">{t('promoCode.attributionHint')}</p>
+            )}
+            {promoState === 'valid' && promoDiscount?.discountMinOrderKzt != null && promoDiscount.discountMinOrderKzt > 0 && (
+              <p className="text-xs text-muted-foreground/60">{t('promoCode.discountMinOrderHint', { min: promoDiscount.discountMinOrderKzt.toLocaleString() })}</p>
+            )}
+            {promoState === 'invalid' && (
+              <p className="text-xs text-red-400">{t('promoCode.invalid')}</p>
+            )}
+            {promoState === 'idle' && (
+              <p className="text-xs text-muted-foreground/60">{t('promoCode.helperText')}</p>
             )}
           </div>
 

@@ -235,6 +235,26 @@
       "placeholder": "Masalan: formatlash talablari, maqsadli muassasa, kerakli muddat yoki boshqa afzalliklarni ko'rsating."
     },
     "paymentPendingTitle": "To'lov tekshirilmoqda",
-    "paymentPendingDesc": "Agar mablag' yechilgan bo'lsa, qayta to'lamang. Holatni avtomatik yangilaymiz."
+    "paymentPendingDesc": "Agar mablag' yechilgan bo'lsa, qayta to'lamang. Holatni avtomatik yangilaymiz.",
+    "promoCode": {
+      "label": "PROMOKOD / SHERIK KODI",
+      "placeholder": "Masalan: VISAALMATY",
+      "helperText": "Agar sizni WPO sherigi, viza markazi, maslahatchi yoki tarjimon yo'llagan bo'lsa, uning kodini kiritib, buyurtmangizga 10% chegirma oling.",
+      "apply": "Qo'llash",
+      "checking": "Tekshirilmoqda…",
+      "valid": "Kod qabul qilindi",
+      "validAttribution": "Hamkor kodi qoʻllanildi",
+      "attributionHint": "Buyurtma WPO hamkori bilan bog'lanadi.",
+      "invalid": "Kod topilmadi yoki faol emas",
+      "discountFixed": "Chegirma: −{amount} ₸",
+      "discountPercent": "Chegirma: {pct}%",
+      "remove": "O'chirish",
+      "discountPercentCapped": "Chegirma: {pct}%, {max} ₸ gacha",
+      "discountMinOrderHint": "{min} ₸ dan buyurtma berish uchun"
+    },
+    "uploadedQuoteReadyWithDiscount": "Hujjat yuklandi — narx: {price} ₸ (sherik kodi bilan {saved} ₸ tejaldi). To'lovni tasdiqlang.",
+    "priceBeforeDiscount": "Chegirmadan oldingi narx",
+    "discountByCode": "Hamkor chegirmasi",
+    "finalPrice": "To'lov summasi"
   }
 }

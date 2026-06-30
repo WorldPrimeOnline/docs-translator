@@ -16,6 +16,9 @@
     "uploadedRequiresReview": "Document uploaded. The price will be confirmed by our operator.",
     "quoteReady": "Price confirmed",
     "quoteValidUntil": "Valid until {date}",
+    "priceBeforeDiscount": "Original price",
+    "discountByCode": "Partner discount",
+    "finalPrice": "Total",
     "quoteRequiresReview": "Price is being confirmed by an operator. We will notify you.",
     "quoteExpired": "Quote expired",
     "quoteRecalculate": "Recalculate",
@@ -235,6 +238,23 @@
       "unsupportedFileType": "Unsupported file type: {files}",
       "pleaseSelectFile": "Please select at least one file",
       "failedTermsAcceptance": "Failed to save terms acceptance."
-    }
+    },
+    "promoCode": {
+      "label": "PROMO CODE / PARTNER CODE",
+      "placeholder": "E.g. VISAALMATY",
+      "helperText": "If you were referred by a WPO partner, visa center, consultant or translator, enter their code and get 10% off your order.",
+      "apply": "Apply",
+      "checking": "Checking…",
+      "valid": "Code accepted",
+      "validAttribution": "Partner code applied",
+      "attributionHint": "This order will be linked to a WPO partner.",
+      "invalid": "Code not found or inactive",
+      "discountFixed": "Discount: −{amount} ₸",
+      "discountPercent": "Discount: {pct}%",
+      "discountPercentCapped": "Discount: {pct}%, max {max} ₸",
+      "discountMinOrderHint": "For orders from {min} ₸",
+      "remove": "Remove"
+    },
+    "uploadedQuoteReadyWithDiscount": "Document uploaded — price: {price} ₸ (saved {saved} ₸ with partner code). Confirm payment below."
   }
 }

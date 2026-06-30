@@ -235,6 +235,26 @@
       "placeholder": "E.g.: specify formatting requirements, target authority, desired deadline, or other preferences."
     },
     "paymentPendingTitle": "Payment is being verified",
-    "paymentPendingDesc": "If money was charged, do not pay again. We will update the status automatically."
+    "paymentPendingDesc": "If money was charged, do not pay again. We will update the status automatically.",
+    "promoCode": {
+      "label": "ПРОМО КОД / ТҮНШИЙН КОД",
+      "placeholder": "Жишээ нь: VISAALMATY",
+      "helperText": "Хэрэв танд WPO түнш, визийн төв, зөвлөх эсвэл орчуулагч илгээсэн бол тэдний кодыг оруулж, захиалгаа 10% хөнгөлөлттэй авна уу.",
+      "apply": "Хэрэглэх",
+      "checking": "Шалгаж байна…",
+      "valid": "Код хүлээн авлаа",
+      "validAttribution": "Түншийн код хэрэглэгдлээ",
+      "attributionHint": "Энэ захиалга WPO-ийн түнштэй холбогдоно.",
+      "invalid": "Код олдсонгүй эсвэл идэвхгүй байна",
+      "discountFixed": "Хөнгөлөлт: −{amount} ₸",
+      "discountPercent": "Хөнгөлөлт: {pct}%",
+      "remove": "Устгах",
+      "discountPercentCapped": "Хөнгөлөлт: {pct}%, хамгийн ихдээ {max} ₸",
+      "discountMinOrderHint": "{min} ₸-аас дээш захиалгад"
+    },
+    "uploadedQuoteReadyWithDiscount": "Баримт бичиг байршуулагдлаа — үнэ: {price} ₸ (түншийн кодоор {saved} ₸ хэмнэгдлээ). Доороос төлбөрийг баталгаажуулна уу.",
+    "priceBeforeDiscount": "Хөнгөлөлтийн өмнөх үнэ",
+    "discountByCode": "Түншийн хөнгөлөлт",
+    "finalPrice": "Нийт төлбөр"
   }
 }

@@ -45,7 +45,7 @@ export async function GET(
 
   const { data: job, error } = await supabaseServer
     .from('jobs')
-    .select('status, progress_percent, error_message, document_id, workflow_status, service_level, fulfillment_method')
+    .select('status, progress_percent, error_message, document_id, workflow_status, service_level, fulfillment_method, price_before_discount_kzt, discount_applied_kzt, discount_code')
     .eq('id', jobId)
     .single();
 
@@ -89,6 +89,9 @@ export async function GET(
     workflowStatus: job.workflow_status ?? null,
     serviceLevel: job.service_level ?? 'electronic',
     fulfillmentMethod: (job.fulfillment_method as 'pickup' | 'delivery' | null) ?? null,
+    priceBeforeDiscountKzt: job.price_before_discount_kzt ?? null,
+    discountAppliedKzt: job.discount_applied_kzt ?? null,
+    discountCode: job.discount_code ?? null,
     latestQuoteId: quote?.id ?? null,
     quoteStatus: quote?.status ?? null,
     quoteAmountKzt: (quote?.status === 'requires_operator_review' || (quote?.pricing_context_json as Record<string, unknown>)?.requiresOperatorReview === true)

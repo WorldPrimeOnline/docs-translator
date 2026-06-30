@@ -20,6 +20,8 @@ export interface CreatePartnerApplicationIssueParams {
   applicationId: string;
   partnerType: PartnerType;
   name: string;
+  email: string;
+  phone?: string | null;
   organization?: string | null;
   message?: string | null;
   createdAt: string;
@@ -51,7 +53,9 @@ function buildDescription(params: CreatePartnerApplicationIssueParams): object {
     `Application ID: ${params.applicationId}`,
     `Partner type: ${typeLabel}`,
     `Name: ${params.name}`,
+    `Email: ${params.email}`,
   ];
+  if (params.phone) lines.push(`Phone: ${params.phone}`);
   if (params.organization) lines.push(`Organization: ${params.organization}`);
   if (params.message) {
     const excerpt = params.message.length > 300
@@ -127,4 +131,163 @@ export async function createPartnerApplicationIssue(
     issueKey: data.key,
     issueUrl,
   };
+}
+
+// ─── Partner activation / deactivation comments ───────────────────────────────
+
+export interface PartnerActivationCommentParams {
+  referralCode: string;
+  partnerLink: string;
+  qrCodeUrl: string;
+  commissionRate: number;
+  clientDiscountEnabled: boolean;
+  clientDiscountType: string | null;
+  clientDiscountValue: number | null;
+  clientDiscountMinOrderAmount: number | null;
+  clientDiscountMaxAmount: number | null;
+}
+
+function fmtNum(n: number): string {
+  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+}
+
+function formatCommission(rate: number): string {
+  const pct = Math.round(rate * 100 * 10) / 10;
+  return `${pct}%`;
+}
+
+function formatDiscount(p: PartnerActivationCommentParams): string {
+  if (!p.clientDiscountEnabled || !p.clientDiscountType || p.clientDiscountValue == null) {
+    return 'не настроена';
+  }
+  let result: string;
+  if (p.clientDiscountType === 'percent') {
+    result = `${p.clientDiscountValue}%`;
+    if (p.clientDiscountMaxAmount) {
+      result += `, но не более ${fmtNum(p.clientDiscountMaxAmount)} ₸`;
+    }
+  } else {
+    result = `${fmtNum(p.clientDiscountValue)} ₸ фиксированно`;
+  }
+  if (p.clientDiscountMinOrderAmount) {
+    result += `, для заказов от ${fmtNum(p.clientDiscountMinOrderAmount)} ₸`;
+  }
+  return result;
+}
+
+function buildActivationCommentAdf(p: PartnerActivationCommentParams): object {
+  const discountLine =
+    p.clientDiscountEnabled && p.clientDiscountType && p.clientDiscountValue != null
+      ? `- Скидка клиенту: ${formatDiscount(p)}`
+      : '- Скидка клиенту: не применяется по умолчанию';
+
+  const lines = [
+    'Партнёр активирован.',
+    '',
+    `Код партнёра: ${p.referralCode}`,
+    '',
+    'Партнёрская ссылка:',
+    p.partnerLink,
+    '',
+    'QR-код:',
+    p.qrCodeUrl,
+    '',
+    'Текст для клиента:',
+    (p.clientDiscountEnabled && p.clientDiscountType === 'percent' && p.clientDiscountValue != null
+      ? `"Для перевода документов используйте WPO Translations и получите скидку ${p.clientDiscountValue}% по партнёрскому коду:\n${p.partnerLink}\n\nИли введите код ${p.referralCode} в поле «Промокод / код партнёра» при оформлении заказа."`
+      : `"Для перевода документов используйте WPO Translations:\n${p.partnerLink}\n\nИли введите код ${p.referralCode} в поле «Промокод / код партнёра» при оформлении заказа."`),
+    '',
+    'Внутренние условия:',
+    `- Партнёрская комиссия: ${formatCommission(p.commissionRate)}`,
+    discountLine,
+    '- Комиссия выплачивается только по оплаченным и не возвращённым заказам',
+  ];
+  return {
+    type: 'doc',
+    version: 1,
+    content: lines.map((text) => ({
+      type: 'paragraph',
+      content: text === '' ? [] : [{ type: 'text', text }],
+    })),
+  };
+}
+
+async function jiraFetchPartner(path: string, options: RequestInit): Promise<Response> {
+  const creds = getJiraCredentials();
+  if (!creds) throw new Error('Jira not configured');
+  return fetch(`${creds.baseUrl}/rest/api/3${path}`, {
+    ...options,
+    headers: {
+      Authorization: makeAuthHeader(creds),
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      ...(options.headers as Record<string, string> ?? {}),
+    },
+  });
+}
+
+/**
+ * Add an activation summary comment to the Jira Partnership issue.
+ * Called after partner creation/reactivation. Must be wrapped in try/catch by caller.
+ */
+export async function addPartnerActivationComment(
+  issueKey: string,
+  params: PartnerActivationCommentParams,
+): Promise<void> {
+  const creds = getJiraCredentials();
+  if (!creds) {
+    console.log('[jira/partner] Jira not configured — skipping activation comment');
+    return;
+  }
+
+  const body = buildActivationCommentAdf(params);
+  const res = await jiraFetchPartner(`/issue/${issueKey}/comment`, {
+    method: 'POST',
+    body: JSON.stringify({ body }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => '');
+    throw new Error(`Jira addComment failed: ${res.status} — ${errText.slice(0, 200)}`);
+  }
+
+  console.log(`[jira/partner] Activation comment added to ${issueKey} for code ${params.referralCode}`);
+}
+
+/**
+ * Add a deactivation notice comment to the Jira Partnership issue.
+ * Called after partner deactivation. Must be wrapped in try/catch by caller.
+ */
+export async function addPartnerDeactivationComment(
+  issueKey: string,
+  referralCode: string,
+): Promise<void> {
+  const creds = getJiraCredentials();
+  if (!creds) {
+    console.log('[jira/partner] Jira not configured — skipping deactivation comment');
+    return;
+  }
+
+  const body = {
+    type: 'doc',
+    version: 1,
+    content: [
+      {
+        type: 'paragraph',
+        content: [{ type: 'text', text: `Партнёрство отменено. Код ${referralCode} деактивирован и больше не применяется на сайте.` }],
+      },
+    ],
+  };
+
+  const res = await jiraFetchPartner(`/issue/${issueKey}/comment`, {
+    method: 'POST',
+    body: JSON.stringify({ body }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => '');
+    throw new Error(`Jira addDeactivationComment failed: ${res.status} — ${errText.slice(0, 200)}`);
+  }
+
+  console.log(`[jira/partner] Deactivation comment added to ${issueKey} for code ${referralCode}`);
 }

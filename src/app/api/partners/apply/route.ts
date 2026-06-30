@@ -50,6 +50,8 @@ export async function POST(request: Request): Promise<NextResponse> {
       applicationId: inserted.id,
       partnerType: data.partnerType,
       name: data.name,
+      email: data.email,
+      phone: data.phone || null,
       organization: data.organization || null,
       message: data.message || null,
       createdAt: inserted.created_at,

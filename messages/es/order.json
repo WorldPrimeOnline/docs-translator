@@ -235,6 +235,26 @@
       "placeholder": "E.g.: specify formatting requirements, target authority, desired deadline, or other preferences."
     },
     "paymentPendingTitle": "Payment is being verified",
-    "paymentPendingDesc": "If money was charged, do not pay again. We will update the status automatically."
+    "paymentPendingDesc": "If money was charged, do not pay again. We will update the status automatically.",
+    "promoCode": {
+      "label": "CÓDIGO PROMOCIONAL / CÓDIGO DE SOCIO",
+      "placeholder": "Ej. VISAALMATY",
+      "helperText": "Si fue referido por un socio de WPO, centro de visas, consultor o traductor, ingrese su código y obtenga un 10% de descuento en su pedido.",
+      "apply": "Aplicar",
+      "checking": "Verificando…",
+      "valid": "Código aceptado",
+      "validAttribution": "Código de socio aplicado",
+      "attributionHint": "Este pedido estará vinculado a un socio de WPO.",
+      "invalid": "Código no encontrado o inactivo",
+      "discountFixed": "Descuento: −{amount} ₸",
+      "discountPercent": "Descuento: {pct}%",
+      "remove": "Eliminar",
+      "discountPercentCapped": "Descuento: {pct}%, máximo {max} ₸",
+      "discountMinOrderHint": "Para pedidos desde {min} ₸"
+    },
+    "uploadedQuoteReadyWithDiscount": "Documento cargado — precio: {price} ₸ (ahorro de {saved} ₸ con código de socio). Confirme el pago abajo.",
+    "priceBeforeDiscount": "Precio antes del descuento",
+    "discountByCode": "Descuento de socio",
+    "finalPrice": "Total a pagar"
   }
 }

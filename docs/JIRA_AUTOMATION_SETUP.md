@@ -261,3 +261,141 @@ WPO deduplicates by `eventId` — both in-memory (per instance) and via `job_aud
 | customfield_10083 | Translation Type | Single-select |
 | customfield_10087 | Fulfillment Method | Single-select |
 | customfield_10088 | Language Pair | Text |
+
+---
+
+## Partner lifecycle automation (Partnership issue type)
+
+Partnership issues are created automatically when a partner submits the `/partners` form. Jira is the operator control panel for partner approval and cancellation — there is no website admin cabinet.
+
+### How it works
+
+1. Partner submits form on `/partners`.
+2. WPO creates a Jira issue in project `WPO`, issue type `Partnership`.
+3. Operator reviews the issue in Jira.
+4. Operator transitions the issue to:
+   - **АКТИВНОЕ ПАРТНЕРСТВО** → WPO creates (or re-activates) the partner account.
+   - **ПАРТНЕРСТВО ОТМЕНЕНО** → WPO deactivates the partner account.
+5. Any other status transition → WPO no-ops (returns `{ ok: true, action: 'no_op' }`).
+
+### Webhook endpoint
+
+```
+POST https://<site-domain>/api/webhooks/jira/partnership
+```
+
+Authentication: `x-wpo-webhook-secret: <JIRA_WEBHOOK_SECRET>` (same secret as the order webhook).
+
+### Jira Automation rule — АКТИВНОЕ ПАРТНЕРСТВО
+
+**Trigger:** Issue transitioned  
+**Conditions:**
+- Project = `WPO`
+- Issue type = `Partnership`
+- To status = `АКТИВНОЕ ПАРТНЕРСТВО`
+
+**Action:** Send web request  
+- **URL:** `https://<site-domain>/api/webhooks/jira/partnership`
+- **Method:** `POST`
+- **Headers:**
+  ```
+  x-wpo-webhook-secret: {{JIRA_WEBHOOK_SECRET}}
+  Content-Type: application/json
+  ```
+- **Body:**
+  ```json
+  {
+    "issue": {
+      "key": "{{issue.key}}",
+      "status": "{{issue.status.name}}",
+      "summary": "{{issue.summary}}"
+    },
+    "eventId": "{{now}}-{{issue.key}}-activate"
+  }
+  ```
+
+### Jira Automation rule — ПАРТНЕРСТВО ОТМЕНЕНО
+
+Same as above, but **To status = `ПАРТНЕРСТВО ОТМЕНЕНО`** and `eventId` suffix `cancel`.
+
+**Body:**
+```json
+{
+  "issue": {
+    "key": "{{issue.key}}",
+    "status": "{{issue.status.name}}",
+    "summary": "{{issue.summary}}"
+  },
+  "eventId": "{{now}}-{{issue.key}}-cancel"
+}
+```
+
+### Payload lookup order
+
+1. `partner_application_id` UUID from payload (if provided) — preferred.
+2. `partner_applications.jira_issue_key = issue.key` — automatic fallback.
+
+The Jira issue description always contains `Application ID: <uuid>` so operators can add it to the payload manually when needed.
+
+### Activation behavior
+
+On **АКТИВНОЕ ПАРТНЕРСТВО**:
+- If `partner_applications.approved_partner_id` already exists → set `partners.is_active = true` (idempotent re-activation).
+- Else → create new `partners` row with:
+  - `referral_code` from `application.ref_code` (normalized) if unique, otherwise auto-generated from org/name
+  - `commission_rate = 0.10` for organization types (`agency`, `visa_center`, `migration_consultant`, `education_agency`, `legal_firm`, `corporate`); `0.05` for translator/notary/other
+  - `client_discount_enabled = true`, `client_discount_type = 'percent'`, `client_discount_value = 10`
+  - `client_discount_min_order_amount = 0`, `client_discount_max_amount = null`
+  - Meaning: 10% off any order (no minimum, no cap) — aggressive marketing default
+  - `partner_link = https://www.wpotranslations.org/ru?ref=CODE`
+  - `qr_code_url = https://www.wpotranslations.org/api/partners/qr/CODE`
+- Sets `partner_applications.status = approved`, `approved_partner_id`, `approved_at`, `approved_by = 'jira-webhook'`.
+- **Best-effort Jira comment**: after activation, WPO posts a comment to the Partnership issue containing:
+  - Partner code, referral link, QR code URL
+  - Ready-to-send client message: "...и получите скидку 10% по партнёрскому коду..."
+  - Commission rate: 10% (org) or 5% (translator/notary); discount: "10%"
+  - Stored in `partners.activation_comment_added_at` on success; `activation_comment_error` on failure (non-fatal).
+- **QR code endpoint**: `GET /api/partners/qr/{CODE}` — public, returns PNG, 404 for inactive partners.
+- **Client price**: default 10% discount on any order, no minimum, no cap. Can be adjusted per partner in the `partners` table. Commission base = order_amount − client_discount − pass-through fees.
+
+### Deactivation behavior
+
+On **ПАРТНЕРСТВО ОТМЕНЕНО**:
+- Sets `partners.is_active = false`, `deactivated_at`, `deactivation_reason`.
+- Sets `partner_applications.canceled_at`, `canceled_by = 'jira-webhook'`, `cancellation_reason`.
+- Does **not** delete partner, partner_referrals, or orders — all history is preserved.
+- If no partner record exists yet (application not yet approved) → marks application as canceled only.
+- Inactive partner referral codes immediately fail validation at `/api/partners/validate-code`.
+- **Best-effort Jira comment**: posts "Партнёрство отменено. Код CODE деактивирован." to the issue (failure is non-fatal).
+
+### Issue description format
+
+WPO writes the following fields to the Jira issue description:
+
+```
+Application ID: <uuid>
+Partner type: <label>
+Name: <name>
+Email: <email>
+Phone: <phone>     (if provided)
+Organization: <org>  (if provided)
+Message: <excerpt> (if provided)
+Submitted: <ISO timestamp>
+```
+
+**Important:** Email and phone are visible in the Jira issue description to operators. Do not put IIN, passport numbers, or payment credentials in partner application messages.
+
+### Status normalization (Е / Ё)
+
+The backend normalizes Jira status strings before comparison:
+1. `trim()` — removes leading/trailing whitespace
+2. `toUpperCase()` — case-insensitive match
+3. Replace `Ё → Е` — accepts both Russian Ё and Е in any status string
+
+This means both `АКТИВНОЕ ПАРТНЕРСТВО` (without Ё) and `АКТИВНОЕ ПАРТНЁРСТВО` (with Ё) resolve to the same canonical status. Configure Jira workflows with either variant — the backend handles both.
+
+The Jira Automation rules in this document use `АКТИВНОЕ ПАРТНЕРСТВО` / `ПАРТНЕРСТВО ОТМЕНЕНО` (without Ё) because that is what the actual Jira workflow status names use.
+
+### Staging vs production routing
+
+Partnership webhook uses the same environment-label-based routing as order webhooks. Staging rules should point to the Vercel Preview URL with the `x-vercel-protection-bypass` header.

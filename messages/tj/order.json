@@ -235,6 +235,26 @@
       "placeholder": "E.g.: specify formatting requirements, target authority, desired deadline, or other preferences."
     },
     "paymentPendingTitle": "Payment is being verified",
-    "paymentPendingDesc": "If money was charged, do not pay again. We will update the status automatically."
+    "paymentPendingDesc": "If money was charged, do not pay again. We will update the status automatically.",
+    "promoCode": {
+      "label": "ПРОМОКОД / РАМЗИ ШАРИК",
+      "placeholder": "Масалан: VISAALMATY",
+      "helperText": "Агар шарики WPO, маркази виза, мушовир ё тарҷумон шуморо фиристода бошад, рамзи ӯро ворид кунед ва 10% тахфиф гиред.",
+      "apply": "Истифода",
+      "checking": "Санҷида мешавад…",
+      "valid": "Рамз қабул шуд",
+      "validAttribution": "Рамзи шарик истифода шуд",
+      "attributionHint": "Фармоиш бо шарики WPO пайваст мешавад.",
+      "invalid": "Рамз ёфт нашуд ё фаъол нест",
+      "discountFixed": "Тахфиф: −{amount} ₸",
+      "discountPercent": "Тахфиф: {pct}%",
+      "remove": "Хориҷ кардан",
+      "discountPercentCapped": "Тахфиф: {pct}%, на зиёда аз {max} ₸",
+      "discountMinOrderHint": "Барои фармоиш аз {min} ₸"
+    },
+    "uploadedQuoteReadyWithDiscount": "Ҳуҷҷат бор карда шуд — нарх: {price} ₸ ({saved} ₸ бо рамзи шарик сарфа шуд). Пардохтро тасдиқ кунед.",
+    "priceBeforeDiscount": "Нархи аввала",
+    "discountByCode": "Тахфифи шарик",
+    "finalPrice": "Ба пардохт"
   }
 }
