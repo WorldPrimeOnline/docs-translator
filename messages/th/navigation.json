@@ -1,0 +1,21 @@
+{
+  "nav": {
+    "login": "เข้าสู่ระบบ",
+    "dashboard": "แดชบอร์ด",
+    "signup": "สมัครสมาชิก",
+    "getStarted": "เริ่มต้น",
+    "kazakhstan": "คาซัคสถาน",
+    "documents": "เอกสาร",
+    "kazakhstanOverview": "ภาพรวมคาซัคสถาน",
+    "translationForNotary": "การแปลสำหรับโนตารี",
+    "universityDocs": "เอกสารสำหรับมหาวิทยาลัย",
+    "allDocTypes": "ประเภทเอกสารทั้งหมด",
+    "passportTranslation": "การแปลหนังสือเดินทาง",
+    "bankStatement": "ใบแจ้งยอดธนาคาร",
+    "diplomaTranslation": "การแปลประกาศนียบัตร",
+    "certifiedTranslation": "การแปลรับรอง",
+    "switchLanguage": "เปลี่ยนภาษา",
+    "toggleMenu": "เปิด/ปิดเมนู",
+    "partners": "โปรแกรมพาร์ทเนอร์"
+  }
+}

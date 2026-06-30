@@ -23,6 +23,7 @@ export const LOCALES: LocaleDefinition[] = [
   { code: 'de', label: 'German',     nativeLabel: 'Deutsch',   nativeShortLabel: 'De',   flag: '🇩🇪', enabled: true  },
   { code: 'tr', label: 'Turkish',    nativeLabel: 'Türkçe',    nativeShortLabel: 'TR',   flag: '🇹🇷', enabled: true  },
   { code: 'es', label: 'Spanish',    nativeLabel: 'Español',   nativeShortLabel: 'Esp',  flag: '🇪🇸', enabled: false },
+  { code: 'th', label: 'Thai',       nativeLabel: 'ไทย',       nativeShortLabel: 'ไทย',   flag: '🇹🇭', enabled: true  },
 ];
 
 export const LOCALE_CODES = LOCALES.map((l) => l.code) as [string, ...string[]];

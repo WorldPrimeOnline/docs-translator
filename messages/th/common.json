@@ -1,0 +1,28 @@
+{
+  "disclaimer": "การแปลที่ไม่เป็นทางการ — เพื่อวัตถุประสงค์ในการให้ข้อมูลเท่านั้น",
+  "mockup": {
+    "statusReady": "พร้อมแล้ว",
+    "translationReady": "การแปลเสร็จสมบูรณ์",
+    "pdfGenerated": "สร้าง PDF แล้ว · พร้อมดาวน์โหลด",
+    "download": "ดาวน์โหลด",
+    "processingPipeline": "กระบวนการประมวลผล",
+    "ocrExtract": "OCR",
+    "aiTranslate": "AI แปล",
+    "pdfGenerate": "PDF",
+    "langRu": "ภาษารัสเซีย",
+    "langEn": "ภาษาอังกฤษ"
+  },
+  "contactsPage": {
+    "title": "ติดต่อเรา",
+    "metaTitle": "ติดต่อเรา — WPO Translations",
+    "metaDescription": "ข้อมูลการติดต่อและรายละเอียดผู้ให้บริการ WPO Translations สำหรับข้อพิพาท การคืนเงิน และการลบข้อมูล",
+    "providerHeading": "ผู้ให้บริการ",
+    "disputesNote": "สำหรับข้อพิพาท การคืนเงิน และการลบข้อมูล กรุณาติดต่อตามข้อมูลด้านล่าง",
+    "legalNameLabel": "ชื่อนิติบุคคล",
+    "iinBinLabel": "หมายเลขประจำตัว",
+    "addressLabel": "ที่อยู่ทางกฎหมาย / ที่อยู่ทางไปรษณีย์",
+    "phoneLabel": "โทรศัพท์",
+    "emailLabel": "อีเมล",
+    "websiteLabel": "เว็บไซต์"
+  }
+}
