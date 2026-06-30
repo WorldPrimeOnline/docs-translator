@@ -18,7 +18,15 @@ API routes:
 - `POST /api/payments/halyk/initiate` — initiate payment, returns redirect URL
 - `POST /api/payments/halyk/callback` — payment result callback, updates job payment status
 - `POST /api/documents/upload-card` — card-payment upload path
-- `GET /api/cron/reconcile-payments` — scheduled reconciliation
+- `GET /api/cron/reconcile-payments` — reconciles payment_pending/requires_review → paid (triggered by Railway worker every 15 min, NOT by vercel.json — Hobby plan limit)
+- `GET /api/cron/reconcile-refunds` — detects Halyk cabinet operator refunds on paid transactions (triggered by Railway worker every 30 min)
+
+**Cron architecture note**: `vercel.json` only has one cron (`/api/cron/cleanup`, daily). Payment and refund cron endpoints are HTTP routes authenticated with `CRON_SECRET Bearer` token, triggered by the Railway worker on schedule. Worker must have `CRON_SECRET` and `SITE_URL` set.
+
+**Known production incidents fixed (2026-07-01)**:
+- `provider_transaction_id=null`: Halyk callback payload uses `id` field, not `transactionId`. Fixed with `transactionId ?? transaction?.id ?? null` in all three finalization paths (callback, status endpoint, reconcile-payments cron).
+- `payment_transactions.updated_at` missing: `finalize_halyk_payment` RPC failed on production. Migration 0040 adds the column idempotently.
+- `jobs.status` constraint missing `refunded`/`canceled`: Migration 0041 extends the constraint.
 
 `src/components/payment/PaymentComplianceBlock.tsx` wording switches on `cardPaymentsActive`. Do not add code to the stripe/polar directories without being asked.
 
@@ -94,15 +102,26 @@ Operator-initiated only; no customer-facing endpoint.
 
 `src/lib/refunds/service.ts`: `initiateRefund(request)` validates the refundable amount (via Supabase RPC `get_refundable_amount`), creates a `refund_transactions` row with `status = pending_manual`, then calls `createRefundReceiptForRefund`. Halyk refund API not yet integrated — operator must process manually via Halyk merchant cabinet.
 
+**Halyk cabinet refund reconciliation**: `GET /api/cron/reconcile-refunds` checks paid transactions via Halyk Status API, detects REFUND/CANCEL/CANCEL_OLD statusNames, marks payment/job as `refunded`, creates idempotent `refund_transactions` row, queues fiscal refund receipt (only if sale receipt exists). Triggered from Railway worker every 30 min.
+
+**Refunded status in jobs**: `jobs.status` now includes `'refunded'` and `'canceled'` (migration 0041). `customer-order-state.ts` maps these to terminal, non-downloadable states. Dashboard shows a grey badge.
+
 Admin API routes:
 - `POST /api/admin/payments/refund`
 - `POST /api/admin/payments/[paymentId]/refunds`
+
+**Recovery script**: `scripts/recover-payments.ts` — DRY_RUN=true by default. Diagnoses broken paid payments (missing Jira, stuck jobs, Halyk cabinet refunds) and repairs them. Usage: `DRY_RUN=false INVOICE_ID=<id> RECONCILE_REFUND=true npx tsx scripts/recover-payments.ts`
 
 See `docs/payments/REFUNDS.md`.
 
 ## Worker fiscal reconciliation
 
-`reconcileFiscalAndRefunds()` in `worker/src/lib/fiscal-reconciliation.ts` runs every 5 minutes. Finds `fiscal_receipts` with `pending`/`failed`/`retry_required` status and `refund_transactions` with `pending_manual` status, logs them for operator attention, and increments `retry_count` to throttle repeat logging. Does not auto-retry with the manual provider.
+`worker/src/lib/fiscal-reconciliation.ts`:
+- `reconcileFiscalAndRefunds()` — every 5 min: logs pending/failed fiscal_receipts and refund_transactions for operator attention
+- `triggerReconcilePayments()` — every 15 min: calls Next.js `/api/cron/reconcile-payments` via HTTP (CRON_SECRET auth)
+- `triggerReconcileRefunds()` — every 30 min: calls Next.js `/api/cron/reconcile-refunds` via HTTP (CRON_SECRET auth)
+
+All three are called from `worker/src/index.ts` on separate setInterval schedules. Requires `CRON_SECRET` env var in the Railway worker.
 
 ## Reference docs
 
