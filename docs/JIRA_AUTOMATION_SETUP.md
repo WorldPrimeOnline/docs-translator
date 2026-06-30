@@ -345,7 +345,15 @@ On **АКТИВНОЕ ПАРТНЕРСТВО**:
   - `referral_code` from `application.ref_code` (normalized) if unique, otherwise auto-generated from org/name
   - `commission_rate = 0.05`
   - `client_discount_enabled = true`, `type = fixed`, `value = 1000 ₸`, `min_order = 5000 ₸`
+  - `partner_link = https://www.wpotranslations.org/ru?ref=CODE`
+  - `qr_code_url = https://www.wpotranslations.org/api/partners/qr/CODE`
 - Sets `partner_applications.status = approved`, `approved_partner_id`, `approved_at`, `approved_by = 'jira-webhook'`.
+- **Best-effort Jira comment**: after activation, WPO posts a comment to the Partnership issue containing:
+  - Partner code, referral link, QR code URL
+  - Ready-to-send client message (Russian)
+  - Commission rate and discount terms
+  - Stored in `partners.activation_comment_added_at` on success; `activation_comment_error` on failure (non-fatal).
+- **QR code endpoint**: `GET /api/partners/qr/{CODE}` — public, returns PNG, 404 for inactive partners.
 
 ### Deactivation behavior
 
@@ -355,6 +363,7 @@ On **ПАРТНЕРСТВО ОТМЕНЕНО**:
 - Does **not** delete partner, partner_referrals, or orders — all history is preserved.
 - If no partner record exists yet (application not yet approved) → marks application as canceled only.
 - Inactive partner referral codes immediately fail validation at `/api/partners/validate-code`.
+- **Best-effort Jira comment**: posts "Партнёрство отменено. Код CODE деактивирован." to the issue (failure is non-fatal).
 
 ### Issue description format
 

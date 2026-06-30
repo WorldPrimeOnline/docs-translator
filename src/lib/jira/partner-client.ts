@@ -132,3 +132,154 @@ export async function createPartnerApplicationIssue(
     issueUrl,
   };
 }
+
+// ─── Partner activation / deactivation comments ───────────────────────────────
+
+export interface PartnerActivationCommentParams {
+  referralCode: string;
+  partnerLink: string;
+  qrCodeUrl: string;
+  commissionRate: number;
+  clientDiscountEnabled: boolean;
+  clientDiscountType: string | null;
+  clientDiscountValue: number | null;
+  clientDiscountMinOrderAmount: number | null;
+  clientDiscountMaxAmount: number | null;
+}
+
+function fmtNum(n: number): string {
+  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+}
+
+function formatCommission(rate: number): string {
+  const pct = Math.round(rate * 100 * 10) / 10;
+  return `${pct}%`;
+}
+
+function formatDiscount(p: PartnerActivationCommentParams): string {
+  if (!p.clientDiscountEnabled || !p.clientDiscountType || p.clientDiscountValue == null) {
+    return 'не настроена';
+  }
+  const parts: string[] = [];
+  if (p.clientDiscountType === 'percent') {
+    parts.push(`${p.clientDiscountValue}%`);
+  } else {
+    parts.push(`${fmtNum(p.clientDiscountValue)} ₸`);
+  }
+  if (p.clientDiscountMinOrderAmount) {
+    parts.push(`от заказа от ${fmtNum(p.clientDiscountMinOrderAmount)} ₸`);
+  }
+  if (p.clientDiscountMaxAmount) {
+    parts.push(`максимум ${fmtNum(p.clientDiscountMaxAmount)} ₸`);
+  }
+  return parts.join(', ');
+}
+
+function buildActivationCommentAdf(p: PartnerActivationCommentParams): object {
+  const lines = [
+    'Партнёр активирован.',
+    '',
+    `Код партнёра: ${p.referralCode}`,
+    '',
+    'Партнёрская ссылка:',
+    p.partnerLink,
+    '',
+    'QR-код:',
+    p.qrCodeUrl,
+    '',
+    'Текст для отправки клиенту:',
+    `"Для перевода документов используйте WPO Translations:\n${p.partnerLink}\n\nИли введите код ${p.referralCode} в поле «Промокод / код партнёра» при оформлении заказа."`,
+    '',
+    'Условия:',
+    `- Комиссия партнёра: ${formatCommission(p.commissionRate)}`,
+    `- Скидка клиенту: ${formatDiscount(p)}`,
+  ];
+  return {
+    type: 'doc',
+    version: 1,
+    content: lines.map((text) => ({
+      type: 'paragraph',
+      content: text === '' ? [] : [{ type: 'text', text }],
+    })),
+  };
+}
+
+async function jiraFetchPartner(path: string, options: RequestInit): Promise<Response> {
+  const creds = getJiraCredentials();
+  if (!creds) throw new Error('Jira not configured');
+  return fetch(`${creds.baseUrl}/rest/api/3${path}`, {
+    ...options,
+    headers: {
+      Authorization: makeAuthHeader(creds),
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      ...(options.headers as Record<string, string> ?? {}),
+    },
+  });
+}
+
+/**
+ * Add an activation summary comment to the Jira Partnership issue.
+ * Called after partner creation/reactivation. Must be wrapped in try/catch by caller.
+ */
+export async function addPartnerActivationComment(
+  issueKey: string,
+  params: PartnerActivationCommentParams,
+): Promise<void> {
+  const creds = getJiraCredentials();
+  if (!creds) {
+    console.log('[jira/partner] Jira not configured — skipping activation comment');
+    return;
+  }
+
+  const body = buildActivationCommentAdf(params);
+  const res = await jiraFetchPartner(`/issue/${issueKey}/comment`, {
+    method: 'POST',
+    body: JSON.stringify({ body }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => '');
+    throw new Error(`Jira addComment failed: ${res.status} — ${errText.slice(0, 200)}`);
+  }
+
+  console.log(`[jira/partner] Activation comment added to ${issueKey} for code ${params.referralCode}`);
+}
+
+/**
+ * Add a deactivation notice comment to the Jira Partnership issue.
+ * Called after partner deactivation. Must be wrapped in try/catch by caller.
+ */
+export async function addPartnerDeactivationComment(
+  issueKey: string,
+  referralCode: string,
+): Promise<void> {
+  const creds = getJiraCredentials();
+  if (!creds) {
+    console.log('[jira/partner] Jira not configured — skipping deactivation comment');
+    return;
+  }
+
+  const body = {
+    type: 'doc',
+    version: 1,
+    content: [
+      {
+        type: 'paragraph',
+        content: [{ type: 'text', text: `Партнёрство отменено. Код ${referralCode} деактивирован и больше не применяется на сайте.` }],
+      },
+    ],
+  };
+
+  const res = await jiraFetchPartner(`/issue/${issueKey}/comment`, {
+    method: 'POST',
+    body: JSON.stringify({ body }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => '');
+    throw new Error(`Jira addDeactivationComment failed: ${res.status} — ${errText.slice(0, 200)}`);
+  }
+
+  console.log(`[jira/partner] Deactivation comment added to ${issueKey} for code ${referralCode}`);
+}

@@ -740,6 +740,10 @@ export type Database = {
           is_active: boolean;
           deactivated_at: string | null;
           deactivation_reason: string | null;
+          partner_link: string | null;
+          qr_code_url: string | null;
+          activation_comment_added_at: string | null;
+          activation_comment_error: string | null;
           notes: string | null;
           client_discount_enabled: boolean;
           client_discount_type: string | null;
@@ -761,6 +765,10 @@ export type Database = {
           is_active?: boolean;
           deactivated_at?: string | null;
           deactivation_reason?: string | null;
+          partner_link?: string | null;
+          qr_code_url?: string | null;
+          activation_comment_added_at?: string | null;
+          activation_comment_error?: string | null;
           notes?: string | null;
           client_discount_enabled?: boolean;
           client_discount_type?: string | null;
@@ -780,6 +788,10 @@ export type Database = {
           is_active?: boolean;
           deactivated_at?: string | null;
           deactivation_reason?: string | null;
+          partner_link?: string | null;
+          qr_code_url?: string | null;
+          activation_comment_added_at?: string | null;
+          activation_comment_error?: string | null;
           notes?: string | null;
           client_discount_enabled?: boolean;
           client_discount_type?: string | null;

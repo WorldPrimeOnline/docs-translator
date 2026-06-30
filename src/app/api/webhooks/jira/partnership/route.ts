@@ -35,8 +35,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { supabaseServer } from '@/lib/supabase/server';
+import {
+  addPartnerActivationComment,
+  addPartnerDeactivationComment,
+  type PartnerActivationCommentParams,
+} from '@/lib/jira/partner-client';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
+
+const PRODUCTION_DOMAIN = 'https://www.wpotranslations.org';
 
 // Canonical forms use Е (without Ё) — normalizeStatus() maps Ё→Е before comparison.
 // Jira Automation sends "АКТИВНОЕ ПАРТНЕРСТВО" (without Ё); both variants are accepted.
@@ -165,12 +172,28 @@ async function activatePartner(app: AppRow, issueKey: string): Promise<NextRespo
 
   // If the application already has a partner record, re-activate it
   if (app.approved_partner_id) {
+    // Fetch existing partner to get referral code for comment + link generation
+    const { data: existingPartner } = await supabaseServer
+      .from('partners')
+      .select('id, referral_code, commission_rate, client_discount_enabled, client_discount_type, client_discount_value, client_discount_min_order_amount, client_discount_max_amount')
+      .eq('id', app.approved_partner_id)
+      .single();
+
+    const partnerLink = existingPartner
+      ? `${PRODUCTION_DOMAIN}/ru?ref=${existingPartner.referral_code}`
+      : null;
+    const qrCodeUrl = existingPartner
+      ? `${PRODUCTION_DOMAIN}/api/partners/qr/${existingPartner.referral_code}`
+      : null;
+
     const { error } = await supabaseServer
       .from('partners')
       .update({
         is_active: true,
         deactivated_at: null,
         deactivation_reason: null,
+        ...(partnerLink ? { partner_link: partnerLink } : {}),
+        ...(qrCodeUrl ? { qr_code_url: qrCodeUrl } : {}),
         updated_at: now,
       })
       .eq('id', app.approved_partner_id);
@@ -178,6 +201,35 @@ async function activatePartner(app: AppRow, issueKey: string): Promise<NextRespo
     if (error) {
       console.error('[jira/partnership] re-activate partner failed:', error.message);
       return NextResponse.json({ error: 'Failed to re-activate partner' }, { status: 500 });
+    }
+
+    // Best-effort Jira comment
+    if (existingPartner) {
+      try {
+        const commentParams: PartnerActivationCommentParams = {
+          referralCode: existingPartner.referral_code,
+          partnerLink: partnerLink!,
+          qrCodeUrl: qrCodeUrl!,
+          commissionRate: existingPartner.commission_rate ?? DEFAULT_COMMISSION_RATE,
+          clientDiscountEnabled: existingPartner.client_discount_enabled ?? DEFAULT_DISCOUNT_ENABLED,
+          clientDiscountType: existingPartner.client_discount_type ?? DEFAULT_DISCOUNT_TYPE,
+          clientDiscountValue: existingPartner.client_discount_value ?? DEFAULT_DISCOUNT_VALUE,
+          clientDiscountMinOrderAmount: existingPartner.client_discount_min_order_amount ?? DEFAULT_DISCOUNT_MIN_ORDER,
+          clientDiscountMaxAmount: existingPartner.client_discount_max_amount ?? DEFAULT_DISCOUNT_MAX,
+        };
+        await addPartnerActivationComment(issueKey, commentParams);
+        await supabaseServer
+          .from('partners')
+          .update({ activation_comment_added_at: new Date().toISOString() })
+          .eq('id', app.approved_partner_id);
+      } catch (commentErr) {
+        const sanitized = String(commentErr).replace(/https?:\/\/[^\s]+/g, '[url]').slice(0, 500);
+        console.error('[jira/partnership] activation comment failed (non-fatal):', sanitized);
+        await supabaseServer
+          .from('partners')
+          .update({ activation_comment_error: sanitized })
+          .eq('id', app.approved_partner_id);
+      }
     }
 
     console.log(`[jira/partnership] re-activated partner ${app.approved_partner_id} for app ${app.id} via ${issueKey}`);
@@ -215,7 +267,11 @@ async function activatePartner(app: AppRow, issueKey: string): Promise<NextRespo
     return NextResponse.json({ error: 'Failed to create partner record' }, { status: 500 });
   }
 
-  // Update application with partner link — best-effort (non-fatal if fails)
+  // Build links from the DB-confirmed referral code
+  const partnerLink = `${PRODUCTION_DOMAIN}/ru?ref=${partner.referral_code}`;
+  const qrCodeUrl   = `${PRODUCTION_DOMAIN}/api/partners/qr/${partner.referral_code}`;
+
+  // Update application with approval + store partner link/QR in partners row
   const { error: appUpdateErr } = await supabaseServer
     .from('partner_applications')
     .update({
@@ -231,13 +287,39 @@ async function activatePartner(app: AppRow, issueKey: string): Promise<NextRespo
     console.error('[jira/partnership] application update failed (non-fatal):', appUpdateErr.message, { appId: app.id, partnerId: partner.id });
   }
 
+  // Best-effort Jira comment
+  try {
+    await addPartnerActivationComment(issueKey, {
+      referralCode: partner.referral_code,
+      partnerLink,
+      qrCodeUrl,
+      commissionRate: DEFAULT_COMMISSION_RATE,
+      clientDiscountEnabled: DEFAULT_DISCOUNT_ENABLED,
+      clientDiscountType: DEFAULT_DISCOUNT_TYPE,
+      clientDiscountValue: DEFAULT_DISCOUNT_VALUE,
+      clientDiscountMinOrderAmount: DEFAULT_DISCOUNT_MIN_ORDER,
+      clientDiscountMaxAmount: DEFAULT_DISCOUNT_MAX,
+    });
+    await supabaseServer
+      .from('partners')
+      .update({ partner_link: partnerLink, qr_code_url: qrCodeUrl, activation_comment_added_at: new Date().toISOString() })
+      .eq('id', partner.id);
+  } catch (commentErr) {
+    const sanitized = String(commentErr).replace(/https?:\/\/[^\s]+/g, '[url]').slice(0, 500);
+    console.error('[jira/partnership] activation comment failed (non-fatal):', sanitized);
+    await supabaseServer
+      .from('partners')
+      .update({ partner_link: partnerLink, qr_code_url: qrCodeUrl, activation_comment_error: sanitized })
+      .eq('id', partner.id);
+  }
+
   console.log(`[jira/partnership] created partner ${partner.id} code="${partner.referral_code}" for app ${app.id} via ${issueKey}`);
   return NextResponse.json({
     ok: true,
     action: 'created',
     partnerId: partner.id,
     referralCode: partner.referral_code,
-    referralLink: `/ru?ref=${partner.referral_code}`,
+    referralLink: partnerLink,
   });
 }
 
@@ -264,6 +346,13 @@ async function deactivatePartner(app: AppRow, issueKey: string): Promise<NextRes
     return NextResponse.json({ ok: true, action: 'application_canceled' });
   }
 
+  // Fetch partner to get referral code for deactivation comment
+  const { data: existingPartner } = await supabaseServer
+    .from('partners')
+    .select('id, referral_code')
+    .eq('id', app.approved_partner_id)
+    .single();
+
   const { error } = await supabaseServer
     .from('partners')
     .update({
@@ -277,6 +366,15 @@ async function deactivatePartner(app: AppRow, issueKey: string): Promise<NextRes
   if (error) {
     console.error('[jira/partnership] deactivate partner failed:', error.message);
     return NextResponse.json({ error: 'Failed to deactivate partner' }, { status: 500 });
+  }
+
+  // Best-effort Jira deactivation comment
+  if (existingPartner?.referral_code) {
+    try {
+      await addPartnerDeactivationComment(issueKey, existingPartner.referral_code);
+    } catch (commentErr) {
+      console.error('[jira/partnership] deactivation comment failed (non-fatal):', String(commentErr).slice(0, 300));
+    }
   }
 
   console.log(`[jira/partnership] deactivated partner ${app.approved_partner_id} for app ${app.id} via ${issueKey}`);
