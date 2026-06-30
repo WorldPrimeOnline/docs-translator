@@ -823,9 +823,12 @@ export type Database = {
           order_completed_at: string | null;
           commission_base_kzt: number | null;
           commission_kzt: number | null;
-          /** pending | confirmed | refunded | canceled | paid | excluded */
+          /** pending | confirmed | in_payout | paid | refunded | canceled | excluded */
           status: string;
           payout_id: string | null;
+          confirmed_at: string | null;
+          included_in_payout_at: string | null;
+          paid_at: string | null;
           created_at: string;
         };
         Insert: {
@@ -848,6 +851,9 @@ export type Database = {
           commission_kzt?: number | null;
           status?: string;
           payout_id?: string | null;
+          confirmed_at?: string | null;
+          included_in_payout_at?: string | null;
+          paid_at?: string | null;
           created_at?: string;
         };
         Update: {
@@ -857,11 +863,15 @@ export type Database = {
           client_discount_applied_kzt?: number | null;
           status?: string;
           payout_id?: string | null;
+          confirmed_at?: string | null;
+          included_in_payout_at?: string | null;
+          paid_at?: string | null;
         };
         Relationships: [
           { foreignKeyName: 'partner_referrals_partner_id_fkey'; columns: ['partner_id']; referencedRelation: 'partners'; referencedColumns: ['id'] },
           { foreignKeyName: 'partner_referrals_job_id_fkey'; columns: ['job_id']; referencedRelation: 'jobs'; referencedColumns: ['id'] },
           { foreignKeyName: 'partner_referrals_user_id_fkey'; columns: ['user_id']; referencedRelation: 'users'; referencedColumns: ['id'] },
+          { foreignKeyName: 'partner_referrals_payout_fk'; columns: ['payout_id']; referencedRelation: 'partner_payouts'; referencedColumns: ['id'] },
         ];
       };
       partner_payouts: {
@@ -873,9 +883,22 @@ export type Database = {
           gross_kzt: number;
           net_kzt: number;
           referral_count: number;
-          status: 'pending' | 'approved' | 'paid' | 'cancelled';
+          gross_order_amount_kzt: number;
+          total_client_discount_kzt: number;
+          total_commission_base_kzt: number;
+          total_commission_amount_kzt: number;
+          currency: string;
+          /** pending | pending_approval | approved | paid | cancelled | rejected */
+          status: string;
           payment_details: Json | null;
           notes: string | null;
+          jira_issue_key: string | null;
+          jira_issue_url: string | null;
+          jira_error: string | null;
+          generated_at: string | null;
+          approved_at: string | null;
+          paid_at: string | null;
+          payment_reference: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -887,9 +910,21 @@ export type Database = {
           gross_kzt?: number;
           net_kzt?: number;
           referral_count?: number;
-          status?: 'pending' | 'approved' | 'paid' | 'cancelled';
+          gross_order_amount_kzt?: number;
+          total_client_discount_kzt?: number;
+          total_commission_base_kzt?: number;
+          total_commission_amount_kzt?: number;
+          currency?: string;
+          status?: string;
           payment_details?: Json | null;
           notes?: string | null;
+          jira_issue_key?: string | null;
+          jira_issue_url?: string | null;
+          jira_error?: string | null;
+          generated_at?: string | null;
+          approved_at?: string | null;
+          paid_at?: string | null;
+          payment_reference?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -897,9 +932,21 @@ export type Database = {
           gross_kzt?: number;
           net_kzt?: number;
           referral_count?: number;
-          status?: 'pending' | 'approved' | 'paid' | 'cancelled';
+          gross_order_amount_kzt?: number;
+          total_client_discount_kzt?: number;
+          total_commission_base_kzt?: number;
+          total_commission_amount_kzt?: number;
+          currency?: string;
+          status?: string;
           payment_details?: Json | null;
           notes?: string | null;
+          jira_issue_key?: string | null;
+          jira_issue_url?: string | null;
+          jira_error?: string | null;
+          generated_at?: string | null;
+          approved_at?: string | null;
+          paid_at?: string | null;
+          payment_reference?: string | null;
           updated_at?: string;
         };
         Relationships: [

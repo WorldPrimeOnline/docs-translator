@@ -82,7 +82,7 @@ Other locale-prefixed pages: `contacts` (`src/app/[locale]/contacts/`), `auth` (
 
 `src/lib/referral/server.ts` — server-side partner referral logic (three best-effort functions):
 - `attachReferralToOrder(params)` — called from upload routes after job creation; looks up active partner by `referral_code`, inserts `partner_referrals` row with `status=pending`. No-op if code absent, partner not found, or inactive.
-- `confirmReferral(jobId, quoteId?)` — called from Halyk ePay callback after successful `finalize_halyk_payment` RPC; calculates `commission_base_kzt` (excludes `notary_official_fee` and `delivery_fee` from `price_quote_items`), applies snapshotted `commission_rate`, sets `status=confirmed`.
+- `confirmReferral(jobId, quoteId?)` — called from Halyk ePay callback; calculates `commission_base_kzt` (excludes `notary_official_fee` and `delivery_fee` from `price_quote_items`), applies snapshotted `commission_rate`, sets `status=confirmed` and `confirmed_at=now()`.
 - `cancelReferral(jobId, reason)` — sets `status=refunded|canceled`, zeros commission. Wire to admin refund route when it moves out of 501 placeholder.
 
 Client sends `refCode` + UTMs via FormData. Commission calculation and discount application are server-only. Dashboard wiring: the dashboard has a visible **promo code field** (`dashboard.promoCode.*` i18n keys) that is pre-filled from `loadReferralParams()` on mount. User can edit or apply the code manually; `POST /api/partners/validate-code` returns discount info for display. The field value (not storage) is used as `refCode` on submit. Server recalculates discount from DB — client values are never trusted.
@@ -94,7 +94,14 @@ Client sends `refCode` + UTMs via FormData. Commission calculation and discount 
 4. Referral stored with `order_amount_kzt = basePreDiscountKzt` and `client_discount_applied_kzt = discountKzt`.
 5. `confirmReferral` calculates `commission_base_kzt = order_amount_kzt − client_discount_applied_kzt − pass_throughs`.
 
-Referral statuses: `pending | confirmed | refunded | canceled | paid | excluded`. Unique index on `partner_referrals.job_id` (where not null) prevents duplicate referrals per order.
+Referral statuses: `pending | confirmed | in_payout | paid | refunded | canceled | excluded`. `confirmed_at` column (migration 0039) is the authoritative payout period filter timestamp.
+
+**Monthly payout workflow** (operator scripts — NOT automatic bank payout):
+- `src/lib/partners/generate-payout.ts` — `generateMonthlyPayouts()` groups confirmed referrals by partner, creates `partner_payouts` rows (`status=pending_approval`), marks referrals `in_payout`, creates Jira Payout issues in project `WPO` / issue type `Payout` (hardcoded, not env vars).
+- `src/lib/partners/mark-payout.ts` — `markPayoutPaid()` marks payout and linked referrals as paid, records `payment_reference`, optionally adds Jira comment. Idempotent.
+- Scripts: `scripts/partners/generate-monthly-payout.ts` → `npm run partners:payouts`, `scripts/partners/mark-payout-paid.ts` → `npm run partners:mark-paid`.
+- Jira client: `src/lib/jira/payout-client.ts` — `createPayoutIssue()`, `addPayoutPaidComment()`.
+- Refunds after payout are a manual accounting task. No automatic negative adjustment system exists yet.
 
 ## Legal system
 

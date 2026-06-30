@@ -346,3 +346,37 @@ Partner earns commission on WPO's net service revenue after discount.
 
 **Impacted files:**
 `src/app/api/webhooks/jira/partnership/route.ts`, `src/lib/jira/partner-client.ts`, `src/app/[locale]/dashboard/page.tsx`, `src/lib/partners/__tests__/discount.test.ts`, `messages/*/order.json` (13 locales), `supabase/migrations/0038_partner_aggressive_defaults.sql`, `docs/JIRA_AUTOMATION_SETUP.md`.
+
+---
+
+## 2026-06-30 — Partner payout workflow: operator scripts, no bank automation
+
+**Decision:** Monthly partner payout generation and marking is done via operator CLI scripts, not automatic bank transfers. Jira project `WPO` / issue type `Payout` are hardcoded (not env-configurable) — they are business rules.
+
+**Payout status flow:**
+- `partner_referrals`: `pending → confirmed → in_payout → paid` (also: `refunded | canceled`)
+- `partner_payouts`: `pending_approval → paid` (or `rejected`)
+
+**Jira routing (hardcoded):**
+- `PARTNER_PAYOUT_JIRA_PROJECT_KEY = 'WPO'`
+- `PARTNER_PAYOUT_JIRA_ISSUE_TYPE = 'Payout'`
+- Do NOT move to env vars. These are business rules, not deployment config.
+
+**Refunds after payout:** Not automatically handled. A referral that is `in_payout` or `paid` and then refunded requires manual accounting adjustment in the next payout cycle. Document risk, do not silently modify paid referrals.
+
+**Commission base invariant:** Commission is always calculated on `commission_base_kzt` (post-discount, post-pass-through), never on gross `order_amount_kzt`. Enforced in `confirmReferral()` and `generateMonthlyPayouts()`.
+
+**Operational commands:**
+```
+# Dry run (safe, no DB writes):
+npm run partners:payouts -- --period-start=YYYY-MM-01 --period-end=YYYY-MM-DD --dry-run
+
+# Generate payouts:
+npm run partners:payouts -- --period-start=YYYY-MM-01 --period-end=YYYY-MM-DD
+
+# Mark paid (after manual bank transfer):
+npm run partners:mark-paid -- --payout-id=<uuid> --payment-reference="Halyk 2026-08-05"
+```
+
+**Impacted files:**
+`supabase/migrations/0039_partner_payout_workflow.sql`, `src/lib/partners/generate-payout.ts`, `src/lib/partners/mark-payout.ts`, `src/lib/jira/payout-client.ts`, `scripts/partners/generate-monthly-payout.ts`, `scripts/partners/mark-payout-paid.ts`, `src/types/supabase.ts`, `src/lib/referral/server.ts` (adds `confirmed_at`), `package.json`.
