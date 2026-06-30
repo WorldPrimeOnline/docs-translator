@@ -58,7 +58,9 @@
       "outForDelivery": "Курьерт хүлээлгэн өгсөн",
       "delivered": "Захиалга хүргэгдсэн",
       "pickedUp": "Захиалга авагдсан",
-      "operatorProcessing": "Оператор боловсруулж байна"
+      "operatorProcessing": "Оператор боловсруулж байна",
+      "refunded": "Буцаагдсан",
+      "canceled": "Цуцалсан"
     },
     "langs": {
       "auto": "Автомат илрүүлэх",

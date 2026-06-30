@@ -58,7 +58,9 @@
       "outForDelivery": "Kurýere berildi",
       "delivered": "Sargyt eltildi",
       "pickedUp": "Sargyt berildi",
-      "operatorProcessing": "Operator tarapyndan işlenýär"
+      "operatorProcessing": "Operator tarapyndan işlenýär",
+      "refunded": "Yzyna gaýtaryldy",
+      "canceled": "Ýatyryldy"
     },
     "langs": {
       "auto": "Awtomatik anykla",

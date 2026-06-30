@@ -302,7 +302,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       'finalize_halyk_payment',
       {
         p_invoice_id: invoiceId,
-        p_transaction_id: transaction?.transactionId ?? null,
+        p_transaction_id: transaction?.transactionId ?? transaction?.id ?? null,
         p_provider_status: statusName ?? null,
         p_provider_reason: transaction?.reason ?? null,
         p_provider_reason_code: transaction?.reasonCode ?? null,

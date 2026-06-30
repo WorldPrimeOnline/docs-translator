@@ -40,12 +40,6 @@ function makePartnerChain(partner: unknown) {
   };
 }
 
-function makeInsertChain(error: unknown = null) {
-  return {
-    insert: jest.fn().mockResolvedValue({ error }),
-  };
-}
-
 const ACTIVE_PARTNER = { id: 'partner-uuid', commission_rate: 0.05, is_active: true };
 const INACTIVE_PARTNER = { id: 'partner-uuid', commission_rate: 0.05, is_active: false };
 

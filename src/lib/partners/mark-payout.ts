@@ -31,6 +31,7 @@ export async function markPayoutPaid(
   const paidAt = params.paidAt ?? new Date().toISOString();
 
   // Load payout row
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: payout, error: loadErr } = await (db as any)
     .from('partner_payouts')
     .select('id, status, jira_issue_key, notes')
@@ -56,6 +57,7 @@ export async function markPayoutPaid(
   const updatedNotes = buildNotes(payout.notes as string | null, note);
 
   // Update partner_payouts
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error: payoutUpdateErr } = await (db as any)
     .from('partner_payouts')
     .update({
@@ -72,6 +74,7 @@ export async function markPayoutPaid(
   }
 
   // Update included partner_referrals
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: updatedRefs, error: refsUpdateErr } = await (db as any)
     .from('partner_referrals')
     .update({ status: 'paid', paid_at: paidAt })

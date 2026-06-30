@@ -48,6 +48,8 @@ const schema = z.object({
   TELEGRAM_OPERATOR_CHAT_ID: z.string().optional(),
   TELEGRAM_TRANSLATOR_CHAT_ID: z.string().optional(),
   TELEGRAM_NOTARY_CHAT_ID: z.string().optional(),
+  // Internal cron secret — used to trigger Next.js reconciliation endpoints from the worker
+  CRON_SECRET: z.string().optional(),
 });
 
 function load() {

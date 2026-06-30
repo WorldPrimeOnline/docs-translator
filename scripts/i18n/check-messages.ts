@@ -16,7 +16,7 @@ import path from 'path';
 const ROOT = path.resolve(__dirname, '../..');
 const MESSAGES_DIR = path.join(ROOT, 'messages');
 const MASTER_LOCALE = 'ru';
-const LOCALES = ['ru', 'en', 'kk', 'zh', 'ko', 'tj', 'uz', 'tk', 'mn', 'ky', 'es'];
+const LOCALES = ['ru', 'en', 'kk', 'zh', 'ko', 'tj', 'uz', 'tk', 'mn', 'ky', 'es', 'th'];
 const NAMESPACES = [
   'navigation', 'home', 'pricing', 'landing-pages',
   'footer', 'auth', 'order', 'checkout', 'legal', 'common', 'errors',

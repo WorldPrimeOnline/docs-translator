@@ -12,7 +12,7 @@ import fs from 'fs';
 import path from 'path';
 
 const ROOT = path.resolve(__dirname, '../..');
-const ENABLED_LOCALES = ['ru', 'en', 'kk', 'uz', 'ky'];
+const ENABLED_LOCALES = ['ru', 'en', 'kk', 'uz', 'ky', 'th'];
 
 // Russian phrases that are NOT legitimate Kazakh Cyrillic — they're Russian words
 const KK_FORBIDDEN_RUSSIAN_PHRASES = [
@@ -234,6 +234,54 @@ function checkFile(filePath: string, locale: string, ns: string): void {
       for (const pattern of RAW_KEY_PATTERNS) {
         if (pattern.test(value)) {
           fail(rel, ln, `Raw i18n key pattern "${pattern}" appears as a VALUE — key was never resolved`);
+        }
+      }
+    }
+
+    // TH: forbidden Russian/English fallback phrases and dangerous Thai legal claims
+    if (locale === 'th') {
+      const TH_FORBIDDEN_RUSSIAN = [
+        'Цены', 'Документы', 'Поддерживаемые', 'Начать перевод',
+        'за документ', 'Электронный перевод', 'Перевод с печатью исполнителя',
+        'Перевод с нотариальным заверением', 'Как это работает', 'Четыре шага',
+        'Стоимость', 'Простая цена', 'Загрузите документ', 'Проверьте цену',
+        'ИП WorldPrimeOnline', 'г. Алматы',
+      ];
+      // Check only the value portion to avoid false positives from JSON key names like "simplePricing"
+      const TH_FORBIDDEN_ENGLISH = [
+        'Simple pricing', ': "Pricing"', 'Supported documents', 'How it works',
+        'Start translation', 'per document', 'Electronic translation',
+        'Translation with provider stamp', 'Translation with notarization',
+        'WPO solves this', 'Professional Document Translation',
+        'THE PROBLEM', 'PROCESSING PIPELINE',
+      ];
+      const TH_DANGEROUS_PHRASES = [
+        'รับรองโดยหน่วยงานรัฐ', 'รับรองอย่างเป็นทางการโดยรัฐบาล',
+        'รับประกันผ่าน',
+        'แปลรับรองโดย AI', 'การแปลที่ได้รับการรับรองโดย AI',
+        'รับรองเอกสารอัตโนมัติ', 'โนตารี่อัตโนมัติ',
+        'แปลโดยนักแปลสาบานตน',
+      ];
+      // Dangerous positive acceptance guarantee — only flag if NOT a negated disclaimer
+      // Thai negation forms: ไม่รับประกัน / ไม่ได้รับประกัน / ไม่มีการรับประกัน
+      const thHasNegatedAcceptance = line.includes('ไม่รับประกัน') ||
+        line.includes('ไม่ได้รับประกัน') || line.includes('ไม่มีการรับประกัน');
+      if (line.includes('รับประกันการยอมรับ') && !thHasNegatedAcceptance) {
+        fail(rel, ln, `Dangerous Thai legal claim in TH locale: "รับประกันการยอมรับ" (without negation)`);
+      }
+      for (const phrase of TH_FORBIDDEN_RUSSIAN) {
+        if (line.includes(phrase)) {
+          fail(rel, ln, `Russian fallback in TH locale: "${phrase}"`);
+        }
+      }
+      for (const phrase of TH_FORBIDDEN_ENGLISH) {
+        if (line.includes(phrase)) {
+          fail(rel, ln, `English fallback in TH locale: "${phrase}"`);
+        }
+      }
+      for (const phrase of TH_DANGEROUS_PHRASES) {
+        if (line.includes(phrase)) {
+          fail(rel, ln, `Dangerous Thai legal claim in TH locale: "${phrase}"`);
         }
       }
     }

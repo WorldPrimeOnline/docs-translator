@@ -150,7 +150,7 @@ export async function GET(
           'finalize_halyk_payment',
           {
             p_invoice_id: paymentTx.provider_invoice_id,
-            p_transaction_id: statusResp.transaction?.transactionId ?? null,
+            p_transaction_id: statusResp.transaction?.transactionId ?? statusResp.transaction?.id ?? null,
             p_provider_status: statusResp.transaction?.statusName ?? null,
             p_provider_reason: statusResp.transaction?.reason ?? null,
             p_provider_reason_code: statusResp.transaction?.reasonCode ?? null,

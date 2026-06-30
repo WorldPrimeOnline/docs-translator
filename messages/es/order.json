@@ -58,7 +58,9 @@
       "outForDelivery": "Enviado al mensajero",
       "delivered": "Pedido entregado",
       "pickedUp": "Pedido recogido",
-      "operatorProcessing": "Siendo procesado por el operador"
+      "operatorProcessing": "Siendo procesado por el operador",
+      "refunded": "Reembolsado",
+      "canceled": "Cancelado"
     },
     "langs": {
       "auto": "Detectar automáticamente",

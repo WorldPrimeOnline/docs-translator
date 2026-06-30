@@ -58,7 +58,9 @@
       "outForDelivery": "Kuryerga topshirildi",
       "delivered": "Buyurtma yetkazildi",
       "pickedUp": "Buyurtma berildi",
-      "operatorProcessing": "Operator tomonidan qayta ishlanmoqda"
+      "operatorProcessing": "Operator tomonidan qayta ishlanmoqda",
+      "refunded": "Qaytarildi",
+      "canceled": "Bekor qilindi"
     },
     "langs": {
       "auto": "Avtomatik aniqlash",

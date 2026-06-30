@@ -123,6 +123,7 @@ export async function generateMonthlyPayouts(
 
   // Fetch partner info for all affected partners
   const partnerIds = [...new Set(eligible.map((r) => r.partner_id))];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: partners, error: partnerError } = await (db as any)
     .from('partners')
     .select('id, name, partner_type, referral_code, is_active')
@@ -178,6 +179,7 @@ export async function generateMonthlyPayouts(
     const refs = groups.get(summary.partner_id)!;
 
     // Idempotency: skip if non-rejected payout already exists for this partner + period
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: existing } = await (db as any)
       .from('partner_payouts')
       .select('id, status')
@@ -196,6 +198,7 @@ export async function generateMonthlyPayouts(
     }
 
     // Create partner_payouts row
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: payout, error: payoutErr } = await (db as any)
       .from('partner_payouts')
       .insert({
@@ -223,6 +226,7 @@ export async function generateMonthlyPayouts(
     summary.payout_id = payout.id;
 
     // Mark referrals as in_payout
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error: updateErr } = await (db as any)
       .from('partner_referrals')
       .update({
@@ -266,6 +270,7 @@ export async function generateMonthlyPayouts(
 
         summary.jira_issue_key = jiraResult.issueKey;
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await (db as any)
           .from('partner_payouts')
           .update({ jira_issue_key: jiraResult.issueKey, jira_issue_url: jiraResult.issueUrl })
@@ -274,6 +279,7 @@ export async function generateMonthlyPayouts(
         const sanitized = (jiraErr instanceof Error ? jiraErr.message : String(jiraErr)).slice(0, 500);
         summary.jira_error = sanitized;
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await (db as any)
           .from('partner_payouts')
           .update({ jira_error: sanitized })

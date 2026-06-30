@@ -81,7 +81,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data: rpcResult, error: rpcError } = await (supabaseServer as any).rpc('finalize_halyk_payment', {
           p_invoice_id: tx.provider_invoice_id,
-          p_transaction_id: transaction?.transactionId ?? null,
+          p_transaction_id: transaction?.transactionId ?? transaction?.id ?? null,
           p_provider_status: statusName ?? null,
           p_provider_reason: transaction?.reason ?? null,
           p_provider_reason_code: transaction?.reasonCode ?? null,

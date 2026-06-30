@@ -8,6 +8,8 @@
  * 1. Finds fiscal_receipts in pending/retry_required status and logs them for
  *    operator attention. (These can occur if the web app call failed transiently.)
  * 2. Finds refund_transactions in pending_manual status and logs them for operator.
+ * 3. Triggers Next.js reconcile-payments and reconcile-refunds cron endpoints
+ *    (since vercel.json only allows one cron on the Hobby plan).
  *
  * Statuses NOT auto-retried:
  * - pending_manual: requires operator action
@@ -18,6 +20,7 @@
  * Never logs more than MAX_ITEMS_PER_CYCLE items per cycle to avoid log spam.
  */
 import { supabase } from './supabase';
+import { env } from './env';
 
 const MAX_ITEMS_PER_CYCLE = 10;
 const RETRY_AFTER_MINUTES = 5;
@@ -25,6 +28,61 @@ const RETRY_AFTER_MINUTES = 5;
 export async function reconcileFiscalAndRefunds(): Promise<void> {
   await reconcilePendingFiscalReceipts();
   await reconcilePendingRefunds();
+}
+
+/**
+ * Trigger Next.js reconcile-payments cron endpoint from the worker.
+ * This runs every 15 minutes from index.ts since vercel.json cannot host
+ * additional crons on the Hobby plan.
+ */
+export async function triggerReconcilePayments(): Promise<void> {
+  if (!env.CRON_SECRET) {
+    console.warn('[fiscal-reconcile] CRON_SECRET not set — skipping reconcile-payments trigger');
+    return;
+  }
+  try {
+    const url = `${env.SITE_URL}/api/cron/reconcile-payments`;
+    const resp = await fetch(url, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${env.CRON_SECRET}` },
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (!resp.ok) {
+      console.error('[fiscal-reconcile] reconcile-payments returned:', resp.status);
+    } else {
+      const body = await resp.json() as Record<string, unknown>;
+      console.info('[fiscal-reconcile] reconcile-payments result:', body);
+    }
+  } catch (err) {
+    console.error('[fiscal-reconcile] reconcile-payments trigger error:', (err as Error).message);
+  }
+}
+
+/**
+ * Trigger Next.js reconcile-refunds cron endpoint from the worker.
+ * This runs every 30 minutes from index.ts.
+ */
+export async function triggerReconcileRefunds(): Promise<void> {
+  if (!env.CRON_SECRET) {
+    console.warn('[fiscal-reconcile] CRON_SECRET not set — skipping reconcile-refunds trigger');
+    return;
+  }
+  try {
+    const url = `${env.SITE_URL}/api/cron/reconcile-refunds`;
+    const resp = await fetch(url, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${env.CRON_SECRET}` },
+      signal: AbortSignal.timeout(45_000),
+    });
+    if (!resp.ok) {
+      console.error('[fiscal-reconcile] reconcile-refunds returned:', resp.status);
+    } else {
+      const body = await resp.json() as Record<string, unknown>;
+      console.info('[fiscal-reconcile] reconcile-refunds result:', body);
+    }
+  } catch (err) {
+    console.error('[fiscal-reconcile] reconcile-refunds trigger error:', (err as Error).message);
+  }
 }
 
 async function reconcilePendingFiscalReceipts(): Promise<void> {

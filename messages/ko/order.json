@@ -58,7 +58,9 @@
       "outForDelivery": "배달원에게 전달됨",
       "delivered": "주문 배달 완료",
       "pickedUp": "주문 수령 완료",
-      "operatorProcessing": "담당자가 처리 중"
+      "operatorProcessing": "담당자가 처리 중",
+      "refunded": "환불됨",
+      "canceled": "취소됨"
     },
     "langs": {
       "auto": "자동 감지",

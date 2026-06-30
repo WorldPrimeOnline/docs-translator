@@ -58,7 +58,9 @@
       "outForDelivery": "已转交快递员",
       "delivered": "订单已送达",
       "pickedUp": "订单已取件",
-      "operatorProcessing": "操作员正在处理"
+      "operatorProcessing": "操作员正在处理",
+      "refunded": "已退款",
+      "canceled": "已取消"
     },
     "langs": {
       "auto": "自动检测",
