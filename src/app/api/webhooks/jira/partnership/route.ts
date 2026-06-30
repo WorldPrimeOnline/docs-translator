@@ -60,13 +60,22 @@ function normalizeStatus(s: string): string {
   return s.trim().toUpperCase().replace(/Ё/g, 'Е');
 }
 
-const DEFAULT_COMMISSION_RATE    = 0.05;
-// Small client incentive so clients have motivation to enter the partner code.
+// Organization-type partners earn 10% commission; translator/notary/other earn 5%.
+const ORG_PARTNER_TYPES = new Set([
+  'agency', 'visa_center', 'migration_consultant',
+  'education_agency', 'legal_firm', 'corporate',
+]);
+
+function commissionRateForType(partnerType: string): number {
+  return ORG_PARTNER_TYPES.has(partnerType) ? 0.10 : 0.05;
+}
+
+// Aggressive marketing default: 10% off any order, no cap, no minimum.
 const DEFAULT_DISCOUNT_ENABLED   = true;
 const DEFAULT_DISCOUNT_TYPE      = 'percent';
-const DEFAULT_DISCOUNT_VALUE     = 5;
-const DEFAULT_DISCOUNT_MIN_ORDER = 2500;
-const DEFAULT_DISCOUNT_MAX       = 500;
+const DEFAULT_DISCOUNT_VALUE     = 10;
+const DEFAULT_DISCOUNT_MIN_ORDER = 0;
+const DEFAULT_DISCOUNT_MAX: null = null;
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
@@ -211,7 +220,7 @@ async function activatePartner(app: AppRow, issueKey: string): Promise<NextRespo
           referralCode: existingPartner.referral_code,
           partnerLink: partnerLink!,
           qrCodeUrl: qrCodeUrl!,
-          commissionRate: existingPartner.commission_rate ?? DEFAULT_COMMISSION_RATE,
+          commissionRate: existingPartner.commission_rate ?? commissionRateForType(app.partner_type),
           clientDiscountEnabled: existingPartner.client_discount_enabled ?? DEFAULT_DISCOUNT_ENABLED,
           clientDiscountType: existingPartner.client_discount_type ?? DEFAULT_DISCOUNT_TYPE,
           clientDiscountValue: existingPartner.client_discount_value ?? DEFAULT_DISCOUNT_VALUE,
@@ -249,7 +258,7 @@ async function activatePartner(app: AppRow, issueKey: string): Promise<NextRespo
       email: app.email,
       organization: app.organization ?? null,
       referral_code: referralCode,
-      commission_rate: DEFAULT_COMMISSION_RATE,
+      commission_rate: commissionRateForType(app.partner_type),
       is_active: true,
       client_discount_enabled: DEFAULT_DISCOUNT_ENABLED,
       client_discount_type: DEFAULT_DISCOUNT_TYPE,
@@ -294,7 +303,7 @@ async function activatePartner(app: AppRow, issueKey: string): Promise<NextRespo
       referralCode: partner.referral_code,
       partnerLink,
       qrCodeUrl,
-      commissionRate: DEFAULT_COMMISSION_RATE,
+      commissionRate: commissionRateForType(app.partner_type),
       clientDiscountEnabled: DEFAULT_DISCOUNT_ENABLED,
       clientDiscountType: DEFAULT_DISCOUNT_TYPE,
       clientDiscountValue: DEFAULT_DISCOUNT_VALUE,

@@ -247,9 +247,9 @@ Partner approval and cancellation happen exclusively through Jira workflow trans
 
 **No browser admin panel.** No CRON_SECRET login in browser. Jira is the only activation UI.
 
-**Default commercial settings on activation (corrected 2026-06-30 #2):**
-`commission_rate = 0.05`, `client_discount_enabled = true`, `client_discount_type = 'percent'`, `client_discount_value = 5`, `client_discount_min_order_amount = 2500`, `client_discount_max_amount = 500`.
-Meaning: 5% off, capped at 500 KZT, for orders ≥ 2500 KZT. See "2026-06-30 — Partner economics correction #2" decision below.
+**Default commercial settings on activation (final as of 2026-06-30):**
+`commission_rate = 0.10` (org types) or `0.05` (translator/notary/other), `client_discount_enabled = true`, `client_discount_type = 'percent'`, `client_discount_value = 10`, `client_discount_min_order_amount = 0`, `client_discount_max_amount = null`.
+Meaning: 10% off any order (no min, no cap). See "2026-06-30 — Partner program: aggressive marketing model" decision below.
 
 **Deactivation is non-destructive:** `is_active = false`, sets `deactivated_at` + `deactivation_reason`. Partner row, referrals, and orders preserved.
 
@@ -312,3 +312,37 @@ Partner earns 5% of `commission_base`, not the full order amount.
 
 **Impacted files:**
 `src/app/api/webhooks/jira/partnership/route.ts`, `src/lib/jira/partner-client.ts`, `src/app/[locale]/dashboard/page.tsx`, `src/lib/partners/discount.ts`, `src/app/api/documents/upload-card/route.ts`, `messages/*/order.json` (13 locales), `supabase/migrations/0037_partner_discount_new_default.sql`, `docs/JIRA_AUTOMATION_SETUP.md`.
+
+---
+
+### 2026-06-30 — Partner program: aggressive marketing model (10% default, org commission 10%)
+
+**Decision:**
+Partner program is an aggressive marketing channel. Default client discount is 10% on any order (no minimum, no cap). Organization-type partners earn 10% commission; translator/notary/other earn 5%.
+
+Partner channel replaces most paid marketing/CAC reserve:
+- Partner orders: partner commission applies; marketing reserve = 0–2%.
+- Direct orders: no commission; normal marketing reserve applies.
+
+**Rationale:**
+Previous 5%/min-2500/cap-500 default was too weak — small orders (e.g. 1100 KZT) showed no discount even when a partner code was accepted, giving clients zero motivation to enter codes. 10% with no minimum/cap is visible on every order, motivates code entry, and motivates partners to actively bring clients.
+
+**Economic viability:**
+10% discount + 10% commission = 20% gross cost. WPO margin is ~30–35% on translation services. After discount+commission the margin is ~10–15%, which is acceptable given zero paid CAC for partner-acquired orders.
+
+**Commission base:** `order_amount_kzt − client_discount_applied_kzt − pass_throughs (notary_official_fee, delivery_fee)`.
+Partner earns commission on WPO's net service revenue after discount.
+
+**Org types (10% commission):** `agency`, `visa_center`, `migration_consultant`, `education_agency`, `legal_firm`, `corporate`.
+**Non-org types (5% commission):** `translator`, `notary`, `other`.
+
+**What changed:**
+- `DEFAULT_DISCOUNT_VALUE = 10`, `DEFAULT_DISCOUNT_MIN_ORDER = 0`, `DEFAULT_DISCOUNT_MAX = null` in partnership webhook.
+- `commissionRateForType(partnerType)` function: org → 0.10, other → 0.05.
+- Migration 0038 updates existing partners from weak 5% defaults to 10%; updates org commission from 0.05 → 0.10.
+- Active order card shows labeled lines: "Цена до скидки", "Скидка по коду", "К оплате".
+- Jira client message: "...и получите скидку {value}% по партнёрскому коду...".
+- i18n: updated `helperText` (mentions 10%), `discountPercent` format (colon, no minus), added `priceBeforeDiscount`/`discountByCode`/`finalPrice` in all 13 locales.
+
+**Impacted files:**
+`src/app/api/webhooks/jira/partnership/route.ts`, `src/lib/jira/partner-client.ts`, `src/app/[locale]/dashboard/page.tsx`, `src/lib/partners/__tests__/discount.test.ts`, `messages/*/order.json` (13 locales), `supabase/migrations/0038_partner_aggressive_defaults.sql`, `docs/JIRA_AUTOMATION_SETUP.md`.

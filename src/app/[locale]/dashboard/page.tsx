@@ -343,13 +343,15 @@ function ActiveOrderCard({ entry, locale, onRecalculate }: { entry: OrderEntry; 
               <div className="mb-3">
                 {entry.discountAppliedKzt && entry.discountAppliedKzt > 0 ? (
                   <div className="flex flex-col gap-0.5">
-                    <span className="text-sm text-muted-foreground line-through">
-                      {(entry.priceBeforeDiscountKzt ?? 0).toLocaleString()} {entry.quoteCurrency ?? 'KZT'}
+                    <span className="text-xs text-muted-foreground">
+                      {t('priceBeforeDiscount')}: {(entry.priceBeforeDiscountKzt ?? 0).toLocaleString()} {entry.quoteCurrency ?? 'KZT'}
                     </span>
                     <span className="text-xs text-emerald-400">
-                      − {entry.discountAppliedKzt.toLocaleString()} ₸{entry.discountCode ? ` (${entry.discountCode})` : ''}
+                      {t('discountByCode')}: −{entry.discountAppliedKzt.toLocaleString()} ₸{entry.discountCode ? ` (${entry.discountCode})` : ''}
                     </span>
-                    <span className="text-xl font-bold text-foreground">{entry.quoteAmountKzt!.toLocaleString()} {entry.quoteCurrency ?? 'KZT'}</span>
+                    <span className="text-xl font-bold text-foreground">
+                      {t('finalPrice')}: {entry.quoteAmountKzt!.toLocaleString()} {entry.quoteCurrency ?? 'KZT'}
+                    </span>
                   </div>
                 ) : (
                   <span className="text-xl font-bold text-foreground">{entry.quoteAmountKzt!.toLocaleString()} {entry.quoteCurrency ?? 'KZT'}</span>

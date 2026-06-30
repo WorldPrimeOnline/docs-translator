@@ -239,19 +239,22 @@
     "promoCode": {
       "label": "PROMO-CODE / PARTNERCODE",
       "placeholder": "Z.B. VISAALMATY",
-      "helperText": "Wenn Sie von einem WPO-Partner, einem Visazentrum, Berater oder Übersetzer empfohlen wurden, geben Sie dessen Code ein und erhalten Sie einen Rabatt auf Ihre Bestellung.",
+      "helperText": "Wenn Sie von einem WPO-Partner, einem Visazentrum, Berater oder Übersetzer empfohlen wurden, geben Sie dessen Code ein und erhalten Sie 10% Rabatt auf Ihre Bestellung.",
       "apply": "Anwenden",
       "checking": "Wird geprüft…",
       "valid": "Code akzeptiert",
       "validAttribution": "Partnercode angewendet",
       "attributionHint": "Diese Bestellung wird mit einem WPO-Partner verknüpft.",
       "invalid": "Code nicht gefunden oder inaktiv",
-      "discountFixed": "Rabatt −{amount} ₸",
-      "discountPercent": "Rabatt −{pct}%",
+      "discountFixed": "Rabatt: −{amount} ₸",
+      "discountPercent": "Rabatt: {pct}%",
       "remove": "Entfernen",
-      "discountPercentCapped": "Rabatt: {pct}%, höchstens {max} ₸",
+      "discountPercentCapped": "Rabatt: {pct}%, maximal {max} ₸",
       "discountMinOrderHint": "Bei Bestellungen ab {min} ₸"
     },
-    "uploadedQuoteReadyWithDiscount": "Dokument hochgeladen — Preis: {price} ₸ (gespart {saved} ₸ mit Partnercode). Bestätigen Sie die Zahlung unten."
+    "uploadedQuoteReadyWithDiscount": "Dokument hochgeladen — Preis: {price} ₸ (gespart {saved} ₸ mit Partnercode). Bestätigen Sie die Zahlung unten.",
+    "priceBeforeDiscount": "Preis vor Rabatt",
+    "discountByCode": "Partner-Rabatt",
+    "finalPrice": "Gesamtbetrag"
   }
 }

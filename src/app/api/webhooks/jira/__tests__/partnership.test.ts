@@ -244,13 +244,14 @@ describe('POST /api/webhooks/jira/partnership', () => {
     expect(calledParams.referralCode).toBe('TESTCODE');
     expect(calledParams.partnerLink).toBe('https://www.wpotranslations.org/ru?ref=TESTCODE');
     expect(calledParams.qrCodeUrl).toBe('https://www.wpotranslations.org/api/partners/qr/TESTCODE');
-    expect(calledParams.commissionRate).toBe(0.05);
-    // Default: 5% discount capped at 500 KZT, min order 2500 KZT
+    // visa_center is an org type → 10% commission
+    expect(calledParams.commissionRate).toBe(0.10);
+    // Default: 10% discount, no minimum, no cap
     expect(calledParams.clientDiscountEnabled).toBe(true);
   });
 
-  it('creates partner with 5% default discount (capped 500 KZT, min order 2500 KZT)', async () => {
-    const app = makeApp();
+  it('creates org partner with 10% default discount (no min, no cap) and 10% commission', async () => {
+    const app = makeApp(); // partner_type: 'visa_center' — org type
     const partner = { id: 'partner-uuid-defaults', referral_code: 'DEFAULTTEST' };
     let capturedInsert: ReturnType<typeof chainInsertSelect> | null = null;
 
@@ -265,11 +266,32 @@ describe('POST /api/webhooks/jira/partnership', () => {
     await POST(makeRequest({ issue: { key: 'WPO-defaults', status: ACTIVATE } }));
 
     const insertArg = (capturedInsert!.insert as jest.Mock).mock.calls[0][0] as Record<string, unknown>;
+    expect(insertArg.commission_rate).toBe(0.10);
     expect(insertArg.client_discount_enabled).toBe(true);
     expect(insertArg.client_discount_type).toBe('percent');
-    expect(insertArg.client_discount_value).toBe(5);
-    expect(insertArg.client_discount_min_order_amount).toBe(2500);
-    expect(insertArg.client_discount_max_amount).toBe(500);
+    expect(insertArg.client_discount_value).toBe(10);
+    expect(insertArg.client_discount_min_order_amount).toBe(0);
+    expect(insertArg.client_discount_max_amount).toBeNull();
+  });
+
+  it('creates translator partner with 5% commission and same 10% default discount', async () => {
+    const app = makeApp({ partner_type: 'translator' });
+    const partner = { id: 'partner-uuid-translator', referral_code: 'TRANSTEST' };
+    let capturedInsert: ReturnType<typeof chainInsertSelect> | null = null;
+
+    callQueue = [
+      () => chainMaybeSingle(app),
+      () => chainMaybeSingle(null),
+      () => { capturedInsert = chainInsertSelect(partner); return capturedInsert; },
+      () => chainUpdate(),
+      () => chainUpdate(),
+    ];
+
+    await POST(makeRequest({ issue: { key: 'WPO-trans', status: ACTIVATE } }));
+
+    const insertArg = (capturedInsert!.insert as jest.Mock).mock.calls[0][0] as Record<string, unknown>;
+    expect(insertArg.commission_rate).toBe(0.05); // translator/notary/other → 5%
+    expect(insertArg.client_discount_value).toBe(10);
   });
 
   it('Jira comment failure is non-fatal — response still 200 and stores error', async () => {

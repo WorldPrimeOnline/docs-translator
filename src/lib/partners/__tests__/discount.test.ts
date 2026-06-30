@@ -1,12 +1,12 @@
 /**
  * Tests for calculatePartnerDiscount()
  *
- * Default referral partner settings (as of 2026-06-30):
- *   type=percent, value=5, min_order=2500, max=500
+ * Default referral partner settings (aggressive marketing model, as of 2026-06-30):
+ *   type=percent, value=10, min_order=0, max=null
  *
  * Rules:
- * - 5% of order, capped at 500 KZT, only if order >= 2500 KZT
- * - Partner referral is created even when discount is 0 (below min order)
+ * - 10% off any order, no minimum, no cap (for default partners)
+ * - Custom partners can have a cap (client_discount_max_amount) or min order
  * - Commission base is calculated on (order_amount − discount) by confirmReferral
  */
 
@@ -17,49 +17,45 @@ function makePartner(overrides: Partial<PartnerDiscountInput> = {}): PartnerDisc
     is_active: true,
     client_discount_enabled: true,
     client_discount_type: 'percent',
-    client_discount_value: 5,
-    client_discount_min_order_amount: 2500,
-    client_discount_max_amount: 500,
+    client_discount_value: 10,
+    client_discount_min_order_amount: 0,
+    client_discount_max_amount: null,
     ...overrides,
   };
 }
 
-describe('calculatePartnerDiscount — default 5% capped at 500 KZT', () => {
+describe('calculatePartnerDiscount — default 10% (no min, no cap)', () => {
 
-  it('returns 5% for order above min, below cap threshold', () => {
-    // 3000 × 5% = 150 < 500 cap → discount = 150
-    expect(calculatePartnerDiscount(3000, makePartner())).toBe(150);
+  it('applies 10% on small order (1100 KZT) — discount = 110, final = 990', () => {
+    const discount = calculatePartnerDiscount(1100, makePartner());
+    expect(discount).toBe(110);
+    expect(1100 - discount).toBe(990);
   });
 
-  it('returns cap (500 KZT) when 5% exceeds the cap', () => {
-    // 15000 × 5% = 750 > 500 cap → discount = 500
-    expect(calculatePartnerDiscount(15000, makePartner())).toBe(500);
+  it('applies 10% on larger order (6000 KZT)', () => {
+    expect(calculatePartnerDiscount(6000, makePartner())).toBe(600);
   });
 
-  it('returns 500 KZT cap exactly at threshold (10000 KZT order)', () => {
-    // 10000 × 5% = 500 = cap → discount = 500
-    expect(calculatePartnerDiscount(10000, makePartner())).toBe(500);
+  it('applies 10% on very large order with no cap', () => {
+    // 50000 × 10% = 5000, no cap → discount = 5000
+    expect(calculatePartnerDiscount(50000, makePartner())).toBe(5000);
   });
 
-  it('returns 0 when order is below minimum (2500 KZT)', () => {
-    // order 2000 < min 2500 → no discount; partner referral still created upstream
-    expect(calculatePartnerDiscount(2000, makePartner())).toBe(0);
-  });
-
-  it('returns 0 at exact minimum boundary minus 1', () => {
-    expect(calculatePartnerDiscount(2499, makePartner())).toBe(0);
-  });
-
-  it('applies discount at exact minimum boundary (2500 KZT)', () => {
-    // 2500 × 5% = 125 → discount = 125
-    expect(calculatePartnerDiscount(2500, makePartner())).toBe(125);
+  it('applies discount at minimum possible order (1 KZT)', () => {
+    expect(calculatePartnerDiscount(1, makePartner())).toBe(0); // Math.round(1 × 0.10) = 0
   });
 
   it('payment amount equals order minus discount (correct final price)', () => {
     const base = 6000;
-    const discount = calculatePartnerDiscount(base, makePartner()); // 300
-    const finalPrice = base - discount;
-    expect(finalPrice).toBe(5700);
+    const discount = calculatePartnerDiscount(base, makePartner()); // 600
+    expect(base - discount).toBe(5400);
+  });
+
+  it('no min order text shown: discount applies for any amount (min=0)', () => {
+    // min=0 means all amounts qualify
+    expect(calculatePartnerDiscount(100, makePartner())).toBe(10);
+    expect(calculatePartnerDiscount(500, makePartner())).toBe(50);
+    expect(calculatePartnerDiscount(999, makePartner())).toBe(100); // Math.round(99.9)
   });
 
 });
@@ -111,12 +107,12 @@ describe('calculatePartnerDiscount — guard cases', () => {
 
   it('no min order (null) means all order amounts qualify', () => {
     const partner = makePartner({ client_discount_min_order_amount: null });
-    expect(calculatePartnerDiscount(100, partner)).toBe(5); // 100 × 5% = 5
+    expect(calculatePartnerDiscount(100, partner)).toBe(10); // 100 × 10% = 10
   });
 
   it('no cap (null) means full percent applies', () => {
     const partner = makePartner({ client_discount_max_amount: null });
-    expect(calculatePartnerDiscount(20000, partner)).toBe(1000); // 20000 × 5% = 1000
+    expect(calculatePartnerDiscount(20000, partner)).toBe(2000); // 20000 × 10% = 2000
   });
 
 });

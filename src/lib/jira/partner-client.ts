@@ -193,7 +193,9 @@ function buildActivationCommentAdf(p: PartnerActivationCommentParams): object {
     p.qrCodeUrl,
     '',
     'Текст для клиента:',
-    `"Для перевода документов используйте WPO Translations:\n${p.partnerLink}\n\nИли введите код ${p.referralCode} в поле «Промокод / код партнёра» при оформлении заказа."`,
+    (p.clientDiscountEnabled && p.clientDiscountType === 'percent' && p.clientDiscountValue != null
+      ? `"Для перевода документов используйте WPO Translations и получите скидку ${p.clientDiscountValue}% по партнёрскому коду:\n${p.partnerLink}\n\nИли введите код ${p.referralCode} в поле «Промокод / код партнёра» при оформлении заказа."`
+      : `"Для перевода документов используйте WPO Translations:\n${p.partnerLink}\n\nИли введите код ${p.referralCode} в поле «Промокод / код партнёра» при оформлении заказа."`),
     '',
     'Внутренние условия:',
     `- Партнёрская комиссия: ${formatCommission(p.commissionRate)}`,

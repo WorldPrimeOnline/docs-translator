@@ -239,19 +239,22 @@
     "promoCode": {
       "label": "ПРОМОКОД / ӨНӨКТӨШ КОДУ",
       "placeholder": "Мисалы: VISAALMATY",
-      "helperText": "Эгер сизди WPO өнөктөшү, виза борбору, кеңешчи же котормочу жиберсе, анын кодун киргизип, буйрутмага арзандатуу алыңыз.",
+      "helperText": "Эгер сизди WPO өнөктөшү, виза борбору, кеңешчи же котормочу жиберсе, анын кодун киргизип, буйрутмага 10% арзандатуу алыңыз.",
       "apply": "Колдонуу",
       "checking": "Текшерилүүдө…",
       "valid": "Код кабыл алынды",
       "validAttribution": "Өнөктөш коду колдонулду",
       "attributionHint": "Буйрутма WPO өнөктөшү менен байланыштырылат.",
       "invalid": "Код табылган жок же активдүү эмес",
-      "discountFixed": "Арзандатуу −{amount} ₸",
-      "discountPercent": "Арзандатуу −{pct}%",
+      "discountFixed": "Арзандатуу: −{amount} ₸",
+      "discountPercent": "Арзандатуу: {pct}%",
       "remove": "Алып салуу",
-      "discountPercentCapped": "Арзандатуу: {pct}%, бирок {max} ₸-дан ашпайт",
+      "discountPercentCapped": "Арзандатуу: {pct}%, {max} ₸-га чейин",
       "discountMinOrderHint": "{min} ₸-дан буйрутма берүүдө"
     },
-    "uploadedQuoteReadyWithDiscount": "Документ жүктөлдү — баасы: {price} ₸ ({saved} ₸ өнөктөш коду менен үнөмдөлдү). Төлөмдү ырастаңыз."
+    "uploadedQuoteReadyWithDiscount": "Документ жүктөлдү — баасы: {price} ₸ ({saved} ₸ өнөктөш коду менен үнөмдөлдү). Төлөмдү ырастаңыз.",
+    "priceBeforeDiscount": "Арзандатуудан мурунку баа",
+    "discountByCode": "Өнөктөш арзандатуусу",
+    "finalPrice": "Төлөм суммасы"
   }
 }

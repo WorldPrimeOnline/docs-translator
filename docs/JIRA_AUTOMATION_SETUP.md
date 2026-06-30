@@ -343,20 +343,20 @@ On **АКТИВНОЕ ПАРТНЕРСТВО**:
 - If `partner_applications.approved_partner_id` already exists → set `partners.is_active = true` (idempotent re-activation).
 - Else → create new `partners` row with:
   - `referral_code` from `application.ref_code` (normalized) if unique, otherwise auto-generated from org/name
-  - `commission_rate = 0.05`
-  - `client_discount_enabled = true`, `client_discount_type = 'percent'`, `client_discount_value = 5`
-  - `client_discount_min_order_amount = 2500`, `client_discount_max_amount = 500`
-  - Meaning: 5% off, capped at 500 KZT, for orders ≥ 2500 KZT
+  - `commission_rate = 0.10` for organization types (`agency`, `visa_center`, `migration_consultant`, `education_agency`, `legal_firm`, `corporate`); `0.05` for translator/notary/other
+  - `client_discount_enabled = true`, `client_discount_type = 'percent'`, `client_discount_value = 10`
+  - `client_discount_min_order_amount = 0`, `client_discount_max_amount = null`
+  - Meaning: 10% off any order (no minimum, no cap) — aggressive marketing default
   - `partner_link = https://www.wpotranslations.org/ru?ref=CODE`
   - `qr_code_url = https://www.wpotranslations.org/api/partners/qr/CODE`
 - Sets `partner_applications.status = approved`, `approved_partner_id`, `approved_at`, `approved_by = 'jira-webhook'`.
 - **Best-effort Jira comment**: after activation, WPO posts a comment to the Partnership issue containing:
   - Partner code, referral link, QR code URL
-  - Ready-to-send client message (Russian)
-  - Commission rate and discount terms: "5%, но не более 500 ₸, для заказов от 2 500 ₸"
+  - Ready-to-send client message: "...и получите скидку 10% по партнёрскому коду..."
+  - Commission rate: 10% (org) or 5% (translator/notary); discount: "10%"
   - Stored in `partners.activation_comment_added_at` on success; `activation_comment_error` on failure (non-fatal).
 - **QR code endpoint**: `GET /api/partners/qr/{CODE}` — public, returns PNG, 404 for inactive partners.
-- **Client price**: default 5% discount capped at 500 KZT for orders ≥ 2500 KZT. Can be adjusted per partner in the `partners` table. Commission base = order_amount − client_discount − pass-through fees.
+- **Client price**: default 10% discount on any order, no minimum, no cap. Can be adjusted per partner in the `partners` table. Commission base = order_amount − client_discount − pass-through fees.
 
 ### Deactivation behavior
 
