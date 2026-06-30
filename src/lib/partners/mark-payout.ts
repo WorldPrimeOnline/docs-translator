@@ -20,7 +20,7 @@ export interface MarkPayoutPaidResult {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnySupabaseClient = SupabaseClient<any> | typeof supabaseServer;
+export type AnySupabaseClient = SupabaseClient<any> | typeof supabaseServer;
 
 export async function markPayoutPaid(
   params: MarkPayoutPaidParams,

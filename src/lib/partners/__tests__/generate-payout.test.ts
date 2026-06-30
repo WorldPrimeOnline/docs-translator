@@ -35,6 +35,7 @@ jest.mock('@/lib/jira/payout-client', () => ({
 }));
 
 import { generateMonthlyPayouts } from '../generate-payout';
+import type { AnySupabaseClient } from '../generate-payout';
 import {
   PARTNER_PAYOUT_JIRA_PROJECT_KEY,
   PARTNER_PAYOUT_JIRA_ISSUE_TYPE,
@@ -100,14 +101,12 @@ function makeRef(overrides: Partial<{
  */
 function makeStructuredDb(calls: Array<{ data: unknown; error: unknown }>) {
   const queue = [...calls];
-  function makeChain() {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let proxy: any;
+  function makeChain(): Record<string, unknown> {
     const dequeue = () => queue.shift() ?? { data: null, error: null };
-    proxy = new Proxy(
-      {},
+    const proxy: Record<string, unknown> = new Proxy<Record<string, unknown>>(
+      {} as Record<string, unknown>,
       {
-        get(_t, prop: string) {
+        get(_t, prop: string): unknown {
           if (prop === 'then') {
             // Called when `await chain` is used directly
             return (res: (v: unknown) => void) => res(dequeue());
@@ -153,7 +152,7 @@ describe('generateMonthlyPayouts', () => {
 
     const result = await generateMonthlyPayouts(
       { periodStart: PERIOD_START, periodEnd: PERIOD_END, dryRun: true },
-      db as any,
+      db as AnySupabaseClient,
       jira,
     );
 
@@ -188,7 +187,7 @@ describe('generateMonthlyPayouts', () => {
 
     const result = await generateMonthlyPayouts(
       { periodStart: PERIOD_START, periodEnd: PERIOD_END, dryRun: false, createJira: true },
-      db as any,
+      db as AnySupabaseClient,
       jira,
     );
 
@@ -214,7 +213,7 @@ describe('generateMonthlyPayouts', () => {
 
     await generateMonthlyPayouts(
       { periodStart: PERIOD_START, periodEnd: PERIOD_END, dryRun: false, createJira: false },
-      db as any,
+      db as AnySupabaseClient,
       jira,
     );
 
@@ -234,7 +233,7 @@ describe('generateMonthlyPayouts', () => {
       ]);
       return generateMonthlyPayouts(
         { periodStart: PERIOD_START, periodEnd: PERIOD_END, dryRun: true },
-        db as any,
+        db as AnySupabaseClient,
       );
     }
 
@@ -283,7 +282,7 @@ describe('generateMonthlyPayouts', () => {
 
     const result = await generateMonthlyPayouts(
       { periodStart: '2026-08-01', periodEnd: '2026-08-31', dryRun: true },
-      db as any,
+      db as AnySupabaseClient,
     );
 
     expect(result.total_referrals).toBe(0);
@@ -300,7 +299,7 @@ describe('generateMonthlyPayouts', () => {
 
     const result = await generateMonthlyPayouts(
       { periodStart: PERIOD_START, periodEnd: PERIOD_END, dryRun: true, partnerId: PARTNER_A.id },
-      db as any,
+      db as AnySupabaseClient,
     );
 
     expect(result.partners_count).toBe(1);
@@ -327,7 +326,7 @@ describe('generateMonthlyPayouts', () => {
 
     const result = await generateMonthlyPayouts(
       { periodStart: PERIOD_START, periodEnd: PERIOD_END, dryRun: false, createJira: false },
-      db as any,
+      db as AnySupabaseClient,
     );
 
     expect(result.partners_count).toBe(2);
@@ -363,7 +362,7 @@ describe('generateMonthlyPayouts', () => {
 
     const result = await generateMonthlyPayouts(
       { periodStart: PERIOD_START, periodEnd: PERIOD_END, dryRun: true },
-      db as any,
+      db as AnySupabaseClient,
     );
 
     expect(result.total_gross_order_amount_kzt).toBe(15000);
@@ -415,7 +414,7 @@ describe('generateMonthlyPayouts', () => {
 
     const result = await generateMonthlyPayouts(
       { periodStart: PERIOD_START, periodEnd: PERIOD_END, dryRun: false, createJira: true },
-      db as any,
+      db as AnySupabaseClient,
       jira,
     );
 
@@ -439,7 +438,7 @@ describe('generateMonthlyPayouts', () => {
 
     const result = await generateMonthlyPayouts(
       { periodStart: PERIOD_START, periodEnd: PERIOD_END, dryRun: false, createJira: true },
-      db as any,
+      db as AnySupabaseClient,
       jira,
     );
 
@@ -468,7 +467,7 @@ describe('generateMonthlyPayouts', () => {
 
     const result = await generateMonthlyPayouts(
       { periodStart: PERIOD_START, periodEnd: PERIOD_END, dryRun: true },
-      db as any,
+      db as AnySupabaseClient,
     );
 
     expect(result.total_gross_order_amount_kzt).toBe(10000);

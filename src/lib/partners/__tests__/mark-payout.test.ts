@@ -18,19 +18,18 @@ jest.mock('@/lib/jira/payout-client', () => ({
 }));
 
 import { markPayoutPaid } from '../mark-payout';
+import type { AnySupabaseClient } from '../mark-payout';
 
 // ─── Mock builder ─────────────────────────────────────────────────────────────
 
 function makeStructuredDb(calls: Array<{ data: unknown; error: unknown }>) {
   const queue = [...calls];
-  function makeChain() {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let proxy: any;
+  function makeChain(): Record<string, unknown> {
     const dequeue = () => queue.shift() ?? { data: null, error: null };
-    proxy = new Proxy(
-      {},
+    const proxy: Record<string, unknown> = new Proxy<Record<string, unknown>>(
+      {} as Record<string, unknown>,
       {
-        get(_t, prop: string) {
+        get(_t, prop: string): unknown {
           if (prop === 'then') return (res: (v: unknown) => void) => res(dequeue());
           if (prop === 'single' || prop === 'maybeSingle') return () => Promise.resolve(dequeue());
           return () => proxy;
@@ -73,7 +72,7 @@ describe('markPayoutPaid', () => {
 
     const result = await markPayoutPaid(
       { payoutId: 'payout-uuid-1', paymentReference: 'Halyk 2026-08-05' },
-      db as any,
+      db as AnySupabaseClient,
       jira,
     );
 
@@ -96,7 +95,7 @@ describe('markPayoutPaid', () => {
 
     const result = await markPayoutPaid(
       { payoutId: 'payout-uuid-1', paymentReference: 'Halyk 2026-08-05' },
-      db as any,
+      db as AnySupabaseClient,
       jira,
     );
 
@@ -114,7 +113,7 @@ describe('markPayoutPaid', () => {
     ]);
 
     await expect(
-      markPayoutPaid({ payoutId: 'non-existent-uuid', paymentReference: 'ref' }, db as any),
+      markPayoutPaid({ payoutId: 'non-existent-uuid', paymentReference: 'ref' }, db as AnySupabaseClient),
     ).rejects.toThrow('not found');
   });
 
@@ -124,7 +123,7 @@ describe('markPayoutPaid', () => {
     ]);
 
     await expect(
-      markPayoutPaid({ payoutId: 'payout-uuid-1', paymentReference: 'ref' }, db as any),
+      markPayoutPaid({ payoutId: 'payout-uuid-1', paymentReference: 'ref' }, db as AnySupabaseClient),
     ).rejects.toThrow('DB connection failed');
   });
 
@@ -138,7 +137,7 @@ describe('markPayoutPaid', () => {
 
     const result = await markPayoutPaid(
       { payoutId: 'payout-uuid-1', paymentReference: 'ref-123' },
-      db as any,
+      db as AnySupabaseClient,
       jira,
     );
 
@@ -157,7 +156,7 @@ describe('markPayoutPaid', () => {
 
     const result = await markPayoutPaid(
       { payoutId: 'payout-uuid-1', paymentReference: 'ref-123' },
-      db as any,
+      db as AnySupabaseClient,
       jira,
     );
 
@@ -180,7 +179,7 @@ describe('markPayoutPaid', () => {
 
     const result = await markPayoutPaid(
       { payoutId: 'payout-uuid-1', paymentReference: 'ref', note: 'Processed by Alina' },
-      db as any,
+      db as AnySupabaseClient,
     );
 
     expect(result.status).toBe('paid');
@@ -197,7 +196,7 @@ describe('markPayoutPaid', () => {
 
     const result = await markPayoutPaid(
       { payoutId: 'payout-uuid-1', paymentReference: 'ref' },
-      db as any,
+      db as AnySupabaseClient,
       jira,
     );
 
