@@ -18,7 +18,9 @@
     "i18n:language": "tsx scripts/i18n/find-wrong-language.ts",
     "i18n:validate": "npm run i18n:check && npm run i18n:forbidden && npm run i18n:language",
     "i18n:rendered": "tsx scripts/i18n/check-rendered-pages.ts",
-    "i18n:validate:rendered": "npm run i18n:validate && npm run i18n:rendered"
+    "i18n:validate:rendered": "npm run i18n:validate && npm run i18n:rendered",
+    "partners:payouts": "tsx scripts/partners/generate-monthly-payout.ts",
+    "partners:mark-paid": "tsx scripts/partners/mark-payout-paid.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",

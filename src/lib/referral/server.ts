@@ -133,13 +133,15 @@ export async function confirmReferral(jobId: string, quoteId?: string | null): P
       commissionKzt = Math.round(commissionBaseKzt * rate * 100) / 100;
     }
 
+    const confirmedAt = new Date().toISOString();
     const { error } = await supabaseServer
       .from('partner_referrals')
       .update({
         status: 'confirmed',
         commission_base_kzt: commissionBaseKzt,
         commission_kzt: commissionKzt,
-        order_completed_at: new Date().toISOString(),
+        order_completed_at: confirmedAt,
+        confirmed_at: confirmedAt,
       })
       .eq('id', referral.id);
 
