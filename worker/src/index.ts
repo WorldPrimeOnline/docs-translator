@@ -4,6 +4,7 @@ import { processJob } from './processor';
 import { closeBrowser } from './lib/pdf';
 import { reconcileFiscalAndRefunds, triggerReconcilePayments, triggerReconcileRefunds } from './lib/fiscal-reconciliation';
 import { processPendingFiscalReceipts } from './lib/fiscal-processor';
+import { diagnoseWebkassaConnectivity } from './lib/webkassa-client';
 import { logDriveAuthMode } from './lib/google-drive';
 
 // ── State ──────────────────────────────────────────────────────────────────
@@ -134,6 +135,12 @@ async function pollOnce(): Promise<void> {
   }
 }
 
+function resolveWebkassaHost(): string {
+  const explicit = env.WEBKASSA_API_BASE_URL;
+  if (explicit) { try { return new URL(explicit).hostname; } catch { return explicit; } }
+  return env.FISCAL_PROVIDER_ENV === 'production' ? 'kkm.webkassa.kz' : 'devkkm.webkassa.kz';
+}
+
 function runStartupSafetyChecks(): void {
   const supabaseHost = (() => {
     try {
@@ -152,11 +159,7 @@ function runStartupSafetyChecks(): void {
   console.log(`[worker:env] PAYMENTS_MODE        = ${env.PAYMENTS_MODE}`);
   console.log(`[worker:env] OFFICIAL_WORKFLOW    = ${env.OFFICIAL_WORKFLOW_ENABLED}`);
   console.log('[worker:env] ─── Fiscal (Webkassa) ──────────────────');
-  const webkassaHost = (() => {
-    const explicit = env.WEBKASSA_API_BASE_URL;
-    if (explicit) { try { return new URL(explicit).hostname; } catch { return explicit; } }
-    return env.FISCAL_PROVIDER_ENV === 'production' ? 'kkm.webkassa.kz' : 'devkkm.webkassa.kz';
-  })();
+  const webkassaHost = resolveWebkassaHost();
   console.log(`[worker:env] WEBKASSA_ENABLED     = ${env.WEBKASSA_ENABLED ?? '(not set)'}`);
   console.log(`[worker:env] FISCAL_PROVIDER_ENV  = ${env.FISCAL_PROVIDER_ENV}`);
   console.log(`[worker:env] WEBKASSA_ALLOW_REAL  = ${env.WEBKASSA_ALLOW_REAL_RECEIPTS ?? '(not set)'}`);
@@ -212,6 +215,13 @@ async function main(): Promise<void> {
     `[worker] started — poll every ${env.POLL_INTERVAL_MS}ms, concurrency ${env.WORKER_CONCURRENCY}`,
   );
   logDriveAuthMode();
+
+  // One-time DNS/TCP reachability check — isolates network-layer failures
+  // (DNS, firewall, TLS) from actual Webkassa auth failures before the real
+  // Authorize call. No credentials sent.
+  await diagnoseWebkassaConnectivity(resolveWebkassaHost()).catch((err: unknown) => {
+    console.error('[worker] webkassa connectivity diagnostic error:', (err as Error).message);
+  });
   console.info('[worker] eligibility config', {
     selectableJobStatuses: ['queued'],
     eligiblePaymentStatuses: ['paid', 'completed'],
