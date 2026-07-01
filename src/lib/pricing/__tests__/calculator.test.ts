@@ -69,14 +69,14 @@ describe('calculatePrice', () => {
     const base = calculatePrice(baseInput({ sourceWordCount: 250 }), mockVersion);
     const extra = calculatePrice(baseInput({ sourceWordCount: 350 }), mockVersion);
     expect(extra.amountKzt).toBeGreaterThan(base.amountKzt);
-    const extraWordItem = extra.items.find(i => i.itemType === 'extra_words');
+    const extraWordItem = extra.items.find(i => i.itemType === 'extra_words_fee');
     expect(extraWordItem).toBeDefined();
     expect(extraWordItem!.quantity).toBe(100);
   });
 
-  it('words within included count produce no extra_words item', () => {
+  it('words within included count produce no extra_words_fee item', () => {
     const result = calculatePrice(baseInput({ sourceWordCount: 200 }), mockVersion);
-    const extraWordItem = result.items.find(i => i.itemType === 'extra_words');
+    const extraWordItem = result.items.find(i => i.itemType === 'extra_words_fee');
     expect(extraWordItem).toBeUndefined();
   });
 
@@ -84,7 +84,7 @@ describe('calculatePrice', () => {
     const base = calculatePrice(baseInput({ physicalPageCount: 1 }), mockVersion);
     const extra = calculatePrice(baseInput({ physicalPageCount: 3 }), mockVersion);
     expect(extra.amountKzt).toBeGreaterThan(base.amountKzt);
-    const pageItem = extra.items.find(i => i.itemType === 'additional_pages');
+    const pageItem = extra.items.find(i => i.itemType === 'extra_pages_fee');
     expect(pageItem).toBeDefined();
     expect(pageItem!.quantity).toBe(2);
   });
@@ -103,6 +103,15 @@ describe('calculatePrice', () => {
     expect(urgent.amountKzt).toBeGreaterThan(standard.amountKzt);
     const urgencyItem = urgent.items.find(i => i.itemType === 'urgency_fee');
     expect(urgencyItem).toBeDefined();
+    expect(urgencyItem!.amountKzt).toBeGreaterThan(0);
+  });
+
+  it('standard urgency produces zero-value urgency_fee row (not dropped)', () => {
+    const result = calculatePrice(baseInput({ urgencyLevel: 'standard' }), mockVersion);
+    const urgencyItem = result.items.find(i => i.itemType === 'urgency_fee');
+    expect(urgencyItem).toBeDefined();
+    expect(urgencyItem!.amountKzt).toBe(0);
+    expect(urgencyItem!.metadataJson?.urgencyLevel).toBe('standard');
   });
 
   it('delivery added separately', () => {
@@ -116,31 +125,35 @@ describe('calculatePrice', () => {
     expect(deliveryItem!.amountKzt).toBeGreaterThan(0);
   });
 
-  it('no delivery fee when pickup', () => {
+  it('no delivery fee when pickup: zero-value row with delivery_required=false', () => {
     const withPickup = calculatePrice(baseInput({
       serviceLevel: 'notarization_through_partners',
       fulfillmentMethod: 'pickup',
       deliveryRequired: false,
     }), mockVersion);
     const deliveryItem = withPickup.items.find(i => i.itemType === 'delivery_fee');
-    expect(deliveryItem).toBeUndefined();
+    expect(deliveryItem).toBeDefined();
+    expect(deliveryItem!.amountKzt).toBe(0);
+    expect(deliveryItem!.metadataJson?.delivery_required).toBe(false);
   });
 
-  it('direct order uses marketing reserve and no partner commission', () => {
+  it('direct order uses marketing_cac_reserve and zero partner_commission_cost', () => {
     const result = calculatePrice(baseInput({ salesChannel: 'direct' }), mockVersion);
-    const marketing = result.items.find(i => i.itemType === 'marketing_reserve');
-    const commission = result.items.find(i => i.itemType === 'partner_commission');
+    const marketing = result.items.find(i => i.itemType === 'marketing_cac_reserve');
+    const commission = result.items.find(i => i.itemType === 'partner_commission_cost');
     expect(marketing).toBeDefined();
     expect(marketing!.amountKzt).toBeGreaterThan(0);
-    expect(commission).toBeUndefined();
+    expect(commission).toBeDefined();
+    expect(commission!.amountKzt).toBe(0);
+    expect(commission!.metadataJson?.not_applicable).toBe(true);
   });
 
-  it('referral channel uses partner commission and reduced marketing', () => {
+  it('referral channel uses non-zero partner_commission_cost and reduced marketing', () => {
     const result = calculatePrice(baseInput({ salesChannel: 'referral', partnerId: 'partner-abc' }), mockVersion);
-    const commission = result.items.find(i => i.itemType === 'partner_commission');
+    const commission = result.items.find(i => i.itemType === 'partner_commission_cost');
     expect(commission).toBeDefined();
     expect(commission!.amountKzt).toBeGreaterThan(0);
-    const marketing = result.items.find(i => i.itemType === 'marketing_reserve');
+    const marketing = result.items.find(i => i.itemType === 'marketing_cac_reserve');
     expect(marketing!.amountKzt).toBeLessThan(result.amountKzt * 0.05);
   });
 
@@ -163,7 +176,7 @@ describe('calculatePrice', () => {
 
   it('internal reserve items are not client visible', () => {
     const result = calculatePrice(baseInput(), mockVersion);
-    const reserveTypes = ['tax_reserve', 'acquiring_reserve', 'risk_reserve', 'owner_reserve', 'marketing_reserve', 'ai_it_reserve'];
+    const reserveTypes = ['tax_reserve', 'acquiring_fee_estimate', 'risk_chargeback_reserve', 'owner_reserve', 'marketing_cac_reserve', 'ai_it_reserve'];
     reserveTypes.forEach(type => {
       const item = result.items.find(i => i.itemType === type);
       expect(item).toBeDefined();
@@ -174,16 +187,134 @@ describe('calculatePrice', () => {
 
   it('notarized order adds notary components and review reason', () => {
     const result = calculatePrice(baseInput({ serviceLevel: 'notarization_through_partners' }), mockVersion);
-    expect(result.items.find(i => i.itemType === 'notary_official_fee')).toBeDefined();
-    expect(result.items.find(i => i.itemType === 'notary_coordination_fee')).toBeDefined();
+    expect(result.items.find(i => i.itemType === 'notary_official_fee' && i.amountKzt > 0)).toBeDefined();
+    expect(result.items.find(i => i.itemType === 'notary_coordination_fee' && i.amountKzt > 0)).toBeDefined();
     expect(result.items.find(i => i.itemType === 'printing_binding_fee')).toBeDefined();
     expect(result.requiresOperatorReview).toBe(true);
+  });
+
+  describe('canonical zero-value rows — all items present in audit', () => {
+    it('electronic order: included_words and included_pages always appear', () => {
+      const result = calculatePrice(baseInput({ serviceLevel: 'electronic' }), mockVersion);
+      const w = result.items.find(i => i.itemType === 'included_words');
+      const p = result.items.find(i => i.itemType === 'included_pages');
+      expect(w).toBeDefined();
+      expect(w!.amountKzt).toBe(0);
+      expect(w!.metadataJson?.included_word_count).toBe(250);
+      expect(p).toBeDefined();
+      expect(p!.amountKzt).toBe(0);
+      expect(p!.metadataJson?.included_page_count).toBe(1);
+    });
+
+    it('official order: human_review_fee, translator_signature_fee, provider_stamp_fee are present (0, included)', () => {
+      const result = calculatePrice(baseInput(), mockVersion);
+      const hr = result.items.find(i => i.itemType === 'human_review_fee');
+      const ts = result.items.find(i => i.itemType === 'translator_signature_fee');
+      const ps = result.items.find(i => i.itemType === 'provider_stamp_fee');
+      expect(hr).toBeDefined();
+      expect(hr!.amountKzt).toBe(0);
+      expect(hr!.metadataJson?.included_in_official_package).toBe(true);
+      expect(ts).toBeDefined();
+      expect(ts!.amountKzt).toBe(0);
+      expect(ps).toBeDefined();
+      expect(ps!.amountKzt).toBe(0);
+    });
+
+    it('notarized order: human_review_fee, translator_signature_fee, provider_stamp_fee are present (included in minimum)', () => {
+      const result = calculatePrice(baseInput({ serviceLevel: 'notarization_through_partners' }), mockVersion);
+      expect(result.items.find(i => i.itemType === 'human_review_fee')).toBeDefined();
+      expect(result.items.find(i => i.itemType === 'translator_signature_fee')).toBeDefined();
+      expect(result.items.find(i => i.itemType === 'provider_stamp_fee')).toBeDefined();
+    });
+
+    it('electronic order: no human_review_fee, translator_signature_fee, provider_stamp_fee', () => {
+      const result = calculatePrice(baseInput({ serviceLevel: 'electronic' }), mockVersion);
+      expect(result.items.find(i => i.itemType === 'human_review_fee')).toBeUndefined();
+      expect(result.items.find(i => i.itemType === 'translator_signature_fee')).toBeUndefined();
+      expect(result.items.find(i => i.itemType === 'provider_stamp_fee')).toBeUndefined();
+    });
+
+    it('official order: notary_official_fee and notary_coordination_fee present with amount=0 and not_requested=true', () => {
+      const result = calculatePrice(baseInput(), mockVersion);
+      const nof = result.items.find(i => i.itemType === 'notary_official_fee');
+      const ncf = result.items.find(i => i.itemType === 'notary_coordination_fee');
+      expect(nof).toBeDefined();
+      expect(nof!.amountKzt).toBe(0);
+      expect(nof!.metadataJson?.not_requested).toBe(true);
+      expect(ncf).toBeDefined();
+      expect(ncf!.amountKzt).toBe(0);
+    });
+
+    it('official order without delivery: delivery_fee row has amount=0 and delivery_required=false', () => {
+      const result = calculatePrice(baseInput(), mockVersion);
+      const df = result.items.find(i => i.itemType === 'delivery_fee');
+      expect(df).toBeDefined();
+      expect(df!.amountKzt).toBe(0);
+      expect(df!.metadataJson?.delivery_required).toBe(false);
+    });
+
+    it('translator_reserved_cost present as internal cost item', () => {
+      const result = calculatePrice(baseInput(), mockVersion);
+      const trc = result.items.find(i => i.itemType === 'translator_reserved_cost');
+      expect(trc).toBeDefined();
+      expect(trc!.isCost).toBe(true);
+      expect(trc!.isClientVisible).toBe(false);
+      expect(trc!.amountKzt).toBeGreaterThan(0);
+      expect(trc!.metadataJson?.rate).toBe(0.30);
+    });
+
+    it('target_profit present as internal non-cost item', () => {
+      const result = calculatePrice(baseInput(), mockVersion);
+      const tp = result.items.find(i => i.itemType === 'target_profit');
+      expect(tp).toBeDefined();
+      expect(tp!.isCost).toBe(false);
+      expect(tp!.isClientVisible).toBe(false);
+      expect(tp!.amountKzt).toBeGreaterThan(0);
+    });
+
+    it('zero-value items are NOT dropped from items array', () => {
+      const result = calculatePrice(baseInput({ sourceWordCount: 200 }), mockVersion);
+      // All these should be present even with 0 amount
+      expect(result.items.some(i => i.itemType === 'included_words')).toBe(true);
+      expect(result.items.some(i => i.itemType === 'included_pages')).toBe(true);
+      expect(result.items.some(i => i.itemType === 'urgency_fee' && i.amountKzt === 0)).toBe(true);
+      expect(result.items.some(i => i.itemType === 'notary_official_fee' && i.amountKzt === 0)).toBe(true);
+      expect(result.items.some(i => i.itemType === 'delivery_fee' && i.amountKzt === 0)).toBe(true);
+    });
+
+    it('internal reserves are separated from client price items', () => {
+      const result = calculatePrice(baseInput(), mockVersion);
+      const clientSubtotal = result.items
+        .filter(i => !i.isCost && i.isClientVisible)
+        .reduce((s, i) => s + i.amountKzt, 0);
+      const internalCostItems = result.items.filter(i => i.isCost);
+      expect(internalCostItems.length).toBeGreaterThan(0);
+      // Internal costs do not inflate client price
+      expect(clientSubtotal).toBeLessThanOrEqual(result.amountKzt);
+    });
+
+    it('no double counting: internal reserves are not added to client subtotal', () => {
+      const result = calculatePrice(baseInput(), mockVersion);
+      // The final amountKzt is derived from client-facing price items only (is_cost=false items
+      // that are NOT internal-only like target_profit). Cost items (is_cost=true) do not inflate
+      // the client price. target_profit (is_cost=false, is_client_visible=false) is internal allocation.
+      const costSubtotal = result.items
+        .filter(i => i.isCost)
+        .reduce((s, i) => s + i.amountKzt, 0);
+      // Total internal costs must be strictly less than gross revenue
+      expect(costSubtotal).toBeLessThan(result.amountKzt);
+      // Also verify internal costs are not added to the client price
+      const clientVisibleSubtotal = result.items
+        .filter(i => !i.isCost && i.isClientVisible)
+        .reduce((s, i) => s + i.amountKzt, 0);
+      expect(Math.abs(clientVisibleSubtotal - result.amountKzt)).toBeLessThan(200);
+    });
   });
 
   describe('client visibility', () => {
     it('internal cost/reserve items are not client-visible', () => {
       const result = calculatePrice(baseInput(), mockVersion);
-      const internalTypes = ['tax_reserve', 'acquiring_reserve', 'risk_reserve', 'owner_reserve', 'marketing_reserve', 'ai_it_reserve', 'translator_reserved_cost', 'target_profit'];
+      const internalTypes = ['tax_reserve', 'acquiring_fee_estimate', 'risk_chargeback_reserve', 'owner_reserve', 'marketing_cac_reserve', 'ai_it_reserve', 'translator_reserved_cost'];
       for (const type of internalTypes) {
         const item = result.items.find(i => i.itemType === type);
         if (item) {
@@ -195,7 +326,7 @@ describe('calculatePrice', () => {
 
     it('client-facing items are visible', () => {
       const result = calculatePrice(baseInput({ sourceWordCount: 350, physicalPageCount: 2 }), mockVersion);
-      const visibleTypes = ['minimum_check', 'extra_words', 'additional_pages'];
+      const visibleTypes = ['minimum_check', 'extra_words_fee', 'extra_pages_fee'];
       for (const type of visibleTypes) {
         const item = result.items.find(i => i.itemType === type);
         if (item) {
@@ -243,11 +374,11 @@ describe('calculatePrice', () => {
       expect(urgencyItem!.metadataJson?.coefficient).toBe(1.50);
     });
 
-    it('poor_scan quality adds 15% surcharge on translation portion', () => {
+    it('poor_scan quality adds 15% surcharge on translation portion (readability_surcharge)', () => {
       const normal = calculatePrice(baseInput({ scanQuality: 'normal' }), mockVersion);
       const poorScan = calculatePrice(baseInput({ scanQuality: 'poor_scan' }), mockVersion);
       expect(poorScan.amountKzt).toBeGreaterThan(normal.amountKzt);
-      const scanItem = poorScan.items.find(i => i.itemType === 'scan_quality_surcharge');
+      const scanItem = poorScan.items.find(i => i.itemType === 'readability_surcharge');
       expect(scanItem).toBeDefined();
     });
 
@@ -257,21 +388,21 @@ describe('calculatePrice', () => {
       expect(result.reviewReasons.some(r => r.includes('handwritten'))).toBe(true);
     });
 
-    it('tables layout complexity adds fixed fee per page', () => {
+    it('tables layout complexity adds fixed fee per page (layout_fee)', () => {
       const standard = calculatePrice(baseInput({ layoutComplexity: 'standard', physicalPageCount: 2 }), mockVersion);
       const tables = calculatePrice(baseInput({ layoutComplexity: 'tables', physicalPageCount: 2 }), mockVersion);
       expect(tables.amountKzt).toBeGreaterThan(standard.amountKzt);
-      const layoutItem = tables.items.find(i => i.itemType === 'layout_complexity_fee');
+      const layoutItem = tables.items.find(i => i.itemType === 'layout_fee');
       expect(layoutItem).toBeDefined();
       expect(layoutItem!.quantity).toBe(2);
       expect(layoutItem!.unitPriceKzt).toBe(1000);
     });
 
-    it('complex_layout adds 25% multiplier on translation portion', () => {
+    it('complex_layout adds 25% multiplier on translation portion (layout_fee)', () => {
       const standard = calculatePrice(baseInput({ layoutComplexity: 'standard' }), mockVersion);
       const complex = calculatePrice(baseInput({ layoutComplexity: 'complex_layout' }), mockVersion);
       expect(complex.amountKzt).toBeGreaterThan(standard.amountKzt);
-      const layoutItem = complex.items.find(i => i.itemType === 'layout_complexity_fee');
+      const layoutItem = complex.items.find(i => i.itemType === 'layout_fee');
       expect(layoutItem).toBeDefined();
       expect(layoutItem!.metadataJson?.multiplier).toBe(0.25);
     });
@@ -344,13 +475,43 @@ describe('calculatePrice', () => {
       }), mockVersion);
       expect(result.requiresOperatorReview).toBe(true);
       expect(result.reviewReasons.some(r => r.includes('remote_area'))).toBe(true);
+      // delivery_fee row still present but with amount=0 (operator review case)
       const deliveryItem = result.items.find(i => i.itemType === 'delivery_fee');
-      expect(deliveryItem).toBeUndefined();
+      expect(deliveryItem).toBeDefined();
+      expect(deliveryItem!.amountKzt).toBe(0);
     });
 
     it('source language auto is rejected at resolver and triggers review', () => {
       const result = calculatePrice(baseInput({ sourceLanguage: 'auto', targetLanguage: 'en' }), mockVersion);
       expect(result.requiresOperatorReview).toBe(true);
+    });
+
+    it('official package includes translator_reserved_cost at 30% of translation portion', () => {
+      const result = calculatePrice(baseInput({ sourceWordCount: 250 }), mockVersion);
+      const trc = result.items.find(i => i.itemType === 'translator_reserved_cost');
+      expect(trc).toBeDefined();
+      const baseMin = result.items.find(i => i.itemType === 'minimum_check')!.amountKzt;
+      expect(trc!.amountKzt).toBeCloseTo(baseMin * 0.30, -1);
+    });
+
+    it('direct order has partner_commission_cost=0 with not_applicable metadata', () => {
+      const result = calculatePrice(baseInput({ salesChannel: 'direct' }), mockVersion);
+      const pc = result.items.find(i => i.itemType === 'partner_commission_cost');
+      expect(pc).toBeDefined();
+      expect(pc!.amountKzt).toBe(0);
+      expect(pc!.isCost).toBe(true);
+      expect(pc!.metadataJson?.not_applicable).toBe(true);
+    });
+
+    it('official package: human_review, translator_signature, provider_stamp each 0 with included_in_official_package=true', () => {
+      const result = calculatePrice(baseInput(), mockVersion);
+      const items = ['human_review_fee', 'translator_signature_fee', 'provider_stamp_fee'];
+      for (const type of items) {
+        const item = result.items.find(i => i.itemType === type);
+        expect(item).toBeDefined();
+        expect(item!.amountKzt).toBe(0);
+        expect(item!.metadataJson?.included_in_official_package).toBe(true);
+      }
     });
   });
 
@@ -391,8 +552,6 @@ describe('calculatePrice', () => {
       expect(result.context.notaryCutoff).toBeUndefined();
     });
 
-    // Note: same_day tests depend on server time — tested exhaustively in almaty-time.test.ts
-    // The calculator delegates window determination to getNotaryCutoffWindow()
     it('same_day produces a notaryCutoff snapshot with a non-standard window', () => {
       const result = calculatePrice(notaryBase({ notaryUrgencyLevel: 'same_day' }), mockVersion);
       expect(result.context.notaryCutoff).toBeDefined();
@@ -403,7 +562,6 @@ describe('calculatePrice', () => {
     });
 
     it('same_day after_noon or after_18 adds notary_urgency_fee item with positive amount', () => {
-      // We can't control server time, so just verify structure is correct when fee is present
       const result = calculatePrice(notaryBase({ notaryUrgencyLevel: 'same_day' }), mockVersion);
       const snapshot = result.context.notaryCutoff!;
       if (snapshot.multiplier > 1.0) {
@@ -491,9 +649,9 @@ describe('calculatePrice', () => {
       expect(coeffItem!.amountKzt).toBeCloseTo(6300, -1);
     });
 
-    it('no additional_pages item for presentation (uses slides fee instead)', () => {
+    it('no extra_pages_fee item for presentation (uses slides fee instead)', () => {
       const result = calculatePrice(basePresentation({ physicalPageCount: 5 }), mockVersion);
-      expect(result.items.find(i => i.itemType === 'additional_pages')).toBeUndefined();
+      expect(result.items.find(i => i.itemType === 'extra_pages_fee')).toBeUndefined();
     });
 
     it('operator review when physicalPageCount explicitly 0', () => {
@@ -509,9 +667,9 @@ describe('calculatePrice', () => {
       expect(result.items.find(i => i.itemType === 'presentation_slides_fee')).toBeUndefined();
     });
 
-    it('regression: diploma with 3 pages still uses additional_pages (not slides)', () => {
+    it('regression: diploma with 3 pages still uses extra_pages_fee (not slides)', () => {
       const result = calculatePrice(baseInput({ documentType: 'diploma_transcript', physicalPageCount: 3 }), mockVersion);
-      expect(result.items.find(i => i.itemType === 'additional_pages')).toBeDefined();
+      expect(result.items.find(i => i.itemType === 'extra_pages_fee')).toBeDefined();
       expect(result.items.find(i => i.itemType === 'presentation_slides_fee')).toBeUndefined();
     });
   });
