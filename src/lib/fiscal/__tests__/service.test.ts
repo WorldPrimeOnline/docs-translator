@@ -122,18 +122,24 @@ describe('ensureSaleFiscalReceiptForPaidPayment — structural contracts', () =>
     expect(insertPos).toBeGreaterThan(-1);
     expect(workerHandledPos).toBeGreaterThan(-1);
     expect(insertPos).toBeLessThan(workerHandledPos);
-    // ensureSaleFiscalReceiptForPaidPayment must NOT contain a direct Webkassa/provider call
-    expect(fnSrc).not.toContain('void _runProviderSaleReceipt');
+    // ensureSaleFiscalReceiptForPaidPayment must NOT contain a direct provider call
     expect(fnSrc).not.toContain('provider.createSaleReceipt');
+    expect(fnSrc).not.toContain('_runProviderSaleReceipt');
   });
 
-  it('worker fiscal-processor handles Webkassa — no direct provider call from serverless path', () => {
-    // _runProviderSaleReceipt still exists (used by createSaleReceiptForPayment legacy path)
-    // but must NOT be called from ensureSaleFiscalReceiptForPaidPayment
-    const fnStart = SERVICE_SRC.indexOf('export async function ensureSaleFiscalReceiptForPaidPayment');
-    const fnEnd = SERVICE_SRC.indexOf('\nexport ', fnStart + 10);
-    const fnSrc = SERVICE_SRC.slice(fnStart, fnEnd);
-    expect(fnSrc).not.toContain('void _runProviderSaleReceipt');
+  it('service.ts does not contain any direct Webkassa/provider call (sale or refund)', () => {
+    // Vercel never calls Webkassa — only the Railway worker does
+    expect(SERVICE_SRC).not.toContain('provider.createSaleReceipt');
+    expect(SERVICE_SRC).not.toContain('provider.createRefundReceipt');
+    expect(SERVICE_SRC).not.toContain('_runProviderSaleReceipt');
+  });
+
+  it('createRefundReceiptForRefund does not call provider directly — worker handles it', () => {
+    const fnStart = SERVICE_SRC.indexOf('export async function createRefundReceiptForRefund');
+    const fnSrc = SERVICE_SRC.slice(fnStart);
+    expect(fnStart).toBeGreaterThan(-1);
+    expect(fnSrc).not.toContain('provider.createRefundReceipt');
+    expect(fnSrc).toContain('worker fiscal-processor picks it up');
   });
 
   it('handles unique constraint violation (race idempotency)', () => {
@@ -144,15 +150,9 @@ describe('ensureSaleFiscalReceiptForPaidPayment — structural contracts', () =>
     expect(SERVICE_SRC).not.toMatch(/console\.(info|log|error).*password/i);
     expect(SERVICE_SRC).not.toMatch(/console\.(info|log|error).*api_key/i);
   });
-
-  it('_runProviderSaleReceipt updates row to failed on provider error', () => {
-    expect(SERVICE_SRC).toContain("status: 'failed'");
-    expect(SERVICE_SRC).toContain('failed_at: new Date().toISOString()');
-  });
 });
 
-// Note: createSaleReceiptForPayment integration tests require a real Supabase connection.
-// The following tests validate the idempotency logic and error path contracts.
+// The following tests validate the idempotency logic and provider behaviour contracts.
 
 describe('fiscal receipt idempotency contract', () => {
   it('pending_manual status does not expose fiscal_url to callers', async () => {

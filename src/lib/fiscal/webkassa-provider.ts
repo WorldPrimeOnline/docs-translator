@@ -222,7 +222,8 @@ export class WebkassaFiscalProvider implements FiscalProvider {
 
       console.error('[webkassa/provider] sale receipt failed', {
         errorCode: code,
-        // DO NOT log: credentials, token, request body
+        hasApiKey: !!cfg.apiKey,    // boolean only — never log the key value
+        cashboxUniqueNumber: cfg.cashboxUniqueNumber,
       });
 
       return {
@@ -299,6 +300,8 @@ export class WebkassaFiscalProvider implements FiscalProvider {
 
       console.error('[webkassa/provider] refund receipt failed', {
         errorCode: code,
+        hasApiKey: !!cfg.apiKey,    // boolean only — never log the key value
+        cashboxUniqueNumber: cfg.cashboxUniqueNumber,
       });
 
       return {

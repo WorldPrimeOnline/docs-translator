@@ -177,17 +177,15 @@ describe('fiscal hook — all finalization paths use ensureSaleFiscalReceiptForP
     expect(src).toContain('export async function ensureSaleFiscalReceiptForPaidPayment');
   });
 
-  it('fiscal service creates DB row before any provider call', () => {
+  it('fiscal service has NO direct Webkassa/provider call anywhere (sale or refund)', () => {
     const src = fs.readFileSync(
       path.join(process.cwd(), 'src/lib/fiscal/service.ts'),
       'utf-8',
     );
-    // Row insert comes before _runProviderSaleReceipt invocation
-    const insertPos = src.indexOf("from('fiscal_receipts')\n    .insert");
-    const providerCallPos = src.indexOf('_runProviderSaleReceipt');
-    expect(insertPos).toBeGreaterThan(-1);
-    expect(providerCallPos).toBeGreaterThan(-1);
-    expect(insertPos).toBeLessThan(providerCallPos);
+    // Vercel must not call Webkassa. Only Railway worker (fiscal-processor) calls Webkassa.
+    expect(src).not.toContain('provider.createSaleReceipt');
+    expect(src).not.toContain('provider.createRefundReceipt');
+    expect(src).not.toContain('_runProviderSaleReceipt');
   });
 
   it('ensureSaleFiscalReceiptForPaidPayment does not call provider directly — worker handles Webkassa', () => {
@@ -195,15 +193,23 @@ describe('fiscal hook — all finalization paths use ensureSaleFiscalReceiptForP
       path.join(process.cwd(), 'src/lib/fiscal/service.ts'),
       'utf-8',
     );
-    // _runProviderSaleReceipt still exists as a helper (used elsewhere) but must NOT be
-    // called from ensureSaleFiscalReceiptForPaidPayment — the Railway worker fiscal-processor
-    // handles Webkassa sequentially (Webkassa requirement: one active request per cashbox).
-    expect(src).toContain('_runProviderSaleReceipt');
     const fnStart = src.indexOf('export async function ensureSaleFiscalReceiptForPaidPayment');
     const fnEnd = src.indexOf('\nexport ', fnStart + 10);
     const fnSrc = src.slice(fnStart, fnEnd > fnStart ? fnEnd : undefined);
-    expect(fnSrc).not.toContain('void _runProviderSaleReceipt');
+    expect(fnSrc).not.toContain('provider.createSaleReceipt');
+    expect(fnSrc).not.toContain('_runProviderSaleReceipt');
     expect(fnSrc).toContain('worker fiscal-processor');
+  });
+
+  it('createRefundReceiptForRefund does not call provider directly — worker handles refunds', () => {
+    const src = fs.readFileSync(
+      path.join(process.cwd(), 'src/lib/fiscal/service.ts'),
+      'utf-8',
+    );
+    const fnStart = src.indexOf('export async function createRefundReceiptForRefund');
+    const fnSrc = src.slice(fnStart);
+    expect(fnStart).toBeGreaterThan(-1);
+    expect(fnSrc).not.toContain('provider.createRefundReceipt');
   });
 
   it('pending_manual path does not trigger async provider call', () => {
@@ -214,6 +220,16 @@ describe('fiscal hook — all finalization paths use ensureSaleFiscalReceiptForP
     // manual or disabled → pending_manual; provider call only for pending
     expect(src).toContain("'pending_manual' as const");
     expect(src).toContain("'pending' as const");
+  });
+
+  it('webkassa-provider.ts error log includes hasApiKey as boolean, never the key value', () => {
+    const providerSrc = fs.readFileSync(
+      path.join(process.cwd(), 'src/lib/fiscal/webkassa-provider.ts'),
+      'utf-8',
+    );
+    expect(providerSrc).toContain('hasApiKey: !!cfg.apiKey');
+    // Key value must never appear directly in log fields
+    expect(providerSrc).not.toMatch(/console\.\w+\([^)]*apiKey:\s*cfg\.apiKey[^)]*\)/);
   });
 });
 
