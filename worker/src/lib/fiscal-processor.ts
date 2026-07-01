@@ -53,7 +53,7 @@ function getWebkassaConfig(): WebkassaConfig | null {
   return {
     apiBaseUrl: (env.WEBKASSA_API_BASE_URL
       ?? (env.FISCAL_PROVIDER_ENV === 'production'
-        ? 'https://kkm.webkassa.kz'
+        ? 'https://api.webkassa.kz'
         : 'https://devkkm.webkassa.kz')
     ).replace(/\/$/, ''),
     apiKey: env.WEBKASSA_API_KEY,
