@@ -55,12 +55,15 @@ export type WebkassaZReportData = z.infer<typeof WebkassaZReportDataSchema>;
 
 const ERROR_CODES = {
   SESSION_EXPIRED: 2,
+  SHIFT_OVER_24H: 11,
   SHIFT_ALREADY_CLOSED: 12,
   NO_OPEN_SHIFT: 13,
   DUPLICATE_EXTERNAL_NUMBER: 14,
   SERVICE_UNAVAILABLE: 505,
   UNKNOWN: -1,
 } as const;
+
+export const WEBKASSA_ERROR_SHIFT_OVER_24H = ERROR_CODES.SHIFT_OVER_24H;
 
 const RETRYABLE_CODES = new Set([ERROR_CODES.SERVICE_UNAVAILABLE, ERROR_CODES.UNKNOWN]);
 const Z_REPORT_ALREADY_DONE = new Set([ERROR_CODES.SHIFT_ALREADY_CLOSED, ERROR_CODES.NO_OPEN_SHIFT]);
@@ -232,6 +235,12 @@ export interface WebkassaCheckRequest {
   ExternalOrderNumber?: string;
   CustomerEmail?: string;
   ExternalLinkId?: string;
+  /**
+   * For OperationType=3 (SALE_RETURN): ExternalCheckNumber of the original sale receipt.
+   * Required by Webkassa to link the return to its base check.
+   * Value = payment_transaction_id of the original payment (same as original sale's ExternalCheckNumber).
+   */
+  OriginalExternalCheckNumber?: string;
 }
 
 export interface CreateCheckResult {

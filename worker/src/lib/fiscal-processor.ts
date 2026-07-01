@@ -22,8 +22,10 @@ import { supabase } from './supabase';
 import { env } from './env';
 import {
   createCheck,
+  createZReport,
   WebkassaApiError,
   WebkassaNetworkError,
+  WEBKASSA_ERROR_SHIFT_OVER_24H,
   sanitizeForStorage,
   type WebkassaConfig,
 } from './webkassa-client';
@@ -143,6 +145,7 @@ interface PendingFiscalReceipt {
 async function processOneReceipt(
   receipt: PendingFiscalReceipt,
   cfg: WebkassaConfig,
+  shiftRetryCount = 0, // tracks Error 11 recovery attempts; capped at 1
 ): Promise<void> {
   const operationType = receipt.operation_type === 'sale' ? 2 : 3; // SALE=2, SALE_RETURN=3
   const isSale = receipt.operation_type === 'sale';
@@ -156,6 +159,16 @@ async function processOneReceipt(
   const amountKzt = Math.round(receipt.amount_kzt);
   const taxType = 0 as const; // No VAT — confirmed for WPO
   const taxAmount = 0;
+
+  // For refund receipts: use refundTransactionId as ExternalCheckNumber so it's unique
+  // from the original sale (which uses payment_transaction_id). For sales: use payment_transaction_id.
+  const refundTransactionId = payload['refundTransactionId'] as string | undefined;
+  const externalCheckNumber =
+    !isSale && refundTransactionId ? refundTransactionId : receipt.payment_transaction_id;
+
+  // For OperationType=3 (SALE_RETURN): pass original sale's ExternalCheckNumber as base check reference.
+  // The original sale used payment_transaction_id as its ExternalCheckNumber.
+  const originalExternalCheckNumber = !isSale ? receipt.payment_transaction_id : undefined;
 
   try {
     const result = await createCheck(cfg, {
@@ -177,10 +190,11 @@ async function processOneReceipt(
       Payments: [{ Sum: amountKzt, PaymentType: 1 }], // BANK_CARD = 1
       Change: 0,
       RoundType: 2,
-      ExternalCheckNumber: receipt.payment_transaction_id,
+      ExternalCheckNumber: externalCheckNumber,
       ExternalOrderNumber: orderNumber,
       CustomerEmail: receipt.customer_email ?? undefined,
       ExternalLinkId: crypto.randomUUID(),
+      ...(originalExternalCheckNumber !== undefined && { OriginalExternalCheckNumber: originalExternalCheckNumber }),
     });
 
     await supabase
@@ -204,6 +218,30 @@ async function processOneReceipt(
       checkNumber: result.checkNumber,
     });
   } catch (err) {
+    // Error 11: shift >24h — auto-recover by running Z-report, then retry once.
+    // Idempotent: same ExternalCheckNumber is reused; if check was already issued (Error 14),
+    // it will be treated as success. Cap at 1 shift retry to avoid infinite loops.
+    if (
+      err instanceof WebkassaApiError &&
+      err.code === WEBKASSA_ERROR_SHIFT_OVER_24H &&
+      shiftRetryCount < 1
+    ) {
+      console.warn('[fiscal-processor] Error 11 (shift >24h) — running Z-report to close stale shift', {
+        receiptId: receipt.id,
+      });
+      try {
+        await createZReport(cfg);
+        console.info('[fiscal-processor] Z-report completed; retrying fiscal receipt after Error 11', {
+          receiptId: receipt.id,
+        });
+      } catch (zErr) {
+        // Z-report failure is non-fatal — the new shift may open automatically
+        console.warn('[fiscal-processor] Z-report during Error 11 recovery failed (continuing retry):', (zErr as Error).message);
+      }
+      // Retry the same receipt; ExternalCheckNumber idempotency prevents duplicate receipts
+      return processOneReceipt(receipt, cfg, shiftRetryCount + 1);
+    }
+
     const msg = (err as Error).message;
     const code = err instanceof WebkassaApiError ? String(err.code) : undefined;
     const isRetryable = (err instanceof WebkassaNetworkError && err.isRetryable)

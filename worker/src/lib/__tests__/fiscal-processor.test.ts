@@ -8,6 +8,10 @@
  * - Retryable error → status=retry_required
  * - No receipts → no Webkassa calls
  * - Missing config → no Webkassa calls
+ * - Error 11 (shift >24h) → Z-report → retry
+ * - Error 11 retry: same ExternalCheckNumber reused (idempotency prevents duplicates)
+ * - Sale return (operation_type=refund) payload includes OriginalExternalCheckNumber
+ * - Sale return skips correctly when original sale context is missing
  */
 
 // ─── Module mocks (must be before any imports) ────────────────────────────────
@@ -30,6 +34,7 @@ const mockSupabaseFrom = jest.fn();
 jest.mock('../supabase', () => ({ supabase: { from: mockSupabaseFrom } }));
 
 const mockCreateCheck = jest.fn();
+const mockCreateZReport = jest.fn();
 const MockWebkassaApiError = class WebkassaApiError extends Error {
   code: number; isRetryable: boolean; isDuplicate: boolean;
   constructor(msg: string, code: number, isRetryable: boolean, isDuplicate = false) {
@@ -43,9 +48,11 @@ const MockWebkassaNetworkError = class WebkassaNetworkError extends Error {
 
 jest.mock('../webkassa-client', () => ({
   createCheck: mockCreateCheck,
+  createZReport: mockCreateZReport,
   sanitizeForStorage: jest.fn(() => ({})),
   WebkassaApiError: MockWebkassaApiError,
   WebkassaNetworkError: MockWebkassaNetworkError,
+  WEBKASSA_ERROR_SHIFT_OVER_24H: 11,
 }));
 
 // ─── Import after mocks ───────────────────────────────────────────────────────
@@ -234,5 +241,144 @@ describe('processPendingFiscalReceipts', () => {
 
     // Sequential: start-1 must complete before start-2
     expect(order).toEqual(['start-1', 'end-1', 'start-2', 'end-2']);
+  });
+
+  it('Error 11 (shift >24h) triggers Z-report then retries the fiscal receipt', async () => {
+    const receipt = makeReceipt();
+    const fetchChain = makeChain([receipt]);
+    const lockChain = makeChain([{ cashbox_id: 'SWK00035686' }]);
+    const updateChain = makeChain(null);
+
+    mockSupabaseFrom
+      .mockReturnValueOnce(fetchChain)
+      .mockReturnValueOnce(lockChain)
+      .mockReturnValueOnce(updateChain);
+
+    mockCreateZReport.mockResolvedValue({ alreadyClosed: false, shiftNumber: 5, rawData: null });
+
+    // First call: Error 11 (shift >24h). Second call: success.
+    mockCreateCheck
+      .mockRejectedValueOnce(new MockWebkassaApiError('Shift over 24h', 11, false))
+      .mockResolvedValueOnce(makeSuccessResult());
+
+    await processPendingFiscalReceipts();
+
+    expect(mockCreateZReport).toHaveBeenCalledTimes(1);
+    expect(mockCreateCheck).toHaveBeenCalledTimes(2);
+    expect(updateChain.update).toHaveBeenCalledWith(expect.objectContaining({ status: 'issued' }));
+  });
+
+  it('Error 11 retry uses same ExternalCheckNumber — idempotency prevents duplicate receipts', async () => {
+    const receipt = makeReceipt({ payment_transaction_id: 'orig-txn-id' });
+    const fetchChain = makeChain([receipt]);
+    const lockChain = makeChain([{ cashbox_id: 'SWK00035686' }]);
+    const updateChain = makeChain(null);
+
+    mockSupabaseFrom
+      .mockReturnValueOnce(fetchChain)
+      .mockReturnValueOnce(lockChain)
+      .mockReturnValueOnce(updateChain);
+
+    mockCreateZReport.mockResolvedValue({ alreadyClosed: false, rawData: null });
+    mockCreateCheck
+      .mockRejectedValueOnce(new MockWebkassaApiError('Shift over 24h', 11, false))
+      .mockResolvedValueOnce(makeSuccessResult());
+
+    await processPendingFiscalReceipts();
+
+    // Both calls must use the same ExternalCheckNumber to ensure idempotency
+    const calls = mockCreateCheck.mock.calls;
+    expect(calls).toHaveLength(2);
+    const extNum1 = (calls[0]![1] as { ExternalCheckNumber: string }).ExternalCheckNumber;
+    const extNum2 = (calls[1]![1] as { ExternalCheckNumber: string }).ExternalCheckNumber;
+    expect(extNum1).toBe(extNum2);
+    expect(extNum1).toBe('orig-txn-id');
+  });
+
+  it('Error 11 is NOT retried a second time — capped at 1 shift retry', async () => {
+    const receipt = makeReceipt({ retry_count: 0 });
+    const fetchChain = makeChain([receipt]);
+    const lockChain = makeChain([{ cashbox_id: 'SWK00035686' }]);
+    const updateChain = makeChain(null);
+
+    mockSupabaseFrom
+      .mockReturnValueOnce(fetchChain)
+      .mockReturnValueOnce(lockChain)
+      .mockReturnValueOnce(updateChain);
+
+    mockCreateZReport.mockResolvedValue({ alreadyClosed: false, rawData: null });
+    // Both attempts fail with Error 11 — second attempt must NOT trigger another Z-report
+    mockCreateCheck.mockRejectedValue(new MockWebkassaApiError('Shift over 24h', 11, false));
+
+    await processPendingFiscalReceipts();
+
+    // Z-report only once, check only twice (original + 1 retry), then marked failed
+    expect(mockCreateZReport).toHaveBeenCalledTimes(1);
+    expect(mockCreateCheck).toHaveBeenCalledTimes(2);
+    expect(updateChain.update).toHaveBeenCalledWith(expect.objectContaining({ status: 'failed' }));
+  });
+
+  it('sale return (operation_type=refund) uses refundTransactionId as ExternalCheckNumber and passes OriginalExternalCheckNumber', async () => {
+    const refundTxnId = 'refund-txn-uuid';
+    const originalPaymentTxnId = 'orig-payment-txn-uuid';
+    const receipt = makeReceipt({
+      operation_type: 'refund',
+      payment_transaction_id: originalPaymentTxnId,
+      receipt_payload_sanitized: {
+        refundTransactionId: refundTxnId,
+        amountKzt: 1000,
+        reason: 'customer_request',
+      },
+    });
+
+    const fetchChain = makeChain([receipt]);
+    const lockChain = makeChain([{ cashbox_id: 'SWK00035686' }]);
+    const updateChain = makeChain(null);
+
+    mockSupabaseFrom
+      .mockReturnValueOnce(fetchChain)
+      .mockReturnValueOnce(lockChain)
+      .mockReturnValueOnce(updateChain);
+
+    mockCreateCheck.mockResolvedValue(makeSuccessResult());
+
+    await processPendingFiscalReceipts();
+
+    expect(mockCreateCheck).toHaveBeenCalledTimes(1);
+    const [, request] = mockCreateCheck.mock.calls[0] as [unknown, { OperationType: number; ExternalCheckNumber: string; OriginalExternalCheckNumber?: string }];
+    // Return uses refundTransactionId as its own ExternalCheckNumber (not originalPaymentTxnId)
+    expect(request.ExternalCheckNumber).toBe(refundTxnId);
+    // Original sale's ExternalCheckNumber is passed as base check reference
+    expect(request.OriginalExternalCheckNumber).toBe(originalPaymentTxnId);
+    // OperationType=3 (SALE_RETURN)
+    expect(request.OperationType).toBe(3);
+  });
+
+  it('sale return (operation_type=refund) falls back to payment_transaction_id when no refundTransactionId in payload', async () => {
+    const originalPaymentTxnId = 'orig-payment-no-refund-id';
+    const receipt = makeReceipt({
+      operation_type: 'refund',
+      payment_transaction_id: originalPaymentTxnId,
+      receipt_payload_sanitized: {}, // no refundTransactionId
+    });
+
+    const fetchChain = makeChain([receipt]);
+    const lockChain = makeChain([{ cashbox_id: 'SWK00035686' }]);
+    const updateChain = makeChain(null);
+
+    mockSupabaseFrom
+      .mockReturnValueOnce(fetchChain)
+      .mockReturnValueOnce(lockChain)
+      .mockReturnValueOnce(updateChain);
+
+    mockCreateCheck.mockResolvedValue(makeSuccessResult());
+
+    await processPendingFiscalReceipts();
+
+    const [, request] = mockCreateCheck.mock.calls[0] as [unknown, { ExternalCheckNumber: string; OriginalExternalCheckNumber?: string }];
+    // Falls back to payment_transaction_id when refundTransactionId is absent
+    expect(request.ExternalCheckNumber).toBe(originalPaymentTxnId);
+    // OriginalExternalCheckNumber still set (same value as fallback ExternalCheckNumber)
+    expect(request.OriginalExternalCheckNumber).toBe(originalPaymentTxnId);
   });
 });

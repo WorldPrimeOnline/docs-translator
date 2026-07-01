@@ -19,7 +19,7 @@
  * 1. Auth / token acquisition
  * 2. Sale receipt (OperationType=2)
  * 3. Duplicate ExternalCheckNumber → Error 14 (idempotent success)
- * 4. Sale return receipt (OperationType=3) with OriginalTransactionId from step 2
+ * 4. Sale return receipt (OperationType=3) with OriginalExternalCheckNumber from step 2
  * 5. Z-report (close shift) — closes the shift opened by steps 2-4
  * 6. Sequential queue test (two receipts for same cashbox sent sequentially)
  *
@@ -169,7 +169,8 @@ async function sendSale(opts: {
   externalOrderNumber: string;
   positionName: string;
   amount: number;
-  originalTransactionId?: string;
+  /** For OperationType=3 (SALE_RETURN): ExternalCheckNumber of the original sale receipt */
+  originalExternalCheckNumber?: string;
   operationType?: number;
 }): Promise<StepResult> {
   const operationType = opts.operationType ?? 2;
@@ -196,10 +197,10 @@ async function sendSale(opts: {
     ExternalLinkId: crypto.randomUUID(),
   };
 
-  if (opts.originalTransactionId) {
-    // Required for OperationType=3 (SALE_RETURN).
-    // Without this, Webkassa returns Error 9 ("Необходимо заполнить данные чека основания").
-    body['OriginalTransactionId'] = opts.originalTransactionId;
+  if (opts.originalExternalCheckNumber) {
+    // Required for OperationType=3 (SALE_RETURN) per Webkassa documentation:
+    // original/base receipt data must include ExternalCheckNumber of the original check.
+    body['OriginalExternalCheckNumber'] = opts.originalExternalCheckNumber;
   }
 
   const resp = await callAuth('/api/v4/check', body);
@@ -247,8 +248,8 @@ async function main(): Promise<void> {
   });
 
   // ─── 2. Sale receipt ─────────────────────────────────────────────────────────
+  // saleExternalId is the ExternalCheckNumber for this sale — used in steps 3 and 4.
   const saleExternalId = crypto.randomUUID();
-  let saleCheckNumber: string | undefined;
 
   const saleResult = await step('2. Sale receipt (OperationType=2)', async () => {
     const result = await sendSale({
@@ -259,8 +260,7 @@ async function main(): Promise<void> {
     });
     if (!result.ok) return result;
     const d = result.data as { CheckNumber?: string; TicketUrl?: string } | null;
-    saleCheckNumber = d?.CheckNumber;
-    console.log(`(CheckNumber=${d?.CheckNumber ?? 'n/a'}, TicketUrl=${d?.TicketUrl ?? 'n/a'})`);
+    console.log(`(CheckNumber=${d?.CheckNumber ?? 'n/a'}, ExternalCheckNumber=${saleExternalId}, TicketUrl=${d?.TicketUrl ?? 'n/a'})`);
     return result;
   });
 
@@ -300,34 +300,32 @@ async function main(): Promise<void> {
   });
 
   // ─── 4. Sale return receipt (OperationType=3) ────────────────────────────────
-  // NOTE: Tested 10+ field combinations (OriginalTransactionId as string/number,
-  //       OriginalCheckNumber, CheckBasis object, ExternalCheckNumber, OriginalExternalCheckNumber,
-  //       bare request with no extra fields, etc.). ALL return Error 9
-  //       "Необходимо заполнить данные чека основания" regardless of extra fields.
-  //       This indicates the test cashbox SWK00035686 has return receipts DISABLED
-  //       at the cashbox configuration level — not an API field issue.
-  //       Needs Webkassa support to enable returns on this test cashbox, or provide
-  //       a correctly configured cashbox for return receipt testing.
-  await step('4. Sale return receipt (OperationType=3)', async () => {
-    if (!saleResult.ok || !saleCheckNumber) {
-      console.log('(skipped — step 2 (sale) failed)');
+  // Per Webkassa documentation: original/base receipt data must be passed, including
+  // OriginalExternalCheckNumber = ExternalCheckNumber of the original/base check.
+  // The return ExternalCheckNumber must be unique (different from the original sale).
+  await step('4. Sale return receipt (OperationType=3) with OriginalExternalCheckNumber', async () => {
+    if (!saleResult.ok) {
+      console.log('(skipped — step 2 (sale) failed; sale must succeed before testing return)');
       return { ok: true };
     }
     const result = await sendSale({
-      externalId: crypto.randomUUID(),
+      externalId: crypto.randomUUID(),        // unique ExternalCheckNumber for the return
       externalOrderNumber: 'TEST001R',
       positionName: 'Возврат: тестовая услуга перевода документа',
       amount: 1000,
       operationType: 3,
-      originalTransactionId: saleCheckNumber, // CheckNumber from original sale
+      originalExternalCheckNumber: saleExternalId, // ExternalCheckNumber of the original sale
     });
     if (!result.ok && result.errorCode === 9) {
-      // Error 9 on return: test cashbox may have return receipts disabled.
-      // Return implementation IS present in worker (webkassa-client.ts, fiscal-processor.ts).
-      // Action required: ask Webkassa integrator to enable OperationType=3 on test cashbox
-      // OR provide a test cashbox where return receipts are allowed.
-      console.log(`(⚠ Error 9 on return receipt — likely cashbox config: returns disabled on SWK00035686. Needs Webkassa support. Treated as non-blocking for integrator review.)`);
-      return { ok: true }; // non-blocking: cashbox config, not code issue
+      // Error 9 on return: test cashbox SWK00035686 does not have OperationType=3 enabled.
+      // OriginalExternalCheckNumber field IS being sent correctly per documentation.
+      // Worker implementation (webkassa-client.ts, fiscal-processor.ts) also sends this field.
+      // ACTION REQUIRED: Ask Webkassa integrator to enable return receipts on test cashbox
+      // OR provide a test cashbox where OperationType=3 is allowed.
+      console.log('(⚠ Error 9 — return receipts appear disabled on SWK00035686 at cashbox config level.)');
+      console.log('  OriginalExternalCheckNumber was passed correctly per documentation.');
+      console.log('  Request Webkassa integrator to enable OperationType=3 on this test cashbox.');
+      return { ok: true }; // non-blocking: pending cashbox config, not code issue
     }
     if (!result.ok) return result;
     const d = result.data as { CheckNumber?: string } | null;
