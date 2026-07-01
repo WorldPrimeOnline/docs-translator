@@ -139,9 +139,16 @@ async function callApi<T>(
     if (!response.ok) {
       let text = '';
       try { text = await response.text(); } catch { /* ignore */ }
+      const isServerError = response.status >= 500;
+      console.error('[webkassa/worker] HTTP error', {
+        status: response.status,
+        path,
+        host: (() => { try { return new URL(url).hostname; } catch { return url; } })(),
+        responseText: text.slice(0, 300),
+      });
       throw new WebkassaNetworkError(
         `HTTP ${response.status} from Webkassa ${path}: ${text.slice(0, 200)}`,
-        response.status >= 500,
+        isServerError,
       );
     }
 
@@ -162,6 +169,19 @@ async function callApi<T>(
 }
 
 async function authenticate(cfg: WebkassaConfig): Promise<string> {
+  const host = (() => { try { return new URL(cfg.apiBaseUrl).hostname; } catch { return cfg.apiBaseUrl; } })();
+  const loginDomain = cfg.login.includes('@') ? cfg.login.split('@')[1] : '(no-domain)';
+  console.info('[webkassa/worker] authorize started', {
+    host,
+    path: '/api/v4/Authorize',
+    hasApiKey: !!cfg.apiKey,
+    apiKeyLength: cfg.apiKey.length,
+    hasLogin: !!cfg.login,
+    loginDomain,          // only domain portion, never full login
+    hasPassword: !!cfg.password,
+    cashboxUniqueNumber: cfg.cashboxUniqueNumber,
+  });
+
   const raw = await callApi<unknown>(cfg, 'POST', '/api/v4/Authorize', {
     Login: cfg.login,
     Password: cfg.password,
@@ -173,7 +193,16 @@ async function authenticate(cfg: WebkassaConfig): Promise<string> {
   const { data: resp } = parsed;
   if (resp.Errors?.length) {
     const e = resp.Errors[0]!;
-    console.error('[webkassa/worker] auth failed', { code: e.Code }); // no credentials logged
+    console.error('[webkassa/worker] auth failed', {
+      code: e.Code,
+      text: e.Text,
+      host,
+      cashboxUniqueNumber: cfg.cashboxUniqueNumber,
+      loginDomain,
+      hasApiKey: !!cfg.apiKey,
+      apiKeyLength: cfg.apiKey.length,
+      // Never log: apiKey value, login, password
+    });
     throw new WebkassaApiError(`Webkassa auth error ${e.Code}: ${e.Text}`, e.Code, false);
   }
 

@@ -51,7 +51,11 @@ function getWebkassaConfig(): WebkassaConfig | null {
   if (env.FISCAL_PROVIDER_ENV === 'production' && env.WEBKASSA_ALLOW_REAL_RECEIPTS !== 'true') return null;
 
   return {
-    apiBaseUrl: (env.WEBKASSA_API_BASE_URL ?? 'https://devkkm.webkassa.kz').replace(/\/$/, ''),
+    apiBaseUrl: (env.WEBKASSA_API_BASE_URL
+      ?? (env.FISCAL_PROVIDER_ENV === 'production'
+        ? 'https://kkm.webkassa.kz'
+        : 'https://devkkm.webkassa.kz')
+    ).replace(/\/$/, ''),
     apiKey: env.WEBKASSA_API_KEY,
     login: env.WEBKASSA_LOGIN,
     password: env.WEBKASSA_PASSWORD,
