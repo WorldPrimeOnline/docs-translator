@@ -51,8 +51,8 @@ const CASHBOX = process.env.WEBKASSA_CASHBOX_SERIAL_NUMBER ?? 'SWK00035686';
 
 // ─── Safety ───────────────────────────────────────────────────────────────────
 
-if (!BASE_URL.includes('devkkm') && BASE_URL.includes('kkm.webkassa.kz')) {
-  console.error('SAFETY: WEBKASSA_API_BASE_URL looks like production. This script only runs against devkkm.webkassa.kz.');
+if (!BASE_URL.includes('devkkm.webkassa.kz')) {
+  console.error('SAFETY: WEBKASSA_API_BASE_URL is not the devkkm test host. This script only runs against devkkm.webkassa.kz.');
   process.exit(1);
 }
 if (!API_KEY || !LOGIN || !PASSWORD) {

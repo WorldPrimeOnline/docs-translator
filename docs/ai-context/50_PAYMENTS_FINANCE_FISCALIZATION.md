@@ -160,7 +160,7 @@ Error handling:
 
 ```
 WEBKASSA_ENABLED=true
-WEBKASSA_API_BASE_URL=https://kkm.webkassa.kz
+WEBKASSA_API_BASE_URL=https://api.webkassa.kz
 WEBKASSA_API_KEY=<production API key>
 WEBKASSA_LOGIN=<production login>
 WEBKASSA_PASSWORD=<production password>
@@ -174,6 +174,8 @@ WORKER_INSTANCE_ID=railway-worker-prod-1
 ```
 
 Test cashbox (devkkm): ZNK=SWK00035686, URL=https://devkkm.webkassa.kz
+
+**Correction (2026-07-01):** production base URL is `https://api.webkassa.kz`, per WK Corp FAQ ("API-сервер: api.webkassa.kz/api/v4") — NOT `kkm.webkassa.kz`. The wrong host was briefly used as the production default and caused `ERR_SSL_WRONG_SIGNATURE_TYPE` (TLS handshake failure — the host doesn't serve a valid cert for that API). `worker/src/index.ts`, `fiscal-processor.ts`, and `fiscal-z-report.ts` all default to `api.webkassa.kz` when `FISCAL_PROVIDER_ENV=production` and `WEBKASSA_API_BASE_URL` is unset.
 
 Integration test script: `npx tsx scripts/fiscal/test-devkkm.ts` (requires test credentials in env).
 

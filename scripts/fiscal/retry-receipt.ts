@@ -11,7 +11,7 @@
  * Required env vars (copy from Railway production env or .env.production.local):
  *   NEXT_PUBLIC_SUPABASE_URL
  *   SUPABASE_SERVICE_ROLE_KEY
- *   WEBKASSA_API_BASE_URL          (e.g. https://kkm.webkassa.kz for production)
+ *   WEBKASSA_API_BASE_URL          (e.g. https://api.webkassa.kz for production)
  *   WEBKASSA_API_KEY
  *   WEBKASSA_LOGIN
  *   WEBKASSA_PASSWORD              (never logged)

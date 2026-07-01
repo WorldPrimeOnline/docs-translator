@@ -138,7 +138,7 @@ async function pollOnce(): Promise<void> {
 function resolveWebkassaHost(): string {
   const explicit = env.WEBKASSA_API_BASE_URL;
   if (explicit) { try { return new URL(explicit).hostname; } catch { return explicit; } }
-  return env.FISCAL_PROVIDER_ENV === 'production' ? 'kkm.webkassa.kz' : 'devkkm.webkassa.kz';
+  return env.FISCAL_PROVIDER_ENV === 'production' ? 'api.webkassa.kz' : 'devkkm.webkassa.kz';
 }
 
 function runStartupSafetyChecks(): void {

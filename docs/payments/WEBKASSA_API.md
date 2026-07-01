@@ -52,7 +52,7 @@ Token lifetime: up to 24 hours. WPO caches token for 22 hours, re-auths on Error
 | Environment | URL |
 |---|---|
 | Test/Dev | `https://devkkm.webkassa.kz` |
-| Production | **Unknown — confirm with Webkassa**. Set via `WEBKASSA_API_BASE_URL`. |
+| Production | `https://api.webkassa.kz` (confirmed 2026-07-01 via WK Corp FAQ: "API-сервер: api.webkassa.kz/api/v4"). Override via `WEBKASSA_API_BASE_URL`. |
 
 ## Key Endpoints
 
@@ -280,8 +280,8 @@ All safety checks run before any HTTP call. If any gate fails, fiscal receipt is
 - [ ] Production cashbox ЗНК (SWK serial) confirmed active and assigned to the ИП
 - [ ] OFD (WOFD/Smartcontract or other) contract active for the cashbox
 - [ ] Shift management confirmed: Webkassa auto-opens shift or operator opens manually
-- [ ] Confirm production base URL with Webkassa
-- [ ] Set `WEBKASSA_API_BASE_URL=<production-url>`, `FISCAL_PROVIDER_ENV=production`
+- [x] Confirm production base URL with Webkassa — `https://api.webkassa.kz` (2026-07-01)
+- [ ] Set `WEBKASSA_API_BASE_URL=https://api.webkassa.kz`, `FISCAL_PROVIDER_ENV=production`
 - [ ] Set `WEBKASSA_ALLOW_REAL_RECEIPTS=true`
 - [ ] Run one real controlled payment (small amount)
 - [ ] Confirm receipt appears in production OFD portal
@@ -289,8 +289,7 @@ All safety checks run before any HTTP call. If any gate fails, fiscal receipt is
 
 ## Known Unknowns
 
-1. **Production base URL** — not in collection. The collection only shows `devkkm.webkassa.kz` (test).
-   Confirm with Webkassa account manager before production launch.
+1. ~~**Production base URL**~~ — resolved 2026-07-01: `https://api.webkassa.kz` (WK Corp FAQ). Note: `kkm.webkassa.kz` was briefly (incorrectly) used as the production default and caused a TLS handshake failure (`ERR_SSL_WRONG_SIGNATURE_TYPE`) — that host does not serve a valid cert for the fiscal API.
 
 2. **Shift management** — `POST /api/v4/ZReport` closes shift. If shift is not open, receipts fail
    with Error 13. Webkassa may auto-open shifts, or an operator must open manually. Confirm.
