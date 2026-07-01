@@ -9,6 +9,8 @@
  * - Uses zod from worker's own node_modules
  */
 
+import dns from 'node:dns';
+import net from 'node:net';
 import { z } from 'zod';
 
 // ─── Schemas (inline to avoid cross-project imports) ──────────────────────────
@@ -161,11 +163,68 @@ async function callApi<T>(
   } catch (err) {
     clearTimeout(timeoutId);
     if (err instanceof WebkassaApiError || err instanceof WebkassaNetworkError) throw err;
+
+    const host = (() => { try { return new URL(url).hostname; } catch { return url; } })();
+
     if ((err as { name?: string }).name === 'AbortError') {
+      console.error('[webkassa/worker] request timed out', { host, path, timeoutMs });
       throw new WebkassaNetworkError(`Webkassa request timed out after ${timeoutMs}ms (${path})`, true);
     }
-    throw new WebkassaNetworkError(`Network error calling Webkassa ${path}: ${(err as Error).message}`, true);
+
+    const error = err as Error & { cause?: unknown };
+    const cause = error instanceof Error ? error.cause : undefined;
+    const causeInfo = cause && typeof cause === 'object' ? (cause as Record<string, unknown>) : undefined;
+
+    console.error('[webkassa/worker] network error', {
+      host,
+      path,
+      errorName: error?.name,
+      errorMessage: error?.message,
+      causeCode: causeInfo?.code,
+      causeErrno: causeInfo?.errno,
+      causeSyscall: causeInfo?.syscall,
+      causeHostname: causeInfo?.hostname,
+      causeAddress: causeInfo?.address,
+      causePort: causeInfo?.port,
+      timeoutMs,
+    });
+
+    throw new WebkassaNetworkError(`Network error calling Webkassa ${path}: ${error.message}`, true);
   }
+}
+
+// ─── Connectivity diagnostic ───────────────────────────────────────────────────
+
+/**
+ * One-time DNS + TCP reachability check, run at worker startup.
+ * Does not send credentials or hit /api/v4/Authorize — only resolves the
+ * hostname and opens a bare TCP connection, to distinguish DNS/network
+ * failures from actual Webkassa auth failures before the real Authorize call.
+ */
+export async function diagnoseWebkassaConnectivity(host: string, port = 443, timeoutMs = 5000): Promise<void> {
+  let dnsResult: string | null = null;
+  let dnsError: string | null = null;
+  try {
+    const { address, family } = await dns.promises.lookup(host);
+    dnsResult = `${address} (IPv${family})`;
+  } catch (err) {
+    dnsError = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+  }
+
+  const tcpResult = await new Promise<string>((resolve) => {
+    const socket = net.createConnection({ host, port, timeout: timeoutMs });
+    const done = (result: string) => { socket.destroy(); resolve(result); };
+    socket.once('connect', () => done('ok'));
+    socket.once('timeout', () => done(`timeout after ${timeoutMs}ms`));
+    socket.once('error', (err) => done(`${err.name}: ${err.message}`));
+  });
+
+  console.info('[webkassa/worker] startup connectivity check', {
+    host,
+    port,
+    dns: dnsResult ?? `FAILED: ${dnsError}`,
+    tcp: tcpResult,
+  });
 }
 
 async function authenticate(cfg: WebkassaConfig): Promise<string> {
