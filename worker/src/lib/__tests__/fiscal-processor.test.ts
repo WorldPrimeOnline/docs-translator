@@ -10,8 +10,15 @@
  * - Missing config → no Webkassa calls
  * - Error 11 (shift >24h) → Z-report → retry
  * - Error 11 retry: same ExternalCheckNumber reused (idempotency prevents duplicates)
- * - Sale return (operation_type=refund) payload includes OriginalExternalCheckNumber
- * - Sale return skips correctly when original sale context is missing
+ * - Error 11 not retried a second time (capped at 1 shift retry)
+ * - Error 10 (cashbox not activated) → permanent failure, no retry
+ * - Error 2 (session expired) → re-auth handled by webkassa-client, no duplicate
+ * - Error 18 (offline duration exceeded) → permanent failure, no retry
+ * - Generic non-retryable error → status=failed
+ * - Generic retryable error → status=retry_required
+ * - Sale return (operation_type=refund) uses refundTransactionId as ExternalCheckNumber
+ * - Sale return includes returnBasisDetails built from original sale provider_response_sanitized
+ * - Sale return warns and proceeds when no original sale found in DB
  */
 
 // ─── Module mocks (must be before any imports) ────────────────────────────────
@@ -77,6 +84,17 @@ function makeChain(rows: unknown[] | null) {
     single: jest.fn().mockResolvedValue({ data: null }),
   };
   return chain;
+}
+
+/** Chain for looking up original sale's provider_response_sanitized (single row lookup) */
+function makeOriginalSaleChain(saleData: Record<string, unknown> | null) {
+  return {
+    select: jest.fn().mockReturnThis(),
+    eq: jest.fn().mockReturnThis(),
+    single: jest.fn().mockResolvedValue({
+      data: saleData ? { provider_response_sanitized: saleData } : null,
+    }),
+  };
 }
 
 function makeReceipt(overrides: Record<string, unknown> = {}) {
@@ -333,11 +351,13 @@ describe('processPendingFiscalReceipts', () => {
 
     const fetchChain = makeChain([receipt]);
     const lockChain = makeChain([{ cashbox_id: 'SWK00035686' }]);
+    const originalSaleChain = makeOriginalSaleChain(null); // no original sale data
     const updateChain = makeChain(null);
 
     mockSupabaseFrom
       .mockReturnValueOnce(fetchChain)
       .mockReturnValueOnce(lockChain)
+      .mockReturnValueOnce(originalSaleChain)
       .mockReturnValueOnce(updateChain);
 
     mockCreateCheck.mockResolvedValue(makeSuccessResult());
@@ -364,11 +384,13 @@ describe('processPendingFiscalReceipts', () => {
 
     const fetchChain = makeChain([receipt]);
     const lockChain = makeChain([{ cashbox_id: 'SWK00035686' }]);
+    const originalSaleChain = makeOriginalSaleChain(null);
     const updateChain = makeChain(null);
 
     mockSupabaseFrom
       .mockReturnValueOnce(fetchChain)
       .mockReturnValueOnce(lockChain)
+      .mockReturnValueOnce(originalSaleChain)
       .mockReturnValueOnce(updateChain);
 
     mockCreateCheck.mockResolvedValue(makeSuccessResult());
@@ -380,5 +402,194 @@ describe('processPendingFiscalReceipts', () => {
     expect(request.ExternalCheckNumber).toBe(originalPaymentTxnId);
     // OriginalExternalCheckNumber still set (same value as fallback ExternalCheckNumber)
     expect(request.OriginalExternalCheckNumber).toBe(originalPaymentTxnId);
+  });
+
+  it('sale return includes returnBasisDetails built from original sale provider_response_sanitized', async () => {
+    const refundTxnId = 'refund-uuid-basis';
+    const originalPaymentTxnId = 'orig-payment-basis';
+    const receipt = makeReceipt({
+      operation_type: 'refund',
+      payment_transaction_id: originalPaymentTxnId,
+      receipt_payload_sanitized: { refundTransactionId: refundTxnId },
+    });
+
+    const originalSaleProviderData = {
+      CheckNumber: '1610859834212',
+      DateTime: '01.07.2026 15:52:41',
+      OfflineMode: false,
+      Total: 1000,
+      Cashbox: { RegistrationNumber: '774641472171' },
+    };
+
+    const fetchChain = makeChain([receipt]);
+    const lockChain = makeChain([{ cashbox_id: 'SWK00035686' }]);
+    const originalSaleChain = makeOriginalSaleChain(originalSaleProviderData);
+    const updateChain = makeChain(null);
+
+    mockSupabaseFrom
+      .mockReturnValueOnce(fetchChain)
+      .mockReturnValueOnce(lockChain)
+      .mockReturnValueOnce(originalSaleChain)
+      .mockReturnValueOnce(updateChain);
+
+    mockCreateCheck.mockResolvedValue(makeSuccessResult());
+
+    await processPendingFiscalReceipts();
+
+    expect(mockCreateCheck).toHaveBeenCalledTimes(1);
+    const [, request] = mockCreateCheck.mock.calls[0] as [
+      unknown,
+      {
+        returnBasisDetails?: {
+          dateTime: string;
+          total: number;
+          checkNumber: string;
+          registrationNumber: string;
+          isOffline: boolean;
+        };
+      },
+    ];
+    expect(request.returnBasisDetails).toBeDefined();
+    expect(request.returnBasisDetails?.checkNumber).toBe('1610859834212');
+    expect(request.returnBasisDetails?.total).toBe(1000);
+    expect(request.returnBasisDetails?.registrationNumber).toBe('774641472171');
+    expect(request.returnBasisDetails?.isOffline).toBe(false);
+    // DateTime converted from "DD.MM.YYYY HH:mm:ss" → "YYYY-MM-DD HH:mm:ss"
+    expect(request.returnBasisDetails?.dateTime).toBe('2026-07-01 15:52:41');
+  });
+
+  it('sale return proceeds without returnBasisDetails when original sale not in DB (warns, lets Webkassa fail)', async () => {
+    const originalPaymentTxnId = 'orig-payment-no-sale-in-db';
+    const receipt = makeReceipt({
+      operation_type: 'refund',
+      payment_transaction_id: originalPaymentTxnId,
+      receipt_payload_sanitized: { refundTransactionId: 'refund-uuid-no-basis' },
+    });
+
+    const fetchChain = makeChain([receipt]);
+    const lockChain = makeChain([{ cashbox_id: 'SWK00035686' }]);
+    const originalSaleChain = makeOriginalSaleChain(null); // no original sale row
+    const updateChain = makeChain(null);
+
+    mockSupabaseFrom
+      .mockReturnValueOnce(fetchChain)
+      .mockReturnValueOnce(lockChain)
+      .mockReturnValueOnce(originalSaleChain)
+      .mockReturnValueOnce(updateChain);
+
+    mockCreateCheck.mockResolvedValue(makeSuccessResult());
+
+    await processPendingFiscalReceipts();
+
+    // Proceeds without returnBasisDetails — createCheck is still called
+    expect(mockCreateCheck).toHaveBeenCalledTimes(1);
+    const [, request] = mockCreateCheck.mock.calls[0] as [unknown, { returnBasisDetails?: unknown }];
+    expect(request.returnBasisDetails).toBeUndefined();
+  });
+
+  it('Error 10 (cashbox not activated) → permanent failure, not retried', async () => {
+    const receipt = makeReceipt({ retry_count: 0 });
+    const fetchChain = makeChain([receipt]);
+    const lockChain = makeChain([{ cashbox_id: 'SWK00035686' }]);
+    const updateChain = makeChain(null);
+
+    mockSupabaseFrom
+      .mockReturnValueOnce(fetchChain)
+      .mockReturnValueOnce(lockChain)
+      .mockReturnValueOnce(updateChain);
+
+    mockCreateCheck.mockRejectedValue(new MockWebkassaApiError('Cashbox not activated', 10, false));
+
+    await processPendingFiscalReceipts();
+
+    expect(updateChain.update).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'failed', error_code: '10' }),
+    );
+    expect(mockCreateCheck).toHaveBeenCalledTimes(1);
+  });
+
+  it('Error 18 (offline duration exceeded) → permanent failure, not retried', async () => {
+    const receipt = makeReceipt({ retry_count: 0 });
+    const fetchChain = makeChain([receipt]);
+    const lockChain = makeChain([{ cashbox_id: 'SWK00035686' }]);
+    const updateChain = makeChain(null);
+
+    mockSupabaseFrom
+      .mockReturnValueOnce(fetchChain)
+      .mockReturnValueOnce(lockChain)
+      .mockReturnValueOnce(updateChain);
+
+    mockCreateCheck.mockRejectedValue(new MockWebkassaApiError('Offline duration exceeded', 18, false));
+
+    await processPendingFiscalReceipts();
+
+    expect(updateChain.update).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'failed', error_code: '18' }),
+    );
+    expect(mockCreateCheck).toHaveBeenCalledTimes(1);
+  });
+
+  it('generic retryable error (code 505) → status=retry_required, error_code saved', async () => {
+    const receipt = makeReceipt({ retry_count: 0 });
+    const fetchChain = makeChain([receipt]);
+    const lockChain = makeChain([{ cashbox_id: 'SWK00035686' }]);
+    const updateChain = makeChain(null);
+
+    mockSupabaseFrom
+      .mockReturnValueOnce(fetchChain)
+      .mockReturnValueOnce(lockChain)
+      .mockReturnValueOnce(updateChain);
+
+    mockCreateCheck.mockRejectedValue(new MockWebkassaApiError('Service unavailable', 505, true));
+
+    await processPendingFiscalReceipts();
+
+    expect(updateChain.update).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'retry_required', error_code: '505' }),
+    );
+  });
+
+  it('generic non-retryable API error → status=failed, error_code and message saved', async () => {
+    const receipt = makeReceipt({ retry_count: 0 });
+    const fetchChain = makeChain([receipt]);
+    const lockChain = makeChain([{ cashbox_id: 'SWK00035686' }]);
+    const updateChain = makeChain(null);
+
+    mockSupabaseFrom
+      .mockReturnValueOnce(fetchChain)
+      .mockReturnValueOnce(lockChain)
+      .mockReturnValueOnce(updateChain);
+
+    mockCreateCheck.mockRejectedValue(new MockWebkassaApiError('Validation error', 9, false));
+
+    await processPendingFiscalReceipts();
+
+    expect(updateChain.update).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'failed', error_code: '9' }),
+    );
+  });
+
+  it('Error 2 (session expired) is handled by webkassa-client re-auth — receipt succeeds, no duplicate', async () => {
+    // Error 2 is re-authed inside callAuthenticated() in webkassa-client (not in fiscal-processor).
+    // fiscal-processor only sees the final success or failure after webkassa-client retries.
+    const receipt = makeReceipt();
+    const fetchChain = makeChain([receipt]);
+    const lockChain = makeChain([{ cashbox_id: 'SWK00035686' }]);
+    const updateChain = makeChain(null);
+
+    mockSupabaseFrom
+      .mockReturnValueOnce(fetchChain)
+      .mockReturnValueOnce(lockChain)
+      .mockReturnValueOnce(updateChain);
+
+    // webkassa-client handles Error 2 internally; fiscal-processor receives success
+    mockCreateCheck.mockResolvedValue(makeSuccessResult());
+
+    await processPendingFiscalReceipts();
+
+    expect(mockCreateCheck).toHaveBeenCalledTimes(1);
+    expect(updateChain.update).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'issued' }),
+    );
   });
 });

@@ -31,6 +31,15 @@ import {
 } from './webkassa-client';
 import * as crypto from 'crypto';
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Convert Webkassa date "DD.MM.YYYY HH:mm:ss" → "YYYY-MM-DD HH:mm:ss" for returnBasisDetails */
+function toIsoDateTime(dt: string): string {
+  const m = dt.match(/^(\d{2})\.(\d{2})\.(\d{4}) (.+)$/);
+  if (!m) return dt;
+  return `${m[3]}-${m[2]}-${m[1]} ${m[4]}`;
+}
+
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 const MAX_ITEMS_PER_CYCLE = 10;
@@ -170,6 +179,38 @@ async function processOneReceipt(
   // The original sale used payment_transaction_id as its ExternalCheckNumber.
   const originalExternalCheckNumber = !isSale ? receipt.payment_transaction_id : undefined;
 
+  // For OperationType=3: build returnBasisDetails from the original sale's Webkassa response.
+  // Required per Webkassa protocol 2.0.3+ — without this block, Error 9 is returned.
+  let returnBasisDetails:
+    | { dateTime: string; total: number; checkNumber: string; registrationNumber: string; isOffline: boolean }
+    | undefined;
+  if (!isSale) {
+    const { data: originalSale } = await supabase
+      .from('fiscal_receipts')
+      .select('provider_response_sanitized')
+      .eq('payment_transaction_id', receipt.payment_transaction_id)
+      .eq('operation_type', 'sale')
+      .eq('status', 'issued')
+      .single();
+    const r = (originalSale as { provider_response_sanitized?: Record<string, unknown> } | null)
+      ?.provider_response_sanitized;
+    if (r) {
+      const cashbox = r['Cashbox'] as Record<string, unknown> | undefined;
+      returnBasisDetails = {
+        dateTime: toIsoDateTime((r['DateTime'] as string | undefined) ?? ''),
+        total: (r['Total'] as number | undefined) ?? amountKzt,
+        checkNumber: (r['CheckNumber'] as string | undefined) ?? '',
+        registrationNumber: (cashbox?.['RegistrationNumber'] as string | undefined) ?? '',
+        isOffline: (r['OfflineMode'] as boolean | undefined) ?? false,
+      };
+    } else {
+      console.warn('[fiscal-processor] returnBasisDetails: no issued original sale found', {
+        receiptId: receipt.id,
+        paymentTransactionId: receipt.payment_transaction_id,
+      });
+    }
+  }
+
   try {
     const result = await createCheck(cfg, {
       OperationType: operationType as 0 | 1 | 2 | 3,
@@ -195,6 +236,7 @@ async function processOneReceipt(
       CustomerEmail: receipt.customer_email ?? undefined,
       ExternalLinkId: crypto.randomUUID(),
       ...(originalExternalCheckNumber !== undefined && { OriginalExternalCheckNumber: originalExternalCheckNumber }),
+      ...(returnBasisDetails !== undefined && { returnBasisDetails }),
     });
 
     await supabase

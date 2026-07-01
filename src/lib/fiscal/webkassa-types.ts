@@ -106,13 +106,22 @@ export interface WebkassaCheckRequest {
   CustomerXin?: string;
   ExternalLinkId?: string;
   /**
-   * Intended for OperationType=3 (SALE_RETURN) — pass CheckNumber from the original sale.
-   * NOTE: The exact field name/value required by Webkassa for return receipts is not
-   * documented in the Postman collection. Error 9 ("Необходимо заполнить данные чека
-   * основания") occurs on the test cashbox regardless of this field; may be a cashbox
-   * configuration issue. Confirm with Webkassa support before production use.
+   * For OperationType=3 (SALE_RETURN): ExternalCheckNumber of the original sale receipt.
+   * Value = payment_transaction_id of the original payment.
    */
-  OriginalTransactionId?: string;
+  OriginalExternalCheckNumber?: string;
+  /**
+   * Required for OperationType=3 (SALE_RETURN) per Webkassa protocol 2.0.3+.
+   * Fields sourced from the original sale response.
+   * dateTime: "YYYY-MM-DD HH:mm:ss" (converted from Webkassa "DD.MM.YYYY HH:mm:ss")
+   */
+  returnBasisDetails?: {
+    dateTime: string;
+    total: number;
+    checkNumber: string;
+    registrationNumber: string;
+    isOffline: boolean;
+  };
 }
 
 export const WebkassaOfdSchema = z.object({

@@ -19,7 +19,7 @@
  * 1. Auth / token acquisition
  * 2. Sale receipt (OperationType=2)
  * 3. Duplicate ExternalCheckNumber → Error 14 (idempotent success)
- * 4. Sale return receipt (OperationType=3) with OriginalExternalCheckNumber from step 2
+ * 4. Sale return receipt (OperationType=3) with returnBasisDetails from step 2 response
  * 5. Z-report (close shift) — closes the shift opened by steps 2-4
  * 6. Sequential queue test (two receipts for same cashbox sent sequentially)
  *
@@ -164,14 +164,41 @@ async function runZReport(): Promise<StepResult> {
 
 // ─── Sale receipt helper ───────────────────────────────────────────────────────
 
+interface ReturnBasisDetails {
+  dateTime: string;
+  total: number;
+  checkNumber: string;
+  registrationNumber: string;
+  isOffline: boolean;
+}
+
+/** Convert Webkassa "DD.MM.YYYY HH:mm:ss" → "YYYY-MM-DD HH:mm:ss" */
+function toIsoDateTime(dt: string): string {
+  const m = dt.match(/^(\d{2})\.(\d{2})\.(\d{4}) (.+)$/);
+  if (!m) return dt;
+  return `${m[3]}-${m[2]}-${m[1]} ${m[4]}`;
+}
+
+/** Build returnBasisDetails from a Webkassa sale response Data object */
+function buildReturnBasisDetails(saleData: Record<string, unknown>): ReturnBasisDetails {
+  const cashbox = saleData['Cashbox'] as Record<string, unknown> | undefined;
+  return {
+    dateTime: toIsoDateTime((saleData['DateTime'] as string | undefined) ?? ''),
+    total: (saleData['Total'] as number | undefined) ?? 0,
+    checkNumber: (saleData['CheckNumber'] as string | undefined) ?? '',
+    registrationNumber: (cashbox?.['RegistrationNumber'] as string | undefined) ?? '',
+    isOffline: (saleData['OfflineMode'] as boolean | undefined) ?? false,
+  };
+}
+
 async function sendSale(opts: {
   externalId: string;
   externalOrderNumber: string;
   positionName: string;
   amount: number;
-  /** For OperationType=3 (SALE_RETURN): ExternalCheckNumber of the original sale receipt */
-  originalExternalCheckNumber?: string;
   operationType?: number;
+  /** For OperationType=3 (SALE_RETURN) per protocol 2.0.3+: required basis details from original sale */
+  returnBasisDetails?: ReturnBasisDetails;
 }): Promise<StepResult> {
   const operationType = opts.operationType ?? 2;
   const body: Record<string, unknown> = {
@@ -197,10 +224,9 @@ async function sendSale(opts: {
     ExternalLinkId: crypto.randomUUID(),
   };
 
-  if (opts.originalExternalCheckNumber) {
-    // Required for OperationType=3 (SALE_RETURN) per Webkassa documentation:
-    // original/base receipt data must include ExternalCheckNumber of the original check.
-    body['OriginalExternalCheckNumber'] = opts.originalExternalCheckNumber;
+  if (opts.returnBasisDetails) {
+    // Required for OperationType=3 per Webkassa protocol 2.0.3+
+    body['returnBasisDetails'] = opts.returnBasisDetails;
   }
 
   const resp = await callAuth('/api/v4/check', body);
@@ -250,6 +276,7 @@ async function main(): Promise<void> {
   // ─── 2. Sale receipt ─────────────────────────────────────────────────────────
   // saleExternalId is the ExternalCheckNumber for this sale — used in steps 3 and 4.
   const saleExternalId = crypto.randomUUID();
+  let saleResponseData: Record<string, unknown> | null = null;
 
   const saleResult = await step('2. Sale receipt (OperationType=2)', async () => {
     const result = await sendSale({
@@ -259,7 +286,8 @@ async function main(): Promise<void> {
       amount: 1000,
     });
     if (!result.ok) return result;
-    const d = result.data as { CheckNumber?: string; TicketUrl?: string } | null;
+    saleResponseData = result.data as Record<string, unknown> | null;
+    const d = saleResponseData as { CheckNumber?: string; TicketUrl?: string } | null;
     console.log(`(CheckNumber=${d?.CheckNumber ?? 'n/a'}, ExternalCheckNumber=${saleExternalId}, TicketUrl=${d?.TicketUrl ?? 'n/a'})`);
     return result;
   });
@@ -300,33 +328,24 @@ async function main(): Promise<void> {
   });
 
   // ─── 4. Sale return receipt (OperationType=3) ────────────────────────────────
-  // Per Webkassa documentation: original/base receipt data must be passed, including
-  // OriginalExternalCheckNumber = ExternalCheckNumber of the original/base check.
-  // The return ExternalCheckNumber must be unique (different from the original sale).
-  await step('4. Sale return receipt (OperationType=3) with OriginalExternalCheckNumber', async () => {
-    if (!saleResult.ok) {
+  // Per Webkassa protocol 2.0.3+: returnBasisDetails is REQUIRED (Error 9 without it).
+  // Fields come from the original sale response: DateTime, Total, CheckNumber,
+  // Cashbox.RegistrationNumber, OfflineMode. The return uses its own unique ExternalCheckNumber.
+  await step('4. Sale return receipt (OperationType=3) with returnBasisDetails', async () => {
+    if (!saleResult.ok || !saleResponseData) {
       console.log('(skipped — step 2 (sale) failed; sale must succeed before testing return)');
       return { ok: true };
     }
+    const returnBasisDetails = buildReturnBasisDetails(saleResponseData);
+    console.log(`(returnBasisDetails: checkNumber=${returnBasisDetails.checkNumber}, total=${returnBasisDetails.total})`);
     const result = await sendSale({
-      externalId: crypto.randomUUID(),        // unique ExternalCheckNumber for the return
+      externalId: crypto.randomUUID(), // unique ExternalCheckNumber for the return itself
       externalOrderNumber: 'TEST001R',
       positionName: 'Возврат: тестовая услуга перевода документа',
       amount: 1000,
       operationType: 3,
-      originalExternalCheckNumber: saleExternalId, // ExternalCheckNumber of the original sale
+      returnBasisDetails,
     });
-    if (!result.ok && result.errorCode === 9) {
-      // Error 9 on return: test cashbox SWK00035686 does not have OperationType=3 enabled.
-      // OriginalExternalCheckNumber field IS being sent correctly per documentation.
-      // Worker implementation (webkassa-client.ts, fiscal-processor.ts) also sends this field.
-      // ACTION REQUIRED: Ask Webkassa integrator to enable return receipts on test cashbox
-      // OR provide a test cashbox where OperationType=3 is allowed.
-      console.log('(⚠ Error 9 — return receipts appear disabled on SWK00035686 at cashbox config level.)');
-      console.log('  OriginalExternalCheckNumber was passed correctly per documentation.');
-      console.log('  Request Webkassa integrator to enable OperationType=3 on this test cashbox.');
-      return { ok: true }; // non-blocking: pending cashbox config, not code issue
-    }
     if (!result.ok) return result;
     const d = result.data as { CheckNumber?: string } | null;
     console.log(`(CheckNumber=${d?.CheckNumber ?? 'n/a'})`);

@@ -237,10 +237,25 @@ export interface WebkassaCheckRequest {
   ExternalLinkId?: string;
   /**
    * For OperationType=3 (SALE_RETURN): ExternalCheckNumber of the original sale receipt.
-   * Required by Webkassa to link the return to its base check.
    * Value = payment_transaction_id of the original payment (same as original sale's ExternalCheckNumber).
    */
   OriginalExternalCheckNumber?: string;
+  /**
+   * Required for OperationType=3 (SALE_RETURN) per Webkassa protocol 2.0.3+.
+   * Contains fields from the original sale response to link the return to its basis.
+   * dateTime: "YYYY-MM-DD HH:mm:ss" (converted from Webkassa "DD.MM.YYYY HH:mm:ss")
+   * total: original sale Total in KZT
+   * checkNumber: Webkassa-assigned CheckNumber from original sale
+   * registrationNumber: cashbox RegistrationNumber (12 digits)
+   * isOffline: original sale OfflineMode flag
+   */
+  returnBasisDetails?: {
+    dateTime: string;
+    total: number;
+    checkNumber: string;
+    registrationNumber: string;
+    isOffline: boolean;
+  };
 }
 
 export interface CreateCheckResult {
