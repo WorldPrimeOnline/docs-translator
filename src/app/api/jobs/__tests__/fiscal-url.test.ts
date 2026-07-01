@@ -128,8 +128,8 @@ describe('GET /api/jobs — fiscal receipt fields', () => {
 
     const { jobs } = await callGET();
     expect(jobs).toHaveLength(1);
-    expect(jobs[0].fiscalUrl).toBe('https://ofd.kz/receipt/abc123');
-    expect(jobs[0].fiscalReceiptStatus).toBe('issued');
+    expect(jobs[0]!.fiscalUrl).toBe('https://ofd.kz/receipt/abc123');
+    expect(jobs[0]!.fiscalReceiptStatus).toBe('issued');
   });
 
   it('returns null fiscalUrl when no fiscal_receipts row exists (does not break)', async () => {
@@ -141,8 +141,8 @@ describe('GET /api/jobs — fiscal receipt fields', () => {
 
     const { jobs } = await callGET();
     expect(jobs).toHaveLength(1);
-    expect(jobs[0].fiscalUrl).toBeNull();
-    expect(jobs[0].fiscalReceiptStatus).toBeNull();
+    expect(jobs[0]!.fiscalUrl).toBeNull();
+    expect(jobs[0]!.fiscalReceiptStatus).toBeNull();
   });
 
   it('returns pending status with null fiscalUrl for pending receipt', async () => {
@@ -154,8 +154,8 @@ describe('GET /api/jobs — fiscal receipt fields', () => {
 
     const { jobs } = await callGET();
     expect(jobs).toHaveLength(1);
-    expect(jobs[0].fiscalUrl).toBeNull();
-    expect(jobs[0].fiscalReceiptStatus).toBe('pending');
+    expect(jobs[0]!.fiscalUrl).toBeNull();
+    expect(jobs[0]!.fiscalReceiptStatus).toBe('pending');
   });
 
   it('fiscal_receipts query uses jobIds scoped to authenticated user documents', async () => {
@@ -174,8 +174,8 @@ describe('GET /api/jobs — fiscal receipt fields', () => {
 
     // Verify the chain's .in() was called with only user A's job IDs
     const fiscalChain = (mockSupabaseServer.from as jest.Mock).mock.results[
-      fromCalls.indexOf(fiscalFromCall)
-    ].value;
+      fromCalls.indexOf(fiscalFromCall!)
+    ]!.value;
     expect(fiscalChain.in).toHaveBeenCalledWith('job_id', [JOB_A.id]);
   });
 

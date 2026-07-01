@@ -21,13 +21,20 @@
  */
 import { supabase } from './supabase';
 import { env } from './env';
+import { processPendingFiscalReceipts } from './fiscal-processor';
+import { maybeRunScheduledZReport } from './fiscal-z-report';
 
 const MAX_ITEMS_PER_CYCLE = 10;
 const RETRY_AFTER_MINUTES = 5;
 
 export async function reconcileFiscalAndRefunds(): Promise<void> {
+  // Process pending fiscal receipts through sequential per-cashbox queue (Webkassa requirement).
+  // Must run before Z-report to ensure all receipts are issued before shift is closed.
+  await processPendingFiscalReceipts();
   await reconcilePendingFiscalReceipts();
   await reconcilePendingRefunds();
+  // Z-report runs after receipts are processed — only when no pending receipts remain.
+  await maybeRunScheduledZReport();
 }
 
 /**
@@ -91,6 +98,8 @@ async function reconcilePendingFiscalReceipts(): Promise<void> {
   const { data: pending, error } = await supabase
     .from('fiscal_receipts')
     .select('id, payment_transaction_id, amount_kzt, status, provider, retry_count, created_at')
+    // 'pending' and 'retry_required' are handled by fiscal-processor — only log if stale.
+    // 'failed' requires operator investigation.
     .in('status', ['pending', 'failed', 'retry_required'])
     .lt('updated_at', cutoff)
     .order('created_at', { ascending: true })

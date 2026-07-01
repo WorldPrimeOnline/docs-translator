@@ -183,3 +183,28 @@ export const RETRYABLE_ERROR_CODES = new Set([
 
 /** Error code 14 = duplicate ExternalCheckNumber. Webkassa returns existing Data — treat as success. */
 export const DUPLICATE_CHECK_CODE = WEBKASSA_ERROR_CODES.DUPLICATE_EXTERNAL_NUMBER;
+
+/** Error codes that indicate a Z-report is already complete (idempotent for shift close). */
+export const Z_REPORT_ALREADY_DONE_CODES = new Set([
+  WEBKASSA_ERROR_CODES.SHIFT_ALREADY_CLOSED,  // 12 — shift already closed today
+  WEBKASSA_ERROR_CODES.NO_OPEN_SHIFT,          // 13 — no open shift to close
+]);
+
+// ─── Z-report ─────────────────────────────────────────────────────────────────
+
+export const WebkassaZReportDataSchema = z.object({
+  ShiftNumber: z.number().optional(),
+  OpenDate: z.string().optional(),
+  CloseDate: z.string().optional(),
+  DocumentCount: z.number().optional(),
+  FirstDocumentNumber: z.number().optional(),
+  LastDocumentNumber: z.number().optional(),
+}).passthrough();
+
+export const WebkassaZReportResponseSchema = z.object({
+  Data: WebkassaZReportDataSchema.optional().nullable(),
+  Errors: z.array(WebkassaErrorSchema).optional().nullable(),
+});
+
+export type WebkassaZReportData = z.infer<typeof WebkassaZReportDataSchema>;
+export type WebkassaZReportResponse = z.infer<typeof WebkassaZReportResponseSchema>;

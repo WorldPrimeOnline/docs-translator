@@ -113,19 +113,27 @@ describe('ensureSaleFiscalReceiptForPaidPayment — structural contracts', () =>
     expect(SERVICE_SRC).toContain("'pending' as const");
   });
 
-  it('inserts the DB row before any provider call', () => {
+  it('inserts the DB row and returns without calling Webkassa directly', () => {
     const fnStart = SERVICE_SRC.indexOf('export async function ensureSaleFiscalReceiptForPaidPayment');
-    const fnSrc = SERVICE_SRC.slice(fnStart);
+    const fnSrc = SERVICE_SRC.slice(fnStart, SERVICE_SRC.indexOf('\nexport async function ', fnStart + 10));
     const insertPos = fnSrc.indexOf('// 5. Insert DB row with correct initial status');
-    const providerCallPos = fnSrc.indexOf('// 6. If real provider is active');
+    // Worker fiscal-processor comment must be present — no direct provider call from serverless
+    const workerHandledPos = fnSrc.indexOf('// 6. Row created — worker fiscal-processor');
     expect(insertPos).toBeGreaterThan(-1);
-    expect(providerCallPos).toBeGreaterThan(-1);
-    expect(insertPos).toBeLessThan(providerCallPos);
+    expect(workerHandledPos).toBeGreaterThan(-1);
+    expect(insertPos).toBeLessThan(workerHandledPos);
+    // ensureSaleFiscalReceiptForPaidPayment must NOT contain a direct Webkassa/provider call
+    expect(fnSrc).not.toContain('void _runProviderSaleReceipt');
+    expect(fnSrc).not.toContain('provider.createSaleReceipt');
   });
 
-  it('async provider call is gated on initialStatus === pending', () => {
-    expect(SERVICE_SRC).toContain("if (initialStatus === 'pending')");
-    expect(SERVICE_SRC).toContain('void _runProviderSaleReceipt');
+  it('worker fiscal-processor handles Webkassa — no direct provider call from serverless path', () => {
+    // _runProviderSaleReceipt still exists (used by createSaleReceiptForPayment legacy path)
+    // but must NOT be called from ensureSaleFiscalReceiptForPaidPayment
+    const fnStart = SERVICE_SRC.indexOf('export async function ensureSaleFiscalReceiptForPaidPayment');
+    const fnEnd = SERVICE_SRC.indexOf('\nexport ', fnStart + 10);
+    const fnSrc = SERVICE_SRC.slice(fnStart, fnEnd);
+    expect(fnSrc).not.toContain('void _runProviderSaleReceipt');
   });
 
   it('handles unique constraint violation (race idempotency)', () => {

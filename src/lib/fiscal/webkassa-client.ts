@@ -14,11 +14,14 @@ import {
   WebkassaAuthResponseSchema,
   WebkassaCashboxesResponseSchema,
   WebkassaCheckResponseSchema,
+  WebkassaZReportResponseSchema,
   WEBKASSA_ERROR_CODES,
   RETRYABLE_ERROR_CODES,
   DUPLICATE_CHECK_CODE,
+  Z_REPORT_ALREADY_DONE_CODES,
   type WebkassaCheckRequest,
   type WebkassaCheckData,
+  type WebkassaZReportData,
 } from './webkassa-types';
 
 // ─── Config ───────────────────────────────────────────────────────────────────
@@ -355,4 +358,79 @@ export function sanitizeForStorage(data: WebkassaCheckData | null): Record<strin
   delete safe['Token'];
   delete safe['Password'];
   return safe;
+}
+
+// ─── Z-report ─────────────────────────────────────────────────────────────────
+
+export interface CreateZReportResult {
+  shiftNumber?: number;
+  openDate?: string;
+  closeDate?: string;
+  documentCount?: number;
+  /** true when Webkassa returned code 12/13 (shift already closed) — idempotent success */
+  alreadyClosed: boolean;
+  rawData: WebkassaZReportData | null;
+}
+
+/**
+ * Call POST /api/v4/ZReport to close the current shift.
+ *
+ * Idempotent: Webkassa error 12 (SHIFT_ALREADY_CLOSED) or 13 (NO_OPEN_SHIFT)
+ * means the shift was already closed — treated as alreadyClosed=true (success).
+ *
+ * Note: Webkassa ZReport uses lowercase cashboxUniqueNumber (confirmed from Postman collection).
+ */
+export async function createZReport(config: WebkassaClientConfig): Promise<CreateZReportResult> {
+  const raw = await callAuthenticated<unknown>(config, 'POST', '/api/v4/ZReport', {
+    cashboxUniqueNumber: config.cashboxUniqueNumber,
+  });
+
+  const parsed = WebkassaZReportResponseSchema.safeParse(raw);
+  if (!parsed.success) {
+    throw new WebkassaNetworkError('Invalid Z-report response schema from Webkassa', false);
+  }
+
+  const resp = parsed.data;
+  const errors = resp.Errors ?? [];
+  const data = resp.Data ?? null;
+
+  // Code 12 or 13 = shift already closed — idempotent success
+  const alreadyClosedError = errors.find((e) => Z_REPORT_ALREADY_DONE_CODES.has(e.Code as never));
+  if (alreadyClosedError) {
+    console.info('[webkassa/z-report] shift already closed (idempotent)', {
+      code: alreadyClosedError.Code,
+      cashboxUniqueNumber: config.cashboxUniqueNumber,
+    });
+    return { alreadyClosed: true, rawData: data };
+  }
+
+  // Other errors = actual failure
+  if (errors.length > 0) {
+    const firstErr = errors[0]!;
+    const isRetryable = RETRYABLE_ERROR_CODES.has(firstErr.Code as never);
+    throw new WebkassaApiError(
+      `Webkassa Z-report error ${firstErr.Code}: ${firstErr.Text}`,
+      firstErr.Code,
+      isRetryable,
+    );
+  }
+
+  if (!data) {
+    throw new WebkassaNetworkError('Webkassa Z-report response has no Data and no Errors', false);
+  }
+
+  console.info('[webkassa/z-report] shift closed', {
+    shiftNumber: data.ShiftNumber,
+    documentCount: data.DocumentCount,
+    cashboxUniqueNumber: config.cashboxUniqueNumber,
+  });
+
+  return {
+    shiftNumber: data.ShiftNumber,
+    openDate: data.OpenDate,
+    closeDate: data.CloseDate,
+    documentCount: data.DocumentCount,
+    alreadyClosed: false,
+    rawData: data,
+  };
 }

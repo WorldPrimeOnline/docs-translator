@@ -190,14 +190,20 @@ describe('fiscal hook — all finalization paths use ensureSaleFiscalReceiptForP
     expect(insertPos).toBeLessThan(providerCallPos);
   });
 
-  it('fiscal service _runProviderSaleReceipt is only called for pending (real provider) status', () => {
+  it('ensureSaleFiscalReceiptForPaidPayment does not call provider directly — worker handles Webkassa', () => {
     const src = fs.readFileSync(
       path.join(process.cwd(), 'src/lib/fiscal/service.ts'),
       'utf-8',
     );
-    // Provider call is gated on initialStatus === 'pending'
-    expect(src).toContain("initialStatus === 'pending'");
+    // _runProviderSaleReceipt still exists as a helper (used elsewhere) but must NOT be
+    // called from ensureSaleFiscalReceiptForPaidPayment — the Railway worker fiscal-processor
+    // handles Webkassa sequentially (Webkassa requirement: one active request per cashbox).
     expect(src).toContain('_runProviderSaleReceipt');
+    const fnStart = src.indexOf('export async function ensureSaleFiscalReceiptForPaidPayment');
+    const fnEnd = src.indexOf('\nexport ', fnStart + 10);
+    const fnSrc = src.slice(fnStart, fnEnd > fnStart ? fnEnd : undefined);
+    expect(fnSrc).not.toContain('void _runProviderSaleReceipt');
+    expect(fnSrc).toContain('worker fiscal-processor');
   });
 
   it('pending_manual path does not trigger async provider call', () => {

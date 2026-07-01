@@ -50,6 +50,24 @@ const schema = z.object({
   TELEGRAM_NOTARY_CHAT_ID: z.string().optional(),
   // Internal cron secret — used to trigger Next.js reconciliation endpoints from the worker
   CRON_SECRET: z.string().optional(),
+  // ── Webkassa fiscal (optional — fiscal operations disabled when not set) ──────
+  WEBKASSA_ENABLED: z.string().optional(),
+  WEBKASSA_API_BASE_URL: z.string().optional(),
+  WEBKASSA_API_KEY: z.string().optional(),
+  WEBKASSA_LOGIN: z.string().optional(),
+  WEBKASSA_PASSWORD: z.string().optional(),
+  WEBKASSA_CASHBOX_SERIAL_NUMBER: z.string().optional(),
+  WEBKASSA_ALLOW_REAL_RECEIPTS: z.string().optional(),
+  FISCAL_PROVIDER_ENV: z.enum(['test', 'production']).default('test'),
+  // ── Webkassa Z-report ──────────────────────────────────────────────────────────
+  WEBKASSA_Z_REPORT_ENABLED: z.string().optional(),
+  WEBKASSA_Z_REPORT_TIMEZONE: z.string().default('Asia/Almaty'),
+  // Hour (0-23) in WEBKASSA_Z_REPORT_TIMEZONE at which to run Z-report.
+  // Default 23 = 11 PM Almaty (end of business day before midnight).
+  WEBKASSA_Z_REPORT_HOUR: z.coerce.number().int().min(0).max(23).default(23),
+  // Unique worker instance ID — used as lock owner in fiscal_cashbox_locks.
+  // Auto-generated from hostname if not set.
+  WORKER_INSTANCE_ID: z.string().optional(),
 });
 
 function load() {

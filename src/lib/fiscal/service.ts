@@ -245,8 +245,10 @@ export async function createSaleReceiptForPayment(
   }
 }
 
-// ─── Async provider update (used by ensureSaleFiscalReceiptForPaidPayment) ──────
-
+// ─── Async provider update (kept for legacy createSaleReceiptForPayment path) ──────
+// NOTE: not called from ensureSaleFiscalReceiptForPaidPayment — worker fiscal-processor
+// handles Webkassa calls sequentially (Webkassa requirement).
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function _runProviderSaleReceipt(
   receiptId: string,
   provider: FiscalProvider,
@@ -440,20 +442,9 @@ export async function ensureSaleFiscalReceiptForPaidPayment(
     status: initialStatus,
   });
 
-  // 6. If real provider is active: fire async provider attempt (does NOT block the caller)
-  //    Provider will update the row to issued / failed / blocked_by_config.
-  if (initialStatus === 'pending') {
-    const fiscalInput: FiscalSaleInput = {
-      jobId: payment.job_id,
-      paymentTransactionId,
-      amountKzt,
-      currency: 'KZT',
-      customerEmail,
-      description: `Перевод документа #${orderNumber}`,
-      orderNumber,
-    };
-    void _runProviderSaleReceipt(receiptId, provider, fiscalInput);
-  }
+  // 6. Row created — worker fiscal-processor will pick it up and call Webkassa sequentially.
+  //    No direct Webkassa call from serverless: prevents parallel requests to the same cashbox
+  //    across Vercel instances (Webkassa requirement: one active request per cashbox at a time).
 
   return { fiscalReceiptId: receiptId, status: initialStatus, isNew: true };
 }
