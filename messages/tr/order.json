@@ -17,6 +17,8 @@
     "queued": "Sırada",
     "failed": "Hata",
     "download": "İndir",
+    "fiscalReceipt": "Elektronik makbuz",
+    "fiscalReceiptPending": "Makbuz oluşturuluyor",
     "signedIn": "Giriş yapıldı:",
     "logout": "Çıkış yap",
     "usingPlan": "{plan} planı · {remaining} belge kaldı — ödeme gerekmez",

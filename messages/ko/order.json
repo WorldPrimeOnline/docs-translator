@@ -15,6 +15,8 @@
     "queued": "대기 중",
     "failed": "실패",
     "download": "다운로드",
+    "fiscalReceipt": "전자 영수증",
+    "fiscalReceiptPending": "영수증 생성 중",
     "signedIn": "로그인된 계정",
     "logout": "로그아웃",
     "usingPlan": "{plan} 플랜 사용 중 · 남은 문서 {remaining}개 — 결제 불필요",

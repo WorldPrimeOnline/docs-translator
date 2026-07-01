@@ -15,6 +15,8 @@
     "queued": "Nobatda",
     "failed": "Şowsuz",
     "download": "Ýükle",
+    "fiscalReceipt": "Elektron çek",
+    "fiscalReceiptPending": "Çek taýýarlanylýar",
     "signedIn": "Ulgama girildi:",
     "logout": "Çyk",
     "usingPlan": "{plan} meýilnamaňyzy ulanylýar · {remaining} resminama galdy — töleg talap edilmeýär",

@@ -13,7 +13,7 @@ SET
   client_discount_type            = 'percent',
   client_discount_value           = 5,
   client_discount_min_order_amount = 2500,
-  client_discount_max_amount      = 500
+  client_discount_max_amount      = 2500
 WHERE
   is_active = true
   AND client_discount_enabled = false;
