@@ -60,6 +60,22 @@ function getWebkassaConfig(): WebkassaConfig | null {
   };
 }
 
+/** Returns a human-readable reason why getWebkassaConfig() returns null. */
+function getConfigSkipReason(): string {
+  if (env.WEBKASSA_ENABLED !== 'true') return 'WEBKASSA_ENABLED is not set to true';
+  if (!env.WEBKASSA_API_KEY) return 'WEBKASSA_API_KEY is missing';
+  if (!env.WEBKASSA_LOGIN) return 'WEBKASSA_LOGIN is missing';
+  if (!env.WEBKASSA_PASSWORD) return 'WEBKASSA_PASSWORD is missing';
+  if (!env.WEBKASSA_CASHBOX_SERIAL_NUMBER) return 'WEBKASSA_CASHBOX_SERIAL_NUMBER is missing';
+  if (env.FISCAL_PROVIDER_ENV === 'production' && env.WEBKASSA_ALLOW_REAL_RECEIPTS !== 'true')
+    return 'FISCAL_PROVIDER_ENV=production but WEBKASSA_ALLOW_REAL_RECEIPTS is not set to true';
+  return 'unknown';
+}
+
+export function isWebkassaConfigured(): boolean {
+  return getWebkassaConfig() !== null;
+}
+
 const WORKER_ID = env.WORKER_INSTANCE_ID ?? `worker-${crypto.randomBytes(4).toString('hex')}`;
 
 // ─── In-process cashbox queue (Layer 1) ───────────────────────────────────────
@@ -158,6 +174,13 @@ async function processOneReceipt(
 ): Promise<void> {
   const operationType = receipt.operation_type === 'sale' ? 2 : 3; // SALE=2, SALE_RETURN=3
   const isSale = receipt.operation_type === 'sale';
+
+  console.info('[fiscal-processor] processing receipt', {
+    receiptId: receipt.id,
+    operationType: receipt.operation_type,
+    amountKzt: receipt.amount_kzt,
+    retryCount: receipt.retry_count,
+  });
 
   const payload = receipt.receipt_payload_sanitized ?? {};
   const orderNumber = (payload['orderNumber'] as string | undefined)
@@ -326,7 +349,13 @@ async function processOneReceipt(
 export async function processPendingFiscalReceipts(): Promise<void> {
   const cfg = getWebkassaConfig();
   if (!cfg) {
-    // Fiscal disabled or misconfigured — log at debug level, not warn (expected in staging)
+    console.info('[fiscal-processor] skipping — Webkassa not configured', {
+      reason: getConfigSkipReason(),
+      hasApiKey: !!env.WEBKASSA_API_KEY,
+      WEBKASSA_ENABLED: env.WEBKASSA_ENABLED,
+      FISCAL_PROVIDER_ENV: env.FISCAL_PROVIDER_ENV,
+      WEBKASSA_ALLOW_REAL_RECEIPTS: env.WEBKASSA_ALLOW_REAL_RECEIPTS ?? null,
+    });
     return;
   }
 
@@ -335,6 +364,7 @@ export async function processPendingFiscalReceipts(): Promise<void> {
     .select('id, payment_transaction_id, operation_type, amount_kzt, currency, customer_email, receipt_payload_sanitized, retry_count')
     .in('status', ['pending', 'retry_required'])
     .in('operation_type', ['sale', 'refund'])
+    .eq('provider', 'webkassa')
     .order('created_at', { ascending: true })
     .limit(MAX_ITEMS_PER_CYCLE)
     .returns<PendingFiscalReceipt[]>();
@@ -344,9 +374,17 @@ export async function processPendingFiscalReceipts(): Promise<void> {
     return;
   }
 
-  if (!pending || pending.length === 0) return;
+  if (!pending || pending.length === 0) {
+    console.info('[fiscal-processor] no pending fiscal receipts to process', {
+      FISCAL_PROVIDER_ENV: env.FISCAL_PROVIDER_ENV,
+    });
+    return;
+  }
 
-  console.info(`[fiscal-processor] processing ${pending.length} fiscal receipt(s)`);
+  console.info(`[fiscal-processor] processing ${pending.length} fiscal receipt(s)`, {
+    ids: pending.map((r) => r.id),
+    FISCAL_PROVIDER_ENV: env.FISCAL_PROVIDER_ENV,
+  });
 
   const cashboxId = cfg.cashboxUniqueNumber;
 
@@ -367,4 +405,78 @@ export async function processPendingFiscalReceipts(): Promise<void> {
       await releaseDbLock(cashboxId);
     }
   });
+}
+
+/**
+ * Process a single fiscal receipt by ID (for manual retry and operational tooling).
+ *
+ * Guards:
+ * - Throws if Webkassa is not configured (check env vars).
+ * - Returns 'not_found' if the receipt does not exist.
+ * - Returns 'already_issued' if provider_receipt_id or fiscal_url is already set
+ *   (prevents duplicate receipts — use Webkassa ExternalCheckNumber idempotency instead).
+ * - Returns 'not_processable' if status is not pending/retry_required/failed.
+ * - Returns 'processed' after successfully running through the Webkassa queue.
+ *
+ * Used by scripts/fiscal/retry-receipt.ts.
+ */
+export async function processReceiptById(
+  receiptId: string,
+): Promise<'processed' | 'already_issued' | 'not_found' | 'not_processable'> {
+  const cfg = getWebkassaConfig();
+  if (!cfg) {
+    throw new Error(`Webkassa not configured: ${getConfigSkipReason()}`);
+  }
+
+  const { data: row } = await supabase
+    .from('fiscal_receipts')
+    .select('id, payment_transaction_id, operation_type, amount_kzt, currency, customer_email, receipt_payload_sanitized, retry_count, provider_receipt_id, fiscal_url, status')
+    .eq('id', receiptId)
+    .single();
+
+  if (!row) return 'not_found';
+
+  const receipt = row as PendingFiscalReceipt & {
+    status: string;
+    provider_receipt_id: string | null;
+    fiscal_url: string | null;
+  };
+
+  if (receipt.provider_receipt_id || receipt.fiscal_url) {
+    console.warn('[fiscal-processor] processReceiptById: receipt already issued — skipping to prevent duplicate', {
+      receiptId,
+      provider_receipt_id: receipt.provider_receipt_id,
+      fiscal_url: receipt.fiscal_url,
+    });
+    return 'already_issued';
+  }
+
+  if (!['pending', 'retry_required', 'failed'].includes(receipt.status)) {
+    console.warn('[fiscal-processor] processReceiptById: receipt not in a retryable status', {
+      receiptId,
+      status: receipt.status,
+    });
+    return 'not_processable';
+  }
+
+  console.info('[fiscal-processor] processReceiptById: processing', {
+    receiptId,
+    status: receipt.status,
+    operationType: receipt.operation_type,
+    FISCAL_PROVIDER_ENV: env.FISCAL_PROVIDER_ENV,
+  });
+
+  await runWithInProcessLock(cfg.cashboxUniqueNumber, async () => {
+    const locked = await acquireDbLock(cfg.cashboxUniqueNumber);
+    if (!locked) {
+      throw new Error('Another worker holds the cashbox lock — try again shortly');
+    }
+    try {
+      await processOneReceipt(receipt, cfg);
+    } finally {
+      await releaseDbLock(cfg.cashboxUniqueNumber);
+    }
+  });
+
+  return 'processed';
 }

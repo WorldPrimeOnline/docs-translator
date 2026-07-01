@@ -592,4 +592,181 @@ describe('processPendingFiscalReceipts', () => {
       expect.objectContaining({ status: 'issued' }),
     );
   });
+
+  // ─── New tests: config logging, production gate, provider filter ──────────────
+
+  it('logs skip reason when WEBKASSA_ENABLED is not set', async () => {
+    const consoleSpy = jest.spyOn(console, 'info').mockImplementation(() => undefined);
+    mockEnv.WEBKASSA_ENABLED = undefined as unknown as string;
+
+    await processPendingFiscalReceipts();
+
+    expect(mockSupabaseFrom).not.toHaveBeenCalled();
+    expect(consoleSpy).toHaveBeenCalledWith(
+      '[fiscal-processor] skipping — Webkassa not configured',
+      expect.objectContaining({ reason: expect.stringContaining('WEBKASSA_ENABLED') }),
+    );
+    consoleSpy.mockRestore();
+  });
+
+  it('logs skip reason when FISCAL_PROVIDER_ENV=production and WEBKASSA_ALLOW_REAL_RECEIPTS not set', async () => {
+    const consoleSpy = jest.spyOn(console, 'info').mockImplementation(() => undefined);
+    mockEnv.FISCAL_PROVIDER_ENV = 'production';
+    mockEnv.WEBKASSA_ALLOW_REAL_RECEIPTS = undefined;
+
+    await processPendingFiscalReceipts();
+
+    expect(mockSupabaseFrom).not.toHaveBeenCalled();
+    expect(consoleSpy).toHaveBeenCalledWith(
+      '[fiscal-processor] skipping — Webkassa not configured',
+      expect.objectContaining({ reason: expect.stringContaining('WEBKASSA_ALLOW_REAL_RECEIPTS') }),
+    );
+    consoleSpy.mockRestore();
+  });
+
+  it('processes pending production sale receipt when WEBKASSA_ALLOW_REAL_RECEIPTS=true and FISCAL_PROVIDER_ENV=production', async () => {
+    mockEnv.FISCAL_PROVIDER_ENV = 'production';
+    mockEnv.WEBKASSA_ALLOW_REAL_RECEIPTS = 'true';
+
+    const receipt = makeReceipt({ id: 'prod-receipt-1' });
+    const fetchChain = makeChain([receipt]);
+    const lockChain = makeChain([{ cashbox_id: 'SWK00035686' }]);
+    const updateChain = makeChain(null);
+
+    mockSupabaseFrom
+      .mockReturnValueOnce(fetchChain)
+      .mockReturnValueOnce(lockChain)
+      .mockReturnValueOnce(updateChain);
+
+    mockCreateCheck.mockResolvedValue(makeSuccessResult());
+
+    await processPendingFiscalReceipts();
+
+    // Must process — not skip
+    expect(mockCreateCheck).toHaveBeenCalledTimes(1);
+    expect(updateChain.update).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'issued' }),
+    );
+  });
+
+  it('DB query includes provider=webkassa filter (only webkassa receipts are processed)', async () => {
+    const fetchChain = makeChain([]);
+    mockSupabaseFrom.mockReturnValue(fetchChain);
+
+    await processPendingFiscalReceipts();
+
+    // eq('provider', 'webkassa') must be called in the chain
+    expect(fetchChain.eq).toHaveBeenCalledWith('provider', 'webkassa');
+  });
+});
+
+// ─── processReceiptById ────────────────────────────────────────────────────────
+
+import { processReceiptById } from '../fiscal-processor';
+
+describe('processReceiptById', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockEnv.WEBKASSA_ENABLED = 'true';
+    mockEnv.WEBKASSA_API_KEY = 'test-key';
+    mockEnv.WEBKASSA_LOGIN = 'test@test.com';
+    mockEnv.WEBKASSA_PASSWORD = 'test-pass';
+    mockEnv.WEBKASSA_CASHBOX_SERIAL_NUMBER = 'SWK00035686';
+    mockEnv.FISCAL_PROVIDER_ENV = 'test';
+    mockEnv.WEBKASSA_ALLOW_REAL_RECEIPTS = undefined;
+  });
+
+  function makeSingleReceiptChain(row: Record<string, unknown> | null) {
+    return {
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      single: jest.fn().mockResolvedValue({ data: row }),
+    };
+  }
+
+  it('throws when Webkassa not configured', async () => {
+    mockEnv.WEBKASSA_ENABLED = undefined as unknown as string;
+    await expect(processReceiptById('any-id')).rejects.toThrow('Webkassa not configured');
+  });
+
+  it('returns not_found when receipt does not exist', async () => {
+    const chain = makeSingleReceiptChain(null);
+    mockSupabaseFrom.mockReturnValueOnce(chain);
+
+    const result = await processReceiptById('unknown-id');
+    expect(result).toBe('not_found');
+  });
+
+  it('returns already_issued when provider_receipt_id is set — prevents duplicate', async () => {
+    const chain = makeSingleReceiptChain({
+      id: 'r1', status: 'issued', provider_receipt_id: 'CHK-EXISTING',
+      fiscal_url: 'https://ofd.kz/existing', retry_count: 0,
+    });
+    mockSupabaseFrom.mockReturnValueOnce(chain);
+
+    const result = await processReceiptById('r1');
+    expect(result).toBe('already_issued');
+    expect(mockCreateCheck).not.toHaveBeenCalled();
+  });
+
+  it('returns not_processable when status is issued', async () => {
+    const chain = makeSingleReceiptChain({
+      id: 'r1', status: 'issued', provider_receipt_id: null, fiscal_url: null, retry_count: 0,
+    });
+    mockSupabaseFrom.mockReturnValueOnce(chain);
+
+    const result = await processReceiptById('r1');
+    expect(result).toBe('not_processable');
+  });
+
+  it('processes a pending receipt and returns processed', async () => {
+    const row = {
+      ...makeReceipt({ id: 'retry-r1' }),
+      status: 'pending',
+      provider_receipt_id: null,
+      fiscal_url: null,
+    };
+    const receiptChain = makeSingleReceiptChain(row);
+    const lockChain = makeChain([{ cashbox_id: 'SWK00035686' }]);
+    const updateChain = makeChain(null);
+
+    mockSupabaseFrom
+      .mockReturnValueOnce(receiptChain)  // fetch receipt by id
+      .mockReturnValueOnce(lockChain)      // acquire db lock
+      .mockReturnValueOnce(updateChain);   // update to issued
+
+    mockCreateCheck.mockResolvedValue(makeSuccessResult());
+
+    const result = await processReceiptById('retry-r1');
+    expect(result).toBe('processed');
+    expect(mockCreateCheck).toHaveBeenCalledTimes(1);
+    expect(updateChain.update).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'issued' }),
+    );
+  });
+
+  it('processes a failed receipt (retry_count=0, no provider_receipt_id)', async () => {
+    const row = {
+      ...makeReceipt({ id: 'failed-r1', retry_count: 0 }),
+      status: 'failed',
+      provider_receipt_id: null,
+      fiscal_url: null,
+    };
+    const receiptChain = makeSingleReceiptChain(row);
+    const lockChain = makeChain([{ cashbox_id: 'SWK00035686' }]);
+    const updateChain = makeChain(null);
+
+    mockSupabaseFrom
+      .mockReturnValueOnce(receiptChain)
+      .mockReturnValueOnce(lockChain)
+      .mockReturnValueOnce(updateChain);
+
+    mockCreateCheck.mockResolvedValue(makeSuccessResult());
+
+    const result = await processReceiptById('failed-r1');
+    expect(result).toBe('processed');
+    expect(updateChain.update).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'issued' }),
+    );
+  });
 });

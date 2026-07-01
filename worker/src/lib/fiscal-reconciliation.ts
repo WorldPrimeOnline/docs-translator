@@ -5,23 +5,28 @@
  * Does NOT block the translation job poll loop.
  *
  * What it does:
- * 1. Finds fiscal_receipts in pending/retry_required status and logs them for
- *    operator attention. (These can occur if the web app call failed transiently.)
- * 2. Finds refund_transactions in pending_manual status and logs them for operator.
- * 3. Triggers Next.js reconcile-payments and reconcile-refunds cron endpoints
+ * 1. Runs fiscal-processor to process pending/retry_required fiscal_receipts via Webkassa.
+ * 2. After the processor runs, checks for any receipts that are STILL pending/stuck
+ *    (e.g. processor not configured, lock contention) and logs them for operator awareness.
+ * 3. Logs failed receipts that require operator investigation.
+ * 4. Triggers Next.js reconcile-payments and reconcile-refunds cron endpoints
  *    (since vercel.json only allows one cron on the Hobby plan).
  *
- * Statuses NOT auto-retried:
- * - pending_manual: requires operator action
- * - blocked_by_config: requires config change (WEBKASSA_ALLOW_REAL_RECEIPTS)
+ * Statuses NOT processed by fiscal-processor (always need operator action):
+ * - pending_manual: manual provider or fiscalization disabled
+ * - blocked_by_config: WEBKASSA_ALLOW_REAL_RECEIPTS not set for production
  * - failed: permanent failure; operator must investigate
+ *
+ * Statuses handled by fiscal-processor automatically:
+ * - pending: waiting for first Webkassa call
+ * - retry_required: transient failure, will be retried
  *
  * Throttled: runs every 5 min.
  * Never logs more than MAX_ITEMS_PER_CYCLE items per cycle to avoid log spam.
  */
 import { supabase } from './supabase';
 import { env } from './env';
-import { processPendingFiscalReceipts } from './fiscal-processor';
+import { processPendingFiscalReceipts, isWebkassaConfigured } from './fiscal-processor';
 import { maybeRunScheduledZReport } from './fiscal-z-report';
 
 const MAX_ITEMS_PER_CYCLE = 10;
@@ -31,7 +36,7 @@ export async function reconcileFiscalAndRefunds(): Promise<void> {
   // Process pending fiscal receipts through sequential per-cashbox queue (Webkassa requirement).
   // Must run before Z-report to ensure all receipts are issued before shift is closed.
   await processPendingFiscalReceipts();
-  await reconcilePendingFiscalReceipts();
+  await reconcileStuckFiscalReceipts();
   await reconcilePendingRefunds();
   // Z-report runs after receipts are processed — only when no pending receipts remain.
   await maybeRunScheduledZReport();
@@ -92,47 +97,78 @@ export async function triggerReconcileRefunds(): Promise<void> {
   }
 }
 
-async function reconcilePendingFiscalReceipts(): Promise<void> {
+/**
+ * After processPendingFiscalReceipts() runs, check for receipts that are STILL stuck.
+ *
+ * Stuck pending/retry_required → processor didn't pick them up (misconfigured env, lock contention).
+ * Stuck failed → permanent failure, operator must investigate.
+ *
+ * Does NOT bump retry_count on pending/retry_required — that is the processor's job only.
+ * Only updates updated_at to throttle repeat logging (5-minute cooldown per item).
+ */
+async function reconcileStuckFiscalReceipts(): Promise<void> {
   const cutoff = new Date(Date.now() - RETRY_AFTER_MINUTES * 60 * 1000).toISOString();
 
-  const { data: pending, error } = await supabase
+  const { data: stale, error } = await supabase
     .from('fiscal_receipts')
     .select('id, payment_transaction_id, amount_kzt, status, provider, retry_count, created_at')
-    // 'pending' and 'retry_required' are handled by fiscal-processor — only log if stale.
-    // 'failed' requires operator investigation.
-    .in('status', ['pending', 'failed', 'retry_required'])
+    .in('status', ['pending', 'retry_required', 'failed'])
     .lt('updated_at', cutoff)
     .order('created_at', { ascending: true })
     .limit(MAX_ITEMS_PER_CYCLE);
 
   if (error) {
-    console.error('[fiscal-reconcile] DB error fetching pending receipts:', error.message);
+    console.error('[fiscal-reconcile] DB error fetching stale receipts:', error.message);
     return;
   }
 
-  if (!pending || pending.length === 0) return;
+  if (!stale || stale.length === 0) return;
 
-  console.warn(
-    `[fiscal-reconcile] ${pending.length} fiscal receipt(s) need manual attention`,
-    pending.map((r) => ({
-      id: r.id,
-      status: r.status,
-      amountKzt: r.amount_kzt,
-      retryCount: r.retry_count,
-      createdAt: r.created_at,
-    })),
-  );
+  const failed = stale.filter((r) => r.status === 'failed');
+  const stuck = stale.filter((r) => r.status !== 'failed');
 
-  // With manual provider: just log. No API retry possible.
-  // With a real provider: call provider.createSaleReceipt() and update status.
-  // Increment retry_count and update updated_at to throttle logging.
-  for (const receipt of pending) {
+  const processorConfigured = isWebkassaConfigured();
+
+  if (stuck.length > 0) {
+    // pending/retry_required still sitting here after processPendingFiscalReceipts() ran.
+    // Most likely cause: Webkassa env vars not set (WEBKASSA_ENABLED, WEBKASSA_ALLOW_REAL_RECEIPTS).
+    console.warn(
+      `[fiscal-reconcile] ${stuck.length} fiscal receipt(s) not picked up by processor`,
+      {
+        processorConfigured,
+        hint: processorConfigured
+          ? 'processor IS configured — possible lock contention or operation_type/provider mismatch'
+          : 'processor NOT configured — check WEBKASSA_ENABLED and WEBKASSA_ALLOW_REAL_RECEIPTS env vars',
+        receipts: stuck.map((r) => ({
+          id: r.id,
+          status: r.status,
+          provider: r.provider,
+          amountKzt: r.amount_kzt,
+          retryCount: r.retry_count,
+          createdAt: r.created_at,
+        })),
+      },
+    );
+  }
+
+  if (failed.length > 0) {
+    console.warn(
+      `[fiscal-reconcile] ${failed.length} fiscal receipt(s) failed — operator investigation required`,
+      failed.map((r) => ({
+        id: r.id,
+        provider: r.provider,
+        amountKzt: r.amount_kzt,
+        retryCount: r.retry_count,
+        createdAt: r.created_at,
+      })),
+    );
+  }
+
+  // Update updated_at only (NOT retry_count — that is the processor's job) to throttle log spam.
+  for (const receipt of stale) {
     await supabase
       .from('fiscal_receipts')
-      .update({
-        retry_count: (receipt.retry_count ?? 0) + 1,
-        updated_at: new Date().toISOString(),
-      })
+      .update({ updated_at: new Date().toISOString() })
       .eq('id', receipt.id);
   }
 }
