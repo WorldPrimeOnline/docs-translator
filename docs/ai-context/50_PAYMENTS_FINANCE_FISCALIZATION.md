@@ -114,10 +114,78 @@ Admin API routes:
 
 See `docs/payments/REFUNDS.md`.
 
-## Worker fiscal reconciliation
+## Worker fiscal processing (Webkassa sequential queue)
+
+**Architecture change (2026-07-01)**: Webkassa calls are no longer made from Vercel serverless.
+Web app creates `fiscal_receipts` row with `status='pending'`; Railway worker processes it.
+
+**Reason**: Webkassa requires sequential requests per cashbox ("запросы по кассе должны отправляться последовательно"). Multiple Vercel instances could send parallel requests; Railway worker is a single long-running process.
+
+### Sequential guarantee (two-layer lock)
+
+`worker/src/lib/fiscal-processor.ts`:
+1. **In-process async queue** (`Map<cashboxId, Promise>`) — one request at a time within one Railway instance
+2. **Postgres lock table** (`fiscal_cashbox_locks`) — prevents two Railway instances from running concurrently
+
+`processPendingFiscalReceipts()` is called every 5 min from `reconcileFiscalAndRefunds()`.
+
+### Webkassa API methods used
+
+- `POST /api/v4/Authorize` — token acquisition (cached)
+- `POST /api/v4/check` — sale (OperationType=2) and sale_return (OperationType=3)
+- `POST /api/v4/ZReport` — Z-report / shift close (body uses **lowercase** `cashboxUniqueNumber`)
+
+Error handling:
+- Code 14 (DUPLICATE_EXTERNAL_NUMBER) → idempotent success (uses payment_transaction_id as ExternalCheckNumber)
+- Code 12/13 (SHIFT_ALREADY_CLOSED / NO_OPEN_SHIFT) in Z-report → `already_closed` success
+- Code 2 (session expired) → re-auth and retry once
+- Codes 10, 18 → permanent failure (non-retryable)
+- Network/timeout errors → `retry_required` (up to MAX_RETRY_COUNT=3)
+
+### Z-report (shift close)
+
+`worker/src/lib/fiscal-z-report.ts`:
+- `maybeRunScheduledZReport()` — runs daily at `WEBKASSA_Z_REPORT_HOUR` (default 23) in `WEBKASSA_Z_REPORT_TIMEZONE` (default Asia/Almaty)
+- **Guard**: skips if any `pending`/`retry_required` fiscal_receipts exist for the cashbox
+- **Idempotency**: `UNIQUE(cashbox_id, business_date)` in `fiscal_z_reports` table
+- Called from `reconcileFiscalAndRefunds()` AFTER `processPendingFiscalReceipts()`
+- `forceRunZReport()` — force run regardless of scheduled hour (for manual operator triggers)
+
+### DB tables (new)
+
+- `fiscal_cashbox_locks` (migration 0042) — distributed per-cashbox lock
+- `fiscal_z_reports` (migration 0043) — Z-report results, UNIQUE per cashbox/date
+
+### Production env vars (Railway worker, Webkassa)
+
+```
+WEBKASSA_ENABLED=true
+WEBKASSA_API_BASE_URL=https://kkm.webkassa.kz
+WEBKASSA_API_KEY=<production API key>
+WEBKASSA_LOGIN=<production login>
+WEBKASSA_PASSWORD=<production password>
+WEBKASSA_CASHBOX_SERIAL_NUMBER=<ZNK serial number>
+WEBKASSA_ALLOW_REAL_RECEIPTS=true
+FISCAL_PROVIDER_ENV=production
+WEBKASSA_Z_REPORT_ENABLED=true
+WEBKASSA_Z_REPORT_TIMEZONE=Asia/Almaty
+WEBKASSA_Z_REPORT_HOUR=23
+WORKER_INSTANCE_ID=railway-worker-prod-1
+```
+
+Test cashbox (devkkm): ZNK=SWK00035686, URL=https://devkkm.webkassa.kz
+
+Integration test script: `npx tsx scripts/fiscal/test-devkkm.ts` (requires test credentials in env).
+
+### Operator recovery
+
+If fiscal_receipts stuck in `retry_required`: set `retry_count=0` and `status='pending'` to re-queue.
+If `fiscal_cashbox_locks` row is stale (worker crashed): DELETE from `fiscal_cashbox_locks` WHERE `expires_at < NOW()`.
+
+## Worker reconciliation (payment/refund crons)
 
 `worker/src/lib/fiscal-reconciliation.ts`:
-- `reconcileFiscalAndRefunds()` — every 5 min: logs pending/failed fiscal_receipts and refund_transactions for operator attention
+- `reconcileFiscalAndRefunds()` — every 5 min: processes pending fiscal receipts via sequential queue, then runs Z-report if scheduled, logs stale `failed`/`pending_manual` items for operator
 - `triggerReconcilePayments()` — every 15 min: calls Next.js `/api/cron/reconcile-payments` via HTTP (CRON_SECRET auth)
 - `triggerReconcileRefunds()` — every 30 min: calls Next.js `/api/cron/reconcile-refunds` via HTTP (CRON_SECRET auth)
 

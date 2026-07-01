@@ -16,12 +16,7 @@ jest.mock('@/lib/supabase/server', () => ({
 jest.mock('@/lib/fiscal/service', () => ({
   createRefundReceiptForRefund: jest.fn().mockResolvedValue({
     fiscalReceiptId: 'fr-1',
-    status: 'pending_manual',
-    isNew: true,
-  }),
-  createSaleReceiptForPayment: jest.fn().mockResolvedValue({
-    fiscalReceiptId: 'fr-1',
-    status: 'pending_manual',
+    status: 'pending',
     isNew: true,
   }),
 }));

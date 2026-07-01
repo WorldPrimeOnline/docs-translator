@@ -152,7 +152,7 @@ describe('generateMonthlyPayouts', () => {
 
     const result = await generateMonthlyPayouts(
       { periodStart: PERIOD_START, periodEnd: PERIOD_END, dryRun: true },
-      db as AnySupabaseClient,
+      db as unknown as AnySupabaseClient,
       jira,
     );
 
@@ -187,7 +187,7 @@ describe('generateMonthlyPayouts', () => {
 
     const result = await generateMonthlyPayouts(
       { periodStart: PERIOD_START, periodEnd: PERIOD_END, dryRun: false, createJira: true },
-      db as AnySupabaseClient,
+      db as unknown as AnySupabaseClient,
       jira,
     );
 
@@ -213,7 +213,7 @@ describe('generateMonthlyPayouts', () => {
 
     await generateMonthlyPayouts(
       { periodStart: PERIOD_START, periodEnd: PERIOD_END, dryRun: false, createJira: false },
-      db as AnySupabaseClient,
+      db as unknown as AnySupabaseClient,
       jira,
     );
 
@@ -233,7 +233,7 @@ describe('generateMonthlyPayouts', () => {
       ]);
       return generateMonthlyPayouts(
         { periodStart: PERIOD_START, periodEnd: PERIOD_END, dryRun: true },
-        db as AnySupabaseClient,
+        db as unknown as AnySupabaseClient,
       );
     }
 
@@ -282,7 +282,7 @@ describe('generateMonthlyPayouts', () => {
 
     const result = await generateMonthlyPayouts(
       { periodStart: '2026-08-01', periodEnd: '2026-08-31', dryRun: true },
-      db as AnySupabaseClient,
+      db as unknown as AnySupabaseClient,
     );
 
     expect(result.total_referrals).toBe(0);
@@ -299,7 +299,7 @@ describe('generateMonthlyPayouts', () => {
 
     const result = await generateMonthlyPayouts(
       { periodStart: PERIOD_START, periodEnd: PERIOD_END, dryRun: true, partnerId: PARTNER_A.id },
-      db as AnySupabaseClient,
+      db as unknown as AnySupabaseClient,
     );
 
     expect(result.partners_count).toBe(1);
@@ -326,7 +326,7 @@ describe('generateMonthlyPayouts', () => {
 
     const result = await generateMonthlyPayouts(
       { periodStart: PERIOD_START, periodEnd: PERIOD_END, dryRun: false, createJira: false },
-      db as AnySupabaseClient,
+      db as unknown as AnySupabaseClient,
     );
 
     expect(result.partners_count).toBe(2);
@@ -362,7 +362,7 @@ describe('generateMonthlyPayouts', () => {
 
     const result = await generateMonthlyPayouts(
       { periodStart: PERIOD_START, periodEnd: PERIOD_END, dryRun: true },
-      db as AnySupabaseClient,
+      db as unknown as AnySupabaseClient,
     );
 
     expect(result.total_gross_order_amount_kzt).toBe(15000);
@@ -414,7 +414,7 @@ describe('generateMonthlyPayouts', () => {
 
     const result = await generateMonthlyPayouts(
       { periodStart: PERIOD_START, periodEnd: PERIOD_END, dryRun: false, createJira: true },
-      db as AnySupabaseClient,
+      db as unknown as AnySupabaseClient,
       jira,
     );
 
@@ -438,7 +438,7 @@ describe('generateMonthlyPayouts', () => {
 
     const result = await generateMonthlyPayouts(
       { periodStart: PERIOD_START, periodEnd: PERIOD_END, dryRun: false, createJira: true },
-      db as AnySupabaseClient,
+      db as unknown as AnySupabaseClient,
       jira,
     );
 
@@ -467,7 +467,7 @@ describe('generateMonthlyPayouts', () => {
 
     const result = await generateMonthlyPayouts(
       { periodStart: PERIOD_START, periodEnd: PERIOD_END, dryRun: true },
-      db as AnySupabaseClient,
+      db as unknown as AnySupabaseClient,
     );
 
     expect(result.total_gross_order_amount_kzt).toBe(10000);

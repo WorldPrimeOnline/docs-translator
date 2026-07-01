@@ -72,7 +72,7 @@ describe('markPayoutPaid', () => {
 
     const result = await markPayoutPaid(
       { payoutId: 'payout-uuid-1', paymentReference: 'Halyk 2026-08-05' },
-      db as AnySupabaseClient,
+      db as unknown as AnySupabaseClient,
       jira,
     );
 
@@ -95,7 +95,7 @@ describe('markPayoutPaid', () => {
 
     const result = await markPayoutPaid(
       { payoutId: 'payout-uuid-1', paymentReference: 'Halyk 2026-08-05' },
-      db as AnySupabaseClient,
+      db as unknown as AnySupabaseClient,
       jira,
     );
 
@@ -113,7 +113,7 @@ describe('markPayoutPaid', () => {
     ]);
 
     await expect(
-      markPayoutPaid({ payoutId: 'non-existent-uuid', paymentReference: 'ref' }, db as AnySupabaseClient),
+      markPayoutPaid({ payoutId: 'non-existent-uuid', paymentReference: 'ref' }, db as unknown as AnySupabaseClient),
     ).rejects.toThrow('not found');
   });
 
@@ -123,7 +123,7 @@ describe('markPayoutPaid', () => {
     ]);
 
     await expect(
-      markPayoutPaid({ payoutId: 'payout-uuid-1', paymentReference: 'ref' }, db as AnySupabaseClient),
+      markPayoutPaid({ payoutId: 'payout-uuid-1', paymentReference: 'ref' }, db as unknown as AnySupabaseClient),
     ).rejects.toThrow('DB connection failed');
   });
 
@@ -137,7 +137,7 @@ describe('markPayoutPaid', () => {
 
     const result = await markPayoutPaid(
       { payoutId: 'payout-uuid-1', paymentReference: 'ref-123' },
-      db as AnySupabaseClient,
+      db as unknown as AnySupabaseClient,
       jira,
     );
 
@@ -156,7 +156,7 @@ describe('markPayoutPaid', () => {
 
     const result = await markPayoutPaid(
       { payoutId: 'payout-uuid-1', paymentReference: 'ref-123' },
-      db as AnySupabaseClient,
+      db as unknown as AnySupabaseClient,
       jira,
     );
 
@@ -179,7 +179,7 @@ describe('markPayoutPaid', () => {
 
     const result = await markPayoutPaid(
       { payoutId: 'payout-uuid-1', paymentReference: 'ref', note: 'Processed by Alina' },
-      db as AnySupabaseClient,
+      db as unknown as AnySupabaseClient,
     );
 
     expect(result.status).toBe('paid');
@@ -196,7 +196,7 @@ describe('markPayoutPaid', () => {
 
     const result = await markPayoutPaid(
       { payoutId: 'payout-uuid-1', paymentReference: 'ref' },
-      db as AnySupabaseClient,
+      db as unknown as AnySupabaseClient,
       jira,
     );
 
