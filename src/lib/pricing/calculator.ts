@@ -401,7 +401,9 @@ export function calculatePrice(input: PricingInput, version: PricingVersion): Pr
     );
 
     subtotal += notaryFee + notaryCoordFee + printingFee;
-    reviewReasons.push('Notarized order: MRP-based fee requires notary confirmation before production launch');
+    // notary_official_fee is a deterministic MRP-based formula, so it can be auto-quoted.
+    // Notary slot / translator availability is confirmed by ops after payment, not before —
+    // it must never gate whether a price is shown or checkout can start.
 
     // 11a. Notary urgency — applies ONLY to coordination fee, NOT to MRP-based official fee
     const notaryUrgencyLevel = input.notaryUrgencyLevel ?? 'standard';

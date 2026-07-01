@@ -1,4 +1,5 @@
 import { calculatePrice } from '../calculator';
+import { DOCUMENT_TYPE_COEFFICIENT, NOTARY_CONFIG } from '../config';
 import type { PricingVersion, PricingInput } from '../types';
 
 const mockVersion: PricingVersion = {
@@ -185,12 +186,14 @@ describe('calculatePrice', () => {
     });
   });
 
-  it('notarized order adds notary components and review reason', () => {
+  it('notarized order adds notary components and auto-quotes (no operator review)', () => {
     const result = calculatePrice(baseInput({ serviceLevel: 'notarization_through_partners' }), mockVersion);
     expect(result.items.find(i => i.itemType === 'notary_official_fee' && i.amountKzt > 0)).toBeDefined();
     expect(result.items.find(i => i.itemType === 'notary_coordination_fee' && i.amountKzt > 0)).toBeDefined();
     expect(result.items.find(i => i.itemType === 'printing_binding_fee')).toBeDefined();
-    expect(result.requiresOperatorReview).toBe(true);
+    expect(result.requiresOperatorReview).toBe(false);
+    expect(result.status).toBe('quoted');
+    expect(result.amountKzt).toBeGreaterThan(0);
   });
 
   describe('canonical zero-value rows — all items present in audit', () => {
@@ -671,6 +674,134 @@ describe('calculatePrice', () => {
       const result = calculatePrice(baseInput({ documentType: 'diploma_transcript', physicalPageCount: 3 }), mockVersion);
       expect(result.items.find(i => i.itemType === 'extra_pages_fee')).toBeDefined();
       expect(result.items.find(i => i.itemType === 'presentation_slides_fee')).toBeUndefined();
+    });
+  });
+
+  describe('automatic quoting for standard orders (no operator price confirmation)', () => {
+    // Reported production case: ru→en + трудовой договор (employment_document) +
+    // notarized + delivery to Almaty must auto-quote, not fall back to manual review.
+    it('ru→en employment_document notarized delivery-to-Almaty returns an automatic quote', () => {
+      const result = calculatePrice(baseInput({
+        sourceLanguage: 'ru',
+        targetLanguage: 'en',
+        documentType: 'employment_document',
+        serviceLevel: 'notarization_through_partners',
+        fulfillmentMethod: 'delivery',
+        deliveryRequired: true,
+      }), mockVersion);
+      expect(result.status).toBe('quoted');
+      expect(result.requiresOperatorReview).toBe(false);
+      expect(result.amountKzt).toBeGreaterThan(0);
+      expect(result.items.some(i => i.itemType === 'delivery_fee' && i.amountKzt > 0)).toBe(true);
+      expect(result.items.some(i => i.itemType === 'notary_official_fee' && i.amountKzt > 0)).toBe(true);
+      expect(result.context.documentCoefficient).toBe(1.30);
+    });
+
+    it('employment_document coefficient (1.30) is applied', () => {
+      const result = calculatePrice(baseInput({ documentType: 'employment_document', sourceWordCount: 250 }), mockVersion);
+      expect(result.context.documentCoefficient).toBe(1.30);
+      expect(result.items.find(i => i.itemType === 'document_type_coefficient')).toBeDefined();
+    });
+
+    it('missing source_word_count still returns a quote using the fallback included-word limit', () => {
+      const result = calculatePrice(baseInput({ sourceWordCount: undefined }), mockVersion);
+      expect(result.requiresOperatorReview).toBe(false);
+      expect(result.amountKzt).toBeGreaterThan(0);
+    });
+
+    it('unknown document_type falls back to "other" coefficient, not manual quote', () => {
+      const result = calculatePrice(baseInput({ documentType: 'some_unmapped_type_xyz' }), mockVersion);
+      expect(result.requiresOperatorReview).toBe(false);
+      expect(result.context.documentCoefficient).toBe(DOCUMENT_TYPE_COEFFICIENT['other']);
+      expect(result.amountKzt).toBeGreaterThan(0);
+    });
+
+    it('notarized delivery without an explicit deliveryZone falls back to the Almaty standard fee, not manual quote', () => {
+      const result = calculatePrice(baseInput({
+        serviceLevel: 'notarization_through_partners',
+        fulfillmentMethod: 'delivery',
+        deliveryRequired: true,
+        deliveryZone: undefined,
+      }), mockVersion);
+      expect(result.requiresOperatorReview).toBe(false);
+      const deliveryItem = result.items.find(i => i.itemType === 'delivery_fee');
+      expect(deliveryItem?.amountKzt).toBe(NOTARY_CONFIG.deliveryFeeAlmatyStandard);
+    });
+
+    it('a legitimate but uncommon language pair (en→de) auto-quotes via the "other" group', () => {
+      const result = calculatePrice(baseInput({ sourceLanguage: 'en', targetLanguage: 'de' }), mockVersion);
+      expect(result.requiresOperatorReview).toBe(false);
+      expect(result.amountKzt).toBeGreaterThan(0);
+    });
+
+    it.each([
+      ['electronic', false] as const,
+      ['official_with_translator_signature_and_provider_stamp', false] as const,
+      ['notarization_through_partners', false] as const,   // pickup
+      ['notarization_through_partners', true] as const,    // delivery
+    ])('service level %s (delivery=%s) returns an automatic quote', (serviceLevel, deliveryRequired) => {
+      const result = calculatePrice(baseInput({
+        serviceLevel: serviceLevel as PricingInput['serviceLevel'],
+        fulfillmentMethod: deliveryRequired ? 'delivery' : 'pickup',
+        deliveryRequired,
+      }), mockVersion);
+      expect(result.requiresOperatorReview).toBe(false);
+      expect(result.status).toBe('quoted');
+      expect(result.amountKzt).toBeGreaterThan(0);
+    });
+  });
+
+  describe('regression: no standard UI combination requires manual operator price confirmation', () => {
+    // Mirrors the document types exposed in the dashboard upload form (src/app/[locale]/dashboard/page.tsx DOCUMENT_TYPES).
+    const UI_DOCUMENT_TYPES = [
+      'passport_id', 'diploma_transcript', 'contract', 'bank_statement', 'medical_document',
+      'employment_document', 'police_clearance', 'visa_documents', 'driver_license', 'presentation', 'other',
+    ];
+    const UI_SERVICE_LEVELS: PricingInput['serviceLevel'][] = [
+      'electronic', 'official_with_translator_signature_and_provider_stamp', 'notarization_through_partners',
+    ];
+
+    for (const documentType of UI_DOCUMENT_TYPES) {
+      for (const serviceLevel of UI_SERVICE_LEVELS) {
+        const deliveryVariants = serviceLevel === 'notarization_through_partners' ? [false, true] : [false];
+        for (const deliveryRequired of deliveryVariants) {
+          it(`documentType=${documentType} serviceLevel=${serviceLevel} delivery=${deliveryRequired} → quote, not manual review`, () => {
+            const result = calculatePrice(baseInput({
+              documentType,
+              serviceLevel,
+              fulfillmentMethod: deliveryRequired ? 'delivery' : 'pickup',
+              deliveryRequired,
+            }), mockVersion);
+            expect(result.requiresOperatorReview).toBe(false);
+            expect(result.status).toBe('quoted');
+            expect(result.amountKzt).toBeGreaterThan(0);
+          });
+        }
+      }
+    }
+
+    // Exceptional cases remain intentionally routed to manual review — these are not
+    // "standard UI options" (system-derived signals defaulted safe, or genuinely unsupported input).
+    it('exceptional cases still require operator review (not regressed by the auto-quote fix)', () => {
+      const remoteDelivery = calculatePrice(baseInput({
+        serviceLevel: 'notarization_through_partners',
+        fulfillmentMethod: 'delivery',
+        deliveryRequired: true,
+        deliveryZone: 'remote_area',
+      }), mockVersion);
+      expect(remoteDelivery.requiresOperatorReview).toBe(true);
+
+      const unknownApplicant = calculatePrice(baseInput({
+        serviceLevel: 'notarization_through_partners',
+        applicantType: 'unknown',
+      }), mockVersion);
+      expect(unknownApplicant.requiresOperatorReview).toBe(true);
+
+      const handwritten = calculatePrice(baseInput({ scanQuality: 'handwritten' }), mockVersion);
+      expect(handwritten.requiresOperatorReview).toBe(true);
+
+      const genuinelyUnsupportedPair = calculatePrice(baseInput({ sourceLanguage: 'sw', targetLanguage: 'tl' }), mockVersion);
+      expect(genuinelyUnsupportedPair.requiresOperatorReview).toBe(true);
     });
   });
 });

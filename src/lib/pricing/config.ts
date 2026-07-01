@@ -177,6 +177,14 @@ const TH = ['th', 'thai'];
 
 const has = (list: string[], l: string) => list.includes(l);
 
+// Every language code the pricing engine recognizes. A pair outside the 16 named
+// groups still gets an automatic quote via the 'other' bucket as long as both sides
+// are recognized codes — only a genuinely unrecognized code (e.g. 'auto', empty,
+// a typo) should block on operator review, since we can't safely price what we can't
+// identify as a language.
+const KNOWN_CODES = [...RU, ...KZ, ...EN, ...UZ, ...TR, ...DE, ...FR, ...ES, ...IT, ...ZH, ...AR, ...KO, ...JA, ...TH];
+const isKnownCode = (l: string) => KNOWN_CODES.includes(l);
+
 export function resolveLanguageGroup(
   sourceLang: string,
   targetLang: string,
@@ -199,7 +207,7 @@ export function resolveLanguageGroup(
     if (has(ZH, other) || has(AR, other)) return { group: 'ru_zh_ar',  requiresReview: false };
     if (has(KO, other))                   return { group: 'ru_ko',     requiresReview: false };
     if (has(JA, other) || has(TH, other)) return { group: 'ru_ja_th',  requiresReview: false };
-    return { group: 'other', requiresReview: true };
+    return { group: 'other', requiresReview: !isKnownCode(other) };
   }
 
   // KZ pairs
@@ -213,8 +221,10 @@ export function resolveLanguageGroup(
     if (has(ZH, other) || has(AR, other)) return { group: 'kz_zh_ar', requiresReview: false };
     if (has(KO, other))                   return { group: 'kz_ko',    requiresReview: false };
     if (has(JA, other) || has(TH, other)) return { group: 'kz_ja_th', requiresReview: false };
-    return { group: 'other', requiresReview: true };
+    return { group: 'other', requiresReview: !isKnownCode(other) };
   }
 
-  return { group: 'other', requiresReview: true };
+  // Neither side is RU or KZ (e.g. en↔de, zh↔ja) — still price via 'other' as long as
+  // both codes are recognized languages.
+  return { group: 'other', requiresReview: !(isKnownCode(src) && isKnownCode(tgt)) };
 }

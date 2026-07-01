@@ -15,6 +15,7 @@ import { deriveBackcompatBooleans } from '@/lib/translation-workflow/output-plan
 import { isValidNotaryCity } from '@/lib/notary/cities';
 import { getHalykConfig } from '@/lib/payments/halyk/config';
 import { computeQuoteForJob, saveQuote } from '@/lib/pricing/service';
+import { DOCUMENT_TYPE_COEFFICIENT } from '@/lib/pricing/config';
 import { attachReferralToOrder } from '@/lib/referral/server';
 import { calculatePartnerDiscount } from '@/lib/partners/discount';
 import type { Database } from '@/types';
@@ -398,6 +399,33 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
     new_status: 'payment_pending',
     metadata: { serviceLevel, priceKzt: finalPriceKzt, quoteId, notaryCity: notaryCity ?? null },
   }).then(({ error: e }) => { if (e) console.error('[upload-card] audit insert failed:', e.message); });
+
+  // Pricing diagnostics — one structured line per quote so production pricing
+  // decisions (fallbacks, operator-review reasons) are auditable without a DB query.
+  const minimumCheckItem = pricingResult.items.find((i) => i.itemType === 'minimum_check');
+  const resolvedLanguageGroup = minimumCheckItem?.metadataJson?.languageGroup ?? null;
+  const fallbackUsed =
+    resolvedLanguageGroup === 'other' ||
+    !(pricingDocumentType in DOCUMENT_TYPE_COEFFICIENT) ||
+    (serviceLevel === 'notarization_through_partners' && fulfillmentMethod === 'delivery' && !deliveryZone);
+  console.log('[pricing] quote computed', {
+    correlationId,
+    jobId: job.id,
+    quoteId,
+    documentTypeReceived: documentType,
+    documentTypeMapped: pricingDocumentType,
+    serviceLevel,
+    languagePair: `${sourceLang}→${targetLang}`,
+    languageGroup: resolvedLanguageGroup,
+    deliveryRequired: pricingInput.deliveryRequired,
+    notaryCity: notaryCity ?? null,
+    physicalPageCount: pricingInput.physicalPageCount,
+    sourceWordCount: null, // not known at initial upload — OCR hasn't run yet
+    fallbackUsed,
+    requiresOperatorReview: pricingResult.requiresOperatorReview,
+    reviewReasons: pricingResult.reviewReasons,
+    finalAmountKzt: finalPriceKzt,
+  });
 
   // Best-effort referral attachment — must not block order creation or payment.
   const refCode = (formData.get('refCode') as string | null) || null;
