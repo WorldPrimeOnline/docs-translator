@@ -17,6 +17,8 @@
     "queued": "In der Warteschlange",
     "failed": "Fehler",
     "download": "Herunterladen",
+    "fiscalReceipt": "Kassenbon",
+    "fiscalReceiptPending": "Bon wird erstellt",
     "signedIn": "Angemeldet als",
     "logout": "Abmelden",
     "usingPlan": "Tarif {plan} · noch {remaining} Dokumente verfügbar — keine Zahlung erforderlich",

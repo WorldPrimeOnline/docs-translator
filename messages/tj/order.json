@@ -15,6 +15,8 @@
     "queued": "Навбат",
     "failed": "Хато",
     "download": "Зеркашӣ",
+    "fiscalReceipt": "Чеки электронӣ",
+    "fiscalReceiptPending": "Чек тайёр мешавад",
     "signedIn": "Ворид шудед ба сифати",
     "logout": "Баромадан",
     "usingPlan": "Нақшаи {plan} · {remaining} ҳуҷҷат боқӣ монда — пардохт лозим нест",

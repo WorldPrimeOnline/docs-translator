@@ -17,6 +17,8 @@
     "queued": "В очереди",
     "failed": "Ошибка",
     "download": "Скачать",
+    "fiscalReceipt": "Электронный чек",
+    "fiscalReceiptPending": "Чек формируется",
     "signedIn": "Вы вошли как",
     "logout": "Выйти",
     "usingPlan": "Тариф {plan} · осталось {remaining} документов — оплата не требуется",

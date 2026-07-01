@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { toast } from 'sonner';
-import { Upload, FileText, FileImage, FileCode2, Download, AlertCircle, Loader2, X, Clock, RefreshCw } from 'lucide-react';
+import { Upload, FileText, FileImage, FileCode2, Download, AlertCircle, Loader2, X, Clock, RefreshCw, Receipt } from 'lucide-react';
 import { HalykPayButton } from '@/components/payment/HalykPayButton';
 import { createClient } from '@/lib/supabase/client';
 import { Link } from '@/i18n/navigation';
@@ -58,6 +58,8 @@ interface OrderEntry {
   quoteCurrency: string | null;
   quoteExpiresAt: string | null;
   quoteRequiresOperatorReview: boolean;
+  fiscalUrl: string | null;
+  fiscalReceiptStatus: string | null;
 }
 
 
@@ -394,8 +396,43 @@ function ActiveOrderCard({ entry, locale, onRecalculate }: { entry: OrderEntry; 
           {t('downloadTranslation')}
         </a>
       )}
+      {entry.isTerminal && (
+        <div className="mt-3">
+          <FiscalReceiptLink fiscalUrl={entry.fiscalUrl} fiscalReceiptStatus={entry.fiscalReceiptStatus} />
+        </div>
+      )}
     </div>
   );
+}
+
+// ─── Fiscal receipt link ───────────────────────────────────────────────────────
+
+const FISCAL_PENDING_STATUSES = new Set(['pending', 'pending_manual', 'retry_required']);
+
+function FiscalReceiptLink({ fiscalUrl, fiscalReceiptStatus }: { fiscalUrl: string | null; fiscalReceiptStatus: string | null }) {
+  const t = useTranslations('dashboard');
+
+  if (fiscalUrl) {
+    return (
+      <a
+        href={fiscalUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-white/20 hover:text-foreground"
+      >
+        <Receipt className="h-3 w-3" />
+        {t('fiscalReceipt')}
+      </a>
+    );
+  }
+
+  if (fiscalReceiptStatus && FISCAL_PENDING_STATUSES.has(fiscalReceiptStatus)) {
+    return (
+      <span className="text-xs text-muted-foreground/60">{t('fiscalReceiptPending')}</span>
+    );
+  }
+
+  return null;
 }
 
 // ─── History row ───────────────────────────────────────────────────────────────
@@ -414,7 +451,7 @@ function HistoryRow({ entry }: { entry: OrderEntry }) {
           {new Date(entry.createdAt).toLocaleDateString()}
         </span>
       </div>
-      <div className="ml-4 flex shrink-0 items-center gap-3">
+      <div className="ml-4 flex shrink-0 flex-wrap items-center gap-2">
         <StatusBadge customerStatus={entry.customerStatus} />
         {entry.canDownload && (
           <a
@@ -425,6 +462,7 @@ function HistoryRow({ entry }: { entry: OrderEntry }) {
             {t('download')}
           </a>
         )}
+        <FiscalReceiptLink fiscalUrl={entry.fiscalUrl} fiscalReceiptStatus={entry.fiscalReceiptStatus} />
       </div>
     </div>
   );
@@ -654,6 +692,7 @@ export default function DashboardPage() {
             quoteExpiresAt: data.quoteExpiresAt ?? next[idx]!.quoteExpiresAt,
             quoteRequiresOperatorReview: data.quoteRequiresOperatorReview ?? next[idx]!.quoteRequiresOperatorReview,
             stages: state.stages,
+            // fiscalUrl and fiscalReceiptStatus are not polled per-job; they come from loadOrders()
           };
         });
         return next;

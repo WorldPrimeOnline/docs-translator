@@ -324,6 +324,8 @@ export async function createCheck(
   return buildCheckResult(data, false);
 }
 
+// TicketUrl is a direct link to Webkassa's OFD receipt page — we store and display it as-is.
+// /api/v4/Ticket/PrintFormat is not called: it is for custom receipt rendering, which we don't need.
 function buildCheckResult(data: WebkassaCheckData, isDuplicate: boolean): CreateCheckResult {
   return {
     checkNumber: data.CheckNumber,

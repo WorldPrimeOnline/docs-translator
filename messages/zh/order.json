@@ -15,6 +15,8 @@
     "queued": "排队中",
     "failed": "失败",
     "download": "下载",
+    "fiscalReceipt": "电子收据",
+    "fiscalReceiptPending": "收据生成中",
     "signedIn": "当前登录账号",
     "logout": "退出登录",
     "usingPlan": "使用 {plan} 计划 · 剩余 {remaining} 份文件 — 无需付款",

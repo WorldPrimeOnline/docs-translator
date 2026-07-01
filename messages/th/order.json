@@ -17,6 +17,8 @@
     "queued": "อยู่ในคิว",
     "failed": "เกิดข้อผิดพลาด",
     "download": "ดาวน์โหลด",
+    "fiscalReceipt": "ใบเสร็จรับเงิน",
+    "fiscalReceiptPending": "กำลังสร้างใบเสร็จ",
     "signedIn": "เข้าสู่ระบบในฐานะ",
     "logout": "ออกจากระบบ",
     "usingPlan": "แผน {plan} · เหลือ {remaining} เอกสาร — ไม่ต้องชำระเงิน",

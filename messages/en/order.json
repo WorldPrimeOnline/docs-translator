@@ -63,6 +63,8 @@
     "queued": "Queued",
     "failed": "Failed",
     "download": "Download",
+    "fiscalReceipt": "Fiscal receipt",
+    "fiscalReceiptPending": "Receipt is being generated",
     "signedIn": "Signed in as",
     "logout": "Log out",
     "usingPlan": "Using your {plan} plan · {remaining} docs remaining — no payment required",

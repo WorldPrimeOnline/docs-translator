@@ -15,6 +15,8 @@
     "queued": "Кезекте",
     "failed": "Ишке ашкан жок",
     "download": "Жүктөп алуу",
+    "fiscalReceipt": "Электрондук чек",
+    "fiscalReceiptPending": "Чек даярдалууда",
     "signedIn": "Кирилген:",
     "logout": "Чыгуу",
     "usingPlan": "{plan} планыңыз колдонулууда · {remaining} документ калды — төлөм талап кылынбайт",

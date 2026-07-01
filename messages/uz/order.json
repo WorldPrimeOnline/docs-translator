@@ -15,6 +15,8 @@
     "queued": "Navbatda",
     "failed": "Xato",
     "download": "Yuklab olish",
+    "fiscalReceipt": "Elektron chek",
+    "fiscalReceiptPending": "Chek tayyorlanmoqda",
     "signedIn": "Tizimga kirgan:",
     "logout": "Chiqish",
     "usingPlan": "{plan} rejangizdan foydalanilmoqda · {remaining} hujjat qoldi — to'lov talab qilinmaydi",

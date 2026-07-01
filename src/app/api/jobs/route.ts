@@ -74,6 +74,26 @@ export async function GET(): Promise<NextResponse> {
   };
   const latestQuoteByJob = new Map<string, QuoteRow>();
   const jobIds = Array.from(latestJobByDoc.values()).map((j) => j.id).filter(Boolean);
+
+  // Fetch sale fiscal receipts per job — only for jobs this user owns (docIds already scoped to user.id)
+  type FiscalRow = { job_id: string; status: string; fiscal_url: string | null };
+  const fiscalByJob = new Map<string, FiscalRow>();
+  if (jobIds.length > 0) {
+    const { data: fiscalReceipts } = await supabaseServer
+      .from('fiscal_receipts')
+      .select('job_id, status, fiscal_url')
+      .in('job_id', jobIds)
+      .eq('operation_type', 'sale')
+      .order('created_at', { ascending: false });
+
+    if (fiscalReceipts) {
+      for (const fr of fiscalReceipts as FiscalRow[]) {
+        if (!fiscalByJob.has(fr.job_id)) {
+          fiscalByJob.set(fr.job_id, fr);
+        }
+      }
+    }
+  }
   if (jobIds.length > 0) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: quotes } = await (supabaseServer as any)
@@ -102,6 +122,7 @@ export async function GET(): Promise<NextResponse> {
   const result = docs.map((doc) => {
     const job = latestJobByDoc.get(doc.id) ?? null;
     const quote = job ? (latestQuoteByJob.get(job.id) ?? null) : null;
+    const fiscal = job ? (fiscalByJob.get(job.id) ?? null) : null;
 
     const state = job
       ? getCustomerOrderState({
@@ -144,6 +165,8 @@ export async function GET(): Promise<NextResponse> {
       quoteCurrency: quote?.currency ?? null,
       quoteExpiresAt: quote?.expires_at ?? null,
       quoteRequiresOperatorReview: quote?.requiresReview ?? false,
+      fiscalUrl: fiscal?.fiscal_url ?? null,
+      fiscalReceiptStatus: fiscal?.status ?? null,
     };
   });
 
