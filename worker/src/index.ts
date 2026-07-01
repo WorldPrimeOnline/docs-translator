@@ -152,9 +152,15 @@ function runStartupSafetyChecks(): void {
   console.log(`[worker:env] PAYMENTS_MODE        = ${env.PAYMENTS_MODE}`);
   console.log(`[worker:env] OFFICIAL_WORKFLOW    = ${env.OFFICIAL_WORKFLOW_ENABLED}`);
   console.log('[worker:env] ─── Fiscal (Webkassa) ──────────────────');
+  const webkassaHost = (() => {
+    const explicit = env.WEBKASSA_API_BASE_URL;
+    if (explicit) { try { return new URL(explicit).hostname; } catch { return explicit; } }
+    return env.FISCAL_PROVIDER_ENV === 'production' ? 'kkm.webkassa.kz' : 'devkkm.webkassa.kz';
+  })();
   console.log(`[worker:env] WEBKASSA_ENABLED     = ${env.WEBKASSA_ENABLED ?? '(not set)'}`);
   console.log(`[worker:env] FISCAL_PROVIDER_ENV  = ${env.FISCAL_PROVIDER_ENV}`);
   console.log(`[worker:env] WEBKASSA_ALLOW_REAL  = ${env.WEBKASSA_ALLOW_REAL_RECEIPTS ?? '(not set)'}`);
+  console.log(`[worker:env] WEBKASSA_API_HOST    = ${webkassaHost}${env.WEBKASSA_API_BASE_URL ? ' (explicit)' : ' (default)'}`);
   console.log(`[worker:env] WEBKASSA_CASHBOX     = ${env.WEBKASSA_CASHBOX_SERIAL_NUMBER ?? '(not set)'}`);
   console.log(`[worker:env] hasApiKey            = ${!!env.WEBKASSA_API_KEY}`);
   console.log('[worker:env] ─────────────────────────────────────────');
