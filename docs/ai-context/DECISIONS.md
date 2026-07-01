@@ -380,3 +380,19 @@ npm run partners:mark-paid -- --payout-id=<uuid> --payment-reference="Halyk 2026
 
 **Impacted files:**
 `supabase/migrations/0039_partner_payout_workflow.sql`, `src/lib/partners/generate-payout.ts`, `src/lib/partners/mark-payout.ts`, `src/lib/jira/payout-client.ts`, `scripts/partners/generate-monthly-payout.ts`, `scripts/partners/mark-payout-paid.ts`, `src/types/supabase.ts`, `src/lib/referral/server.ts` (adds `confirmed_at`), `package.json`.
+
+---
+
+### 2026-07-01 — Notarized orders and uncommon-but-known language pairs auto-quote; operator review no longer blanket-forced
+
+**Decision:**  
+calculatePrice() no longer forces requiresOperatorReview=true for every notarization_through_partners order, and resolveLanguageGroup() no longer forces it for every language pair outside the 16 named groups. Notary fee (MRP-based formula) and the 'other' pricing bucket are both fully computable, so standard checkout combinations (any UI-exposed document type x service level x delivery option, and any pair of recognized language codes) now get an automatic price_quotes row with status=quoted and can proceed straight to payment. Operator review is now reserved for genuinely exceptional inputs: unsupported/remote delivery zones, unknown applicant type, handwritten scans, presentation with unknown page count, and language codes that are not recognized at all (e.g. 'auto', empty, typos).
+
+**Rationale:**  
+Production/staging showed real orders (e.g. ru->en trudovoi dogovor / employment_document, notarized, delivery to Almaty) stuck on 'Tsena podtverzhdaetsya operatorom' even though every input was a standard, fully-priceable UI option. Root cause: calculator.ts unconditionally pushed a notarized-order review reason regardless of input, and config.ts forced review for any language pair combination not explicitly named even when both language codes were recognized and the 'other' rate bucket had full pricing data. Business rule: price must always be automatic for standard orders; operator involvement is for confirming translator/notary/courier availability and slots AFTER payment, never for gating whether a price is shown or checkout can start.
+
+**Impacted files/docs:**  
+src/lib/pricing/calculator.ts, src/lib/pricing/config.ts, src/app/api/documents/upload-card/route.ts, src/lib/pricing/__tests__/calculator.test.ts, docs/finance/PRICING_ENGINE.md
+
+**Risks / caveats:**  
+notary_official_fee remains an MRP-based ESTIMATE (see TODO in calculator.ts) not yet confirmed line-by-line with the notary partner; customers are now charged this estimate automatically before any human check. If the estimate is materially wrong for a given case, it must be corrected via a pricing_versions update or a refund/adjustment, not by re-introducing a blanket operator-review gate. No DB migration was needed; price_quotes.status enum and verifyQuotePayable() were unchanged — the latter already allowed paying requires_operator_review quotes, so this change only affects what customers are shown, not payment-layer permissions.

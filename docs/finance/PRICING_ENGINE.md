@@ -6,7 +6,7 @@ All pricing is in KZT. Final price is always rounded up to the nearest 100 KZT.
 
 ### 1. Resolve language group
 
-17 groups defined in `src/lib/pricing/config.ts`. If the pair is not found, the price is set to 0 and `requiresOperatorReview = true`.
+17 groups defined in `src/lib/pricing/config.ts`. If the pair is not one of the 16 named groups, it is priced via the `'other'` bucket (full rate data, real price — not zero) and does **not** require operator review, as long as both language codes are recognized. Only a genuinely unrecognized code (`'auto'`, empty, a typo) forces `requiresOperatorReview = true`, since an unrecognized code can't be safely priced at all.
 
 | Group | Example pairs |
 |---|---|
@@ -78,7 +78,7 @@ Three fixed cost items added (not subject to document/urgency coefficients):
 - Notary coordination fee: fixed 3 000 KZT
 - Printing/binding: fixed 1 500 KZT
 
-All notarized orders are flagged `requiresOperatorReview = true`.
+Notarized orders auto-quote like any other service level — the MRP-based notary official fee is a deterministic formula, so it does not require operator review before checkout. Operator confirmation of the actual notary slot/translator availability happens **after** payment, not before; it never gates whether a price is shown. See `docs/ai-context/DECISIONS.md` (2026-07-01).
 
 ### 8. Delivery fee
 
