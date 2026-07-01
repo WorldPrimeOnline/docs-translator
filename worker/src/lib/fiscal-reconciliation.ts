@@ -26,19 +26,26 @@
  */
 import { supabase } from './supabase';
 import { env } from './env';
-import { processPendingFiscalReceipts, isWebkassaConfigured } from './fiscal-processor';
+import { isWebkassaConfigured } from './fiscal-processor';
 import { maybeRunScheduledZReport } from './fiscal-z-report';
 
 const MAX_ITEMS_PER_CYCLE = 10;
 const RETRY_AFTER_MINUTES = 5;
 
+/**
+ * Periodic 5-minute reconciliation pass.
+ *
+ * Does NOT call Webkassa or processPendingFiscalReceipts — that runs on its own
+ * 30-second interval in index.ts (FISCAL_PROCESSOR_INTERVAL_MS).
+ *
+ * This pass only:
+ * 1. Alerts on receipts still stuck after the processor has had time to run.
+ * 2. Alerts on pending_manual refunds needing operator action.
+ * 3. Runs the scheduled Z-report (shift close).
+ */
 export async function reconcileFiscalAndRefunds(): Promise<void> {
-  // Process pending fiscal receipts through sequential per-cashbox queue (Webkassa requirement).
-  // Must run before Z-report to ensure all receipts are issued before shift is closed.
-  await processPendingFiscalReceipts();
   await reconcileStuckFiscalReceipts();
   await reconcilePendingRefunds();
-  // Z-report runs after receipts are processed — only when no pending receipts remain.
   await maybeRunScheduledZReport();
 }
 

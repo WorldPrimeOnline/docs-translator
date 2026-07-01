@@ -74,6 +74,7 @@ function makeChain(rows: unknown[] | null) {
     select: jest.fn().mockReturnThis(),
     in: jest.fn().mockReturnThis(),
     eq: jest.fn().mockReturnThis(),
+    is: jest.fn().mockReturnThis(),
     order: jest.fn().mockReturnThis(),
     limit: jest.fn().mockReturnThis(),
     upsert: jest.fn().mockReturnThis(),
@@ -655,8 +656,86 @@ describe('processPendingFiscalReceipts', () => {
 
     await processPendingFiscalReceipts();
 
-    // eq('provider', 'webkassa') must be called in the chain
     expect(fetchChain.eq).toHaveBeenCalledWith('provider', 'webkassa');
+  });
+
+  it('DB query filters by provider_environment (production worker skips test receipts)', async () => {
+    mockEnv.FISCAL_PROVIDER_ENV = 'production';
+    mockEnv.WEBKASSA_ALLOW_REAL_RECEIPTS = 'true';
+
+    const fetchChain = makeChain([]);
+    mockSupabaseFrom.mockReturnValue(fetchChain);
+
+    await processPendingFiscalReceipts();
+
+    expect(fetchChain.eq).toHaveBeenCalledWith('provider_environment', 'production');
+  });
+
+  it('DB query includes IS NULL filters for provider_receipt_id and fiscal_url (prevents duplicate processing)', async () => {
+    const fetchChain = makeChain([]);
+    // add is() mock
+    fetchChain.is = jest.fn().mockReturnThis();
+    mockSupabaseFrom.mockReturnValue(fetchChain);
+
+    await processPendingFiscalReceipts();
+
+    expect(fetchChain.is).toHaveBeenCalledWith('provider_receipt_id', null);
+    expect(fetchChain.is).toHaveBeenCalledWith('fiscal_url', null);
+  });
+
+  it('logs [fiscal-processor] tick on every call, with configured=true/false', async () => {
+    const consoleSpy = jest.spyOn(console, 'info').mockImplementation(() => undefined);
+
+    // Configured case
+    const fetchChain = makeChain([]);
+    fetchChain.is = jest.fn().mockReturnThis();
+    mockSupabaseFrom.mockReturnValue(fetchChain);
+    await processPendingFiscalReceipts();
+
+    expect(consoleSpy).toHaveBeenCalledWith(
+      '[fiscal-processor] tick',
+      expect.objectContaining({ configured: true }),
+    );
+
+    consoleSpy.mockRestore();
+  });
+
+  it('logs tick with configured=false when Webkassa not set up', async () => {
+    const consoleSpy = jest.spyOn(console, 'info').mockImplementation(() => undefined);
+    mockEnv.WEBKASSA_ENABLED = undefined as unknown as string;
+
+    await processPendingFiscalReceipts();
+
+    expect(consoleSpy).toHaveBeenCalledWith(
+      '[fiscal-processor] tick',
+      expect.objectContaining({ configured: false }),
+    );
+    consoleSpy.mockRestore();
+  });
+
+  it('logs [fiscal-processor] Webkassa createCheck started before each API call', async () => {
+    const consoleSpy = jest.spyOn(console, 'info').mockImplementation(() => undefined);
+
+    const receipt = makeReceipt({ id: 'check-log-r1' });
+    const fetchChain = makeChain([receipt]);
+    fetchChain.is = jest.fn().mockReturnThis();
+    const lockChain = makeChain([{ cashbox_id: 'SWK00035686' }]);
+    const updateChain = makeChain(null);
+
+    mockSupabaseFrom
+      .mockReturnValueOnce(fetchChain)
+      .mockReturnValueOnce(lockChain)
+      .mockReturnValueOnce(updateChain);
+
+    mockCreateCheck.mockResolvedValue(makeSuccessResult());
+
+    await processPendingFiscalReceipts();
+
+    expect(consoleSpy).toHaveBeenCalledWith(
+      '[fiscal-processor] Webkassa createCheck started',
+      expect.objectContaining({ receiptId: 'check-log-r1' }),
+    );
+    consoleSpy.mockRestore();
   });
 });
 
