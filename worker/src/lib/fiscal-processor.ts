@@ -234,6 +234,13 @@ async function processOneReceipt(
     }
   }
 
+  console.info('[fiscal-processor] Webkassa createCheck started', {
+    receiptId: receipt.id,
+    operationType: receipt.operation_type,
+    externalCheckNumber: externalCheckNumber,
+    amountKzt,
+  });
+
   try {
     const result = await createCheck(cfg, {
       OperationType: operationType as 0 | 1 | 2 | 3,
@@ -340,7 +347,17 @@ async function processOneReceipt(
 
 /**
  * Process pending/retry_required fiscal receipts sequentially per cashbox.
- * Called from fiscal-reconciliation.ts every 5 minutes.
+ *
+ * Called from index.ts on startup and every FISCAL_PROCESSOR_INTERVAL_MS (30s).
+ * Also called from fiscal-reconciliation.ts for the 5-min stuck-alert pass.
+ *
+ * Filters:
+ * - provider = 'webkassa'
+ * - provider_environment = env.FISCAL_PROVIDER_ENV (production worker → production receipts only)
+ * - operation_type IN ('sale', 'refund')
+ * - status IN ('pending', 'retry_required')
+ * - provider_receipt_id IS NULL  (skip already-issued, defence against stale status)
+ * - fiscal_url IS NULL           (same)
  *
  * Sequential guarantee: both in-process async queue (Layer 1) and Postgres
  * lock table (Layer 2) ensure only one Webkassa request per cashbox at a time,
@@ -348,13 +365,19 @@ async function processOneReceipt(
  */
 export async function processPendingFiscalReceipts(): Promise<void> {
   const cfg = getWebkassaConfig();
+  const configured = cfg !== null;
+
+  console.info('[fiscal-processor] tick', {
+    configured,
+    WEBKASSA_ENABLED: env.WEBKASSA_ENABLED,
+    FISCAL_PROVIDER_ENV: env.FISCAL_PROVIDER_ENV,
+    WEBKASSA_ALLOW_REAL_RECEIPTS: env.WEBKASSA_ALLOW_REAL_RECEIPTS ?? null,
+    hasApiKey: !!env.WEBKASSA_API_KEY,
+  });
+
   if (!cfg) {
     console.info('[fiscal-processor] skipping — Webkassa not configured', {
       reason: getConfigSkipReason(),
-      hasApiKey: !!env.WEBKASSA_API_KEY,
-      WEBKASSA_ENABLED: env.WEBKASSA_ENABLED,
-      FISCAL_PROVIDER_ENV: env.FISCAL_PROVIDER_ENV,
-      WEBKASSA_ALLOW_REAL_RECEIPTS: env.WEBKASSA_ALLOW_REAL_RECEIPTS ?? null,
     });
     return;
   }
@@ -365,6 +388,9 @@ export async function processPendingFiscalReceipts(): Promise<void> {
     .in('status', ['pending', 'retry_required'])
     .in('operation_type', ['sale', 'refund'])
     .eq('provider', 'webkassa')
+    .eq('provider_environment', env.FISCAL_PROVIDER_ENV)
+    .is('provider_receipt_id', null)
+    .is('fiscal_url', null)
     .order('created_at', { ascending: true })
     .limit(MAX_ITEMS_PER_CYCLE)
     .returns<PendingFiscalReceipt[]>();
@@ -374,16 +400,16 @@ export async function processPendingFiscalReceipts(): Promise<void> {
     return;
   }
 
-  if (!pending || pending.length === 0) {
-    console.info('[fiscal-processor] no pending fiscal receipts to process', {
-      FISCAL_PROVIDER_ENV: env.FISCAL_PROVIDER_ENV,
-    });
-    return;
-  }
-
-  console.info(`[fiscal-processor] processing ${pending.length} fiscal receipt(s)`, {
-    ids: pending.map((r) => r.id),
+  console.info('[fiscal-processor] pending receipts found', {
+    count: pending?.length ?? 0,
     FISCAL_PROVIDER_ENV: env.FISCAL_PROVIDER_ENV,
+  });
+
+  if (!pending || pending.length === 0) return;
+
+  console.info('[fiscal-processor] processing batch', {
+    count: pending.length,
+    ids: pending.map((r) => r.id),
   });
 
   const cashboxId = cfg.cashboxUniqueNumber;

@@ -3,6 +3,7 @@ import { supabase, type JobRow, type PaymentTransactionRow } from './lib/supabas
 import { processJob } from './processor';
 import { closeBrowser } from './lib/pdf';
 import { reconcileFiscalAndRefunds, triggerReconcilePayments, triggerReconcileRefunds } from './lib/fiscal-reconciliation';
+import { processPendingFiscalReceipts } from './lib/fiscal-processor';
 import { logDriveAuthMode } from './lib/google-drive';
 
 // ── State ──────────────────────────────────────────────────────────────────
@@ -150,6 +151,12 @@ function runStartupSafetyChecks(): void {
   console.log(`[worker:env] EMAIL_REDIRECT_ALL_TO = ${env.EMAIL_REDIRECT_ALL_TO ?? '(not set)'}`);
   console.log(`[worker:env] PAYMENTS_MODE        = ${env.PAYMENTS_MODE}`);
   console.log(`[worker:env] OFFICIAL_WORKFLOW    = ${env.OFFICIAL_WORKFLOW_ENABLED}`);
+  console.log('[worker:env] ─── Fiscal (Webkassa) ──────────────────');
+  console.log(`[worker:env] WEBKASSA_ENABLED     = ${env.WEBKASSA_ENABLED ?? '(not set)'}`);
+  console.log(`[worker:env] FISCAL_PROVIDER_ENV  = ${env.FISCAL_PROVIDER_ENV}`);
+  console.log(`[worker:env] WEBKASSA_ALLOW_REAL  = ${env.WEBKASSA_ALLOW_REAL_RECEIPTS ?? '(not set)'}`);
+  console.log(`[worker:env] WEBKASSA_CASHBOX     = ${env.WEBKASSA_CASHBOX_SERIAL_NUMBER ?? '(not set)'}`);
+  console.log(`[worker:env] hasApiKey            = ${!!env.WEBKASSA_API_KEY}`);
   console.log('[worker:env] ─────────────────────────────────────────');
 
   const isStaging = env.APP_ENV === 'staging';
@@ -213,8 +220,24 @@ async function main(): Promise<void> {
     void pollOnce();
   }, env.POLL_INTERVAL_MS);
 
-  // Fiscal and refund reconciliation — separate from job processing loop
-  // Runs every 5 minutes to log items needing manual operator attention.
+  // ── Fiscal processor — independent of job processing and reconciliation ──────
+  // Polls every 30 seconds for pending fiscal_receipts and calls Webkassa.
+  // Also called once on startup to recover any receipts stuck while worker was down.
+  const FISCAL_PROCESSOR_INTERVAL_MS = 30_000;
+
+  // Startup: process immediately so receipts created before worker restart don't wait.
+  void processPendingFiscalReceipts().catch((err: unknown) => {
+    console.error('[worker] fiscal processor startup error:', (err as Error).message);
+  });
+
+  setInterval(() => {
+    void processPendingFiscalReceipts().catch((err: unknown) => {
+      console.error('[worker] fiscal processor error:', (err as Error).message);
+    });
+  }, FISCAL_PROCESSOR_INTERVAL_MS);
+
+  // ── Fiscal reconciliation — 5-minute stuck-alert and Z-report ────────────────
+  // Does NOT call Webkassa; only logs stale receipts and triggers Z-report.
   const FISCAL_RECONCILE_INTERVAL_MS = 5 * 60 * 1000;
   setInterval(() => {
     void reconcileFiscalAndRefunds().catch((err: unknown) => {
