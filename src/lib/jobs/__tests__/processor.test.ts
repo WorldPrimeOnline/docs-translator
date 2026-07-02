@@ -15,15 +15,18 @@ const mockDocSingle = jest.fn();
 const mockJobUpdate = jest.fn();
 const mockDocUpdate = jest.fn();
 const mockInsert = jest.fn();
+const mockRenderToPdf = jest.fn().mockResolvedValue(Buffer.from('html'));
+const mockRenderToPdfBuffer = jest.fn().mockResolvedValue(Buffer.from('pdf'));
+const mockRenderToDocx = jest.fn().mockResolvedValue(Buffer.from('docx'));
 
 jest.mock('@/lib/ocr/mistral', () => ({ extractTextFromPdf: mockOcr }));
 jest.mock('@/lib/translation/translator', () => ({ translateDocument: mockTranslate }));
 jest.mock('@/lib/translation/detect-language', () => ({ detectSourceLanguage: jest.fn().mockResolvedValue('kk') }));
 jest.mock('@/lib/pdf/renderer', () => ({
-  renderToPdf: jest.fn().mockResolvedValue(Buffer.from('html')),
-  renderToPdfBuffer: jest.fn().mockResolvedValue(Buffer.from('pdf')),
+  renderToPdf: mockRenderToPdf,
+  renderToPdfBuffer: mockRenderToPdfBuffer,
 }));
-jest.mock('@/lib/pdf/docx-renderer', () => ({ renderToDocx: jest.fn().mockResolvedValue(Buffer.from('docx')) }));
+jest.mock('@/lib/pdf/docx-renderer', () => ({ renderToDocx: mockRenderToDocx }));
 jest.mock('@/lib/r2/client', () => ({
   downloadFile: jest.fn().mockResolvedValue(Buffer.from('pdf')),
   uploadFile: jest.fn().mockResolvedValue(undefined),
@@ -66,12 +69,12 @@ function makeJobRow(serviceLevel: string) {
   return { id: JOB_ID, service_level: serviceLevel, notarized: false, document_id: DOC_ID };
 }
 
-function makeDocRow() {
+function makeDocRow(documentType = 'passport_id|html') {
   return {
     id: DOC_ID, user_id: 'user-1',
     file_key: 'documents/user-1/doc/original.pdf',
     source_language: 'kk', target_language: 'ru',
-    document_type: 'passport_id|html', filename: 'test.pdf', status: 'processing',
+    document_type: documentType, filename: 'test.pdf', status: 'processing',
   };
 }
 
@@ -138,5 +141,86 @@ describe('processJob — service-level guard', () => {
 
     // notarized=true → falls back to 'official_with_...' → web processor refuses
     expect(mockOcr).not.toHaveBeenCalled();
+  });
+});
+
+// ── Electronic output policy (2026-07-02): DOCX + HTML only, never PDF ─────────
+// docs/ai-context/40_TRANSLATION_PIPELINE.md "Electronic output policy".
+// This processor only ever handles serviceLevel === 'electronic' (guarded
+// above), so these tests cover every outputFormat value document_type can
+// carry, including a legacy '|pdf' suffix from rows written before this policy.
+
+describe('processJob — electronic output format contract (DOCX + HTML only, never PDF)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockJobUpdate.mockResolvedValue({ error: null });
+    mockDocUpdate.mockResolvedValue({ error: null });
+    mockInsert.mockResolvedValue({ error: null });
+    mockOcr.mockResolvedValue({ markdown: 'This is a sample document with enough words and characters to pass the OCR quality gate check.', pageCount: 1 });
+    mockTranslate.mockResolvedValue('translated text content');
+  });
+
+  it('a legacy/stale "|pdf" outputFormat is clamped to DOCX, never renders a PDF', async () => {
+    mockJobSingle.mockResolvedValueOnce({ data: makeJobRow('electronic'), error: null });
+    mockDocSingle.mockResolvedValueOnce({ data: makeDocRow('passport_id|pdf'), error: null });
+
+    await processJob(JOB_ID, DOC_ID);
+
+    expect(mockRenderToDocx).toHaveBeenCalledTimes(1);
+    expect(mockRenderToPdfBuffer).not.toHaveBeenCalled();
+    expect(mockRenderToPdf).not.toHaveBeenCalled();
+  });
+
+  it('an explicit "|docx" outputFormat renders DOCX', async () => {
+    mockJobSingle.mockResolvedValueOnce({ data: makeJobRow('electronic'), error: null });
+    mockDocSingle.mockResolvedValueOnce({ data: makeDocRow('passport_id|docx'), error: null });
+
+    await processJob(JOB_ID, DOC_ID);
+
+    expect(mockRenderToDocx).toHaveBeenCalledTimes(1);
+    expect(mockRenderToPdfBuffer).not.toHaveBeenCalled();
+  });
+
+  it('an explicit "|html" outputFormat renders HTML (via renderToPdf, which despite the name produces HTML)', async () => {
+    mockJobSingle.mockResolvedValueOnce({ data: makeJobRow('electronic'), error: null });
+    mockDocSingle.mockResolvedValueOnce({ data: makeDocRow('passport_id|html'), error: null });
+
+    await processJob(JOB_ID, DOC_ID);
+
+    expect(mockRenderToPdf).toHaveBeenCalledTimes(1);
+    expect(mockRenderToDocx).not.toHaveBeenCalled();
+    expect(mockRenderToPdfBuffer).not.toHaveBeenCalled();
+  });
+
+  it('a missing outputFormat suffix resolves to HTML (parseDocumentType\'s own default), never PDF', async () => {
+    // parseDocumentType() (unchanged by this policy) already defaults any
+    // fmt that isn't exactly 'pdf' or 'docx' — including "no suffix at all"
+    // — to 'html'. That default was already policy-compliant (HTML is one
+    // of the two allowed electronic formats), so no clamping was needed here.
+    mockJobSingle.mockResolvedValueOnce({ data: makeJobRow('electronic'), error: null });
+    mockDocSingle.mockResolvedValueOnce({ data: makeDocRow('passport_id'), error: null });
+
+    await processJob(JOB_ID, DOC_ID);
+
+    expect(mockRenderToPdf).toHaveBeenCalledTimes(1);
+    expect(mockRenderToDocx).not.toHaveBeenCalled();
+    expect(mockRenderToPdfBuffer).not.toHaveBeenCalled();
+  });
+
+  it('renderToPdfBuffer (the real PDF-lib generator) is never called for any electronic outputFormat', async () => {
+    for (const documentType of ['passport_id|pdf', 'passport_id|docx', 'passport_id|html', 'passport_id']) {
+      jest.clearAllMocks();
+      mockJobUpdate.mockResolvedValue({ error: null });
+      mockDocUpdate.mockResolvedValue({ error: null });
+      mockInsert.mockResolvedValue({ error: null });
+      mockOcr.mockResolvedValue({ markdown: 'This is a sample document with enough words and characters to pass the OCR quality gate check.', pageCount: 1 });
+      mockTranslate.mockResolvedValue('translated text content');
+      mockJobSingle.mockResolvedValueOnce({ data: makeJobRow('electronic'), error: null });
+      mockDocSingle.mockResolvedValueOnce({ data: makeDocRow(documentType), error: null });
+
+      await processJob(JOB_ID, DOC_ID);
+
+      expect(mockRenderToPdfBuffer).not.toHaveBeenCalled();
+    }
   });
 });

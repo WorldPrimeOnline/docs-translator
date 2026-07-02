@@ -18,16 +18,6 @@ async function getDocumentText(buf: Buffer): Promise<string> {
   return decodeXml(raw);
 }
 
-function countOccurrences(haystack: string, needle: string): number {
-  let count = 0;
-  let pos = 0;
-  while ((pos = haystack.indexOf(needle, pos)) !== -1) {
-    count++;
-    pos += needle.length;
-  }
-  return count;
-}
-
 const OFFICIAL_META = {
   sourceLang: 'ru',
   targetLang: 'it',
@@ -90,50 +80,29 @@ describe('TRANSLATOR_BLOCK_I18N dictionary', () => {
   });
 });
 
-// ── Official RU → IT block tests ───────────────────────────────────────────────
+// ── Output policy (2026-07-02): the auto-generated translator/executor block
+// is never rendered, for ANY service level/output mode — including official
+// and notarization drafts. It used to render for translator_review_draft and
+// notarization_package (BLOCK_MODES); that set is now empty. Reason: the
+// block is filled in by the human translator/operator during finalization,
+// not fabricated by the AI draft renderer. TRANSLATOR_BLOCK_I18N and
+// renderTranslatorProviderBlock() are kept intact (see dictionary tests
+// above) — only their automatic invocation was removed. These tests replace
+// the old "block IS present for official/notarization" assertions below.
+// ─────────────────────────────────────────────────────────────────────────────
 
-describe('renderToDocx official RU → IT translator block', () => {
-  it('contains Italian heading (not English fallback)', async () => {
+describe('renderToDocx never renders the translator/executor block — official mode', () => {
+  it('does not contain the Italian heading or the English fallback heading', async () => {
     const buf = await renderToDocx(EMPLOYMENT_MD, OFFICIAL_META, []);
     const xml = await getDocumentText(buf);
-    expect(xml).toContain("DATI DEL TRADUTTORE E DELL'ESECUTORE");
+    expect(xml).not.toContain("DATI DEL TRADUTTORE E DELL'ESECUTORE");
     expect(xml).not.toContain('TRANSLATOR AND PROVIDER DETAILS');
   });
 
-  it('contains localized declaration with dal russo all\'italiano', async () => {
+  it('does not contain the provider IIN', async () => {
     const buf = await renderToDocx(EMPLOYMENT_MD, OFFICIAL_META, []);
     const xml = await getDocumentText(buf);
-    expect(xml).toContain('dal russo');
-    expect(xml).toContain("all'italiano");
-  });
-
-  it('contains World Prime Online', async () => {
-    const buf = await renderToDocx(EMPLOYMENT_MD, OFFICIAL_META, []);
-    const xml = await getDocumentText(buf);
-    expect(xml).toContain('World Prime Online');
-  });
-
-  it('contains IIN 840324300155', async () => {
-    const buf = await renderToDocx(EMPLOYMENT_MD, OFFICIAL_META, []);
-    const xml = await getDocumentText(buf);
-    expect(xml).toContain('840324300155');
-  });
-
-  it('contains Italian field labels (not English)', async () => {
-    const buf = await renderToDocx(EMPLOYMENT_MD, OFFICIAL_META, []);
-    const xml = await getDocumentText(buf);
-    expect(xml).toContain('Traduttore');
-    expect(xml).toContain('Qualifica del traduttore');
-    expect(xml).toContain('Firma del traduttore');
-    expect(xml).toContain('Esecutore');
-    expect(xml).not.toContain('Translator:');
-    expect(xml).not.toContain('Provider:');
-  });
-
-  it('contains exactly one translator block heading', async () => {
-    const buf = await renderToDocx(EMPLOYMENT_MD, OFFICIAL_META, []);
-    const xml = await getDocumentText(buf);
-    expect(countOccurrences(xml, "DATI DEL TRADUTTORE E DELL'ESECUTORE")).toBe(1);
+    expect(xml).not.toContain('840324300155');
   });
 
   it('does not contain legally dangerous claims', async () => {
@@ -145,7 +114,7 @@ describe('renderToDocx official RU → IT translator block', () => {
     expect(xml).not.toMatch(/already notariz/i);
   });
 
-  it('main translation content is preserved', async () => {
+  it('main translation content is still preserved (block removal did not break rendering)', async () => {
     const buf = await renderToDocx(EMPLOYMENT_MD, OFFICIAL_META, []);
     const xml = await getDocumentText(buf);
     expect(xml).toContain('ATTESTATO DI LAVORO');
@@ -155,7 +124,7 @@ describe('renderToDocx official RU → IT translator block', () => {
   });
 });
 
-// ── Electronic mode: no block ──────────────────────────────────────────────────
+// ── Electronic mode: no block (unchanged contract — was already absent) ────────
 
 describe('renderToDocx electronic mode (translation_only)', () => {
   it('does not contain translator block heading', async () => {
@@ -179,17 +148,17 @@ describe('renderToDocx electronic mode (translation_only)', () => {
   });
 });
 
-// ── Notarization mode also gets the block ─────────────────────────────────────
+// ── Notarization mode: block also removed (contract changed — previously present) ──
 
 describe('renderToDocx notarization_package mode', () => {
-  it('contains translator block in notarization mode', async () => {
+  it('does not contain the translator block or the provider IIN', async () => {
     const buf = await renderToDocx(EMPLOYMENT_MD, {
       ...OFFICIAL_META,
       outputMode: 'notarization_package',
     }, []);
     const xml = await getDocumentText(buf);
-    expect(xml).toContain("DATI DEL TRADUTTORE E DELL'ESECUTORE");
-    expect(xml).toContain('840324300155');
+    expect(xml).not.toContain("DATI DEL TRADUTTORE E DELL'ESECUTORE");
+    expect(xml).not.toContain('840324300155');
   });
 });
 
@@ -208,10 +177,10 @@ describe('renderToDocx with no outputMode', () => {
   });
 });
 
-// ── Russian target language ───────────────────────────────────────────────────
+// ── Russian target language: block removed (contract changed — previously present) ──
 
-describe('renderToDocx official EN → RU translator block', () => {
-  it('uses Russian labels, not English', async () => {
+describe('renderToDocx official EN → RU', () => {
+  it('does not contain the Russian translator/executor block', async () => {
     const buf = await renderToDocx('# Документ\n\nТекст.', {
       sourceLang: 'en',
       targetLang: 'ru',
@@ -220,17 +189,15 @@ describe('renderToDocx official EN → RU translator block', () => {
       outputMode: 'translator_review_draft',
     }, []);
     const xml = await getDocumentText(buf);
-    expect(xml).toContain('ПЕРЕВОДЧИК И ИСПОЛНИТЕЛЬ');
-    expect(xml).toContain('Переводчик');
-    expect(xml).toContain('Исполнитель');
-    expect(xml).toContain('ИП World Prime Online');
+    expect(xml).not.toContain('ПЕРЕВОДЧИК И ИСПОЛНИТЕЛЬ');
+    expect(xml).not.toContain('ИП World Prime Online');
     expect(xml).not.toContain('TRANSLATOR AND PROVIDER DETAILS');
   });
 });
 
-// ── German Leistungserbringer ─────────────────────────────────────────────────
+// ── German: block removed (contract changed — previously present); i18n data intact ──
 
-describe('renderToDocx German official translator block', () => {
+describe('renderToDocx German official mode', () => {
   const DE_META = {
     sourceLang: 'ru',
     targetLang: 'de',
@@ -239,34 +206,15 @@ describe('renderToDocx German official translator block', () => {
     outputMode: 'translator_review_draft',
   };
 
-  it('contains correct German heading', async () => {
+  it('does not contain the German translator/executor block', async () => {
     const buf = await renderToDocx(EMPLOYMENT_MD, DE_META, []);
     const xml = await getDocumentText(buf);
-    expect(xml).toContain('ANGABEN ZUM ÜBERSETZER UND LEISTUNGSERBRINGER');
-    expect(xml).not.toContain('ÜBERSETZER UND AUFTRAGGEBER');
+    expect(xml).not.toContain('ANGABEN ZUM ÜBERSETZER UND LEISTUNGSERBRINGER');
+    expect(xml).not.toContain('Leistungserbringer:');
+    expect(xml).not.toContain('Stempel des Leistungserbringers:');
   });
 
-  it('uses Leistungserbringer not Auftraggeber', async () => {
-    const buf = await renderToDocx(EMPLOYMENT_MD, DE_META, []);
-    const xml = await getDocumentText(buf);
-    expect(xml).toContain('Leistungserbringer:');
-    expect(xml).not.toContain('Auftraggeber:');
-  });
-
-  it('uses correct German stamp label', async () => {
-    const buf = await renderToDocx(EMPLOYMENT_MD, DE_META, []);
-    const xml = await getDocumentText(buf);
-    expect(xml).toContain('Stempel des Leistungserbringers:');
-    expect(xml).not.toContain('Stempel des Auftraggebers:');
-  });
-
-  it('contains World Prime Online with German style', async () => {
-    const buf = await renderToDocx(EMPLOYMENT_MD, DE_META, []);
-    const xml = await getDocumentText(buf);
-    expect(xml).toContain('Einzelunternehmer World Prime Online');
-  });
-
-  it('i18n dictionary heading matches expected value', () => {
+  it('i18n dictionary heading is still intact even though it is no longer rendered', () => {
     const de = TRANSLATOR_BLOCK_I18N['de']!;
     expect(de.heading).toBe('ANGABEN ZUM ÜBERSETZER UND LEISTUNGSERBRINGER');
     expect(de.provider).toBe('Leistungserbringer');
@@ -274,10 +222,10 @@ describe('renderToDocx German official translator block', () => {
   });
 });
 
-// ── Fallback for unknown language ─────────────────────────────────────────────
+// ── Fallback language: block removed (contract changed — previously present) ───
 
-describe('renderToDocx unknown target language falls back to English', () => {
-  it('uses English when target language is not in dictionary', async () => {
+describe('renderToDocx unknown target language', () => {
+  it('does not contain the English-fallback translator/executor block', async () => {
     const buf = await renderToDocx('# Doc\n\nText.', {
       sourceLang: 'ru',
       targetLang: 'xx',
@@ -286,8 +234,7 @@ describe('renderToDocx unknown target language falls back to English', () => {
       outputMode: 'translator_review_draft',
     }, []);
     const xml = await getDocumentText(buf);
-    expect(xml).toContain('TRANSLATOR AND PROVIDER DETAILS');
-    expect(xml).toContain('Individual Entrepreneur World Prime Online');
-    expect(xml).toContain('840324300155');
+    expect(xml).not.toContain('TRANSLATOR AND PROVIDER DETAILS');
+    expect(xml).not.toContain('840324300155');
   });
 });

@@ -260,5 +260,15 @@
       "remove": "Remove"
     },
     "uploadedQuoteReadyWithDiscount": "Document uploaded — price: {price} ₸ (saved {saved} ₸ with partner code). Confirm payment below."
+  },
+  "electronicOutput": {
+    "formats": {
+      "title": "Electronic translation formats",
+      "body": "Electronic translation is provided in editable DOCX and HTML formats. For documents with complex tables, scans, or non-standard layout, manual adjustment of column widths, line breaks, or formatting may be required."
+    },
+    "finalFormat": {
+      "official": "Final format: PDF after translator review",
+      "notarized": "Final format: notary package / PDF after partner process"
+    }
   }
 }

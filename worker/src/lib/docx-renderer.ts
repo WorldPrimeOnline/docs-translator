@@ -381,7 +381,13 @@ export const TRANSLATOR_BLOCK_I18N: Record<string, TranslatorBlockLocale> = {
   },
 };
 
-const BLOCK_MODES = new Set(['translator_review_draft', 'notarization_package']);
+// Output policy (2026-07-02): the auto-generated translator/executor block
+// must never appear in algorithm-generated output, for any service level.
+// It is created/filled by the human translator/operator during finalization,
+// not by the AI draft renderer. renderTranslatorProviderBlock() and
+// TRANSLATOR_BLOCK_I18N are kept intact (not deleted) in case operator
+// tooling needs them later — they are just never auto-invoked here.
+const BLOCK_MODES = new Set<string>([]);
 
 function getLocale(targetLang: string): TranslatorBlockLocale {
   return TRANSLATOR_BLOCK_I18N[targetLang] ?? TRANSLATOR_BLOCK_I18N['en']!;

@@ -61,6 +61,25 @@ Required env vars for staging scripts:
 
 After running, check: `payment_transactions.paid_at` set, `jobs.status = queued`, `price_quotes.status = paid`.
 
+### Internal AI Translation Test Lab
+
+```bash
+npm run wpo:ai-test -- \
+  --env-file tools/internal-ai-test-lab/.env.staging.local \
+  --file ./tools/internal-ai-test-lab/input/<your-test-file> \
+  --source-language ru --target-language en \
+  --document-type passport --service-level official_translation
+```
+
+Runs the real OCR → translation → render → pricing pipeline against a local
+file for algorithm/pricing testing, with no payment, Halyk, fiscalization,
+Jira, or normal customer order created. Pricing is computed read-only via
+`computeQuoteForJob()` — `saveQuote()` is never called, so no
+`price_quotes`/`cost_reservations` rows are written either. Requires
+`AI_TRANSLATION_TEST_LAB_ENABLED=true` in the env file; production runs
+additionally require `AI_TRANSLATION_TEST_LAB_ALLOW_PRODUCTION=true` and
+`--confirm-production`. See `tools/internal-ai-test-lab/README.md`.
+
 ### Finance / pricing scripts (run from repo root)
 
 ```bash

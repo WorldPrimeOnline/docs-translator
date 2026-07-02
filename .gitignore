@@ -37,6 +37,13 @@ yarn-error.log*
 .env.local
 .env*.local
 
+# Internal AI Translation Test Lab — local runs and secrets only, never commit
+tools/internal-ai-test-lab/.env*.local
+tools/internal-ai-test-lab/runs/*
+!tools/internal-ai-test-lab/runs/.gitkeep
+tools/internal-ai-test-lab/input/*
+!tools/internal-ai-test-lab/input/.gitkeep
+
 # editor
 .vscode/
 

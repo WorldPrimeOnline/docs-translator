@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Link } from '@/i18n/navigation';
 import { NOTARY_CITIES } from '@/lib/notary/cities';
 import { getCustomerOrderState } from '@/lib/translation-workflow/customer-order-state';
+import { bucketOrders } from '@/lib/translation-workflow/order-buckets';
 import { loadReferralParams } from '@/lib/referral/capture';
 
 interface PromoDiscountInfo {
@@ -242,6 +243,7 @@ function useStatusLabel() {
 
 function ActiveOrderCard({ entry, locale, onRecalculate }: { entry: OrderEntry; locale: string; onRecalculate: (jobId: string) => void }) {
   const t = useTranslations('dashboard');
+  const tElectronic = useTranslations('electronicOutput');
   const statusLabel = useStatusLabel();
 
   const AI_STAGES = new Set(['queued', 'ocr_in_progress', 'translation_in_progress', 'pdf_rendering', 'completed', 'failed']);
@@ -369,6 +371,13 @@ function ActiveOrderCard({ entry, locale, onRecalculate }: { entry: OrderEntry; 
                   <span className="text-xl font-bold text-foreground">{entry.quoteAmountKzt!.toLocaleString()} {entry.quoteCurrency ?? 'KZT'}</span>
                 )}
               </div>
+              {entry.serviceLevel === 'electronic' && (
+                <p className="mb-3 text-xs text-muted-foreground">
+                  <span className="font-medium">{tElectronic('formats.title')}</span>
+                  {': '}
+                  {tElectronic('formats.body')}
+                </p>
+              )}
               <HalykPayButton
                 jobId={entry.jobId}
                 quoteId={entry.latestQuoteId!}
@@ -388,13 +397,22 @@ function ActiveOrderCard({ entry, locale, onRecalculate }: { entry: OrderEntry; 
       })()}
 
       {entry.canDownload && (
-        <a
-          href={`/api/documents/${entry.documentId}/download`}
-          className="mt-4 inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-gold-dark"
-        >
-          <Download className="h-4 w-4" />
-          {t('downloadTranslation')}
-        </a>
+        <>
+          <a
+            href={`/api/documents/${entry.documentId}/download`}
+            className="mt-4 inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-gold-dark"
+          >
+            <Download className="h-4 w-4" />
+            {t('downloadTranslation')}
+          </a>
+          {entry.serviceLevel === 'electronic' && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              <span className="font-medium">{tElectronic('formats.title')}</span>
+              {': '}
+              {tElectronic('formats.body')}
+            </p>
+          )}
+        </>
       )}
       {entry.isTerminal && (
         <div className="mt-3">
@@ -495,6 +513,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const t = useTranslations('dashboard');
   const tLegal = useTranslations('legal');
+  const tElectronic = useTranslations('electronicOutput');
   const locale = useLocale();
 
   const LANGUAGES = [
@@ -535,7 +554,9 @@ export default function DashboardPage() {
   const [sourceLang, setSourceLang] = useState('');
   const [targetLang, setTargetLang] = useState('ru');
   const [documentType, setDocumentType] = useState('other');
-  const [outputFormat, setOutputFormat] = useState<'html' | 'pdf' | 'docx'>('pdf');
+  // Electronic translation client output policy: DOCX + HTML only, never PDF
+  // — see docs/ai-context/40_TRANSLATION_PIPELINE.md "Electronic output policy".
+  const [outputFormat, setOutputFormat] = useState<'html' | 'docx'>('docx');
   const [serviceLevel, setServiceLevel] = useState<ServiceLevel>('electronic');
   const [applicantType, setApplicantType] = useState('individual');
   const [notaryUrgencyLevel, setNotaryUrgencyLevel] = useState<'standard' | 'same_day'>('standard');
@@ -577,24 +598,35 @@ export default function DashboardPage() {
   const seenTerminalIds = useRef<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const activeOrders = orders.filter((o) => o.isActive && !o.isTerminal);
-  // ready_for_delivery is "active" but also showable in history — put it in active for now
-  const readyOrders = orders.filter((o) => o.isActive && o.isTerminal);
-  const historyOrders = orders.filter((o) => o.isTerminal && !o.isActive);
+  // ready_for_delivery is "active" but also showable in history — put it in active for now.
+  // Bucketing itself lives in a shared, unit-tested pure function — see
+  // src/lib/translation-workflow/order-buckets.ts and its __tests__.
+  const { activeOrders, readyOrders, historyOrders } = bucketOrders(orders);
 
   // ─── Load all orders from API (source of truth) ──────────────────────────────
 
+  // A transient failure here (e.g. an auth-cookie race right after the
+  // completion-triggered reload below) must never silently leave the order
+  // list stale/empty with no way to recover — retry once before giving up,
+  // and never clear existing orders on failure.
   const loadOrders = useCallback(async (): Promise<void> => {
-    try {
-      const res = await fetch('/api/jobs');
-      if (!res.ok) return;
-      const data = (await res.json()) as { jobs: OrderEntry[] };
-      setOrders(data.jobs);
-    } catch (e) {
-      console.error('[dashboard] loadOrders failed:', e);
-    } finally {
-      setOrdersLoaded(true);
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const res = await fetch('/api/jobs', { cache: 'no-store' });
+        if (!res.ok) {
+          console.error(`[dashboard] loadOrders: /api/jobs returned ${res.status} (attempt ${attempt + 1})`);
+          if (attempt === 0) { await new Promise((r) => setTimeout(r, 800)); continue; }
+          break;
+        }
+        const data = (await res.json()) as { jobs: OrderEntry[] };
+        setOrders(data.jobs);
+        break;
+      } catch (e) {
+        console.error(`[dashboard] loadOrders failed (attempt ${attempt + 1}):`, e);
+        if (attempt === 0) { await new Promise((r) => setTimeout(r, 800)); continue; }
+      }
     }
+    setOrdersLoaded(true);
   }, []);
 
   useEffect(() => {
@@ -968,15 +1000,41 @@ export default function DashboardPage() {
                 {DOCUMENT_TYPES.map((dt) => <option key={dt.value} value={dt.value}>{dt.label}</option>)}
               </select>
             </div>
+            {/* Output format area — always shown (never disappears across service levels).
+                Electronic: interactive DOCX/HTML selector, no PDF option.
+                Official/notarized: read-only notice — their pipeline produces its own
+                artifacts (AI draft DOCX -> human review -> final PDF/notary package) and
+                this selector has no effect on them, so it must not offer DOCX/HTML/PDF
+                as choices. See the 2026-07-03 UX correction. */}
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('outputFormat')}</label>
-              <select value={outputFormat} onChange={(e) => setOutputFormat(e.target.value as 'html' | 'pdf' | 'docx')} className={selectClass}>
-                <option value="pdf">{t('formatPdf')}</option>
-                <option value="html">{t('formatHtml')}</option>
-                <option value="docx">{t('formatDocx')}</option>
-              </select>
+              {serviceLevel === 'electronic' ? (
+                <select value={outputFormat} onChange={(e) => setOutputFormat(e.target.value as 'html' | 'docx')} className={selectClass}>
+                  <option value="docx">{t('formatDocx')}</option>
+                  <option value="html">{t('formatHtml')}</option>
+                </select>
+              ) : (
+                <div
+                  className={`${selectClass} flex cursor-not-allowed items-center opacity-70`}
+                  aria-disabled="true"
+                  data-testid="output-format-readonly"
+                >
+                  {serviceLevel === 'notarization_through_partners'
+                    ? tElectronic('finalFormat.notarized')
+                    : tElectronic('finalFormat.official')}
+                </div>
+              )}
             </div>
           </div>
+
+          {/* Electronic output format disclaimer — DOCX/HTML only, no PDF for electronic delivery. */}
+          {serviceLevel === 'electronic' && (
+            <p className="text-xs text-muted-foreground">
+              <span className="font-medium">{tElectronic('formats.title')}</span>
+              {': '}
+              {tElectronic('formats.body')}
+            </p>
+          )}
 
           {/* Service level */}
           <div className="flex flex-col gap-2">

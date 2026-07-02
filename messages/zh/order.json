@@ -260,5 +260,15 @@
     "priceBeforeDiscount": "折扣前价格",
     "discountByCode": "合作伙伴折扣",
     "finalPrice": "应付金额"
+  },
+  "electronicOutput": {
+    "formats": {
+      "title": "电子翻译格式",
+      "body": "电子翻译以可编辑的 DOCX 和 HTML 格式提供。对于包含复杂表格、扫描件或非标准排版的文档，可能需要手动调整列宽、换行或格式。"
+    },
+    "finalFormat": {
+      "official": "最终格式：译员审核后的 PDF",
+      "notarized": "最终格式：公证文件包 / 合作伙伴流程后的 PDF"
+    }
   }
 }

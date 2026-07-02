@@ -279,7 +279,13 @@ export async function renderToHtml(
   const body = classifyTables(bodyWithSections);
 
   const sl = meta.serviceLevel ?? 'electronic';
-  const showCert = !isPresentation && (sl === 'official_with_translator_signature_and_provider_stamp' || sl === 'notarization_through_partners');
+  // Output policy (2026-07-02): the auto-generated translator/executor
+  // certification block must never appear in algorithm-generated output, for
+  // any service level — it is filled in by the human translator/operator
+  // during finalization. buildCertificationBlockHtml()/certificationRows()
+  // are kept intact, just never auto-invoked. The general notarization
+  // process note (showNotarNote, below) is unrelated and untouched.
+  const showCert = false;
   const showNotarNote = !isPresentation && sl === 'notarization_through_partners';
 
   const bureauHeaderHtml = isPresentation ? '' : `

@@ -260,5 +260,15 @@
     "priceBeforeDiscount": "Precio antes del descuento",
     "discountByCode": "Descuento de socio",
     "finalPrice": "Total a pagar"
+  },
+  "electronicOutput": {
+    "formats": {
+      "title": "Formatos de traducción electrónica",
+      "body": "La traducción electrónica se entrega en formatos editables DOCX y HTML. En documentos con tablas complejas, escaneos o diseños no estándar, puede ser necesario ajustar manualmente el ancho de las columnas, los saltos de línea o el formato."
+    },
+    "finalFormat": {
+      "official": "Formato final: PDF tras la revisión del traductor",
+      "notarized": "Formato final: paquete notarial / PDF tras el proceso con el socio"
+    }
   }
 }
