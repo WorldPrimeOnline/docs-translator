@@ -195,7 +195,10 @@ export async function renderToPdf(
   const body = wrapMarkers(rawBody);
 
   const sl = meta.serviceLevel ?? 'electronic';
-  const showCert = !isPresentation && (sl === 'official_with_translator_signature_and_provider_stamp' || sl === 'notarization_through_partners');
+  // Output policy (2026-07-02): auto-generated translator/executor
+  // certification block must never appear in algorithm-generated output —
+  // see docs/ai-context/40_TRANSLATION_PIPELINE.md "Electronic output policy".
+  const showCert = false;
   const showNotarNote = !isPresentation && sl === 'notarization_through_partners';
 
   const bureauHeaderHtml = isPresentation ? '' : `
@@ -298,7 +301,9 @@ export async function renderToPdfBuffer(
 
   const isPresentation = meta.documentType === 'presentation';
   const sl = meta.serviceLevel ?? 'electronic';
-  const showCert = !isPresentation && (sl === 'official_with_translator_signature_and_provider_stamp' || sl === 'notarization_through_partners');
+  // Output policy (2026-07-02): see note in renderToPdf() above — the
+  // translator/executor certification block is never auto-generated.
+  const showCert = false;
   const showNotarNote = !isPresentation && sl === 'notarization_through_partners';
 
   const stripped = winAnsiSafe(translatedMarkdown.replace(/!\[.*?\]\(.*?\)/g, ''));

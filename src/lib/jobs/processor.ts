@@ -3,7 +3,7 @@ import { downloadFile, uploadFile } from '@/lib/r2/client';
 import { extractTextFromPdf } from '@/lib/ocr/mistral';
 import { translateDocument } from '@/lib/translation/translator';
 import { detectSourceLanguage } from '@/lib/translation/detect-language';
-import { renderToPdf, renderToPdfBuffer } from '@/lib/pdf/renderer';
+import { renderToPdf } from '@/lib/pdf/renderer';
 import { renderToDocx } from '@/lib/pdf/docx-renderer';
 import type { Tables } from '@/types';
 import type { ServiceLevel } from '@/lib/translation-prompts/types';
@@ -131,18 +131,21 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
     let fileKey: string;
     let contentType: string;
 
-    if (outputFormat === 'pdf') {
-      fileBuffer = await renderToPdfBuffer(translatedMarkdown, renderMeta);
-      fileKey = `documents/${doc.user_id}/${documentId}/translated.pdf`;
-      contentType = 'application/pdf';
-    } else if (outputFormat === 'docx') {
-      fileBuffer = await renderToDocx(translatedMarkdown, renderMeta);
-      fileKey = `documents/${doc.user_id}/${documentId}/translated.docx`;
-      contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-    } else {
+    // Electronic translation client output policy: DOCX + HTML only, never
+    // PDF — see docs/ai-context/40_TRANSLATION_PIPELINE.md "Electronic output
+    // policy". This function only ever handles serviceLevel === 'electronic'
+    // (guarded above). Legacy/unrecognized outputFormat values (including old
+    // '|pdf'-suffixed document_type rows) fall through to DOCX rather than
+    // PDF. renderToPdfBuffer() is untouched but no longer called from this
+    // electronic path — it remains available for other callers if needed.
+    if (outputFormat === 'html') {
       fileBuffer = await renderToPdf(translatedMarkdown, renderMeta);
       fileKey = `documents/${doc.user_id}/${documentId}/translated.html`;
       contentType = 'text/html; charset=utf-8';
+    } else {
+      fileBuffer = await renderToDocx(translatedMarkdown, renderMeta);
+      fileKey = `documents/${doc.user_id}/${documentId}/translated.docx`;
+      contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
     }
 
     await uploadFile(fileKey, fileBuffer, contentType);

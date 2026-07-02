@@ -2,6 +2,24 @@
 
 > **PIPELINE FREEZE ACTIVE** as of 2026-06-19. See `docs/OFFICIAL_DOCX_PIPELINE_FREEZE.md`.
 > Do not modify OCR prompts, translation parameters, table-classification logic, or visual-element detection without explicit approval.
+> **Approved exception (2026-07-02):** the "Translator/provider block" listed as frozen was explicitly approved for removal from automatic output — see "Electronic output policy" below. OCR, translation prompts/parameters, and visual-element detection were NOT touched.
+
+## Electronic output policy (2026-07-02)
+
+**Client-facing output formats for `electronic` service level are DOCX and HTML only — never PDF.** Official (`official_with_translator_signature_and_provider_stamp`) and notarization (`notarization_through_partners`) workflows are unchanged: AI draft DOCX → human review → final PDF/notary package, produced by the human/operator process, not the algorithm.
+
+Enforced at the rendering boundary (the single authoritative point, not scattered across every upload path):
+- `worker/src/processor.ts` — branch "4b. Normal mode (translation_only)": `outputFormat === 'html'` → HTML; everything else (`docx`, legacy/unrecognized, including stale `|pdf`-suffixed rows already in the queue) → DOCX. The Puppeteer/`generatePdfFromHtml()` PDF path was removed from this branch — it remains used for the official/notarized **preview PDF** in branch "4a" (an internal reviewer artifact, not a client deliverable).
+- `src/lib/jobs/processor.ts` — the lightweight Vercel processor, which only ever handles `serviceLevel === 'electronic'`: same DOCX/HTML split. `renderToPdfBuffer()` (`src/lib/pdf/renderer.ts`, a real pdf-lib PDF generator) is no longer called from this path but is not deleted.
+- `src/app/[locale]/dashboard/page.tsx` — the upload/order-configuration output-format `<select>` no longer offers a PDF `<option>`; default changed from `pdf` to `docx`.
+
+**Auto-generated translator/executor block removed for ALL service levels** (electronic, official, notarization) — it is now filled in by the human translator/operator during finalization, not fabricated by the AI renderer:
+- `worker/src/lib/docx-renderer.ts` — `BLOCK_MODES` (previously `{translator_review_draft, notarization_package}`) is now empty; `renderTranslatorProviderBlock()` and `TRANSLATOR_BLOCK_I18N` are kept intact, just never auto-invoked.
+- `worker/src/lib/renderer.ts` and `src/lib/pdf/renderer.ts` — `showCert` is now hardcoded `false` in every render function; `buildCertificationBlockHtml()`/`certificationRows()` kept intact, never auto-invoked. The unrelated general notarization-process note (`notarizationNote()` / `showNotarNote`) is untouched.
+
+**Not touched:** the visual/non-text elements block (`ensureVisualElementsBlock()`, `docx-visual-block.ts`) — a separate, unrelated feature that must remain exactly as-is.
+
+Localized electronic-output disclaimer: `electronicOutput.formats.{title,body}` i18n keys in `messages/{locale}/order.json`, all 14 locales in `src/i18n/locales.ts`. Shown in the dashboard upload/order-configuration form, the pre-payment quote summary, and the post-completion download section (all gated on `serviceLevel === 'electronic'`). The Railway worker's completion email (`sendTranslationReady`, `worker/src/lib/email.ts`) has no i18n system at all (hardcoded English-only for every locale, a pre-existing limitation) — the disclaimer was not added there to avoid either hardcoding new text or building new i18n infrastructure as an undocumented side effect of this change.
 
 ## Full pipeline (Railway worker)
 

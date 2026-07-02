@@ -248,8 +248,8 @@ describe('renderToDocx visual block — Italian 6-element employment fixture', (
     expect(xml).toContain('Severny Most Logistik');
   });
 
-  it('translator block also present (official mode)', () => {
-    expect(xml).toContain("DATI DEL TRADUTTORE E DELL'ESECUTORE");
+  it('translator/executor block is never rendered, even in official mode (output policy, 2026-07-02)', () => {
+    expect(xml).not.toContain("DATI DEL TRADUTTORE E DELL'ESECUTORE");
   });
 
   it('heading appears exactly once', () => {
@@ -461,8 +461,10 @@ describe('renderToDocx visual block deduplication', () => {
     ];
     const buf = await renderToDocx(EMPLOYMENT_MD, OFFICIAL_META_IT, elements);
     const xml = await getDocumentText(buf);
-    // Only one Timbro row: Elemento col + Rappresentazione col (kind fallback) + translator block "Timbro dell'Esecutore:"
-    expect(countOccurrences(xml, 'Timbro')).toBe(3);
+    // One deduplicated stamp row: Elemento col + Rappresentazione col (kind fallback).
+    // Previously 3 — the translator/executor block's "Timbro dell'Esecutore:" row
+    // is no longer rendered (output policy, 2026-07-02; see docx-translator-block.test.ts).
+    expect(countOccurrences(xml, 'Timbro')).toBe(2);
   });
 
   it('keeps two signatures at different positions', async () => {

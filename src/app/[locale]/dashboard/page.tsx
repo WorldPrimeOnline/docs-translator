@@ -242,6 +242,7 @@ function useStatusLabel() {
 
 function ActiveOrderCard({ entry, locale, onRecalculate }: { entry: OrderEntry; locale: string; onRecalculate: (jobId: string) => void }) {
   const t = useTranslations('dashboard');
+  const tElectronic = useTranslations('electronicOutput');
   const statusLabel = useStatusLabel();
 
   const AI_STAGES = new Set(['queued', 'ocr_in_progress', 'translation_in_progress', 'pdf_rendering', 'completed', 'failed']);
@@ -369,6 +370,13 @@ function ActiveOrderCard({ entry, locale, onRecalculate }: { entry: OrderEntry; 
                   <span className="text-xl font-bold text-foreground">{entry.quoteAmountKzt!.toLocaleString()} {entry.quoteCurrency ?? 'KZT'}</span>
                 )}
               </div>
+              {entry.serviceLevel === 'electronic' && (
+                <p className="mb-3 text-xs text-muted-foreground">
+                  <span className="font-medium">{tElectronic('formats.title')}</span>
+                  {': '}
+                  {tElectronic('formats.body')}
+                </p>
+              )}
               <HalykPayButton
                 jobId={entry.jobId}
                 quoteId={entry.latestQuoteId!}
@@ -388,13 +396,22 @@ function ActiveOrderCard({ entry, locale, onRecalculate }: { entry: OrderEntry; 
       })()}
 
       {entry.canDownload && (
-        <a
-          href={`/api/documents/${entry.documentId}/download`}
-          className="mt-4 inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-gold-dark"
-        >
-          <Download className="h-4 w-4" />
-          {t('downloadTranslation')}
-        </a>
+        <>
+          <a
+            href={`/api/documents/${entry.documentId}/download`}
+            className="mt-4 inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-gold-dark"
+          >
+            <Download className="h-4 w-4" />
+            {t('downloadTranslation')}
+          </a>
+          {entry.serviceLevel === 'electronic' && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              <span className="font-medium">{tElectronic('formats.title')}</span>
+              {': '}
+              {tElectronic('formats.body')}
+            </p>
+          )}
+        </>
       )}
       {entry.isTerminal && (
         <div className="mt-3">
@@ -495,6 +512,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const t = useTranslations('dashboard');
   const tLegal = useTranslations('legal');
+  const tElectronic = useTranslations('electronicOutput');
   const locale = useLocale();
 
   const LANGUAGES = [
@@ -535,7 +553,9 @@ export default function DashboardPage() {
   const [sourceLang, setSourceLang] = useState('');
   const [targetLang, setTargetLang] = useState('ru');
   const [documentType, setDocumentType] = useState('other');
-  const [outputFormat, setOutputFormat] = useState<'html' | 'pdf' | 'docx'>('pdf');
+  // Electronic translation client output policy: DOCX + HTML only, never PDF
+  // — see docs/ai-context/40_TRANSLATION_PIPELINE.md "Electronic output policy".
+  const [outputFormat, setOutputFormat] = useState<'html' | 'docx'>('docx');
   const [serviceLevel, setServiceLevel] = useState<ServiceLevel>('electronic');
   const [applicantType, setApplicantType] = useState('individual');
   const [notaryUrgencyLevel, setNotaryUrgencyLevel] = useState<'standard' | 'same_day'>('standard');
@@ -970,13 +990,21 @@ export default function DashboardPage() {
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('outputFormat')}</label>
-              <select value={outputFormat} onChange={(e) => setOutputFormat(e.target.value as 'html' | 'pdf' | 'docx')} className={selectClass}>
-                <option value="pdf">{t('formatPdf')}</option>
-                <option value="html">{t('formatHtml')}</option>
+              <select value={outputFormat} onChange={(e) => setOutputFormat(e.target.value as 'html' | 'docx')} className={selectClass}>
                 <option value="docx">{t('formatDocx')}</option>
+                <option value="html">{t('formatHtml')}</option>
               </select>
             </div>
           </div>
+
+          {/* Electronic output format disclaimer — DOCX/HTML only, no PDF for electronic delivery */}
+          {serviceLevel === 'electronic' && (
+            <p className="text-xs text-muted-foreground">
+              <span className="font-medium">{tElectronic('formats.title')}</span>
+              {': '}
+              {tElectronic('formats.body')}
+            </p>
+          )}
 
           {/* Service level */}
           <div className="flex flex-col gap-2">

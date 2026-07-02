@@ -348,14 +348,7 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
     let contentType: string;
     let html: string | undefined;
 
-    if (outputFormat === 'docx') {
-      console.log(`${tag} generating DOCX…`);
-      const docxBuf = await renderToDocx(translatedMarkdown, renderMeta, allVisualElements);
-      translatedKey = `${baseKey}/translated.docx`;
-      await uploadFile(translatedKey, docxBuf, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-      contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-      console.log(`${tag} DOCX uploaded (${docxBuf.length} bytes) → ${translatedKey}`);
-    } else if (outputFormat === 'html') {
+    if (outputFormat === 'html') {
       console.log(`${tag} generating HTML…`);
       html = await renderToHtml(translatedMarkdown, renderMeta, allVisualElements);
       translatedKey = `${baseKey}/translated.html`;
@@ -363,32 +356,20 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
       contentType = 'text/html';
       console.log(`${tag} HTML uploaded → ${translatedKey}`);
     } else {
-      // pdf (default) — HTML → Puppeteer → PDF
-      html = await renderToHtml(translatedMarkdown, renderMeta, allVisualElements);
-
-      // Run QA checks for normal mode
-      const qaReport = runQaChecks(html, plan.mode, pageCount);
-      if (!qaReport.ok) {
-        console.warn(`${tag} QA checks failed (non-fatal for translation_only):`, qaReport.errors);
-      }
-      if (qaReport.warnings.length > 0) {
-        console.warn(`${tag} QA warnings:`, qaReport.warnings);
-      }
-
-      try {
-        console.log(`${tag} generating PDF via Puppeteer…`);
-        const pdfBuf = await generatePdfFromHtml(html);
-        translatedKey = `${baseKey}/translated.pdf`;
-        await uploadFile(translatedKey, pdfBuf, 'application/pdf');
-        contentType = 'application/pdf';
-        console.log(`${tag} PDF uploaded (${pdfBuf.length} bytes) → ${translatedKey}`);
-      } catch (pdfErr) {
-        const msg = pdfErr instanceof Error ? pdfErr.message : String(pdfErr);
-        console.error(`${tag} PDF generation failed (${msg}), falling back to HTML`);
-        translatedKey = `${baseKey}/translated.html`;
-        await uploadFile(translatedKey, Buffer.from(html, 'utf-8'), 'text/html; charset=utf-8');
-        contentType = 'text/html';
-      }
+      // Electronic translation client output policy: DOCX + HTML only, never
+      // PDF — see docs/ai-context/40_TRANSLATION_PIPELINE.md "Electronic
+      // output policy". This branch previously defaulted to a Puppeteer PDF;
+      // 'docx' requests and any legacy/unrecognized outputFormat (including
+      // old '|pdf'-suffixed document_type rows already in the queue) now both
+      // land here as DOCX. generatePdfFromHtml() / Puppeteer is untouched —
+      // it is still used for the official/notarized preview PDF in branch 4a
+      // above, which is an internal reviewer artifact, not a client deliverable.
+      console.log(`${tag} generating DOCX…`);
+      const docxBuf = await renderToDocx(translatedMarkdown, renderMeta, allVisualElements);
+      translatedKey = `${baseKey}/translated.docx`;
+      await uploadFile(translatedKey, docxBuf, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+      contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      console.log(`${tag} DOCX uploaded (${docxBuf.length} bytes) → ${translatedKey}`);
     }
 
     // ── 5. Persist translation record ────────────────────────────────────────

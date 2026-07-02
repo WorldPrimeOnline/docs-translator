@@ -260,5 +260,11 @@
     "priceBeforeDiscount": "Chegirmadan oldingi narx",
     "discountByCode": "Hamkor chegirmasi",
     "finalPrice": "To'lov summasi"
+  },
+  "electronicOutput": {
+    "formats": {
+      "title": "Elektron tarjima formatlari",
+      "body": "Elektron tarjima tahrirlanadigan DOCX va HTML formatlarida taqdim etiladi. Murakkab jadvallar, skanerlangan yoki nostandart tarzda joylashtirilgan hujjatlar uchun ustun kengligi, qator ko'chirish yoki formatlashni qo'lda sozlash talab qilinishi mumkin."
+    }
   }
 }

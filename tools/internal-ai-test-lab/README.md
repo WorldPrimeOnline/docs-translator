@@ -106,6 +106,11 @@ immediately with a clear error, before any env loading or API calls.
   `official_translation` / `notarized` service levels, the real pipeline
   produces a translator **draft** — the human translator/notary review step is
   still required in production and is intentionally not part of this tool.
+- **The PDF this tool generates is not an electronic-delivery preview.**
+  Electronic (`--service-level electronic`) client delivery is DOCX + HTML
+  only in production — this CLI still renders a PDF for every run as an
+  internal diagnostic artifact regardless of service level. See "Output
+  files" below.
 
 ## Why this is separate from the payment/Jira/order workflow
 
@@ -294,6 +299,16 @@ The `.INTERNAL_TEST.` filename marker exists because the underlying renderer
 (frozen — see `docs/OFFICIAL_DOCX_PIPELINE_FREEZE.md`) is not modified to
 inject a custom watermark string into the PDF/DOCX body; the filename and the
 report banner carry the warning instead.
+
+**PDF here is an internal diagnostic artifact only.** As of the 2026-07-02
+electronic output policy (see `docs/ai-context/40_TRANSLATION_PIPELINE.md`),
+the production pipeline no longer generates or delivers PDF for electronic
+service-level orders — electronic client delivery is DOCX + HTML only. This
+CLI still renders `translated-document.INTERNAL_TEST.pdf` for every run
+(regardless of `--service-level`) purely so operators can visually inspect
+Puppeteer/renderer output while testing the algorithm; it is never what a
+real electronic customer receives. Do not treat this file as a preview of
+what customers get for `--service-level electronic`.
 
 If DOCX or PDF rendering fails (e.g. no headless Chromium binary available in
 your environment), the run does not abort — a warning is logged and recorded

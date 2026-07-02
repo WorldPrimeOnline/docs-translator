@@ -260,5 +260,11 @@
     "priceBeforeDiscount": "Arzanlaşykdan öňki baha",
     "discountByCode": "Hyzmatdaş arzanlaşygy",
     "finalPrice": "Töleg möçberi"
+  },
+  "electronicOutput": {
+    "formats": {
+      "title": "Elektron terjime formatlary",
+      "body": "Elektron terjime redaktirlenip bilinýän DOCX we HTML formatlarynda berilýär. Çylşyrymly tablisaly, skanirlenen ýa-da adaty däl ýerleşdirilen resminamalar üçin sütün ininiň, setir geçişleriniň ýa-da formatlaşdyrmagyň elde sazlanmagy zerur bolup biler."
+    }
   }
 }

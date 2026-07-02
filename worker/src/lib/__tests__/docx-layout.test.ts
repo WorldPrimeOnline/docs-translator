@@ -236,9 +236,11 @@ describe('DOCX layout — packed 4-column KV tables expand to 2 columns', () => 
     expect(tableCols).toContain(4);
   });
 
-  it('translator block table has 2 columns', () => {
-    // Translator block is always 2 columns
-    expect(tableCols.filter((c) => c === 2).length).toBeGreaterThanOrEqual(3);
+  it('only the two body KV tables are 2 columns (translator block removed — output policy 2026-07-02)', () => {
+    // Previously 3: employer KV + employee KV + translator/executor block.
+    // The translator/executor block is no longer auto-generated (see
+    // docx-translator-block.test.ts), so only the two body KV tables remain.
+    expect(tableCols.filter((c) => c === 2).length).toBe(2);
   });
 
   it('content preserved: all label and value texts present', () => {
@@ -463,15 +465,14 @@ describe('DOCX layout — 6 visual elements preserved', () => {
   });
 });
 
-// ── Translator block: 2 columns ───────────────────────────────────────────────
+// ── Translator block: removed for all modes (output policy, 2026-07-02) ────────
 
-describe('DOCX layout — translator block column count', () => {
-  it('translator block table has 2 columns', async () => {
+describe('DOCX layout — translator/executor block is never rendered', () => {
+  it('official-mode DOCX does not contain the translator/executor block heading', async () => {
     const buf = await renderToDocx(EMPLOYMENT_2COL_MD, OFFICIAL_META_IT, []);
     const xml = await getDocXml(buf);
-    const cols = getTableColumnCounts(xml);
-    // Translator block is always a 2-column table
-    expect(cols).toContain(2);
+    expect(xml).not.toContain("DATI DEL TRADUTTORE E DELL'ESECUTORE");
+    expect(xml).not.toContain('TRANSLATOR AND PROVIDER DETAILS');
   });
 });
 
