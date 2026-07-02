@@ -19,10 +19,11 @@ cd worker && npm install && cd ..
 cp tools/internal-ai-test-lab/.env.example tools/internal-ai-test-lab/.env.staging.local
 # edit .env.staging.local with real staging credentials
 
-# 2. First run — staging
+# 2. First run — staging (<your-test-file> is anything you place under input/ —
+#    see "Supported input formats" below; it does not need to be named passport.pdf)
 npm run wpo:ai-test -- \
   --env-file tools/internal-ai-test-lab/.env.staging.local \
-  --file ./tools/internal-ai-test-lab/input/passport.pdf \
+  --file ./tools/internal-ai-test-lab/input/<your-test-file> \
   --source-language ru --target-language en \
   --document-type passport --service-level official_translation
 
@@ -30,13 +31,66 @@ npm run wpo:ai-test -- \
 #    safety rules" below; consumes real Mistral/Anthropic API spend)
 npm run wpo:ai-test -- \
   --env-file tools/internal-ai-test-lab/.env.production.local \
-  --file ./tools/internal-ai-test-lab/input/passport.pdf \
+  --file ./tools/internal-ai-test-lab/input/<your-test-file> \
   --source-language ru --target-language en \
   --document-type passport --service-level official_translation \
   --confirm-production
 ```
 
 Output lands in `tools/internal-ai-test-lab/runs/<timestamp>_<run-id>/`.
+
+## Supported input formats
+
+`--file` accepts **any file path** with a supported extension — there is no
+required filename. File **format** (technical: how the bytes are encoded)
+and business **document type** (`--document-type`: passport, bank_statement,
+diploma, ...) are completely independent concepts; the document type is
+*only* ever taken from `--document-type`, never guessed from the filename.
+
+| Extension | MIME type | How OCR gets it |
+|---|---|---|
+| `.pdf` | `application/pdf` | passed straight to `extractTextFromPdf()` |
+| `.jpg` / `.jpeg` | `image/jpeg` | converted to a real single-page PDF first |
+| `.png` | `image/png` | converted to a real single-page PDF first |
+| `.docx` | `application/vnd.openxmlformats-officedocument.wordprocessingml.document` | text-extracted (via `mammoth`) and reflowed into a plain PDF first |
+
+Non-PDF conversion reuses `src/lib/convert-to-pdf.ts` — the **same** module
+the production upload routes (`/api/documents/upload`,
+`/api/documents/upload-card`) already use for JPG/PNG/DOCX uploads. This tool
+never relabels a JPG as a PDF and sends it to Mistral/Claude — both
+`extractTextFromPdf()` and page-vision hardcode `application/pdf`, so a real
+conversion happens first (see `lib/input-document.ts`).
+
+Examples:
+
+```bash
+# JPG bank statement
+npm run wpo:ai-test -- \
+  --env-file tools/internal-ai-test-lab/.env.staging.local \
+  --file ./tools/internal-ai-test-lab/input/stress_01_phone_photo_shadow_bank_statement.jpg \
+  --source-language ru --target-language en \
+  --document-type bank_statement --service-level official_translation
+
+# PNG passport
+npm run wpo:ai-test -- \
+  --env-file tools/internal-ai-test-lab/.env.staging.local \
+  --file ./tools/internal-ai-test-lab/input/passport_scan.png \
+  --source-language ru --target-language en \
+  --document-type passport --service-level official_translation
+
+# DOCX contract
+npm run wpo:ai-test -- \
+  --env-file tools/internal-ai-test-lab/.env.staging.local \
+  --file ./tools/internal-ai-test-lab/input/contract.docx \
+  --source-language ru --target-language en \
+  --document-type contract --service-level electronic
+```
+
+DOCX layout preservation in this tool is **partial** — `mammoth` extracts
+plain text only (no tables/headings/formatting), reflowed into a simple PDF.
+The report's OCR/translation warnings will say so explicitly whenever the
+input is a `.docx` file. An unsupported extension (e.g. `.txt`) fails
+immediately with a clear error, before any env loading or API calls.
 
 ## What this is NOT
 
@@ -124,7 +178,7 @@ Staging, full pipeline:
 ```bash
 npm run wpo:ai-test -- \
   --env-file tools/internal-ai-test-lab/.env.staging.local \
-  --file ./tools/internal-ai-test-lab/input/passport.pdf \
+  --file ./tools/internal-ai-test-lab/input/<your-test-file> \
   --source-language ru \
   --target-language en \
   --document-type passport \
@@ -137,7 +191,7 @@ Production (requires explicit confirmation):
 ```bash
 npm run wpo:ai-test -- \
   --env-file tools/internal-ai-test-lab/.env.production.local \
-  --file ./tools/internal-ai-test-lab/input/passport.pdf \
+  --file ./tools/internal-ai-test-lab/input/<your-test-file> \
   --source-language ru \
   --target-language en \
   --document-type passport \
@@ -151,7 +205,7 @@ word/page counts):
 ```bash
 npm run wpo:ai-test -- \
   --env-file tools/internal-ai-test-lab/.env.staging.local \
-  --file ./tools/internal-ai-test-lab/input/passport.pdf \
+  --file ./tools/internal-ai-test-lab/input/<your-test-file> \
   --source-language ru --target-language en \
   --document-type passport --service-level electronic \
   --dry-run-pricing-only
@@ -162,7 +216,7 @@ Direct `tsx` invocation (equivalent):
 ```bash
 npx tsx tools/internal-ai-test-lab/run-ai-translation-test.ts \
   --env-file tools/internal-ai-test-lab/.env.staging.local \
-  --file ./tools/internal-ai-test-lab/input/passport.pdf \
+  --file ./tools/internal-ai-test-lab/input/<your-test-file> \
   --source-language ru --target-language en \
   --document-type passport --service-level official_translation
 ```
@@ -268,6 +322,15 @@ column explaining why.
   `pricing_versions` for the environment you're pointed at.
 - **`--service-level` / `--document-type` rejected** — check the alias table
   above; the tool refuses unknown values rather than silently guessing.
+- **"Unsupported input file extension"** — only `.pdf`, `.jpg`, `.jpeg`,
+  `.png`, `.docx` are supported (see "Supported input formats" above); this
+  fails immediately, before any env loading or API calls.
+- **"File extension implies X, but the file's magic bytes look like Y"
+  warning in the report** — the file's real content doesn't match its
+  extension (e.g. a `.pdf` that's actually a renamed JPEG). The tool proceeds
+  using the extension-declared type and surfaces this as a warning rather
+  than failing, since a mislabeled-but-still-decodable file is common with
+  manually renamed test fixtures.
 
 ## Developing / verifying this tool
 

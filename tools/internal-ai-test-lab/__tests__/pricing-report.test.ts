@@ -154,17 +154,93 @@ describe('buildMarginSection', () => {
   });
 });
 
+/** Injects a `rounding_adjustment` item (isClientVisible: false, isCost: false) into the base fixture. */
+function withRoundingItem(amountKzt: number): Partial<PricingResultLike> {
+  return {
+    items: [
+      ...makeResult().items,
+      {
+        itemType: 'rounding_adjustment',
+        label: 'Rounding adjustment',
+        quantity: 1,
+        unitPriceKzt: amountKzt,
+        amountKzt,
+        isClientVisible: false,
+        isCost: false,
+        sortOrder: 99,
+      },
+    ],
+  };
+}
+
 describe('buildReconciliation', () => {
-  it('reports OK when client-visible items sum to the final amount', () => {
-    const recon = buildReconciliation(makeResult());
-    expect(recon.clientPriceSubtotalKzt).toBe(5000);
-    expect(recon.finalAmountKzt).toBe(5000);
+  // Real staging run, 2026-07-02: bank-statement OCR/translation exercised the
+  // production calculator end-to-end. raw subtotal 11047.2, rounding_adjustment
+  // item 52.8, final amount 11100 — exact match required, not a tolerance band.
+  it('1. exact match with rounding_adjustment => OK (real-run numbers: raw 11047.2 + rounding 52.8 = final 11100)', () => {
+    const base = makeResult();
+    const items = base.items.map((i) =>
+      i.itemType === 'minimum_check' ? { ...i, amountKzt: 11047.2, unitPriceKzt: 11047.2 } : i,
+    );
+    items.push({
+      itemType: 'rounding_adjustment',
+      label: 'Rounding adjustment',
+      quantity: 1,
+      unitPriceKzt: 52.8,
+      amountKzt: 52.8,
+      isClientVisible: false,
+      isCost: false,
+      sortOrder: 99,
+    });
+    const result = { ...base, items, amountKzt: 11100 };
+    const recon = buildReconciliation(result);
+    expect(recon.rawSubtotalKzt).toBeCloseTo(11047.2);
+    expect(recon.roundingAdjustmentFound).toBe(true);
+    expect(recon.roundingAdjustmentKzt).toBe(52.8);
+    expect(recon.canonicalSubtotalKzt).toBeCloseTo(11100);
+    expect(recon.finalAmountKzt).toBe(11100);
+    expect(recon.differenceKzt).toBeCloseTo(0);
     expect(recon.status).toBe('OK');
+    expect(recon.reasons).toEqual([]);
   });
 
-  it('reports WARNING when client-visible items do not sum to the final amount', () => {
-    const recon = buildReconciliation(makeResult({ amountKzt: 5200 }));
-    expect(recon.differenceKzt).toBe(200);
+  it('2. difference below 100 but no rounding_adjustment item => WARNING (no blanket "<100 is fine" allowance)', () => {
+    const recon = buildReconciliation(makeResult({ amountKzt: 5052.8 }));
+    expect(recon.rawSubtotalKzt).toBe(5000);
+    expect(recon.roundingAdjustmentFound).toBe(false);
+    expect(recon.roundingAdjustmentKzt).toBe(0);
+    expect(recon.canonicalSubtotalKzt).toBe(5000);
     expect(recon.status).toBe('WARNING');
+    expect(recon.reasons.length).toBeGreaterThan(0);
+  });
+
+  it('3. rounding_adjustment exists but its amount does not match (final - raw) => WARNING', () => {
+    const recon = buildReconciliation(makeResult({ ...withRoundingItem(50), amountKzt: 5052.8 }));
+    expect(recon.rawSubtotalKzt).toBe(5000);
+    expect(recon.roundingAdjustmentFound).toBe(true);
+    expect(recon.roundingAdjustmentKzt).toBe(50);
+    expect(recon.status).toBe('WARNING');
+    expect(recon.reasons.some((r) => r.includes('rounding_adjustment item declares'))).toBe(true);
+  });
+
+  it('4. canonical subtotal (raw + rounding_adjustment) differs from final amount => WARNING', () => {
+    const recon = buildReconciliation(makeResult({ ...withRoundingItem(52.8), amountKzt: 5060 }));
+    expect(recon.rawSubtotalKzt).toBe(5000);
+    expect(recon.roundingAdjustmentKzt).toBe(52.8);
+    expect(recon.canonicalSubtotalKzt).toBe(5052.8);
+    expect(recon.finalAmountKzt).toBe(5060);
+    expect(recon.status).toBe('WARNING');
+    expect(recon.reasons.some((r) => r.includes('Canonical subtotal'))).toBe(true);
+  });
+
+  it('5. no rounding needed, exact subtotal == final => OK', () => {
+    const recon = buildReconciliation(makeResult());
+    expect(recon.rawSubtotalKzt).toBe(5000);
+    expect(recon.roundingAdjustmentFound).toBe(false);
+    expect(recon.canonicalSubtotalKzt).toBe(5000);
+    expect(recon.finalAmountKzt).toBe(5000);
+    expect(recon.differenceKzt).toBe(0);
+    expect(recon.status).toBe('OK');
+    expect(recon.reasons).toEqual([]);
   });
 });

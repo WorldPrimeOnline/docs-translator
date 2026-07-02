@@ -14,7 +14,7 @@ function baseInput(overrides: Partial<BuildReportDataInput> = {}): BuildReportDa
       timestamp: '2026-07-02T18:46:00.000Z',
       environment: 'staging',
       operatorEmail: 'admin@example.com',
-      sourceFile: { name: 'passport.pdf', sizeBytes: 12345, sha256: 'deadbeef' },
+      sourceFile: { name: 'passport.pdf', sizeBytes: 12345, sha256: 'deadbeef', mimeType: 'application/pdf', inputKind: 'pdf' },
       sourceLanguage: 'ru',
       targetLanguage: 'en',
       documentType: { raw: 'passport', canonical: 'passport_id' },
@@ -67,7 +67,16 @@ function baseInput(overrides: Partial<BuildReportDataInput> = {}): BuildReportDa
       { costType: 'notaryFee', label: 'Notary official fee', amountKzt: 0, metadata: { applicable: false, reason: 'Not applicable / zero for this order configuration' } },
     ],
     margin: { grossRevenueKzt: 5000, totalInternalCostsKzt: 2000, targetProfitKzt: 500, estimatedMarginKzt: 3000, estimatedMarginPercent: 60 },
-    reconciliation: { clientPriceSubtotalKzt: 5000, finalAmountKzt: 5000, differenceKzt: 0, status: 'OK' },
+    reconciliation: {
+      rawSubtotalKzt: 5000,
+      roundingAdjustmentKzt: 0,
+      roundingAdjustmentFound: false,
+      canonicalSubtotalKzt: 5000,
+      finalAmountKzt: 5000,
+      differenceKzt: 0,
+      status: 'OK',
+      reasons: [],
+    },
     pricingError: null,
     ...overrides,
   };
@@ -90,11 +99,21 @@ describe('buildReportData', () => {
     expect(data.allWarnings.some((w) => w.includes('PRICING_NOT_CONFIGURED'))).toBe(true);
   });
 
-  it('flags a WARNING reconciliation status in the aggregated warnings', () => {
+  it('flags a WARNING reconciliation status in the aggregated warnings, including the specific reason', () => {
     const data = buildReportData(baseInput({
-      reconciliation: { clientPriceSubtotalKzt: 5000, finalAmountKzt: 5200, differenceKzt: 200, status: 'WARNING' },
+      reconciliation: {
+        rawSubtotalKzt: 5000,
+        roundingAdjustmentKzt: 0,
+        roundingAdjustmentFound: false,
+        canonicalSubtotalKzt: 5000,
+        finalAmountKzt: 5200,
+        differenceKzt: 200,
+        status: 'WARNING',
+        reasons: ['Final amount (5200 KZT) differs from raw subtotal (5000 KZT) by 200 KZT, but no rounding_adjustment item was found to explain it.'],
+      },
     }));
     expect(data.allWarnings.some((w) => w.toLowerCase().includes('reconciliation'))).toBe(true);
+    expect(data.allWarnings.some((w) => w.includes('no rounding_adjustment item was found'))).toBe(true);
   });
 
   it('populates debug JSON fields', () => {

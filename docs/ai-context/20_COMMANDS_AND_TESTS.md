@@ -66,7 +66,7 @@ After running, check: `payment_transactions.paid_at` set, `jobs.status = queued`
 ```bash
 npm run wpo:ai-test -- \
   --env-file tools/internal-ai-test-lab/.env.staging.local \
-  --file ./tools/internal-ai-test-lab/input/passport.pdf \
+  --file ./tools/internal-ai-test-lab/input/<your-test-file> \
   --source-language ru --target-language en \
   --document-type passport --service-level official_translation
 ```

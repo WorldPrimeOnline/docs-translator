@@ -17,7 +17,7 @@ export interface RunSummarySection {
   timestamp: string;
   environment: string;
   operatorEmail: string | null;
-  sourceFile: { name: string; sizeBytes: number; sha256: string };
+  sourceFile: { name: string; sizeBytes: number; sha256: string; mimeType: string; inputKind: string };
   sourceLanguage: string;
   targetLanguage: string;
   documentType: { raw: string; canonical: string };
@@ -109,7 +109,9 @@ export function buildReportData(input: BuildReportDataInput): ReportData {
     ...input.translationSummary.warnings,
     ...input.renderedOutput.warnings,
     ...(input.pricingError ? [`pricing: ${input.pricingError}`] : []),
-    ...(input.reconciliation?.status === 'WARNING' ? ['pricing reconciliation mismatch — see reconciliation section'] : []),
+    ...(input.reconciliation?.status === 'WARNING'
+      ? input.reconciliation.reasons.map((r) => `reconciliation: ${r}`)
+      : []),
   ];
 
   return {
@@ -168,6 +170,8 @@ export function renderReportMarkdown(data: ReportData): string {
       ['Environment', data.runSummary.environment],
       ['Operator email', data.runSummary.operatorEmail ?? 'n/a'],
       ['Source file', data.runSummary.sourceFile.name],
+      ['Detected MIME type', data.runSummary.sourceFile.mimeType],
+      ['Input kind', data.runSummary.sourceFile.inputKind],
       ['File size', `${data.runSummary.sourceFile.sizeBytes} bytes`],
       ['SHA-256', data.runSummary.sourceFile.sha256],
       ['Source language', data.runSummary.sourceLanguage],
@@ -301,12 +305,21 @@ export function renderReportMarkdown(data: ReportData): string {
     lines.push(mdTable(
       ['Field', 'Value'],
       [
-        ['Client price subtotal', fmtKzt(data.reconciliation.clientPriceSubtotalKzt)],
+        ['Raw subtotal (before rounding)', fmtKzt(data.reconciliation.rawSubtotalKzt)],
+        ['Rounding adjustment', data.reconciliation.roundingAdjustmentFound
+          ? fmtKzt(data.reconciliation.roundingAdjustmentKzt)
+          : 'not found'],
+        ['Canonical subtotal (raw + rounding)', fmtKzt(data.reconciliation.canonicalSubtotalKzt)],
         ['Final amount KZT', fmtKzt(data.reconciliation.finalAmountKzt)],
-        ['Difference', fmtKzt(data.reconciliation.differenceKzt)],
+        ['Difference after rounding', fmtKzt(data.reconciliation.differenceKzt)],
         ['Status', data.reconciliation.status],
       ],
     ));
+    if (data.reconciliation.reasons.length > 0) {
+      lines.push('');
+      lines.push('Reasons:');
+      for (const r of data.reconciliation.reasons) lines.push(`- ${r}`);
+    }
   } else {
     lines.push('_Reconciliation not available — pricing was not computed._');
   }
@@ -371,6 +384,8 @@ ${htmlTable(['Field', 'Value'], [
   ['Environment', escapeHtml(data.runSummary.environment)],
   ['Operator email', escapeHtml(data.runSummary.operatorEmail ?? 'n/a')],
   ['Source file', escapeHtml(data.runSummary.sourceFile.name)],
+  ['Detected MIME type', escapeHtml(data.runSummary.sourceFile.mimeType)],
+  ['Input kind', escapeHtml(data.runSummary.sourceFile.inputKind)],
   ['File size', `${data.runSummary.sourceFile.sizeBytes} bytes`],
   ['SHA-256', `<code>${escapeHtml(data.runSummary.sourceFile.sha256)}</code>`],
   ['Source language', escapeHtml(data.runSummary.sourceLanguage)],
@@ -459,11 +474,16 @@ ${data.margin ? htmlTable(['Field', 'Value'], [
 
 <h2>9. Reconciliation</h2>
 ${data.reconciliation ? htmlTable(['Field', 'Value'], [
-  ['Client price subtotal', fmtKzt(data.reconciliation.clientPriceSubtotalKzt)],
+  ['Raw subtotal (before rounding)', fmtKzt(data.reconciliation.rawSubtotalKzt)],
+  ['Rounding adjustment', data.reconciliation.roundingAdjustmentFound ? fmtKzt(data.reconciliation.roundingAdjustmentKzt) : 'not found'],
+  ['Canonical subtotal (raw + rounding)', fmtKzt(data.reconciliation.canonicalSubtotalKzt)],
   ['Final amount KZT', fmtKzt(data.reconciliation.finalAmountKzt)],
-  ['Difference', fmtKzt(data.reconciliation.differenceKzt)],
+  ['Difference after rounding', fmtKzt(data.reconciliation.differenceKzt)],
   ['Status', data.reconciliation.status],
 ]) : '<p><em>Reconciliation not available — pricing was not computed.</em></p>'}
+${data.reconciliation && data.reconciliation.reasons.length > 0
+  ? `<p><strong>Reasons:</strong></p><ul>${data.reconciliation.reasons.map((r) => `<li>${escapeHtml(r)}</li>`).join('')}</ul>`
+  : ''}
 
 <h2>10. Debug JSON</h2>
 <p>See <code>report.json</code> for machine-readable <code>pricing_context_json</code>, <code>price_breakdown_json</code>, <code>internal_cost_json</code>, <code>margin_json</code>, <code>warnings_json</code>.</p>

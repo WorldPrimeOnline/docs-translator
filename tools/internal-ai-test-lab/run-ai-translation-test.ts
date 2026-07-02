@@ -12,16 +12,17 @@
  * every pipeline import below is a dynamic `import()` performed after
  * loadEnvFile() runs. Do not convert these to static imports.
  *
- * Usage:
+ * Usage (--file accepts any supported format — .pdf, .jpg, .jpeg, .png,
+ * .docx; file FORMAT and business --document-type are independent, see
+ * lib/input-document.ts):
  *   npx tsx tools/internal-ai-test-lab/run-ai-translation-test.ts \
  *     --env-file tools/internal-ai-test-lab/.env.staging.local \
- *     --file ./tools/internal-ai-test-lab/input/passport.pdf \
+ *     --file ./tools/internal-ai-test-lab/input/<your-test-file> \
  *     --source-language ru --target-language en \
  *     --document-type passport --service-level official_translation
  */
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import * as crypto from 'node:crypto';
 
 import { parseCliArgs, CliArgError } from './lib/cli-args';
 import {
@@ -35,6 +36,7 @@ import {
 import { loadEnvFile, checkProductionSafety, buildSafetySummary, EnvGuardError } from './lib/env-guard';
 import { generateRunId, buildRunPaths, ensureRunDirs } from './lib/run-paths';
 import { createLogger, truncateForConsole, type Logger } from './lib/logger';
+import { detectInputDocument, preparePdfForOcr, UnsupportedInputFormatError } from './lib/input-document';
 import {
   buildClientPriceComponents,
   buildInternalCostRows,
@@ -57,10 +59,6 @@ import type { AiTranslationTestContext } from './lib/types';
 
 const R2_INTERNAL_PREFIX = 'internal-tests/ai-translation-lab';
 
-function sha256(buf: Buffer): string {
-  return crypto.createHash('sha256').update(buf).digest('hex');
-}
-
 function fail(logger: Logger | null, message: string): never {
   if (logger) logger.error(message);
   else console.error(message);
@@ -81,13 +79,23 @@ async function main(): Promise<void> {
     throw err;
   }
 
-  // ── 2. Validate input file exists before touching env/pipeline ─────────────
+  // ── 2. Validate input file exists + detect its format before touching env/pipeline ──
+  // File FORMAT (pdf/jpg/png/docx) is independent of business --document-type — see
+  // lib/input-document.ts. Any supported format is accepted regardless of filename.
   if (!fs.existsSync(cli.file)) {
     fail(null, `[input] --file not found: ${cli.file}`);
   }
   const fileStat = fs.statSync(cli.file);
   if (!fileStat.isFile()) {
     fail(null, `[input] --file is not a regular file: ${cli.file}`);
+  }
+  const fileBuffer = fs.readFileSync(cli.file);
+  let inputFile;
+  try {
+    inputFile = detectInputDocument(cli.file, fileBuffer);
+  } catch (err) {
+    if (err instanceof UnsupportedInputFormatError) fail(null, `[input] ${err.message}`);
+    throw err;
   }
 
   // ── 3. Load env from --env-file BEFORE any pipeline import ─────────────────
@@ -153,26 +161,26 @@ async function main(): Promise<void> {
   logger.info(`context: ${JSON.stringify(context)}`);
   logger.info(`resolved: documentType=${documentType} serviceLevel=${serviceLevel} urgency=${urgency} fulfillmentMethod=${fulfillmentMethod ?? 'n/a'} deliveryZone=${deliveryZone ?? 'n/a'}`);
 
-  const ocrWarnings: string[] = [];
+  const ocrWarnings: string[] = [...inputFile.warnings];
   const translationWarnings: string[] = [];
   const renderWarnings: string[] = [];
   let pricingError: string | null = null;
 
   try {
     // ── 7. Snapshot source file ─────────────────────────────────────────────
-    const fileBuffer = fs.readFileSync(cli.file);
-    const hash = sha256(fileBuffer);
-    const ext = path.extname(cli.file) || '.bin';
-    const sourceCopyPath = path.join(paths.sourceDir, `original-file${ext}`);
+    const sourceCopyPath = path.join(paths.sourceDir, `original-file${inputFile.extension}`);
     fs.copyFileSync(cli.file, sourceCopyPath);
     fs.writeFileSync(
       path.join(paths.sourceDir, 'source-metadata.json'),
       JSON.stringify(
         {
           originalPath: cli.file,
-          filename: path.basename(cli.file),
-          sizeBytes: fileStat.size,
-          sha256: hash,
+          filename: inputFile.filename,
+          extension: inputFile.extension,
+          mimeType: inputFile.mimeType,
+          inputKind: inputFile.inputKind,
+          sizeBytes: inputFile.sizeBytes,
+          sha256: inputFile.sha256,
           sourceLanguage: cli.sourceLanguage,
           targetLanguage: cli.targetLanguage,
         },
@@ -180,7 +188,9 @@ async function main(): Promise<void> {
         2,
       ),
     );
-    logger.info(`source file snapshotted: ${sourceCopyPath} (${fileStat.size} bytes, sha256=${hash})`);
+    logger.info(
+      `source file snapshotted: ${sourceCopyPath} (${inputFile.sizeBytes} bytes, ${inputFile.mimeType}, kind=${inputFile.inputKind}, sha256=${inputFile.sha256})`,
+    );
 
     // ── 8. Dynamic imports — AFTER dotenv load, per module design constraint ──
     logger.info('loading pipeline modules...');
@@ -194,9 +204,18 @@ async function main(): Promise<void> {
     } = await import('../../worker/src/lib/visual-elements');
     const { analyzeDocumentVisuals } = await import('../../worker/src/lib/page-vision');
 
+    // ── 8b. Convert non-PDF input to a REAL PDF before OCR/page-vision ─────────
+    // extractTextFromPdf() and analyzeDocumentVisuals() both hardcode
+    // media_type/document_url as application/pdf — they must never receive
+    // bytes that aren't actually a PDF. preparePdfForOcr() genuinely converts
+    // JPG/PNG/DOCX via the same convertToPdf() production upload routes use;
+    // it never relabels a non-PDF buffer.
+    const { pdfBuffer, warnings: conversionWarnings } = await preparePdfForOcr(inputFile, fileBuffer);
+    for (const w of conversionWarnings) ocrWarnings.push(w);
+
     // ── 9. OCR (real Mistral pipeline) ────────────────────────────────────────
-    logger.info('running OCR (Mistral)...');
-    const ocrResult = await extractTextFromPdf(fileBuffer);
+    logger.info(`running OCR (Mistral) on ${inputFile.inputKind} input...`);
+    const ocrResult = await extractTextFromPdf(pdfBuffer);
     const { markdown, pageCount, visualElements: ocrVisualElements, rawPages } = ocrResult;
     const extractedWordCount = markdown.trim().split(/\s+/).filter(Boolean).length;
     logger.info(`OCR done — ${pageCount} pages, ${extractedWordCount} words`);
@@ -232,7 +251,7 @@ async function main(): Promise<void> {
 
     let pageVisionElements: unknown[] = [];
     try {
-      pageVisionElements = (await analyzeDocumentVisuals(rawPages, fileBuffer, cli.targetLanguage)) as unknown[];
+      pageVisionElements = (await analyzeDocumentVisuals(rawPages, pdfBuffer, cli.targetLanguage)) as unknown[];
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       ocrWarnings.push(`page-vision analysis failed (non-fatal): ${msg}`);
@@ -419,7 +438,13 @@ async function main(): Promise<void> {
       timestamp: new Date().toISOString(),
       environment: safety.environment,
       operatorEmail: operatorEmail ?? null,
-      sourceFile: { name: path.basename(cli.file), sizeBytes: fileStat.size, sha256: hash },
+      sourceFile: {
+        name: inputFile.filename,
+        sizeBytes: inputFile.sizeBytes,
+        sha256: inputFile.sha256,
+        mimeType: inputFile.mimeType,
+        inputKind: inputFile.inputKind,
+      },
       sourceLanguage: resolvedSourceLang,
       targetLanguage: cli.targetLanguage,
       documentType: { raw: cli.documentTypeRaw, canonical: documentType },
