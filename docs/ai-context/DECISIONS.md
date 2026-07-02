@@ -396,3 +396,19 @@ src/lib/pricing/calculator.ts, src/lib/pricing/config.ts, src/app/api/documents/
 
 **Risks / caveats:**  
 notary_official_fee remains an MRP-based ESTIMATE (see TODO in calculator.ts) not yet confirmed line-by-line with the notary partner; customers are now charged this estimate automatically before any human check. If the estimate is materially wrong for a given case, it must be corrected via a pricing_versions update or a refund/adjustment, not by re-introducing a blanket operator-review gate. No DB migration was needed; price_quotes.status enum and verifyQuotePayable() were unchanged — the latter already allowed paying requires_operator_review quotes, so this change only affects what customers are shown, not payment-layer permissions.
+
+---
+
+### 2026-07-02 — Internal AI Translation Test Lab is isolated from payment/order/Jira workflow
+
+**Decision:**  
+tools/internal-ai-test-lab/run-ai-translation-test.ts is a CLI-only tool that runs the real OCR/translation/render/pricing pipeline against a local document for internal algorithm and pricing testing. It may run against production services only with explicit guards (AI_TRANSLATION_TEST_LAB_ENABLED=true, AI_TRANSLATION_TEST_LAB_ALLOW_PRODUCTION=true, and --confirm-production on the command line; it also fails hard if ALLOW_STAGING_PAYMENT_OVERRIDE=true is set in production). It is not a payment bypass and must never be treated as one. It must never call Halyk, Webkassa/OFD, Jira, Google Drive, Telegram, or Resend, and must never create normal jobs/documents/translations rows or write to payment_transactions, fiscal_receipts, refund_transactions, price_quotes, price_quote_items, or cost_reservations. Pricing is computed via the real computeQuoteForJob() (src/lib/pricing/service.ts), which only reads pricing_versions and never calls saveQuote(); this tool exercises OCR/AI translation/rendering/pricing only. All run outputs are internal test artifacts (watermarked INTERNAL TEST — NOT CLIENT ORDER — NOT PAID — NOT FOR DELIVERY) and are never client deliverables.
+
+**Rationale:**  
+Testing the real pipeline previously required creating a real job, which triggers Jira issue creation, Google Drive folders, Telegram notifications, and (once Halyk is live) a real payment. A production-safe, side-effect-free test boundary was needed so the algorithm and pricing engine can be exercised against production/staging services without polluting the normal customer/finance/integration surface. See tools/internal-ai-test-lab/README.md and __tests__/no-forbidden-integrations.test.ts, which statically asserts this isolation.
+
+**Impacted files/docs:**  
+`tools/internal-ai-test-lab/` (new), `docs/ai-context/20_COMMANDS_AND_TESTS.md`, `.gitignore`, `package.json`, `jest.config.ts`, `tsconfig.json` (excludes `tools/`, which has its own `tools/internal-ai-test-lab/tsconfig.json` + `npm run wpo:ai-test:typecheck`)
+
+**Risks / caveats:**  
+This tool imports the same `worker/src/lib/*` modules the Railway worker uses, so a bug in this tool's argument handling could still consume real Mistral/Anthropic API spend against production credentials if misconfigured — the production guard (env flags + `--confirm-production`) is the only thing preventing that, not a hard technical sandboxing boundary. It never calls `saveQuote()`, so pricing runs never appear in `price_quotes`/operator tooling — do not use its output as a substitute for a real quote when debugging a customer-visible pricing discrepancy.

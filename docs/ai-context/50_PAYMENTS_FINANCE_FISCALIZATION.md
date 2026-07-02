@@ -70,6 +70,8 @@ Payment confirmation (Halyk callback)
 
 Reference docs: `docs/finance/FINANCIAL_ARCHITECTURE.md`, `docs/finance/PRICING_ENGINE.md`, `docs/finance/REFUND_FINANCE_RULES.md`, `docs/finance/UNIT_ECONOMICS.md`.
 
+**Internal AI Translation Test Lab** (`tools/internal-ai-test-lab/`) exercises `computeQuoteForJob()` read-only for pricing testing — it never calls `saveQuote()` and never writes `price_quotes`/`cost_reservations`. It is not a payment bypass and is unrelated to `scripts/staging/confirm-payment-paid.ts`. See `docs/ai-context/DECISIONS.md` (2026-07-02) and `tools/internal-ai-test-lab/README.md`.
+
 ## Fiscalization (KZ tax law)
 
 KZ tax law requires fiscal receipts for card payments. `src/lib/fiscal/` is a provider-abstracted system:
