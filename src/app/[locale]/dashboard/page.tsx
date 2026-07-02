@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Link } from '@/i18n/navigation';
 import { NOTARY_CITIES } from '@/lib/notary/cities';
 import { getCustomerOrderState } from '@/lib/translation-workflow/customer-order-state';
+import { bucketOrders } from '@/lib/translation-workflow/order-buckets';
 import { loadReferralParams } from '@/lib/referral/capture';
 
 interface PromoDiscountInfo {
@@ -597,24 +598,35 @@ export default function DashboardPage() {
   const seenTerminalIds = useRef<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const activeOrders = orders.filter((o) => o.isActive && !o.isTerminal);
-  // ready_for_delivery is "active" but also showable in history — put it in active for now
-  const readyOrders = orders.filter((o) => o.isActive && o.isTerminal);
-  const historyOrders = orders.filter((o) => o.isTerminal && !o.isActive);
+  // ready_for_delivery is "active" but also showable in history — put it in active for now.
+  // Bucketing itself lives in a shared, unit-tested pure function — see
+  // src/lib/translation-workflow/order-buckets.ts and its __tests__.
+  const { activeOrders, readyOrders, historyOrders } = bucketOrders(orders);
 
   // ─── Load all orders from API (source of truth) ──────────────────────────────
 
+  // A transient failure here (e.g. an auth-cookie race right after the
+  // completion-triggered reload below) must never silently leave the order
+  // list stale/empty with no way to recover — retry once before giving up,
+  // and never clear existing orders on failure.
   const loadOrders = useCallback(async (): Promise<void> => {
-    try {
-      const res = await fetch('/api/jobs');
-      if (!res.ok) return;
-      const data = (await res.json()) as { jobs: OrderEntry[] };
-      setOrders(data.jobs);
-    } catch (e) {
-      console.error('[dashboard] loadOrders failed:', e);
-    } finally {
-      setOrdersLoaded(true);
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const res = await fetch('/api/jobs', { cache: 'no-store' });
+        if (!res.ok) {
+          console.error(`[dashboard] loadOrders: /api/jobs returned ${res.status} (attempt ${attempt + 1})`);
+          if (attempt === 0) { await new Promise((r) => setTimeout(r, 800)); continue; }
+          break;
+        }
+        const data = (await res.json()) as { jobs: OrderEntry[] };
+        setOrders(data.jobs);
+        break;
+      } catch (e) {
+        console.error(`[dashboard] loadOrders failed (attempt ${attempt + 1}):`, e);
+        if (attempt === 0) { await new Promise((r) => setTimeout(r, 800)); continue; }
+      }
     }
+    setOrdersLoaded(true);
   }, []);
 
   useEffect(() => {
@@ -988,16 +1000,21 @@ export default function DashboardPage() {
                 {DOCUMENT_TYPES.map((dt) => <option key={dt.value} value={dt.value}>{dt.label}</option>)}
               </select>
             </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('outputFormat')}</label>
-              <select value={outputFormat} onChange={(e) => setOutputFormat(e.target.value as 'html' | 'docx')} className={selectClass}>
-                <option value="docx">{t('formatDocx')}</option>
-                <option value="html">{t('formatHtml')}</option>
-              </select>
-            </div>
+            {serviceLevel === 'electronic' && (
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('outputFormat')}</label>
+                <select value={outputFormat} onChange={(e) => setOutputFormat(e.target.value as 'html' | 'docx')} className={selectClass}>
+                  <option value="docx">{t('formatDocx')}</option>
+                  <option value="html">{t('formatHtml')}</option>
+                </select>
+              </div>
+            )}
           </div>
 
-          {/* Electronic output format disclaimer — DOCX/HTML only, no PDF for electronic delivery */}
+          {/* Electronic output format disclaimer — DOCX/HTML only, no PDF for electronic delivery.
+              Official/notarized workflows produce their own artifacts (draft DOCX -> human review ->
+              final PDF/notary package) and do not use this selector at all — see item 8 in the
+              2026-07-02 dashboard-visibility bug report. */}
           {serviceLevel === 'electronic' && (
             <p className="text-xs text-muted-foreground">
               <span className="font-medium">{tElectronic('formats.title')}</span>
