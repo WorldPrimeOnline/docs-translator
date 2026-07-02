@@ -61,6 +61,36 @@ describe('electronicOutput i18n — exact EN/RU wording', () => {
   });
 });
 
+describe('electronicOutput.finalFormat i18n — key presence across every supported locale (2026-07-03 UX correction)', () => {
+  for (const locale of LOCALE_CODES) {
+    it(`${locale}: electronicOutput.finalFormat.official and .notarized are present and non-empty`, () => {
+      const messages = loadOrderMessages(locale) as {
+        electronicOutput?: { finalFormat?: { official?: string; notarized?: string } };
+      };
+      const official = messages.electronicOutput?.finalFormat?.official;
+      const notarized = messages.electronicOutput?.finalFormat?.notarized;
+      expect(typeof official).toBe('string');
+      expect(official!.length).toBeGreaterThan(0);
+      expect(typeof notarized).toBe('string');
+      expect(notarized!.length).toBeGreaterThan(0);
+    });
+  }
+});
+
+describe('electronicOutput.finalFormat i18n — exact EN/RU wording', () => {
+  it('en matches the specified wording exactly', () => {
+    const en = loadOrderMessages('en') as { electronicOutput: { finalFormat: { official: string; notarized: string } } };
+    expect(en.electronicOutput.finalFormat.official).toBe('Final format: PDF after translator review');
+    expect(en.electronicOutput.finalFormat.notarized).toBe('Final format: notary package / PDF after partner process');
+  });
+
+  it('ru matches the specified wording exactly', () => {
+    const ru = loadOrderMessages('ru') as { electronicOutput: { finalFormat: { official: string; notarized: string } } };
+    expect(ru.electronicOutput.finalFormat.official).toBe('Итоговый формат: PDF после проверки переводчиком');
+    expect(ru.electronicOutput.finalFormat.notarized).toBe('Итоговый формат: нотариальный пакет / PDF после партнёрского процесса');
+  });
+});
+
 describe('electronicOutput disclaimer — not hardcoded in the dashboard component', () => {
   it('dashboard/page.tsx never inlines the RU or EN disclaimer body text as a string literal', () => {
     const dashboardSrc = fs.readFileSync(

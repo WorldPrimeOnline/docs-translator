@@ -265,6 +265,10 @@
     "formats": {
       "title": "Elektronik çeviri biçimleri",
       "body": "Elektronik çeviri, düzenlenebilir DOCX ve HTML biçimlerinde sunulur. Karmaşık tablolar, taramalar veya standart dışı düzene sahip belgeler için sütun genişliği, satır sonları veya biçimlendirmenin elle ayarlanması gerekebilir."
+    },
+    "finalFormat": {
+      "official": "Nihai format: Çevirmen incelemesinden sonra PDF",
+      "notarized": "Nihai format: Noter paketi / Ortak süreç sonrası PDF"
     }
   }
 }

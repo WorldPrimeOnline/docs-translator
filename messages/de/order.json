@@ -265,6 +265,10 @@
     "formats": {
       "title": "Formate der elektronischen Übersetzung",
       "body": "Die elektronische Übersetzung wird in den bearbeitbaren Formaten DOCX und HTML bereitgestellt. Bei Dokumenten mit komplexen Tabellen, Scans oder nicht standardmäßigem Layout kann eine manuelle Anpassung der Spaltenbreite, der Zeilenumbrüche oder der Formatierung erforderlich sein."
+    },
+    "finalFormat": {
+      "official": "Endformat: PDF nach Prüfung durch den Übersetzer",
+      "notarized": "Endformat: Notarpaket / PDF nach Partnerprozess"
     }
   }
 }

@@ -1000,21 +1000,34 @@ export default function DashboardPage() {
                 {DOCUMENT_TYPES.map((dt) => <option key={dt.value} value={dt.value}>{dt.label}</option>)}
               </select>
             </div>
-            {serviceLevel === 'electronic' && (
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('outputFormat')}</label>
+            {/* Output format area — always shown (never disappears across service levels).
+                Electronic: interactive DOCX/HTML selector, no PDF option.
+                Official/notarized: read-only notice — their pipeline produces its own
+                artifacts (AI draft DOCX -> human review -> final PDF/notary package) and
+                this selector has no effect on them, so it must not offer DOCX/HTML/PDF
+                as choices. See the 2026-07-03 UX correction. */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('outputFormat')}</label>
+              {serviceLevel === 'electronic' ? (
                 <select value={outputFormat} onChange={(e) => setOutputFormat(e.target.value as 'html' | 'docx')} className={selectClass}>
                   <option value="docx">{t('formatDocx')}</option>
                   <option value="html">{t('formatHtml')}</option>
                 </select>
-              </div>
-            )}
+              ) : (
+                <div
+                  className={`${selectClass} flex cursor-not-allowed items-center opacity-70`}
+                  aria-disabled="true"
+                  data-testid="output-format-readonly"
+                >
+                  {serviceLevel === 'notarization_through_partners'
+                    ? tElectronic('finalFormat.notarized')
+                    : tElectronic('finalFormat.official')}
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Electronic output format disclaimer — DOCX/HTML only, no PDF for electronic delivery.
-              Official/notarized workflows produce their own artifacts (draft DOCX -> human review ->
-              final PDF/notary package) and do not use this selector at all — see item 8 in the
-              2026-07-02 dashboard-visibility bug report. */}
+          {/* Electronic output format disclaimer — DOCX/HTML only, no PDF for electronic delivery. */}
           {serviceLevel === 'electronic' && (
             <p className="text-xs text-muted-foreground">
               <span className="font-medium">{tElectronic('formats.title')}</span>
