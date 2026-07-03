@@ -428,3 +428,19 @@ worker/src/processor.ts, worker/src/lib/docx-renderer.ts, worker/src/lib/rendere
 
 **Risks / caveats:**  
 This modifies worker/src/lib/docx-renderer.ts and worker/src/lib/renderer.ts, both listed as frozen in docs/OFFICIAL_DOCX_PIPELINE_FREEZE.md ('Translator/provider block') — done under explicit written approval for this specific change only; OCR, translation prompts/parameters, table-classification, and visual-element detection were NOT touched. The Railway worker completion email has no i18n system and remains hardcoded English-only; the electronic-output disclaimer was not added there — a pre-existing gap, not introduced by this change. renderToPdfBuffer() (src/lib/pdf/renderer.ts) and generatePdfFromHtml()/Puppeteer remain fully functional but are now only reachable via the official/notarized preview-PDF path — if a future change reconnects them to the electronic path, the policy would silently regress without a code-level guard (only tests catch this).
+
+---
+
+### 2026-07-03 — Internal AI Test Lab: add batch mode for launch QA
+
+**Decision:**  
+tools/internal-ai-test-lab/run-ai-translation-test.ts now supports three modes (auto-detected from flags): single-file (unchanged), batch (--input-dir + --manifest, processes a reviewed batch-manifest.json sequentially or with --concurrency<=2), and --generate-manifest-template (drafts a manifest from filenames for human review, never used for actual execution). The single-document pipeline was extracted into lib/process-document.ts so both modes share one implementation. Electronic-mode output now also writes a standalone translated-document.INTERNAL_TEST.html file (previously only DOCX+diagnostic-PDF); the diagnostic PDF was renamed translated-document.INTERNAL_DIAGNOSTIC_ONLY.pdf to make its non-deliverable status unambiguous.
+
+**Rationale:**  
+Launch QA needs to cover many language pairs/document types before go-live; running the single-file CLI by hand per document does not scale. Batch execution intentionally never guesses source/target language or document type from filenames -- only a human-reviewed manifest drives execution, to avoid silently mis-pricing or mis-translating a QA document. Concurrency is capped at 2 to bound real-time OCR/LLM API cost and rate-limit risk.
+
+**Impacted files/docs:**  
+tools/internal-ai-test-lab/README.md, docs/ai-context/20_COMMANDS_AND_TESTS.md
+
+**Risks / caveats:**  
+Batch mode spends real OCR/LLM API credits per manifest entry -- a large manifest run against production is a real cost event. A bad manifest entry (wrong service level, wrong document type) still passes alias-map validation if the value is a valid-but-wrong canonical alias -- validation catches malformed/unknown values, not semantically wrong ones.

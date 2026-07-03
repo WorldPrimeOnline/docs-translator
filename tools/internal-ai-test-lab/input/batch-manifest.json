@@ -1,0 +1,216 @@
+[
+  {
+    "file": "01_ru_kk_identity_card_complex.pdf",
+    "sourceLanguage": "ru",
+    "targetLanguage": "kk",
+    "documentType": "identity_card",
+    "serviceLevel": "electronic_translation",
+    "notes": "Complex ID card layout"
+  },
+  {
+    "file": "02_en_th_passport_biodata_visa.pdf",
+    "sourceLanguage": "en",
+    "targetLanguage": "th",
+    "documentType": "passport",
+    "serviceLevel": "electronic_translation",
+    "notes": "Biodata page + visa stamps — visual-element handling test"
+  },
+  {
+    "file": "03_kk_birth_certificate_civil.pdf",
+    "sourceLanguage": "kk",
+    "targetLanguage": "ru",
+    "documentType": "birth_certificate",
+    "serviceLevel": "electronic_translation"
+  },
+  {
+    "file": "04_ru_marriage_certificate_old_copy.pdf",
+    "sourceLanguage": "ru",
+    "targetLanguage": "en",
+    "documentType": "marriage_certificate",
+    "serviceLevel": "electronic_translation",
+    "notes": "Old copy — scan quality may be degraded, OCR confidence test"
+  },
+  {
+    "file": "05_es_birth_certificate_long_form.pdf",
+    "sourceLanguage": "es",
+    "targetLanguage": "ru",
+    "documentType": "birth_certificate",
+    "serviceLevel": "electronic_translation",
+    "notes": "Long-form certificate"
+  },
+  {
+    "file": "06_en_bank_statement_3_pages.pdf",
+    "sourceLanguage": "en",
+    "targetLanguage": "ru",
+    "documentType": "bank_statement",
+    "serviceLevel": "electronic_translation",
+    "notes": "3-page statement — multi-page handling test"
+  },
+  {
+    "file": "07_zh_bank_statement_table.pdf",
+    "sourceLanguage": "zh",
+    "targetLanguage": "ru",
+    "documentType": "bank_statement",
+    "serviceLevel": "electronic_translation",
+    "notes": "Table-heavy layout"
+  },
+  {
+    "file": "08_ru_bank_reference_letter.pdf",
+    "sourceLanguage": "ru",
+    "targetLanguage": "en",
+    "documentType": "bank_reference",
+    "serviceLevel": "electronic_translation",
+    "notes": "No dedicated canonical document type — resolves to \"other\" for pricing/prompting, see lib/manifest.ts warnings"
+  },
+  {
+    "file": "09_de_employment_salary_letter.pdf",
+    "sourceLanguage": "de",
+    "targetLanguage": "ru",
+    "documentType": "employment_document",
+    "serviceLevel": "electronic_translation"
+  },
+  {
+    "file": "10_tr_salary_certificate_payroll.pdf",
+    "sourceLanguage": "tr",
+    "targetLanguage": "ru",
+    "documentType": "salary_certificate",
+    "serviceLevel": "electronic_translation"
+  },
+  {
+    "file": "11_ru_labor_contract_6_pages.pdf",
+    "sourceLanguage": "ru",
+    "targetLanguage": "en",
+    "documentType": "contract",
+    "serviceLevel": "electronic_translation",
+    "notes": "6-page contract — long-document test"
+  },
+  {
+    "file": "12_kk_power_of_attorney.pdf",
+    "sourceLanguage": "kk",
+    "targetLanguage": "ru",
+    "documentType": "power_of_attorney",
+    "serviceLevel": "electronic_translation",
+    "notes": "No dedicated canonical document type — resolves to \"other\" for pricing/prompting, see lib/manifest.ts warnings"
+  },
+  {
+    "file": "13_en_service_agreement_4_pages.pdf",
+    "sourceLanguage": "en",
+    "targetLanguage": "ru",
+    "documentType": "contract",
+    "serviceLevel": "electronic_translation",
+    "notes": "4-page service agreement"
+  },
+  {
+    "file": "14_en_academic_transcript_4_pages.pdf",
+    "sourceLanguage": "en",
+    "targetLanguage": "ru",
+    "documentType": "academic_transcript",
+    "serviceLevel": "electronic_translation",
+    "notes": "4-page transcript"
+  },
+  {
+    "file": "15_de_diploma_certificate_decorative.pdf",
+    "sourceLanguage": "de",
+    "targetLanguage": "ru",
+    "documentType": "diploma",
+    "serviceLevel": "electronic_translation",
+    "notes": "Decorative border/seal — visual-element handling test"
+  },
+  {
+    "file": "16_ru_kk_diploma_supplement.pdf",
+    "sourceLanguage": "ru",
+    "targetLanguage": "kk",
+    "documentType": "diploma_supplement",
+    "serviceLevel": "electronic_translation"
+  },
+  {
+    "file": "17_ko_medical_discharge_summary.pdf",
+    "sourceLanguage": "ko",
+    "targetLanguage": "ru",
+    "documentType": "medical_document",
+    "serviceLevel": "electronic_translation"
+  },
+  {
+    "file": "18_th_lab_results_medical.pdf",
+    "sourceLanguage": "th",
+    "targetLanguage": "ru",
+    "documentType": "medical_document",
+    "serviceLevel": "electronic_translation"
+  },
+  {
+    "file": "19_en_ru_vaccination_certificate.pdf",
+    "sourceLanguage": "en",
+    "targetLanguage": "ru",
+    "documentType": "medical_document",
+    "serviceLevel": "electronic_translation"
+  },
+  {
+    "file": "20_tj_tax_certificate.pdf",
+    "sourceLanguage": "tj",
+    "targetLanguage": "ru",
+    "documentType": "tax_certificate",
+    "serviceLevel": "electronic_translation",
+    "notes": "No dedicated canonical document type — resolves to \"other\" for pricing/prompting, see lib/manifest.ts warnings"
+  },
+  {
+    "file": "21_mn_police_clearance.pdf",
+    "sourceLanguage": "mn",
+    "targetLanguage": "ru",
+    "documentType": "police_clearance",
+    "serviceLevel": "electronic_translation"
+  },
+  {
+    "file": "22_ky_driver_license_card.pdf",
+    "sourceLanguage": "ky",
+    "targetLanguage": "ru",
+    "documentType": "driver_license",
+    "serviceLevel": "electronic_translation"
+  },
+  {
+    "file": "23_th_en_visa_application_form.pdf",
+    "sourceLanguage": "th",
+    "targetLanguage": "en",
+    "documentType": "visa_application",
+    "serviceLevel": "electronic_translation"
+  },
+  {
+    "file": "24_uz_migration_registration_notice.pdf",
+    "sourceLanguage": "uz",
+    "targetLanguage": "ru",
+    "documentType": "migration_document",
+    "serviceLevel": "electronic_translation",
+    "notes": "No dedicated canonical document type — resolves to \"other\" for pricing/prompting, see lib/manifest.ts warnings"
+  },
+  {
+    "file": "25_ru_notarial_consent_child_travel.pdf",
+    "sourceLanguage": "ru",
+    "targetLanguage": "en",
+    "documentType": "notarial_consent",
+    "serviceLevel": "electronic_translation",
+    "notes": "Used as an electronic-mode QA case only here. A real notarial-consent order would use serviceLevel notarization_through_partners — change before using this row for anything but algorithm/pricing QA. No dedicated canonical document type — resolves to \"other\"."
+  },
+  {
+    "file": "26_en_invoice_business_multitable.pdf",
+    "sourceLanguage": "en",
+    "targetLanguage": "ru",
+    "documentType": "invoice",
+    "serviceLevel": "electronic_translation",
+    "notes": "Multi-table invoice — layout-complexity test. No dedicated canonical document type — resolves to \"other\"."
+  },
+  {
+    "file": "27_presentation_pitch_deck_6_slides.pdf",
+    "sourceLanguage": "en",
+    "targetLanguage": "ru",
+    "documentType": "presentation",
+    "serviceLevel": "electronic_translation",
+    "notes": "Filename has no language token — source/target ASSUMED en->ru, please verify against the actual file before running"
+  },
+  {
+    "file": "28_ru_old_archive_certificate_low_quality.pdf",
+    "sourceLanguage": "ru",
+    "targetLanguage": "en",
+    "documentType": "archival_certificate",
+    "serviceLevel": "electronic_translation",
+    "notes": "Low-quality scan — OCR confidence / warning-surfacing stress test. No dedicated canonical document type — resolves to \"other\"."
+  }
+]

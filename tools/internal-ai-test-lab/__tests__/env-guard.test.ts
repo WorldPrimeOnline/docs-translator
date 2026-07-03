@@ -1,7 +1,9 @@
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { loadEnvFile, checkProductionSafety, resolveEnvironment, buildSafetySummary, EnvGuardError } from '../lib/env-guard';
+import { loadEnvFile, checkProductionSafety, resolveEnvironment, buildSafetySummary, buildBatchSafetySummary, EnvGuardError } from '../lib/env-guard';
+
+const TOOL_ROOT = path.resolve(__dirname, '..');
 
 describe('resolveEnvironment', () => {
   it('detects production via APP_ENV', () => {
@@ -109,6 +111,51 @@ describe('buildSafetySummary', () => {
     expect(summary).toContain('Normal order creation: disabled');
     expect(summary).toContain('Output dir: tools/internal-ai-test-lab/runs/run123');
     expect(summary).toContain('R2 save: false');
+  });
+});
+
+describe('buildBatchSafetySummary', () => {
+  it('renders the required batch-mode startup banner', () => {
+    const summary = buildBatchSafetySummary({
+      environment: 'production',
+      batchId: 'batch_20260703T120000Z_ab12cd34',
+      outputDir: 'tools/internal-ai-test-lab/runs',
+      fileCount: 28,
+      concurrency: 1,
+    });
+    expect(summary).toContain('WPO AI Translation Test Lab — Batch Mode');
+    expect(summary).toContain('Environment: production');
+    expect(summary).toContain('Files to process: 28');
+    expect(summary).toContain('Concurrency: 1');
+    expect(summary).toContain('Payment: disabled');
+    expect(summary).toContain('Halyk: disabled');
+    expect(summary).toContain('Jira: disabled');
+    expect(summary).toContain('Fiscalization: disabled');
+    expect(summary).toContain('Normal customer workflow: disabled');
+  });
+
+  it('includes a real-API-credit cost warning', () => {
+    const summary = buildBatchSafetySummary({
+      environment: 'staging',
+      batchId: 'batch_x',
+      outputDir: 'runs',
+      fileCount: 2,
+      concurrency: 1,
+    });
+    expect(summary).toMatch(/real OCR\/LLM API credits/);
+  });
+});
+
+describe('production guard applies identically to batch mode (checkProductionSafety is mode-agnostic)', () => {
+  it('run-ai-translation-test.ts calls checkProductionSafety() in both runSingleFileMode and runBatchMode', () => {
+    const src = fs.readFileSync(path.join(TOOL_ROOT, 'run-ai-translation-test.ts'), 'utf-8');
+    const singleFn = src.slice(src.indexOf('async function runSingleFileMode'), src.indexOf('async function runBatchMode'));
+    const batchFn = src.slice(src.indexOf('async function runBatchMode'), src.indexOf('async function main'));
+    expect(singleFn).toContain('checkProductionSafety(process.env, cli.confirmProduction)');
+    expect(batchFn).toContain('checkProductionSafety(process.env, cli.confirmProduction)');
+    // Both modes refuse to proceed the same way — no batch-only bypass.
+    expect(singleFn).toMatch(/if \(!safety\.ok\) \{/);
+    expect(batchFn).toMatch(/if \(!safety\.ok\) \{/);
   });
 });
 

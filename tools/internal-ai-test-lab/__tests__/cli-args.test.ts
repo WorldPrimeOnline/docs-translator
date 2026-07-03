@@ -12,6 +12,7 @@ describe('parseCliArgs', () => {
 
   it('parses all required options', () => {
     const cli = parseCliArgs(baseArgs);
+    expect(cli.mode).toBe('single');
     expect(cli.envFile).toBe('tools/internal-ai-test-lab/.env.staging.local');
     expect(cli.file).toBe('./input/passport.pdf');
     expect(cli.sourceLanguage).toBe('ru');

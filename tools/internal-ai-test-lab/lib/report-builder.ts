@@ -48,8 +48,10 @@ export interface TranslationSummarySection {
 }
 
 export interface RenderedOutputSection {
+  /** Diagnostic artifact only — production electronic delivery is DOCX+HTML, never PDF. */
   translatedPdfPath: string | null;
   translatedDocxPath: string | null;
+  translatedHtmlPath: string | null;
   warnings: string[];
 }
 
@@ -224,8 +226,9 @@ export function renderReportMarkdown(data: ReportData): string {
   lines.push(mdTable(
     ['Field', 'Value'],
     [
-      ['Translated PDF', data.renderedOutput.translatedPdfPath ?? 'not generated'],
       ['Translated DOCX', data.renderedOutput.translatedDocxPath ?? 'not generated'],
+      ['Translated HTML', data.renderedOutput.translatedHtmlPath ?? 'not generated'],
+      ['Translated PDF (internal diagnostic artifact only — not client delivery)', data.renderedOutput.translatedPdfPath ?? 'not generated'],
       ['Warnings', data.renderedOutput.warnings.join('; ') || 'none'],
     ],
   ));
@@ -423,8 +426,9 @@ ${htmlTable(['Field', 'Value'], [
 
 <h2>4. Rendered Output</h2>
 ${htmlTable(['Field', 'Value'], [
-  ['Translated PDF', escapeHtml(data.renderedOutput.translatedPdfPath ?? 'not generated')],
   ['Translated DOCX', escapeHtml(data.renderedOutput.translatedDocxPath ?? 'not generated')],
+  ['Translated HTML', escapeHtml(data.renderedOutput.translatedHtmlPath ?? 'not generated')],
+  ['Translated PDF (internal diagnostic artifact only — not client delivery)', escapeHtml(data.renderedOutput.translatedPdfPath ?? 'not generated')],
   ['Warnings', escapeHtml(data.renderedOutput.warnings.join('; ') || 'none')],
 ])}
 

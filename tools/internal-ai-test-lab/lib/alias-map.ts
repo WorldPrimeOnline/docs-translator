@@ -21,6 +21,7 @@ export class AliasMapError extends Error {}
 
 const SERVICE_LEVEL_ALIASES: Record<string, CanonicalServiceLevel> = {
   electronic: 'electronic',
+  electronic_translation: 'electronic',
 
   official_translation: 'official_with_translator_signature_and_provider_stamp',
   official: 'official_with_translator_signature_and_provider_stamp',
@@ -80,17 +81,46 @@ const DOCUMENT_TYPE_ALIASES: Record<string, CanonicalDocumentType> = {
 
   presentation: 'presentation',
 
+  identity_card: 'passport_id',
+
+  academic_transcript: 'diploma_transcript',
+  diploma_supplement: 'diploma_transcript',
+
+  salary_certificate: 'employment_document',
+
+  visa_application: 'visa_documents',
+
   // No dedicated canonical type exists for these yet — fall back to 'other'.
   // (See PROJECT_CONTEXT.md §9 document list vs. the narrower pricing/translation
-  // DocumentType enum — birth/marriage certs are not first-class enum members.)
+  // DocumentType enum — these are not first-class enum members.) Batch manifest
+  // validation (lib/manifest.ts) warns — but does not fail — when an entry
+  // resolves through one of these lossy aliases.
   birth_certificate: 'other',
   marriage_certificate: 'other',
   divorce_certificate: 'other',
+  bank_reference: 'other',
+  power_of_attorney: 'other',
+  tax_certificate: 'other',
+  migration_document: 'other',
+  notarial_consent: 'other',
+  invoice: 'other',
+  archival_certificate: 'other',
   other: 'other',
 };
 
 /** Aliases resolved to 'other' as a lossy fallback rather than an exact canonical match. */
-export const DOCUMENT_TYPE_FALLBACK_ALIASES = new Set(['birth_certificate', 'marriage_certificate', 'divorce_certificate']);
+export const DOCUMENT_TYPE_FALLBACK_ALIASES = new Set([
+  'birth_certificate',
+  'marriage_certificate',
+  'divorce_certificate',
+  'bank_reference',
+  'power_of_attorney',
+  'tax_certificate',
+  'migration_document',
+  'notarial_consent',
+  'invoice',
+  'archival_certificate',
+]);
 
 export function mapDocumentType(raw: string): CanonicalDocumentType {
   const key = raw.trim().toLowerCase();
@@ -161,4 +191,19 @@ export function inferDeliveryZone(deliveryCity: string | undefined): CanonicalDe
   const city = deliveryCity.trim().toLowerCase();
   if (city === 'almaty' || city === 'алматы') return 'almaty_standard';
   return 'other_city';
+}
+
+// ─── Language codes ─────────────────────────────────────────────────────────
+// "Existing supported language config" (batch manifest requirement) — mirrors
+// src/i18n/locales.ts LOCALE_CODES, the authoritative list of languages WPO
+// operates in. Duplicated as a plain string list (not a live import) so this
+// module stays a pure, dependency-free CLI helper; keep in sync manually.
+
+export const SUPPORTED_LANGUAGE_CODES = [
+  'ru', 'en', 'kk', 'zh', 'ko', 'tj', 'uz', 'tk', 'mn', 'ky', 'de', 'tr', 'es', 'th',
+] as const;
+
+/** 'auto' is only ever valid for --source-language, handled separately by callers. */
+export function isSupportedLanguageCode(code: string): boolean {
+  return (SUPPORTED_LANGUAGE_CODES as readonly string[]).includes(code.trim().toLowerCase());
 }

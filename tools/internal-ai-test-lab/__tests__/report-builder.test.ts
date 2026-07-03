@@ -44,6 +44,7 @@ function baseInput(overrides: Partial<BuildReportDataInput> = {}): BuildReportDa
     renderedOutput: {
       translatedPdfPath: 'rendered/translated-document.INTERNAL_TEST.pdf',
       translatedDocxPath: 'rendered/translated-document.INTERNAL_TEST.docx',
+      translatedHtmlPath: 'rendered/translated-document.INTERNAL_TEST.html',
       warnings: [],
     },
     pricingContext: {

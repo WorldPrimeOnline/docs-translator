@@ -1,9 +1,12 @@
 # WPO Internal AI Translation Test Lab
 
 A CLI-only tool for running the **real** OCR → translation → render → pricing
-pipeline against a local document, for internal algorithm and pricing
+pipeline against local document(s), for internal algorithm and pricing
 testing — without payment, without Halyk, without fiscalization, without
-Jira, and without creating a normal customer order.
+Jira, and without creating a normal customer order. Supports both a single
+document (**single-file mode**) and a whole folder of documents in one
+command (**batch mode**, for launch QA across many language pairs/document
+types) — see "Batch mode" below.
 
 **Every file this tool produces is an internal test artifact.** It is never
 an official, notarized, or client-deliverable document — see "What this is
@@ -91,6 +94,171 @@ plain text only (no tables/headings/formatting), reflowed into a simple PDF.
 The report's OCR/translation warnings will say so explicitly whenever the
 input is a `.docx` file. An unsupported extension (e.g. `.txt`) fails
 immediately with a clear error, before any env loading or API calls.
+
+## Batch mode
+
+Runs every document listed in a `batch-manifest.json` sequentially (or with
+`--concurrency 2`), one right after another, so you can cover many language
+pairs/document types in a single command for launch QA. Batch execution
+**relies only on the manifest** — it never guesses source/target
+language or document type from a filename.
+
+### 1. Create the input folder
+
+```bash
+mkdir -p tools/internal-ai-test-lab/input/batch
+# copy your real QA-pack documents in — gitignored by design, never committed
+```
+
+### 2. Generate a draft manifest (optional helper)
+
+```bash
+npm run wpo:ai-test -- \
+  --input-dir ./tools/internal-ai-test-lab/input/batch \
+  --generate-manifest-template \
+  --output-manifest ./tools/internal-ai-test-lab/input/batch-manifest.template.json
+```
+
+This parses filenames like `01_ru_kk_identity_card_complex.pdf` (leading
+index, source language, target language, remaining tokens as a document-type
+guess) into a draft manifest. It is deliberately conservative — an
+unrecognized document type becomes `"documentType": "other"` with a "please
+review" note, and a filename with no language token leaves
+`sourceLanguage`/`targetLanguage` blank with a note to fill it in. **This is
+only a starting point** — batch execution itself never reads filenames, only
+the manifest you review and save as `batch-manifest.json`.
+
+### 3. Review/edit the manifest
+
+Required fields per entry: `file`, `sourceLanguage`, `targetLanguage`,
+`documentType`, `serviceLevel`. Optional: `urgency`, `fulfillmentMethod`,
+`notaryCity`, `deliveryCity`, `notes`, `expectedWarnings`, `tags`.
+
+```json
+[
+  {
+    "file": "01_ru_kk_identity_card_complex.pdf",
+    "sourceLanguage": "ru",
+    "targetLanguage": "kk",
+    "documentType": "identity_card",
+    "serviceLevel": "electronic_translation",
+    "notes": "Complex ID card layout"
+  }
+]
+```
+
+A committed draft covering the 2026-07-03 launch QA pack (28 documents,
+many language pairs/document types) already lives at
+`tools/internal-ai-test-lab/input/batch-manifest.json` — the real document
+files are not included (gitignored); add them to `input/batch/` before
+running it, and re-review the two entries flagged in `notes` (`08`, `25` use
+document types with no dedicated canonical enum member, and `27` had no
+language token in its filename so source/target were assumed).
+
+Before running, the CLI always prints a validation summary — fails on a
+missing manifest/input-dir, a manifest entry referencing a missing file,
+duplicate file entries, missing required fields, or an unknown
+document type/service level/urgency/fulfillment method (reusing the same
+`lib/alias-map.ts` used by single-file mode); warns (but does not block) on
+a document type that falls back to `"other"` or a language code outside
+`src/i18n/locales.ts`.
+
+### 4. Run — staging
+
+```bash
+npm run wpo:ai-test -- \
+  --env-file tools/internal-ai-test-lab/.env.staging.local \
+  --input-dir ./tools/internal-ai-test-lab/input/batch \
+  --manifest ./tools/internal-ai-test-lab/input/batch-manifest.json \
+  --output-dir tools/internal-ai-test-lab/runs \
+  --continue-on-error
+```
+
+### 5. Run — production (extra confirmation required)
+
+```bash
+npm run wpo:ai-test -- \
+  --env-file tools/internal-ai-test-lab/.env.production.local \
+  --input-dir ./tools/internal-ai-test-lab/input/batch \
+  --manifest ./tools/internal-ai-test-lab/input/batch-manifest.json \
+  --output-dir tools/internal-ai-test-lab/runs \
+  --confirm-production \
+  --continue-on-error
+```
+
+**Cost warning: batch mode spends real OCR/LLM API credits for every
+document in the manifest** — this is printed in the startup banner every run.
+A 28-document manifest means 28 real OCR + 28 real translation calls.
+
+### Batch-only options
+
+| Flag | Meaning |
+|---|---|
+| `--input-dir <folder>` | Folder the manifest's `file` entries are resolved against |
+| `--manifest <path>` | Path to `batch-manifest.json` |
+| `--continue-on-error` | Explicit form of the default — keep going after a failed item (default for batch QA) |
+| `--stop-on-error` | Stop the batch the moment an item fails |
+| `--limit <n>` | Only run the first `n` selected entries |
+| `--only <a.pdf,3,...>` | Comma-separated file names and/or 1-based manifest positions — run just those |
+| `--skip-existing` | Skip an item whose output folder already has a completed report; marks it `skipped` in the summary |
+| `--concurrency <n>` | `1` (default, sequential) or `2` — see "Concurrency" below |
+
+### Concurrency
+
+**Defaults to 1 (sequential)** — documents run one at a time. Pass
+`--concurrency 2` to run two documents at once; **the CLI hard-rejects
+anything above 2**. Running documents in parallel multiplies real-time
+OCR/LLM API cost and materially raises the risk of hitting Mistral/Anthropic
+rate limits mid-batch — keep this at 1 unless you specifically need the
+throughput and have verified your API tier can take it. With
+`--concurrency 2` and `--stop-on-error`, an in-flight pair both still
+complete even if one fails; the batch stops before starting the *next* pair.
+
+### Batch output structure
+
+```text
+tools/internal-ai-test-lab/runs/batch_<timestamp>_<shortId>/
+  batch-summary.json
+  batch-summary.csv
+  batch-summary.html
+  batch.log
+  items/
+    01_ru_kk_identity_card_01_ru_kk_identity_card_complex/
+      source/
+      ocr/
+      translation/
+      rendered/
+      pricing/
+      report/
+      run.log
+    02_en_th_passport_02_en_th_passport_biodata_visa/
+      ...
+```
+
+Each item folder reuses the exact same single-run layout as single-file mode
+(see "Output files" below) — nested under `items/<safe-folder-name>/` instead
+of its own top-level `runs/<run-id>/`. Folder names are always
+`<index>_<source>_<target>_<documentType>_<slug-of-filename>` — lowercase,
+`_`-separated, no spaces or other unsafe characters.
+
+### Reading batch-summary.html
+
+Open it directly in a browser — a self-contained page (dark theme, no
+external assets) with one row per manifest entry: language pair, document
+type, service level, status, final price, reconciliation status, links to
+the generated DOCX/HTML/diagnostic-PDF/report files, OCR page/word counts,
+warnings (expandable), and error code/message for any failed item. Failed
+rows are visually highlighted (red) and labelled `FAILED`; skipped rows are
+labelled `SKIPPED`. `batch-summary.json` and `.csv` carry the same data for
+scripted review.
+
+### Error handling
+
+A failed item does not stop the batch by default (`--continue-on-error` is
+the implicit default for batch QA) — it's recorded with `status: "failed"`,
+an `errorCode`/`errorMessage`, and still gets its own item folder (with
+`run.log`) so you can see exactly where it broke. Pass `--stop-on-error` to
+halt immediately on the first failure instead.
 
 ## What this is NOT
 
@@ -228,13 +396,27 @@ npx tsx tools/internal-ai-test-lab/run-ai-translation-test.ts \
 
 ### CLI options
 
-Required: `--env-file`, `--file`, `--source-language`, `--target-language`,
-`--document-type`, `--service-level`.
+Mode is auto-detected from which flags are present — `--input-dir`/
+`--manifest` → batch mode, `--generate-manifest-template` → template mode,
+otherwise single-file mode (unchanged from the original tool).
 
-Optional: `--urgency`, `--fulfillment-method`, `--notary-city`,
-`--delivery-city`, `--output-dir` (default `tools/internal-ai-test-lab/runs`),
-`--save-to-r2`, `--dry-run-pricing-only`, `--skip-render`,
-`--keep-intermediate`, `--debug`, `--debug-full-text`, `--confirm-production`.
+**Single-file mode required:** `--env-file`, `--file`, `--source-language`,
+`--target-language`, `--document-type`, `--service-level`.
+
+**Batch mode required:** `--env-file`, `--input-dir`, `--manifest`.
+
+**Template mode required:** `--input-dir`, `--output-manifest`.
+
+Shared optional flags: `--output-dir` (default
+`tools/internal-ai-test-lab/runs`), `--save-to-r2`, `--dry-run-pricing-only`,
+`--skip-render`, `--keep-intermediate`, `--debug`, `--debug-full-text`,
+`--confirm-production`.
+
+Single-file-only optional: `--urgency`, `--fulfillment-method`,
+`--notary-city`, `--delivery-city`.
+
+Batch-only optional: `--continue-on-error`, `--stop-on-error`, `--limit`,
+`--only`, `--skip-existing`, `--concurrency` — see "Batch mode" above.
 
 ### Alias mapping (CLI value → canonical enum)
 
@@ -280,8 +462,9 @@ tools/internal-ai-test-lab/runs/<timestamp>_<short-run-id>/
     translated-text.md
     qa-report.json
   rendered/
-    translated-document.INTERNAL_TEST.pdf
     translated-document.INTERNAL_TEST.docx
+    translated-document.INTERNAL_TEST.html
+    translated-document.INTERNAL_DIAGNOSTIC_ONLY.pdf
   pricing/
     pricing-context.json
     price-items.json
@@ -300,15 +483,22 @@ The `.INTERNAL_TEST.` filename marker exists because the underlying renderer
 inject a custom watermark string into the PDF/DOCX body; the filename and the
 report banner carry the warning instead.
 
-**PDF here is an internal diagnostic artifact only.** As of the 2026-07-02
-electronic output policy (see `docs/ai-context/40_TRANSLATION_PIPELINE.md`),
-the production pipeline no longer generates or delivers PDF for electronic
-service-level orders — electronic client delivery is DOCX + HTML only. This
-CLI still renders `translated-document.INTERNAL_TEST.pdf` for every run
-(regardless of `--service-level`) purely so operators can visually inspect
-Puppeteer/renderer output while testing the algorithm; it is never what a
-real electronic customer receives. Do not treat this file as a preview of
-what customers get for `--service-level electronic`.
+**`translated-document.INTERNAL_DIAGNOSTIC_ONLY.pdf` is an internal
+diagnostic artifact only — never a client-facing format.** As of the
+2026-07-02 electronic output policy (see
+`docs/ai-context/40_TRANSLATION_PIPELINE.md`), the production pipeline
+generates DOCX + HTML for electronic-service-level client delivery and never
+PDF. This CLI mirrors that: `translated-document.INTERNAL_TEST.docx` and
+`translated-document.INTERNAL_TEST.html` are the real client-facing formats
+(generated for every service level, so official/notarized drafts can be
+reviewed too), and it *additionally* renders a PDF purely so operators can
+visually inspect Puppeteer/renderer output — its filename says
+`INTERNAL_DIAGNOSTIC_ONLY` for exactly this reason. For
+`official_with_translator_signature_and_provider_stamp` /
+`notarization_through_partners` service levels, none of these three files are
+a final deliverable either way — the real pipeline's human
+translator/notary review step, and the resulting signed/stamped/notarized
+PDF or notary package, happen entirely outside this tool.
 
 If DOCX or PDF rendering fails (e.g. no headless Chromium binary available in
 your environment), the run does not abort — a warning is logged and recorded
@@ -399,4 +589,11 @@ in there).
 - Do not add a second pricing calculator here — always call
   `computeQuoteForJob()` from `src/lib/pricing/service.ts`.
 - Do not commit `.env.production.local`, `.env.staging.local`, or anything
-  under `runs/` / `input/` — all gitignored by design.
+  under `runs/` / `input/` (except the checked-in `batch-manifest.json`
+  templates, which contain no document content) — gitignored by design.
+- Do not run a full production batch without first validating the manifest
+  and running a small staging batch (`--limit 2`) — batch mode multiplies API
+  spend by the number of manifest entries, and a bad manifest entry affects
+  every item that references it.
+- Do not raise `--concurrency` above 2 — the CLI rejects it, but don't try to
+  work around that; see "Concurrency" above.

@@ -110,19 +110,26 @@ describe('no-forbidden-integrations', () => {
     });
   }
 
-  it('the main orchestrator uses the real read-only computeQuoteForJob() pricing entrypoint', () => {
-    const main = sources.find((s) => s.file === 'run-ai-translation-test.ts')!;
-    expect(main.content).toContain('computeQuoteForJob');
+  it('lib/process-document.ts uses the real read-only computeQuoteForJob() pricing entrypoint', () => {
+    // Extracted from run-ai-translation-test.ts so single-file and batch mode
+    // share one pipeline implementation — see lib/process-document.ts docblock.
+    const processDoc = sources.find((s) => s.file === 'lib/process-document.ts')!;
+    expect(processDoc.content).toContain('computeQuoteForJob');
   });
 
-  it('the main orchestrator imports pipeline modules only via dynamic import() (not static import)', () => {
-    const main = sources.find((s) => s.file === 'run-ai-translation-test.ts')!;
+  it('no file in this tool imports pipeline modules statically (only dynamic import())', () => {
     // Static imports of worker/src/lib/* or @/lib/pricing/* would run before dotenv
     // loads, which is exactly the bug this tool must avoid (see env-guard.ts docblock).
-    expect(main.content).not.toMatch(/^import .* from ['"]\.\.\/\.\.\/worker\/src\/lib/m);
-    expect(main.content).not.toMatch(/^import .* from ['"]@\/lib\/pricing/m);
-    expect(main.content).toMatch(/await import\(['"]\.\.\/\.\.\/worker\/src\/lib/);
-    expect(main.content).toMatch(/await import\(['"]@\/lib\/pricing/);
+    for (const { content } of sources) {
+      expect(content).not.toMatch(/^import .* from ['"](\.\.\/)+worker\/src\/lib/m);
+      expect(content).not.toMatch(/^import .* from ['"]@\/lib\/pricing/m);
+    }
+  });
+
+  it('lib/process-document.ts imports worker pipeline modules and @/lib/pricing only via dynamic import()', () => {
+    const processDoc = sources.find((s) => s.file === 'lib/process-document.ts')!;
+    expect(processDoc.content).toMatch(/await import\(['"](\.\.\/)+worker\/src\/lib/);
+    expect(processDoc.content).toMatch(/await import\(['"]@\/lib\/pricing/);
   });
 
   it('the AiTranslationTestContext type hard-codes every integration as disabled', () => {
