@@ -8,12 +8,12 @@
     "notes": "Complex ID card layout"
   },
   {
-    "file": "02_en_th_passport_biodata_visa.pdf",
+    "file": "02_en_passport_biodata_visa.pdf",
     "sourceLanguage": "en",
     "targetLanguage": "th",
     "documentType": "passport",
     "serviceLevel": "electronic_translation",
-    "notes": "Biodata page + visa stamps — visual-element handling test"
+    "notes": "Biodata page + visa stamps — visual-element handling test. Real filename on disk has no \"th\" token (02_en_passport_biodata_visa.pdf, not 02_en_th_...); targetLanguage=th kept as originally intended, verify before running."
   },
   {
     "file": "03_kk_birth_certificate_civil.pdf",
