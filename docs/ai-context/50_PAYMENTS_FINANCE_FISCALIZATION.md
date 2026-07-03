@@ -68,6 +68,8 @@ Payment confirmation (Halyk callback)
 
 `src/lib/pricing/calculator.ts`: language group → base minimum → extra words (beyond 250) → additional pages (beyond 1) → document type coefficient → urgency coefficient → notary components. All in KZT, rounded up to nearest 100 KZT. 17 language groups defined in `src/lib/pricing/config.ts`.
 
+**Margin floor (added 2026-07-03)**: every standard quote must clear `estimated_margin_rate >= 50%` after ALL internal costs/reserves (translator, notary, courier, printing, AI/IT, tax, acquiring, risk, owner, marketing/partner commission — notary/courier/printing count as real costs, not excluded pass-throughs). If the raw price falls short, `calculatePrice()` automatically raises the price via a `margin_floor_adjustment` line item (never shown to the client, never blocks checkout). Given current unit-economics rates, this binds for most standard orders — see `docs/finance/UNIT_ECONOMICS.md` and `docs/ai-context/DECISIONS.md` (2026-07-03).
+
 Reference docs: `docs/finance/FINANCIAL_ARCHITECTURE.md`, `docs/finance/PRICING_ENGINE.md`, `docs/finance/REFUND_FINANCE_RULES.md`, `docs/finance/UNIT_ECONOMICS.md`.
 
 **Internal AI Translation Test Lab** (`tools/internal-ai-test-lab/`) exercises `computeQuoteForJob()` read-only for pricing testing — it never calls `saveQuote()` and never writes `price_quotes`/`cost_reservations`. It is not a payment bypass and is unrelated to `scripts/staging/confirm-payment-paid.ts`. See `docs/ai-context/DECISIONS.md` (2026-07-02) and `tools/internal-ai-test-lab/README.md`.

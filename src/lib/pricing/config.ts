@@ -151,6 +151,29 @@ export const NOTARY_CONFIG = {
 
 export const PRICE_ROUNDING_INCREMENT = 100;
 
+// ─── Margin floor (commercial floor) ───────────────────────────────────────────
+// Automatic pricing floor: if estimated margin after internal costs/reserves
+// falls below targetMarginRate, the calculator raises the final price via a
+// margin_floor_adjustment line item. This never blocks checkout — it only
+// adjusts the price before the quote is shown/saved. See docs/ai-context/DECISIONS.md.
+export const MARGIN_FLOOR_CONFIG = {
+  enableMarginFloor: true,
+  // Same target for all service levels today; kept as a per-level map so an
+  // override (e.g. a lower floor for electronic) doesn't require a code change.
+  targetMarginRate: {
+    electronic: 0.50,
+    official_with_translator_signature_and_provider_stamp: 0.50,
+    notarization_through_partners: 0.50,
+  } as Record<ServiceLevel, number>,
+  // Rounding increment applied only when the margin floor bumps the price
+  // above the normal PRICE_ROUNDING_INCREMENT-rounded amount.
+  roundingKzt: {
+    electronic: 100,
+    official_with_translator_signature_and_provider_stamp: 100,
+    notarization_through_partners: 500,
+  } as Record<ServiceLevel, number>,
+};
+
 export const NOTARY_URGENCY_CONFIG = {
   standard:             { multiplier: 1.0 },
   same_day_before_noon: { multiplier: 1.0, cutoffHour: 12 },

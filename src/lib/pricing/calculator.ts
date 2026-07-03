@@ -15,6 +15,7 @@ import {
   NOTARY_CONFIG,
   PRICE_ROUNDING_INCREMENT,
   PRESENTATION_SLIDE_FEE_KZT,
+  MARGIN_FLOOR_CONFIG,
 } from './config';
 import { getNotaryCutoffWindow } from './almaty-time';
 
@@ -544,33 +545,155 @@ export function calculatePrice(input: PricingInput, version: PricingVersion): Pr
     });
   }
 
-  // 13. Internal reserves (not client-visible)
+  // 13. Fixed internal costs/reserves — these do NOT scale with the final client price.
+  // (Unlike tax/acquiring/risk/owner/marketing below, which are configured as a percentage
+  // of whatever the client is actually charged.)
   const aiItReserve = version.aiItReservePerPageKzt * physicalPages;
-  const taxReserve = subtotal * version.taxRate;
-  const acquiringFee = subtotal * version.acquiringRate;
-  const riskReserve = subtotal * version.riskReserveRate;
-  const ownerReserve = subtotal * version.ownerReserveRate;
+  // Translator cost estimate: 30% of translation portion — fixed once word/page inputs are known.
+  const translatorReserved = Math.round(translationPortion * 0.30);
+
+  items.push(
+    { itemType: 'ai_it_reserve', label: 'AI/IT reserve', quantity: physicalPages, unitPriceKzt: version.aiItReservePerPageKzt, amountKzt: aiItReserve, isClientVisible: false, isCost: true, sortOrder: nextSort() },
+    { itemType: 'translator_reserved_cost', label: 'Translator cost estimate (30% of translation)', quantity: 1, unitPriceKzt: translatorReserved, amountKzt: translatorReserved, isClientVisible: false, isCost: true, sortOrder: nextSort(), metadataJson: { rate: 0.30, translationPortion } },
+  );
+
+  // notaryFee/notaryCoordFee/deliveryFee/printingFee are client-charged pass-throughs (their
+  // matching revenue items were pushed above in steps 11/12) but are real internal costs too —
+  // must be counted here or margin looks inflated for notarized/delivery orders.
+  const fixedInternalCosts = aiItReserve + translatorReserved + notaryFee + notaryCoordFee + deliveryFee + printingFee;
+
+  const targetProfit = subtotal * version.targetProfitRate;
+  items.push({
+    itemType: 'target_profit',
+    label: 'Target profit allocation',
+    quantity: 1,
+    unitPriceKzt: targetProfit,
+    amountKzt: targetProfit,
+    isClientVisible: false,
+    isCost: false,
+    sortOrder: nextSort(),
+    metadataJson: { rate: version.targetProfitRate },
+  });
+
+  // 14. Round the raw client price (normal rounding, before any margin-floor adjustment)
+  const roundedAmount = roundToIncrement(subtotal, PRICE_ROUNDING_INCREMENT);
+  const roundingAdj = roundedAmount - subtotal;
+  if (Math.abs(roundingAdj) > 0.01) {
+    items.push({
+      itemType: 'rounding_adjustment',
+      label: 'Rounding adjustment',
+      quantity: 1,
+      unitPriceKzt: roundingAdj,
+      amountKzt: roundingAdj,
+      isClientVisible: false,
+      isCost: false,
+      sortOrder: nextSort(),
+    });
+  }
+  const rawPriceBeforeMarginFloor = roundedAmount;
+
+  // 15. Percentage-of-final-price reserve rate for this order's sales channel. Mirrors the
+  // channel logic used below when the actual reserve items are computed: direct pays
+  // marketingRateDirect; referral pays partnerCommissionRate plus a flat 2% marketing top-up;
+  // any other channel currently contributes 0 (pre-existing gap, unchanged by this feature).
+  let marketingOrPartnerRate = 0;
+  if (salesChannel === 'direct') {
+    marketingOrPartnerRate = version.marketingRateDirect;
+  } else if (salesChannel === 'referral') {
+    marketingOrPartnerRate = version.partnerCommissionRate + 0.02;
+  }
+  const percentageReserveRate = version.taxRate + version.acquiringRate + version.riskReserveRate
+    + version.ownerReserveRate + marketingOrPartnerRate;
+
+  // 16. Margin floor — automatic pricing floor, never blocks checkout.
+  // Tax, Halyk acquiring, risk, owner, and marketing/partner reserves are each a percentage of
+  // whatever the client is actually charged — so they must be sized against the FINAL price,
+  // not the pre-floor subtotal. Recomputing them at the old subtotal after raising the price
+  // would understate real tax/acquiring liability on the higher amount. So:
+  //   1. Estimate margin at the raw (pre-floor) price using percentage reserves at that price.
+  //   2. If margin < target, solve for the price where fixed costs + percentage reserves
+  //      (sized against that same solved-for price) leave exactly the target margin:
+  //      price = fixed_costs / (1 - percentage_reserve_rate - target_margin_rate)
+  //   3. Round up (rounding only increases price, so it cannot undercut the floor).
+  //   4. Recompute the actual percentage-reserve line items against the true final price (§17).
+  const targetMarginFloorRate = MARGIN_FLOOR_CONFIG.targetMarginRate[serviceLevel];
+
+  const percentageReserveAtRaw = rawPriceBeforeMarginFloor * percentageReserveRate;
+  const totalCostsBeforeFloor = fixedInternalCosts + percentageReserveAtRaw;
+  const estimatedMarginBeforeFloor = rawPriceBeforeMarginFloor - totalCostsBeforeFloor;
+  const estimatedMarginRateBeforeFloor = rawPriceBeforeMarginFloor > 0
+    ? estimatedMarginBeforeFloor / rawPriceBeforeMarginFloor
+    : 0;
+
+  let finalAmount = rawPriceBeforeMarginFloor;
+  let marginFloorAdjustmentKzt = 0;
+  let minimumPriceForMargin: number | null = null;
+
+  if (MARGIN_FLOOR_CONFIG.enableMarginFloor && estimatedMarginRateBeforeFloor < targetMarginFloorRate) {
+    const denominator = 1 - percentageReserveRate - targetMarginFloorRate;
+    if (denominator <= 0) {
+      // Configuration error: the configured percentage reserves plus the target margin exceed
+      // 100% of revenue, so no finite price can satisfy the floor. Fail loudly rather than
+      // silently emit a quote that doesn't actually meet the margin floor.
+      throw new Error(
+        `MARGIN_FLOOR_CONFIG_ERROR: percentage reserve rate (${percentageReserveRate}) + target margin rate (${targetMarginFloorRate}) >= 100% for pricing version '${version.code}', service level '${serviceLevel}'. Cannot solve for a valid margin-floor price — fix pricing_versions rates before quoting.`,
+      );
+    }
+    minimumPriceForMargin = fixedInternalCosts / denominator;
+    const floorRoundingIncrement = MARGIN_FLOOR_CONFIG.roundingKzt[serviceLevel];
+    const flooredAmount = roundToIncrement(
+      Math.max(rawPriceBeforeMarginFloor, minimumPriceForMargin),
+      floorRoundingIncrement,
+    );
+    marginFloorAdjustmentKzt = flooredAmount - rawPriceBeforeMarginFloor;
+    finalAmount = flooredAmount;
+
+    items.push({
+      itemType: 'margin_floor_adjustment',
+      label: 'Margin floor adjustment',
+      quantity: 1,
+      unitPriceKzt: marginFloorAdjustmentKzt,
+      amountKzt: marginFloorAdjustmentKzt,
+      isClientVisible: false,
+      isCost: false,
+      sortOrder: nextSort(),
+      metadataJson: {
+        target_margin_rate: targetMarginFloorRate,
+        raw_final_price: rawPriceBeforeMarginFloor,
+        fixed_internal_costs: fixedInternalCosts,
+        percentage_reserve_rate: percentageReserveRate,
+        internal_costs_before_adjustment: totalCostsBeforeFloor,
+        estimated_margin_rate_before_adjustment: estimatedMarginRateBeforeFloor,
+        minimum_price_for_margin: minimumPriceForMargin,
+        rounding_rule: floorRoundingIncrement,
+        reason: 'margin_below_target',
+      },
+    });
+  }
+
+  // 17. Recompute percentage-based reserves against the TRUE final price (whether or not the
+  // floor moved it) — this is what will actually be charged/processed, so it's what tax and
+  // Halyk acquiring fees are really sized against.
+  const taxReserve = finalAmount * version.taxRate;
+  const acquiringFee = finalAmount * version.acquiringRate;
+  const riskReserve = finalAmount * version.riskReserveRate;
+  const ownerReserve = finalAmount * version.ownerReserveRate;
 
   let marketingReserve = 0;
   let partnerCommission = 0;
   if (salesChannel === 'direct') {
-    marketingReserve = subtotal * version.marketingRateDirect;
+    marketingReserve = finalAmount * version.marketingRateDirect;
   } else if (salesChannel === 'referral') {
-    partnerCommission = subtotal * version.partnerCommissionRate;
-    marketingReserve = subtotal * 0.02;
+    partnerCommission = finalAmount * version.partnerCommissionRate;
+    marketingReserve = finalAmount * 0.02;
   }
 
-  // Translator cost estimate: 30% of translation portion
-  const translatorReserved = Math.round(translationPortion * 0.30);
-
   items.push(
-    { itemType: 'ai_it_reserve',          label: 'AI/IT reserve',                quantity: physicalPages, unitPriceKzt: version.aiItReservePerPageKzt, amountKzt: aiItReserve,      isClientVisible: false, isCost: true, sortOrder: nextSort() },
-    { itemType: 'tax_reserve',            label: 'Tax reserve (3%)',              quantity: 1,             unitPriceKzt: taxReserve,                    amountKzt: taxReserve,       isClientVisible: false, isCost: true, sortOrder: nextSort() },
-    { itemType: 'acquiring_fee_estimate', label: 'Acquiring fee estimate (2.5%)', quantity: 1,             unitPriceKzt: acquiringFee,                  amountKzt: acquiringFee,     isClientVisible: false, isCost: true, sortOrder: nextSort() },
-    { itemType: 'risk_chargeback_reserve',label: 'Risk/chargeback reserve (5%)',  quantity: 1,             unitPriceKzt: riskReserve,                   amountKzt: riskReserve,      isClientVisible: false, isCost: true, sortOrder: nextSort() },
-    { itemType: 'owner_reserve',          label: 'Owner reserve (7%)',            quantity: 1,             unitPriceKzt: ownerReserve,                  amountKzt: ownerReserve,     isClientVisible: false, isCost: true, sortOrder: nextSort() },
-    { itemType: 'marketing_cac_reserve',  label: 'Marketing/CAC reserve',        quantity: 1,             unitPriceKzt: marketingReserve,              amountKzt: marketingReserve, isClientVisible: false, isCost: true, sortOrder: nextSort() },
-    { itemType: 'translator_reserved_cost', label: 'Translator cost estimate (30% of translation)', quantity: 1, unitPriceKzt: translatorReserved, amountKzt: translatorReserved, isClientVisible: false, isCost: true, sortOrder: nextSort(), metadataJson: { rate: 0.30, translationPortion } },
+    { itemType: 'tax_reserve',            label: 'Tax reserve (3%)',              quantity: 1, unitPriceKzt: taxReserve,      amountKzt: taxReserve,      isClientVisible: false, isCost: true, sortOrder: nextSort(), metadataJson: { rate: version.taxRate, computedAgainst: 'final_price' } },
+    { itemType: 'acquiring_fee_estimate', label: 'Acquiring fee estimate (2.5%)', quantity: 1, unitPriceKzt: acquiringFee,    amountKzt: acquiringFee,    isClientVisible: false, isCost: true, sortOrder: nextSort(), metadataJson: { rate: version.acquiringRate, computedAgainst: 'final_price' } },
+    { itemType: 'risk_chargeback_reserve',label: 'Risk/chargeback reserve (5%)',  quantity: 1, unitPriceKzt: riskReserve,     amountKzt: riskReserve,     isClientVisible: false, isCost: true, sortOrder: nextSort(), metadataJson: { rate: version.riskReserveRate, computedAgainst: 'final_price' } },
+    { itemType: 'owner_reserve',          label: 'Owner reserve (7%)',            quantity: 1, unitPriceKzt: ownerReserve,    amountKzt: ownerReserve,    isClientVisible: false, isCost: true, sortOrder: nextSort(), metadataJson: { rate: version.ownerReserveRate, computedAgainst: 'final_price' } },
+    { itemType: 'marketing_cac_reserve',  label: 'Marketing/CAC reserve',        quantity: 1, unitPriceKzt: marketingReserve, amountKzt: marketingReserve, isClientVisible: false, isCost: true, sortOrder: nextSort(), metadataJson: { computedAgainst: 'final_price' } },
   );
 
   if (partnerCommission > 0) {
@@ -583,7 +706,7 @@ export function calculatePrice(input: PricingInput, version: PricingVersion): Pr
       isClientVisible: false,
       isCost: true,
       sortOrder: nextSort(),
-      metadataJson: { salesChannel, rate: version.partnerCommissionRate },
+      metadataJson: { salesChannel, rate: version.partnerCommissionRate, computedAgainst: 'final_price' },
     });
   } else {
     // Zero-value row: no partner commission for direct sales
@@ -600,43 +723,15 @@ export function calculatePrice(input: PricingInput, version: PricingVersion): Pr
     });
   }
 
-  const targetProfit = subtotal * version.targetProfitRate;
-  items.push({
-    itemType: 'target_profit',
-    label: 'Target profit allocation',
-    quantity: 1,
-    unitPriceKzt: targetProfit,
-    amountKzt: targetProfit,
-    isClientVisible: false,
-    isCost: false,
-    sortOrder: nextSort(),
-    metadataJson: { rate: version.targetProfitRate },
-  });
-
-  // 14. Round final client price
-  const roundedAmount = roundToIncrement(subtotal, PRICE_ROUNDING_INCREMENT);
-  const roundingAdj = roundedAmount - subtotal;
-  if (Math.abs(roundingAdj) > 0.01) {
-    items.push({
-      itemType: 'rounding_adjustment',
-      label: 'Rounding adjustment',
-      quantity: 1,
-      unitPriceKzt: roundingAdj,
-      amountKzt: roundingAdj,
-      isClientVisible: false,
-      isCost: false,
-      sortOrder: nextSort(),
-    });
-  }
-
-  const totalCosts = aiItReserve + taxReserve + acquiringFee + riskReserve + ownerReserve
-    + marketingReserve + partnerCommission + translatorReserved + notaryFee + notaryCoordFee;
-  const estimatedMargin = roundedAmount - totalCosts;
+  const percentageReservesAtFinal = taxReserve + acquiringFee + riskReserve + ownerReserve + marketingReserve + partnerCommission;
+  const totalCosts = fixedInternalCosts + percentageReservesAtFinal;
+  const estimatedMargin = finalAmount - totalCosts;
+  const estimatedMarginRate = finalAmount > 0 ? estimatedMargin / finalAmount : 0;
 
   const finalStatus: QuoteStatus = reviewReasons.length > 0 ? 'requires_operator_review' : 'quoted';
 
   return {
-    amountKzt: Math.max(0, roundedAmount),
+    amountKzt: Math.max(0, finalAmount),
     currency: 'KZT',
     status: finalStatus,
     items,
@@ -659,11 +754,17 @@ export function calculatePrice(input: PricingInput, version: PricingVersion): Pr
       printingCost: printingFee,
     },
     margin: {
-      grossRevenue: roundedAmount,
+      grossRevenue: finalAmount,
       totalCosts,
       targetProfit,
       estimatedMarginKzt: estimatedMargin,
-      estimatedMarginRate: roundedAmount > 0 ? estimatedMargin / roundedAmount : 0,
+      estimatedMarginRate,
+      rawPriceBeforeMarginFloor,
+      estimatedMarginRateBeforeFloor,
+      marginFloorAdjustmentKzt,
+      targetMarginFloorRate,
+      profitBufferAboveTargetKzt: estimatedMargin - finalAmount * targetMarginFloorRate,
+      profitBufferAboveTargetRate: estimatedMarginRate - targetMarginFloorRate,
     },
     context: {
       languagePair,

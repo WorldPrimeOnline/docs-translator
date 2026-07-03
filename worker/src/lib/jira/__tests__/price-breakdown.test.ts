@@ -366,6 +366,40 @@ describe('buildPriceBreakdownDescription — section E', () => {
     expect(text).toContain('Estimated margin');
     expect(text).toContain('44.00%');
   });
+
+  it('shows margin floor fields when present in margin_json', () => {
+    const quote = makeQuote({
+      marginJson: {
+        grossRevenue: 7800,
+        totalCosts: 3895,
+        targetProfit: 1375,
+        estimatedMarginKzt: 3905,
+        estimatedMarginRate: 0.5006,
+        rawPriceBeforeMarginFloor: 5500,
+        estimatedMarginRateBeforeFloor: 0.4068,
+        marginFloorAdjustmentKzt: 2300,
+        targetMarginFloorRate: 0.50,
+        profitBufferAboveTargetKzt: 3.9,
+        profitBufferAboveTargetRate: 0.0006,
+      },
+    });
+    const text = collectText(buildPriceBreakdownDescription(makeParams({ quote })));
+    expect(text).toContain('Raw price before margin floor');
+    expect(text).toContain('5500.00 KZT');
+    expect(text).toContain('Margin floor adjustment');
+    expect(text).toContain('2300.00 KZT');
+    expect(text).toContain('Target margin %');
+    expect(text).toContain('50.00%');
+    expect(text).toContain('Profit buffer above target');
+  });
+
+  it('omits margin floor rows for older quotes whose margin_json predates this feature', () => {
+    // makeQuote()'s default marginJson has no margin-floor keys — simulates a quote
+    // created before this feature. Section E must still render without them.
+    const text = collectText(buildPriceBreakdownDescription(makeParams()));
+    expect(text).not.toContain('Raw price before margin floor');
+    expect(text).not.toContain('Margin floor adjustment');
+  });
 });
 
 describe('buildPriceBreakdownDescription — section F reconciliation', () => {

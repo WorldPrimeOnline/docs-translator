@@ -90,6 +90,12 @@ function makeResult(overrides: Partial<PricingResultLike> = {}): PricingResultLi
       targetProfit: 500,
       estimatedMarginKzt: 2275,
       estimatedMarginRate: 0.455,
+      rawPriceBeforeMarginFloor: 5000,
+      estimatedMarginRateBeforeFloor: 0.455,
+      marginFloorAdjustmentKzt: 0,
+      targetMarginFloorRate: 0.50,
+      profitBufferAboveTargetKzt: -225,
+      profitBufferAboveTargetRate: -0.045,
     },
     ...overrides,
   };
@@ -151,6 +157,30 @@ describe('buildMarginSection', () => {
     expect(margin.grossRevenueKzt).toBe(5000);
     expect(margin.estimatedMarginKzt).toBe(2275);
     expect(margin.estimatedMarginPercent).toBeCloseTo(45.5);
+  });
+
+  it('exposes raw price, margin floor adjustment, target margin %, and profit buffer', () => {
+    const margin = buildMarginSection(makeResult({
+      margin: {
+        grossRevenue: 7800,
+        totalCosts: 3895,
+        targetProfit: 1375,
+        estimatedMarginKzt: 3905,
+        estimatedMarginRate: 0.5006,
+        rawPriceBeforeMarginFloor: 5500,
+        estimatedMarginRateBeforeFloor: 0.4068,
+        marginFloorAdjustmentKzt: 2300,
+        targetMarginFloorRate: 0.50,
+        profitBufferAboveTargetKzt: 3.9,
+        profitBufferAboveTargetRate: 0.0006,
+      },
+    }));
+    expect(margin.rawPriceBeforeMarginFloorKzt).toBe(5500);
+    expect(margin.marginFloorAdjustmentKzt).toBe(2300);
+    expect(margin.estimatedMarginPercentBeforeFloor).toBeCloseTo(40.68);
+    expect(margin.targetMarginFloorPercent).toBe(50);
+    expect(margin.profitBufferAboveTargetKzt).toBeCloseTo(3.9);
+    expect(margin.profitBufferAboveTargetPercent).toBeCloseTo(0.06);
   });
 });
 
@@ -242,5 +272,62 @@ describe('buildReconciliation', () => {
     expect(recon.differenceKzt).toBe(0);
     expect(recon.status).toBe('OK');
     expect(recon.reasons).toEqual([]);
+  });
+
+  /** Injects a `margin_floor_adjustment` item (isClientVisible: false, isCost: false). */
+  function withMarginFloorItem(amountKzt: number): Partial<PricingResultLike> {
+    return {
+      items: [
+        ...makeResult().items,
+        {
+          itemType: 'margin_floor_adjustment',
+          label: 'Margin floor adjustment',
+          quantity: 1,
+          unitPriceKzt: amountKzt,
+          amountKzt,
+          isClientVisible: false,
+          isCost: false,
+          sortOrder: 100,
+        },
+      ],
+    };
+  }
+
+  it('6. margin_floor_adjustment present alone (no rounding) => OK when it exactly explains the gap', () => {
+    const recon = buildReconciliation(makeResult({ ...withMarginFloorItem(2300), amountKzt: 7300 }));
+    expect(recon.rawSubtotalKzt).toBe(5000);
+    expect(recon.marginFloorAdjustmentFound).toBe(true);
+    expect(recon.marginFloorAdjustmentKzt).toBe(2300);
+    expect(recon.canonicalSubtotalKzt).toBe(7300);
+    expect(recon.finalAmountKzt).toBe(7300);
+    expect(recon.differenceKzt).toBe(0);
+    expect(recon.status).toBe('OK');
+    expect(recon.reasons).toEqual([]);
+  });
+
+  it('7. rounding_adjustment AND margin_floor_adjustment both present, correct sum => OK', () => {
+    const base = makeResult();
+    const items = [
+      ...base.items,
+      { itemType: 'rounding_adjustment', label: 'Rounding adjustment', quantity: 1, unitPriceKzt: 52.8, amountKzt: 52.8, isClientVisible: false, isCost: false, sortOrder: 99 },
+      { itemType: 'margin_floor_adjustment', label: 'Margin floor adjustment', quantity: 1, unitPriceKzt: 2300, amountKzt: 2300, isClientVisible: false, isCost: false, sortOrder: 100 },
+    ];
+    const recon = buildReconciliation({ ...base, items, amountKzt: 5000 + 52.8 + 2300 });
+    expect(recon.roundingAdjustmentFound).toBe(true);
+    expect(recon.marginFloorAdjustmentFound).toBe(true);
+    expect(recon.canonicalSubtotalKzt).toBeCloseTo(7352.8);
+    expect(recon.differenceKzt).toBeCloseTo(0);
+    expect(recon.status).toBe('OK');
+    expect(recon.reasons).toEqual([]);
+  });
+
+  it('8. margin_floor_adjustment present but wrong amount => WARNING (no tolerance band)', () => {
+    const recon = buildReconciliation(makeResult({ ...withMarginFloorItem(2300), amountKzt: 7400 }));
+    expect(recon.marginFloorAdjustmentFound).toBe(true);
+    expect(recon.marginFloorAdjustmentKzt).toBe(2300);
+    expect(recon.canonicalSubtotalKzt).toBe(7300);
+    expect(recon.finalAmountKzt).toBe(7400);
+    expect(recon.status).toBe('WARNING');
+    expect(recon.reasons.some((r) => r.includes('Canonical subtotal'))).toBe(true);
   });
 });

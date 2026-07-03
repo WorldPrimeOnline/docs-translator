@@ -444,3 +444,19 @@ tools/internal-ai-test-lab/README.md, docs/ai-context/20_COMMANDS_AND_TESTS.md
 
 **Risks / caveats:**  
 Batch mode spends real OCR/LLM API credits per manifest entry -- a large manifest run against production is a real cost event. A bad manifest entry (wrong service level, wrong document type) still passes alias-map validation if the value is a valid-but-wrong canonical alias -- validation catches malformed/unknown values, not semantically wrong ones.
+
+---
+
+### 2026-07-03 — 50% margin floor (commercial floor) added to pricing calculator
+
+**Decision:**  
+calculatePrice() now enforces a hard 50% estimated-margin floor on every standard quote (electronic/official/notarized). If raw price margin (after ALL internal costs/reserves — translator, notary, courier, printing, AI/IT, tax, acquiring, risk, owner, marketing/partner commission) is below 50%, a margin_floor_adjustment line item (isClientVisible=false, isCost=false) raises the final price. Formula: minimum_price = fixed_internal_costs / (1 - percentage_reserve_rate - target_margin_rate), where fixed_internal_costs = translator+notary+courier+printing+AI/IT, and percentage_reserve_rate = tax+acquiring+risk+owner+marketing/partner (each a % of whatever the client is actually charged). Percentage reserves (tax_reserve, acquiring_fee_estimate, risk_chargeback_reserve, owner_reserve, marketing_cac_reserve, partner_commission_cost) are now computed against the FINAL rounded price (post-floor), not the pre-floor subtotal, so stored internal_cost_json always reflects real liability on the amount actually charged. target_profit remains a benchmark only and is never treated as a cost or as a client price component. Config lives in MARGIN_FLOOR_CONFIG (src/lib/pricing/config.ts): targetMarginRate=0.50 per service level, enableMarginFloor=true, rounding 100 KZT (electronic/official) / 500 KZT (notarized). If configured rates make the floor unsolvable (percentage_reserve_rate + target_margin_rate >= 100%), calculatePrice() throws rather than emit a quote that silently misses the floor. Checkout is never blocked by this — it is a fully automatic price adjustment, never an operator confirmation step.
+
+**Rationale:**  
+Business requirement: every standard WPO order must clear 50% estimated margin after all real internal costs, not just the WPO service layer — notary/courier/printing are real costs inside the order, not excluded pass-throughs. Under current unit-economics rates (25% target profit rate, ~27.5% combined percentage reserves), this floor binds for nearly all standard orders today — confirmed via a before/after price-delta comparison (electronic/official orders +38-82%, notarized orders +139-142%) reviewed and approved before implementation. Staging only; production promotion requires separate explicit approval per CLAUDE.md.
+
+**Impacted files/docs:**  
+`Not specified`
+
+**Risks / caveats:**  
+`Not specified`

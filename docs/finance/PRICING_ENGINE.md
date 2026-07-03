@@ -87,28 +87,60 @@ Delivery fee: 1 000 KZT (currently fixed).
 
 ### 9. Internal reserves (not client-visible, isCost = true)
 
-Applied to the raw subtotal (before reserves). Each is a percentage or fixed amount:
+Split into two kinds — this split matters for the margin floor (§11):
 
-| Reserve | Rate | Applied to |
-|---|---|---|
-| AI/IT reserve | `version.aiItReservePerPageKzt × pages` | fixed per page |
-| Tax (VAT) | `version.taxRate` (3%) | subtotal |
-| Acquiring | `version.acquiringRate` (2.5%) | subtotal |
-| Risk reserve | `version.riskReserveRate` (5%) | subtotal |
-| Owner reserve | `version.ownerReserveRate` (7%) | subtotal |
-| Marketing (direct) | `version.marketingRateDirect` (10%) | subtotal |
-| Partner commission (referral/reseller) | `version.partnerCommissionRate` (10%) | subtotal |
-| Translator reserve | 30% of translation portion | translation portion |
+**Fixed costs** (independent of the final client price):
 
-For referral/reseller channels: partner commission replaces 90% of marketing reserve.
+| Reserve | Amount |
+|---|---|
+| AI/IT reserve | `version.aiItReservePerPageKzt × pages` |
+| Translator reserve | 30% of translation portion |
+| Notary official fee | MRP-based (notarized only) |
+| Notary coordination fee | fixed 3 000 KZT (notarized only) |
+| Printing/binding cost | fixed 500 KZT (notarized only) |
+| Courier/delivery cost | equals the client-charged `delivery_fee` |
 
-### 10. Final rounding
+**Percentage reserves** (each a rate applied to whatever the client actually pays — see §11 for why these are computed against the *final* price, not the pre-floor subtotal):
+
+| Reserve | Rate |
+|---|---|
+| Tax (VAT) | `version.taxRate` (3%) |
+| Acquiring | `version.acquiringRate` (2.5%) |
+| Risk reserve | `version.riskReserveRate` (5%) |
+| Owner reserve | `version.ownerReserveRate` (7%) |
+| Marketing (direct) | `version.marketingRateDirect` (10%) |
+| Partner commission (referral) | `version.partnerCommissionRate` (10%) + flat 2% marketing top-up |
+
+Notary official fee / coordination fee / printing / courier are pass-throughs: the matching revenue line item (`notary_official_fee`, `notary_coordination_fee`, `printing_binding_fee`, `delivery_fee`) is charged to the client, but the same amount is also a real internal cost — both are counted (revenue item + internalCosts field), never double-counted as a second `isCost=true` item.
+
+### 10. Final rounding (before margin floor)
 
 ```
-finalAmount = Math.ceil(grossTotal / 100) * 100
+rawPriceBeforeMarginFloor = Math.ceil(subtotal / 100) * 100
 ```
 
-Always rounds up. Minimum floor: BASE_MINIMUM_KZT for the group/service level.
+Always rounds up. Minimum floor: BASE_MINIMUM_KZT for the group/service level. This is the price *before* the margin floor step below — it is not necessarily what the client pays.
+
+### 11. Margin floor (commercial floor)
+
+**Business rule**: every standard order must have `estimated_margin_rate >= targetMarginRate` (50%) after ALL internal costs/reserves — notary, courier, and printing count as real order costs here, not excluded pass-throughs. See `docs/ai-context/DECISIONS.md` (2026-07-03).
+
+If margin at `rawPriceBeforeMarginFloor` is below target:
+
+```
+minimumPriceForMargin = fixedInternalCosts / (1 - percentageReserveRate - targetMarginRate)
+finalAmount = roundUp(max(rawPriceBeforeMarginFloor, minimumPriceForMargin), floorRoundingIncrement)
+```
+
+Rounding increment: 100 KZT (electronic/official) or 500 KZT (notarized) — see `MARGIN_FLOOR_CONFIG.roundingKzt` in `src/lib/pricing/config.ts`.
+
+A `margin_floor_adjustment` line item is added (`isClientVisible: false`, `isCost: false`) equal to `finalAmount - rawPriceBeforeMarginFloor`. It is part of the final client price (reconciliation includes it) but is never shown to the client — only visible in the Jira operator audit.
+
+**Percentage reserves are recomputed against `finalAmount`** (not the pre-floor subtotal) once the floor resolves the true final price — otherwise tax/acquiring/etc. would understate real liability on the higher, floor-adjusted price. `target_profit` (the pre-existing 25% benchmark) is never a cost input to this formula.
+
+If the configured rates make the floor unsolvable (`percentageReserveRate + targetMarginRate >= 1`), `calculatePrice()` throws rather than silently emit a quote that misses the floor — this indicates a `pricing_versions` misconfiguration that must be fixed before quoting, not a checkout-blocking condition for a normal order.
+
+**This never blocks checkout** — it's a fully automatic price adjustment computed before the quote is shown, not an operator confirmation step.
 
 ## Customer Pricing Inputs (from upload form)
 
@@ -241,6 +273,6 @@ The 1.60 coefficient is applied to the translation portion (base minimum + extra
 
 ## Code location
 
-- `src/lib/pricing/config.ts` — all rate tables (including new: SCAN_QUALITY_SURCHARGE, LAYOUT_COMPLEXITY_CONFIG, VISUAL_MARKS_FEE_KZT, DELIVERY_ZONE_FEE_KZT, NOTARY_APPLICANT_MRP_COEFFICIENT, EXTRA_PAPER_COPY_FEE_KZT)
+- `src/lib/pricing/config.ts` — all rate tables (including new: SCAN_QUALITY_SURCHARGE, LAYOUT_COMPLEXITY_CONFIG, VISUAL_MARKS_FEE_KZT, DELIVERY_ZONE_FEE_KZT, NOTARY_APPLICANT_MRP_COEFFICIENT, EXTRA_PAPER_COPY_FEE_KZT, MARGIN_FLOOR_CONFIG)
 - `src/lib/pricing/calculator.ts` — `calculatePrice(input, version)`
 - `src/lib/pricing/service.ts` — DB integration (`getActivePricingVersion`, `computeQuoteForJob`, `saveQuote`, etc.)

@@ -290,11 +290,16 @@ export function renderReportMarkdown(data: ReportData): string {
     lines.push(mdTable(
       ['Field', 'Value'],
       [
-        ['Gross revenue', fmtKzt(data.margin.grossRevenueKzt)],
+        ['Raw price before margin floor', fmtKzt(data.margin.rawPriceBeforeMarginFloorKzt)],
+        ['Margin floor adjustment', fmtKzt(data.margin.marginFloorAdjustmentKzt)],
+        ['Final client price (gross revenue)', fmtKzt(data.margin.grossRevenueKzt)],
         ['Total internal costs/reserves', fmtKzt(data.margin.totalInternalCostsKzt)],
-        ['Target profit', fmtKzt(data.margin.targetProfitKzt)],
-        ['Estimated margin', fmtKzt(data.margin.estimatedMarginKzt)],
-        ['Estimated margin %', `${data.margin.estimatedMarginPercent.toFixed(2)}%`],
+        ['Target profit (benchmark, not a cost)', fmtKzt(data.margin.targetProfitKzt)],
+        ['Estimated margin (before floor)', `${data.margin.estimatedMarginPercentBeforeFloor.toFixed(2)}%`],
+        ['Estimated margin (final)', fmtKzt(data.margin.estimatedMarginKzt)],
+        ['Estimated margin % (final)', `${data.margin.estimatedMarginPercent.toFixed(2)}%`],
+        ['Target margin floor %', `${data.margin.targetMarginFloorPercent.toFixed(2)}%`],
+        ['Profit buffer above target', `${fmtKzt(data.margin.profitBufferAboveTargetKzt)} (${data.margin.profitBufferAboveTargetPercent.toFixed(2)} pp)`],
       ],
     ));
   } else {
@@ -312,9 +317,12 @@ export function renderReportMarkdown(data: ReportData): string {
         ['Rounding adjustment', data.reconciliation.roundingAdjustmentFound
           ? fmtKzt(data.reconciliation.roundingAdjustmentKzt)
           : 'not found'],
-        ['Canonical subtotal (raw + rounding)', fmtKzt(data.reconciliation.canonicalSubtotalKzt)],
+        ['Margin floor adjustment', data.reconciliation.marginFloorAdjustmentFound
+          ? fmtKzt(data.reconciliation.marginFloorAdjustmentKzt)
+          : 'not found'],
+        ['Canonical subtotal (raw + rounding + margin floor)', fmtKzt(data.reconciliation.canonicalSubtotalKzt)],
         ['Final amount KZT', fmtKzt(data.reconciliation.finalAmountKzt)],
-        ['Difference after rounding', fmtKzt(data.reconciliation.differenceKzt)],
+        ['Difference', fmtKzt(data.reconciliation.differenceKzt)],
         ['Status', data.reconciliation.status],
       ],
     ));
@@ -469,20 +477,26 @@ ${htmlTable(['Cost type', 'Label', 'Amount KZT', 'Metadata'], data.internalCosts
 
 <h2>8. Margin Summary</h2>
 ${data.margin ? htmlTable(['Field', 'Value'], [
-  ['Gross revenue', fmtKzt(data.margin.grossRevenueKzt)],
+  ['Raw price before margin floor', fmtKzt(data.margin.rawPriceBeforeMarginFloorKzt)],
+  ['Margin floor adjustment', fmtKzt(data.margin.marginFloorAdjustmentKzt)],
+  ['Final client price (gross revenue)', fmtKzt(data.margin.grossRevenueKzt)],
   ['Total internal costs/reserves', fmtKzt(data.margin.totalInternalCostsKzt)],
-  ['Target profit', fmtKzt(data.margin.targetProfitKzt)],
+  ['Target profit (benchmark, not a cost)', fmtKzt(data.margin.targetProfitKzt)],
+  ['Estimated margin (before floor)', `${data.margin.estimatedMarginPercentBeforeFloor.toFixed(2)}%`],
   ['Estimated margin', fmtKzt(data.margin.estimatedMarginKzt)],
-  ['Estimated margin %', `${data.margin.estimatedMarginPercent.toFixed(2)}%`],
+  ['Estimated margin % (final)', `${data.margin.estimatedMarginPercent.toFixed(2)}%`],
+  ['Target margin floor %', `${data.margin.targetMarginFloorPercent.toFixed(2)}%`],
+  ['Profit buffer above target', `${fmtKzt(data.margin.profitBufferAboveTargetKzt)} (${data.margin.profitBufferAboveTargetPercent.toFixed(2)} pp)`],
 ]) : '<p><em>Margin not available — pricing was not computed.</em></p>'}
 
 <h2>9. Reconciliation</h2>
 ${data.reconciliation ? htmlTable(['Field', 'Value'], [
   ['Raw subtotal (before rounding)', fmtKzt(data.reconciliation.rawSubtotalKzt)],
   ['Rounding adjustment', data.reconciliation.roundingAdjustmentFound ? fmtKzt(data.reconciliation.roundingAdjustmentKzt) : 'not found'],
-  ['Canonical subtotal (raw + rounding)', fmtKzt(data.reconciliation.canonicalSubtotalKzt)],
+  ['Margin floor adjustment', data.reconciliation.marginFloorAdjustmentFound ? fmtKzt(data.reconciliation.marginFloorAdjustmentKzt) : 'not found'],
+  ['Canonical subtotal (raw + rounding + margin floor)', fmtKzt(data.reconciliation.canonicalSubtotalKzt)],
   ['Final amount KZT', fmtKzt(data.reconciliation.finalAmountKzt)],
-  ['Difference after rounding', fmtKzt(data.reconciliation.differenceKzt)],
+  ['Difference', fmtKzt(data.reconciliation.differenceKzt)],
   ['Status', data.reconciliation.status],
 ]) : '<p><em>Reconciliation not available — pricing was not computed.</em></p>'}
 ${data.reconciliation && data.reconciliation.reasons.length > 0

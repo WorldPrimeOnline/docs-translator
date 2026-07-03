@@ -49,6 +49,12 @@ export interface MarginBreakdownLike {
   targetProfit: number;
   estimatedMarginKzt: number;
   estimatedMarginRate: number;
+  rawPriceBeforeMarginFloor: number;
+  estimatedMarginRateBeforeFloor: number;
+  marginFloorAdjustmentKzt: number;
+  targetMarginFloorRate: number;
+  profitBufferAboveTargetKzt: number;
+  profitBufferAboveTargetRate: number;
 }
 
 export interface PricingResultLike {
@@ -98,6 +104,18 @@ export interface MarginSection {
   targetProfitKzt: number;
   estimatedMarginKzt: number;
   estimatedMarginPercent: number;
+  /** Client price before the margin floor step (normal rounding only). */
+  rawPriceBeforeMarginFloorKzt: number;
+  /** margin_floor_adjustment amount added to price (0 if margin was already at/above target). */
+  marginFloorAdjustmentKzt: number;
+  /** Estimated margin % computed at rawPriceBeforeMarginFloorKzt, before any floor adjustment. */
+  estimatedMarginPercentBeforeFloor: number;
+  /** The margin floor target for this order's service level (e.g. 50). */
+  targetMarginFloorPercent: number;
+  /** How far the final margin exceeds the floor target, in KZT (>= 0 whenever the floor holds). */
+  profitBufferAboveTargetKzt: number;
+  /** How far the final margin exceeds the floor target, in percentage points. */
+  profitBufferAboveTargetPercent: number;
 }
 
 export interface ReconciliationResult {
@@ -107,7 +125,11 @@ export interface ReconciliationResult {
   roundingAdjustmentKzt: number;
   /** Whether a `rounding_adjustment` item was present in result.items at all. */
   roundingAdjustmentFound: boolean;
-  /** rawSubtotalKzt + roundingAdjustmentKzt. */
+  /** amountKzt of the `margin_floor_adjustment` item, or 0 if none was found. */
+  marginFloorAdjustmentKzt: number;
+  /** Whether a `margin_floor_adjustment` item was present in result.items at all. */
+  marginFloorAdjustmentFound: boolean;
+  /** rawSubtotalKzt + roundingAdjustmentKzt + marginFloorAdjustmentKzt. */
   canonicalSubtotalKzt: number;
   finalAmountKzt: number;
   /** finalAmountKzt - canonicalSubtotalKzt. Must be ~0 for status OK. */
@@ -203,22 +225,30 @@ export function buildMarginSection(result: PricingResultLike): MarginSection {
     targetProfitKzt: result.margin.targetProfit,
     estimatedMarginKzt: result.margin.estimatedMarginKzt,
     estimatedMarginPercent: result.margin.estimatedMarginRate * 100,
+    rawPriceBeforeMarginFloorKzt: result.margin.rawPriceBeforeMarginFloor,
+    marginFloorAdjustmentKzt: result.margin.marginFloorAdjustmentKzt,
+    estimatedMarginPercentBeforeFloor: result.margin.estimatedMarginRateBeforeFloor * 100,
+    targetMarginFloorPercent: result.margin.targetMarginFloorRate * 100,
+    profitBufferAboveTargetKzt: result.margin.profitBufferAboveTargetKzt,
+    profitBufferAboveTargetPercent: result.margin.profitBufferAboveTargetRate * 100,
   };
 }
 
 /**
  * Reconciliation rules (financial audit — no tolerance band for "small" gaps):
- *   1. rawSubtotalKzt   = sum of isClientVisible items (pre-rounding).
+ *   1. rawSubtotalKzt   = sum of isClientVisible items (pre-rounding, pre-floor).
  *   2. roundingItem     = result.items.find(itemType === 'rounding_adjustment').
- *   3. canonicalSubtotalKzt = rawSubtotalKzt + (roundingItem?.amountKzt ?? 0).
- *   4. OK only if canonicalSubtotalKzt == finalAmountKzt (within
- *      RECONCILIATION_EPSILON_KZT) AND (finalAmountKzt - rawSubtotalKzt) ==
- *      roundingItem.amountKzt (within the same epsilon) — both checked
- *      explicitly and independently, not inferred from one passing.
- *   5. No blanket "<100 KZT is fine" allowance — every gap must be explained
- *      by an actual rounding_adjustment item, exactly.
- *   6. rounding_adjustment missing + finalAmountKzt != rawSubtotalKzt -> WARNING.
- *   7. rounding_adjustment present but its amount != (final - raw) -> WARNING.
+ *   3. marginFloorItem  = result.items.find(itemType === 'margin_floor_adjustment').
+ *   4. canonicalSubtotalKzt = rawSubtotalKzt + (roundingItem?.amountKzt ?? 0)
+ *                             + (marginFloorItem?.amountKzt ?? 0). margin_floor_adjustment
+ *      is isClientVisible=false (never shown to the client) but IS part of the final
+ *      price, same as rounding_adjustment — both are internal-only price-shaping steps.
+ *   5. OK only if canonicalSubtotalKzt == finalAmountKzt (within
+ *      RECONCILIATION_EPSILON_KZT) — checked explicitly, not inferred.
+ *   6. No blanket "<100 KZT is fine" allowance — every gap must be explained
+ *      by an actual rounding_adjustment / margin_floor_adjustment item, exactly.
+ *   7. Neither adjustment item present + finalAmountKzt != rawSubtotalKzt -> WARNING.
+ *   8. rounding_adjustment present (no margin floor) but its amount != (final - raw) -> WARNING.
  */
 export function buildReconciliation(result: PricingResultLike): ReconciliationResult {
   const rawSubtotalKzt = result.items
@@ -229,28 +259,32 @@ export function buildReconciliation(result: PricingResultLike): ReconciliationRe
   const roundingAdjustmentFound = roundingItem !== undefined;
   const roundingAdjustmentKzt = roundingItem?.amountKzt ?? 0;
 
-  const canonicalSubtotalKzt = rawSubtotalKzt + roundingAdjustmentKzt;
+  const marginFloorItem = result.items.find((i) => i.itemType === 'margin_floor_adjustment');
+  const marginFloorAdjustmentFound = marginFloorItem !== undefined;
+  const marginFloorAdjustmentKzt = marginFloorItem?.amountKzt ?? 0;
+
+  const canonicalSubtotalKzt = rawSubtotalKzt + roundingAdjustmentKzt + marginFloorAdjustmentKzt;
   const finalAmountKzt = result.amountKzt;
   const differenceKzt = Number((finalAmountKzt - canonicalSubtotalKzt).toFixed(4));
-  const impliedRoundingKzt = Number((finalAmountKzt - rawSubtotalKzt).toFixed(4));
+  const impliedAdjustmentKzt = Number((finalAmountKzt - rawSubtotalKzt).toFixed(4));
 
   const reasons: string[] = [];
 
-  if (!roundingAdjustmentFound && Math.abs(impliedRoundingKzt) > RECONCILIATION_EPSILON_KZT) {
+  if (!roundingAdjustmentFound && !marginFloorAdjustmentFound && Math.abs(impliedAdjustmentKzt) > RECONCILIATION_EPSILON_KZT) {
     reasons.push(
-      `Final amount (${finalAmountKzt} KZT) differs from raw subtotal (${rawSubtotalKzt} KZT) by ${impliedRoundingKzt} KZT, but no rounding_adjustment item was found to explain it.`,
+      `Final amount (${finalAmountKzt} KZT) differs from raw subtotal (${rawSubtotalKzt} KZT) by ${impliedAdjustmentKzt} KZT, but neither a rounding_adjustment nor a margin_floor_adjustment item was found to explain it.`,
     );
   }
 
-  if (roundingAdjustmentFound && Math.abs(roundingAdjustmentKzt - impliedRoundingKzt) > RECONCILIATION_EPSILON_KZT) {
+  if (roundingAdjustmentFound && !marginFloorAdjustmentFound && Math.abs(roundingAdjustmentKzt - impliedAdjustmentKzt) > RECONCILIATION_EPSILON_KZT) {
     reasons.push(
-      `rounding_adjustment item declares ${roundingAdjustmentKzt} KZT, but (final amount − raw subtotal) is ${impliedRoundingKzt} KZT — they must match exactly.`,
+      `rounding_adjustment item declares ${roundingAdjustmentKzt} KZT, but (final amount − raw subtotal) is ${impliedAdjustmentKzt} KZT — they must match exactly (no margin_floor_adjustment item present to explain the rest).`,
     );
   }
 
   if (Math.abs(differenceKzt) > RECONCILIATION_EPSILON_KZT) {
     reasons.push(
-      `Canonical subtotal (raw ${rawSubtotalKzt} + rounding_adjustment ${roundingAdjustmentKzt} = ${canonicalSubtotalKzt} KZT) does not equal final amount (${finalAmountKzt} KZT); difference ${differenceKzt} KZT.`,
+      `Canonical subtotal (raw ${rawSubtotalKzt} + rounding_adjustment ${roundingAdjustmentKzt} + margin_floor_adjustment ${marginFloorAdjustmentKzt} = ${canonicalSubtotalKzt} KZT) does not equal final amount (${finalAmountKzt} KZT); difference ${differenceKzt} KZT.`,
     );
   }
 
@@ -258,6 +292,8 @@ export function buildReconciliation(result: PricingResultLike): ReconciliationRe
     rawSubtotalKzt,
     roundingAdjustmentKzt,
     roundingAdjustmentFound,
+    marginFloorAdjustmentKzt,
+    marginFloorAdjustmentFound,
     canonicalSubtotalKzt,
     finalAmountKzt,
     differenceKzt,

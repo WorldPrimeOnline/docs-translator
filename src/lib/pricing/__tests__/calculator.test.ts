@@ -1,5 +1,5 @@
 import { calculatePrice } from '../calculator';
-import { DOCUMENT_TYPE_COEFFICIENT, NOTARY_CONFIG } from '../config';
+import { DOCUMENT_TYPE_COEFFICIENT, NOTARY_CONFIG, MARGIN_FLOOR_CONFIG } from '../config';
 import type { PricingVersion, PricingInput } from '../types';
 
 const mockVersion: PricingVersion = {
@@ -306,11 +306,16 @@ describe('calculatePrice', () => {
         .reduce((s, i) => s + i.amountKzt, 0);
       // Total internal costs must be strictly less than gross revenue
       expect(costSubtotal).toBeLessThan(result.amountKzt);
-      // Also verify internal costs are not added to the client price
+      // Also verify internal costs are not added to the client price. The final price equals
+      // client-visible items plus the two internal-only price-shaping adjustments
+      // (rounding_adjustment, margin_floor_adjustment) — both are part of the final price
+      // (per margin floor spec §10) but never shown to the client.
       const clientVisibleSubtotal = result.items
         .filter(i => !i.isCost && i.isClientVisible)
         .reduce((s, i) => s + i.amountKzt, 0);
-      expect(Math.abs(clientVisibleSubtotal - result.amountKzt)).toBeLessThan(200);
+      const roundingAdjustment = result.items.find(i => i.itemType === 'rounding_adjustment')?.amountKzt ?? 0;
+      const marginFloorAdjustment = result.items.find(i => i.itemType === 'margin_floor_adjustment')?.amountKzt ?? 0;
+      expect(Math.abs(clientVisibleSubtotal + roundingAdjustment + marginFloorAdjustment - result.amountKzt)).toBeLessThan(1);
     });
   });
 
@@ -413,7 +418,12 @@ describe('calculatePrice', () => {
     it('many_stamps adds 1000 KZT to subtotal (not translation portion)', () => {
       const normal = calculatePrice(baseInput({ visualMarksComplexity: 'normal' }), mockVersion);
       const stamps = calculatePrice(baseInput({ visualMarksComplexity: 'many_stamps' }), mockVersion);
-      expect(stamps.amountKzt - normal.amountKzt).toBeGreaterThanOrEqual(1000);
+      // With the margin floor active, the floor price is driven only by *fixed* internal
+      // costs (translator/notary/courier/printing/AI-IT) — visual_marks_fee is pure revenue
+      // with no matching fixed cost, so when the floor is binding for both cases it can leave
+      // the final price completely unchanged (both hit the same fixed-cost-derived floor).
+      // Assert non-decreasing, not strictly increasing. The line item itself (below) is exact.
+      expect(stamps.amountKzt).toBeGreaterThanOrEqual(normal.amountKzt);
       const marksItem = stamps.items.find(i => i.itemType === 'visual_marks_fee');
       expect(marksItem).toBeDefined();
       expect(marksItem!.amountKzt).toBe(1000);
@@ -454,7 +464,10 @@ describe('calculatePrice', () => {
       expect(copiesItem).toBeDefined();
       expect(copiesItem!.quantity).toBe(3);
       expect(copiesItem!.unitPriceKzt).toBe(500);
-      expect(withCopies.amountKzt - noCopies.amountKzt).toBeGreaterThanOrEqual(1500);
+      // See note above on visual_marks_fee: extra_paper_copies is also pure revenue with no
+      // matching fixed cost, so it too can be fully absorbed once the fixed-cost-driven floor
+      // binds for both cases. Assert non-decreasing, not strictly increasing.
+      expect(withCopies.amountKzt).toBeGreaterThanOrEqual(noCopies.amountKzt);
     });
 
     it('delivery zone almaty_standard adds 2500 KZT', () => {
@@ -802,6 +815,205 @@ describe('calculatePrice', () => {
 
       const genuinelyUnsupportedPair = calculatePrice(baseInput({ sourceLanguage: 'sw', targetLanguage: 'tl' }), mockVersion);
       expect(genuinelyUnsupportedPair.requiresOperatorReview).toBe(true);
+    });
+  });
+
+  describe('margin floor (commercial floor)', () => {
+    // With this fixture's real reserve rates, translator reserve alone (30% of translation
+    // portion) plus tax/acquiring/risk/owner/marketing reserves already put most standard
+    // orders below the 50% floor — so these orders are expected to receive an adjustment.
+    const expectFloorApplied = (result: ReturnType<typeof calculatePrice>) => {
+      const item = result.items.find(i => i.itemType === 'margin_floor_adjustment');
+      expect(item).toBeDefined();
+      expect(item!.amountKzt).toBeGreaterThan(0);
+      expect(item!.isClientVisible).toBe(false);
+      expect(item!.isCost).toBe(false);
+      expect(item!.metadataJson?.reason).toBe('margin_below_target');
+      expect(item!.metadataJson?.target_margin_rate).toBe(0.50);
+      return item!;
+    };
+
+    it('electronic order with margin < 50% gets margin_floor_adjustment', () => {
+      const result = calculatePrice(baseInput({ serviceLevel: 'electronic', sourceWordCount: 200 }), mockVersion);
+      expect(result.margin.estimatedMarginRateBeforeFloor).toBeLessThan(0.50);
+      expectFloorApplied(result);
+      expect(result.margin.estimatedMarginRate).toBeGreaterThanOrEqual(0.50 - 1e-9);
+    });
+
+    it('official order with margin < 50% gets margin_floor_adjustment', () => {
+      const result = calculatePrice(baseInput(), mockVersion); // official by default
+      expect(result.margin.estimatedMarginRateBeforeFloor).toBeLessThan(0.50);
+      expectFloorApplied(result);
+      expect(result.margin.estimatedMarginRate).toBeGreaterThanOrEqual(0.50 - 1e-9);
+    });
+
+    it('notarized pickup order with margin < 50% gets margin_floor_adjustment', () => {
+      const result = calculatePrice(baseInput({
+        serviceLevel: 'notarization_through_partners',
+        fulfillmentMethod: 'pickup',
+        deliveryRequired: false,
+      }), mockVersion);
+      expect(result.margin.estimatedMarginRateBeforeFloor).toBeLessThan(0.50);
+      const item = expectFloorApplied(result);
+      // Notarized orders use the 500 KZT rounding increment for the floor step.
+      expect(item.metadataJson?.rounding_rule).toBe(MARGIN_FLOOR_CONFIG.roundingKzt.notarization_through_partners);
+      expect(result.margin.estimatedMarginRate).toBeGreaterThanOrEqual(0.50 - 1e-9);
+    });
+
+    it('notarized delivery order with margin < 50% gets margin_floor_adjustment', () => {
+      const result = calculatePrice(baseInput({
+        serviceLevel: 'notarization_through_partners',
+        fulfillmentMethod: 'delivery',
+        deliveryRequired: true,
+        deliveryZone: 'almaty_standard',
+      }), mockVersion);
+      expect(result.margin.estimatedMarginRateBeforeFloor).toBeLessThan(0.50);
+      expectFloorApplied(result);
+      expect(result.margin.estimatedMarginRate).toBeGreaterThanOrEqual(0.50 - 1e-9);
+    });
+
+    it('order with margin already >= 50% does not get an adjustment', () => {
+      // Synthetic low-reserve version to isolate "floor should not trigger" behavior from
+      // this fixture's baseline economics (which put most default-rate orders under 50%).
+      const highMarginVersion: PricingVersion = {
+        ...mockVersion,
+        taxRate: 0,
+        acquiringRate: 0,
+        riskReserveRate: 0,
+        ownerReserveRate: 0,
+        marketingRateDirect: 0,
+        partnerCommissionRate: 0,
+        aiItReservePerPageKzt: 0,
+      };
+      const result = calculatePrice(baseInput(), highMarginVersion);
+      expect(result.margin.estimatedMarginRateBeforeFloor).toBeGreaterThanOrEqual(0.50);
+      expect(result.items.find(i => i.itemType === 'margin_floor_adjustment')).toBeUndefined();
+      expect(result.margin.marginFloorAdjustmentKzt).toBe(0);
+      expect(result.margin.rawPriceBeforeMarginFloor).toBe(result.amountKzt);
+    });
+
+    it('target_profit is not included as a client price component', () => {
+      const result = calculatePrice(baseInput(), mockVersion);
+      const targetProfitItem = result.items.find(i => i.itemType === 'target_profit');
+      expect(targetProfitItem).toBeDefined();
+      expect(targetProfitItem!.isCost).toBe(false);
+      expect(targetProfitItem!.isClientVisible).toBe(false);
+      // target_profit must never appear as an internal cost/reserve that feeds the floor —
+      // neither the fixed-cost term nor the pre-floor cost estimate in the adjustment metadata,
+      // nor the final totalCosts figure, may equal (or be derived from) targetProfit.
+      const floorItem = result.items.find(i => i.itemType === 'margin_floor_adjustment');
+      expect(floorItem?.metadataJson?.fixed_internal_costs).not.toBe(result.margin.targetProfit);
+      expect(floorItem?.metadataJson?.internal_costs_before_adjustment).not.toBe(result.margin.targetProfit);
+      expect(result.margin.totalCosts).not.toBe(result.margin.targetProfit);
+    });
+
+    it('internal reserves are not double-counted', () => {
+      const result = calculatePrice(baseInput({
+        serviceLevel: 'notarization_through_partners',
+        fulfillmentMethod: 'delivery',
+        deliveryRequired: true,
+        deliveryZone: 'almaty_standard',
+      }), mockVersion);
+      // Every internalCosts field is counted exactly once toward margin.totalCosts.
+      const sumInternalCosts = Object.values(result.internalCosts).reduce((s, v) => s + v, 0);
+      expect(sumInternalCosts).toBeCloseTo(result.margin.totalCosts, 5);
+      // Notary/printing/courier costs are pass-through: present as revenue items (isCost=false)
+      // AND counted once in internalCosts — never as a *second*, separate isCost=true item.
+      const costItemTypes = result.items.filter(i => i.isCost).map(i => i.itemType);
+      expect(costItemTypes).not.toContain('notary_official_fee');
+      expect(costItemTypes).not.toContain('notary_coordination_fee');
+      expect(costItemTypes).not.toContain('printing_binding_fee');
+      expect(costItemTypes).not.toContain('delivery_fee');
+    });
+
+    it('final margin after adjustment is always >= 50%', () => {
+      const cases: Partial<PricingInput>[] = [
+        { serviceLevel: 'electronic' },
+        { serviceLevel: 'official_with_translator_signature_and_provider_stamp' },
+        { serviceLevel: 'notarization_through_partners', fulfillmentMethod: 'pickup', deliveryRequired: false },
+        { serviceLevel: 'notarization_through_partners', fulfillmentMethod: 'delivery', deliveryRequired: true },
+      ];
+      for (const overrides of cases) {
+        const result = calculatePrice(baseInput(overrides), mockVersion);
+        expect(result.margin.estimatedMarginRate).toBeGreaterThanOrEqual(0.50 - 1e-9);
+      }
+    });
+
+    it('rounding still keeps margin >= 50%', () => {
+      // Sweep word counts to exercise different rounding remainders through the floor step.
+      for (const words of [0, 1, 50, 199, 250, 251, 349, 350, 999, 1001]) {
+        const result = calculatePrice(baseInput({ sourceWordCount: words }), mockVersion);
+        expect(result.margin.estimatedMarginRate).toBeGreaterThanOrEqual(0.50 - 1e-9);
+        expect(result.amountKzt % MARGIN_FLOOR_CONFIG.roundingKzt.official_with_translator_signature_and_provider_stamp).toBe(0);
+      }
+    });
+
+    it('reconciliation includes margin_floor_adjustment', () => {
+      const result = calculatePrice(baseInput(), mockVersion);
+      const clientVisibleSubtotal = result.items
+        .filter(i => !i.isCost && i.isClientVisible)
+        .reduce((s, i) => s + i.amountKzt, 0);
+      const roundingAdjustment = result.items.find(i => i.itemType === 'rounding_adjustment')?.amountKzt ?? 0;
+      const marginFloorAdjustment = result.items.find(i => i.itemType === 'margin_floor_adjustment')?.amountKzt ?? 0;
+      expect(marginFloorAdjustment).toBeGreaterThan(0);
+      expect(clientVisibleSubtotal + roundingAdjustment + marginFloorAdjustment).toBeCloseTo(result.amountKzt, 5);
+    });
+
+    it('margin summary exposes raw price, adjustment, final price, target margin, and actual margin', () => {
+      const result = calculatePrice(baseInput(), mockVersion);
+      expect(result.margin.rawPriceBeforeMarginFloor).toBeGreaterThan(0);
+      expect(result.margin.marginFloorAdjustmentKzt).toBeGreaterThan(0);
+      expect(result.margin.grossRevenue).toBe(result.amountKzt);
+      expect(result.margin.grossRevenue).toBe(result.margin.rawPriceBeforeMarginFloor + result.margin.marginFloorAdjustmentKzt);
+      expect(result.margin.targetMarginFloorRate).toBe(0.50);
+      expect(result.margin.estimatedMarginRate).toBeGreaterThanOrEqual(result.margin.targetMarginFloorRate - 1e-9);
+      expect(result.margin.profitBufferAboveTargetRate).toBeGreaterThanOrEqual(-1e-9);
+      expect(result.margin.profitBufferAboveTargetKzt).toBeGreaterThanOrEqual(-1e-9);
+    });
+
+    describe('regression', () => {
+      it('ru→en employment_document + notarization_through_partners + Almaty delivery: quote and final margin >= 50%', () => {
+        const result = calculatePrice(baseInput({
+          sourceLanguage: 'ru',
+          targetLanguage: 'en',
+          documentType: 'employment_document',
+          serviceLevel: 'notarization_through_partners',
+          fulfillmentMethod: 'delivery',
+          deliveryRequired: true,
+          deliveryZone: 'almaty_standard',
+        }), mockVersion);
+        expect(result.status).toBe('quoted');
+        expect(result.requiresOperatorReview).toBe(false);
+        expect(result.margin.estimatedMarginRate).toBeGreaterThanOrEqual(0.50 - 1e-9);
+      });
+
+      it('low-price electronic ru→kz case (1000 KZT base) gets uplift when margin < 50%', () => {
+        const result = calculatePrice(baseInput({
+          serviceLevel: 'electronic',
+          sourceLanguage: 'ru',
+          targetLanguage: 'kz',
+          sourceWordCount: 100,
+        }), mockVersion);
+        expect(result.margin.estimatedMarginRateBeforeFloor).toBeLessThan(0.50);
+        expect(result.amountKzt).toBeGreaterThan(result.margin.rawPriceBeforeMarginFloor);
+        expect(result.margin.estimatedMarginRate).toBeGreaterThanOrEqual(0.50 - 1e-9);
+      });
+
+      it('direct sales channel has partner_commission_cost = 0 and margin floor still applies correctly', () => {
+        const result = calculatePrice(baseInput({ salesChannel: 'direct' }), mockVersion);
+        expect(result.internalCosts.partnerCommission).toBe(0);
+        expect(result.margin.estimatedMarginRate).toBeGreaterThanOrEqual(0.50 - 1e-9);
+      });
+
+      it('referral (partner) sales channel handles partner commission without double-counting marketing reserve', () => {
+        const result = calculatePrice(baseInput({ salesChannel: 'referral', partnerId: 'partner-abc' }), mockVersion);
+        expect(result.internalCosts.partnerCommission).toBeGreaterThan(0);
+        // Marketing reserve for referral channel is the reduced 2% rate, not the direct 10% rate.
+        expect(result.internalCosts.marketingReserve).toBeLessThan(result.internalCosts.partnerCommission);
+        const sumInternalCosts = Object.values(result.internalCosts).reduce((s, v) => s + v, 0);
+        expect(sumInternalCosts).toBeCloseTo(result.margin.totalCosts, 5);
+        expect(result.margin.estimatedMarginRate).toBeGreaterThanOrEqual(0.50 - 1e-9);
+      });
     });
   });
 });

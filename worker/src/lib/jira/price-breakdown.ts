@@ -363,16 +363,30 @@ export function buildPriceBreakdownDescription(params: PriceBreakdownFullParams)
     targetProfit?: number;
     estimatedMarginKzt?: number;
     estimatedMarginRate?: number;
+    rawPriceBeforeMarginFloor?: number;
+    estimatedMarginRateBeforeFloor?: number;
+    marginFloorAdjustmentKzt?: number;
+    targetMarginFloorRate?: number;
+    profitBufferAboveTargetKzt?: number;
+    profitBufferAboveTargetRate?: number;
   };
   if (Object.keys(margin).length === 0) {
     nodes.push(adfParagraph('(margin_json not available)'));
   } else {
     const marginRows: string[][] = [];
-    if (margin.grossRevenue != null)        marginRows.push(['Gross revenue', kzt(margin.grossRevenue)]);
+    // Margin-floor fields — absent on quotes created before this feature; older
+    // quotes' margin_json simply won't have these keys, so the rows are skipped.
+    if (margin.rawPriceBeforeMarginFloor != null) marginRows.push(['Raw price before margin floor', kzt(margin.rawPriceBeforeMarginFloor)]);
+    if (margin.marginFloorAdjustmentKzt != null)  marginRows.push(['Margin floor adjustment', kzt(margin.marginFloorAdjustmentKzt)]);
+    if (margin.grossRevenue != null)        marginRows.push(['Gross revenue (final client price)', kzt(margin.grossRevenue)]);
     if (margin.totalCosts != null)          marginRows.push(['Total costs / reserves', kzt(margin.totalCosts)]);
-    if (margin.targetProfit != null)        marginRows.push(['Target profit', kzt(margin.targetProfit)]);
+    if (margin.targetProfit != null)        marginRows.push(['Target profit (benchmark, not a cost)', kzt(margin.targetProfit)]);
+    if (margin.estimatedMarginRateBeforeFloor != null) marginRows.push(['Estimated margin % (before floor)', pct(margin.estimatedMarginRateBeforeFloor)]);
     if (margin.estimatedMarginKzt != null)  marginRows.push(['Estimated margin', kzt(margin.estimatedMarginKzt)]);
     if (margin.estimatedMarginRate != null) marginRows.push(['Estimated margin %', pct(margin.estimatedMarginRate)]);
+    if (margin.targetMarginFloorRate != null) marginRows.push(['Target margin %', pct(margin.targetMarginFloorRate)]);
+    if (margin.profitBufferAboveTargetKzt != null) marginRows.push(['Profit buffer above target', kzt(margin.profitBufferAboveTargetKzt)]);
+    if (margin.profitBufferAboveTargetRate != null) marginRows.push(['Profit buffer above target %', pct(margin.profitBufferAboveTargetRate)]);
     if (marginRows.length > 0) {
       nodes.push(adfTable(['Metric', 'Value'], marginRows));
     }

@@ -112,11 +112,28 @@ export interface InternalCostBreakdown {
 }
 
 export interface MarginBreakdown {
+  /** Final client price (post margin-floor-adjustment, post rounding). */
   grossRevenue: number;
+  /** Sum of all internal costs/reserves (now includes courierCost + printingCost). */
   totalCosts: number;
+  /** Target profit *benchmark* (subtotal × targetProfitRate) — informational only, never a cost. */
   targetProfit: number;
+  /** grossRevenue - totalCosts. */
   estimatedMarginKzt: number;
+  /** estimatedMarginKzt / grossRevenue. */
   estimatedMarginRate: number;
+  /** Raw client price before the margin floor step (normal rounding only). */
+  rawPriceBeforeMarginFloor: number;
+  /** estimatedMarginKzt computed against rawPriceBeforeMarginFloor, before any floor adjustment. */
+  estimatedMarginRateBeforeFloor: number;
+  /** margin_floor_adjustment amount added to price (0 if margin was already ≥ target). */
+  marginFloorAdjustmentKzt: number;
+  /** The margin floor target rate applied for this order's service level (e.g. 0.50). */
+  targetMarginFloorRate: number;
+  /** How far final margin exceeds the floor target, in KZT (>= 0 whenever the floor holds). */
+  profitBufferAboveTargetKzt: number;
+  /** How far final margin exceeds the floor target, as a rate (>= 0 whenever the floor holds). */
+  profitBufferAboveTargetRate: number;
 }
 
 export interface PricingResult {
