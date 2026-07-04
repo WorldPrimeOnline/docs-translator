@@ -18,7 +18,7 @@ interface InternalCostBreakdown {
   taxReserve: number; acquiringFee: number; riskReserve: number;
   ownerReserve: number; marketingReserve: number; partnerCommission: number;
   aiItReserve: number; translatorReserved: number;
-  notaryFee: number; notaryCoordFee: number; courierCost: number; printingCost: number;
+  notaryFee: number; notaryCoordinationInternalCostKzt: number; courierCost: number; printingCost: number;
 }
 interface MarginBreakdown {
   grossRevenue: number; totalCosts: number; targetProfit: number;
@@ -147,8 +147,8 @@ export function buildFinanceReportDescription(params: FinanceReportParams): Reco
     lines.push(kztLine('Partner commission', ic.partnerCommission));
     lines.push(kztLine('AI/IT reserve', ic.aiItReserve));
     lines.push(kztLine('Translator reserved (30%)', ic.translatorReserved));
-    lines.push(kztLine('Notary official fee', ic.notaryFee));
-    lines.push(kztLine('Notary coordination fee', ic.notaryCoordFee));
+    lines.push(kztLine('Notary official cost (payable to notary)', ic.notaryFee));
+    lines.push(kztLine('Notary coordination internal cost (not the WPO fee)', ic.notaryCoordinationInternalCostKzt));
     lines.push(kztLine('Printing/binding cost', ic.printingCost));
     lines.push(kztLine('Courier cost', ic.courierCost));
     lines.push('');

@@ -19,25 +19,45 @@ export type LanguageGroup =
   | 'kz_ja_th'
   | 'other';
 
-export const BASE_MINIMUM_KZT: Record<LanguageGroup, Record<ServiceLevel, number>> = {
-  ru_kz:    { electronic: 1000, official_with_translator_signature_and_provider_stamp: 5500,  notarization_through_partners: 11000 },
-  ru_en_uz: { electronic: 1000, official_with_translator_signature_and_provider_stamp: 6500,  notarization_through_partners: 12000 },
-  ru_tr:    { electronic: 1000, official_with_translator_signature_and_provider_stamp: 7500,  notarization_through_partners: 13000 },
-  ru_de_fr: { electronic: 1000, official_with_translator_signature_and_provider_stamp: 8000,  notarization_through_partners: 13500 },
-  ru_es_it: { electronic: 1000, official_with_translator_signature_and_provider_stamp: 8500,  notarization_through_partners: 14000 },
-  ru_zh_ar: { electronic: 1000, official_with_translator_signature_and_provider_stamp: 9500,  notarization_through_partners: 15000 },
-  ru_ko:    { electronic: 1000, official_with_translator_signature_and_provider_stamp: 10500, notarization_through_partners: 16000 },
-  ru_ja_th: { electronic: 1000, official_with_translator_signature_and_provider_stamp: 11500, notarization_through_partners: 17000 },
-  kz_en:    { electronic: 1000, official_with_translator_signature_and_provider_stamp: 7500,  notarization_through_partners: 13000 },
-  kz_uz:    { electronic: 1000, official_with_translator_signature_and_provider_stamp: 7000,  notarization_through_partners: 12500 },
-  kz_tr:    { electronic: 1000, official_with_translator_signature_and_provider_stamp: 8500,  notarization_through_partners: 14000 },
-  kz_de_fr: { electronic: 1000, official_with_translator_signature_and_provider_stamp: 9500,  notarization_through_partners: 15000 },
-  kz_es_it: { electronic: 1000, official_with_translator_signature_and_provider_stamp: 10000, notarization_through_partners: 15500 },
-  kz_zh_ar: { electronic: 1000, official_with_translator_signature_and_provider_stamp: 11000, notarization_through_partners: 16500 },
-  kz_ko:    { electronic: 1000, official_with_translator_signature_and_provider_stamp: 12500, notarization_through_partners: 18000 },
-  kz_ja_th: { electronic: 1000, official_with_translator_signature_and_provider_stamp: 13500, notarization_through_partners: 19000 },
-  other:    { electronic: 1000, official_with_translator_signature_and_provider_stamp: 7500,  notarization_through_partners: 13000 },
+// Source rates: electronic and official tiers only. Notarization is NOT a separate translation
+// base tier — a notarized order's translation/service layer is priced identically to official;
+// notary_official_fee, notary_coordination_fee, printing_binding_fee, and delivery_fee are
+// separate add-ons layered on top by the calculator (see calculator.ts §7-8, §17-19). Keeping
+// only electronic/official here and deriving notarization_through_partners below (rather than
+// hardcoding a third, independently-maintained figure) makes it structurally impossible for the
+// two to drift apart. See docs/ai-context/DECISIONS.md (2026-07-04, notarized base minimum fix).
+const BASE_MINIMUM_KZT_SOURCE: Record<LanguageGroup, { electronic: number; official: number }> = {
+  ru_kz:    { electronic: 1000, official: 5500 },
+  ru_en_uz: { electronic: 1000, official: 6500 },
+  ru_tr:    { electronic: 1000, official: 7500 },
+  ru_de_fr: { electronic: 1000, official: 8000 },
+  ru_es_it: { electronic: 1000, official: 8500 },
+  ru_zh_ar: { electronic: 1000, official: 9500 },
+  ru_ko:    { electronic: 1000, official: 10500 },
+  ru_ja_th: { electronic: 1000, official: 11500 },
+  kz_en:    { electronic: 1000, official: 7500 },
+  kz_uz:    { electronic: 1000, official: 7000 },
+  kz_tr:    { electronic: 1000, official: 8500 },
+  kz_de_fr: { electronic: 1000, official: 9500 },
+  kz_es_it: { electronic: 1000, official: 10000 },
+  kz_zh_ar: { electronic: 1000, official: 11000 },
+  kz_ko:    { electronic: 1000, official: 12500 },
+  kz_ja_th: { electronic: 1000, official: 13500 },
+  other:    { electronic: 1000, official: 7500 },
 };
+
+export const BASE_MINIMUM_KZT: Record<LanguageGroup, Record<ServiceLevel, number>> = Object.fromEntries(
+  (Object.entries(BASE_MINIMUM_KZT_SOURCE) as [LanguageGroup, { electronic: number; official: number }][]).map(
+    ([group, rates]) => [
+      group,
+      {
+        electronic: rates.electronic,
+        official_with_translator_signature_and_provider_stamp: rates.official,
+        notarization_through_partners: rates.official,
+      },
+    ],
+  ),
+) as Record<LanguageGroup, Record<ServiceLevel, number>>;
 
 export const EXTRA_WORD_RATE_KZT: Record<LanguageGroup, Record<'electronic' | 'official', number>> = {
   ru_kz:    { electronic: 5,  official: 18 },
@@ -140,13 +160,27 @@ export const NOTARY_APPLICANT_MRP_COEFFICIENT: Record<ApplicantType, number | 'o
 
 export const EXTRA_PAPER_COPY_FEE_KZT = 500;
 
-// TODO: All NOTARY_CONFIG values require confirmation from notary partner before production launch.
+// TODO: mrpCoefficient_*, printingBindingFee, deliveryFeeAlmatyStandard require confirmation
+// from notary partner before production launch.
 export const NOTARY_CONFIG = {
   mrpCoefficient_individual:    0.53,
   mrpCoefficient_legal_entity:  1.10,
-  notaryCoordinationFeeDefault: 3000,
+  // WPO's own fixed commercial fee for handling/coordinating the notary process — a business
+  // decision, NOT inferred from MRP and NOT the same as notary_official_fee (the official
+  // notary tariff, MRP-based, paid to the notary). See docs/ai-context/DECISIONS.md (2026-07-03).
+  notaryCoordinationFeeDefault: 5000,
+  // The REAL internal cost of coordinating with the notary — 0 today (not configured/known).
+  // NOT the same as notaryCoordinationFeeDefault above (that's the client-facing WPO revenue).
+  // Change this only when there is an actual, confirmed internal cost to book.
+  notaryCoordinationInternalCostKzt: 0,
   printingBindingFee:           500,
   deliveryFeeAlmatyStandard:    2500,
+  // Fallback MRP tariff in KZT (NOT thousands) — used only when pricing_versions.mrp_value is
+  // null. Current 2026 MRP ≈ 4,325 KZT. `version.mrpValue` (from pricing_versions.mrp_value)
+  // keeps its existing "value stored in thousands of KZT" convention and is NOT affected by
+  // this fallback — updating the live figure requires a data update to that DB column
+  // (not a schema migration), which is outside the scope of a code change.
+  mrpValueFallbackKzt: 4325,
 };
 
 export const PRICE_ROUNDING_INCREMENT = 100;

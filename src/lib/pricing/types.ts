@@ -105,35 +105,90 @@ export interface InternalCostBreakdown {
   partnerCommission: number;
   aiItReserve: number;
   translatorReserved: number;
+  /** notary_official_cost — the actual notary tariff, payable to the notary (pass-through). */
   notaryFee: number;
-  notaryCoordFee: number;
+  /**
+   * The REAL internal cost of coordinating with the notary — currently 0 (not configured).
+   * NOT the notary_coordination_fee charged to the client (that's WPO commercial revenue,
+   * see MarginBreakdown.notaryCoordinationRevenueKzt) — do not conflate the two.
+   */
+  notaryCoordinationInternalCostKzt: number;
   courierCost: number;
   printingCost: number;
 }
 
+/**
+ * Margin is reported at THREE layers, because the 50% floor applies only to the WPO
+ * service/translation layer — never to notary/courier/printing pass-throughs, and never to
+ * payment-wide fees (tax/acquiring/risk/partner commission), which apply to the whole final
+ * price but must not cause the notary official fee to be treated as WPO-marginable revenue.
+ *
+ * 1. WPO service layer (`*MarginFloor*`, `wpoService*`) — floor-protected, this is what the
+ *    50% target actually governs.
+ * 2. Notary/delivery add-ons (`notaryDeliveryAddonsKzt`) — pure pass-through, added after the
+ *    floor, never grossed up.
+ * 3. Whole order / blended (`grossRevenue`, `totalCosts`, `estimatedMargin*`) — the final
+ *    client-facing numbers; for notarized orders this blended rate is expected to be well
+ *    below 50%, by design, since notary/courier/printing dilute it.
+ */
 export interface MarginBreakdown {
-  /** Final client price (post margin-floor-adjustment, post rounding). */
+  // ─── Whole-order (blended) view ──────────────────────────────────────────────
+  /** Final client price (WPO layer + notary/delivery add-ons + payment-wide fee gross-up). */
   grossRevenue: number;
-  /** Sum of all internal costs/reserves (now includes courierCost + printingCost). */
+  /** Sum of ALL costs: WPO layer costs + notary/courier/printing pass-through + payment-wide fees. */
   totalCosts: number;
   /** Target profit *benchmark* (subtotal × targetProfitRate) — informational only, never a cost. */
   targetProfit: number;
-  /** grossRevenue - totalCosts. */
+  /** grossRevenue - totalCosts. NOT guaranteed >= 50% for notarized orders — that's by design. */
   estimatedMarginKzt: number;
-  /** estimatedMarginKzt / grossRevenue. */
+  /** estimatedMarginKzt / grossRevenue (blended, whole-order rate). */
   estimatedMarginRate: number;
-  /** Raw client price before the margin floor step (normal rounding only). */
+
+  // ─── WPO marginable revenue pool — the 50% floor applies HERE ONLY ───────────
+  // The pool = translation/service layer price + notary_coordination_fee (both WPO-controlled
+  // revenue). notary_official_fee/printing/delivery are NEVER part of this pool.
+  /** Translation/service layer's raw price before its own floor step (normal rounding only; does NOT include notary_coordination_fee). */
   rawPriceBeforeMarginFloor: number;
-  /** estimatedMarginKzt computed against rawPriceBeforeMarginFloor, before any floor adjustment. */
+  /** WPO marginable pool's margin rate at (rawPriceBeforeMarginFloor + notary_coordination_fee), before any floor adjustment. */
   estimatedMarginRateBeforeFloor: number;
-  /** margin_floor_adjustment amount added to price (0 if margin was already ≥ target). */
+  /** margin_floor_adjustment amount added to the translation layer's price (0 if the pool was already >= target — common when notary_coordination_fee alone covers it). */
   marginFloorAdjustmentKzt: number;
-  /** The margin floor target rate applied for this order's service level (e.g. 0.50). */
+  /** The margin floor target rate for this order's service level (e.g. 0.50). */
   targetMarginFloorRate: number;
-  /** How far final margin exceeds the floor target, in KZT (>= 0 whenever the floor holds). */
+  /** Translation/service layer's OWN final price after the floor step (rawPriceBeforeMarginFloor + marginFloorAdjustmentKzt) — excludes notary_coordination_fee. */
+  wpoServiceLayerFinalPrice: number;
+  /** WPO marginable revenue pool = wpoServiceLayerFinalPrice + notary_coordination_fee (0 for non-notarized orders, so identical to wpoServiceLayerFinalPrice there). */
+  wpoMarginableRevenueKzt: number;
+  /** WPO marginable pool's costs (translator + AI/IT + notary_coordination_internal_cost + owner reserve + marketing/CAC — owner/marketing sized against wpoMarginableRevenueKzt). */
+  wpoServiceLayerCosts: number;
+  /** wpoMarginableRevenueKzt - wpoServiceLayerCosts. */
+  wpoServiceMarginKzt: number;
+  /** wpoServiceMarginKzt / wpoMarginableRevenueKzt — guaranteed >= targetMarginFloorRate whenever the floor is enabled. */
+  wpoServiceMarginRate: number;
+  /** How far the WPO marginable pool's margin exceeds its floor target, in KZT (>= 0 whenever the floor holds). */
   profitBufferAboveTargetKzt: number;
-  /** How far final margin exceeds the floor target, as a rate (>= 0 whenever the floor holds). */
+  /** How far the WPO marginable pool's margin exceeds its floor target, as a rate (>= 0 whenever the floor holds). */
   profitBufferAboveTargetRate: number;
+
+  // ─── Notary/delivery add-ons — pass-through, never grossed by the floor ──────
+  /** notary_official_fee + notary_coordination_fee + printing_binding_fee + delivery_fee (+ notary urgency surcharge + extra paper copies). */
+  notaryDeliveryAddonsKzt: number;
+  /**
+   * notary_coordination_fee is WPO commercial revenue, NOT a pass-through like
+   * notary_official_fee — it improves WPO's margin. Reported separately here (before
+   * payment-wide fees) so it isn't hidden inside the pass-through add-ons total above.
+   */
+  notaryCoordinationRevenueKzt: number;
+  /** notaryCoordinationRevenueKzt - internalCosts.notaryCoordinationInternalCostKzt, before payment-wide fees. */
+  notaryCoordinationMarginKzt: number;
+
+  // ─── Payment-wide fees — applied to the WHOLE final client price ────────────
+  /** Combined rate: tax + acquiring + risk + (referral) partner commission. */
+  paymentWideFeeRate: number;
+  /** tax_reserve + acquiring_fee_estimate + risk_chargeback_reserve + partner_commission_cost, computed against the final client price. */
+  paymentWideFeesKzt: number;
+  /** Gross-up + final-rounding residual added on top of (WPO layer + notary add-ons) to cover payment-wide fees. */
+  paymentWideFeeAdjustmentKzt: number;
 }
 
 export interface PricingResult {

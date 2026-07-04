@@ -322,6 +322,32 @@ describe('buildPriceBreakdownDescription — section B', () => {
     expect(text).toContain('WARNING: price_quote_items not found');
     expect(text).toContain('canonical pricing breakdown migration');
   });
+
+  it('displays notary_coordination_fee as the fixed 5000 KZT WPO commercial fee, separate from notary_official_fee', () => {
+    const items: DbPriceQuoteItem[] = [
+      makeItem({ itemType: 'notary_official_fee', amountKzt: 2292, label: 'Notary official fee (MRP-based estimate)', metadataJson: { notary_mrp_value_kzt: 4325, notary_mrp_coefficient: 0.53 } }),
+      makeItem({
+        id: 'item-coord',
+        itemType: 'notary_coordination_fee',
+        amountKzt: 5000,
+        label: 'Notary coordination (WPO fixed fee)',
+        metadataJson: { source: 'fixed_wpo_coordination_fee', amount: 5000 },
+      }),
+      makeItem({ id: 'item-print', itemType: 'printing_binding_fee', amountKzt: 500, label: 'Printing & binding' }),
+      makeItem({ id: 'item-delivery', itemType: 'delivery_fee', amountKzt: 2500, label: 'Delivery (almaty_standard)' }),
+    ];
+    const text = collectText(buildPriceBreakdownDescription(makeParams({ items })));
+    expect(text).toContain('notary_coordination_fee');
+    expect(text).toContain('5000.00');
+    expect(text).toContain('fixed_wpo_coordination_fee');
+    expect(text).toContain('notary_official_fee');
+    expect(text).toContain('2292.00');
+    expect(text).toContain('4325');
+    expect(text).toContain('printing_binding_fee');
+    expect(text).toContain('500.00');
+    expect(text).toContain('delivery_fee');
+    expect(text).toContain('2500.00');
+  });
 });
 
 describe('buildPriceBreakdownDescription — section C', () => {
@@ -357,48 +383,75 @@ describe('buildPriceBreakdownDescription — section D', () => {
 });
 
 describe('buildPriceBreakdownDescription — section E', () => {
-  it('shows margin fields including target_profit', () => {
+  it('shows blended margin fields including target_profit (legacy quote, no layered fields)', () => {
     const text = collectText(buildPriceBreakdownDescription(makeParams()));
-    expect(text).toContain('Gross revenue');
+    expect(text).toContain('Whole Order (Blended)');
+    expect(text).toContain('Final price');
     expect(text).toContain('Total costs');
     expect(text).toContain('Target profit');
     expect(text).toContain('1800.00 KZT');      // targetProfit from makeQuote
-    expect(text).toContain('Estimated margin');
+    expect(text).toContain('Blended order margin');
     expect(text).toContain('44.00%');
   });
 
-  it('shows margin floor fields when present in margin_json', () => {
+  it('shows WPO service layer, notary/delivery add-ons, notary coordination margin, and payment-wide fees when present in margin_json', () => {
     const quote = makeQuote({
+      internalCostJson: { notaryFee: 2292, notaryCoordinationInternalCostKzt: 0, printingCost: 500, courierCost: 2500 },
       marginJson: {
-        grossRevenue: 7800,
-        totalCosts: 3895,
+        grossRevenue: 21500,
+        totalCosts: 7127,
         targetProfit: 1375,
-        estimatedMarginKzt: 3905,
-        estimatedMarginRate: 0.5006,
+        estimatedMarginKzt: 9373,
+        estimatedMarginRate: 0.436,
         rawPriceBeforeMarginFloor: 5500,
         estimatedMarginRateBeforeFloor: 0.4068,
         marginFloorAdjustmentKzt: 2300,
         targetMarginFloorRate: 0.50,
+        wpoServiceLayerFinalPrice: 7800,
+        wpoMarginableRevenueKzt: 12800,
+        wpoServiceLayerCosts: 3895,
+        wpoServiceMarginKzt: 3905,
+        wpoServiceMarginRate: 0.5006,
         profitBufferAboveTargetKzt: 3.9,
         profitBufferAboveTargetRate: 0.0006,
+        notaryDeliveryAddonsKzt: 9958,
+        notaryCoordinationRevenueKzt: 5000,
+        notaryCoordinationMarginKzt: 5000,
+        paymentWideFeeRate: 0.105,
+        paymentWideFeesKzt: 2257.5,
+        paymentWideFeeAdjustmentKzt: 1000,
       },
     });
     const text = collectText(buildPriceBreakdownDescription(makeParams({ quote })));
-    expect(text).toContain('Raw price before margin floor');
+    expect(text).toContain('Translation / WPO Service Layer');
+    expect(text).toContain('Raw price before WPO margin floor');
     expect(text).toContain('5500.00 KZT');
-    expect(text).toContain('Margin floor adjustment');
+    expect(text).toContain('WPO margin floor adjustment');
     expect(text).toContain('2300.00 KZT');
+    expect(text).toContain('WPO marginable revenue');
+    expect(text).toContain('12800.00 KZT');
+    expect(text).toContain('WPO marginable margin');
     expect(text).toContain('Target margin %');
     expect(text).toContain('50.00%');
     expect(text).toContain('Profit buffer above target');
+    expect(text).toContain('Notary & Delivery Add-ons');
+    expect(text).toContain('9958.00 KZT');
+    expect(text).toContain('Notary coordination fee (WPO revenue)');
+    expect(text).toContain('Notary coordination internal cost (not the WPO fee)');
+    expect(text).toContain('Notary coordination margin');
+    expect(text).toContain('5000.00 KZT');
+    expect(text).toContain('Payment-wide Fees / Reserves');
+    expect(text).toContain('Whole Order (Blended)');
   });
 
-  it('omits margin floor rows for older quotes whose margin_json predates this feature', () => {
-    // makeQuote()'s default marginJson has no margin-floor keys — simulates a quote
-    // created before this feature. Section E must still render without them.
+  it('omits WPO-layer rows for older quotes whose margin_json predates this feature', () => {
+    // makeQuote()'s default marginJson has no layered-model keys — simulates a quote
+    // created before this feature. Section E must still render (blended-only) without them.
     const text = collectText(buildPriceBreakdownDescription(makeParams()));
-    expect(text).not.toContain('Raw price before margin floor');
-    expect(text).not.toContain('Margin floor adjustment');
+    expect(text).not.toContain('Raw price before WPO margin floor');
+    expect(text).not.toContain('WPO margin floor adjustment');
+    expect(text).not.toContain('Translation / WPO Service Layer');
+    expect(text).not.toContain('Notary & Delivery Add-ons');
   });
 });
 

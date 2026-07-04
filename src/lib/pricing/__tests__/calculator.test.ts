@@ -1,5 +1,5 @@
 import { calculatePrice } from '../calculator';
-import { DOCUMENT_TYPE_COEFFICIENT, NOTARY_CONFIG, MARGIN_FLOOR_CONFIG } from '../config';
+import { DOCUMENT_TYPE_COEFFICIENT, NOTARY_CONFIG, BASE_MINIMUM_KZT } from '../config';
 import type { PricingVersion, PricingInput } from '../types';
 
 const mockVersion: PricingVersion = {
@@ -8,7 +8,7 @@ const mockVersion: PricingVersion = {
   status: 'active',
   currency: 'KZT',
   internalFxRate: 510,
-  mrpValue: 3.69,
+  mrpValue: 4.325, // current 2026 MRP ≈ 4,325 KZT (stored "in thousands" — see calculator.ts)
   taxRate: 0.03,
   acquiringRate: 0.025,
   riskReserveRate: 0.05,
@@ -307,15 +307,17 @@ describe('calculatePrice', () => {
       // Total internal costs must be strictly less than gross revenue
       expect(costSubtotal).toBeLessThan(result.amountKzt);
       // Also verify internal costs are not added to the client price. The final price equals
-      // client-visible items plus the two internal-only price-shaping adjustments
-      // (rounding_adjustment, margin_floor_adjustment) — both are part of the final price
-      // (per margin floor spec §10) but never shown to the client.
+      // client-visible items plus three internal-only price-shaping adjustments —
+      // rounding_adjustment and margin_floor_adjustment (WPO service layer only), and
+      // payment_wide_fee_adjustment (final gross-up for tax/acquiring/risk/partner + rounding)
+      // — all part of the final price but never shown to the client.
       const clientVisibleSubtotal = result.items
         .filter(i => !i.isCost && i.isClientVisible)
         .reduce((s, i) => s + i.amountKzt, 0);
       const roundingAdjustment = result.items.find(i => i.itemType === 'rounding_adjustment')?.amountKzt ?? 0;
       const marginFloorAdjustment = result.items.find(i => i.itemType === 'margin_floor_adjustment')?.amountKzt ?? 0;
-      expect(Math.abs(clientVisibleSubtotal + roundingAdjustment + marginFloorAdjustment - result.amountKzt)).toBeLessThan(1);
+      const paymentWideFeeAdjustment = result.items.find(i => i.itemType === 'payment_wide_fee_adjustment')?.amountKzt ?? 0;
+      expect(Math.abs(clientVisibleSubtotal + roundingAdjustment + marginFloorAdjustment + paymentWideFeeAdjustment - result.amountKzt)).toBeLessThan(1);
     });
   });
 
@@ -818,10 +820,13 @@ describe('calculatePrice', () => {
     });
   });
 
-  describe('margin floor (commercial floor)', () => {
-    // With this fixture's real reserve rates, translator reserve alone (30% of translation
-    // portion) plus tax/acquiring/risk/owner/marketing reserves already put most standard
-    // orders below the 50% floor — so these orders are expected to receive an adjustment.
+  describe('margin floor — layered model (WPO service layer only, not notary/delivery)', () => {
+    // Under this fixture's real rates, the WPO service layer's own percentage load is only
+    // ownerReserve(7%) + marketing(10%) = 17% — much lighter than the old (incorrect) blended
+    // 27.5% that wrongly included tax/acquiring/risk. So the floor only binds when the AI/IT
+    // fixed reserve is a large fraction of a SMALL translation price (electronic tier, or extra
+    // pages driving up the fixed AI/IT reserve relative to a fixed base minimum). Test fixtures
+    // below were verified numerically, not assumed.
     const expectFloorApplied = (result: ReturnType<typeof calculatePrice>) => {
       const item = result.items.find(i => i.itemType === 'margin_floor_adjustment');
       expect(item).toBeDefined();
@@ -833,48 +838,345 @@ describe('calculatePrice', () => {
       return item!;
     };
 
-    it('electronic order with margin < 50% gets margin_floor_adjustment', () => {
+    it('electronic order: 50% margin floor applies to the full service price (no notary layer exists)', () => {
       const result = calculatePrice(baseInput({ serviceLevel: 'electronic', sourceWordCount: 200 }), mockVersion);
+      expect(result.margin.notaryDeliveryAddonsKzt).toBe(0);
       expect(result.margin.estimatedMarginRateBeforeFloor).toBeLessThan(0.50);
       expectFloorApplied(result);
-      expect(result.margin.estimatedMarginRate).toBeGreaterThanOrEqual(0.50 - 1e-9);
+      expect(result.margin.wpoServiceMarginRate).toBeGreaterThanOrEqual(0.50 - 1e-9);
+      // No notary/delivery add-ons — blended order margin is still slightly lower than the WPO
+      // layer's own rate because payment-wide tax/acquiring/risk dilute the *rate* (not the kzt).
+      expect(result.margin.estimatedMarginRate).toBeLessThan(result.margin.wpoServiceMarginRate);
+      expect(result.margin.estimatedMarginRate).toBeGreaterThan(0.40);
     });
 
-    it('official order with margin < 50% gets margin_floor_adjustment', () => {
-      const result = calculatePrice(baseInput(), mockVersion); // official by default
+    it('official order: 50% margin floor applies to the full service price (no notary layer exists)', () => {
+      // 5 physical pages drives up the fixed AI/IT reserve enough to push this below 50%
+      // (the 1-page default is already >= 50% under the corrected, lighter WPO-layer load).
+      const result = calculatePrice(baseInput({ physicalPageCount: 5 }), mockVersion);
+      expect(result.margin.notaryDeliveryAddonsKzt).toBe(0);
       expect(result.margin.estimatedMarginRateBeforeFloor).toBeLessThan(0.50);
       expectFloorApplied(result);
-      expect(result.margin.estimatedMarginRate).toBeGreaterThanOrEqual(0.50 - 1e-9);
+      expect(result.margin.wpoServiceMarginRate).toBeGreaterThanOrEqual(0.50 - 1e-9);
     });
 
-    it('notarized pickup order with margin < 50% gets margin_floor_adjustment', () => {
+    it('official order at the 1-page default already clears 50% without needing the floor', () => {
+      // Demonstrates the correction: under the OLD (buggy) blended formula this case needed
+      // an adjustment; under the corrected WPO-layer-only formula it does not.
+      const result = calculatePrice(baseInput(), mockVersion);
+      expect(result.margin.estimatedMarginRateBeforeFloor).toBeGreaterThanOrEqual(0.50);
+      expect(result.items.find(i => i.itemType === 'margin_floor_adjustment')).toBeUndefined();
+    });
+
+    it('notarized pickup: 50% margin floor applies only to the WPO service layer, not notary_official_fee', () => {
+      // 30 pages needed to push the pooled WPO marginable margin below 50% — now that
+      // notary_coordination_fee (5000, pure margin) counts toward the pool, the floor binds
+      // much later than before (previously 5 pages was enough).
       const result = calculatePrice(baseInput({
         serviceLevel: 'notarization_through_partners',
+        physicalPageCount: 30,
         fulfillmentMethod: 'pickup',
         deliveryRequired: false,
       }), mockVersion);
       expect(result.margin.estimatedMarginRateBeforeFloor).toBeLessThan(0.50);
       const item = expectFloorApplied(result);
-      // Notarized orders use the 500 KZT rounding increment for the floor step.
-      expect(item.metadataJson?.rounding_rule).toBe(MARGIN_FLOOR_CONFIG.roundingKzt.notarization_through_partners);
-      expect(result.margin.estimatedMarginRate).toBeGreaterThanOrEqual(0.50 - 1e-9);
+      // The floor step always rounds to the plain 100 KZT increment — never the notarized
+      // 500 KZT increment, which only applies to the whole order's FINAL rounding.
+      expect(item.metadataJson?.rounding_rule).toBe(100);
+      expect(item.metadataJson?.scope).toContain('wpo_marginable_revenue_pool');
+      // WPO layer itself clears the floor...
+      expect(result.margin.wpoServiceMarginRate).toBeGreaterThanOrEqual(0.50 - 1e-9);
+      // ...and the BLENDED order margin is NOT forced to exactly 50% by this correction — it
+      // emerges from the real mix of pure pass-through costs (notary_official_fee, printing,
+      // delivery — zero margin contribution) diluting it, and notary_coordination_fee (WPO
+      // commercial revenue, no real internal cost today) boosting it. It is not asserted to sit
+      // below the WPO layer's own rate — that depends on the specific fee mix for this order.
+      expect(result.margin.estimatedMarginRate).toBeGreaterThan(0);
+      // notary_coordination_fee contributes real margin (not netted to zero as a pass-through).
+      expect(result.margin.notaryCoordinationMarginKzt).toBe(5000);
+      // And the price must not explode — well under the old (buggy) 39,500 / 52,000+ range,
+      // even at 30 pages.
+      expect(result.amountKzt).toBeLessThan(50000);
     });
 
-    it('notarized delivery order with margin < 50% gets margin_floor_adjustment', () => {
+    it('notarized delivery: courier/printing/notary are not multiplied by the margin floor', () => {
+      // 40 pages needed to push the pooled WPO marginable margin below 50% for a delivery order.
       const result = calculatePrice(baseInput({
         serviceLevel: 'notarization_through_partners',
+        physicalPageCount: 40,
         fulfillmentMethod: 'delivery',
         deliveryRequired: true,
         deliveryZone: 'almaty_standard',
       }), mockVersion);
-      expect(result.margin.estimatedMarginRateBeforeFloor).toBeLessThan(0.50);
       expectFloorApplied(result);
-      expect(result.margin.estimatedMarginRate).toBeGreaterThanOrEqual(0.50 - 1e-9);
+      const notaryFeeItem = result.items.find(i => i.itemType === 'notary_official_fee')!;
+      const coordFeeItem = result.items.find(i => i.itemType === 'notary_coordination_fee')!;
+      const printingItem = result.items.find(i => i.itemType === 'printing_binding_fee')!;
+      const deliveryItem = result.items.find(i => i.itemType === 'delivery_fee')!;
+      // These must be exactly their configured/deterministic amounts — untouched by the floor.
+      expect(notaryFeeItem.amountKzt).toBe(2292); // 4.325 × 1000 × 0.53 = 2292.25, rounded
+      expect(coordFeeItem.amountKzt).toBe(NOTARY_CONFIG.notaryCoordinationFeeDefault);
+      expect(printingItem.amountKzt).toBe(NOTARY_CONFIG.printingBindingFee);
+      expect(deliveryItem.amountKzt).toBe(2500); // DELIVERY_ZONE_FEE_KZT.almaty_standard
+      const addonsSum = notaryFeeItem.amountKzt + coordFeeItem.amountKzt + printingItem.amountKzt + deliveryItem.amountKzt;
+      expect(result.margin.notaryDeliveryAddonsKzt).toBeCloseTo(addonsSum, 5);
     });
 
-    it('order with margin already >= 50% does not get an adjustment', () => {
-      // Synthetic low-reserve version to isolate "floor should not trigger" behavior from
-      // this fixture's baseline economics (which put most default-rate orders under 50%).
+    it('notary_official_fee remains close to the configured MRP tariff, never grossed by the floor', () => {
+      // mrpValue 4.325 × 1000 × 0.53 (individual coefficient) = 2292.25 → rounds to 2292,
+      // regardless of whether the WPO layer's own floor triggers (1 vs 5 pages).
+      for (const pages of [1, 5]) {
+        const result = calculatePrice(baseInput({
+          serviceLevel: 'notarization_through_partners',
+          physicalPageCount: pages,
+          applicantType: 'individual',
+        }), mockVersion);
+        const notaryFeeItem = result.items.find(i => i.itemType === 'notary_official_fee')!;
+        expect(notaryFeeItem.amountKzt).toBe(2292);
+        expect(result.internalCosts.notaryFee).toBe(2292);
+      }
+    });
+
+    it('delivery_fee remains the configured Almaty delivery fee regardless of margin floor', () => {
+      for (const pages of [1, 5]) {
+        const result = calculatePrice(baseInput({
+          serviceLevel: 'notarization_through_partners',
+          physicalPageCount: pages,
+          fulfillmentMethod: 'delivery',
+          deliveryRequired: true,
+          deliveryZone: 'almaty_standard',
+        }), mockVersion);
+        const deliveryItem = result.items.find(i => i.itemType === 'delivery_fee')!;
+        expect(deliveryItem.amountKzt).toBe(2500);
+        expect(result.internalCosts.courierCost).toBe(2500);
+      }
+    });
+
+    describe('notary MRP config (notary_official_fee)', () => {
+      it('MRP 4325 x 0.53 (individual/B2C default) produces notary_official_fee 2292 (2292.25 rounded)', () => {
+        const result = calculatePrice(baseInput({
+          serviceLevel: 'notarization_through_partners',
+          applicantType: 'individual',
+        }), mockVersion);
+        const notaryFeeItem = result.items.find(i => i.itemType === 'notary_official_fee')!;
+        expect(notaryFeeItem.amountKzt).toBe(2292);
+        expect(notaryFeeItem.metadataJson?.notary_mrp_value_kzt).toBe(4325);
+        expect(notaryFeeItem.metadataJson?.notary_mrp_coefficient).toBe(0.53);
+      });
+
+      it('legal_entity applicant uses coefficient 1.10 (only where applicant-type logic already exists)', () => {
+        const result = calculatePrice(baseInput({
+          serviceLevel: 'notarization_through_partners',
+          applicantType: 'legal_entity',
+        }), mockVersion);
+        const notaryFeeItem = result.items.find(i => i.itemType === 'notary_official_fee')!;
+        expect(notaryFeeItem.metadataJson?.notary_mrp_coefficient).toBe(1.10);
+        expect(notaryFeeItem.amountKzt).toBe(Math.round(4325 * 1.10));
+        expect(NOTARY_CONFIG.mrpCoefficient_legal_entity).toBe(1.10);
+      });
+
+      it('notary_official_fee is calculated from MRP config, not hardcoded — changing version.mrpValue changes the fee', () => {
+        const higherMrpVersion: PricingVersion = { ...mockVersion, mrpValue: 5.0 };
+        const base = calculatePrice(baseInput({ serviceLevel: 'notarization_through_partners' }), mockVersion);
+        const higher = calculatePrice(baseInput({ serviceLevel: 'notarization_through_partners' }), higherMrpVersion);
+        const baseFee = base.items.find(i => i.itemType === 'notary_official_fee')!.amountKzt;
+        const higherFee = higher.items.find(i => i.itemType === 'notary_official_fee')!.amountKzt;
+        expect(higherFee).toBe(Math.round(5.0 * 1000 * 0.53));
+        expect(higherFee).toBeGreaterThan(baseFee);
+      });
+
+      it('falls back to NOTARY_CONFIG.mrpValueFallbackKzt (4325 KZT) when version.mrpValue is null', () => {
+        const noMrpVersion: PricingVersion = { ...mockVersion, mrpValue: null };
+        const result = calculatePrice(baseInput({ serviceLevel: 'notarization_through_partners' }), noMrpVersion);
+        const notaryFeeItem = result.items.find(i => i.itemType === 'notary_official_fee')!;
+        expect(notaryFeeItem.metadataJson?.notary_mrp_value_kzt).toBe(NOTARY_CONFIG.mrpValueFallbackKzt);
+        expect(NOTARY_CONFIG.mrpValueFallbackKzt).toBe(4325);
+        expect(notaryFeeItem.amountKzt).toBe(Math.round(4325 * 0.53));
+      });
+
+      it('notary_official_fee stays separate from notary_coordination_fee regardless of MRP value', () => {
+        const result = calculatePrice(baseInput({ serviceLevel: 'notarization_through_partners' }), mockVersion);
+        const notaryFeeItem = result.items.find(i => i.itemType === 'notary_official_fee')!;
+        const coordFeeItem = result.items.find(i => i.itemType === 'notary_coordination_fee')!;
+        expect(notaryFeeItem.itemType).not.toBe(coordFeeItem.itemType);
+        expect(notaryFeeItem.amountKzt).not.toBe(coordFeeItem.amountKzt);
+      });
+    });
+
+    describe('notary_coordination_fee (fixed WPO commercial fee, 5000 KZT)', () => {
+      it('notarized pickup includes notary_coordination_fee = 5000', () => {
+        const result = calculatePrice(baseInput({
+          serviceLevel: 'notarization_through_partners',
+          fulfillmentMethod: 'pickup',
+          deliveryRequired: false,
+        }), mockVersion);
+        const coordFeeItem = result.items.find(i => i.itemType === 'notary_coordination_fee')!;
+        expect(coordFeeItem.amountKzt).toBe(5000);
+        expect(coordFeeItem.amountKzt).toBe(NOTARY_CONFIG.notaryCoordinationFeeDefault);
+      });
+
+      it('notarized delivery includes notary_coordination_fee = 5000', () => {
+        const result = calculatePrice(baseInput({
+          serviceLevel: 'notarization_through_partners',
+          fulfillmentMethod: 'delivery',
+          deliveryRequired: true,
+          deliveryZone: 'almaty_standard',
+        }), mockVersion);
+        const coordFeeItem = result.items.find(i => i.itemType === 'notary_coordination_fee')!;
+        expect(coordFeeItem.amountKzt).toBe(5000);
+      });
+
+      it('is a client price component, not internal-only, with fixed_wpo_coordination_fee metadata', () => {
+        const result = calculatePrice(baseInput({ serviceLevel: 'notarization_through_partners' }), mockVersion);
+        const coordFeeItem = result.items.find(i => i.itemType === 'notary_coordination_fee')!;
+        expect(coordFeeItem.isClientVisible).toBe(true);
+        expect(coordFeeItem.isCost).toBe(false);
+        expect(coordFeeItem.metadataJson?.source).toBe('fixed_wpo_coordination_fee');
+        expect(coordFeeItem.metadataJson?.amount).toBe(5000);
+      });
+
+      it('notary_official_fee remains separate from notary_coordination_fee (never confused/merged)', () => {
+        const result = calculatePrice(baseInput({
+          serviceLevel: 'notarization_through_partners',
+          applicantType: 'individual',
+        }), mockVersion);
+        const notaryFeeItem = result.items.find(i => i.itemType === 'notary_official_fee')!;
+        const coordFeeItem = result.items.find(i => i.itemType === 'notary_coordination_fee')!;
+        expect(notaryFeeItem.amountKzt).toBe(2292); // MRP-based (4325 x 0.53), unaffected by the fixed 5000 fee
+        expect(coordFeeItem.amountKzt).toBe(5000);
+        expect(notaryFeeItem.amountKzt).not.toBe(coordFeeItem.amountKzt);
+        expect(result.internalCosts.notaryFee).toBe(2292);
+        // notary_coordination_fee (5000, WPO commercial revenue) must NOT be modeled as a
+        // 100% pass-through internal cost — the real internal cost is 0 (not configured).
+        expect(result.internalCosts.notaryCoordinationInternalCostKzt).toBe(0);
+        expect(result.internalCosts.notaryCoordinationInternalCostKzt).not.toBe(coordFeeItem.amountKzt);
+      });
+
+      it('printing_binding_fee remains separate from notary_coordination_fee', () => {
+        const result = calculatePrice(baseInput({ serviceLevel: 'notarization_through_partners' }), mockVersion);
+        const printingItem = result.items.find(i => i.itemType === 'printing_binding_fee')!;
+        const coordFeeItem = result.items.find(i => i.itemType === 'notary_coordination_fee')!;
+        expect(printingItem.amountKzt).toBe(NOTARY_CONFIG.printingBindingFee);
+        expect(printingItem.amountKzt).not.toBe(coordFeeItem.amountKzt);
+      });
+
+      it('reconciliation includes notary_coordination_fee in the client-visible subtotal', () => {
+        const result = calculatePrice(baseInput({
+          serviceLevel: 'notarization_through_partners',
+          fulfillmentMethod: 'pickup',
+          deliveryRequired: false,
+        }), mockVersion);
+        const clientVisibleSubtotal = result.items
+          .filter(i => !i.isCost && i.isClientVisible)
+          .reduce((s, i) => s + i.amountKzt, 0);
+        const coordFeeItem = result.items.find(i => i.itemType === 'notary_coordination_fee')!;
+        expect(coordFeeItem.isClientVisible).toBe(true);
+        // notary_coordination_fee must be part of the summed client-visible subtotal.
+        expect(clientVisibleSubtotal).toBeGreaterThanOrEqual(coordFeeItem.amountKzt);
+        const roundingAdjustment = result.items.find(i => i.itemType === 'rounding_adjustment')?.amountKzt ?? 0;
+        const marginFloorAdjustment = result.items.find(i => i.itemType === 'margin_floor_adjustment')?.amountKzt ?? 0;
+        const paymentWideFeeAdjustment = result.items.find(i => i.itemType === 'payment_wide_fee_adjustment')?.amountKzt ?? 0;
+        expect(clientVisibleSubtotal + roundingAdjustment + marginFloorAdjustment + paymentWideFeeAdjustment)
+          .toBeCloseTo(result.amountKzt, 5);
+      });
+
+      it('electronic and official orders do not include a non-zero notary_coordination_fee', () => {
+        for (const serviceLevel of ['electronic', 'official_with_translator_signature_and_provider_stamp'] as const) {
+          const result = calculatePrice(baseInput({ serviceLevel }), mockVersion);
+          const coordFeeItem = result.items.find(i => i.itemType === 'notary_coordination_fee');
+          expect(coordFeeItem).toBeDefined();
+          expect(coordFeeItem!.amountKzt).toBe(0);
+          expect(coordFeeItem!.metadataJson?.not_requested).toBe(true);
+        }
+      });
+
+      it('WPO service margin floor still applies only to the WPO service layer, unaffected by the coordination fee change', () => {
+        const result = calculatePrice(baseInput({
+          serviceLevel: 'notarization_through_partners',
+          physicalPageCount: 5,
+          fulfillmentMethod: 'pickup',
+          deliveryRequired: false,
+        }), mockVersion);
+        expect(result.margin.wpoServiceMarginRate).toBeGreaterThanOrEqual(0.50 - 1e-9);
+        // notary_coordination_fee (now 5000) is not part of wpoServiceLayerCosts.
+        const coordFeeItem = result.items.find(i => i.itemType === 'notary_coordination_fee')!;
+        expect(result.margin.wpoServiceLayerCosts).toBeLessThan(result.margin.wpoServiceLayerFinalPrice);
+        expect(result.margin.notaryDeliveryAddonsKzt).toBeGreaterThanOrEqual(coordFeeItem.amountKzt);
+      });
+
+      it('notary_coordination_fee is NOT modeled as a 100% pass-through internal cost', () => {
+        const result = calculatePrice(baseInput({ serviceLevel: 'notarization_through_partners' }), mockVersion);
+        const coordFeeItem = result.items.find(i => i.itemType === 'notary_coordination_fee')!;
+        expect(coordFeeItem.amountKzt).toBe(5000);
+        // Real internal cost is 0 (not configured) — the field must never mirror the 5000 fee.
+        expect(result.internalCosts.notaryCoordinationInternalCostKzt).toBe(0);
+      });
+
+      it('notaryCoordinationInternalCostKzt is config-driven, not a calculator-hardcoded constant', () => {
+        const result = calculatePrice(baseInput({ serviceLevel: 'notarization_through_partners' }), mockVersion);
+        expect(result.internalCosts.notaryCoordinationInternalCostKzt).toBe(NOTARY_CONFIG.notaryCoordinationInternalCostKzt);
+        expect(NOTARY_CONFIG.notaryCoordinationInternalCostKzt).toBe(0);
+        // Margin must be derived from the config value (revenue - config cost), not a hardcoded 0.
+        expect(result.margin.notaryCoordinationMarginKzt).toBe(5000 - NOTARY_CONFIG.notaryCoordinationInternalCostKzt);
+      });
+
+      it('notary_coordination_fee contributes real margin to WPO, unlike notary_official_fee/printing/delivery pass-throughs', () => {
+        const result = calculatePrice(baseInput({
+          serviceLevel: 'notarization_through_partners',
+          fulfillmentMethod: 'delivery',
+          deliveryRequired: true,
+          deliveryZone: 'almaty_standard',
+        }), mockVersion);
+        expect(result.margin.notaryCoordinationRevenueKzt).toBe(5000);
+        expect(result.margin.notaryCoordinationMarginKzt).toBe(5000);
+        // Pure pass-throughs contribute zero margin: their revenue item amount exactly equals
+        // their internalCosts counterpart, so they net to zero in the blended margin calc.
+        const notaryFeeItem = result.items.find(i => i.itemType === 'notary_official_fee')!;
+        const printingItem = result.items.find(i => i.itemType === 'printing_binding_fee')!;
+        const deliveryItem = result.items.find(i => i.itemType === 'delivery_fee')!;
+        expect(notaryFeeItem.amountKzt).toBe(result.internalCosts.notaryFee);
+        expect(printingItem.amountKzt).toBe(result.internalCosts.printingCost);
+        expect(deliveryItem.amountKzt).toBe(result.internalCosts.courierCost);
+      });
+
+      it('blended margin for notarized orders increases after this correction vs. the previous "100% pass-through coordination fee" model', () => {
+        const input: PricingInput = {
+          sourceLanguage: 'ru',
+          targetLanguage: 'kz',
+          serviceLevel: 'notarization_through_partners',
+          documentType: 'passport_id',
+          sourceWordCount: 200,
+          physicalPageCount: 1,
+          applicantType: 'individual',
+          fulfillmentMethod: 'pickup',
+          deliveryRequired: false,
+          salesChannel: 'direct',
+        };
+        const result = calculatePrice(input, mockVersion);
+        // Reconstruct what the blended margin would have been under the old (wrong) model,
+        // where the full notary_coordination_fee was treated as internal cost (net zero margin
+        // contribution) instead of the corrected 0-internal-cost / 5000-margin model.
+        const oldModelTotalCosts = result.margin.totalCosts + result.margin.notaryCoordinationMarginKzt;
+        const oldModelMarginKzt = result.amountKzt - oldModelTotalCosts;
+        const oldModelMarginRate = oldModelMarginKzt / result.amountKzt;
+        expect(result.margin.estimatedMarginRate).toBeGreaterThan(oldModelMarginRate);
+        expect(result.margin.estimatedMarginKzt).toBeGreaterThan(oldModelMarginKzt);
+        expect(result.margin.estimatedMarginKzt - oldModelMarginKzt).toBeCloseTo(5000, 5);
+      });
+    });
+
+    it('notarized simple passport price does not jump to 50k+ — only justified by actual add-ons', () => {
+      const result = calculatePrice(baseInput({
+        serviceLevel: 'notarization_through_partners',
+        fulfillmentMethod: 'pickup',
+        deliveryRequired: false,
+      }), mockVersion);
+      expect(result.amountKzt).toBeLessThan(25000);
+    });
+
+    it('order with margin already >= 50% does not get a WPO-layer adjustment', () => {
+      // Synthetic low-reserve version to isolate "floor should not trigger" behavior even
+      // further from this fixture's baseline economics.
       const highMarginVersion: PricingVersion = {
         ...mockVersion,
         taxRate: 0,
@@ -889,32 +1191,29 @@ describe('calculatePrice', () => {
       expect(result.margin.estimatedMarginRateBeforeFloor).toBeGreaterThanOrEqual(0.50);
       expect(result.items.find(i => i.itemType === 'margin_floor_adjustment')).toBeUndefined();
       expect(result.margin.marginFloorAdjustmentKzt).toBe(0);
-      expect(result.margin.rawPriceBeforeMarginFloor).toBe(result.amountKzt);
+      expect(result.margin.wpoServiceLayerFinalPrice).toBe(result.margin.rawPriceBeforeMarginFloor);
     });
 
-    it('target_profit is not included as a client price component', () => {
-      const result = calculatePrice(baseInput(), mockVersion);
+    it('target_profit is not included as a client price component and never feeds the floor', () => {
+      const result = calculatePrice(baseInput({ physicalPageCount: 5 }), mockVersion);
       const targetProfitItem = result.items.find(i => i.itemType === 'target_profit');
       expect(targetProfitItem).toBeDefined();
       expect(targetProfitItem!.isCost).toBe(false);
       expect(targetProfitItem!.isClientVisible).toBe(false);
-      // target_profit must never appear as an internal cost/reserve that feeds the floor —
-      // neither the fixed-cost term nor the pre-floor cost estimate in the adjustment metadata,
-      // nor the final totalCosts figure, may equal (or be derived from) targetProfit.
       const floorItem = result.items.find(i => i.itemType === 'margin_floor_adjustment');
-      expect(floorItem?.metadataJson?.fixed_internal_costs).not.toBe(result.margin.targetProfit);
-      expect(floorItem?.metadataJson?.internal_costs_before_adjustment).not.toBe(result.margin.targetProfit);
+      expect(floorItem?.metadataJson?.wpo_service_layer_fixed_costs).not.toBe(result.margin.targetProfit);
+      expect(floorItem?.metadataJson?.wpo_service_layer_costs_before_adjustment).not.toBe(result.margin.targetProfit);
       expect(result.margin.totalCosts).not.toBe(result.margin.targetProfit);
     });
 
     it('internal reserves are not double-counted', () => {
       const result = calculatePrice(baseInput({
         serviceLevel: 'notarization_through_partners',
+        physicalPageCount: 5,
         fulfillmentMethod: 'delivery',
         deliveryRequired: true,
         deliveryZone: 'almaty_standard',
       }), mockVersion);
-      // Every internalCosts field is counted exactly once toward margin.totalCosts.
       const sumInternalCosts = Object.values(result.internalCosts).reduce((s, v) => s + v, 0);
       expect(sumInternalCosts).toBeCloseTo(result.margin.totalCosts, 5);
       // Notary/printing/courier costs are pass-through: present as revenue items (isCost=false)
@@ -926,57 +1225,152 @@ describe('calculatePrice', () => {
       expect(costItemTypes).not.toContain('delivery_fee');
     });
 
-    it('final margin after adjustment is always >= 50%', () => {
+    it('WPO service margin is always >= 50% after its floor, for every service level', () => {
       const cases: Partial<PricingInput>[] = [
         { serviceLevel: 'electronic' },
-        { serviceLevel: 'official_with_translator_signature_and_provider_stamp' },
-        { serviceLevel: 'notarization_through_partners', fulfillmentMethod: 'pickup', deliveryRequired: false },
-        { serviceLevel: 'notarization_through_partners', fulfillmentMethod: 'delivery', deliveryRequired: true },
+        { serviceLevel: 'official_with_translator_signature_and_provider_stamp', physicalPageCount: 5 },
+        { serviceLevel: 'notarization_through_partners', physicalPageCount: 5, fulfillmentMethod: 'pickup', deliveryRequired: false },
+        { serviceLevel: 'notarization_through_partners', physicalPageCount: 5, fulfillmentMethod: 'delivery', deliveryRequired: true },
       ];
       for (const overrides of cases) {
         const result = calculatePrice(baseInput(overrides), mockVersion);
-        expect(result.margin.estimatedMarginRate).toBeGreaterThanOrEqual(0.50 - 1e-9);
+        expect(result.margin.wpoServiceMarginRate).toBeGreaterThanOrEqual(0.50 - 1e-9);
       }
     });
 
-    it('rounding still keeps margin >= 50%', () => {
+    it('rounding still keeps WPO service margin >= 50%', () => {
       // Sweep word counts to exercise different rounding remainders through the floor step.
       for (const words of [0, 1, 50, 199, 250, 251, 349, 350, 999, 1001]) {
         const result = calculatePrice(baseInput({ sourceWordCount: words }), mockVersion);
-        expect(result.margin.estimatedMarginRate).toBeGreaterThanOrEqual(0.50 - 1e-9);
-        expect(result.amountKzt % MARGIN_FLOOR_CONFIG.roundingKzt.official_with_translator_signature_and_provider_stamp).toBe(0);
+        expect(result.margin.wpoServiceMarginRate).toBeGreaterThanOrEqual(0.50 - 1e-9);
+        expect(result.margin.wpoServiceLayerFinalPrice % 100).toBe(0);
       }
     });
 
-    it('reconciliation includes margin_floor_adjustment', () => {
+    it('payment-wide tax/acquiring/risk still apply to the final amount', () => {
       const result = calculatePrice(baseInput(), mockVersion);
+      expect(result.internalCosts.taxReserve).toBeCloseTo(result.amountKzt * mockVersion.taxRate, 5);
+      expect(result.internalCosts.acquiringFee).toBeCloseTo(result.amountKzt * mockVersion.acquiringRate, 5);
+      expect(result.internalCosts.riskReserve).toBeCloseTo(result.amountKzt * mockVersion.riskReserveRate, 5);
+      expect(result.margin.paymentWideFeesKzt).toBeGreaterThan(0);
+    });
+
+    it('reconciliation includes margin_floor_adjustment and payment_wide_fee_adjustment', () => {
+      const result = calculatePrice(baseInput({
+        serviceLevel: 'notarization_through_partners',
+        physicalPageCount: 30,
+        fulfillmentMethod: 'pickup',
+        deliveryRequired: false,
+      }), mockVersion);
       const clientVisibleSubtotal = result.items
         .filter(i => !i.isCost && i.isClientVisible)
         .reduce((s, i) => s + i.amountKzt, 0);
       const roundingAdjustment = result.items.find(i => i.itemType === 'rounding_adjustment')?.amountKzt ?? 0;
       const marginFloorAdjustment = result.items.find(i => i.itemType === 'margin_floor_adjustment')?.amountKzt ?? 0;
+      const paymentWideFeeAdjustment = result.items.find(i => i.itemType === 'payment_wide_fee_adjustment')?.amountKzt ?? 0;
       expect(marginFloorAdjustment).toBeGreaterThan(0);
-      expect(clientVisibleSubtotal + roundingAdjustment + marginFloorAdjustment).toBeCloseTo(result.amountKzt, 5);
+      expect(paymentWideFeeAdjustment).toBeGreaterThan(0);
+      expect(clientVisibleSubtotal + roundingAdjustment + marginFloorAdjustment + paymentWideFeeAdjustment)
+        .toBeCloseTo(result.amountKzt, 5);
     });
 
-    it('margin summary exposes raw price, adjustment, final price, target margin, and actual margin', () => {
-      const result = calculatePrice(baseInput(), mockVersion);
+    it('margin summary exposes WPO layer, add-ons, payment-wide fees, and blended totals', () => {
+      const result = calculatePrice(baseInput({
+        serviceLevel: 'notarization_through_partners',
+        physicalPageCount: 30,
+        fulfillmentMethod: 'pickup',
+        deliveryRequired: false,
+      }), mockVersion);
       expect(result.margin.rawPriceBeforeMarginFloor).toBeGreaterThan(0);
       expect(result.margin.marginFloorAdjustmentKzt).toBeGreaterThan(0);
+      expect(result.margin.wpoServiceLayerFinalPrice).toBe(result.margin.rawPriceBeforeMarginFloor + result.margin.marginFloorAdjustmentKzt);
+      expect(result.margin.notaryDeliveryAddonsKzt).toBeGreaterThan(0);
+      expect(result.margin.paymentWideFeesKzt).toBeGreaterThan(0);
       expect(result.margin.grossRevenue).toBe(result.amountKzt);
-      expect(result.margin.grossRevenue).toBe(result.margin.rawPriceBeforeMarginFloor + result.margin.marginFloorAdjustmentKzt);
       expect(result.margin.targetMarginFloorRate).toBe(0.50);
-      expect(result.margin.estimatedMarginRate).toBeGreaterThanOrEqual(result.margin.targetMarginFloorRate - 1e-9);
+      expect(result.margin.wpoServiceMarginRate).toBeGreaterThanOrEqual(result.margin.targetMarginFloorRate - 1e-9);
       expect(result.margin.profitBufferAboveTargetRate).toBeGreaterThanOrEqual(-1e-9);
       expect(result.margin.profitBufferAboveTargetKzt).toBeGreaterThanOrEqual(-1e-9);
     });
 
+    describe('notarized base minimum equals the official tier (removes double charging)', () => {
+      it('every language group: notarization_through_partners base equals the official tier base', () => {
+        const groups = Object.keys(BASE_MINIMUM_KZT) as Array<keyof typeof BASE_MINIMUM_KZT>;
+        expect(groups.length).toBeGreaterThan(0);
+        for (const group of groups) {
+          expect(BASE_MINIMUM_KZT[group].notarization_through_partners).toBe(
+            BASE_MINIMUM_KZT[group].official_with_translator_signature_and_provider_stamp,
+          );
+        }
+      });
+
+      it('commercial minimum: notarized pickup RU→KZ passport/simple document lands around 15,000 KZT (not 21,000)', () => {
+        const result = calculatePrice(baseInput({
+          serviceLevel: 'notarization_through_partners',
+          fulfillmentMethod: 'pickup',
+          deliveryRequired: false,
+        }), mockVersion);
+        expect(result.amountKzt).toBe(15000);
+      });
+
+      it('electronic pricing is unchanged by the notarized base minimum fix', () => {
+        const result = calculatePrice(baseInput({ serviceLevel: 'electronic' }), mockVersion);
+        expect(result.amountKzt).toBe(1500);
+      });
+
+      it('official pricing is unchanged by the notarized base minimum fix', () => {
+        const result = calculatePrice(baseInput(), mockVersion); // official by default
+        expect(result.amountKzt).toBe(6200);
+      });
+
+      it('notary add-ons (official fee, printing, delivery) remain separate from the translation/service layer base', () => {
+        const result = calculatePrice(baseInput({
+          serviceLevel: 'notarization_through_partners',
+          fulfillmentMethod: 'delivery',
+          deliveryRequired: true,
+          deliveryZone: 'almaty_standard',
+        }), mockVersion);
+        const minimumCheckItem = result.items.find(i => i.itemType === 'minimum_check')!;
+        const notaryFeeItem = result.items.find(i => i.itemType === 'notary_official_fee')!;
+        const printingItem = result.items.find(i => i.itemType === 'printing_binding_fee')!;
+        const deliveryItem = result.items.find(i => i.itemType === 'delivery_fee')!;
+        expect(minimumCheckItem.amountKzt).toBe(5500); // official-tier base, not the old 11000
+        expect(notaryFeeItem.amountKzt).toBe(2292);
+        expect(printingItem.amountKzt).toBe(500);
+        expect(deliveryItem.amountKzt).toBe(2500);
+      });
+
+      it('notary_coordination_fee contributes to WPO marginable revenue (not just the translation layer)', () => {
+        const result = calculatePrice(baseInput({
+          serviceLevel: 'notarization_through_partners',
+          fulfillmentMethod: 'pickup',
+          deliveryRequired: false,
+        }), mockVersion);
+        expect(result.margin.wpoMarginableRevenueKzt).toBe(result.margin.wpoServiceLayerFinalPrice + result.margin.notaryCoordinationRevenueKzt);
+        expect(result.margin.wpoMarginableRevenueKzt).toBeGreaterThan(result.margin.wpoServiceLayerFinalPrice);
+      });
+
+      it('whole-order floor is still not used — notarized blended margin is not forced to 50%', () => {
+        const result = calculatePrice(baseInput({
+          serviceLevel: 'notarization_through_partners',
+          fulfillmentMethod: 'delivery',
+          deliveryRequired: true,
+          deliveryZone: 'almaty_standard',
+        }), mockVersion);
+        expect(result.margin.wpoServiceMarginRate).toBeGreaterThanOrEqual(0.50 - 1e-9);
+        // Blended margin is a real, unforced number — may sit above or below 50% depending on
+        // the fee mix, never artificially pinned to exactly the target.
+        expect(result.margin.estimatedMarginRate).not.toBeCloseTo(0.50, 2);
+      });
+    });
+
     describe('regression', () => {
-      it('ru→en employment_document + notarization_through_partners + Almaty delivery: quote and final margin >= 50%', () => {
+      it('ru→en employment_document + notarization_through_partners + Almaty delivery: quotes, WPO layer margin >= 50%, no 50k+ explosion', () => {
         const result = calculatePrice(baseInput({
           sourceLanguage: 'ru',
           targetLanguage: 'en',
           documentType: 'employment_document',
+          physicalPageCount: 40, // pushes the pooled WPO marginable margin below 50% so the floor actually engages
           serviceLevel: 'notarization_through_partners',
           fulfillmentMethod: 'delivery',
           deliveryRequired: true,
@@ -984,10 +1378,12 @@ describe('calculatePrice', () => {
         }), mockVersion);
         expect(result.status).toBe('quoted');
         expect(result.requiresOperatorReview).toBe(false);
-        expect(result.margin.estimatedMarginRate).toBeGreaterThanOrEqual(0.50 - 1e-9);
+        expect(result.margin.marginFloorAdjustmentKzt).toBeGreaterThan(0);
+        expect(result.margin.wpoServiceMarginRate).toBeGreaterThanOrEqual(0.50 - 1e-9);
+        expect(result.amountKzt).toBeLessThan(100000);
       });
 
-      it('low-price electronic ru→kz case (1000 KZT base) gets uplift when margin < 50%', () => {
+      it('low-price electronic ru→kz case (1000 KZT base) gets uplift when WPO layer margin < 50%', () => {
         const result = calculatePrice(baseInput({
           serviceLevel: 'electronic',
           sourceLanguage: 'ru',
@@ -995,24 +1391,25 @@ describe('calculatePrice', () => {
           sourceWordCount: 100,
         }), mockVersion);
         expect(result.margin.estimatedMarginRateBeforeFloor).toBeLessThan(0.50);
-        expect(result.amountKzt).toBeGreaterThan(result.margin.rawPriceBeforeMarginFloor);
-        expect(result.margin.estimatedMarginRate).toBeGreaterThanOrEqual(0.50 - 1e-9);
+        expect(result.margin.wpoServiceLayerFinalPrice).toBeGreaterThan(result.margin.rawPriceBeforeMarginFloor);
+        expect(result.margin.wpoServiceMarginRate).toBeGreaterThanOrEqual(0.50 - 1e-9);
       });
 
-      it('direct sales channel has partner_commission_cost = 0 and margin floor still applies correctly', () => {
-        const result = calculatePrice(baseInput({ salesChannel: 'direct' }), mockVersion);
+      it('direct sales channel has partner_commission_cost = 0', () => {
+        const result = calculatePrice(baseInput({ salesChannel: 'direct', physicalPageCount: 5 }), mockVersion);
         expect(result.internalCosts.partnerCommission).toBe(0);
-        expect(result.margin.estimatedMarginRate).toBeGreaterThanOrEqual(0.50 - 1e-9);
+        expect(result.margin.wpoServiceMarginRate).toBeGreaterThanOrEqual(0.50 - 1e-9);
       });
 
-      it('referral (partner) sales channel handles partner commission without double-counting marketing reserve', () => {
-        const result = calculatePrice(baseInput({ salesChannel: 'referral', partnerId: 'partner-abc' }), mockVersion);
+      it('referral (partner) sales channel handles partner commission as a payment-wide fee, not double-counted', () => {
+        const result = calculatePrice(baseInput({ salesChannel: 'referral', partnerId: 'partner-abc', physicalPageCount: 5 }), mockVersion);
         expect(result.internalCosts.partnerCommission).toBeGreaterThan(0);
-        // Marketing reserve for referral channel is the reduced 2% rate, not the direct 10% rate.
+        // Partner commission is payment-wide (sized against final price), separate from the
+        // WPO layer's own reduced 2% marketing top-up.
         expect(result.internalCosts.marketingReserve).toBeLessThan(result.internalCosts.partnerCommission);
         const sumInternalCosts = Object.values(result.internalCosts).reduce((s, v) => s + v, 0);
         expect(sumInternalCosts).toBeCloseTo(result.margin.totalCosts, 5);
-        expect(result.margin.estimatedMarginRate).toBeGreaterThanOrEqual(0.50 - 1e-9);
+        expect(result.margin.wpoServiceMarginRate).toBeGreaterThanOrEqual(0.50 - 1e-9);
       });
     });
   });
