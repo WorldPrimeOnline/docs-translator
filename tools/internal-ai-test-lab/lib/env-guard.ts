@@ -93,3 +93,28 @@ export function buildSafetySummary(input: SafetySummaryInput): string {
     `R2 save: ${input.saveToR2}`,
   ].join('\n');
 }
+
+export interface BatchSafetySummaryInput {
+  environment: Environment;
+  batchId: string;
+  outputDir: string;
+  fileCount: number;
+  concurrency: number;
+}
+
+export function buildBatchSafetySummary(input: BatchSafetySummaryInput): string {
+  return [
+    'WPO AI Translation Test Lab — Batch Mode',
+    `Environment: ${input.environment}`,
+    `Files to process: ${input.fileCount}`,
+    `Concurrency: ${input.concurrency}`,
+    'Payment: disabled',
+    'Halyk: disabled',
+    'Jira: disabled',
+    'Fiscalization: disabled',
+    'Normal customer workflow: disabled',
+    `Output dir: ${input.outputDir}/${input.batchId}`,
+    '',
+    'Cost warning: batch mode will spend real OCR/LLM API credits for every document in the manifest.',
+  ].join('\n');
+}

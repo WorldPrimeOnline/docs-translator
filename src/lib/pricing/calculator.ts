@@ -15,6 +15,7 @@ import {
   NOTARY_CONFIG,
   PRICE_ROUNDING_INCREMENT,
   PRESENTATION_SLIDE_FEE_KZT,
+  MARGIN_FLOOR_CONFIG,
 } from './config';
 import { getNotaryCutoffWindow } from './almaty-time';
 
@@ -283,7 +284,11 @@ export function calculatePrice(input: PricingInput, version: PricingVersion): Pr
     translationPortion += layoutFee;
   }
 
-  let subtotal = translationPortion;
+  // wpoServiceSubtotal: Layer A (translation/WPO service) — this is the ONLY layer the 50%
+  // margin floor ever applies to. notaryAddonsTotal: Layer B (notary/courier/printing/delivery
+  // pass-through) — added to the final price afterward, never grossed up by the floor.
+  let wpoServiceSubtotal = translationPortion;
+  let notaryAddonsTotal = 0;
 
   // 9. Official package components (human review, translator signature, provider stamp)
   // For official and notarized service levels: included in minimum (zero amount, with metadata).
@@ -340,7 +345,7 @@ export function calculatePrice(input: PricingInput, version: PricingVersion): Pr
       sortOrder: nextSort(),
       metadataJson: { visualMarksComplexity: visualMarks },
     });
-    subtotal += visualMarksFee;
+    wpoServiceSubtotal += visualMarksFee;
   }
 
   // 11. Notary components
@@ -350,8 +355,10 @@ export function calculatePrice(input: PricingInput, version: PricingVersion): Pr
   let notaryCutoffSnapshot: NotaryCutoffSnapshot | undefined;
 
   if (serviceLevel === 'notarization_through_partners') {
-    const mrpValue = version.mrpValue ?? 3.69;
-    const mrpKzt = mrpValue * 1000;
+    // version.mrpValue (pricing_versions.mrp_value) is stored "in thousands of KZT" (e.g. 3.69
+    // means 3,690 KZT) — that convention is unchanged here. NOTARY_CONFIG.mrpValueFallbackKzt
+    // is a plain-KZT fallback used only when the version doesn't carry an mrp_value at all.
+    const mrpKzt = version.mrpValue != null ? version.mrpValue * 1000 : NOTARY_CONFIG.mrpValueFallbackKzt;
 
     const mrpCoeffOrReview = NOTARY_APPLICANT_MRP_COEFFICIENT[applicantType];
     let mrpCoeff: number;
@@ -376,17 +383,24 @@ export function calculatePrice(input: PricingInput, version: PricingVersion): Pr
         isClientVisible: true,
         isCost: false,
         sortOrder: nextSort(),
-        metadataJson: { note: 'TODO: confirm with notary', mrpValue, mrpCoeff, applicantType },
+        metadataJson: {
+          note: 'TODO: confirm with notary',
+          notary_mrp_value_kzt: mrpKzt,
+          notary_mrp_coefficient: mrpCoeff,
+          applicantType,
+        },
       },
       {
         itemType: 'notary_coordination_fee',
-        label: 'Notary coordination',
+        label: 'Notary coordination (WPO fixed fee)',
         quantity: 1,
         unitPriceKzt: notaryCoordFee,
         amountKzt: notaryCoordFee,
         isClientVisible: true,
         isCost: false,
         sortOrder: nextSort(),
+        // Fixed WPO commercial fee — NOT inferred from MRP, NOT the notary_official_fee.
+        metadataJson: { source: 'fixed_wpo_coordination_fee', amount: notaryCoordFee },
       },
       {
         itemType: 'printing_binding_fee',
@@ -400,7 +414,7 @@ export function calculatePrice(input: PricingInput, version: PricingVersion): Pr
       },
     );
 
-    subtotal += notaryFee + notaryCoordFee + printingFee;
+    notaryAddonsTotal += notaryFee + notaryCoordFee + printingFee;
     // notary_official_fee is a deterministic MRP-based formula, so it can be auto-quoted.
     // Notary slot / translator availability is confirmed by ops after payment, not before —
     // it must never gate whether a price is shown or checkout can start.
@@ -442,7 +456,7 @@ export function calculatePrice(input: PricingInput, version: PricingVersion): Pr
             pricingTimezone: 'Asia/Almaty',
           },
         });
-        subtotal += urgencySurcharge;
+        notaryAddonsTotal += urgencySurcharge;
       }
     } else {
       notaryCutoffSnapshot = {
@@ -469,7 +483,7 @@ export function calculatePrice(input: PricingInput, version: PricingVersion): Pr
         isCost: false,
         sortOrder: nextSort(),
       });
-      subtotal += copiesFee;
+      notaryAddonsTotal += copiesFee;
     }
   } else {
     // Non-notarized: zero-value rows to show notary was not requested
@@ -525,7 +539,7 @@ export function calculatePrice(input: PricingInput, version: PricingVersion): Pr
         sortOrder: nextSort(),
         metadataJson: { deliveryZone: input.deliveryZone ?? 'almaty_standard' },
       });
-      subtotal += deliveryFee;
+      notaryAddonsTotal += deliveryFee;
       deliveryFeeAdded = true;
     }
   }
@@ -544,33 +558,205 @@ export function calculatePrice(input: PricingInput, version: PricingVersion): Pr
     });
   }
 
-  // 13. Internal reserves (not client-visible)
+  // 13. WPO service layer — fixed costs. Translator + AI/IT are the only WPO-controlled fixed
+  // costs currently modeled (a "fixed ops allocation" bucket was requested but does not exist
+  // in this schema yet — see PR notes). These are NEVER notary/courier/printing pass-throughs.
   const aiItReserve = version.aiItReservePerPageKzt * physicalPages;
-  const taxReserve = subtotal * version.taxRate;
-  const acquiringFee = subtotal * version.acquiringRate;
-  const riskReserve = subtotal * version.riskReserveRate;
-  const ownerReserve = subtotal * version.ownerReserveRate;
-
-  let marketingReserve = 0;
-  let partnerCommission = 0;
-  if (salesChannel === 'direct') {
-    marketingReserve = subtotal * version.marketingRateDirect;
-  } else if (salesChannel === 'referral') {
-    partnerCommission = subtotal * version.partnerCommissionRate;
-    marketingReserve = subtotal * 0.02;
-  }
-
-  // Translator cost estimate: 30% of translation portion
   const translatorReserved = Math.round(translationPortion * 0.30);
 
   items.push(
-    { itemType: 'ai_it_reserve',          label: 'AI/IT reserve',                quantity: physicalPages, unitPriceKzt: version.aiItReservePerPageKzt, amountKzt: aiItReserve,      isClientVisible: false, isCost: true, sortOrder: nextSort() },
-    { itemType: 'tax_reserve',            label: 'Tax reserve (3%)',              quantity: 1,             unitPriceKzt: taxReserve,                    amountKzt: taxReserve,       isClientVisible: false, isCost: true, sortOrder: nextSort() },
-    { itemType: 'acquiring_fee_estimate', label: 'Acquiring fee estimate (2.5%)', quantity: 1,             unitPriceKzt: acquiringFee,                  amountKzt: acquiringFee,     isClientVisible: false, isCost: true, sortOrder: nextSort() },
-    { itemType: 'risk_chargeback_reserve',label: 'Risk/chargeback reserve (5%)',  quantity: 1,             unitPriceKzt: riskReserve,                   amountKzt: riskReserve,      isClientVisible: false, isCost: true, sortOrder: nextSort() },
-    { itemType: 'owner_reserve',          label: 'Owner reserve (7%)',            quantity: 1,             unitPriceKzt: ownerReserve,                  amountKzt: ownerReserve,     isClientVisible: false, isCost: true, sortOrder: nextSort() },
-    { itemType: 'marketing_cac_reserve',  label: 'Marketing/CAC reserve',        quantity: 1,             unitPriceKzt: marketingReserve,              amountKzt: marketingReserve, isClientVisible: false, isCost: true, sortOrder: nextSort() },
+    { itemType: 'ai_it_reserve', label: 'AI/IT reserve', quantity: physicalPages, unitPriceKzt: version.aiItReservePerPageKzt, amountKzt: aiItReserve, isClientVisible: false, isCost: true, sortOrder: nextSort() },
     { itemType: 'translator_reserved_cost', label: 'Translator cost estimate (30% of translation)', quantity: 1, unitPriceKzt: translatorReserved, amountKzt: translatorReserved, isClientVisible: false, isCost: true, sortOrder: nextSort(), metadataJson: { rate: 0.30, translationPortion } },
+  );
+
+  const wpoServiceLayerFixedCosts = aiItReserve + translatorReserved;
+
+  // target_profit is a benchmark only (never a cost, never fed into any floor formula below).
+  // Its basis (wpoServiceSubtotal + notaryAddonsTotal) is unchanged from before this correction.
+  const targetProfit = (wpoServiceSubtotal + notaryAddonsTotal) * version.targetProfitRate;
+  items.push({
+    itemType: 'target_profit',
+    label: 'Target profit allocation',
+    quantity: 1,
+    unitPriceKzt: targetProfit,
+    amountKzt: targetProfit,
+    isClientVisible: false,
+    isCost: false,
+    sortOrder: nextSort(),
+    metadataJson: { rate: version.targetProfitRate },
+  });
+
+  // 14. Round the WPO service layer's raw price (before its own floor step). This layer never
+  // includes notary/delivery pass-throughs, so it always uses the plain 100 KZT increment
+  // regardless of service level.
+  const wpoServiceLayerRawPrice = roundToIncrement(wpoServiceSubtotal, PRICE_ROUNDING_INCREMENT);
+  const roundingAdj = wpoServiceLayerRawPrice - wpoServiceSubtotal;
+  if (Math.abs(roundingAdj) > 0.01) {
+    items.push({
+      itemType: 'rounding_adjustment',
+      label: 'Rounding adjustment',
+      quantity: 1,
+      unitPriceKzt: roundingAdj,
+      amountKzt: roundingAdj,
+      isClientVisible: false,
+      isCost: false,
+      sortOrder: nextSort(),
+    });
+  }
+  const rawPriceBeforeMarginFloor = wpoServiceLayerRawPrice;
+
+  // 15. WPO service layer's percentage reserve rate: owner reserve + marketing/CAC (or the
+  // referral top-up). Tax, Halyk acquiring, risk, and partner commission are PAYMENT-WIDE
+  // (§18) — they apply to the whole final client price (WPO layer + notary/delivery add-ons),
+  // not just this layer, so they must never gross up the notary official fee.
+  let wpoLayerMarketingRate = 0;
+  if (salesChannel === 'direct') {
+    wpoLayerMarketingRate = version.marketingRateDirect;
+  } else if (salesChannel === 'referral') {
+    wpoLayerMarketingRate = 0.02; // top-up only; partner commission itself is payment-wide
+  }
+  const wpoServiceLayerPercentageReserveRate = version.ownerReserveRate + wpoLayerMarketingRate;
+
+  // 16. notary_coordination_fee is WPO's own commercial fee, NOT a pass-through — it is
+  // WPO-controlled revenue that must count toward the margin floor, alongside the translation
+  // layer. Its real internal cost is config-driven (currently 0 / not configured). Computed
+  // here (rather than later) because it's now a required input to the floor formula below.
+  const notaryCoordinationInternalCost = NOTARY_CONFIG.notaryCoordinationInternalCostKzt;
+
+  // 17. Margin floor — checked against the WPO MARGINABLE REVENUE POOL, not the translation
+  // layer alone: pool = translation/service layer price + notary_coordination_fee (both
+  // WPO-controlled revenue). notary_official_fee/printing/delivery are NEVER included here —
+  // they are real pass-through costs, added only after this floor step (§19).
+  //   1. Estimate the pool's margin at the layer's raw (pre-floor) price + the fixed
+  //      coordination fee revenue.
+  //   2. If margin < target, solve for the TRANSLATION LAYER's own price that, combined with
+  //      the fixed (never-adjusted) coordination fee, leaves exactly the target margin on the
+  //      pool: R >= (fixedCosts + notaryCoordinationInternalCost) / denominator - notaryCoordFee.
+  //      A large notary_coordination_fee cushion means the translation layer often needs little
+  //      or no adjustment — that's the intended effect, not a bug.
+  //   3. Round up to the plain 100 KZT increment (never the notarized 500 KZT increment — that
+  //      applies only to the whole order's final rounding in §19).
+  //   4. Recompute owner/marketing reserves against the TRUE final pool value (§18).
+  const targetMarginFloorRate = MARGIN_FLOOR_CONFIG.targetMarginRate[serviceLevel];
+
+  const wpoMarginableRevenueBeforeFloor = wpoServiceLayerRawPrice + notaryCoordFee;
+  const wpoMarginableCostsBeforeFloor = wpoServiceLayerFixedCosts + notaryCoordinationInternalCost
+    + wpoServiceLayerPercentageReserveRate * wpoMarginableRevenueBeforeFloor;
+  const estimatedMarginBeforeFloor = wpoMarginableRevenueBeforeFloor - wpoMarginableCostsBeforeFloor;
+  const estimatedMarginRateBeforeFloor = wpoMarginableRevenueBeforeFloor > 0
+    ? estimatedMarginBeforeFloor / wpoMarginableRevenueBeforeFloor
+    : 0;
+
+  let wpoServiceLayerFinalPrice = wpoServiceLayerRawPrice;
+  let marginFloorAdjustmentKzt = 0;
+  let minimumPriceForMargin: number | null = null;
+
+  if (MARGIN_FLOOR_CONFIG.enableMarginFloor && estimatedMarginRateBeforeFloor < targetMarginFloorRate) {
+    const denominator = 1 - wpoServiceLayerPercentageReserveRate - targetMarginFloorRate;
+    if (denominator <= 0) {
+      // Configuration error: configured WPO-layer reserves plus the target margin exceed 100%
+      // of the marginable pool's revenue, so no finite price can satisfy the floor. Fail loudly
+      // rather than silently emit a quote that doesn't actually meet the margin floor.
+      throw new Error(
+        `MARGIN_FLOOR_CONFIG_ERROR: WPO service layer percentage reserve rate (${wpoServiceLayerPercentageReserveRate}) + target margin rate (${targetMarginFloorRate}) >= 100% for pricing version '${version.code}', service level '${serviceLevel}'. Cannot solve for a valid margin-floor price — fix pricing_versions rates before quoting.`,
+      );
+    }
+    // notary_coordination_fee is fixed/never adjusted — only the translation layer's own price
+    // is solved for here. A larger coordination fee reduces how much the layer needs to rise.
+    minimumPriceForMargin = (wpoServiceLayerFixedCosts + notaryCoordinationInternalCost) / denominator - notaryCoordFee;
+    const flooredAmount = roundToIncrement(
+      Math.max(wpoServiceLayerRawPrice, minimumPriceForMargin),
+      PRICE_ROUNDING_INCREMENT,
+    );
+    marginFloorAdjustmentKzt = flooredAmount - wpoServiceLayerRawPrice;
+    wpoServiceLayerFinalPrice = flooredAmount;
+
+    items.push({
+      itemType: 'margin_floor_adjustment',
+      label: 'WPO margin floor adjustment (translation/service layer only)',
+      quantity: 1,
+      unitPriceKzt: marginFloorAdjustmentKzt,
+      amountKzt: marginFloorAdjustmentKzt,
+      isClientVisible: false,
+      isCost: false,
+      sortOrder: nextSort(),
+      metadataJson: {
+        target_margin_rate: targetMarginFloorRate,
+        raw_wpo_service_layer_price: wpoServiceLayerRawPrice,
+        notary_coordination_fee_in_pool: notaryCoordFee,
+        wpo_marginable_revenue_before_adjustment: wpoMarginableRevenueBeforeFloor,
+        wpo_service_layer_fixed_costs: wpoServiceLayerFixedCosts,
+        notary_coordination_internal_cost: notaryCoordinationInternalCost,
+        wpo_service_layer_percentage_reserve_rate: wpoServiceLayerPercentageReserveRate,
+        wpo_marginable_costs_before_adjustment: wpoMarginableCostsBeforeFloor,
+        estimated_margin_rate_before_adjustment: estimatedMarginRateBeforeFloor,
+        minimum_price_for_margin: minimumPriceForMargin,
+        rounding_rule: PRICE_ROUNDING_INCREMENT,
+        reason: 'margin_below_target',
+        scope: 'wpo_marginable_revenue_pool (translation layer + notary_coordination_fee) — never applied to notary_official_fee, printing, or courier',
+      },
+    });
+  }
+
+  // 18. Recompute the WPO marginable revenue pool against the TRUE final translation-layer
+  // price. Owner/marketing reserves scale with the COMBINED pool (not the translation layer
+  // alone), since notary_coordination_fee is real WPO-controlled revenue too. For non-notarized
+  // orders notaryCoordFee is 0, so this is identical to the translation layer alone — unchanged.
+  const wpoMarginableRevenueKzt = wpoServiceLayerFinalPrice + notaryCoordFee;
+  const ownerReserve = wpoMarginableRevenueKzt * version.ownerReserveRate;
+  let marketingReserve = 0;
+  if (salesChannel === 'direct') {
+    marketingReserve = wpoMarginableRevenueKzt * version.marketingRateDirect;
+  } else if (salesChannel === 'referral') {
+    marketingReserve = wpoMarginableRevenueKzt * 0.02;
+  }
+
+  items.push(
+    { itemType: 'owner_reserve',         label: 'Owner reserve (7%)',     quantity: 1, unitPriceKzt: ownerReserve,    amountKzt: ownerReserve,    isClientVisible: false, isCost: true, sortOrder: nextSort(), metadataJson: { rate: version.ownerReserveRate, computedAgainst: 'wpo_marginable_revenue_pool' } },
+    { itemType: 'marketing_cac_reserve', label: 'Marketing/CAC reserve', quantity: 1, unitPriceKzt: marketingReserve, amountKzt: marketingReserve, isClientVisible: false, isCost: true, sortOrder: nextSort(), metadataJson: { computedAgainst: 'wpo_marginable_revenue_pool' } },
+  );
+
+  const wpoServiceLayerCosts = wpoServiceLayerFixedCosts + notaryCoordinationInternalCost + ownerReserve + marketingReserve;
+  const wpoServiceMarginKzt = wpoMarginableRevenueKzt - wpoServiceLayerCosts;
+  const wpoServiceMarginRate = wpoMarginableRevenueKzt > 0 ? wpoServiceMarginKzt / wpoMarginableRevenueKzt : 0;
+
+  // 18. Notary/delivery add-ons (Layer B) — pure pass-through, added AFTER the floor so they can
+  // never be grossed up by it. notaryAddonsTotal already accumulated notary_official_fee,
+  // notary_coordination_fee, printing_binding_fee, notary_urgency_fee, extra_paper_copies, and
+  // delivery_fee as those revenue items were pushed in steps 11/12.
+  const finalBeforePaymentWideFees = wpoServiceLayerFinalPrice + notaryAddonsTotal;
+
+  // 19. Payment-wide percentage fees — tax, Halyk acquiring, risk reserve, and (referral)
+  // partner commission. These apply to the WHOLE final client price (including notary/delivery)
+  // because that's the amount actually processed/invoiced/at chargeback risk — but they must
+  // never be a reason to treat notary_official_fee as WPO-marginable revenue.
+  const paymentWidePartnerRate = salesChannel === 'referral' ? version.partnerCommissionRate : 0;
+  const paymentWideFeeRate = version.taxRate + version.acquiringRate + version.riskReserveRate + paymentWidePartnerRate;
+  const finalRoundingIncrement = MARGIN_FLOOR_CONFIG.roundingKzt[serviceLevel];
+
+  let finalClientPrice: number;
+  if (paymentWideFeeRate > 0) {
+    const paymentWideDenominator = 1 - paymentWideFeeRate;
+    if (paymentWideDenominator <= 0) {
+      throw new Error(
+        `MARGIN_FLOOR_CONFIG_ERROR: payment-wide fee rate (${paymentWideFeeRate}) >= 100% for pricing version '${version.code}'. Cannot solve for a valid final price — fix pricing_versions rates before quoting.`,
+      );
+    }
+    finalClientPrice = roundToIncrement(finalBeforePaymentWideFees / paymentWideDenominator, finalRoundingIncrement);
+  } else {
+    finalClientPrice = roundToIncrement(finalBeforePaymentWideFees, finalRoundingIncrement);
+  }
+
+  // 20. Recompute payment-wide fees against the TRUE final client price.
+  const taxReserve = finalClientPrice * version.taxRate;
+  const acquiringFee = finalClientPrice * version.acquiringRate;
+  const riskReserve = finalClientPrice * version.riskReserveRate;
+  const partnerCommission = salesChannel === 'referral' ? finalClientPrice * version.partnerCommissionRate : 0;
+
+  items.push(
+    { itemType: 'tax_reserve',            label: 'Tax reserve (3%)',              quantity: 1, unitPriceKzt: taxReserve,     amountKzt: taxReserve,     isClientVisible: false, isCost: true, sortOrder: nextSort(), metadataJson: { rate: version.taxRate, computedAgainst: 'final_client_price' } },
+    { itemType: 'acquiring_fee_estimate', label: 'Acquiring fee estimate (2.5%)', quantity: 1, unitPriceKzt: acquiringFee,   amountKzt: acquiringFee,   isClientVisible: false, isCost: true, sortOrder: nextSort(), metadataJson: { rate: version.acquiringRate, computedAgainst: 'final_client_price' } },
+    { itemType: 'risk_chargeback_reserve',label: 'Risk/chargeback reserve (5%)',  quantity: 1, unitPriceKzt: riskReserve,    amountKzt: riskReserve,    isClientVisible: false, isCost: true, sortOrder: nextSort(), metadataJson: { rate: version.riskReserveRate, computedAgainst: 'final_client_price' } },
   );
 
   if (partnerCommission > 0) {
@@ -583,7 +769,7 @@ export function calculatePrice(input: PricingInput, version: PricingVersion): Pr
       isClientVisible: false,
       isCost: true,
       sortOrder: nextSort(),
-      metadataJson: { salesChannel, rate: version.partnerCommissionRate },
+      metadataJson: { salesChannel, rate: version.partnerCommissionRate, computedAgainst: 'final_client_price' },
     });
   } else {
     // Zero-value row: no partner commission for direct sales
@@ -600,43 +786,52 @@ export function calculatePrice(input: PricingInput, version: PricingVersion): Pr
     });
   }
 
-  const targetProfit = subtotal * version.targetProfitRate;
-  items.push({
-    itemType: 'target_profit',
-    label: 'Target profit allocation',
-    quantity: 1,
-    unitPriceKzt: targetProfit,
-    amountKzt: targetProfit,
-    isClientVisible: false,
-    isCost: false,
-    sortOrder: nextSort(),
-    metadataJson: { rate: version.targetProfitRate },
-  });
+  const paymentWideFeesKzt = taxReserve + acquiringFee + riskReserve + partnerCommission;
 
-  // 14. Round final client price
-  const roundedAmount = roundToIncrement(subtotal, PRICE_ROUNDING_INCREMENT);
-  const roundingAdj = roundedAmount - subtotal;
-  if (Math.abs(roundingAdj) > 0.01) {
+  // 21. payment_wide_fee_adjustment — the gap between (WPO layer + notary add-ons) and the
+  // final client price: the payment-wide fee gross-up plus the final-rounding residual.
+  // Internal-only, but part of the final price (reconciliation must include it), same pattern
+  // as margin_floor_adjustment and rounding_adjustment above.
+  const paymentWideFeeAdjustmentKzt = finalClientPrice - finalBeforePaymentWideFees;
+  if (Math.abs(paymentWideFeeAdjustmentKzt) > 0.01) {
     items.push({
-      itemType: 'rounding_adjustment',
-      label: 'Rounding adjustment',
+      itemType: 'payment_wide_fee_adjustment',
+      label: 'Payment-wide fee adjustment (tax/acquiring/risk/partner + final rounding)',
       quantity: 1,
-      unitPriceKzt: roundingAdj,
-      amountKzt: roundingAdj,
+      unitPriceKzt: paymentWideFeeAdjustmentKzt,
+      amountKzt: paymentWideFeeAdjustmentKzt,
       isClientVisible: false,
       isCost: false,
       sortOrder: nextSort(),
+      metadataJson: {
+        payment_wide_fee_rate: paymentWideFeeRate,
+        final_before_payment_wide_fees: finalBeforePaymentWideFees,
+        final_client_price: finalClientPrice,
+        rounding_rule: finalRoundingIncrement,
+      },
     });
   }
 
-  const totalCosts = aiItReserve + taxReserve + acquiringFee + riskReserve + ownerReserve
-    + marketingReserve + partnerCommission + translatorReserved + notaryFee + notaryCoordFee;
-  const estimatedMargin = roundedAmount - totalCosts;
+  // 22. Whole-order (blended) totals — for reporting/backward-compatible top-level fields.
+  // Notarized orders are EXPECTED to have a blended rate well below 50% — that's the point of
+  // this correction: only the WPO marginable revenue pool is floor-protected, not
+  // notary_official_fee/courier/printing.
+  //
+  // notary_coordination_fee's real internal cost (notaryCoordinationInternalCost, §16) is
+  // already counted inside wpoServiceLayerCosts above (it's part of the marginable pool) — do
+  // NOT add it again here, or it would be double-counted in the blended totalCosts below.
+  const notaryCoordinationMarginKzt = notaryCoordFee - notaryCoordinationInternalCost;
+
+  const notaryDeliveryAddonsKzt = notaryAddonsTotal;
+  const notaryDeliveryPassthroughCosts = notaryFee + printingFee + deliveryFee;
+  const totalCosts = wpoServiceLayerCosts + notaryDeliveryPassthroughCosts + paymentWideFeesKzt;
+  const estimatedMargin = finalClientPrice - totalCosts;
+  const estimatedMarginRate = finalClientPrice > 0 ? estimatedMargin / finalClientPrice : 0;
 
   const finalStatus: QuoteStatus = reviewReasons.length > 0 ? 'requires_operator_review' : 'quoted';
 
   return {
-    amountKzt: Math.max(0, roundedAmount),
+    amountKzt: Math.max(0, finalClientPrice),
     currency: 'KZT',
     status: finalStatus,
     items,
@@ -654,16 +849,33 @@ export function calculatePrice(input: PricingInput, version: PricingVersion): Pr
       aiItReserve,
       translatorReserved,
       notaryFee,
-      notaryCoordFee,
+      notaryCoordinationInternalCostKzt: notaryCoordinationInternalCost,
       courierCost: deliveryFee,
       printingCost: printingFee,
     },
     margin: {
-      grossRevenue: roundedAmount,
+      grossRevenue: finalClientPrice,
       totalCosts,
       targetProfit,
       estimatedMarginKzt: estimatedMargin,
-      estimatedMarginRate: roundedAmount > 0 ? estimatedMargin / roundedAmount : 0,
+      estimatedMarginRate,
+      rawPriceBeforeMarginFloor,
+      estimatedMarginRateBeforeFloor,
+      marginFloorAdjustmentKzt,
+      targetMarginFloorRate,
+      wpoServiceLayerFinalPrice,
+      wpoMarginableRevenueKzt,
+      wpoServiceLayerCosts,
+      wpoServiceMarginKzt,
+      wpoServiceMarginRate,
+      profitBufferAboveTargetKzt: wpoServiceMarginKzt - wpoMarginableRevenueKzt * targetMarginFloorRate,
+      profitBufferAboveTargetRate: wpoServiceMarginRate - targetMarginFloorRate,
+      notaryDeliveryAddonsKzt,
+      notaryCoordinationRevenueKzt: notaryCoordFee,
+      notaryCoordinationMarginKzt,
+      paymentWideFeeRate,
+      paymentWideFeesKzt,
+      paymentWideFeeAdjustmentKzt,
     },
     context: {
       languagePair,

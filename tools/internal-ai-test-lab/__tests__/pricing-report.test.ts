@@ -80,7 +80,7 @@ function makeResult(overrides: Partial<PricingResultLike> = {}): PricingResultLi
       aiItReserve: 100,
       translatorReserved: 1500,
       notaryFee: 0,
-      notaryCoordFee: 0,
+      notaryCoordinationInternalCostKzt: 0,
       courierCost: 0,
       printingCost: 0,
     },
@@ -90,6 +90,23 @@ function makeResult(overrides: Partial<PricingResultLike> = {}): PricingResultLi
       targetProfit: 500,
       estimatedMarginKzt: 2275,
       estimatedMarginRate: 0.455,
+      rawPriceBeforeMarginFloor: 5000,
+      estimatedMarginRateBeforeFloor: 0.455,
+      marginFloorAdjustmentKzt: 0,
+      targetMarginFloorRate: 0.50,
+      wpoServiceLayerFinalPrice: 5000,
+      wpoMarginableRevenueKzt: 5000,
+      wpoServiceLayerCosts: 2225,
+      wpoServiceMarginKzt: 2775,
+      wpoServiceMarginRate: 0.555,
+      profitBufferAboveTargetKzt: -225,
+      profitBufferAboveTargetRate: -0.045,
+      notaryCoordinationRevenueKzt: 0,
+      notaryCoordinationMarginKzt: 0,
+      notaryDeliveryAddonsKzt: 0,
+      paymentWideFeeRate: 0.055,
+      paymentWideFeesKzt: 275,
+      paymentWideFeeAdjustmentKzt: 0,
     },
     ...overrides,
   };
@@ -151,6 +168,52 @@ describe('buildMarginSection', () => {
     expect(margin.grossRevenueKzt).toBe(5000);
     expect(margin.estimatedMarginKzt).toBe(2275);
     expect(margin.estimatedMarginPercent).toBeCloseTo(45.5);
+  });
+
+  it('exposes WPO layer, add-ons, notary coordination margin, payment-wide fees, target margin %, and profit buffer', () => {
+    // Synthetic notarized order: WPO layer (5500 -> floored to 7800), notary/delivery add-ons
+    // (notary_official_fee 2292 [4325 MRP x 0.53] + notary_coordination_fee 5000 + printing 500
+    // + delivery 2500 = 10292), payment-wide fees (10.5% of the final price).
+    const margin = buildMarginSection(makeResult({
+      margin: {
+        grossRevenue: 21834,
+        totalCosts: 7461,
+        targetProfit: 1375,
+        estimatedMarginKzt: 9373,
+        estimatedMarginRate: 0.429,
+        rawPriceBeforeMarginFloor: 5500,
+        estimatedMarginRateBeforeFloor: 0.4068,
+        marginFloorAdjustmentKzt: 2300,
+        targetMarginFloorRate: 0.50,
+        wpoServiceLayerFinalPrice: 7800,
+        wpoMarginableRevenueKzt: 12800,
+        wpoServiceLayerCosts: 3895,
+        wpoServiceMarginKzt: 3905,
+        wpoServiceMarginRate: 0.5006,
+        profitBufferAboveTargetKzt: 3.9,
+        profitBufferAboveTargetRate: 0.0006,
+        notaryDeliveryAddonsKzt: 10292,
+        notaryCoordinationRevenueKzt: 5000,
+        notaryCoordinationMarginKzt: 5000,
+        paymentWideFeeRate: 0.105,
+        paymentWideFeesKzt: 2292.57,
+        paymentWideFeeAdjustmentKzt: 1000,
+      },
+    }));
+    expect(margin.rawPriceBeforeMarginFloorKzt).toBe(5500);
+    expect(margin.marginFloorAdjustmentKzt).toBe(2300);
+    expect(margin.estimatedMarginPercentBeforeFloor).toBeCloseTo(40.68);
+    expect(margin.targetMarginFloorPercent).toBe(50);
+    expect(margin.wpoServiceLayerFinalPriceKzt).toBe(7800);
+    expect(margin.wpoMarginableRevenueKzt).toBe(12800);
+    expect(margin.wpoServiceMarginPercent).toBeCloseTo(50.06);
+    expect(margin.notaryDeliveryAddonsKzt).toBe(10292);
+    expect(margin.notaryCoordinationRevenueKzt).toBe(5000);
+    expect(margin.notaryCoordinationMarginKzt).toBe(5000);
+    expect(margin.paymentWideFeePercent).toBeCloseTo(10.5);
+    expect(margin.paymentWideFeesKzt).toBe(2292.57);
+    expect(margin.profitBufferAboveTargetKzt).toBeCloseTo(3.9);
+    expect(margin.profitBufferAboveTargetPercent).toBeCloseTo(0.06);
   });
 });
 
@@ -242,5 +305,108 @@ describe('buildReconciliation', () => {
     expect(recon.differenceKzt).toBe(0);
     expect(recon.status).toBe('OK');
     expect(recon.reasons).toEqual([]);
+  });
+
+  /** Injects a `margin_floor_adjustment` item (isClientVisible: false, isCost: false). */
+  function withMarginFloorItem(amountKzt: number): Partial<PricingResultLike> {
+    return {
+      items: [
+        ...makeResult().items,
+        {
+          itemType: 'margin_floor_adjustment',
+          label: 'Margin floor adjustment',
+          quantity: 1,
+          unitPriceKzt: amountKzt,
+          amountKzt,
+          isClientVisible: false,
+          isCost: false,
+          sortOrder: 100,
+        },
+      ],
+    };
+  }
+
+  it('6. margin_floor_adjustment present alone (no rounding) => OK when it exactly explains the gap', () => {
+    const recon = buildReconciliation(makeResult({ ...withMarginFloorItem(2300), amountKzt: 7300 }));
+    expect(recon.rawSubtotalKzt).toBe(5000);
+    expect(recon.marginFloorAdjustmentFound).toBe(true);
+    expect(recon.marginFloorAdjustmentKzt).toBe(2300);
+    expect(recon.canonicalSubtotalKzt).toBe(7300);
+    expect(recon.finalAmountKzt).toBe(7300);
+    expect(recon.differenceKzt).toBe(0);
+    expect(recon.status).toBe('OK');
+    expect(recon.reasons).toEqual([]);
+  });
+
+  it('7. rounding_adjustment AND margin_floor_adjustment both present, correct sum => OK', () => {
+    const base = makeResult();
+    const items = [
+      ...base.items,
+      { itemType: 'rounding_adjustment', label: 'Rounding adjustment', quantity: 1, unitPriceKzt: 52.8, amountKzt: 52.8, isClientVisible: false, isCost: false, sortOrder: 99 },
+      { itemType: 'margin_floor_adjustment', label: 'Margin floor adjustment', quantity: 1, unitPriceKzt: 2300, amountKzt: 2300, isClientVisible: false, isCost: false, sortOrder: 100 },
+    ];
+    const recon = buildReconciliation({ ...base, items, amountKzt: 5000 + 52.8 + 2300 });
+    expect(recon.roundingAdjustmentFound).toBe(true);
+    expect(recon.marginFloorAdjustmentFound).toBe(true);
+    expect(recon.canonicalSubtotalKzt).toBeCloseTo(7352.8);
+    expect(recon.differenceKzt).toBeCloseTo(0);
+    expect(recon.status).toBe('OK');
+    expect(recon.reasons).toEqual([]);
+  });
+
+  it('8. margin_floor_adjustment present but wrong amount => WARNING (no tolerance band)', () => {
+    const recon = buildReconciliation(makeResult({ ...withMarginFloorItem(2300), amountKzt: 7400 }));
+    expect(recon.marginFloorAdjustmentFound).toBe(true);
+    expect(recon.marginFloorAdjustmentKzt).toBe(2300);
+    expect(recon.canonicalSubtotalKzt).toBe(7300);
+    expect(recon.finalAmountKzt).toBe(7400);
+    expect(recon.status).toBe('WARNING');
+    expect(recon.reasons.some((r) => r.includes('Canonical subtotal'))).toBe(true);
+  });
+
+  /** Injects a `payment_wide_fee_adjustment` item (isClientVisible: false, isCost: false). */
+  function withPaymentWideFeeItem(amountKzt: number): Partial<PricingResultLike> {
+    return {
+      items: [
+        ...makeResult().items,
+        {
+          itemType: 'payment_wide_fee_adjustment',
+          label: 'Payment-wide fee adjustment',
+          quantity: 1,
+          unitPriceKzt: amountKzt,
+          amountKzt,
+          isClientVisible: false,
+          isCost: false,
+          sortOrder: 101,
+        },
+      ],
+    };
+  }
+
+  it('9. margin_floor_adjustment AND payment_wide_fee_adjustment both present, correct sum => OK', () => {
+    const base = makeResult();
+    const items = [
+      ...base.items,
+      { itemType: 'margin_floor_adjustment', label: 'Margin floor adjustment', quantity: 1, unitPriceKzt: 2300, amountKzt: 2300, isClientVisible: false, isCost: false, sortOrder: 100 },
+      { itemType: 'payment_wide_fee_adjustment', label: 'Payment-wide fee adjustment', quantity: 1, unitPriceKzt: 850, amountKzt: 850, isClientVisible: false, isCost: false, sortOrder: 101 },
+    ];
+    const recon = buildReconciliation({ ...base, items, amountKzt: 5000 + 2300 + 850 });
+    expect(recon.marginFloorAdjustmentFound).toBe(true);
+    expect(recon.paymentWideFeeAdjustmentFound).toBe(true);
+    expect(recon.paymentWideFeeAdjustmentKzt).toBe(850);
+    expect(recon.canonicalSubtotalKzt).toBeCloseTo(8150);
+    expect(recon.differenceKzt).toBeCloseTo(0);
+    expect(recon.status).toBe('OK');
+    expect(recon.reasons).toEqual([]);
+  });
+
+  it('10. payment_wide_fee_adjustment present but wrong amount => WARNING (no tolerance band)', () => {
+    const recon = buildReconciliation(makeResult({ ...withPaymentWideFeeItem(850), amountKzt: 5900 }));
+    expect(recon.paymentWideFeeAdjustmentFound).toBe(true);
+    expect(recon.paymentWideFeeAdjustmentKzt).toBe(850);
+    expect(recon.canonicalSubtotalKzt).toBe(5850);
+    expect(recon.finalAmountKzt).toBe(5900);
+    expect(recon.status).toBe('WARNING');
+    expect(recon.reasons.some((r) => r.includes('Canonical subtotal'))).toBe(true);
   });
 });

@@ -356,6 +356,11 @@ export function buildPriceBreakdownDescription(params: PriceBreakdownFullParams)
   }
 
   // ── E. Margin Summary ──────────────────────────────────────────────────────
+  // The 50% margin floor applies ONLY to the WPO translation/service layer — never to
+  // notary_official_fee, printing, or courier (real pass-through costs), and never to
+  // payment-wide fees (tax/acquiring/risk/partner commission, applied to the whole final
+  // price). Reported here as four groups so operators can see WPO's own economics separately
+  // from pass-through add-ons and payment processing fees. See docs/ai-context/DECISIONS.md.
   nodes.push(adfHeading(2, 'E: Margin Summary'));
   const margin = (params.quote?.marginJson ?? {}) as {
     grossRevenue?: number;
@@ -363,18 +368,78 @@ export function buildPriceBreakdownDescription(params: PriceBreakdownFullParams)
     targetProfit?: number;
     estimatedMarginKzt?: number;
     estimatedMarginRate?: number;
+    rawPriceBeforeMarginFloor?: number;
+    estimatedMarginRateBeforeFloor?: number;
+    marginFloorAdjustmentKzt?: number;
+    targetMarginFloorRate?: number;
+    wpoServiceLayerFinalPrice?: number;
+    wpoMarginableRevenueKzt?: number;
+    wpoServiceLayerCosts?: number;
+    wpoServiceMarginKzt?: number;
+    wpoServiceMarginRate?: number;
+    profitBufferAboveTargetKzt?: number;
+    profitBufferAboveTargetRate?: number;
+    notaryDeliveryAddonsKzt?: number;
+    notaryCoordinationRevenueKzt?: number;
+    notaryCoordinationMarginKzt?: number;
+    paymentWideFeeRate?: number;
+    paymentWideFeesKzt?: number;
+    paymentWideFeeAdjustmentKzt?: number;
   };
   if (Object.keys(margin).length === 0) {
     nodes.push(adfParagraph('(margin_json not available)'));
   } else {
-    const marginRows: string[][] = [];
-    if (margin.grossRevenue != null)        marginRows.push(['Gross revenue', kzt(margin.grossRevenue)]);
-    if (margin.totalCosts != null)          marginRows.push(['Total costs / reserves', kzt(margin.totalCosts)]);
-    if (margin.targetProfit != null)        marginRows.push(['Target profit', kzt(margin.targetProfit)]);
-    if (margin.estimatedMarginKzt != null)  marginRows.push(['Estimated margin', kzt(margin.estimatedMarginKzt)]);
-    if (margin.estimatedMarginRate != null) marginRows.push(['Estimated margin %', pct(margin.estimatedMarginRate)]);
-    if (marginRows.length > 0) {
-      nodes.push(adfTable(['Metric', 'Value'], marginRows));
+    // Fields below are absent on quotes created before this feature (or before the
+    // layered-model correction) — older quotes' margin_json simply won't have these keys,
+    // so rows are skipped rather than shown as misleading zeros.
+    const layerRows: string[][] = [];
+    if (margin.rawPriceBeforeMarginFloor != null) layerRows.push(['Raw price before WPO margin floor', kzt(margin.rawPriceBeforeMarginFloor)]);
+    if (margin.marginFloorAdjustmentKzt != null)  layerRows.push(['WPO margin floor adjustment', kzt(margin.marginFloorAdjustmentKzt)]);
+    if (margin.wpoServiceLayerFinalPrice != null) layerRows.push(['WPO service layer final price (translation/service revenue alone)', kzt(margin.wpoServiceLayerFinalPrice)]);
+    if (margin.wpoMarginableRevenueKzt != null)   layerRows.push(['WPO marginable revenue (service layer + notary coordination fee)', kzt(margin.wpoMarginableRevenueKzt)]);
+    if (margin.wpoServiceLayerCosts != null)      layerRows.push(['WPO marginable costs', kzt(margin.wpoServiceLayerCosts)]);
+    if (margin.estimatedMarginRateBeforeFloor != null) layerRows.push(['WPO service margin % (before floor)', pct(margin.estimatedMarginRateBeforeFloor)]);
+    if (margin.wpoServiceMarginKzt != null)  layerRows.push(['WPO marginable margin (service layer + notary coordination fee)', kzt(margin.wpoServiceMarginKzt)]);
+    if (margin.wpoServiceMarginRate != null) layerRows.push(['WPO marginable margin %', pct(margin.wpoServiceMarginRate)]);
+    if (margin.targetMarginFloorRate != null) layerRows.push(['Target margin %', pct(margin.targetMarginFloorRate)]);
+    if (margin.profitBufferAboveTargetKzt != null) layerRows.push(['Profit buffer above target', kzt(margin.profitBufferAboveTargetKzt)]);
+    if (margin.profitBufferAboveTargetRate != null) layerRows.push(['Profit buffer above target %', pct(margin.profitBufferAboveTargetRate)]);
+    if (layerRows.length > 0) {
+      nodes.push(adfHeading(3, 'Translation / WPO Service Layer (margin-floor-protected)'));
+      nodes.push(adfTable(['Metric', 'Value'], layerRows));
+    }
+
+    if (margin.notaryDeliveryAddonsKzt != null) {
+      const addonRows: string[][] = [['Notary/delivery add-ons total', kzt(margin.notaryDeliveryAddonsKzt)]];
+      // notary_coordination_fee is WPO commercial revenue, NOT a pass-through like
+      // notary_official_fee/printing/delivery — it improves margin, so it's called out here
+      // rather than left hidden inside the pass-through total above.
+      if (margin.notaryCoordinationRevenueKzt != null) addonRows.push(['Notary coordination fee (WPO revenue)', kzt(margin.notaryCoordinationRevenueKzt)]);
+      const notaryCoordinationInternalCostKzt = (params.quote?.internalCostJson as { notaryCoordinationInternalCostKzt?: number } | undefined)?.notaryCoordinationInternalCostKzt;
+      if (notaryCoordinationInternalCostKzt != null) addonRows.push(['Notary coordination internal cost (not the WPO fee)', kzt(notaryCoordinationInternalCostKzt)]);
+      if (margin.notaryCoordinationMarginKzt != null)  addonRows.push(['Notary coordination margin (before payment-wide fees)', kzt(margin.notaryCoordinationMarginKzt)]);
+      nodes.push(adfHeading(3, 'Notary & Delivery Add-ons (pass-through, never grossed by the floor)'));
+      nodes.push(adfTable(['Metric', 'Value'], addonRows));
+    }
+
+    const paymentWideRows: string[][] = [];
+    if (margin.paymentWideFeeRate != null)   paymentWideRows.push(['Payment-wide fee rate', pct(margin.paymentWideFeeRate)]);
+    if (margin.paymentWideFeesKzt != null)   paymentWideRows.push(['Payment-wide fees (tax/acquiring/risk/partner)', kzt(margin.paymentWideFeesKzt)]);
+    if (margin.paymentWideFeeAdjustmentKzt != null) paymentWideRows.push(['Payment-wide fee adjustment', kzt(margin.paymentWideFeeAdjustmentKzt)]);
+    if (paymentWideRows.length > 0) {
+      nodes.push(adfHeading(3, 'Payment-wide Fees / Reserves (applied to the whole final price)'));
+      nodes.push(adfTable(['Metric', 'Value'], paymentWideRows));
+    }
+
+    const blendedRows: string[][] = [];
+    if (margin.grossRevenue != null)        blendedRows.push(['Final price', kzt(margin.grossRevenue)]);
+    if (margin.totalCosts != null)          blendedRows.push(['Total costs / reserves (all layers)', kzt(margin.totalCosts)]);
+    if (margin.targetProfit != null)        blendedRows.push(['Target profit (benchmark, not a cost)', kzt(margin.targetProfit)]);
+    if (margin.estimatedMarginKzt != null)  blendedRows.push(['Blended order margin', kzt(margin.estimatedMarginKzt)]);
+    if (margin.estimatedMarginRate != null) blendedRows.push(['Blended order margin %', pct(margin.estimatedMarginRate)]);
+    if (blendedRows.length > 0) {
+      nodes.push(adfHeading(3, 'Whole Order (Blended) — NOT guaranteed >= 50% for notarized orders, by design'));
+      nodes.push(adfTable(['Metric', 'Value'], blendedRows));
     }
   }
 

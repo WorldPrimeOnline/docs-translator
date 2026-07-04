@@ -80,6 +80,26 @@ Jira, or normal customer order created. Pricing is computed read-only via
 additionally require `AI_TRANSLATION_TEST_LAB_ALLOW_PRODUCTION=true` and
 `--confirm-production`. See `tools/internal-ai-test-lab/README.md`.
 
+**Batch mode** (2026-07-03) processes a whole folder of documents against a
+reviewed `batch-manifest.json` in one command, for launch QA across many
+language pairs/document types — same safety guarantees as single-file mode,
+sequential by default (`--concurrency` capped at 2). Spends real OCR/LLM API
+credits per document in the manifest.
+
+```bash
+npm run wpo:ai-test -- \
+  --env-file tools/internal-ai-test-lab/.env.staging.local \
+  --input-dir ./tools/internal-ai-test-lab/input/batch \
+  --manifest ./tools/internal-ai-test-lab/input/batch-manifest.json \
+  --output-dir tools/internal-ai-test-lab/runs \
+  --continue-on-error
+```
+
+Draft a manifest from filenames with `--generate-manifest-template
+--output-manifest <path>` — review before use, batch execution never
+guesses. Full docs, manifest format, and output structure in
+`tools/internal-ai-test-lab/README.md` § Batch mode.
+
 ### Finance / pricing scripts (run from repo root)
 
 ```bash

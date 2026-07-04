@@ -37,18 +37,44 @@ export interface InternalCostBreakdownLike {
   partnerCommission: number;
   aiItReserve: number;
   translatorReserved: number;
+  /** notary_official_cost — actual notary tariff, payable to the notary (pass-through). */
   notaryFee: number;
-  notaryCoordFee: number;
+  /** Real internal cost of notary coordination — 0 for now, NOT the 5000 KZT client fee. */
+  notaryCoordinationInternalCostKzt: number;
   courierCost: number;
   printingCost: number;
 }
 
 export interface MarginBreakdownLike {
+  // Whole-order (blended) view
   grossRevenue: number;
   totalCosts: number;
   targetProfit: number;
   estimatedMarginKzt: number;
   estimatedMarginRate: number;
+  // WPO service/translation layer — the 50% floor applies HERE ONLY
+  rawPriceBeforeMarginFloor: number;
+  estimatedMarginRateBeforeFloor: number;
+  marginFloorAdjustmentKzt: number;
+  targetMarginFloorRate: number;
+  wpoServiceLayerFinalPrice: number;
+  // WPO marginable revenue pool = wpoServiceLayerFinalPrice + notaryCoordinationRevenueKzt.
+  // The 50% floor is checked against THIS pool, not the translation layer alone.
+  wpoMarginableRevenueKzt: number;
+  wpoServiceLayerCosts: number;
+  wpoServiceMarginKzt: number;
+  wpoServiceMarginRate: number;
+  profitBufferAboveTargetKzt: number;
+  profitBufferAboveTargetRate: number;
+  // Notary/delivery add-ons — pass-through, never grossed by the floor
+  notaryDeliveryAddonsKzt: number;
+  // notary_coordination_fee is WPO commercial revenue, not a pass-through — improves margin.
+  notaryCoordinationRevenueKzt: number;
+  notaryCoordinationMarginKzt: number;
+  // Payment-wide fees — applied to the whole final client price
+  paymentWideFeeRate: number;
+  paymentWideFeesKzt: number;
+  paymentWideFeeAdjustmentKzt: number;
 }
 
 export interface PricingResultLike {
@@ -93,11 +119,44 @@ export interface InternalCostRow {
 }
 
 export interface MarginSection {
+  // Whole-order (blended) view
   grossRevenueKzt: number;
   totalInternalCostsKzt: number;
   targetProfitKzt: number;
   estimatedMarginKzt: number;
   estimatedMarginPercent: number;
+  // WPO service/translation layer — the 50% floor applies HERE ONLY, never to notary/delivery
+  /** WPO layer's raw price before its own floor step (normal rounding only). */
+  rawPriceBeforeMarginFloorKzt: number;
+  /** margin_floor_adjustment amount added to the WPO layer's price (0 if already at/above target). */
+  marginFloorAdjustmentKzt: number;
+  /** WPO layer's margin % at rawPriceBeforeMarginFloorKzt, before any floor adjustment. */
+  estimatedMarginPercentBeforeFloor: number;
+  /** The margin floor target for this order's service level (e.g. 50). */
+  targetMarginFloorPercent: number;
+  /** WPO layer's final price after its floor step (translation/service layer revenue alone). */
+  wpoServiceLayerFinalPriceKzt: number;
+  /** WPO marginable revenue pool = wpoServiceLayerFinalPriceKzt + notaryCoordinationRevenueKzt — the 50% floor is checked against this. */
+  wpoMarginableRevenueKzt: number;
+  /** WPO marginable pool's costs (translator + AI/IT + notary_coordination_internal_cost + owner + marketing, sized against the pool). */
+  wpoServiceLayerCostsKzt: number;
+  /** WPO layer's margin in KZT. */
+  wpoServiceMarginKzt: number;
+  /** WPO layer's margin % — guaranteed >= targetMarginFloorPercent when the floor is enabled. */
+  wpoServiceMarginPercent: number;
+  /** How far the WPO layer's margin exceeds its floor target, in KZT. */
+  profitBufferAboveTargetKzt: number;
+  /** How far the WPO layer's margin exceeds its floor target, in percentage points. */
+  profitBufferAboveTargetPercent: number;
+  // Notary/delivery add-ons — pass-through, never grossed by the floor
+  notaryDeliveryAddonsKzt: number;
+  // notary_coordination_fee is WPO commercial revenue, not a pass-through — improves margin.
+  notaryCoordinationRevenueKzt: number;
+  notaryCoordinationMarginKzt: number;
+  // Payment-wide fees — applied to the whole final client price
+  paymentWideFeePercent: number;
+  paymentWideFeesKzt: number;
+  paymentWideFeeAdjustmentKzt: number;
 }
 
 export interface ReconciliationResult {
@@ -107,7 +166,15 @@ export interface ReconciliationResult {
   roundingAdjustmentKzt: number;
   /** Whether a `rounding_adjustment` item was present in result.items at all. */
   roundingAdjustmentFound: boolean;
-  /** rawSubtotalKzt + roundingAdjustmentKzt. */
+  /** amountKzt of the `margin_floor_adjustment` item, or 0 if none was found. */
+  marginFloorAdjustmentKzt: number;
+  /** Whether a `margin_floor_adjustment` item was present in result.items at all. */
+  marginFloorAdjustmentFound: boolean;
+  /** amountKzt of the `payment_wide_fee_adjustment` item, or 0 if none was found. */
+  paymentWideFeeAdjustmentKzt: number;
+  /** Whether a `payment_wide_fee_adjustment` item was present in result.items at all. */
+  paymentWideFeeAdjustmentFound: boolean;
+  /** rawSubtotalKzt + roundingAdjustmentKzt + marginFloorAdjustmentKzt + paymentWideFeeAdjustmentKzt. */
   canonicalSubtotalKzt: number;
   finalAmountKzt: number;
   /** finalAmountKzt - canonicalSubtotalKzt. Must be ~0 for status OK. */
@@ -169,8 +236,8 @@ const INTERNAL_COST_LABELS: Record<keyof InternalCostBreakdownLike, string> = {
   partnerCommission: 'Partner commission fee',
   aiItReserve: 'AI / IT processing reserve',
   translatorReserved: 'Translator cost reserve',
-  notaryFee: 'Notary official fee',
-  notaryCoordFee: 'Notary coordination fee',
+  notaryFee: 'Notary official cost (payable to notary)',
+  notaryCoordinationInternalCostKzt: 'Notary coordination internal cost (not the WPO fee)',
   courierCost: 'Courier / delivery cost',
   printingCost: 'Printing / binding cost',
 };
@@ -203,22 +270,39 @@ export function buildMarginSection(result: PricingResultLike): MarginSection {
     targetProfitKzt: result.margin.targetProfit,
     estimatedMarginKzt: result.margin.estimatedMarginKzt,
     estimatedMarginPercent: result.margin.estimatedMarginRate * 100,
+    rawPriceBeforeMarginFloorKzt: result.margin.rawPriceBeforeMarginFloor,
+    marginFloorAdjustmentKzt: result.margin.marginFloorAdjustmentKzt,
+    estimatedMarginPercentBeforeFloor: result.margin.estimatedMarginRateBeforeFloor * 100,
+    targetMarginFloorPercent: result.margin.targetMarginFloorRate * 100,
+    wpoServiceLayerFinalPriceKzt: result.margin.wpoServiceLayerFinalPrice,
+    wpoMarginableRevenueKzt: result.margin.wpoMarginableRevenueKzt,
+    wpoServiceLayerCostsKzt: result.margin.wpoServiceLayerCosts,
+    wpoServiceMarginKzt: result.margin.wpoServiceMarginKzt,
+    wpoServiceMarginPercent: result.margin.wpoServiceMarginRate * 100,
+    profitBufferAboveTargetKzt: result.margin.profitBufferAboveTargetKzt,
+    profitBufferAboveTargetPercent: result.margin.profitBufferAboveTargetRate * 100,
+    notaryDeliveryAddonsKzt: result.margin.notaryDeliveryAddonsKzt,
+    notaryCoordinationRevenueKzt: result.margin.notaryCoordinationRevenueKzt,
+    notaryCoordinationMarginKzt: result.margin.notaryCoordinationMarginKzt,
+    paymentWideFeePercent: result.margin.paymentWideFeeRate * 100,
+    paymentWideFeesKzt: result.margin.paymentWideFeesKzt,
+    paymentWideFeeAdjustmentKzt: result.margin.paymentWideFeeAdjustmentKzt,
   };
 }
 
 /**
  * Reconciliation rules (financial audit — no tolerance band for "small" gaps):
- *   1. rawSubtotalKzt   = sum of isClientVisible items (pre-rounding).
- *   2. roundingItem     = result.items.find(itemType === 'rounding_adjustment').
- *   3. canonicalSubtotalKzt = rawSubtotalKzt + (roundingItem?.amountKzt ?? 0).
+ *   1. rawSubtotalKzt   = sum of isClientVisible items (pre-rounding, pre-floor).
+ *   2. roundingItem, marginFloorItem, paymentWideFeeItem = result.items.find(itemType === ...).
+ *   3. canonicalSubtotalKzt = rawSubtotalKzt + rounding_adjustment + margin_floor_adjustment
+ *      + payment_wide_fee_adjustment. All three are isClientVisible=false (never shown to the
+ *      client) but ARE part of the final price — internal-only price-shaping steps.
  *   4. OK only if canonicalSubtotalKzt == finalAmountKzt (within
- *      RECONCILIATION_EPSILON_KZT) AND (finalAmountKzt - rawSubtotalKzt) ==
- *      roundingItem.amountKzt (within the same epsilon) — both checked
- *      explicitly and independently, not inferred from one passing.
- *   5. No blanket "<100 KZT is fine" allowance — every gap must be explained
- *      by an actual rounding_adjustment item, exactly.
- *   6. rounding_adjustment missing + finalAmountKzt != rawSubtotalKzt -> WARNING.
- *   7. rounding_adjustment present but its amount != (final - raw) -> WARNING.
+ *      RECONCILIATION_EPSILON_KZT) — checked explicitly, not inferred.
+ *   5. No blanket "<100 KZT is fine" allowance — every gap must be explained by an actual
+ *      adjustment item, exactly.
+ *   6. No adjustment item present + finalAmountKzt != rawSubtotalKzt -> WARNING.
+ *   7. rounding_adjustment present alone but its amount != (final - raw) -> WARNING.
  */
 export function buildReconciliation(result: PricingResultLike): ReconciliationResult {
   const rawSubtotalKzt = result.items
@@ -229,28 +313,37 @@ export function buildReconciliation(result: PricingResultLike): ReconciliationRe
   const roundingAdjustmentFound = roundingItem !== undefined;
   const roundingAdjustmentKzt = roundingItem?.amountKzt ?? 0;
 
-  const canonicalSubtotalKzt = rawSubtotalKzt + roundingAdjustmentKzt;
+  const marginFloorItem = result.items.find((i) => i.itemType === 'margin_floor_adjustment');
+  const marginFloorAdjustmentFound = marginFloorItem !== undefined;
+  const marginFloorAdjustmentKzt = marginFloorItem?.amountKzt ?? 0;
+
+  const paymentWideFeeItem = result.items.find((i) => i.itemType === 'payment_wide_fee_adjustment');
+  const paymentWideFeeAdjustmentFound = paymentWideFeeItem !== undefined;
+  const paymentWideFeeAdjustmentKzt = paymentWideFeeItem?.amountKzt ?? 0;
+
+  const canonicalSubtotalKzt = rawSubtotalKzt + roundingAdjustmentKzt + marginFloorAdjustmentKzt + paymentWideFeeAdjustmentKzt;
   const finalAmountKzt = result.amountKzt;
   const differenceKzt = Number((finalAmountKzt - canonicalSubtotalKzt).toFixed(4));
-  const impliedRoundingKzt = Number((finalAmountKzt - rawSubtotalKzt).toFixed(4));
+  const impliedAdjustmentKzt = Number((finalAmountKzt - rawSubtotalKzt).toFixed(4));
 
+  const anyAdjustmentFound = roundingAdjustmentFound || marginFloorAdjustmentFound || paymentWideFeeAdjustmentFound;
   const reasons: string[] = [];
 
-  if (!roundingAdjustmentFound && Math.abs(impliedRoundingKzt) > RECONCILIATION_EPSILON_KZT) {
+  if (!anyAdjustmentFound && Math.abs(impliedAdjustmentKzt) > RECONCILIATION_EPSILON_KZT) {
     reasons.push(
-      `Final amount (${finalAmountKzt} KZT) differs from raw subtotal (${rawSubtotalKzt} KZT) by ${impliedRoundingKzt} KZT, but no rounding_adjustment item was found to explain it.`,
+      `Final amount (${finalAmountKzt} KZT) differs from raw subtotal (${rawSubtotalKzt} KZT) by ${impliedAdjustmentKzt} KZT, but no rounding_adjustment, margin_floor_adjustment, or payment_wide_fee_adjustment item was found to explain it.`,
     );
   }
 
-  if (roundingAdjustmentFound && Math.abs(roundingAdjustmentKzt - impliedRoundingKzt) > RECONCILIATION_EPSILON_KZT) {
+  if (roundingAdjustmentFound && !marginFloorAdjustmentFound && !paymentWideFeeAdjustmentFound && Math.abs(roundingAdjustmentKzt - impliedAdjustmentKzt) > RECONCILIATION_EPSILON_KZT) {
     reasons.push(
-      `rounding_adjustment item declares ${roundingAdjustmentKzt} KZT, but (final amount − raw subtotal) is ${impliedRoundingKzt} KZT — they must match exactly.`,
+      `rounding_adjustment item declares ${roundingAdjustmentKzt} KZT, but (final amount − raw subtotal) is ${impliedAdjustmentKzt} KZT — they must match exactly (no other adjustment item present to explain the rest).`,
     );
   }
 
   if (Math.abs(differenceKzt) > RECONCILIATION_EPSILON_KZT) {
     reasons.push(
-      `Canonical subtotal (raw ${rawSubtotalKzt} + rounding_adjustment ${roundingAdjustmentKzt} = ${canonicalSubtotalKzt} KZT) does not equal final amount (${finalAmountKzt} KZT); difference ${differenceKzt} KZT.`,
+      `Canonical subtotal (raw ${rawSubtotalKzt} + rounding_adjustment ${roundingAdjustmentKzt} + margin_floor_adjustment ${marginFloorAdjustmentKzt} + payment_wide_fee_adjustment ${paymentWideFeeAdjustmentKzt} = ${canonicalSubtotalKzt} KZT) does not equal final amount (${finalAmountKzt} KZT); difference ${differenceKzt} KZT.`,
     );
   }
 
@@ -258,6 +351,10 @@ export function buildReconciliation(result: PricingResultLike): ReconciliationRe
     rawSubtotalKzt,
     roundingAdjustmentKzt,
     roundingAdjustmentFound,
+    marginFloorAdjustmentKzt,
+    marginFloorAdjustmentFound,
+    paymentWideFeeAdjustmentKzt,
+    paymentWideFeeAdjustmentFound,
     canonicalSubtotalKzt,
     finalAmountKzt,
     differenceKzt,

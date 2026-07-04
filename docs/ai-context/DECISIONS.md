@@ -428,3 +428,67 @@ worker/src/processor.ts, worker/src/lib/docx-renderer.ts, worker/src/lib/rendere
 
 **Risks / caveats:**  
 This modifies worker/src/lib/docx-renderer.ts and worker/src/lib/renderer.ts, both listed as frozen in docs/OFFICIAL_DOCX_PIPELINE_FREEZE.md ('Translator/provider block') — done under explicit written approval for this specific change only; OCR, translation prompts/parameters, table-classification, and visual-element detection were NOT touched. The Railway worker completion email has no i18n system and remains hardcoded English-only; the electronic-output disclaimer was not added there — a pre-existing gap, not introduced by this change. renderToPdfBuffer() (src/lib/pdf/renderer.ts) and generatePdfFromHtml()/Puppeteer remain fully functional but are now only reachable via the official/notarized preview-PDF path — if a future change reconnects them to the electronic path, the policy would silently regress without a code-level guard (only tests catch this).
+
+---
+
+### 2026-07-03 — Internal AI Test Lab: add batch mode for launch QA
+
+**Decision:**  
+tools/internal-ai-test-lab/run-ai-translation-test.ts now supports three modes (auto-detected from flags): single-file (unchanged), batch (--input-dir + --manifest, processes a reviewed batch-manifest.json sequentially or with --concurrency<=2), and --generate-manifest-template (drafts a manifest from filenames for human review, never used for actual execution). The single-document pipeline was extracted into lib/process-document.ts so both modes share one implementation. Electronic-mode output now also writes a standalone translated-document.INTERNAL_TEST.html file (previously only DOCX+diagnostic-PDF); the diagnostic PDF was renamed translated-document.INTERNAL_DIAGNOSTIC_ONLY.pdf to make its non-deliverable status unambiguous.
+
+**Rationale:**  
+Launch QA needs to cover many language pairs/document types before go-live; running the single-file CLI by hand per document does not scale. Batch execution intentionally never guesses source/target language or document type from filenames -- only a human-reviewed manifest drives execution, to avoid silently mis-pricing or mis-translating a QA document. Concurrency is capped at 2 to bound real-time OCR/LLM API cost and rate-limit risk.
+
+**Impacted files/docs:**  
+tools/internal-ai-test-lab/README.md, docs/ai-context/20_COMMANDS_AND_TESTS.md
+
+**Risks / caveats:**  
+Batch mode spends real OCR/LLM API credits per manifest entry -- a large manifest run against production is a real cost event. A bad manifest entry (wrong service level, wrong document type) still passes alias-map validation if the value is a valid-but-wrong canonical alias -- validation catches malformed/unknown values, not semantically wrong ones.
+
+---
+
+### 2026-07-03 — 50% margin floor (commercial floor) added to pricing calculator
+
+**Decision:**  
+calculatePrice() now enforces a hard 50% estimated-margin floor on every standard quote (electronic/official/notarized). If raw price margin (after ALL internal costs/reserves — translator, notary, courier, printing, AI/IT, tax, acquiring, risk, owner, marketing/partner commission) is below 50%, a margin_floor_adjustment line item (isClientVisible=false, isCost=false) raises the final price. Formula: minimum_price = fixed_internal_costs / (1 - percentage_reserve_rate - target_margin_rate), where fixed_internal_costs = translator+notary+courier+printing+AI/IT, and percentage_reserve_rate = tax+acquiring+risk+owner+marketing/partner (each a % of whatever the client is actually charged). Percentage reserves (tax_reserve, acquiring_fee_estimate, risk_chargeback_reserve, owner_reserve, marketing_cac_reserve, partner_commission_cost) are now computed against the FINAL rounded price (post-floor), not the pre-floor subtotal, so stored internal_cost_json always reflects real liability on the amount actually charged. target_profit remains a benchmark only and is never treated as a cost or as a client price component. Config lives in MARGIN_FLOOR_CONFIG (src/lib/pricing/config.ts): targetMarginRate=0.50 per service level, enableMarginFloor=true, rounding 100 KZT (electronic/official) / 500 KZT (notarized). If configured rates make the floor unsolvable (percentage_reserve_rate + target_margin_rate >= 100%), calculatePrice() throws rather than emit a quote that silently misses the floor. Checkout is never blocked by this — it is a fully automatic price adjustment, never an operator confirmation step.
+
+**Rationale:**  
+Business requirement: every standard WPO order must clear 50% estimated margin after all real internal costs, not just the WPO service layer — notary/courier/printing are real costs inside the order, not excluded pass-throughs. Under current unit-economics rates (25% target profit rate, ~27.5% combined percentage reserves), this floor binds for nearly all standard orders today — confirmed via a before/after price-delta comparison (electronic/official orders +38-82%, notarized orders +139-142%) reviewed and approved before implementation. Staging only; production promotion requires separate explicit approval per CLAUDE.md.
+
+**Impacted files/docs:**  
+`Not specified`
+
+**Risks / caveats:**  
+`Not specified`
+
+---
+
+### 2026-07-04 — Layered pricing model: 50% floor scoped to WPO service layer only (supersedes 2026-07-03 whole-order floor)
+
+**Decision:**  
+Corrects the 2026-07-03 margin floor decision, which wrongly applied the 50% floor to the WHOLE order including notary/courier/printing pass-through costs, causing notarized prices to explode (e.g. 16,500 -> 39,500 KZT for a simple pickup passport). The floor now applies ONLY to the WPO translation/service layer (minimum_check, extra_words_fee, extra_pages_fee, layout_fee, document_type_coefficient, readability_surcharge, human_review_fee, translator_signature_fee, provider_stamp_fee, translator_reserved_cost, AI/IT reserve, owner_reserve, marketing_cac_reserve). Notary/delivery add-ons (notary_official_fee, printing_binding_fee, delivery_fee, notary urgency surcharge, extra paper copies) are added AFTER the WPO layer's floor step and are NEVER grossed up by it. notary_coordination_fee is a fixed 5,000 KZT WPO commercial fee (NOTARY_CONFIG.notaryCoordinationFeeDefault) — it is WPO REVENUE, not a pass-through: its internal cost is config-driven (NOTARY_CONFIG.notaryCoordinationInternalCostKzt, currently 0 / not configured) and the difference (notaryCoordinationMarginKzt) is real margin that improves the blended order margin, unlike notary_official_fee/printing/delivery which net to zero margin contribution (revenue == cost). Payment-wide fees (tax, Halyk acquiring, risk reserve, referral partner commission) apply once to the WHOLE final client price (WPO layer + notary/delivery add-ons) and are recomputed against the true final rounded price, never the pre-floor subtotal. Blended (whole-order) margin is NOT guaranteed >= 50% for notarized orders — that dilution from real pass-through costs is expected and correct. Separately, the notary MRP fallback (NOTARY_CONFIG.mrpValueFallbackKzt, used only when pricing_versions.mrp_value is null) was updated from an implicit 3.69 (-> 3,690 KZT) to 4,325 KZT, reflecting the current 2026 MRP tariff; version.mrpValue itself (DB-driven, pricing_versions.mrp_value) keeps its pre-existing 'stored in thousands of KZT' convention unchanged — this decision does not reinterpret that column, and the live active pricing_versions row was NOT updated (that is a data change for ops/finance to make separately, not a schema migration).
+
+**Rationale:**  
+The 2026-07-03 whole-order floor was reviewed via a before/after price-delta comparison and found to make notary_official_fee (a real, regulated, non-negotiable state tariff) get grossed up as if it were WPO-marginable revenue — mathematically correct given that decision's formula, but not the intended business model. Business clarified: WPO only wants a 50% margin guarantee on the portion of the order it actually controls (translation/service work), while notary/courier/printing pass through at cost (plus the separate, already-margin-bearing 5,000 KZT coordination fee) and payment-wide processing fees apply once at the end. Confirmed via updated price-delta comparison: notarized pickup 16,500 -> 21,000 KZT (was wrongly 39,500 under the whole-order floor), notarized delivery 23,600 -> 29,000 KZT (was wrongly 57,000); electronic/official unaffected by notary-specific changes. Staging only; production promotion requires separate explicit approval per CLAUDE.md.
+
+**Impacted files/docs:**  
+`Not specified`
+
+**Risks / caveats:**  
+`Not specified`
+
+---
+
+### 2026-07-04 — Notary MRP config fix + WPO margin floor pooling + notarized base minimum derived from official (final approved model)
+
+**Decision:**  
+Three related corrections to the 2026-07-04 layered pricing model, bringing notarized pricing to the approved commercial baseline (pickup ~15,000 KZT, delivery ~21,000 KZT, down from the interim 21,000/29,000). (1) MRP config: NOTARY_CONFIG.mrpValueFallbackKzt updated to 4325 (raw KZT); test fixtures use version.mrpValue=4.325 (thousands convention) producing notary_official_fee = round(4325 x 0.53) = 2292 for individual/B2C (was 1956 under the stale 3.69/3690 KZT fallback). (2) WPO margin floor now checks a MARGINABLE REVENUE POOL, not the translation layer alone: pool = translation/service layer price + notary_coordination_fee (both WPO-controlled revenue; notary_official_fee/printing/delivery remain excluded, pure pass-through). Formula: minimumPriceForMargin = (wpoServiceLayerFixedCosts + notaryCoordinationInternalCostKzt) / (1 - percentageReserveRate - targetMarginRate) - notaryCoordinationFee — the fixed 5,000 KZT coordination fee revenue reduces how much the translation layer itself must rise, since it's never itself adjusted. Owner/marketing reserves now scale against the combined pool. New MarginBreakdown field wpoMarginableRevenueKzt = wpoServiceLayerFinalPrice + notaryCoordinationRevenueKzt. For non-notarized orders (coordination fee = 0) this is identical to the prior behavior — electronic/official pricing is unchanged. (3) BASE_MINIMUM_KZT[group].notarization_through_partners is no longer an independently hardcoded, higher figure — it is now DERIVED (via BASE_MINIMUM_KZT_SOURCE, which only defines electronic/official rates) to always equal BASE_MINIMUM_KZT[group].official_with_translator_signature_and_provider_stamp for that same language group. Rationale: notarization is not a separate translation base tier; the translation/service portion of a notarized order is priced identically to official, with notary official fee, WPO coordination fee, printing/binding, and delivery layered on top as separate add-ons.
+
+**Rationale:**  
+The 2026-07-04 layered-model correction (previous decision) fixed the whole-order floor bug but introduced two remaining gaps: (a) it excluded notary_coordination_fee from the pool the 50% floor checks, forcing the translation layer alone to hit 50% and inflating notarized pickup to 21,000 KZT when the coordination fee's own margin should have counted; (b) it left the notarized base minimum at its old, independently-set value (e.g. 11,000 KZT for ru_kz vs official's 5,500), which was a leftover from the pre-layered-model era when the notarized base was meant to be an all-in bundle price — now double-charging once notary/coordination/printing are separately layered on top. Verified via updated price-delta comparison: notarized pickup 21,000 -> 15,000 KZT, notarized delivery 29,000 -> 21,000 KZT; electronic/official rows unchanged (1,500 / 6,200 / 22,200 KZT). Business explicitly confirmed target ~15,000 KZT for a standard RU-KZ notarized pickup passport before this change. Staging only; production promotion requires separate explicit approval per CLAUDE.md. Separately, NOTARY_CONFIG.mrpValueFallbackKzt (4,325) only affects quotes when pricing_versions.mrp_value is null — the live active pricing_versions row was NOT updated (data change, not code, out of scope here). Verification SQL (uses the REAL schema — supabase/migrations/0019_pricing_versions.sql — columns are code/status, NOT version/is_active as sometimes assumed): SELECT id, code, status, mrp_value, valid_from, valid_to FROM pricing_versions ORDER BY valid_from DESC; staging-only fix if stale: UPDATE pricing_versions SET mrp_value = 4.325 WHERE status = 'active' AND mrp_value <> 4.325; (mrp_value is stored in thousands of KZT, so 4.325 means 4,325 KZT). See scripts/staging/verify-notary-mrp-value.ts for a guarded, read-only-by-default script wrapping this same check.
+
+**Impacted files/docs:**  
+`Not specified`
+
+**Risks / caveats:**  
+`Not specified`

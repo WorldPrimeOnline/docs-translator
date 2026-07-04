@@ -154,7 +154,7 @@ describe('buildFinanceIssuePayload', () => {
         requiresOperatorReview: false,
         reviewReasons: [],
         items: [{ itemType: 'base_minimum', label: 'Base', quantity: 1, unitPriceKzt: 5500, amountKzt: 5500, isClientVisible: true, isCost: false, sortOrder: 1 }],
-        internalCosts: { taxReserve: 165, acquiringFee: 138, riskReserve: 275, ownerReserve: 385, marketingReserve: 550, partnerCommission: 0, aiItReserve: 100, translatorReserved: 1650, notaryFee: 0, notaryCoordFee: 0, courierCost: 0, printingCost: 0 },
+        internalCosts: { taxReserve: 165, acquiringFee: 138, riskReserve: 275, ownerReserve: 385, marketingReserve: 550, partnerCommission: 0, aiItReserve: 100, translatorReserved: 1650, notaryFee: 0, notaryCoordinationInternalCostKzt: 0, courierCost: 0, printingCost: 0 },
         margin: { grossRevenue: 5500, totalCosts: 3263, targetProfit: 550, estimatedMarginKzt: 2237, estimatedMarginRate: 0.407 },
         context: { languagePair: 'ru → en', baseMinimumKzt: 5500, extraWords: 0, additionalPages: 0, documentCoefficient: 1.0, urgencyCoefficient: 1.0, includedWordCount: 250, includedPageCount: 1 },
       },

@@ -34,17 +34,21 @@ export type CanonicalUrgencyLevel =
 
 export type CanonicalFulfillmentMethod = 'pickup' | 'delivery';
 
+export type CliMode = 'single' | 'batch' | 'generate-manifest-template';
+
+/**
+ * Flat (non-discriminated) on purpose: single-file mode is the pre-existing,
+ * unchanged contract — all its fields are still validated as required by
+ * parseCliArgs() at runtime, same as before. Turning this into a
+ * discriminated union would force every existing call site/test to narrow by
+ * `.mode` before reading `.file`/`.sourceLanguage`/etc, which is exactly the
+ * kind of churn "do not break the existing single-file CLI" rules out.
+ */
 export interface CliOptions {
-  envFile: string;
-  file: string;
-  sourceLanguage: string;
-  targetLanguage: string;
-  documentTypeRaw: string;
-  serviceLevelRaw: string;
-  urgencyRaw?: string;
-  fulfillmentMethodRaw?: string;
-  notaryCity?: string;
-  deliveryCity?: string;
+  mode: CliMode;
+
+  // ── shared ──
+  envFile?: string;
   outputDir: string;
   saveToR2: boolean;
   dryRunPricingOnly: boolean;
@@ -53,6 +57,31 @@ export interface CliOptions {
   debug: boolean;
   debugFullText: boolean;
   confirmProduction: boolean;
+
+  // ── single-file mode (mode === 'single') ──
+  file?: string;
+  sourceLanguage?: string;
+  targetLanguage?: string;
+  documentTypeRaw?: string;
+  serviceLevelRaw?: string;
+  urgencyRaw?: string;
+  fulfillmentMethodRaw?: string;
+  notaryCity?: string;
+  deliveryCity?: string;
+
+  // ── batch mode (mode === 'batch') ──
+  inputDir?: string;
+  manifest?: string;
+  continueOnError: boolean;
+  stopOnError: boolean;
+  limit?: number;
+  only?: string;
+  skipExisting: boolean;
+  /** Sequential (1) by default. Hard-capped at 2 — see parseCliArgs. */
+  concurrency: number;
+
+  // ── --generate-manifest-template mode ──
+  outputManifest?: string;
 }
 
 export interface AiTranslationTestContext {
@@ -78,4 +107,46 @@ export interface RunPaths {
   pricingDir: string;
   reportDir: string;
   logFile: string;
+}
+
+/** One entry in batch-manifest.json — see lib/manifest.ts for validation. */
+export interface ManifestEntry {
+  file: string;
+  sourceLanguage: string;
+  targetLanguage: string;
+  documentType: string;
+  serviceLevel: string;
+  urgency?: string;
+  fulfillmentMethod?: string;
+  notaryCity?: string;
+  deliveryCity?: string;
+  notes?: string;
+  expectedWarnings?: string[];
+  tags?: string[];
+}
+
+/** One row of batch-summary.{json,csv,html} — see lib/batch-summary.ts. */
+export interface BatchSummaryRow {
+  index: number;
+  file: string;
+  sourceLanguage: string;
+  targetLanguage: string;
+  documentType: string;
+  serviceLevel: string;
+  status: 'completed' | 'failed' | 'skipped';
+  itemFolder: string;
+  finalPriceKzt: number | null;
+  reconciliationStatus: string | null;
+  outputDocxPath: string | null;
+  outputHtmlPath: string | null;
+  outputPdfDiagnosticPath: string | null;
+  reportPath: string | null;
+  ocrPageCount: number | null;
+  extractedWordCount: number | null;
+  warningsCount: number;
+  warnings: string[];
+  errorCode: string | null;
+  errorMessage: string | null;
+  durationSeconds: number;
+  notes?: string;
 }

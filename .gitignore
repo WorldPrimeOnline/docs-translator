@@ -43,6 +43,13 @@ tools/internal-ai-test-lab/runs/*
 !tools/internal-ai-test-lab/runs/.gitkeep
 tools/internal-ai-test-lab/input/*
 !tools/internal-ai-test-lab/input/.gitkeep
+# batch-manifest.json is a plain JSON manifest (no document content) — track it.
+!tools/internal-ai-test-lab/input/batch-manifest.json
+!tools/internal-ai-test-lab/input/batch-manifest.template.json
+# input/batch/ holds real QA-pack documents — never commit their content, only the placeholder.
+!tools/internal-ai-test-lab/input/batch/
+tools/internal-ai-test-lab/input/batch/*
+!tools/internal-ai-test-lab/input/batch/.gitkeep
 
 # editor
 .vscode/
