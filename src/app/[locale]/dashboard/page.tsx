@@ -11,6 +11,7 @@ import { Link } from '@/i18n/navigation';
 import { NOTARY_CITIES } from '@/lib/notary/cities';
 import { getCustomerOrderState } from '@/lib/translation-workflow/customer-order-state';
 import { bucketOrders } from '@/lib/translation-workflow/order-buckets';
+import { isNotaryDeliveryValid, isDeliverySelected } from '@/lib/translation-workflow/notary-delivery-validation';
 import { loadReferralParams } from '@/lib/referral/capture';
 
 interface PromoDiscountInfo {
@@ -824,7 +825,7 @@ export default function DashboardPage() {
   };
 
   const isNotarization = serviceLevel === 'notarization_through_partners';
-  const isDelivery = isNotarization && fulfillmentMethod === 'delivery';
+  const isDelivery = isDeliverySelected({ isNotarization, fulfillmentMethod });
   const totalSize = files.reduce((s, f) => s + f.size, 0);
 
   const isFormValid =
@@ -834,10 +835,7 @@ export default function DashboardPage() {
     sourceLang !== targetLang &&
     termsAccepted !== null &&
     (termsAccepted === true || consentChecked) &&
-    (!isNotarization ||
-      (notaryCity.length > 0 &&
-        fulfillmentMethod !== '' &&
-        (!isDelivery || (deliveryPhone.length > 0 && deliveryAddress.length > 0))));
+    isNotaryDeliveryValid({ isNotarization, notaryCity, fulfillmentMethod, deliveryPhone, deliveryAddress });
 
 
   // ─── Upload ────────────────────────────────────────────────────────────────────
@@ -871,7 +869,7 @@ export default function DashboardPage() {
       form.append('notaryUrgencyLevel', notaryUrgencyLevel);
       form.append('notaryCity', notaryCity);
       if (fulfillmentMethod) form.append('fulfillmentMethod', fulfillmentMethod);
-      if (isDelivery) { form.append('deliveryPhone', deliveryPhone); form.append('deliveryAddress', deliveryAddress); }
+      if (isDelivery) { form.append('deliveryPhone', deliveryPhone.trim()); form.append('deliveryAddress', deliveryAddress.trim()); }
     }
     if (customerComment.trim()) form.append('customerComment', customerComment.trim());
 
@@ -1076,11 +1074,39 @@ export default function DashboardPage() {
                 <div className="flex flex-col gap-3">
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('notary.phone')} <span className="text-red-400">*</span></label>
-                    <input type="tel" value={deliveryPhone} onChange={(e) => setDeliveryPhone(e.target.value)} placeholder={t('notary.phonePlaceholder')} className={inputClass} required={isDelivery} />
+                    <input
+                      type="tel"
+                      name="notary-delivery-phone"
+                      value={deliveryPhone}
+                      onChange={(e) => setDeliveryPhone(e.target.value)}
+                      placeholder={t('notary.phonePlaceholder')}
+                      className={inputClass}
+                      required={isDelivery}
+                      autoComplete="off"
+                    />
+                    {deliveryPhone.trim().length === 0 && (
+                      <p className="text-xs text-red-400">{t('notary.phoneRequired')}</p>
+                    )}
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('notary.address')} <span className="text-red-400">*</span></label>
-                    <textarea value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} placeholder={t('notary.addressPlaceholder')} className={`${inputClass} min-h-[80px] resize-none`} required={isDelivery} rows={3} />
+                    {/* Free-form text only — no address autocomplete/placeId selection required.
+                        name deliberately avoids the word "address" (a known browser autofill
+                        heuristic trigger, independent of autoComplete="off" in some versions) so
+                        the browser's native address-manager popup does not appear over this field. */}
+                    <textarea
+                      name="notary-delivery-location-note"
+                      value={deliveryAddress}
+                      onChange={(e) => setDeliveryAddress(e.target.value)}
+                      placeholder={t('notary.addressPlaceholder')}
+                      className={`${inputClass} min-h-[80px] resize-none`}
+                      required={isDelivery}
+                      rows={3}
+                      autoComplete="off"
+                    />
+                    {deliveryAddress.trim().length === 0 && (
+                      <p className="text-xs text-red-400">{t('notary.addressRequired')}</p>
+                    )}
                   </div>
                 </div>
               )}
