@@ -5,9 +5,5 @@ export default async function StartPage({ params }: { params: Promise<{ locale: 
   const { locale } = await params;
   setRequestLocale(locale);
 
-  return (
-    <div className="bg-background px-4 py-12 lg:py-16">
-      <OrderWizard />
-    </div>
-  );
+  return <OrderWizard />;
 }

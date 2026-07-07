@@ -9,6 +9,13 @@
  *   produces its own artifacts (AI draft DOCX -> human review -> final
  *   PDF/notary package) and this selector has no effect on them.
  *
+ * The order form (including this area) was extracted from dashboard/page.tsx
+ * into the shared src/components/order/OrderForm.tsx component so the public
+ * pre-checkout wizard (/[locale]/start) can render the identical form — see
+ * "fix: reuse dashboard order form for public start flow". This test now
+ * targets OrderForm.tsx; the rule itself is unchanged and applies to both
+ * the dashboard and the public wizard, since both render the same component.
+ *
  * No React Testing Library / jsdom is configured in this project, so this is
  * a static source check (same pattern as
  * tools/internal-ai-test-lab/__tests__/no-forbidden-integrations.test.ts).
@@ -17,7 +24,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 
 const DASHBOARD_SRC = fs.readFileSync(
-  path.resolve(__dirname, '../../app/[locale]/dashboard/page.tsx'),
+  path.resolve(__dirname, '../../components/order/OrderForm.tsx'),
   'utf-8',
 );
 
@@ -81,9 +88,11 @@ describe('official — read-only final-format notice, no selectable dropdown', (
     const block = extractOutputFormatBlock();
     expect(block).toContain("? tElectronic('finalFormat.notarized')");
     expect(block).toContain(": tElectronic('finalFormat.official')");
-    // official is the ternary's else-branch (default), notarized is the explicit check
-    const notarizedCheckIdx = block.indexOf("serviceLevel === 'notarization_through_partners'\n                    ?");
-    expect(notarizedCheckIdx).toBeGreaterThan(-1);
+    // official is the ternary's else-branch (default), notarized is the explicit check.
+    // Indentation-agnostic — the exact depth shifted when this JSX was extracted into
+    // OrderForm.tsx (one fewer wrapping level than the old inline dashboard JSX).
+    const notarizedCheckMatch = /serviceLevel === 'notarization_through_partners'\s*\?/.exec(block);
+    expect(notarizedCheckMatch).not.toBeNull();
   });
 });
 
