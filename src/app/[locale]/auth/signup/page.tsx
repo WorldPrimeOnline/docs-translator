@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -27,7 +28,17 @@ const schema = z
 type FormValues = z.infer<typeof schema>;
 
 export default function SignupPage() {
+  return (
+    <Suspense fallback={null}>
+      <SignupForm />
+    </Suspense>
+  );
+}
+
+function SignupForm() {
   const t = useTranslations('auth');
+  const searchParams = useSearchParams();
+  const next = searchParams.get('next');
   const [isLoading, setIsLoading] = useState(false);
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
 
@@ -41,11 +52,12 @@ export default function SignupPage() {
     const supabase = createClient();
 
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin;
+    const callbackUrl = next ? `${siteUrl}/auth/callback?next=${encodeURIComponent(next)}` : `${siteUrl}/auth/callback`;
     const { error } = await supabase.auth.signUp({
       email: values.email,
       password: values.password,
       options: {
-        emailRedirectTo: `${siteUrl}/auth/callback`,
+        emailRedirectTo: callbackUrl,
       },
     });
 
@@ -87,7 +99,7 @@ export default function SignupPage() {
       onSubmit={form.handleSubmit(onSubmit)}
       isLoading={isLoading}
       submitLabel={t('signupBtn')}
-      topSection={<GoogleAuthButton />}
+      topSection={<GoogleAuthButton next={next} />}
       footer={
         <span>
           {t('hasAccount')}{' '}

@@ -270,5 +270,44 @@
       "official": "Yakuniy format: tarjimon ko'rib chiqqandan keyin PDF",
       "notarized": "Yakuniy format: notarial paket / hamkor jarayonidan keyin PDF"
     }
+  },
+  "startWizard": {
+    "pageTitle": "Tarjimani boshlang",
+    "pageSubtitle": "Hujjatni yuklang, parametrlarni tanlang va ro'yxatdan o'tishdan oldin narxni bilib oling.",
+    "step1Label": "Hujjat va parametrlar",
+    "step2Label": "Narx",
+    "dropzoneCta": "Hujjat yuklash",
+    "filesSelected": "Tanlangan fayllar: {count}",
+    "consentText": "Hujjatni yuklash orqali siz xizmat shartlari, maxfiylik siyosati va tarjima narxini hisoblash uchun hujjatingizni qayta ishlashga rozilik bildirasiz.",
+    "calculateButton": "Narxni hisoblash",
+    "calculating": "Hisoblanmoqda...",
+    "priceReadyTitle": "Narx tayyor",
+    "priceReadyDesc": "Taxminiy muddat: {eta}",
+    "editDetails": "Parametrlarni o'zgartirish",
+    "continueToPayment": "To'lovga o'tish",
+    "requiresOperatorReviewNotice": "Ushbu buyurtma to'lovdan oldin operator tomonidan qisqacha tekshiruvdan o'tishi kerak. Yakuniy narxni tez orada tasdiqlaymiz.",
+    "signInHint": "To'lovdan oldin tizimga kirish yoki bepul hisob yaratish kerak bo'ladi — hujjatingiz va parametrlaringiz saqlanib qoladi.",
+    "checkoutTitle": "Buyurtmani tasdiqlash",
+    "checkoutSubtitle": "To'lovdan oldin buyurtmani tekshiring.",
+    "confirmAndPayButton": "Buyurtmani tasdiqlash",
+    "loadingDraft": "Buyurtmangiz yuklanmoqda...",
+    "draftNotFound": "Bu buyurtma topilmadi. Iltimos, qaytadan boshlang.",
+    "termsCheckboxLabel": "Men xizmat shartlari va maxfiylik siyosatini qabul qilaman",
+    "backToStart": "Yangi buyurtma boshlash",
+    "errors": {
+      "missingFields": "Iltimos, manba tilni, tarjima tilini va xizmat darajasini tanlang.",
+      "languagePairMustDiffer": "Manba va maqsad tillari bir xil bo'lmasligi kerak.",
+      "noFile": "Iltimos, avval hujjatni yuklang.",
+      "unsupportedFileType": "Qo'llab-quvvatlanmaydigan fayl turi: {files}",
+      "invalidFileSignature": "\"{file}\" fayli e'lon qilingan turga mos kelmaydi.",
+      "totalSizeExceeded": "Fayllarning umumiy hajmi juda katta. Ro'yxatdan o'tishdan oldingi cheklov — 20 MB.",
+      "rateLimitedHourly": "Narx hisoblash juda ko'p marta bajarildi. Bir soatdan keyin qayta urinib ko'ring.",
+      "rateLimitedDaily": "Kunlik narx hisoblash chegarasiga yetdingiz. Ertaga qayta urinib ko'ring.",
+      "uploadFailed": "Faylni yuklab bo'lmadi. Qayta urinib ko'ring.",
+      "calculationFailed": "Narxni hisoblab bo'lmadi. Qayta urinib ko'ring.",
+      "genericError": "Nimadir xato ketdi. Qayta urinib ko'ring.",
+      "sessionMissing": "Sessiyani tasdiqlab bo'lmadi. Sahifani qayta yuklab, qayta urinib ko'ring."
+    },
+    "dropzoneHint": "PDF, DOCX, JPG, PNG · jami 20 MB gacha"
   }
 }

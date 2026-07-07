@@ -42,6 +42,16 @@ Two job-creation entry points:
 - `POST /api/documents/upload` — subscription path
 - `POST /api/documents/upload-card` — card payment path
 
+## Public pre-checkout draft flow (anonymous pricing before login)
+
+A third, pre-authentication entry point sits ahead of the two job-creation routes above: the public wizard at `/[locale]/start` computes a real KZT price via `computeQuoteForJob()` for an anonymous visitor, but does **not** insert into `price_quotes`/`jobs` at that stage — the result is cached only as a `pricing_snapshot` JSON column on a new `order_drafts` row (migration `0044`).
+
+The draft becomes a real order only at `/[locale]/checkout` — i.e. after login, still before payment — via `convertDraftToOrder()` (`src/lib/order-drafts/service.ts`), which reuses the identical `documents` → `jobs` → `saveQuote()` insert sequence `upload-card/route.ts` already uses for logged-in orders. **`src/app/api/payments/halyk/initiate` and `/callback` are completely unmodified** — checkout renders the existing `HalykPayButton` against the resulting `jobId`/`quoteId`, exactly as the dashboard does today.
+
+Because the job is created with `status='payment_pending'` (never `queued`), the worker's `isEligible()`/`claimNextJob()` gate cannot pick it up until the Halyk callback flips it to `queued` on real payment — so Jira/Drive/OCR/translation/notary work starts exactly when it always has, never before a paid `payment_transactions` row exists. Conversion is idempotent: `order_drafts.converted_job_id` is set via an atomic `UPDATE ... WHERE status='price_calculated'` claim, so a double-click cannot create two orders.
+
+Anonymous draft uploads land in a temporary `draft-uploads/{draftId}/` R2 prefix (not `documents/`), capped at 20 MB total (vs. 50 MB authenticated) with a magic-byte check (`src/lib/file-validation/signature.ts`) added on top of the existing MIME/extension check. Anonymous price-calculation attempts are rate-limited at 5/hour and 20/day per session-cookie-or-IP (`anonymous_rate_limit_events` table) — see `docs/ai-context/30_ARCHITECTURE_OVERVIEW.md` Rate limiting section. Expired, unconverted drafts are swept by the existing daily `/api/cron/cleanup` route (no new Vercel cron added).
+
 ## Financial architecture (quote-based pricing)
 
 **Key rule**: `payment_transactions.amount` is always read from `price_quotes.amount_kzt`. Client-provided amounts are **never** used. Quotes expire in 24 h.

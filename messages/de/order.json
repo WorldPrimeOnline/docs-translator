@@ -270,5 +270,44 @@
       "official": "Endformat: PDF nach Prüfung durch den Übersetzer",
       "notarized": "Endformat: Notarpaket / PDF nach Partnerprozess"
     }
+  },
+  "startWizard": {
+    "pageTitle": "Übersetzung starten",
+    "pageSubtitle": "Laden Sie Ihr Dokument hoch, wählen Sie Ihre Optionen und sehen Sie den Preis, bevor Sie sich registrieren.",
+    "step1Label": "Dokument & Optionen",
+    "step2Label": "Preis",
+    "dropzoneCta": "Dokument hochladen",
+    "filesSelected": "{count} Datei(en) ausgewählt",
+    "consentText": "Mit dem Hochladen eines Dokuments stimmen Sie den Nutzungsbedingungen, der Datenschutzerklärung und der Verarbeitung Ihres Dokuments zur Berechnung des Übersetzungspreises zu.",
+    "calculateButton": "Preis berechnen",
+    "calculating": "Wird berechnet...",
+    "priceReadyTitle": "Ihr Preis ist bereit",
+    "priceReadyDesc": "Voraussichtliche Lieferzeit: {eta}",
+    "editDetails": "Angaben bearbeiten",
+    "continueToPayment": "Weiter zur Zahlung",
+    "requiresOperatorReviewNotice": "Diese Bestellung erfordert vor der Zahlung eine kurze manuelle Prüfung. Wir bestätigen den Endpreis in Kürze.",
+    "signInHint": "Vor der Zahlung müssen Sie sich anmelden oder ein kostenloses Konto erstellen — Ihr Dokument und Ihre Angaben bleiben erhalten.",
+    "checkoutTitle": "Bestellung bestätigen",
+    "checkoutSubtitle": "Überprüfen Sie Ihre Bestellung vor der Zahlung.",
+    "confirmAndPayButton": "Bestellung bestätigen",
+    "loadingDraft": "Ihre Bestellung wird geladen...",
+    "draftNotFound": "Diese Bestellung konnte nicht gefunden werden. Bitte beginnen Sie erneut.",
+    "termsCheckboxLabel": "Ich akzeptiere die Nutzungsbedingungen und die Datenschutzerklärung",
+    "backToStart": "Neue Bestellung starten",
+    "errors": {
+      "missingFields": "Bitte wählen Sie Ausgangssprache, Zielsprache und Serviceniveau.",
+      "languagePairMustDiffer": "Ausgangs- und Zielsprache müssen unterschiedlich sein.",
+      "noFile": "Bitte laden Sie zuerst ein Dokument hoch.",
+      "unsupportedFileType": "Nicht unterstützter Dateityp: {files}",
+      "invalidFileSignature": "Die Datei „{file}“ entspricht nicht dem angegebenen Dateityp.",
+      "totalSizeExceeded": "Die Gesamtdateigröße ist zu groß. Das Limit vor der Registrierung beträgt 20 MB.",
+      "rateLimitedHourly": "Zu viele Preisberechnungen. Bitte versuchen Sie es in einer Stunde erneut.",
+      "rateLimitedDaily": "Sie haben das heutige Limit für Preisberechnungen erreicht. Bitte versuchen Sie es morgen erneut.",
+      "uploadFailed": "Datei-Upload fehlgeschlagen. Bitte versuchen Sie es erneut.",
+      "calculationFailed": "Preis konnte nicht berechnet werden. Bitte versuchen Sie es erneut.",
+      "genericError": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.",
+      "sessionMissing": "Ihre Sitzung konnte nicht überprüft werden. Bitte laden Sie die Seite neu und versuchen Sie es erneut."
+    },
+    "dropzoneHint": "PDF, DOCX, JPG, PNG · insgesamt bis zu 20 MB"
   }
 }

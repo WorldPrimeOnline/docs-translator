@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { createClient } from '@/lib/supabase/client';
 
-export function GoogleAuthButton() {
+export function GoogleAuthButton({ next }: { next?: string | null } = {}) {
   const t = useTranslations('auth');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -12,10 +12,14 @@ export function GoogleAuthButton() {
     setIsLoading(true);
     const supabase = createClient();
 
+    const callbackUrl = next
+      ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`
+      : `${window.location.origin}/auth/callback`;
+
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: callbackUrl,
       },
     });
     // Browser redirects to Google — no need to reset loading state
