@@ -520,7 +520,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
               </div>
               <div className="flex flex-1 flex-col px-7 py-6">
                 <ul className="mb-7 flex-1 space-y-2.5">
-                  {[t('pricing.notarizedF1'), t('pricing.notarizedF2'), t('pricing.notarizedF3'), t('pricing.notarizedF4')].map((f) => (
+                  {[t('pricing.notarizedF1'), t('pricing.notarizedF2'), t('pricing.notarizedF3'), t('pricing.notarizedF4'), t('pricing.notarizedF5')].map((f) => (
                     <li key={f} className="flex items-start gap-2.5 text-[13px] text-muted-foreground">
                       <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/35" />
                       {f}

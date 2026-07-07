@@ -7,29 +7,30 @@
     "mostPopular": "Most popular",
     "startTranslating": "Start translation",
     "allPricesNote": "All prices in ₸ (tenge) · No subscription · Final price calculated after document upload",
-    "paygNote": "From ₸1,000 — electronic translation. From ₸5,500 — translation with provider stamp.",
+    "paygNote": "From ₸1,500 — electronic translation. From ₸6,200 — translation with provider stamp.",
     "electronic": "Electronic translation",
-    "electronicPrice": "from ₸1,000",
+    "electronicPrice": "from ₸1,500",
     "electronicF1": "AI/OCR draft and automated formatting",
     "electronicF2": "PDF/DOCX output",
     "electronicF3": "Ready in 2–5 minutes",
     "electronicF4": "No translator signature or provider stamp",
     "agentStamp": "Translation with provider stamp",
-    "agentStampPrice": "from ₸5,500",
+    "agentStampPrice": "from ₸6,200",
     "agentStampF1": "Human translator review",
     "agentStampF2": "Provider stamp",
     "agentStampF3": "Formatted final PDF",
     "agentStampF4": "Not a notarized translation",
     "notarized": "Notarized translation",
-    "notarizedPrice": "from ₸11,000",
+    "notarizedPrice": "from ₸15,000",
     "notarizedF1": "Translation with provider stamp",
     "notarizedF2": "Partner process with a notary",
     "notarizedF3": "Notarial certification of translator's signature",
     "notarizedF4": "Timeline depends on document, city, and notary availability",
+    "notarizedF5": "Delivery in Almaty — from ₸21,000",
     "tiers": {
       "electronic": {
         "title": "Electronic translation",
-        "price": "from ₸1,000",
+        "price": "from ₸1,500",
         "unit": "per document",
         "features": [
           "AI/OCR draft and automated formatting",
@@ -41,7 +42,7 @@
       },
       "agentStamp": {
         "title": "Translation with provider stamp",
-        "price": "from ₸5,500",
+        "price": "from ₸6,200",
         "unit": "per document",
         "features": [
           "Human review",
@@ -53,13 +54,14 @@
       },
       "notarized": {
         "title": "Notarized translation",
-        "price": "from ₸11,000",
+        "price": "from ₸15,000",
         "unit": "per document",
         "features": [
           "Translation with provider stamp",
           "Partner process with a notary",
           "Notarial certification",
-          "Timing depends on document type, city and notary availability"
+          "Timing depends on document type, city and notary availability",
+          "Delivery in Almaty — from ₸21,000"
         ],
         "cta": "Start translation"
       }

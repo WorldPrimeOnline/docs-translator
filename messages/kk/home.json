@@ -56,7 +56,7 @@
     "speed": "2–5 минутта дайын",
     "speedDesc": "Құжаттардың көпшілігі 5 минутта аударылады. Дәстүрлі аударма бюролары күндер алады.",
     "price": "3 есе арзан",
-    "priceDesc": "Бір құжат үшін 1 000 ₸-дан — аударма бюросындағы 15 000–25 000 ₸-қа қарсы.",
+    "priceDesc": "Бір құжат үшін 1 500 ₸-дан — аударма бюросындағы 15 000–25 000 ₸-қа қарсы.",
     "security": "30 күннен кейін автоматты жою",
     "securityDesc": "Құжаттарыңыз қауіпсіз сақталады және 30 күннен кейін біржола жойылады.",
     "sectionTitle": "Қауіпсіздік, дәлдік және қолжетімділік негізінде",
@@ -138,9 +138,9 @@
     "pricingElectronic": "Электрондық аударма",
     "pricingAgentStamp": "Агент мөрімен аударма",
     "pricingNotarization": "Нотариалды куәландырумен аударма",
-    "pricingElectronicPrice": "1 000 ₸ бастап",
-    "pricingAgentStampPrice": "5 500 ₸ бастап",
-    "pricingNotarizationPrice": "11 000 ₸ бастап",
+    "pricingElectronicPrice": "1 500 ₸ бастап",
+    "pricingAgentStampPrice": "6 200 ₸ бастап",
+    "pricingNotarizationPrice": "15 000 ₸ бастап",
     "pricingFeaturePassportDoc": "Паспорт, жеке куәлік, жүргізуші куәлігі",
     "pricingFeatureAiDraft": "AI/OCR бастапқы нұсқасы және автоматты форматтау",
     "pricingFeatureClaudeTranslation": "AI/OCR бастапқы нұсқасы және автоматты форматтау",
@@ -201,7 +201,7 @@
     "wpoSolvesThis": "WPO бұл мәселені шешеді"
   },
   "pricing": {
-    "pricingElectronicPrice": "1 000 ₸ бастап",
-    "priceDesc": "Бір құжат үшін 1 000 ₸-дан — аударма бюросындағы 15 000–25 000 ₸-қа қарсы."
+    "pricingElectronicPrice": "1 500 ₸ бастап",
+    "priceDesc": "Бір құжат үшін 1 500 ₸-дан — аударма бюросындағы 15 000–25 000 ₸-қа қарсы."
   }
 }

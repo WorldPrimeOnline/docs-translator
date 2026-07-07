@@ -7,29 +7,30 @@
     "mostPopular": "Mashhur tanlov",
     "startTranslating": "Tarjimani boshlash",
     "allPricesNote": "Barcha narxlar ₸ (tenge) da · Obunasiз · Yakuniy narx hujjat yuklanganidan so'ng hisoblanadi",
-    "paygNote": "1 000 ₸ dan — elektron tarjima. 5 500 ₸ dan — ijrochi muhri bilan tarjima.",
+    "paygNote": "1 500 ₸ dan — elektron tarjima. 6 200 ₸ dan — ijrochi muhri bilan tarjima.",
     "electronic": "Elektron tarjima",
-    "electronicPrice": "1 000 ₸ dan",
+    "electronicPrice": "1 500 ₸ dan",
     "electronicF1": "AI/OCR-qoralama va avtomatik formatlash",
     "electronicF2": "PDF/DOCX natijasi",
     "electronicF3": "Tayyor bo'lish vaqti 2–5 daqiqa",
     "electronicF4": "Tarjimon imzosi va ijrochi muhrisiz",
     "agentStamp": "Ijrochi muhri bilan tarjima",
-    "agentStampPrice": "5 500 ₸ dan",
+    "agentStampPrice": "6 200 ₸ dan",
     "agentStampF1": "Inson tarjimoni tomonidan tekshiruv",
     "agentStampF2": "Ijrochi muhri",
     "agentStampF3": "Rasmiylashtirilgan yakuniy PDF",
     "agentStampF4": "Notarial tasdiqlashsiz",
     "notarized": "Notarial tasdiqli tarjima",
-    "notarizedPrice": "11 000 ₸ dan",
+    "notarizedPrice": "15 000 ₸ dan",
     "notarizedF1": "Ijrochi muhri bilan tarjima",
     "notarizedF2": "Notarius bilan hamkorlik jarayoni",
     "notarizedF3": "Tarjimon imzosini notarial tasdiqlash",
     "notarizedF4": "Muddat hujjat, shahar va notarius mavjudligiga bog'liq",
+    "notarizedF5": "Almatida yetkazib berish — 21 000 ₸ dan",
     "tiers": {
       "electronic": {
         "title": "Elektron tarjima",
-        "price": "1 000 ₸ dan",
+        "price": "1 500 ₸ dan",
         "unit": "bir hujjat uchun",
         "features": [
           "AI/OCR-qoralama va avtomatik formatlash",
@@ -41,7 +42,7 @@
       },
       "agentStamp": {
         "title": "Ijrochi muhri bilan tarjima",
-        "price": "5 500 ₸ dan",
+        "price": "6 200 ₸ dan",
         "unit": "bir hujjat uchun",
         "features": [
           "Inson tomonidan tekshiruv",
@@ -53,13 +54,14 @@
       },
       "notarized": {
         "title": "Notarial tasdiqli tarjima",
-        "price": "11 000 ₸ dan",
+        "price": "15 000 ₸ dan",
         "unit": "bir hujjat uchun",
         "features": [
           "Ijrochi muhri bilan tarjima",
           "Notarius bilan hamkorlik jarayoni",
           "Notarial tasdiqlash",
-          "Muddat hujjat, shahar va notarius mavjudligiga bog'liq"
+          "Muddat hujjat, shahar va notarius mavjudligiga bog'liq",
+          "Almatida yetkazib berish — 21 000 ₸ dan"
         ],
         "cta": "Tarjimani boshlash"
       }

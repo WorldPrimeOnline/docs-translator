@@ -56,7 +56,7 @@
     "speed": "Bir necha daqiqada elektron tarjima",
     "speedDesc": "O'qilishi mumkin bo'lgan hujjatlar uchun elektron tarjima odatda bir necha daqiqa ichida tugaydi. Rasmiy tarjima va notarial tasdiqlash ko'proq vaqt talab qiladi.",
     "price": "3 barobargacha arzonroq",
-    "priceDesc": "1 000 ₸ dan bir hujjat uchun, tarjima byurosida 15 000–25 000 ₸ ga nisbatan.",
+    "priceDesc": "1 500 ₸ dan bir hujjat uchun, tarjima byurosida 15 000–25 000 ₸ ga nisbatan.",
     "security": "30 kundan keyin avtomatik o'chiriladi",
     "securityDesc": "Hujjatlaringiz xavfsiz saqlanadi va 30 kundan keyin butunlay o'chiriladi.",
     "sectionTitle": "Xavfsizlik, aniqlik va qulaylik",
@@ -138,9 +138,9 @@
     "pricingElectronic": "Elektron tarjima",
     "pricingAgentStamp": "Agent muhri bilan tarjima",
     "pricingNotarization": "Notarial tasdiqlangan tarjima",
-    "pricingElectronicPrice": "1 000 ₸ dan",
-    "pricingAgentStampPrice": "5 500 ₸ dan",
-    "pricingNotarizationPrice": "11 000 ₸ dan",
+    "pricingElectronicPrice": "1 500 ₸ dan",
+    "pricingAgentStampPrice": "6 200 ₸ dan",
+    "pricingNotarizationPrice": "15 000 ₸ dan",
     "pricingFeaturePassportDoc": "Pasport, shaxsiy guvohnoma, haydovchilik guvohnomasi",
     "pricingFeatureAiDraft": "AI/OCR-qoralama va avtomatik formatlash",
     "pricingFeatureClaudeTranslation": "OCR va sun'iy intellekt yordamida elektron tarjima",
@@ -201,7 +201,7 @@
     "wpoSolvesThis": "WPO bu muammoni hal qiladi"
   },
   "pricing": {
-    "pricingElectronicPrice": "1 000 ₸ dan",
-    "priceDesc": "1 000 ₸ dan bir hujjat uchun, tarjima byurosida 15 000–25 000 ₸ ga nisbatan."
+    "pricingElectronicPrice": "1 500 ₸ dan",
+    "priceDesc": "1 500 ₸ dan bir hujjat uchun, tarjima byurosida 15 000–25 000 ₸ ga nisbatan."
   }
 }

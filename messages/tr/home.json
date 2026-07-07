@@ -56,7 +56,7 @@
     "speed": "Dakikalar içinde elektronik çeviri",
     "speedDesc": "Okunaklı belgeler için elektronik çeviri genellikle birkaç dakika sürer. Resmi çeviri ve noter onayı daha fazla zaman gerektirir.",
     "price": "3× daha ucuz",
-    "priceDesc": "Belge başına 1.000 ₸'den — çeviri bürolarındaki 15.000–25.000 ₸'e kıyasla.",
+    "priceDesc": "Belge başına 1.500 ₸'den — çeviri bürolarındaki 15.000–25.000 ₸'e kıyasla.",
     "security": "30 günde otomatik silme",
     "securityDesc": "Belgeleriniz güvenli şekilde saklanır ve 30 gün sonra geri dönülemez biçimde silinir.",
     "sectionTitle": "Güvenlik, doğruluk ve erişilebilirlik",
@@ -138,9 +138,9 @@
     "pricingElectronic": "Elektronik çeviri",
     "pricingAgentStamp": "Acente kaşeli çeviri",
     "pricingNotarization": "Noter onaylı çeviri",
-    "pricingElectronicPrice": "1.000 ₸'den başlayan",
-    "pricingAgentStampPrice": "5.500 ₸'den başlayan",
-    "pricingNotarizationPrice": "11.000 ₸'den başlayan",
+    "pricingElectronicPrice": "1.500 ₸'den başlayan",
+    "pricingAgentStampPrice": "6.200 ₸'den başlayan",
+    "pricingNotarizationPrice": "15.000 ₸'den başlayan",
     "pricingFeaturePassportDoc": "Pasaport, kimlik belgesi, sürücü belgesi",
     "pricingFeatureAiDraft": "AI/OCR taslağı ve otomatik biçimlendirme",
     "pricingFeatureClaudeTranslation": "OCR ve yapay zekâ ile elektronik çeviri",
@@ -201,7 +201,7 @@
     "wpoSolvesThis": "WPO bu sorunu çözer"
   },
   "pricing": {
-    "pricingElectronicPrice": "1.000 ₸'den başlayan",
-    "priceDesc": "Belge başına 1.000 ₸'den — çeviri bürolarındaki 15.000–25.000 ₸'e kıyasla."
+    "pricingElectronicPrice": "1.500 ₸'den başlayan",
+    "priceDesc": "Belge başına 1.500 ₸'den — çeviri bürolarındaki 15.000–25.000 ₸'e kıyasla."
   }
 }

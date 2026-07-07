@@ -34,7 +34,7 @@
     "proPlan": "Кеңейтілген жоспар",
     "jobTitle": "Аударма жүргізілуде",
     "subBannerTitle": "Құжат бойынша төлем",
-    "subBannerDesc": "1 000 ₸ бастап бір құжат үшін — жазылымсыз",
+    "subBannerDesc": "1 500 ₸ бастап бір құжат үшін — жазылымсыз",
     "usingPlanSub": "{plan} жоспарыңыз · {remaining} құжат қалды — төлем қажет емес",
     "status": {
       "paymentPending": "Awaiting payment",
@@ -204,9 +204,9 @@
     "quoteCalculating": "Calculating price...",
     "quoteRecalculating": "Refreshing order status...",
     "priceHint": "The exact price is calculated after document upload and analysis.",
-    "priceHintElectronic": "Электрондық аударма — 1 000 ₸ бастап. Соңғы баға жүктелгеннен кейін есептеледі.",
-    "priceHintOfficial": "Орындаушы мөрімен аударма — 5 500 ₸ бастап. Жүктегеннен кейін нақты баға.",
-    "priceHintNotarized": "Notarized translation — from 11 000 ₸. Final price after upload.",
+    "priceHintElectronic": "Электрондық аударма — 1 500 ₸ бастап. Соңғы баға жүктелгеннен кейін есептеледі.",
+    "priceHintOfficial": "Орындаушы мөрімен аударма — 6 200 ₸ бастап. Жүктегеннен кейін нақты баға.",
+    "priceHintNotarized": "Notarized translation — from 15 000 ₸. Final price after upload. Алматы бойынша жеткізу — 21 000 ₸ бастап.",
     "urgency": {
       "label": "ШҰҒЫЛДЫҚ",
       "standard": "Стандарт",
