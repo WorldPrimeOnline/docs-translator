@@ -27,9 +27,9 @@
     "paymentPendingDesc": "If money was charged, do not pay again. We will update the status automatically.",
     "quoteRecalculating": "Refreshing order status...",
     "priceHint": "The exact price is calculated after document upload and analysis.",
-    "priceHintElectronic": "Electronic translation — from ₸1,000. Final price after upload.",
-    "priceHintOfficial": "Translation with provider stamp — from 5 500 ₸. Final price after upload.",
-    "priceHintNotarized": "Notarized translation — from 11 000 ₸. Final price after upload.",
+    "priceHintElectronic": "Electronic translation — from ₸1,500. Final price after upload.",
+    "priceHintOfficial": "Translation with provider stamp — from 6 200 ₸. Final price after upload.",
+    "priceHintNotarized": "Notarized translation — from 15 000 ₸. Final price after upload. Delivery in Almaty — from ₸21,000.",
     "urgency": {
       "label": "URGENCY",
       "standard": "Standard",
@@ -82,7 +82,7 @@
     "proPlan": "Extended Plan",
     "jobTitle": "Translation in progress",
     "subBannerTitle": "Pay per document",
-    "subBannerDesc": "From ₸1,000 per document — no subscription required",
+    "subBannerDesc": "From ₸1,500 per document — no subscription required",
     "usingPlanSub": "Using your {plan} plan · {remaining} doc{s} remaining — no payment required",
     "serviceLevel": {
       "label": "SERVICE LEVEL",

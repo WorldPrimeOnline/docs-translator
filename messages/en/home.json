@@ -56,7 +56,7 @@
     "speed": "Ready in 2–5 minutes",
     "speedDesc": "Most documents are translated in under 5 minutes. Traditional bureaus take days.",
     "price": "Up to 3× cheaper",
-    "priceDesc": "From ₸1,000 per document vs ₸15,000–25,000 at a translation bureau.",
+    "priceDesc": "From ₸1,500 per document vs ₸15,000–25,000 at a translation bureau.",
     "security": "Auto-deleted after 30 days",
     "securityDesc": "Your documents are stored securely and permanently deleted after 30 days.",
     "sectionTitle": "Built on security, accuracy, and accessibility",
@@ -138,9 +138,9 @@
     "pricingElectronic": "Electronic Translation",
     "pricingAgentStamp": "Translation with Agent Stamp",
     "pricingNotarization": "Translation with Notarization",
-    "pricingElectronicPrice": "from ₸1,000",
-    "pricingAgentStampPrice": "from ₸5,500",
-    "pricingNotarizationPrice": "from ₸11,000",
+    "pricingElectronicPrice": "from ₸1,500",
+    "pricingAgentStampPrice": "from ₸6,200",
+    "pricingNotarizationPrice": "from ₸15,000",
     "pricingFeaturePassportDoc": "Passport, ID card, driver's license",
     "pricingFeatureAiDraft": "AI/OCR draft and automated formatting",
     "pricingFeatureClaudeTranslation": "AI/OCR draft and automated formatting",
@@ -201,7 +201,7 @@
     "wpoSolvesThis": "WPO solves this"
   },
   "pricing": {
-    "pricingElectronicPrice": "from ₸1,000",
-    "priceDesc": "From ₸1,000 per document vs ₸15,000–25,000 at a translation bureau."
+    "pricingElectronicPrice": "from ₸1,500",
+    "priceDesc": "From ₸1,500 per document vs ₸15,000–25,000 at a translation bureau."
   }
 }

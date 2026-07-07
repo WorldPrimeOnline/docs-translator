@@ -56,7 +56,7 @@
     "speed": "Электронный перевод за минуты",
     "speedDesc": "Для читаемых документов электронный перевод обычно занимает несколько минут. Официальный перевод и нотариальное заверение требуют больше времени.",
     "price": "До 3× дешевле",
-    "priceDesc": "От 1 000 ₸ за документ против 15 000–25 000 ₸ в бюро переводов.",
+    "priceDesc": "От 1 500 ₸ за документ против 15 000–25 000 ₸ в бюро переводов.",
     "security": "Автоудаление через 30 дней",
     "securityDesc": "Ваши документы хранятся надёжно и безвозвратно удаляются через 30 дней.",
     "sectionTitle": "Безопасность, точность и доступность",
@@ -138,9 +138,9 @@
     "pricingElectronic": "Электронный перевод",
     "pricingAgentStamp": "Перевод под печать агента",
     "pricingNotarization": "Перевод с нотариальным заверением",
-    "pricingElectronicPrice": "от 1 000 ₸",
-    "pricingAgentStampPrice": "от 5 500 ₸",
-    "pricingNotarizationPrice": "от 11 000 ₸",
+    "pricingElectronicPrice": "от 1 500 ₸",
+    "pricingAgentStampPrice": "от 6 200 ₸",
+    "pricingNotarizationPrice": "от 15 000 ₸",
     "pricingFeaturePassportDoc": "Паспорт, удостоверение личности, водительские права",
     "pricingFeatureAiDraft": "AI/OCR-черновик и автоматическое форматирование",
     "pricingFeatureClaudeTranslation": "Электронный перевод с использованием OCR и ИИ",
@@ -201,7 +201,7 @@
     "wpoSolvesThis": "WPO решает эту проблему"
   },
   "pricing": {
-    "pricingElectronicPrice": "от 1 000 ₸",
-    "priceDesc": "От 1 000 ₸ за документ против 15 000–25 000 ₸ в бюро переводов."
+    "pricingElectronicPrice": "от 1 500 ₸",
+    "priceDesc": "От 1 500 ₸ за документ против 15 000–25 000 ₸ в бюро переводов."
   }
 }

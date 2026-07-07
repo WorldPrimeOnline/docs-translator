@@ -7,29 +7,30 @@
     "mostPopular": "En çok tercih edilen",
     "startTranslating": "Çeviriyi başlat",
     "allPricesNote": "Tüm fiyatlar ₸ (Tenge) cinsinden · Abonelik yok · Nihai fiyat belge yüklendikten sonra hesaplanır",
-    "paygNote": "1.000 ₸'den başlayan — elektronik çeviri. 5.500 ₸'den başlayan — sağlayıcı kaşeli çeviri.",
+    "paygNote": "1.500 ₸'den başlayan — elektronik çeviri. 6.200 ₸'den başlayan — sağlayıcı kaşeli çeviri.",
     "electronic": "Elektronik çeviri",
-    "electronicPrice": "1.000 ₸'den başlayan",
+    "electronicPrice": "1.500 ₸'den başlayan",
     "electronicF1": "AI/OCR taslağı ve otomatik biçimlendirme",
     "electronicF2": "PDF/DOCX çıktısı",
     "electronicF3": "2–5 dakikada hazır",
     "electronicF4": "Çevirmen imzası ve sağlayıcı kaşesi yoktur",
     "agentStamp": "Sağlayıcı kaşeli çeviri",
-    "agentStampPrice": "5.500 ₸'den başlayan",
+    "agentStampPrice": "6.200 ₸'den başlayan",
     "agentStampF1": "İnsan çevirmen tarafından inceleme",
     "agentStampF2": "Sağlayıcı kaşesi",
     "agentStampF3": "Düzenlenmiş nihai PDF",
     "agentStampF4": "Noter onayı dahil değildir",
     "notarized": "Noter onaylı çeviri",
-    "notarizedPrice": "11.000 ₸'den başlayan",
+    "notarizedPrice": "15.000 ₸'den başlayan",
     "notarizedF1": "Sağlayıcı kaşeli çeviri",
     "notarizedF2": "Noterle yürütülen partner süreci",
     "notarizedF3": "Çevirmen imzasının noter onayı",
     "notarizedF4": "Süre belgeye, şehre ve noterin müsaitliğine bağlıdır",
+    "notarizedF5": "Almatı'da teslimat — 21.000 ₸'den başlayan",
     "tiers": {
       "electronic": {
         "title": "Elektronik çeviri",
-        "price": "1.000 ₸'den başlayan",
+        "price": "1.500 ₸'den başlayan",
         "unit": "belge başına",
         "features": [
           "AI/OCR taslağı ve otomatik biçimlendirme",
@@ -41,7 +42,7 @@
       },
       "agentStamp": {
         "title": "Sağlayıcı kaşeli çeviri",
-        "price": "5.500 ₸'den başlayan",
+        "price": "6.200 ₸'den başlayan",
         "unit": "belge başına",
         "features": [
           "İnsan tarafından inceleme",
@@ -53,13 +54,14 @@
       },
       "notarized": {
         "title": "Noter onaylı çeviri",
-        "price": "11.000 ₸'den başlayan",
+        "price": "15.000 ₸'den başlayan",
         "unit": "belge başına",
         "features": [
           "Sağlayıcı kaşeli çeviri",
           "Noterle yürütülen partner süreci",
           "Noter onayı",
-          "Süre belgeye, şehre ve noterin müsaitliğine bağlıdır"
+          "Süre belgeye, şehre ve noterin müsaitliğine bağlıdır",
+          "Almatı'da teslimat — 21.000 ₸'den başlayan"
         ],
         "cta": "Çeviriyi başlat"
       }

@@ -36,7 +36,7 @@
     "proPlan": "Erweiterter Tarif",
     "jobTitle": "Übersetzung wird durchgeführt",
     "subBannerTitle": "Zahlung pro Dokument",
-    "subBannerDesc": "ab 1.000 ₸ pro Dokument — ohne Abonnement",
+    "subBannerDesc": "ab 1.500 ₸ pro Dokument — ohne Abonnement",
     "usingPlanSub": "Tarif {plan} · noch {remaining} Dokumente verfügbar — keine Zahlung erforderlich",
     "status": {
       "paymentPending": "Wartet auf Zahlung",
@@ -210,9 +210,9 @@
     "paymentPendingDesc": "Wenn der Betrag bereits abgebucht wurde, zahlen Sie bitte nicht erneut. Wir aktualisieren den Status automatisch.",
     "quoteRecalculating": "Auftragsstatus wird aktualisiert...",
     "priceHint": "Der genaue Preis wird nach dem Hochladen und der Analyse des Dokuments berechnet.",
-    "priceHintElectronic": "Elektronische Übersetzung — ab 1.000 ₸. Endpreis nach dem Hochladen.",
-    "priceHintOfficial": "Übersetzung mit Anbieterstempel — ab 5.500 ₸. Endpreis nach dem Hochladen.",
-    "priceHintNotarized": "Notarielle Übersetzung — ab 11.000 ₸. Endpreis nach dem Hochladen.",
+    "priceHintElectronic": "Elektronische Übersetzung — ab 1.500 ₸. Endpreis nach dem Hochladen.",
+    "priceHintOfficial": "Übersetzung mit Anbieterstempel — ab 6.200 ₸. Endpreis nach dem Hochladen.",
+    "priceHintNotarized": "Notarielle Übersetzung — ab 15.000 ₸. Endpreis nach dem Hochladen. Lieferung in Almaty — ab 21.000 ₸.",
     "urgency": {
       "label": "DRINGLICHKEIT",
       "standard": "Standard",

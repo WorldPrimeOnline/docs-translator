@@ -56,7 +56,7 @@
     "speed": "Elektronische Übersetzung in Minuten",
     "speedDesc": "Bei lesbaren Dokumenten ist die elektronische Übersetzung üblicherweise in wenigen Minuten fertig. Offizielle Übersetzung und notarielle Beglaubigung erfordern mehr Zeit.",
     "price": "Bis zu 3× günstiger",
-    "priceDesc": "Ab 1.000 ₸ pro Dokument gegenüber 15.000–25.000 ₸ bei einem Übersetzungsbüro.",
+    "priceDesc": "Ab 1.500 ₸ pro Dokument gegenüber 15.000–25.000 ₸ bei einem Übersetzungsbüro.",
     "security": "Automatische Löschung nach 30 Tagen",
     "securityDesc": "Ihre Dokumente werden sicher gespeichert und nach 30 Tagen unwiderruflich gelöscht.",
     "sectionTitle": "Sicherheit, Genauigkeit und Zugänglichkeit",
@@ -138,9 +138,9 @@
     "pricingElectronic": "Elektronische Übersetzung",
     "pricingAgentStamp": "Übersetzung mit Agenturstempel",
     "pricingNotarization": "Übersetzung mit notarieller Beglaubigung",
-    "pricingElectronicPrice": "ab 1.000 ₸",
-    "pricingAgentStampPrice": "ab 5.500 ₸",
-    "pricingNotarizationPrice": "ab 11.000 ₸",
+    "pricingElectronicPrice": "ab 1.500 ₸",
+    "pricingAgentStampPrice": "ab 6.200 ₸",
+    "pricingNotarizationPrice": "ab 15.000 ₸",
     "pricingFeaturePassportDoc": "Reisepass, Personalausweis, Führerschein",
     "pricingFeatureAiDraft": "AI/OCR-Entwurf und automatische Formatierung",
     "pricingFeatureClaudeTranslation": "Elektronische Übersetzung mit OCR und KI",
@@ -201,7 +201,7 @@
     "wpoSolvesThis": "WPO löst dieses Problem"
   },
   "pricing": {
-    "pricingElectronicPrice": "ab 1.000 ₸",
-    "priceDesc": "Ab 1.000 ₸ pro Dokument gegenüber 15.000–25.000 ₸ bei einem Übersetzungsbüro."
+    "pricingElectronicPrice": "ab 1.500 ₸",
+    "priceDesc": "Ab 1.500 ₸ pro Dokument gegenüber 15.000–25.000 ₸ bei einem Übersetzungsbüro."
   }
 }

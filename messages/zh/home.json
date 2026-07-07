@@ -56,7 +56,7 @@
     "speed": "2–5 分钟内完成",
     "speedDesc": "大多数文件翻译不超过 5 分钟。传统翻译机构需要数天。",
     "price": "最高节省 3 倍费用",
-    "priceDesc": "每份文件低至 1,000 ₸，而翻译机构收费 15,000–25,000 ₸。",
+    "priceDesc": "每份文件低至 1,500 ₸，而翻译机构收费 15,000–25,000 ₸。",
     "security": "30 天后自动删除",
     "securityDesc": "您的文件安全存储，30 天后永久删除。",
     "sectionTitle": "安全、准确、无障碍",
@@ -151,9 +151,9 @@
     "pricingElectronic": "电子翻译",
     "pricingAgentStamp": "加盖代理机构印章的翻译",
     "pricingNotarization": "公证翻译",
-    "pricingElectronicPrice": "1,000 ₸ 起",
-    "pricingAgentStampPrice": "5,500 ₸ 起",
-    "pricingNotarizationPrice": "11,000 ₸ 起",
+    "pricingElectronicPrice": "1,500 ₸ 起",
+    "pricingAgentStampPrice": "6,200 ₸ 起",
+    "pricingNotarizationPrice": "15,000 ₸ 起",
     "pricingFeatureHumanReview": "人工译者审核",
     "pricingFeatureProviderStamp": "含代理机构印章",
     "pricingFeatureNotaryPartner": "公证合作方流程"
@@ -201,7 +201,7 @@
     "wpoSolvesThis": "WPO 解决这个问题"
   },
   "pricing": {
-    "pricingElectronicPrice": "1,000 ₸ 起",
-    "priceDesc": "每份文件低至 1,000 ₸，而翻译机构收费 15,000–25,000 ₸。"
+    "pricingElectronicPrice": "1,500 ₸ 起",
+    "priceDesc": "每份文件低至 1,500 ₸，而翻译机构收费 15,000–25,000 ₸。"
   }
 }
