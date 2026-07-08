@@ -37,6 +37,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       requiresOperatorReview: snapshot.result.requiresOperatorReview,
       reviewReasons: snapshot.result.requiresOperatorReview ? snapshot.result.reviewReasons : undefined,
       computedAt: snapshot.computedAt,
+      priceBeforeDiscountKzt: snapshot.priceBeforeDiscountKzt,
+      discountAppliedKzt: snapshot.discountAppliedKzt,
+      discountCode: snapshot.discountCode,
     });
   } catch (err) {
     console.error('[order-drafts] calculate failed:', err);

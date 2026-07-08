@@ -12,6 +12,12 @@ export interface DraftFileKey {
 export interface DraftPricingSnapshot {
   result: PricingResult;
   computedAt: string;
+  /** Pre-discount amount in KZT. Present only when a partner discount was applied. */
+  priceBeforeDiscountKzt?: number;
+  /** KZT discount subtracted from priceBeforeDiscountKzt. Present only when > 0. */
+  discountAppliedKzt?: number;
+  /** Normalized (uppercased) partner referral code the discount was validated against. */
+  discountCode?: string | null;
 }
 
 /** Raw `order_drafts` row shape — snake_case, matches the DB column names exactly. */

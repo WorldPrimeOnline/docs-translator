@@ -283,6 +283,7 @@
     "calculating": "Wird berechnet...",
     "priceReadyTitle": "Ihr Preis ist bereit",
     "priceReadyDesc": "Voraussichtliche Lieferzeit: {eta}",
+    "discountApplied": "Partnerrabatt: −{amount} ₸ (Code {code})",
     "editDetails": "Angaben bearbeiten",
     "continueToPayment": "Weiter zur Zahlung",
     "requiresOperatorReviewNotice": "Diese Bestellung erfordert vor der Zahlung eine kurze manuelle Prüfung. Wir bestätigen den Endpreis in Kürze.",

@@ -283,6 +283,7 @@
     "calculating": "Hisoblanmoqda...",
     "priceReadyTitle": "Narx tayyor",
     "priceReadyDesc": "Taxminiy muddat: {eta}",
+    "discountApplied": "Sherik chegirmasi: −{amount} ₸ (kod {code})",
     "editDetails": "Parametrlarni o'zgartirish",
     "continueToPayment": "To'lovga o'tish",
     "requiresOperatorReviewNotice": "Ushbu buyurtma to'lovdan oldin operator tomonidan qisqacha tekshiruvdan o'tishi kerak. Yakuniy narxni tez orada tasdiqlaymiz.",

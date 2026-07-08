@@ -283,6 +283,7 @@
     "calculating": "Расчёт...",
     "priceReadyTitle": "Стоимость рассчитана",
     "priceReadyDesc": "Ориентировочный срок: {eta}",
+    "discountApplied": "Скидка партнёра: −{amount} ₸ (код {code})",
     "editDetails": "Изменить параметры",
     "continueToPayment": "Перейти к оплате",
     "requiresOperatorReviewNotice": "Этот заказ требует короткой проверки оператором перед оплатой. Мы уточним итоговую цену в ближайшее время.",

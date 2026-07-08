@@ -283,6 +283,7 @@
     "calculating": "กำลังคำนวณ...",
     "priceReadyTitle": "ราคาของคุณพร้อมแล้ว",
     "priceReadyDesc": "ระยะเวลาโดยประมาณ: {eta}",
+    "discountApplied": "ส่วนลดพาร์ทเนอร์: −{amount} ₸ (รหัส {code})",
     "editDetails": "แก้ไขรายละเอียด",
     "continueToPayment": "ดำเนินการชำระเงิน",
     "requiresOperatorReviewNotice": "คำสั่งซื้อนี้ต้องได้รับการตรวจสอบโดยเจ้าหน้าที่ก่อนชำระเงิน เราจะยืนยันราคาสุดท้ายในไม่ช้า",

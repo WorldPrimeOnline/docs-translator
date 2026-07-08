@@ -10,6 +10,7 @@ import { downloadFile, uploadFile } from '@/lib/r2/client';
 import { computeQuoteForJob, saveQuote } from '@/lib/pricing/service';
 import { deriveBackcompatBooleans } from '@/lib/translation-workflow/output-plan';
 import { attachReferralToOrder } from '@/lib/referral/server';
+import { calculatePartnerDiscount } from '@/lib/partners/discount';
 import type { PricingInput, PricingResult } from '@/lib/pricing/types';
 import type { ServiceLevel } from '@/lib/translation-prompts/types';
 import type { DraftFileKey, DraftPricingSnapshot, OrderDraftInput, OrderDraftRow } from './types';
@@ -188,9 +189,35 @@ export async function calculateDraftPrice(
   const quoteResult = await computeQuoteForJob(buildPricingInput(draft));
   if ('error' in quoteResult) return { ok: false, error: quoteResult.error };
 
+  let { result: pricingResult } = quoteResult;
+  const basePreDiscountKzt = Math.round(pricingResult.amountKzt);
+
+  // Apply partner client discount server-side (re-validate; never trust client value) —
+  // mirrors src/app/api/documents/upload-card/route.ts exactly.
+  let discountKzt = 0;
+  const refCodeForDiscount = draft.ref_code?.trim().toUpperCase() || null;
+  if (refCodeForDiscount) {
+    const { data: discountPartner } = await supabaseServer
+      .from('partners')
+      .select('client_discount_enabled, client_discount_type, client_discount_value, client_discount_min_order_amount, client_discount_max_amount, is_active')
+      .eq('referral_code', refCodeForDiscount)
+      .maybeSingle();
+
+    discountKzt = calculatePartnerDiscount(basePreDiscountKzt, discountPartner);
+  }
+
+  // Patch the snapshot amount so the saved quote (and Halyk payment amount) equals what
+  // the customer actually pays — without this, price_quotes.amount_kzt stays pre-discount.
+  if (discountKzt > 0) {
+    pricingResult = { ...pricingResult, amountKzt: basePreDiscountKzt - discountKzt };
+  }
+
   const snapshot: DraftPricingSnapshot = {
-    result: quoteResult.result,
+    result: pricingResult,
     computedAt: new Date().toISOString(),
+    priceBeforeDiscountKzt: discountKzt > 0 ? basePreDiscountKzt : undefined,
+    discountAppliedKzt: discountKzt > 0 ? discountKzt : undefined,
+    discountCode: discountKzt > 0 ? refCodeForDiscount : undefined,
   };
 
   const { data, error } = await db
@@ -292,8 +319,14 @@ export async function convertDraftToOrder(draftId: string, userId: string): Prom
   const draft = claimed as OrderDraftRow;
 
   try {
-    const pricingResult: PricingResult = draft.pricing_snapshot!.result;
+    const snapshot = draft.pricing_snapshot!;
+    const pricingResult: PricingResult = snapshot.result;
     const finalPriceKzt = Math.round(pricingResult.amountKzt);
+    // Discount fields were computed and validated once, at calculateDraftPrice time —
+    // re-derive them from the stored snapshot rather than re-querying the partner here.
+    const basePreDiscountKzt = snapshot.priceBeforeDiscountKzt ?? finalPriceKzt;
+    const discountAppliedKzt = snapshot.discountAppliedKzt ?? 0;
+    const discountCode = snapshot.discountCode ?? null;
     const { notarized } = deriveBackcompatBooleans((draft.service_level ?? 'electronic') as ServiceLevel);
 
     const sourceFileKey = draft.file_keys[0]!;
@@ -343,6 +376,9 @@ export async function convertDraftToOrder(draftId: string, userId: string): Prom
         delivery_phone: draft.delivery_phone,
         delivery_address: draft.delivery_address,
         price_kzt: finalPriceKzt,
+        price_before_discount_kzt: discountAppliedKzt > 0 ? basePreDiscountKzt : null,
+        discount_applied_kzt: discountAppliedKzt > 0 ? discountAppliedKzt : null,
+        discount_code: discountAppliedKzt > 0 ? discountCode : null,
         customer_comment: draft.customer_comment,
       })
       .select()
@@ -370,7 +406,7 @@ export async function convertDraftToOrder(draftId: string, userId: string): Prom
       source: 'order-draft-convert',
       action: 'job_created',
       new_status: 'payment_pending',
-      metadata: { serviceLevel: draft.service_level, priceKzt: finalPriceKzt, quoteId, draftId },
+      metadata: { serviceLevel: draft.service_level, priceKzt: finalPriceKzt, discountAppliedKzt, quoteId, draftId },
     }).then(({ error: e }: { error: { message: string } | null }) => {
       if (e) console.error('[order-drafts] audit insert failed:', e.message);
     });
@@ -385,7 +421,8 @@ export async function convertDraftToOrder(draftId: string, userId: string): Prom
         utmCampaign: draft.utm_campaign,
         utmContent: draft.utm_content,
         utmTerm: draft.utm_term,
-        orderAmountKzt: finalPriceKzt,
+        orderAmountKzt: basePreDiscountKzt,
+        clientDiscountAppliedKzt: discountAppliedKzt > 0 ? discountAppliedKzt : null,
       }).catch((err: unknown) => {
         console.error('[order-drafts] referral attach failed (non-fatal):', (err as Error).message);
       });

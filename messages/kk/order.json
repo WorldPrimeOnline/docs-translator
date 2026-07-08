@@ -283,6 +283,7 @@
     "calculating": "Есептелуде...",
     "priceReadyTitle": "Баға дайын",
     "priceReadyDesc": "Болжамды мерзім: {eta}",
+    "discountApplied": "Серіктес жеңілдігі: −{amount} ₸ (код {code})",
     "editDetails": "Параметрлерді өзгерту",
     "continueToPayment": "Төлемге өту",
     "requiresOperatorReviewNotice": "Бұл тапсырысты төлемнен бұрын оператор қысқаша тексеруі керек. Соңғы бағаны жақын арада растаймыз.",

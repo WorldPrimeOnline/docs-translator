@@ -43,9 +43,19 @@ export function OrderWizard() {
         <p className="mb-5 text-sm text-muted-foreground">{t('signInHint')}</p>
 
         <div className="mb-5 rounded-lg border border-primary/30 bg-primary/5 p-5 text-center">
+          {price.discountAppliedKzt && price.discountAppliedKzt > 0 && price.priceBeforeDiscountKzt ? (
+            <div className="mb-1 text-sm text-muted-foreground line-through">
+              {price.priceBeforeDiscountKzt.toLocaleString()} {price.currency}
+            </div>
+          ) : null}
           <div className="text-3xl font-extrabold text-foreground">
             {price.priceKzt.toLocaleString()} {price.currency}
           </div>
+          {price.discountAppliedKzt && price.discountAppliedKzt > 0 && price.discountCode ? (
+            <div className="mt-1 text-xs font-medium text-emerald-400">
+              {t('discountApplied', { amount: price.discountAppliedKzt.toLocaleString(), code: price.discountCode })}
+            </div>
+          ) : null}
         </div>
 
         {price.requiresOperatorReview && (
