@@ -106,7 +106,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
               {/* CTAs */}
               <div className="flex flex-wrap gap-3">
                 <Link
-                  href="/auth/signup"
+                  href="/start"
                   className="inline-flex items-center gap-2 rounded-lg bg-primary px-7 py-3 text-sm font-semibold text-primary-foreground transition-all duration-150 hover:bg-gold-dark hover:brightness-110 hover:scale-[1.02]"
                 >
                   <Upload className="h-4 w-4" />
@@ -469,7 +469,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
                     </li>
                   ))}
                 </ul>
-                <Link href="/auth/signup" className="inline-flex w-full items-center justify-center rounded-xl border border-white/[0.12] bg-white/[0.04] py-3 text-sm font-semibold text-foreground/80 transition-all hover:border-white/25 hover:bg-white/[0.08] hover:text-foreground">
+                <Link href="/start" className="inline-flex w-full items-center justify-center rounded-xl border border-white/[0.12] bg-white/[0.04] py-3 text-sm font-semibold text-foreground/80 transition-all hover:border-white/25 hover:bg-white/[0.08] hover:text-foreground">
                   {t('pricing.startTranslating')}
                 </Link>
               </div>
@@ -501,7 +501,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
                     </li>
                   ))}
                 </ul>
-                <Link href="/auth/signup" className="inline-flex w-full items-center justify-center rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground transition-all hover:bg-gold-dark hover:brightness-110">
+                <Link href="/start" className="inline-flex w-full items-center justify-center rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground transition-all hover:bg-gold-dark hover:brightness-110">
                   {t('pricing.startTranslating')}
                 </Link>
               </div>
@@ -527,7 +527,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
                     </li>
                   ))}
                 </ul>
-                <Link href="/auth/signup" className="inline-flex w-full items-center justify-center rounded-xl border border-white/[0.12] bg-white/[0.04] py-3 text-sm font-semibold text-foreground/80 transition-all hover:border-white/25 hover:bg-white/[0.08] hover:text-foreground">
+                <Link href="/start" className="inline-flex w-full items-center justify-center rounded-xl border border-white/[0.12] bg-white/[0.04] py-3 text-sm font-semibold text-foreground/80 transition-all hover:border-white/25 hover:bg-white/[0.08] hover:text-foreground">
                   {t('pricing.startTranslating')}
                 </Link>
               </div>
@@ -594,7 +594,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
 
           <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
             <Link
-              href="/auth/signup"
+              href="/start"
               className="inline-flex items-center gap-2 rounded-xl bg-primary px-8 py-3.5 text-sm font-bold text-primary-foreground transition-all hover:bg-gold-dark hover:brightness-110 hover:scale-[1.02]"
             >
               <Upload className="h-4 w-4" />

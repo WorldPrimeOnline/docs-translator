@@ -30,6 +30,10 @@ When editing legal content, update all 11 locale files. Never modify legal text 
 - Do not modify consent/disclaimer/refund policy wording without legal review.
 - Payment compliance wording (`src/components/payment/PaymentComplianceBlock.tsx`) switches on `BUSINESS_PROFILE.cardPaymentsActive` — do not bypass this gate.
 
+## Public pre-checkout wizard content
+
+`/[locale]/start` and `/[locale]/checkout` UI strings live under the `startWizard` top-level key inside `messages/{locale}/order.json` — reusing the existing `order` namespace already loaded by `src/i18n/request.ts` rather than adding a new namespace file. Added to all 14 locale directories (9 enabled + 5 disabled) to satisfy `npm run i18n:check`'s structural key-parity check across every locale dir, even disabled ones. Includes the required upload-consent line (`startWizard.consentText`) and avoids "guaranteed accepted"/"AI certified translation"/"automatic notarization" wording — verified by `npm run i18n:forbidden`.
+
 ## Landing page content
 
 Landing pages are config-driven via `LandingPageConfig` objects. Page-specific copy lives in `src/lib/landing-pages/{kazakhstan,documents,shared}.ts`. Do not hardcode section text in components — extend the config type instead.

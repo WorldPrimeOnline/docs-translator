@@ -270,5 +270,44 @@
       "official": "Nihai format: Çevirmen incelemesinden sonra PDF",
       "notarized": "Nihai format: Noter paketi / Ortak süreç sonrası PDF"
     }
+  },
+  "startWizard": {
+    "pageTitle": "Çeviriye başlayın",
+    "pageSubtitle": "Belgenizi yükleyin, seçeneklerinizi belirleyin ve kaydolmadan önce fiyatı görün.",
+    "step1Label": "Belge ve seçenekler",
+    "step2Label": "Fiyat",
+    "dropzoneCta": "Belge yükle",
+    "filesSelected": "{count} dosya seçildi",
+    "consentText": "Bir belge yükleyerek Hizmet Şartları'nı, Gizlilik Politikası'nı ve çeviri fiyatının hesaplanması amacıyla belgenizin işlenmesini kabul edersiniz.",
+    "calculateButton": "Fiyatı hesapla",
+    "calculating": "Hesaplanıyor...",
+    "priceReadyTitle": "Fiyatınız hazır",
+    "priceReadyDesc": "Tahmini teslim süresi: {eta}",
+    "editDetails": "Bilgileri düzenle",
+    "continueToPayment": "Ödemeye geç",
+    "requiresOperatorReviewNotice": "Bu sipariş ödemeden önce kısa bir manuel kontrol gerektiriyor. Son fiyatı kısa süre içinde onaylayacağız.",
+    "signInHint": "Ödemeden önce giriş yapmanız veya ücretsiz bir hesap oluşturmanız istenecek — belgeniz ve seçimleriniz saklanacaktır.",
+    "checkoutTitle": "Siparişi onayla",
+    "checkoutSubtitle": "Ödemeden önce siparişinizi gözden geçirin.",
+    "confirmAndPayButton": "Siparişi onayla",
+    "loadingDraft": "Siparişiniz yükleniyor...",
+    "draftNotFound": "Bu sipariş bulunamadı. Lütfen yeniden başlayın.",
+    "termsCheckboxLabel": "Hizmet Şartları'nı ve Gizlilik Politikası'nı kabul ediyorum",
+    "backToStart": "Yeni sipariş başlat",
+    "errors": {
+      "missingFields": "Lütfen kaynak dili, hedef dili ve hizmet düzeyini seçin.",
+      "languagePairMustDiffer": "Kaynak ve hedef diller farklı olmalıdır.",
+      "noFile": "Lütfen önce bir belge yükleyin.",
+      "unsupportedFileType": "Desteklenmeyen dosya türü: {files}",
+      "invalidFileSignature": "\"{file}\" dosyası belirtilen türle eşleşmiyor.",
+      "totalSizeExceeded": "Toplam dosya boyutu çok büyük. Kayıttan önceki yükleme sınırı 20 MB'dir.",
+      "rateLimitedHourly": "Çok fazla fiyat hesaplaması yapıldı. Lütfen bir saat sonra tekrar deneyin.",
+      "rateLimitedDaily": "Günlük fiyat hesaplama sınırına ulaştınız. Lütfen yarın tekrar deneyin.",
+      "uploadFailed": "Dosya yüklenemedi. Lütfen tekrar deneyin.",
+      "calculationFailed": "Fiyat hesaplanamadı. Lütfen tekrar deneyin.",
+      "genericError": "Bir şeyler ters gitti. Lütfen tekrar deneyin.",
+      "sessionMissing": "Oturumunuz doğrulanamadı. Lütfen sayfayı yeniden yükleyip tekrar deneyin."
+    },
+    "dropzoneHint": "PDF, DOCX, JPG, PNG · toplamda 20 MB'a kadar"
   }
 }

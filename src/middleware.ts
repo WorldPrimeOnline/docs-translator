@@ -165,6 +165,17 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     return NextResponse.redirect(url);
   }
 
+  // Checkout requires auth — unlike /dashboard, we preserve `?draftId=` via `next` so
+  // the pre-checkout wizard draft is not lost across the login detour.
+  if (!user && cleanPath.startsWith('/checkout')) {
+    const originalPathWithQuery = pathname + request.nextUrl.search;
+    const url = request.nextUrl.clone();
+    url.pathname = `${prefix}/auth/login`;
+    url.search = '';
+    url.searchParams.set('next', originalPathWithQuery);
+    return NextResponse.redirect(url);
+  }
+
   if (user && (cleanPath === '/auth/login' || cleanPath === '/auth/signup')) {
     const url = request.nextUrl.clone();
     url.pathname = `${prefix}/dashboard`;

@@ -270,5 +270,44 @@
       "official": "最终格式：译员审核后的 PDF",
       "notarized": "最终格式：公证文件包 / 合作伙伴流程后的 PDF"
     }
+  },
+  "startWizard": {
+    "pageTitle": "开始翻译",
+    "pageSubtitle": "上传文件、选择选项,在注册前即可查看价格。",
+    "step1Label": "文件与选项",
+    "step2Label": "价格",
+    "dropzoneCta": "上传文件",
+    "filesSelected": "已选择 {count} 个文件",
+    "consentText": "上传文件即表示您同意服务条款、隐私政策,并同意为计算翻译价格而处理您的文件。",
+    "calculateButton": "计算价格",
+    "calculating": "计算中...",
+    "priceReadyTitle": "价格已计算",
+    "priceReadyDesc": "预计交付时间:{eta}",
+    "editDetails": "修改选项",
+    "continueToPayment": "前往付款",
+    "requiresOperatorReviewNotice": "此订单在付款前需要人工快速核实,我们会尽快确认最终价格。",
+    "signInHint": "付款前需要登录或创建免费账户 — 您的文件和选项将会保留。",
+    "checkoutTitle": "确认订单",
+    "checkoutSubtitle": "付款前请核对订单信息。",
+    "confirmAndPayButton": "确认订单",
+    "loadingDraft": "正在加载您的订单...",
+    "draftNotFound": "未找到该订单,请重新开始。",
+    "termsCheckboxLabel": "我接受服务条款和隐私政策",
+    "backToStart": "开始新订单",
+    "errors": {
+      "missingFields": "请选择源语言、目标语言和服务级别。",
+      "languagePairMustDiffer": "源语言和目标语言必须不同。",
+      "noFile": "请先上传文件。",
+      "unsupportedFileType": "不支持的文件类型:{files}",
+      "invalidFileSignature": "文件“{file}”与其文件类型不符。",
+      "totalSizeExceeded": "文件总大小过大。注册前上传的限制为 20 MB。",
+      "rateLimitedHourly": "价格计算次数过多,请一小时后重试。",
+      "rateLimitedDaily": "您已达到今日价格计算次数上限,请明天再试。",
+      "uploadFailed": "文件上传失败,请重试。",
+      "calculationFailed": "无法计算价格,请重试。",
+      "genericError": "出现问题,请重试。",
+      "sessionMissing": "无法验证您的会话,请重新加载页面并重试。"
+    },
+    "dropzoneHint": "PDF、DOCX、JPG、PNG · 总计最多 20 MB"
   }
 }

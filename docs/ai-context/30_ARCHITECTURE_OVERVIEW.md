@@ -117,6 +117,18 @@ Sent via Resend. Web app: `src/lib/email/resend.ts` + `src/lib/email/templates.t
 
 **Upload route**: additional per-user limit of 10 uploads/hour enforced in the handler.
 
+**Anonymous draft price-calculation** (`src/lib/order-drafts/rate-limit.ts`): durable DB-backed limit (`anonymous_rate_limit_events` table) at 5/hour and 20/day, keyed by session cookie OR IP — separate from the in-memory middleware limiter above, since it must survive serverless cold starts and support day-scoped windows.
+
+## Public pre-checkout order wizard
+
+Public route `[locale]/start` (`src/app/[locale]/start/page.tsx` → `src/components/order/OrderWizard.tsx`) lets an anonymous visitor upload a document, choose options, and see a real KZT price computed via the existing pricing engine (`computeQuoteForJob()`) — before any login is required. State lives in a new `order_drafts` table (`src/lib/order-drafts/service.ts`), keyed by an httpOnly session cookie (`src/lib/order-drafts/session.ts`) pre-login, or by `user_id` once attached.
+
+Uploaded files land in a temporary `draft-uploads/{draftId}/` R2 prefix — never the permanent `documents/` prefix — until the draft converts. `POST /api/order-drafts/[draftId]/upload` enforces a 20 MB anonymous total-size cap (vs. 50 MB authenticated) plus a magic-byte check (`src/lib/file-validation/signature.ts`) on top of the existing MIME/extension check.
+
+Payment requires auth: `[locale]/checkout?draftId=...` (`src/components/order/CheckoutClient.tsx`) is auth-gated in `src/middleware.ts` the same way `/dashboard` is, but additionally preserves `?draftId=` across the login detour via a `next` redirect param (`auth/login`, `auth/signup`, and `GoogleAuthButton` all now read/forward `?next=`; the `/auth/callback` route already supported it). At checkout, `convertDraftToOrder()` materializes the draft into a real `documents`/`jobs` (`status='payment_pending'`)/`price_quotes` row using the exact insert sequence `upload-card/route.ts` already uses, then renders the existing, unmodified `HalykPayButton`. Full payment-flow detail and why Halyk code stays untouched: `docs/ai-context/50_PAYMENTS_FINANCE_FISCALIZATION.md`.
+
+The homepage CTA (`src/app/[locale]/page.tsx`) now links to `/start` instead of `/auth/signup`. Expired, unconverted drafts are swept by the existing daily `/api/cron/cleanup` route — no new Vercel cron was added (Hobby plan allows only one).
+
 ## Supabase client split
 
 - `src/lib/supabase/client.ts` — browser client (anon key)

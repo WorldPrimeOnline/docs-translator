@@ -78,5 +78,47 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 
   console.log(`[cleanup] deleted ${deleted}/${docs.length} documents`);
-  return NextResponse.json({ deleted, errors: errors.length > 0 ? errors : undefined });
+
+  const draftsDeleted = await cleanupExpiredOrderDrafts();
+
+  return NextResponse.json({ deleted, errors: errors.length > 0 ? errors : undefined, draftsDeleted });
+}
+
+/**
+ * Expired, never-converted pre-checkout drafts (see supabase/migrations/0044_order_drafts.sql)
+ * have no dedicated worker — piggybacking on this existing daily cron avoids adding a second
+ * Vercel cron entry (Hobby plan only allows one; see docs/ai-context/50_PAYMENTS_FINANCE_FISCALIZATION.md).
+ */
+async function cleanupExpiredOrderDrafts(): Promise<number> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = supabaseServer as any;
+  const nowIso = new Date().toISOString();
+
+  const { data: drafts, error } = await db
+    .from('order_drafts')
+    .select('id, file_keys')
+    .neq('status', 'converted')
+    .lt('expires_at', nowIso)
+    .limit(100);
+
+  if (error) {
+    console.error('[cleanup] failed to fetch expired order_drafts:', error.message);
+    return 0;
+  }
+  if (!drafts || drafts.length === 0) return 0;
+
+  let deleted = 0;
+  for (const draft of drafts as Array<{ id: string; file_keys: Array<{ key: string }> }>) {
+    for (const file of draft.file_keys ?? []) {
+      await deleteFile(file.key).catch((e: unknown) => {
+        console.error('[cleanup] R2 delete draft file failed:', file.key, e);
+      });
+    }
+    const { error: delError } = await db.from('order_drafts').delete().eq('id', draft.id);
+    if (delError) console.error('[cleanup] order_drafts delete failed:', draft.id, delError.message);
+    else deleted++;
+  }
+
+  console.log(`[cleanup] deleted ${deleted}/${drafts.length} expired order_drafts`);
+  return deleted;
 }

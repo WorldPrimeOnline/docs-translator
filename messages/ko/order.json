@@ -270,5 +270,44 @@
       "official": "최종 형식: 번역가 검토 후 PDF",
       "notarized": "최종 형식: 공증 패키지 / 파트너 절차 후 PDF"
     }
+  },
+  "startWizard": {
+    "pageTitle": "Start your translation",
+    "pageSubtitle": "Upload your document, choose your options, and see the price before you sign up.",
+    "step1Label": "Document & options",
+    "step2Label": "Price",
+    "dropzoneCta": "Upload document",
+    "filesSelected": "{count} file(s) selected",
+    "consentText": "By uploading a document, you agree to the Terms of Service, Privacy Policy, and processing of your document for the purpose of calculating a translation price.",
+    "calculateButton": "Calculate price",
+    "calculating": "Calculating...",
+    "priceReadyTitle": "Your price is ready",
+    "priceReadyDesc": "Estimated delivery: {eta}",
+    "editDetails": "Edit details",
+    "continueToPayment": "Continue to payment",
+    "requiresOperatorReviewNotice": "This order needs a quick manual check before payment. Our team will confirm the final price shortly.",
+    "signInHint": "You'll be asked to sign in or create a free account before payment — your document and selections will be kept.",
+    "checkoutTitle": "Confirm your order",
+    "checkoutSubtitle": "Review your order before payment.",
+    "confirmAndPayButton": "Confirm order",
+    "loadingDraft": "Loading your order...",
+    "draftNotFound": "We couldn't find this order. Please start again.",
+    "termsCheckboxLabel": "I accept the Terms of Service and Privacy Policy",
+    "backToStart": "Start a new order",
+    "errors": {
+      "missingFields": "Please select source language, target language, and service level.",
+      "languagePairMustDiffer": "Source and target languages must be different.",
+      "noFile": "Please upload a document first.",
+      "unsupportedFileType": "Unsupported file type: {files}",
+      "invalidFileSignature": "The file \"{file}\" does not match its file type.",
+      "totalSizeExceeded": "Total file size is too large. The limit for uploads before sign-up is 20 MB.",
+      "rateLimitedHourly": "Too many price calculations. Please try again in an hour.",
+      "rateLimitedDaily": "You've reached today's limit for price calculations. Please try again tomorrow.",
+      "uploadFailed": "File upload failed. Please try again.",
+      "calculationFailed": "Could not calculate a price. Please try again.",
+      "genericError": "Something went wrong. Please try again.",
+      "sessionMissing": "Your session could not be verified. Please reload the page and try again."
+    },
+    "dropzoneHint": "PDF, DOCX, JPG, PNG · up to 20 MB total"
   }
 }

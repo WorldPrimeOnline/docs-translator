@@ -1,0 +1,412 @@
+/**
+ * Public pre-checkout draft service.
+ * Server-side only. A draft is never queued for the worker — conversion into a real
+ * documents/jobs/price_quotes row happens at checkout time (post-login, pre-payment),
+ * mirroring exactly what src/app/api/documents/upload-card/route.ts already does for
+ * logged-in dashboard users. See docs/ai-context/50_PAYMENTS_FINANCE_FISCALIZATION.md.
+ */
+import { supabaseServer } from '@/lib/supabase/server';
+import { downloadFile, uploadFile } from '@/lib/r2/client';
+import { computeQuoteForJob, saveQuote } from '@/lib/pricing/service';
+import { deriveBackcompatBooleans } from '@/lib/translation-workflow/output-plan';
+import { attachReferralToOrder } from '@/lib/referral/server';
+import type { PricingInput, PricingResult } from '@/lib/pricing/types';
+import type { ServiceLevel } from '@/lib/translation-prompts/types';
+import type { DraftFileKey, DraftPricingSnapshot, OrderDraftInput, OrderDraftRow } from './types';
+
+// order_drafts / anonymous_rate_limit_events are not in the generated Supabase types —
+// same `as any` escape hatch already used in src/lib/pricing/service.ts for price_quotes.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabaseServer as any;
+
+export interface DraftOwner {
+  sessionToken?: string | null;
+  userId?: string | null;
+}
+
+export type DraftResult<T> = { ok: true; value: T } | { ok: false; error: string };
+
+function isOwner(draft: OrderDraftRow, owner: DraftOwner): boolean {
+  if (draft.user_id) return draft.user_id === owner.userId;
+  return !!owner.sessionToken && draft.anonymous_session_id === owner.sessionToken;
+}
+
+export async function getDraftRow(draftId: string): Promise<OrderDraftRow | null> {
+  const { data, error } = await db.from('order_drafts').select('*').eq('id', draftId).maybeSingle();
+  if (error || !data) return null;
+  return data as OrderDraftRow;
+}
+
+export async function createDraft(
+  input: OrderDraftInput,
+  sessionToken: string,
+  ipAddress: string | null,
+): Promise<OrderDraftRow> {
+  const { data, error } = await db
+    .from('order_drafts')
+    .insert({
+      anonymous_session_id: sessionToken,
+      source_language: input.sourceLanguage ?? null,
+      target_language: input.targetLanguage ?? null,
+      document_type: input.documentType ?? null,
+      output_format: input.outputFormat ?? null,
+      service_level: input.serviceLevel ?? 'electronic',
+      applicant_type: input.applicantType ?? 'individual',
+      notary_urgency_level: input.notaryUrgencyLevel ?? 'standard',
+      notary_city: input.notaryCity ?? null,
+      fulfillment_method: input.fulfillmentMethod ?? null,
+      delivery_phone: input.deliveryPhone ?? null,
+      delivery_address: input.deliveryAddress ?? null,
+      delivery_zone: input.deliveryZone ?? null,
+      customer_comment: input.customerComment ?? null,
+      ref_code: input.refCode ?? null,
+      utm_source: input.utmSource ?? null,
+      utm_medium: input.utmMedium ?? null,
+      utm_campaign: input.utmCampaign ?? null,
+      utm_content: input.utmContent ?? null,
+      utm_term: input.utmTerm ?? null,
+      ip_address: ipAddress,
+    })
+    .select('*')
+    .single();
+
+  if (error || !data) throw new Error(error?.message ?? 'draft_insert_failed');
+  return data as OrderDraftRow;
+}
+
+const FIELD_MAP: Record<keyof OrderDraftInput, string> = {
+  sourceLanguage: 'source_language',
+  targetLanguage: 'target_language',
+  documentType: 'document_type',
+  outputFormat: 'output_format',
+  serviceLevel: 'service_level',
+  applicantType: 'applicant_type',
+  notaryUrgencyLevel: 'notary_urgency_level',
+  notaryCity: 'notary_city',
+  fulfillmentMethod: 'fulfillment_method',
+  deliveryPhone: 'delivery_phone',
+  deliveryAddress: 'delivery_address',
+  deliveryZone: 'delivery_zone',
+  customerComment: 'customer_comment',
+  refCode: 'ref_code',
+  utmSource: 'utm_source',
+  utmMedium: 'utm_medium',
+  utmCampaign: 'utm_campaign',
+  utmContent: 'utm_content',
+  utmTerm: 'utm_term',
+};
+
+export async function updateDraftFields(
+  draftId: string,
+  patch: OrderDraftInput,
+  owner: DraftOwner,
+): Promise<DraftResult<OrderDraftRow>> {
+  const draft = await getDraftRow(draftId);
+  if (!draft) return { ok: false, error: 'DRAFT_NOT_FOUND' };
+  if (!isOwner(draft, owner)) return { ok: false, error: 'FORBIDDEN' };
+  if (draft.status === 'converted') return { ok: false, error: 'DRAFT_ALREADY_CONVERTED' };
+
+  const patchDb: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  for (const [key, column] of Object.entries(FIELD_MAP) as [keyof OrderDraftInput, string][]) {
+    if (patch[key] !== undefined) patchDb[column] = patch[key];
+  }
+
+  // Editing any field after a price was already shown invalidates that snapshot.
+  if (draft.status === 'price_calculated') {
+    patchDb.status = 'draft_created';
+    patchDb.pricing_snapshot = null;
+  }
+
+  const { data, error } = await db.from('order_drafts').update(patchDb).eq('id', draftId).select('*').single();
+  if (error || !data) return { ok: false, error: error?.message ?? 'update_failed' };
+  return { ok: true, value: data as OrderDraftRow };
+}
+
+export async function setDraftFile(
+  draftId: string,
+  fileKey: DraftFileKey,
+  owner: DraftOwner,
+): Promise<DraftResult<OrderDraftRow>> {
+  const draft = await getDraftRow(draftId);
+  if (!draft) return { ok: false, error: 'DRAFT_NOT_FOUND' };
+  if (!isOwner(draft, owner)) return { ok: false, error: 'FORBIDDEN' };
+  if (draft.status === 'converted') return { ok: false, error: 'DRAFT_ALREADY_CONVERTED' };
+
+  const { data, error } = await db
+    .from('order_drafts')
+    .update({ file_keys: [fileKey], updated_at: new Date().toISOString() })
+    .eq('id', draftId)
+    .select('*')
+    .single();
+
+  if (error || !data) return { ok: false, error: error?.message ?? 'update_failed' };
+  return { ok: true, value: data as OrderDraftRow };
+}
+
+function buildPricingInput(
+  draft: OrderDraftRow,
+  extra?: { documentId?: string; jobId?: string; userId?: string },
+): PricingInput {
+  return {
+    documentId: extra?.documentId,
+    jobId: extra?.jobId,
+    userId: extra?.userId ?? draft.user_id ?? undefined,
+    sourceLanguage: draft.source_language!,
+    targetLanguage: draft.target_language!,
+    serviceLevel: (draft.service_level ?? 'electronic') as ServiceLevel,
+    documentType: draft.document_type ?? undefined,
+    physicalPageCount: 1, // conservative default — matches upload-card; no OCR before payment
+    urgencyLevel: 'standard',
+    scanQuality: 'normal',
+    layoutComplexity: 'standard',
+    visualMarksComplexity: 'normal',
+    extraPaperCopies: 0,
+    applicantType: (draft.applicant_type as PricingInput['applicantType']) ?? 'individual',
+    notaryUrgencyLevel: (draft.notary_urgency_level as PricingInput['notaryUrgencyLevel']) ?? 'standard',
+    deliveryZone: draft.delivery_zone as PricingInput['deliveryZone'],
+    fulfillmentMethod: draft.fulfillment_method as PricingInput['fulfillmentMethod'],
+    deliveryRequired: draft.fulfillment_method === 'delivery',
+    salesChannel: 'direct',
+  };
+}
+
+export async function calculateDraftPrice(
+  draftId: string,
+  owner: DraftOwner,
+): Promise<DraftResult<{ draft: OrderDraftRow; snapshot: DraftPricingSnapshot }>> {
+  const draft = await getDraftRow(draftId);
+  if (!draft) return { ok: false, error: 'DRAFT_NOT_FOUND' };
+  if (!isOwner(draft, owner)) return { ok: false, error: 'FORBIDDEN' };
+  if (draft.status === 'converted') return { ok: false, error: 'DRAFT_ALREADY_CONVERTED' };
+  if (!draft.source_language || !draft.target_language || !draft.service_level) {
+    return { ok: false, error: 'MISSING_FIELDS' };
+  }
+  if (draft.source_language === draft.target_language) {
+    return { ok: false, error: 'LANGUAGE_PAIR_MUST_DIFFER' };
+  }
+
+  const quoteResult = await computeQuoteForJob(buildPricingInput(draft));
+  if ('error' in quoteResult) return { ok: false, error: quoteResult.error };
+
+  const snapshot: DraftPricingSnapshot = {
+    result: quoteResult.result,
+    computedAt: new Date().toISOString(),
+  };
+
+  const { data, error } = await db
+    .from('order_drafts')
+    .update({ pricing_snapshot: snapshot, status: 'price_calculated', updated_at: new Date().toISOString() })
+    .eq('id', draftId)
+    .select('*')
+    .single();
+
+  if (error || !data) return { ok: false, error: error?.message ?? 'update_failed' };
+  return { ok: true, value: { draft: data as OrderDraftRow, snapshot } };
+}
+
+export async function attachDraftToUser(
+  draftId: string,
+  userId: string,
+  sessionToken: string | null,
+): Promise<DraftResult<OrderDraftRow>> {
+  const draft = await getDraftRow(draftId);
+  if (!draft) return { ok: false, error: 'DRAFT_NOT_FOUND' };
+  if (draft.user_id === userId) return { ok: true, value: draft };
+  if (draft.user_id && draft.user_id !== userId) return { ok: false, error: 'DRAFT_OWNED_BY_ANOTHER_USER' };
+  if (!sessionToken || draft.anonymous_session_id !== sessionToken) return { ok: false, error: 'SESSION_MISMATCH' };
+
+  const { data, error } = await db
+    .from('order_drafts')
+    .update({ user_id: userId, updated_at: new Date().toISOString() })
+    .eq('id', draftId)
+    .select('*')
+    .single();
+
+  if (error || !data) return { ok: false, error: error?.message ?? 'update_failed' };
+  return { ok: true, value: data as OrderDraftRow };
+}
+
+export interface ConvertedOrder {
+  jobId: string;
+  documentId: string;
+  quoteId: string | null;
+  priceKzt: number;
+}
+
+/**
+ * Convert a draft into a real order — document + job (status='payment_pending') +
+ * price_quotes/price_quote_items/cost_reservations — using the SAME sequence
+ * upload-card/route.ts already uses. Does NOT call processJob() and does NOT touch
+ * Jira/Drive: those stay worker-only, gated on jobs.status='queued' + a paid
+ * payment_transactions row, exactly as today.
+ *
+ * Idempotent: an atomic claim (UPDATE ... WHERE status='price_calculated') prevents a
+ * double-click from creating two orders; a second call after conversion returns the
+ * already-created ids instead of erroring.
+ */
+export async function convertDraftToOrder(draftId: string, userId: string): Promise<DraftResult<ConvertedOrder>> {
+  const existing = await getDraftRow(draftId);
+  if (!existing) return { ok: false, error: 'DRAFT_NOT_FOUND' };
+  if (existing.user_id !== userId) return { ok: false, error: 'FORBIDDEN' };
+
+  if (existing.status === 'converted' && existing.converted_job_id && existing.converted_document_id) {
+    return {
+      ok: true,
+      value: {
+        jobId: existing.converted_job_id,
+        documentId: existing.converted_document_id,
+        quoteId: existing.converted_quote_id,
+        priceKzt: existing.converted_price_kzt ?? 0,
+      },
+    };
+  }
+
+  if (!existing.pricing_snapshot) return { ok: false, error: 'PRICE_NOT_CALCULATED' };
+  if (!existing.file_keys || existing.file_keys.length === 0) return { ok: false, error: 'NO_FILE' };
+
+  // Atomic claim — mirrors the worker's `UPDATE ... WHERE status='queued'` pattern.
+  const { data: claimed } = await db
+    .from('order_drafts')
+    .update({ status: 'checkout_started', updated_at: new Date().toISOString() })
+    .eq('id', draftId)
+    .eq('status', 'price_calculated')
+    .select('*')
+    .maybeSingle();
+
+  if (!claimed) {
+    // Someone else already claimed it (concurrent click) — reload and check for completion.
+    const reloaded = await getDraftRow(draftId);
+    if (reloaded?.status === 'converted' && reloaded.converted_job_id && reloaded.converted_document_id) {
+      return {
+        ok: true,
+        value: {
+          jobId: reloaded.converted_job_id,
+          documentId: reloaded.converted_document_id,
+          quoteId: reloaded.converted_quote_id,
+          priceKzt: reloaded.converted_price_kzt ?? 0,
+        },
+      };
+    }
+    return { ok: false, error: 'CONVERSION_IN_PROGRESS' };
+  }
+  const draft = claimed as OrderDraftRow;
+
+  try {
+    const pricingResult: PricingResult = draft.pricing_snapshot!.result;
+    const finalPriceKzt = Math.round(pricingResult.amountKzt);
+    const { notarized } = deriveBackcompatBooleans((draft.service_level ?? 'electronic') as ServiceLevel);
+
+    const sourceFileKey = draft.file_keys[0]!;
+    const docId = crypto.randomUUID();
+    const realFileKey = `documents/${userId}/${docId}/original.pdf`;
+    const fileBuffer = await downloadFile(sourceFileKey.key);
+    await uploadFile(realFileKey, fileBuffer, 'application/pdf');
+
+    const documentType = draft.output_format ? `${draft.document_type}|${draft.output_format}` : (draft.document_type ?? 'other');
+
+    await db.from('users').upsert({ id: userId }, { onConflict: 'id', ignoreDuplicates: true });
+
+    const { data: doc, error: docError } = await db
+      .from('documents')
+      .insert({
+        id: docId,
+        user_id: userId,
+        filename: sourceFileKey.originalName,
+        original_file_size: sourceFileKey.sizeBytes,
+        file_key: realFileKey,
+        source_language: draft.source_language,
+        target_language: draft.target_language,
+        document_type: documentType,
+        status: 'processing',
+        ip_address: draft.ip_address,
+      })
+      .select()
+      .single();
+
+    if (docError || !doc) {
+      await db.from('order_drafts').update({ status: 'price_calculated' }).eq('id', draftId);
+      return { ok: false, error: docError?.message ?? 'document_insert_failed' };
+    }
+
+    const { data: job, error: jobError } = await db
+      .from('jobs')
+      .insert({
+        document_id: doc.id,
+        status: 'payment_pending',
+        progress_percent: 0,
+        priority: 0,
+        payment_source: 'card_payment',
+        notarized,
+        service_level: draft.service_level,
+        notary_city: draft.notary_city,
+        fulfillment_method: draft.fulfillment_method,
+        delivery_phone: draft.delivery_phone,
+        delivery_address: draft.delivery_address,
+        price_kzt: finalPriceKzt,
+        customer_comment: draft.customer_comment,
+      })
+      .select()
+      .single();
+
+    if (jobError || !job) {
+      await db.from('documents').update({ status: 'failed' }).eq('id', docId);
+      await db.from('order_drafts').update({ status: 'price_calculated' }).eq('id', draftId);
+      return { ok: false, error: jobError?.message ?? 'job_insert_failed' };
+    }
+
+    const pricingInput = buildPricingInput(draft, { documentId: doc.id, jobId: job.id, userId });
+    const notaryCutoffExpiry = pricingResult.context.notaryCutoff?.quoteExpiresAt;
+    const cutoffExpiresAt = notaryCutoffExpiry && notaryCutoffExpiry.length > 0 ? notaryCutoffExpiry : undefined;
+    const savedQuote = await saveQuote(pricingInput, pricingResult, 24, cutoffExpiresAt);
+    const quoteId = 'quoteId' in savedQuote ? savedQuote.quoteId : null;
+
+    if ('error' in savedQuote) {
+      console.error('[order-drafts] failed to save quote (non-fatal):', savedQuote.error);
+    }
+
+    await db.from('job_audit_log').insert({
+      job_id: job.id,
+      actor: userId,
+      source: 'order-draft-convert',
+      action: 'job_created',
+      new_status: 'payment_pending',
+      metadata: { serviceLevel: draft.service_level, priceKzt: finalPriceKzt, quoteId, draftId },
+    }).then(({ error: e }: { error: { message: string } | null }) => {
+      if (e) console.error('[order-drafts] audit insert failed:', e.message);
+    });
+
+    if (draft.ref_code) {
+      void attachReferralToOrder({
+        jobId: job.id,
+        userId,
+        refCode: draft.ref_code,
+        utmSource: draft.utm_source,
+        utmMedium: draft.utm_medium,
+        utmCampaign: draft.utm_campaign,
+        utmContent: draft.utm_content,
+        utmTerm: draft.utm_term,
+        orderAmountKzt: finalPriceKzt,
+      }).catch((err: unknown) => {
+        console.error('[order-drafts] referral attach failed (non-fatal):', (err as Error).message);
+      });
+    }
+
+    await db
+      .from('order_drafts')
+      .update({
+        status: 'converted',
+        converted_job_id: job.id,
+        converted_document_id: doc.id,
+        converted_quote_id: quoteId,
+        converted_price_kzt: finalPriceKzt,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', draftId);
+
+    return { ok: true, value: { jobId: job.id, documentId: doc.id, quoteId, priceKzt: finalPriceKzt } };
+  } catch (err) {
+    console.error('[order-drafts] conversion failed:', err);
+    await db.from('order_drafts').update({ status: 'price_calculated' }).eq('id', draftId);
+    return { ok: false, error: 'CONVERSION_FAILED' };
+  }
+}
