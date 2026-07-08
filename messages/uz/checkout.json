@@ -25,7 +25,7 @@
     "acceptedMethods": "Qabul qilinuvchi to'lov usullari",
     "deliveryCost": "Elektron yetkazib berish narxi: 0 ₸ (hujjat narxiga kiritilgan).",
     "vatStatus": "QQS: qo'llanilmaydi (QQSsiz).",
-    "processedByPending": "Karta to'lovlari Halyk Bank AJ internet ekvayring xizmati — Halyk ePay orqali qayta ishlanadi (shlyuz faollashtirishdan so'ng)."
+    "processedByPending": "Karta to'lovlari Halyk Bank AJ internet ekvayring xizmati — Halyk ePay orqali qayta ishlanadi."
   },
   "serviceTerms": {
     "deliveryTitle": "Yetkazib berish",

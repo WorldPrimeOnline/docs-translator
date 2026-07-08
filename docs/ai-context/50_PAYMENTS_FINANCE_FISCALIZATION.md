@@ -2,7 +2,7 @@
 
 ## Current payment state
 
-**Subscription-only active; no active card payment gateway.**
+**Halyk ePay card payments are live; subscriptions remain gated off.**
 - `src/lib/stripe/` and `src/lib/polar/` are empty placeholder directories.
 - `POST /api/subscriptions/create` returns HTTP 503 ("temporarily unavailable").
 - The subscription modal shows a "coming soon" message.
@@ -12,7 +12,7 @@
 
 The integration is fully implemented in `src/lib/payments/halyk/` (client, config, invoice, pricing, security, status-map, locale, types).
 
-**Currently gated** by `BUSINESS_PROFILE.cardPaymentsActive` in `src/lib/business-profile.ts` (currently `false` — set to `true` only after Halyk credentials are added to env and end-to-end tested).
+**Live** — `BUSINESS_PROFILE.cardPaymentsActive` in `src/lib/business-profile.ts` is `true` (2026-07-08): Halyk credentials are in env and the integration processes real payments. This only switches the "processed by" wording in `PaymentComplianceBlock`; it does not gate the payment API routes themselves.
 
 API routes:
 - `POST /api/payments/halyk/initiate` — initiate payment, returns redirect URL

@@ -10,7 +10,7 @@ export interface BusinessProfile {
   email: string;
   website: string;
   /**
-   * Set to true once Halyk ePay card payment gateway credentials are configured
+   * True once Halyk ePay card payment gateway credentials are configured
    * and the integration is live. Controls wording in PaymentComplianceBlock.
    * false → "will be processed through Halyk ePay" (pending)
    * true  → "are processed through Halyk ePay" (active)
@@ -26,6 +26,6 @@ export const BUSINESS_PROFILE: BusinessProfile = {
   phone: '+77011366376',
   email: 'worldprimeonline@gmail.com',
   website: 'https://wpotranslations.org',
-  // Set to true after Halyk ePay gateway credentials are added to env and integration is tested.
-  cardPaymentsActive: false,
+  // Halyk ePay gateway credentials are configured in env and the integration is live.
+  cardPaymentsActive: true,
 };

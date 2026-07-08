@@ -25,7 +25,7 @@
     "acceptedMethods": "Кабыл алынган төлөм ыкмалары",
     "deliveryCost": "Электрондук жеткирүү нарсы: 0 ₸ (документтин нарсына кирет).",
     "vatStatus": "КДС: колдонулбайт (КДСсыз).",
-    "processedByPending": "Карта менен төлөмдөр Halyk Bank JSC интернет-эквайринг кызматы — Halyk ePay аркылуу иштетилет (шлюзду активдештирүү күтүлүүдө)."
+    "processedByPending": "Карта менен төлөмдөр Halyk Bank JSC интернет-эквайринг кызматы — Halyk ePay аркылуу иштетилет."
   },
   "serviceTerms": {
     "deliveryTitle": "Жеткирүү",

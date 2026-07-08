@@ -103,7 +103,7 @@
     "q14": "Tarjimada xato bo'lsa nima qilish kerak?",
     "a14": "Agar xato xizmatning texnik nosozligi, fayl buzilishi yoki aniq to'liqsiz qayta ishlash bilan bog'liq bo'lsa, qo'llab-quvvatlash bilan bog'laning va buyurtma raqamini ko'rsating. Agar xato asl hujjatning yomon sifati, noto'g'ri tanlangan til, noto'g'ri hujjat turi yoki Buyurtmachi tomonidan ko'rsatilgan boshqa parametrlar tufayli yuzaga kelgan bo'lsa, pul qaytarish yoki qayta ishlash mavjud bo'lmasligi mumkin.",
     "q15": "To'lov qanday amalga oshiriladi?",
-    "a15": "To'lov buyurtmani qayta ishlash boshlanishidan oldin amalga oshiriladi. Mavjud to'lov usullari buyurtmani rasmiylashtirish sahifasida ko'rsatiladi. Internet ekvayring ulanganidan so'ng karta orqali to'lov saytda ko'rsatilgan to'lov provayderi orqali amalga oshiriladi. Yakuniy narx to'lovga o'tishdan oldin ko'rsatilishi kerak.",
+    "a15": "To'lov buyurtmani qayta ishlash boshlanishidan oldin amalga oshiriladi. Mavjud to'lov usullari buyurtmani rasmiylashtirish sahifasida ko'rsatiladi. Karta orqali to'lov saytda ko'rsatilgan to'lov provayderi orqali amalga oshiriladi. Yakuniy narx to'lovga o'tishdan oldin ko'rsatilishi kerak.",
     "q16": "Tayyor tarjimani qanday olaman?",
     "a16": "Tayyor tarjima shaxsiy kabinetda mavjud bo'ladi yoki saytda ko'rsatilgan usul bilan yuboriladi. Elektron tarjima elektron formatda taqdim etiladi. Rasmiy tarjima va notarial tasdiqlash tanlangan xizmat darajasi va hamkorlik jarayoniga qarab alohida topshirish tartibiga ega bo'lishi mumkin.",
     "q17": "Huquqiy hujjatlarda qaysi til ustunlikka ega?",

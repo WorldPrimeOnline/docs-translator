@@ -2,7 +2,7 @@
   "paymentCompliance": {
     "title": "Ödeme",
     "processedBy": "Kart ödemeleri, Kazakistan Halk Bankası A.Ş. — Halyk ePay internet tahsilat hizmeti aracılığıyla işlenmektedir.",
-    "processedByPending": "Kart ödemeleri, tahsilat hizmeti devreye alındıktan sonra Kazakistan Halk Bankası A.Ş. — Halyk ePay internet tahsilat hizmeti aracılığıyla işlenecektir.",
+    "processedByPending": "Kart ödemeleri, Kazakistan Halk Bankası A.Ş. — Halyk ePay internet tahsilat hizmeti aracılığıyla işlenmektedir.",
     "threeDSecure": "Kart işlemleri, ihraç eden bankanın veya ödeme sisteminin gereksinimlerine uygun olarak 3D Secure kimlik doğrulamasına tabi tutulabilir.",
     "acceptedMethods": "Kabul edilen ödeme yöntemleri",
     "deliveryCost": "Elektronik teslimat: 0 ₸ (hizmet fiyatına dahildir).",
