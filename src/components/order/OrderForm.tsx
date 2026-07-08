@@ -40,6 +40,9 @@ export interface DraftPriceResult {
   currency: string;
   requiresOperatorReview: boolean;
   reviewReasons?: string[];
+  priceBeforeDiscountKzt?: number;
+  discountAppliedKzt?: number;
+  discountCode?: string | null;
 }
 
 export type OrderFormMode = 'dashboard' | 'publicStart';

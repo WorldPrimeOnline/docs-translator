@@ -103,7 +103,7 @@
     "q14": "What should I do if there is an error in my translation?",
     "a14": "If the error is caused by a service malfunction, file corruption, or clearly incomplete processing, contact support and provide your order number. If the error resulted from poor source document quality, an incorrect language selection, an incorrect document type, or other parameters specified by the customer, a refund or reprocessing may not be available.",
     "q15": "How does payment work?",
-    "a15": "Payment is made before order processing begins. Available payment methods are shown on the checkout page. Once card payment is activated, payments will be processed through the payment provider indicated on the website. The final price must be shown before proceeding to payment.",
+    "a15": "Payment is made before order processing begins. Available payment methods are shown on the checkout page. Card payments are processed through the payment provider indicated on the website. The final price must be shown before proceeding to payment.",
     "q16": "How will I receive my completed translation?",
     "a16": "The completed translation will be available in your account or delivered via the method shown on the website. Electronic translation is provided in electronic format. Official translation and notarization may have a separate delivery procedure depending on the selected service level and partner process.",
     "q17": "Which language takes priority for legal documents?",

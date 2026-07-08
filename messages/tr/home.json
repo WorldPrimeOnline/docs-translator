@@ -103,7 +103,7 @@
     "q14": "Çeviride hata varsa ne yapmalıyım?",
     "a14": "Hata, hizmetin teknik arızasından, dosya bozulmasından veya açıkça eksik işlemden kaynaklanıyorsa sipariş numarasını belirterek destek ekibiyle iletişime geçin. Hata, kaynak belgenin düşük kalitesinden, yanlış seçilen dilden, yanlış belge türünden veya müşteri tarafından belirtilen diğer parametrelerden kaynaklanıyorsa iade veya yeniden işleme mümkün olmayabilir.",
     "q15": "Ödeme nasıl yapılır?",
-    "a15": "Ödeme, sipariş işleme başlamadan önce yapılır. Mevcut ödeme yöntemleri sipariş sayfasında görüntülenmektedir. İnternet tahsilatı bağlandıktan sonra kart ödemesi, sitede belirtilen ödeme sağlayıcısı aracılığıyla yapılacaktır. Nihai fiyat, ödemeye geçmeden önce görüntülenmelidir.",
+    "a15": "Ödeme, sipariş işleme başlamadan önce yapılır. Mevcut ödeme yöntemleri sipariş sayfasında görüntülenmektedir. Kart ödemesi, sitede belirtilen ödeme sağlayıcısı aracılığıyla yapılmaktadır. Nihai fiyat, ödemeye geçmeden önce görüntülenmelidir.",
     "q16": "Tamamlanmış çeviriyi nasıl alırım?",
     "a16": "Tamamlanmış çeviri kişisel hesapta mevcut olacak veya sitede belirtilen yöntemle iletilecektir. Elektronik çeviri elektronik biçimde sağlanır. Resmi çeviri ve noter onayı, seçilen hizmet düzeyine ve partner sürecine bağlı olarak ayrı bir teslim sürecine sahip olabilir.",
     "q17": "Hukuki belgeler hangi dilde önceliklidir?",

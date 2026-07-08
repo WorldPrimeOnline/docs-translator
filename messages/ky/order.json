@@ -283,6 +283,7 @@
     "calculating": "Эсептелүүдө...",
     "priceReadyTitle": "Баасы даяр",
     "priceReadyDesc": "Болжолдуу мөөнөт: {eta}",
+    "discountApplied": "Өнөктөш арзандатуусу: −{amount} ₸ (код {code})",
     "editDetails": "Параметрлерди өзгөртүү",
     "continueToPayment": "Төлөмгө өтүү",
     "requiresOperatorReviewNotice": "Бул буйрутма төлөмдөн мурун оператордун кыскача текшерүүсүн талап кылат. Акыркы баасын жакын арада тастыктайбыз.",

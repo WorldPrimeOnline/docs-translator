@@ -2,7 +2,7 @@
 
 ## Current payment state
 
-**Subscription-only active; no active card payment gateway.**
+**Halyk ePay card payments are live; subscriptions remain gated off.**
 - `src/lib/stripe/` and `src/lib/polar/` are empty placeholder directories.
 - `POST /api/subscriptions/create` returns HTTP 503 ("temporarily unavailable").
 - The subscription modal shows a "coming soon" message.
@@ -12,7 +12,7 @@
 
 The integration is fully implemented in `src/lib/payments/halyk/` (client, config, invoice, pricing, security, status-map, locale, types).
 
-**Currently gated** by `BUSINESS_PROFILE.cardPaymentsActive` in `src/lib/business-profile.ts` (currently `false` — set to `true` only after Halyk credentials are added to env and end-to-end tested).
+**Live** — `BUSINESS_PROFILE.cardPaymentsActive` in `src/lib/business-profile.ts` is `true` (2026-07-08): Halyk credentials are in env and the integration processes real payments. This only switches the "processed by" wording in `PaymentComplianceBlock`; it does not gate the payment API routes themselves.
 
 API routes:
 - `POST /api/payments/halyk/initiate` — initiate payment, returns redirect URL
@@ -45,6 +45,8 @@ Two job-creation entry points:
 ## Public pre-checkout draft flow (anonymous pricing before login)
 
 A third, pre-authentication entry point sits ahead of the two job-creation routes above: the public wizard at `/[locale]/start` computes a real KZT price via `computeQuoteForJob()` for an anonymous visitor, but does **not** insert into `price_quotes`/`jobs` at that stage — the result is cached only as a `pricing_snapshot` JSON column on a new `order_drafts` row (migration `0044`).
+
+`calculateDraftPrice()` (`src/lib/order-drafts/service.ts`) re-validates `order_drafts.ref_code` against `partners` and applies `calculatePartnerDiscount()` (2026-07-08 fix — this was previously missing, so partner-code discounts silently did not apply in the public flow), patching the stored snapshot's `amountKzt` and recording `priceBeforeDiscountKzt`/`discountAppliedKzt`/`discountCode` on it — mirroring `upload-card/route.ts` exactly. `convertDraftToOrder()` reads those snapshot fields back out to set `jobs.price_before_discount_kzt`/`discount_applied_kzt`/`discount_code` and to pass the correct pre-discount base + discount amount to `attachReferralToOrder()`, so partner commission is computed off the pre-discount amount, never the discounted total.
 
 The draft becomes a real order only at `/[locale]/checkout` — i.e. after login, still before payment — via `convertDraftToOrder()` (`src/lib/order-drafts/service.ts`), which reuses the identical `documents` → `jobs` → `saveQuote()` insert sequence `upload-card/route.ts` already uses for logged-in orders. **`src/app/api/payments/halyk/initiate` and `/callback` are completely unmodified** — checkout renders the existing `HalykPayButton` against the resulting `jobId`/`quoteId`, exactly as the dashboard does today.
 

@@ -2,7 +2,7 @@
   "paymentCompliance": {
     "title": "Zahlung",
     "processedBy": "Kartenzahlungen werden über den Internet-Acquiring-Service der Halyk Bank of Kazakhstan JSC — Halyk ePay — abgewickelt.",
-    "processedByPending": "Kartenzahlungen werden nach Aktivierung des Acquiring-Services über den Internet-Acquiring-Service der Halyk Bank of Kazakhstan JSC — Halyk ePay — abgewickelt.",
+    "processedByPending": "Kartenzahlungen werden über den Internet-Acquiring-Service der Halyk Bank of Kazakhstan JSC — Halyk ePay — abgewickelt.",
     "threeDSecure": "Kartentransaktionen können gemäß den Anforderungen der ausstellenden Bank oder des Zahlungssystems einer 3D Secure-Authentifizierung unterzogen werden.",
     "acceptedMethods": "Akzeptierte Zahlungsmethoden",
     "deliveryCost": "Elektronische Lieferung: 0 ₸ (im Servicepreis enthalten).",

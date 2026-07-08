@@ -12,7 +12,12 @@ interface DraftSummary {
   target_language: string | null;
   document_type: string | null;
   service_level: string | null;
-  pricing_snapshot: { result: { amountKzt: number; currency: string } } | null;
+  pricing_snapshot: {
+    result: { amountKzt: number; currency: string };
+    priceBeforeDiscountKzt?: number;
+    discountAppliedKzt?: number;
+    discountCode?: string | null;
+  } | null;
 }
 
 interface ConvertedOrder {
@@ -96,6 +101,9 @@ export function CheckoutClient() {
 
   const priceKzt = order?.priceKzt ?? Math.round(draft.pricing_snapshot?.result.amountKzt ?? 0);
   const currency = draft.pricing_snapshot?.result.currency ?? 'KZT';
+  const discountAppliedKzt = draft.pricing_snapshot?.discountAppliedKzt;
+  const priceBeforeDiscountKzt = draft.pricing_snapshot?.priceBeforeDiscountKzt;
+  const discountCode = draft.pricing_snapshot?.discountCode;
 
   return (
     <div className="mx-auto max-w-lg rounded-lg border border-white/10 bg-card p-6">
@@ -103,9 +111,19 @@ export function CheckoutClient() {
       <p className="mb-5 text-sm text-muted-foreground">{t('checkoutSubtitle')}</p>
 
       <div className="mb-5 rounded-lg border border-primary/30 bg-primary/5 p-5 text-center">
+        {discountAppliedKzt && discountAppliedKzt > 0 && priceBeforeDiscountKzt ? (
+          <div className="mb-1 text-sm text-muted-foreground line-through">
+            {priceBeforeDiscountKzt.toLocaleString()} {currency}
+          </div>
+        ) : null}
         <div className="text-3xl font-extrabold text-foreground">
           {priceKzt.toLocaleString()} {currency}
         </div>
+        {discountAppliedKzt && discountAppliedKzt > 0 && discountCode ? (
+          <div className="mt-1 text-xs font-medium text-emerald-400">
+            {t('discountApplied', { amount: discountAppliedKzt.toLocaleString(), code: discountCode })}
+          </div>
+        ) : null}
       </div>
 
       {order ? (

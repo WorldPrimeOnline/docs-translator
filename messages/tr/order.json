@@ -283,6 +283,7 @@
     "calculating": "Hesaplanıyor...",
     "priceReadyTitle": "Fiyatınız hazır",
     "priceReadyDesc": "Tahmini teslim süresi: {eta}",
+    "discountApplied": "Ortak indirimi: −{amount} ₸ (kod {code})",
     "editDetails": "Bilgileri düzenle",
     "continueToPayment": "Ödemeye geç",
     "requiresOperatorReviewNotice": "Bu sipariş ödemeden önce kısa bir manuel kontrol gerektiriyor. Son fiyatı kısa süre içinde onaylayacağız.",

@@ -25,7 +25,7 @@
     "acceptedMethods": "接受的支付方式",
     "deliveryCost": "电子交付费用：0 ₸（含于文件价格中）。",
     "vatStatus": "增值税：不适用（不含增值税）。",
-    "processedByPending": "网关启用后，银行卡支付将通过哈萨克斯坦人民银行股份公司——Halyk ePay 互联网收单服务处理。"
+    "processedByPending": "银行卡支付通过哈萨克斯坦人民银行股份公司——Halyk ePay 互联网收单服务处理。"
   },
   "serviceTerms": {
     "deliveryTitle": "交付",

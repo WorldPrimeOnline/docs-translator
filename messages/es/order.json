@@ -283,6 +283,7 @@
     "calculating": "Calculating...",
     "priceReadyTitle": "Your price is ready",
     "priceReadyDesc": "Estimated delivery: {eta}",
+    "discountApplied": "Descuento de socio: −{amount} ₸ (código {code})",
     "editDetails": "Edit details",
     "continueToPayment": "Continue to payment",
     "requiresOperatorReviewNotice": "This order needs a quick manual check before payment. Our team will confirm the final price shortly.",

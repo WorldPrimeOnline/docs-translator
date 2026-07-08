@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 2. Read `docs/ai-context/INDEX.md` — domain router for detailed context files.
 
 **Caveats on PROJECT_CONTEXT.md:**
-- §6, §7, §18 describe TON payments as "implemented" — **outdated**. TON is fully removed. Current payment state: subscription active; Halyk ePay implemented but gated (`cardPaymentsActive = false`). See [50_PAYMENTS_FINANCE_FISCALIZATION.md](docs/ai-context/50_PAYMENTS_FINANCE_FISCALIZATION.md).
+- §6, §7, §18 describe TON payments as "implemented" — **outdated**. TON is fully removed. Current payment state: subscription active; Halyk ePay implemented and live (`cardPaymentsActive = true`). See [50_PAYMENTS_FINANCE_FISCALIZATION.md](docs/ai-context/50_PAYMENTS_FINANCE_FISCALIZATION.md).
 - Everything else (vision, positioning, stack, env vars, pipeline) is accurate.
 
 **DOCX / official translation pipeline freeze** — active since 2026-06-19. See `docs/OFFICIAL_DOCX_PIPELINE_FREEZE.md`. Do not modify OCR prompts, translation parameters, table-classification logic, or visual-element detection without explicit approval.

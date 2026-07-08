@@ -283,6 +283,7 @@
     "calculating": "计算中...",
     "priceReadyTitle": "价格已计算",
     "priceReadyDesc": "预计交付时间:{eta}",
+    "discountApplied": "合作伙伴折扣：−{amount} ₸（代码 {code}）",
     "editDetails": "修改选项",
     "continueToPayment": "前往付款",
     "requiresOperatorReviewNotice": "此订单在付款前需要人工快速核实,我们会尽快确认最终价格。",

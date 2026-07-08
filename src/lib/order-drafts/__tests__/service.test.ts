@@ -193,6 +193,68 @@ describe('calculateDraftPrice', () => {
       }),
     );
   });
+
+  it('applies the partner discount and patches the snapshot amount when ref_code matches an active discount partner', async () => {
+    const pricingResult = { amountKzt: 15000, currency: 'KZT', requiresOperatorReview: false, reviewReasons: [], context: {} };
+    const partnerChain = chain({
+      data: {
+        is_active: true,
+        client_discount_enabled: true,
+        client_discount_type: 'percent',
+        client_discount_value: 10,
+        client_discount_min_order_amount: 0,
+        client_discount_max_amount: null,
+      },
+      error: null,
+    });
+    const updateChain = chain({ data: { ...BASE_DRAFT, ref_code: 'partner1', status: 'price_calculated' }, error: null });
+    mockFrom
+      .mockReturnValueOnce(chain({ data: { ...BASE_DRAFT, ref_code: 'partner1' }, error: null })) // getDraftRow
+      .mockReturnValueOnce(partnerChain) // partners lookup
+      .mockReturnValueOnce(updateChain); // order_drafts update
+    mockComputeQuote.mockResolvedValueOnce({ result: pricingResult, version: { id: 'v1' } });
+
+    const result = await calculateDraftPrice('draft-1', { sessionToken: 'sess-token' });
+
+    expect(result.ok).toBe(true);
+    // ref_code is normalized to uppercase before the partner lookup, matching upload-card.
+    expect(partnerChain.eq).toHaveBeenCalledWith('referral_code', 'PARTNER1');
+    expect(updateChain.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pricing_snapshot: expect.objectContaining({
+          result: expect.objectContaining({ amountKzt: 13500 }),
+          priceBeforeDiscountKzt: 15000,
+          discountAppliedKzt: 1500,
+          discountCode: 'PARTNER1',
+        }),
+      }),
+    );
+  });
+
+  it('does not apply a discount and leaves the snapshot amount untouched when the partner code is invalid/inactive', async () => {
+    const pricingResult = { amountKzt: 15000, currency: 'KZT', requiresOperatorReview: false, reviewReasons: [], context: {} };
+    const partnerChain = chain({ data: null, error: null }); // no matching partner
+    const updateChain = chain({ data: { ...BASE_DRAFT, ref_code: 'BOGUS', status: 'price_calculated' }, error: null });
+    mockFrom
+      .mockReturnValueOnce(chain({ data: { ...BASE_DRAFT, ref_code: 'BOGUS' }, error: null }))
+      .mockReturnValueOnce(partnerChain)
+      .mockReturnValueOnce(updateChain);
+    mockComputeQuote.mockResolvedValueOnce({ result: pricingResult, version: { id: 'v1' } });
+
+    const result = await calculateDraftPrice('draft-1', { sessionToken: 'sess-token' });
+
+    expect(result.ok).toBe(true);
+    expect(updateChain.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pricing_snapshot: expect.objectContaining({
+          result: expect.objectContaining({ amountKzt: 15000 }),
+          priceBeforeDiscountKzt: undefined,
+          discountAppliedKzt: undefined,
+          discountCode: undefined,
+        }),
+      }),
+    );
+  });
 });
 
 // ─── attachDraftToUser ──────────────────────────────────────────────────────
@@ -234,6 +296,18 @@ describe('attachDraftToUser', () => {
 
     expect(result.ok).toBe(true);
     expect(updateChain.update).toHaveBeenCalledWith(expect.objectContaining({ user_id: 'user-1' }));
+  });
+
+  it('preserves the partner ref_code across login — attach only patches user_id', async () => {
+    const withRefCode = { ...BASE_DRAFT, ref_code: 'PARTNER1' };
+    const updateChain = chain({ data: { ...withRefCode, user_id: 'user-1' }, error: null });
+    mockFrom.mockReturnValueOnce(chain({ data: withRefCode, error: null })).mockReturnValueOnce(updateChain);
+
+    const result = await attachDraftToUser('draft-1', 'user-1', 'sess-token');
+
+    expect(result).toEqual({ ok: true, value: { ...withRefCode, user_id: 'user-1' } });
+    expect(updateChain.update).not.toHaveBeenCalledWith(expect.objectContaining({ ref_code: expect.anything() }));
+    if (result.ok) expect(result.value.ref_code).toBe('PARTNER1');
   });
 });
 
@@ -382,6 +456,79 @@ describe('convertDraftToOrder', () => {
     expect(mockAttachReferral).toHaveBeenCalledWith(expect.objectContaining({ jobId: 'job-99', refCode: 'PARTNER1' }));
     expect(finalMarkChain.update).toHaveBeenCalledWith(
       expect.objectContaining({ status: 'converted', converted_job_id: 'job-99', converted_document_id: 'doc-99', converted_quote_id: 'quote-99' }),
+    );
+  });
+
+  it('persists the discounted quote into the real order: job carries discount fields and the discounted amount is what saveQuote/Halyk see', async () => {
+    const priced = pricedDraftWithFile({
+      ref_code: 'PARTNER1',
+      pricing_snapshot: {
+        result: {
+          amountKzt: 13500, // already discounted by calculateDraftPrice (15000 base - 1500 discount)
+          currency: 'KZT',
+          status: 'quoted',
+          items: [],
+          pricingVersionId: 'v1',
+          pricingVersionCode: 'v1',
+          internalCosts: {} as never,
+          margin: {} as never,
+          requiresOperatorReview: false,
+          reviewReasons: [],
+          context: { languagePair: 'ru-en', baseMinimumKzt: 0, extraWords: 0, additionalPages: 0, documentCoefficient: 1, urgencyCoefficient: 1, includedWordCount: 0, includedPageCount: 1 },
+        },
+        computedAt: '2026-01-01T00:00:00.000Z',
+        priceBeforeDiscountKzt: 15000,
+        discountAppliedKzt: 1500,
+        discountCode: 'PARTNER1',
+      },
+    });
+
+    mockDownloadFile.mockResolvedValueOnce(Buffer.from('pdf-bytes'));
+    mockUploadFile.mockResolvedValueOnce(undefined);
+    mockSaveQuote.mockResolvedValueOnce({ quoteId: 'quote-99' });
+    mockAttachReferral.mockResolvedValueOnce(undefined);
+
+    const jobInsertChain = chain({ data: { id: 'job-99' }, error: null });
+    mockFrom
+      .mockReturnValueOnce(chain({ data: priced, error: null })) // existing check
+      .mockReturnValueOnce(chain({ data: priced, error: null })) // atomic claim succeeds
+      .mockReturnValueOnce(chain({ data: null, error: null }))   // users upsert
+      .mockReturnValueOnce(chain({ data: { id: 'doc-99' }, error: null })) // documents insert
+      .mockReturnValueOnce(jobInsertChain)                       // jobs insert
+      .mockReturnValueOnce(chain({ error: null }))                // job_audit_log insert
+      .mockReturnValueOnce(chain({ data: null, error: null }));   // final order_drafts update
+
+    const result = await convertDraftToOrder('draft-1', 'user-1');
+
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.priceKzt).toBe(13500);
+
+    // The saved quote / job.price_kzt must be the discounted amount — this is the
+    // amount Halyk initiate reads via price_quotes.amount_kzt.
+    expect(jobInsertChain.insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        price_kzt: 13500,
+        price_before_discount_kzt: 15000,
+        discount_applied_kzt: 1500,
+        discount_code: 'PARTNER1',
+      }),
+    );
+    expect(mockSaveQuote).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ amountKzt: 13500 }),
+      24,
+      undefined,
+    );
+
+    // Referral commission must be computed off the pre-discount base, with the
+    // discount surfaced separately — never off the discounted total.
+    expect(mockAttachReferral).toHaveBeenCalledWith(
+      expect.objectContaining({
+        jobId: 'job-99',
+        refCode: 'PARTNER1',
+        orderAmountKzt: 15000,
+        clientDiscountAppliedKzt: 1500,
+      }),
     );
   });
 

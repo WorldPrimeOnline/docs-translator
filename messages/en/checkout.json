@@ -2,7 +2,7 @@
   "paymentCompliance": {
     "title": "Payments",
     "processedBy": "Card payments are processed through Halyk Bank JSC internet acquiring service — Halyk ePay.",
-    "processedByPending": "Card payments will be processed through Halyk Bank JSC internet acquiring service — Halyk ePay (pending gateway activation).",
+    "processedByPending": "Card payments are processed through Halyk Bank JSC internet acquiring service — Halyk ePay.",
     "threeDSecure": "Card transactions may be authenticated with 3D Secure technology where required by the issuing bank or payment system.",
     "acceptedMethods": "Accepted payment methods",
     "deliveryCost": "Electronic delivery cost: 0 ₸ (included in document price).",
