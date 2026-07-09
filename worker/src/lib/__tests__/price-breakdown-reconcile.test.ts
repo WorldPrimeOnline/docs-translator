@@ -9,6 +9,7 @@
 
 const jobsUpdates: Record<string, unknown>[] = [];
 const fetchCalls: Array<{ url: string; method: string | undefined }> = [];
+const limitCalls: Array<{ table: string; n: number }> = [];
 
 let candidateJobs: Array<{
   id: string; document_id: string; service_level: string | null;
@@ -25,7 +26,7 @@ function makeQuery(table: string) {
     is: () => chain,
     lt: () => chain,
     order: () => chain,
-    limit: () => chain,
+    limit: (n: number) => { limitCalls.push({ table, n }); return chain; },
     eq: () => chain,
     update: (payload: Record<string, unknown>) => {
       jobsUpdates.push({ table, payload });
@@ -72,6 +73,8 @@ jest.mock('../r2', () => ({ downloadFile: jest.fn() }));
 beforeEach(() => {
   jobsUpdates.length = 0;
   fetchCalls.length = 0;
+  limitCalls.length = 0;
+  delete process.env.PRICE_BREAKDOWN_RECONCILE_BATCH_SIZE;
   process.env.JIRA_PRICE_BREAKDOWN_ISSUE_ENABLED = 'true';
   process.env.JIRA_BASE_URL = 'https://wpo.atlassian.net';
   process.env.JIRA_EMAIL = 'bot@wpo.test';
@@ -147,5 +150,28 @@ describe('reconcilePendingPriceBreakdownIssues', () => {
     const { reconcilePendingPriceBreakdownIssues } = await import('../integrations');
     await reconcilePendingPriceBreakdownIssues();
     expect(fetchCalls.length).toBe(0);
+  });
+
+  it('defaults the per-cycle batch size to 10', async () => {
+    const { reconcilePendingPriceBreakdownIssues } = await import('../integrations');
+    await reconcilePendingPriceBreakdownIssues();
+    const jobsLimitCall = limitCalls.find((c) => c.table === 'jobs');
+    expect(jobsLimitCall?.n).toBe(10);
+  });
+
+  it('respects PRICE_BREAKDOWN_RECONCILE_BATCH_SIZE for throttling a backlog drain', async () => {
+    process.env.PRICE_BREAKDOWN_RECONCILE_BATCH_SIZE = '1';
+    const { reconcilePendingPriceBreakdownIssues } = await import('../integrations');
+    await reconcilePendingPriceBreakdownIssues();
+    const jobsLimitCall = limitCalls.find((c) => c.table === 'jobs');
+    expect(jobsLimitCall?.n).toBe(1);
+  });
+
+  it('falls back to 10 when PRICE_BREAKDOWN_RECONCILE_BATCH_SIZE is not a valid positive integer', async () => {
+    process.env.PRICE_BREAKDOWN_RECONCILE_BATCH_SIZE = 'not-a-number';
+    const { reconcilePendingPriceBreakdownIssues } = await import('../integrations');
+    await reconcilePendingPriceBreakdownIssues();
+    const jobsLimitCall = limitCalls.find((c) => c.table === 'jobs');
+    expect(jobsLimitCall?.n).toBe(10);
   });
 });

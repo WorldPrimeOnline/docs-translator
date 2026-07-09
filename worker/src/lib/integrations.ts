@@ -498,13 +498,24 @@ export async function createPriceBreakdownIssue(params: {
 // jobs.price_jira_issue_key check prevents duplicates).
 
 const PRICE_BREAKDOWN_RETRY_AFTER_MINUTES = 15;
-const PRICE_BREAKDOWN_MAX_ITEMS_PER_CYCLE = 10;
+// Configurable so ops can throttle the first run(s) after flipping
+// JIRA_PRICE_BREAKDOWN_ISSUE_ENABLED=true on an environment with an existing
+// backlog of jobs missing their price breakdown issue (see the backlog audit
+// script, scripts/prod/2026-07-09_audit-price-breakdown-backlog.ts) — e.g. set
+// PRICE_BREAKDOWN_RECONCILE_BATCH_SIZE=1 on Railway to drain the backlog one
+// job per 15-minute cycle instead of the default 10, then raise it back up.
+function getPriceBreakdownMaxItemsPerCycle(): number {
+  const raw = process.env.PRICE_BREAKDOWN_RECONCILE_BATCH_SIZE;
+  const parsed = raw ? Number.parseInt(raw, 10) : NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 10;
+}
 
 export async function reconcilePendingPriceBreakdownIssues(): Promise<void> {
   const config = getPriceBreakdownConfig();
   if (!config.enabled) return; // feature intentionally off — nothing to reconcile
 
   const cutoff = new Date(Date.now() - PRICE_BREAKDOWN_RETRY_AFTER_MINUTES * 60 * 1000).toISOString();
+  const maxItemsPerCycle = getPriceBreakdownMaxItemsPerCycle();
 
   const { data: candidates, error } = await supabase
     .from('jobs')
@@ -513,7 +524,7 @@ export async function reconcilePendingPriceBreakdownIssues(): Promise<void> {
     .is('price_jira_issue_key', null)
     .lt('created_at', cutoff)
     .order('created_at', { ascending: true })
-    .limit(PRICE_BREAKDOWN_MAX_ITEMS_PER_CYCLE);
+    .limit(maxItemsPerCycle);
 
   if (error) {
     console.error('[price-breakdown-reconcile] DB error fetching candidates:', error.message);
