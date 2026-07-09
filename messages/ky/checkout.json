@@ -43,6 +43,7 @@
   "payment": {
     "payButton": "{amount} {currency} төлөңүз",
     "processing": "Иштетилүүдө...",
+    "redirectingToPayment": "Төлөмгө багытталууда...",
     "paid": "Төлөм ырасталды",
     "unavailable": "Карта менен төлөмдөр убактылуу жеткиликтүү эмес.",
     "alreadyPaid": "Бул буйрутма буга чейин төлөнгөн.",

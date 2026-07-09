@@ -43,6 +43,7 @@
   "payment": {
     "payButton": "{amount} {currency} төлеу",
     "processing": "Өңделуде...",
+    "redirectingToPayment": "Төлемге бағытталуда...",
     "paid": "Төлем расталды",
     "unavailable": "Карточкамен төлем уақытша қолжетімді емес.",
     "alreadyPaid": "Бұл тапсырыс қазірдің өзінде төленген.",

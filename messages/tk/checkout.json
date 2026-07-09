@@ -43,6 +43,7 @@
   "payment": {
     "payButton": "Pay {amount} {currency}",
     "processing": "Processing...",
+    "redirectingToPayment": "Redirecting to payment...",
     "paid": "Payment confirmed",
     "unavailable": "Card payments are temporarily unavailable.",
     "alreadyPaid": "This order is already paid.",

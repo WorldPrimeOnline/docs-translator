@@ -43,6 +43,7 @@
   "payment": {
     "payButton": "ชำระเงิน {amount} {currency}",
     "processing": "กำลังประมวลผล...",
+    "redirectingToPayment": "กำลังนำไปสู่หน้าชำระเงิน...",
     "paid": "ยืนยันการชำระเงินแล้ว",
     "unavailable": "การชำระเงินด้วยบัตรไม่พร้อมใช้งานชั่วคราว",
     "alreadyPaid": "คำสั่งซื้อนี้ชำระเงินแล้ว",
