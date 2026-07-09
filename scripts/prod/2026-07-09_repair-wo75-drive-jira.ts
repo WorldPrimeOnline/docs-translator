@@ -402,6 +402,13 @@ async function main(): Promise<void> {
 
   let driveFolderId: string | null = job.google_drive_folder_id;
   let driveUrl: string | null = job.google_drive_folder_url;
+  // True once SECTION 3 determines a brand-new Drive folder would be created (dry-run
+  // only — driveUrl itself isn't known yet at that point). Used by SECTION 4 so the
+  // Jira documentsLink report doesn't silently disappear just because we don't have
+  // the URL string yet — WO-75 incident, 2026-07-09: this was reported as "nothing to
+  // patch" in dry-run even though --apply would correctly patch it once the folder
+  // existed, because the report only checked driveUrl.startsWith('http').
+  let folderWillBeCreated = false;
   const folderName = `WPO-${JOB_ID.slice(0, 8)}`;
   const rootFolderId = process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID ?? '(GOOGLE_DRIVE_ROOT_FOLDER_ID not set)';
 
@@ -442,7 +449,10 @@ async function main(): Promise<void> {
       console.log(`folderWouldBeCreated: true`);
       console.log(`folderName: "${folderName}"`);
       console.log(`folderPath (planned): Drive root (${rootFolderId}) / ${folderName} / {${DRIVE_SUBFOLDERS.join(', ')}}`);
-      driveUrl = '(will be assigned on creation — not yet known in dry-run)';
+      folderWillBeCreated = true;
+      // driveUrl intentionally stays null here — the real URL isn't known until the
+      // folder is actually created. SECTION 4 below still reports documentsLink as a
+      // field that WOULD be patched, using folderWillBeCreated to know it needs to.
     }
   }
 
@@ -518,11 +528,22 @@ async function main(): Promise<void> {
     console.log('[repair-wo75] job has no jira_issue_key — nothing to backfill on Jira');
     console.log('');
   } else {
-    const wantFields: Record<string, { label: string; value: unknown }> = {};
-    if (driveUrl && driveUrl.startsWith('http')) wantFields[JIRA_FIELDS.documentsLink] = { label: 'Drive folder URL', value: driveUrl };
+    // documentsLink is reported whenever a URL is either already known (existing
+    // folder) OR will exist after SECTION 3 creates one — even though we don't have
+    // the actual URL string yet in that second case. `patchable: false` means "this
+    // field would be touched by --apply, but this dry-run can't show the exact value
+    // because the folder doesn't exist yet" — it must never be silently dropped from
+    // the report just because the URL string isn't known.
+    const wantFields: Record<string, { label: string; value: string | null; patchable: boolean }> = {};
+    const haveRealDriveUrl = driveUrl !== null && driveUrl.startsWith('http');
+    if (haveRealDriveUrl) {
+      wantFields[JIRA_FIELDS.documentsLink] = { label: 'Drive folder URL', value: driveUrl, patchable: true };
+    } else if (folderWillBeCreated) {
+      wantFields[JIRA_FIELDS.documentsLink] = { label: 'Drive folder URL', value: null, patchable: false };
+    }
     if (job.fulfillment_method === 'delivery') {
-      if (job.delivery_phone) wantFields[JIRA_FIELDS.deliveryPhone] = { label: 'delivery phone', value: job.delivery_phone };
-      if (job.delivery_address) wantFields[JIRA_FIELDS.deliveryAddress] = { label: 'delivery address', value: job.delivery_address };
+      if (job.delivery_phone) wantFields[JIRA_FIELDS.deliveryPhone] = { label: 'delivery phone', value: job.delivery_phone, patchable: true };
+      if (job.delivery_address) wantFields[JIRA_FIELDS.deliveryAddress] = { label: 'delivery address', value: job.delivery_address, patchable: true };
     }
 
     // Read-only live check against the actual Jira issue — safe in dry-run too.
@@ -531,18 +552,22 @@ async function main(): Promise<void> {
       console.log(`[repair-wo75] could not read live Jira fields for ${job.jira_issue_key} — check JIRA_BASE_URL/JIRA_EMAIL/JIRA_API_TOKEN`);
     } else {
       const toPatch: Record<string, unknown> = {};
+      const pendingFields: string[] = []; // empty on Jira, needs patching, but value not known yet (pre-folder-creation)
       console.log(`issue: ${job.jira_issue_key}`);
-      for (const [fieldId, { label, value }] of Object.entries(wantFields)) {
+      for (const [fieldId, { label, value, patchable }] of Object.entries(wantFields)) {
         const current = existing[fieldId];
         const isEmpty = current === null || current === undefined || current === '';
-        if (isEmpty) {
+        if (!isEmpty) {
+          console.log(`  - ${label} (${fieldId}): already set to "${current}" (skip, never overwritten)`);
+        } else if (patchable && value !== null) {
           toPatch[fieldId] = value;
           console.log(`  - ${label} (${fieldId}): currently EMPTY → would set to "${value}"`);
         } else {
-          console.log(`  - ${label} (${fieldId}): already set (skip, never overwritten)`);
+          pendingFields.push(fieldId);
+          console.log(`  - ${label} (${fieldId}): currently EMPTY → WOULD be patched by --apply, with the new Drive folder's URL (not yet known — folder does not exist yet, SECTION 3 creates it first, in the same --apply run, before this patch happens)`);
         }
       }
-      if (Object.keys(toPatch).length === 0) {
+      if (Object.keys(toPatch).length === 0 && pendingFields.length === 0) {
         console.log('  → nothing to patch, all target fields already set');
       }
 
