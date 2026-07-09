@@ -481,6 +481,83 @@ export async function createPriceBreakdownIssue(params: {
   return issueKey;
 }
 
+// ─── Price breakdown reconciliation ─────────────────────────────────────────
+// initializeOrderIntegrations() creates the price breakdown issue fire-and-forget
+// (`void (async () => {...})()`), deliberately non-blocking so a slow/failed Jira
+// call never delays OCR start. In a long-running worker process that's normally
+// safe (unlike a serverless function, there's no "response returned, promise
+// frozen" risk) — but if the process restarts or crashes while that promise is
+// still in flight, the side effect is lost with nothing else ever retrying it.
+// WO-75 incident, 2026-07-09: exactly this happened during the Drive OAuth
+// incident response (worker was restarted while WO-75 was mid-pipeline) — the
+// main Jira issue (WO-75) was created, but its price breakdown issue never was,
+// and nothing noticed until an operator spotted it missing.
+//
+// This sweep finds jobs with a main Jira issue but no price breakdown issue yet
+// and retries via the same idempotent createPriceBreakdownIssue() (its own
+// jobs.price_jira_issue_key check prevents duplicates).
+
+const PRICE_BREAKDOWN_RETRY_AFTER_MINUTES = 15;
+const PRICE_BREAKDOWN_MAX_ITEMS_PER_CYCLE = 10;
+
+export async function reconcilePendingPriceBreakdownIssues(): Promise<void> {
+  const config = getPriceBreakdownConfig();
+  if (!config.enabled) return; // feature intentionally off — nothing to reconcile
+
+  const cutoff = new Date(Date.now() - PRICE_BREAKDOWN_RETRY_AFTER_MINUTES * 60 * 1000).toISOString();
+
+  const { data: candidates, error } = await supabase
+    .from('jobs')
+    .select('id, document_id, service_level, payment_source, jira_issue_key, price_jira_issue_key, created_at')
+    .not('jira_issue_key', 'is', null)
+    .is('price_jira_issue_key', null)
+    .lt('created_at', cutoff)
+    .order('created_at', { ascending: true })
+    .limit(PRICE_BREAKDOWN_MAX_ITEMS_PER_CYCLE);
+
+  if (error) {
+    console.error('[price-breakdown-reconcile] DB error fetching candidates:', error.message);
+    return;
+  }
+  if (!candidates || candidates.length === 0) return;
+
+  console.warn(`[price-breakdown-reconcile] ${candidates.length} job(s) missing a price breakdown issue — retrying`);
+
+  for (const job of candidates as Array<{
+    id: string; document_id: string; service_level: string | null;
+    payment_source: 'card_payment' | 'subscription' | null; jira_issue_key: string;
+  }>) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: doc } = await (supabase as any)
+      .from('documents')
+      .select('source_language, target_language, document_type')
+      .eq('id', job.document_id)
+      .maybeSingle();
+
+    if (!doc) {
+      console.error(`[price-breakdown-reconcile] document not found for job ${job.id} — skipping`);
+      continue;
+    }
+
+    try {
+      const issueKey = await createPriceBreakdownIssue({
+        jobId: job.id,
+        mainIssueKey: job.jira_issue_key,
+        serviceLevel: job.service_level ?? 'electronic',
+        sourceLanguage: doc.source_language as string,
+        targetLanguage: doc.target_language as string,
+        documentType: doc.document_type as string,
+        paymentSource: job.payment_source ?? null,
+      });
+      if (issueKey) {
+        console.log(`[price-breakdown-reconcile] ✓ job ${job.id.slice(0, 8)} → ${issueKey}`);
+      }
+    } catch (err) {
+      console.error(`[price-breakdown-reconcile] job ${job.id.slice(0, 8)} retry failed (non-fatal):`, err instanceof Error ? err.message : String(err));
+    }
+  }
+}
+
 /**
  * Update the description of an existing Jira price breakdown issue.
  * Used by the rebuild script to fix an already-created but empty issue.
