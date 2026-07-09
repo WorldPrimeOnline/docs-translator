@@ -89,16 +89,6 @@ if (APPLY && process.env.CONFIRM_PRODUCTION_WRITE !== 'true') {
   process.exit(1);
 }
 
-interface JiraIssueRef {
-  id: string;
-  key: string;
-  fields: { summary: string; created: string };
-}
-interface JiraSearchResult {
-  total: number;
-  issues: JiraIssueRef[];
-}
-
 async function main(): Promise<void> {
   const {
     mapPriceQuote,
@@ -108,6 +98,7 @@ async function main(): Promise<void> {
     getPriceBreakdownConfig,
     buildPriceBreakdownSummary,
   } = await import('../../worker/src/lib/jira/price-breakdown');
+  const { searchJiraIssuesByJql } = await import('../../worker/src/lib/jira/search');
   const { createClient } = await import('@supabase/supabase-js');
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -171,7 +162,7 @@ async function main(): Promise<void> {
   console.log('');
 
   if (job.price_jira_issue_key) {
-    console.log(`[backfill-price-breakdown] jobs.price_jira_issue_key is already set to ${job.price_jira_issue_key} — nothing to do (idempotent no-op).`);
+    console.log(`plan: NO-OP — jobs.price_jira_issue_key is already set to ${job.price_jira_issue_key}. Nothing to do.`);
     return;
   }
 
@@ -239,6 +230,11 @@ async function main(): Promise<void> {
   console.log('');
 
   // ── Idempotency: search Jira as a fallback (DB already checked above) ───
+  // SAFETY: a failed search is a HARD STOP — never proceed as if nothing was
+  // found. Doing so risks creating a duplicate price breakdown issue. This is
+  // exactly the bug this script had until 2026-07-09 (Jira Cloud returned 410
+  // for the deprecated GET /rest/api/3/search endpoint, and the script logged
+  // a warning and continued as if the search had found zero issues).
   console.log('════════════════════════════════════════════════════════════');
   console.log('SECTION 3 — JIRA IDEMPOTENCY CHECK');
   console.log('════════════════════════════════════════════════════════════');
@@ -246,19 +242,19 @@ async function main(): Promise<void> {
   const jql = `project = "${config.projectKey}" AND labels = "wpo-price-breakdown" AND summary = "${expectedSummary.replace(/"/g, '\\"')}"`;
   console.log(`jql: ${jql}`);
 
-  let jiraFoundIssues: JiraIssueRef[] = [];
-  try {
-    const searchRes = await jiraFetch(`/search?jql=${encodeURIComponent(jql)}&fields=summary,created&maxResults=20`);
-    if (searchRes.ok) {
-      const searchData = await searchRes.json() as JiraSearchResult;
-      jiraFoundIssues = searchData.issues ?? [];
-      console.log(`found: ${jiraFoundIssues.length} matching issue(s)`);
-    } else {
-      console.warn(`Jira search failed: ${searchRes.status} — proceeding assuming none found`);
-    }
-  } catch (e) {
-    console.warn('Jira search threw:', e instanceof Error ? e.message : String(e));
+  const searchResult = await searchJiraIssuesByJql(jiraFetch, jql, ['summary', 'created'], 20);
+  console.log(`endpoint: POST ${searchResult.endpoint}`);
+  console.log(`httpStatus: ${searchResult.httpStatus ?? '(request did not complete)'}`);
+
+  if (!searchResult.ok) {
+    console.error(`\n[backfill-price-breakdown] FATAL: ${searchResult.error}`);
+    console.error('[backfill-price-breakdown] Jira idempotency search failed — refusing to produce a CREATE/ADOPT plan.');
+    console.error('[backfill-price-breakdown] Creating an issue without a successful search first risks a duplicate. No plan generated. No writes possible.');
+    process.exit(1);
   }
+
+  const jiraFoundIssues = searchResult.issues;
+  console.log(`found: ${jiraFoundIssues.length} matching issue(s)`);
   console.log('');
 
   const fullParams = {
@@ -284,7 +280,7 @@ async function main(): Promise<void> {
   if (jiraFoundIssues.length > 0) {
     const sorted = [...jiraFoundIssues].sort((a, b) => new Date(a.fields.created).getTime() - new Date(b.fields.created).getTime());
     const canonical = sorted[0]!;
-    console.log(`action: ADOPT existing Jira issue ${canonical.key} (found by search, not recorded in DB) — would sync jobs.price_jira_issue_key/url and ensure link to ${mainIssueKey}, would NOT create a new issue.`);
+    console.log(`plan: ADOPT existing Jira issue ${canonical.key} (found by search, not recorded in DB) — would sync jobs.price_jira_issue_key/url and ensure link to ${mainIssueKey}, would NOT create a new issue.`);
     if (sorted.length > 1) {
       console.warn(`⚠ ${sorted.length - 1} duplicate(s) also found: ${sorted.slice(1).map((i) => i.key).join(', ')} — not touched, review manually.`);
     }
@@ -309,7 +305,7 @@ async function main(): Promise<void> {
   }
 
   const summary = expectedSummary;
-  console.log(`action: CREATE new Jira issue`);
+  console.log('plan: CREATE new Jira issue');
   console.log(`  project     : ${config.projectKey}`);
   console.log(`  issuetype   : ${config.issueType}`);
   console.log(`  summary     : "${summary}"`);

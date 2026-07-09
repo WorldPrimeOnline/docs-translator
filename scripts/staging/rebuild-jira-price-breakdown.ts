@@ -36,6 +36,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as dotenv from 'dotenv';
+import type { JiraIssueRef } from '../../worker/src/lib/jira/search';
 
 // ─── Env loading ──────────────────────────────────────────────────────────────
 const ROOT = path.resolve(process.cwd());
@@ -87,18 +88,7 @@ function parseArgs(): CliArgs {
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// ─── Jira search types ────────────────────────────────────────────────────────
-
-interface JiraIssueRef {
-  id: string;
-  key: string;
-  fields: { summary: string; created: string };
-}
-
-interface JiraSearchResult {
-  total: number;
-  issues: JiraIssueRef[];
-}
+// JiraIssueRef type comes from worker/src/lib/jira/search.ts (dynamically imported in main()).
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
@@ -111,6 +101,7 @@ async function main(): Promise<void> {
     getPriceBreakdownConfig,
     buildPriceBreakdownSummary,
   } = await import('../../worker/src/lib/jira/price-breakdown');
+  const { searchJiraIssuesByJql } = await import('../../worker/src/lib/jira/search');
 
   const { createClient } = await import('@supabase/supabase-js');
 
@@ -278,6 +269,11 @@ async function main(): Promise<void> {
 
   // ── Search Jira for existing price breakdown issues ────────────────────────
   // Used when DB record has no price_jira_issue_key (e.g. column added after job creation).
+  // SAFETY: a failed search is a HARD STOP, never "proceed assuming none found" —
+  // that risks creating a duplicate price breakdown issue. Found via the WO-75
+  // incident, 2026-07-09 (Jira Cloud returned 410 for the deprecated
+  // GET /rest/api/3/search endpoint; this now uses the shared
+  // searchJiraIssuesByJql() helper against POST /rest/api/3/search/jql).
   let jiraFoundIssues: JiraIssueRef[] = [];
 
   if (!dbPriceIssueKey && mainIssueKey) {
@@ -285,36 +281,28 @@ async function main(): Promise<void> {
     const jql = `project = "${config.projectKey}" AND labels = "wpo-price-breakdown" AND summary = "${expectedSummary.replace(/"/g, '\\"')}"`;
     console.log(`\n  Jira search (no DB key): ${jql}`);
 
-    try {
-      const searchRes = await jiraFetch(
-        `/search?jql=${encodeURIComponent(jql)}&fields=summary,created&maxResults=20`,
-      );
-      if (searchRes.ok) {
-        const searchData = await searchRes.json() as JiraSearchResult;
-        jiraFoundIssues = searchData.issues ?? [];
-        console.log(`  Found ${jiraFoundIssues.length} matching Jira issue(s)`);
-      } else {
-        console.warn(`  Jira search failed: ${searchRes.status} — will proceed without Jira search results`);
-      }
-    } catch (e) {
-      console.warn('  Jira search threw:', e instanceof Error ? e.message : String(e));
+    const searchResult = await searchJiraIssuesByJql(jiraFetch, jql, ['summary', 'created'], 20);
+    console.log(`  endpoint: POST ${searchResult.endpoint} | httpStatus: ${searchResult.httpStatus ?? '(request did not complete)'}`);
+    if (!searchResult.ok) {
+      console.error(`\nFATAL: ${searchResult.error}`);
+      console.error('Jira idempotency search failed — refusing to proceed. Creating without a successful search first risks a duplicate issue.');
+      process.exit(1);
     }
+    jiraFoundIssues = searchResult.issues;
+    console.log(`  Found ${jiraFoundIssues.length} matching Jira issue(s)`);
   } else if (!dbPriceIssueKey && !mainIssueKey) {
     // Search by label only — broader but still useful for dedupe
     const jql = `project = "${config.projectKey}" AND labels = "wpo-price-breakdown" ORDER BY created ASC`;
     console.log(`\n  Jira search (no main key, label only): ${jql}`);
-    try {
-      const searchRes = await jiraFetch(
-        `/search?jql=${encodeURIComponent(jql)}&fields=summary,created&maxResults=50`,
-      );
-      if (searchRes.ok) {
-        const searchData = await searchRes.json() as JiraSearchResult;
-        jiraFoundIssues = searchData.issues ?? [];
-        console.log(`  Found ${jiraFoundIssues.length} wpo-price-breakdown issues total (label-only search)`);
-      }
-    } catch (e) {
-      console.warn('  Jira search threw:', e instanceof Error ? e.message : String(e));
+    const searchResult = await searchJiraIssuesByJql(jiraFetch, jql, ['summary', 'created'], 50);
+    console.log(`  endpoint: POST ${searchResult.endpoint} | httpStatus: ${searchResult.httpStatus ?? '(request did not complete)'}`);
+    if (!searchResult.ok) {
+      console.error(`\nFATAL: ${searchResult.error}`);
+      console.error('Jira idempotency search failed — refusing to proceed. Creating without a successful search first risks a duplicate issue.');
+      process.exit(1);
     }
+    jiraFoundIssues = searchResult.issues;
+    console.log(`  Found ${jiraFoundIssues.length} wpo-price-breakdown issues total (label-only search)`);
   }
 
   // ── Resolve canonical price issue key ─────────────────────────────────────
