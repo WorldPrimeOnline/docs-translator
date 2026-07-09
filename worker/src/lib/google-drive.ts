@@ -127,6 +127,21 @@ function buildJwt(sa: ServiceAccountJson): string {
   return `${unsigned}.${signature}`;
 }
 
+// Google's token-endpoint error body — { error, error_description } — is a safe,
+// non-secret diagnostic (it never contains the key/token itself), so it's fine to
+// surface in thrown errors and logs.
+function extractGoogleTokenError(text: string): string {
+  try {
+    const parsed = JSON.parse(text) as { error?: string; error_description?: string };
+    if (parsed.error) {
+      return `${parsed.error}${parsed.error_description ? ` — ${parsed.error_description}` : ''}`;
+    }
+  } catch {
+    // not JSON — fall through to raw text
+  }
+  return text.slice(0, 200);
+}
+
 async function fetchServiceAccountToken(): Promise<{ token: string; expiresIn: number }> {
   const sa = parseServiceAccountJson();
   const jwt = buildJwt(sa);
@@ -144,7 +159,7 @@ async function fetchServiceAccountToken(): Promise<{ token: string; expiresIn: n
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     throw new Error(
-      `Service account token fetch failed: ${res.status} — ${text.slice(0, 200)}`,
+      `Service account token fetch failed: ${res.status} — ${extractGoogleTokenError(text)}`,
     );
   }
 
@@ -175,7 +190,16 @@ async function fetchOAuthToken(): Promise<{ token: string; expiresIn: number }> 
   });
 
   if (!res.ok) {
-    throw new Error(`Google OAuth token refresh failed: ${res.status}`);
+    const text = await res.text().catch(() => '');
+    const reason = extractGoogleTokenError(text);
+    // invalid_grant: refresh token expired/revoked/wrong account.
+    // invalid_client: client_id/client_secret pair doesn't match the OAuth app that issued the token.
+    const hint = reason.startsWith('invalid_grant')
+      ? ' (refresh token invalid/expired/revoked, or issued for a different Google account)'
+      : reason.startsWith('invalid_client')
+      ? ' (GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET do not match the OAuth app that issued this refresh token)'
+      : '';
+    throw new Error(`Google OAuth token refresh failed: ${res.status} — ${reason}${hint}`);
   }
 
   const data = (await res.json()) as { access_token: string; expires_in: number };
@@ -193,6 +217,57 @@ async function getAccessToken(): Promise<string> {
 
   _cachedToken = { token, expiresAt: now + expiresIn * 1000 };
   return token;
+}
+
+// ─── Health check ─────────────────────────────────────────────────────────────
+
+export interface DriveHealthResult {
+  mode: 'service_account' | 'oauth';
+  rootFolderSet: boolean;
+  configured: boolean;
+  tokenRefreshOk: boolean;
+  error?: string;
+}
+
+/**
+ * Attempts a real token refresh (no Drive API call needed — a successful token
+ * fetch already proves the credentials are valid) and reports the outcome.
+ * Never logs/returns the token, refresh token, or service account key — only
+ * Google's safe, non-secret error/error_description fields on failure.
+ */
+export async function checkDriveTokenHealth(): Promise<DriveHealthResult> {
+  const mode = getAuthMode();
+  const rootFolderSet = !!process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID;
+  const configured = isDriveConfigured();
+
+  if (!configured) {
+    return { mode, rootFolderSet, configured, tokenRefreshOk: false, error: 'not configured' };
+  }
+
+  _resetTokenCache(); // force a real network round-trip, not a cached token
+  try {
+    await getAccessToken();
+    return { mode, rootFolderSet, configured, tokenRefreshOk: true };
+  } catch (err) {
+    return {
+      mode,
+      rootFolderSet,
+      configured,
+      tokenRefreshOk: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
+
+/** Logs auth mode/config synchronously, then runs and logs the async token health check. */
+export async function logDriveAuthModeWithHealthCheck(): Promise<void> {
+  logDriveAuthMode();
+  const health = await checkDriveTokenHealth();
+  if (health.tokenRefreshOk) {
+    console.log('[drive] token refresh health check: ok');
+  } else {
+    console.error(`[drive] token refresh health check: FAILED — ${health.error ?? 'unknown error'}`);
+  }
 }
 
 // ─── Drive API helpers ────────────────────────────────────────────────────────

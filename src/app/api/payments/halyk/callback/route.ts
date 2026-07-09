@@ -359,9 +359,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }
 
       // Mark associated quote as paid and commit cost reservations
+      // (awaited — a serverless function's unawaited promises are not guaranteed to
+      // run to completion after the response is returned; this previously left
+      // price_quotes.status stuck at payment_pending even though payment_transactions
+      // and jobs had already finalized correctly — WO-75 incident, 2026-07-09)
       const quoteId = paymentTx.quote_id;
       if (quoteId) {
-        void markQuotePaid(quoteId, paymentTx.id).catch(err => {
+        await markQuotePaid(quoteId, paymentTx.id).catch(err => {
           console.error('[halyk/callback] failed to mark quote paid (non-fatal):', (err as Error).message, {
             quoteId,
             paymentId: paymentTx.id,
@@ -370,7 +374,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }
 
       // Best-effort referral confirmation — move pending referral to confirmed, calculate commission.
-      void confirmReferral(result.job_id, quoteId).catch(err => {
+      // (awaited for the same reason as markQuotePaid above — same fire-and-forget class of bug)
+      await confirmReferral(result.job_id, quoteId).catch(err => {
         console.error('[halyk/callback] confirmReferral failed (non-fatal):', (err as Error).message, {
           jobId: result.job_id,
           paymentId: paymentTx.id,
