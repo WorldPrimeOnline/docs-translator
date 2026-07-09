@@ -7,8 +7,14 @@
  * Idempotency: one Z-report per cashbox per business_date (UNIQUE constraint in DB).
  * If Z-report for today already exists with status 'issued' or 'already_closed', skip.
  *
- * Guard: Z-report only runs when there are no pending/retry_required fiscal receipts
+ * Guard 1: Z-report only runs when there are no pending/retry_required fiscal receipts
  * for the same cashbox. This prevents closing the shift mid-batch.
+ *
+ * Guard 2 (2026-07-09): Webkassa's shift only opens when a sale/refund is fiscalized —
+ * if nothing happened since the last successful Z-report, the shift is already closed
+ * and zreport/create returns Code 12 ("Смена уже закрыта"). We pre-check for qualifying
+ * issued fiscal_receipts (operation_type sale/refund) since the last successful Z-report
+ * (or the last 24h if none exists) and skip the call entirely when there's nothing to close.
  *
  * Sequential: Z-report goes through the same in-process cashbox queue as sale/refund
  * receipts — it waits for any in-flight receipt processing to complete.
@@ -178,6 +184,87 @@ async function hasPendingFiscalReceipts(cashboxId: string): Promise<boolean> {
   return (count ?? 0) > 0;
 }
 
+// ─── Qualifying-operations pre-check ──────────────────────────────────────────
+
+/**
+ * Returns the issued_at of the most recent successful Z-report ('issued' or
+ * 'already_closed') for this cashbox, or null if none exists.
+ */
+async function getLastSuccessfulZReportAt(cashboxId: string): Promise<string | null> {
+  const { data, error } = await (supabase as unknown as {
+    from: (t: string) => {
+      select: (cols: string) => {
+        eq: (col: string, val: string) => {
+          in: (col: string, vals: string[]) => {
+            not: (col: string, op: string, val: null) => {
+              order: (col: string, opts: { ascending: boolean }) => {
+                limit: (n: number) => {
+                  maybeSingle: () => Promise<{ data: { issued_at: string } | null; error: { message: string } | null }>
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  })
+    .from('fiscal_z_reports')
+    .select('issued_at')
+    .eq('cashbox_id', cashboxId)
+    .in('status', ['issued', 'already_closed'])
+    .not('issued_at', 'is', null)
+    .order('issued_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.warn('[fiscal-z-report] could not fetch last successful Z-report:', error.message);
+    return null;
+  }
+
+  return data?.issued_at ?? null;
+}
+
+/**
+ * Counts issued sale/refund fiscal_receipts (for the configured provider/environment)
+ * with issued_at >= sinceIso. Returns null if the query fails (unknown — caller should
+ * err toward sending rather than silently skipping a real shift close).
+ */
+async function countQualifyingOperationsSince(sinceIso: string): Promise<number | null> {
+  const { count, error } = await (supabase as unknown as {
+    from: (t: string) => {
+      select: (cols: string, opts: unknown) => {
+        eq: (col: string, val: string) => {
+          eq: (col: string, val: string) => {
+            eq: (col: string, val: string) => {
+              in: (col: string, vals: string[]) => {
+                gte: (col: string, val: string) => {
+                  limit: (n: number) => Promise<{ count: number | null; error: { message: string } | null }>
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  })
+    .from('fiscal_receipts')
+    .select('id', { count: 'exact', head: true })
+    .eq('provider', 'webkassa')
+    .eq('provider_environment', env.FISCAL_PROVIDER_ENV)
+    .eq('status', 'issued')
+    .in('operation_type', ['sale', 'refund'])
+    .gte('issued_at', sinceIso)
+    .limit(1);
+
+  if (error) {
+    console.warn('[fiscal-z-report] could not count qualifying operations:', error.message);
+    return null;
+  }
+
+  return count ?? 0;
+}
+
 // ─── Main export ──────────────────────────────────────────────────────────────
 
 /**
@@ -186,6 +273,9 @@ async function hasPendingFiscalReceipts(cashboxId: string): Promise<boolean> {
  * 2. Current hour (in WEBKASSA_Z_REPORT_TIMEZONE) >= WEBKASSA_Z_REPORT_HOUR
  * 3. No Z-report issued for today's business_date yet
  * 4. No pending fiscal receipts for this cashbox
+ * 5. At least one issued sale/refund fiscal_receipts row since the last successful
+ *    Z-report (or in the last 24h if no prior successful Z-report exists) — otherwise
+ *    the shift is already closed and zreport/create would just return Code 12.
  *
  * Z-report goes through the cashbox queue in fiscal-processor (caller responsibility).
  * This function is called from fiscal-reconciliation.ts after processPendingFiscalReceipts().
@@ -213,6 +303,31 @@ export async function maybeRunScheduledZReport(): Promise<void> {
       businessDate,
     });
     // Leave row in 'pending' — will retry on next cycle
+    return;
+  }
+
+  // Guard: only Z-report if a qualifying operation opened the shift since the
+  // last successful Z-report (avoids Code 12 "Смена уже закрыта" on no-op days).
+  const lastSuccessfulZReportAt = await getLastSuccessfulZReportAt(cashboxId);
+  const since = lastSuccessfulZReportAt ?? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const operationsSinceLastZReport = await countQualifyingOperationsSince(since);
+  const decision = operationsSinceLastZReport === null || operationsSinceLastZReport > 0 ? 'send' : 'skip';
+
+  console.info('[fiscal-z-report] operations check', {
+    cashboxId,
+    businessDate,
+    lastSuccessfulZReportAt,
+    operationsSinceLastZReport,
+    decision,
+  });
+
+  if (decision === 'skip') {
+    console.info('[fiscal-z-report] skipped — no fiscal operations since last successful Z-report', {
+      cashboxId,
+      businessDate,
+      lastSuccessfulZReportAt,
+    });
+    await updateZReportRow(rowId, { status: 'skipped_no_operations', rawData: null });
     return;
   }
 
