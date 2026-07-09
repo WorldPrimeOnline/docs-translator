@@ -222,6 +222,26 @@ describe('fiscal hook — all finalization paths use ensureSaleFiscalReceiptForP
     expect(src).toContain("'pending' as const");
   });
 
+  it('callback route does NOT use void markQuotePaid (fire-and-forget is removed — WO-75 incident)', () => {
+    const src = readRoute('callback/route.ts');
+    expect(src).not.toContain('void markQuotePaid');
+  });
+
+  it('callback route awaits markQuotePaid in a non-fatal catch', () => {
+    const src = readRoute('callback/route.ts');
+    expect(src).toContain('await markQuotePaid');
+  });
+
+  it('callback route does NOT use void confirmReferral (fire-and-forget is removed — WO-75 incident)', () => {
+    const src = readRoute('callback/route.ts');
+    expect(src).not.toContain('void confirmReferral');
+  });
+
+  it('callback route awaits confirmReferral in a non-fatal catch', () => {
+    const src = readRoute('callback/route.ts');
+    expect(src).toContain('await confirmReferral');
+  });
+
   it('webkassa-provider.ts error log includes hasApiKey as boolean, never the key value', () => {
     const providerSrc = fs.readFileSync(
       path.join(process.cwd(), 'src/lib/fiscal/webkassa-provider.ts'),
