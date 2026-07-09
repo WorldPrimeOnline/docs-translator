@@ -43,6 +43,7 @@
   "payment": {
     "payButton": "支付 {amount} {currency}",
     "processing": "处理中...",
+    "redirectingToPayment": "正在跳转到支付...",
     "paid": "支付已确认",
     "unavailable": "银行卡支付暂时不可用。",
     "alreadyPaid": "该订单已付款。",

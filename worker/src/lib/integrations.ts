@@ -23,7 +23,7 @@ import {
 } from './google-drive';
 import { downloadFile } from './r2';
 import type { ServiceLevel } from './output-plan';
-import { buildJiraIssueFields } from './jira/order-fields';
+import { buildJiraIssueFields, JIRA_FIELDS } from './jira/order-fields';
 import {
   buildFinanceIssuePayload,
   getFinanceConfig,
@@ -540,6 +540,88 @@ export async function updatePriceBreakdownIssueDescription(params: {
   // 204 No Content on success
   console.log(`${tag} ✓ Jira issue ${params.issueKey} description updated`);
   return true;
+}
+
+// ─── Backfill: patch missing Drive/delivery fields onto an existing order issue ──
+// initializeOrderIntegrations() only sets these fields once, at issue-create time —
+// there is no other code path that goes back and patches them in later. This is
+// what makes that gap possible (WO-75 incident, 2026-07-09): if driveUrl or the
+// delivery fields weren't available yet when the issue was created, they're never
+// retried. Used by the repair/backfill script — never overwrites a field that
+// already has a value on the Jira issue.
+
+export interface JiraOrderFieldsPatch {
+  driveUrl?: string | null;
+  deliveryPhone?: string | null;
+  deliveryAddress?: string | null;
+  fulfillmentMethod?: 'pickup' | 'delivery' | null;
+}
+
+/** Fetches only the fields we might backfill, to avoid clobbering existing values. */
+async function getExistingJiraOrderFields(issueKey: string): Promise<Record<string, unknown> | null> {
+  const fieldIds = [JIRA_FIELDS.documentsLink, JIRA_FIELDS.deliveryPhone, JIRA_FIELDS.deliveryAddress].join(',');
+  const res = await jiraFetch(`/issue/${issueKey}?fields=${fieldIds}`);
+  if (!res || !res.ok) return null;
+  const data = (await res.json()) as { fields: Record<string, unknown> };
+  return data.fields;
+}
+
+export async function backfillJiraOrderFields(
+  issueKey: string,
+  patch: JiraOrderFieldsPatch,
+): Promise<{ ok: boolean; updatedFields: string[]; skippedFields: string[]; error?: string }> {
+  const tag = `[jira-backfill:${issueKey}]`;
+
+  if (!getJiraAuth()) {
+    return { ok: false, updatedFields: [], skippedFields: [], error: 'Jira not configured' };
+  }
+
+  const existing = await getExistingJiraOrderFields(issueKey);
+  if (existing === null) {
+    return { ok: false, updatedFields: [], skippedFields: [], error: 'failed to read existing issue fields' };
+  }
+
+  const fields: Record<string, unknown> = {};
+  const updatedFields: string[] = [];
+  const skippedFields: string[] = [];
+
+  const maybeSet = (fieldId: string, label: string, value: unknown): void => {
+    if (value === null || value === undefined || value === '') return;
+    const current = existing[fieldId];
+    if (current !== null && current !== undefined && current !== '') {
+      skippedFields.push(`${label} (already set)`);
+      return;
+    }
+    fields[fieldId] = value;
+    updatedFields.push(label);
+  };
+
+  maybeSet(JIRA_FIELDS.documentsLink, 'documentsLink', patch.driveUrl ?? null);
+  if (patch.fulfillmentMethod === 'delivery') {
+    maybeSet(JIRA_FIELDS.deliveryPhone, 'deliveryPhone', patch.deliveryPhone ?? null);
+    maybeSet(JIRA_FIELDS.deliveryAddress, 'deliveryAddress', patch.deliveryAddress ?? null);
+  }
+
+  if (Object.keys(fields).length === 0) {
+    console.log(`${tag} nothing to backfill (all target fields already set or no data available)`);
+    return { ok: true, updatedFields: [], skippedFields };
+  }
+
+  const res = await jiraFetch(`/issue/${issueKey}`, {
+    method: 'PUT',
+    body: JSON.stringify({ fields }),
+  });
+
+  if (!res) return { ok: false, updatedFields: [], skippedFields, error: 'Jira not configured' };
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    const error = `Jira update failed: ${res.status} ${text.slice(0, 300)}`;
+    console.error(`${tag} ${error}`);
+    return { ok: false, updatedFields: [], skippedFields, error };
+  }
+
+  console.log(`${tag} ✓ backfilled: ${updatedFields.join(', ')}`);
+  return { ok: true, updatedFields, skippedFields };
 }
 
 // ─── Telegram helper ──────────────────────────────────────────────────────────

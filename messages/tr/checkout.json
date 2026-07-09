@@ -43,6 +43,7 @@
   "payment": {
     "payButton": "{amount} {currency} öde",
     "processing": "İşleniyor...",
+    "redirectingToPayment": "Ödemeye yönlendiriliyor...",
     "paid": "Ödeme onaylandı",
     "unavailable": "Kart ödemesi geçici olarak kullanılamıyor.",
     "alreadyPaid": "Bu sipariş zaten ödenmiş.",

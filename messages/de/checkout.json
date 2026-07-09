@@ -43,6 +43,7 @@
   "payment": {
     "payButton": "{amount} {currency} bezahlen",
     "processing": "Verarbeitung...",
+    "redirectingToPayment": "Weiterleitung zur Zahlung...",
     "paid": "Zahlung bestätigt",
     "unavailable": "Kartenzahlung vorübergehend nicht verfügbar.",
     "alreadyPaid": "Dieser Auftrag ist bereits bezahlt.",

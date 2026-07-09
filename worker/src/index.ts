@@ -5,7 +5,7 @@ import { closeBrowser } from './lib/pdf';
 import { reconcileFiscalAndRefunds, triggerReconcilePayments, triggerReconcileRefunds } from './lib/fiscal-reconciliation';
 import { processPendingFiscalReceipts } from './lib/fiscal-processor';
 import { diagnoseWebkassaConnectivity } from './lib/webkassa-client';
-import { logDriveAuthMode } from './lib/google-drive';
+import { logDriveAuthModeWithHealthCheck } from './lib/google-drive';
 
 // ── State ──────────────────────────────────────────────────────────────────
 let running = false;   // true while we are processing a job
@@ -214,7 +214,12 @@ async function main(): Promise<void> {
   console.log(
     `[worker] started — poll every ${env.POLL_INTERVAL_MS}ms, concurrency ${env.WORKER_CONCURRENCY}`,
   );
-  logDriveAuthMode();
+  // Real token-refresh probe (not just env-var presence) — catches an invalid/
+  // expired/revoked refresh token or a mismatched client_id/client_secret pair
+  // even when isDriveConfigured() reports "configured: true". Never logs secrets.
+  await logDriveAuthModeWithHealthCheck().catch((err: unknown) => {
+    console.error('[drive] token refresh health check errored:', (err as Error).message);
+  });
 
   // One-time DNS/TCP reachability check — isolates network-layer failures
   // (DNS, firewall, TLS) from actual Webkassa auth failures before the real

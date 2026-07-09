@@ -43,6 +43,7 @@
   "payment": {
     "payButton": "Оплатить {amount} {currency}",
     "processing": "Обработка...",
+    "redirectingToPayment": "Переходим к оплате...",
     "paid": "Оплата подтверждена",
     "unavailable": "Оплата картой временно недоступна.",
     "alreadyPaid": "Этот заказ уже оплачен.",

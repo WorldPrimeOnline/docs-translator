@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useLayoutEffect } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { CreditCard, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import type { HalykPayBootstrap, HalykPaymentObject } from '@/lib/payments/halyk/types';
@@ -22,9 +22,13 @@ interface Props {
   priceKzt: number;
   className?: string;
   onSuccess?: (paymentId: string) => void;
+  /** Skip the idle click and start the payment flow immediately on mount (used by one-step checkout). */
+  autoStart?: boolean;
+  /** Overrides the loading-state label while autoStart is in flight. */
+  loadingLabel?: string;
 }
 
-export function HalykPayButton({ jobId, quoteId, priceKzt, className = '', onSuccess }: Props): React.ReactElement {
+export function HalykPayButton({ jobId, quoteId, priceKzt, className = '', onSuccess, autoStart = false, loadingLabel }: Props): React.ReactElement {
   const t = useTranslations('payment');
   const locale = useLocale();
   const [state, setState] = useState<ButtonState>('idle');
@@ -132,6 +136,13 @@ export function HalykPayButton({ jobId, quoteId, priceKzt, className = '', onSuc
     setState('idle');
   }, []);
 
+  // Layout effect (fires before paint) so the loading state is applied before
+  // the idle "pay" button ever renders — avoids a one-frame flash of a second button.
+  useLayoutEffect(() => {
+    if (autoStart) void handlePay();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   if (state === 'paid') {
     return (
       <div className="flex items-center gap-2 text-primary text-sm font-medium">
@@ -174,7 +185,7 @@ export function HalykPayButton({ jobId, quoteId, priceKzt, className = '', onSuc
         <CreditCard className="w-4 h-4" />
       )}
       {isLoading
-        ? t('processing')
+        ? (loadingLabel ?? t('processing'))
         : t('payButton', { amount: priceKzt.toLocaleString(), currency: 'KZT' })}
     </button>
   );

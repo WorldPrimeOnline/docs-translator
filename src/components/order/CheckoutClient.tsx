@@ -30,6 +30,7 @@ export function CheckoutClient() {
   const searchParams = useSearchParams();
   const draftId = searchParams.get('draftId');
   const t = useTranslations('startWizard');
+  const paymentT = useTranslations('payment');
 
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState<DraftSummary | null>(null);
@@ -127,7 +128,14 @@ export function CheckoutClient() {
       </div>
 
       {order ? (
-        <HalykPayButton jobId={order.jobId} quoteId={order.quoteId} priceKzt={priceKzt} className="w-full" />
+        <HalykPayButton
+          jobId={order.jobId}
+          quoteId={order.quoteId}
+          priceKzt={priceKzt}
+          className="w-full"
+          autoStart
+          loadingLabel={paymentT('redirectingToPayment')}
+        />
       ) : (
         <>
           <label className="mb-4 flex items-start gap-2.5 text-xs text-muted-foreground">
@@ -144,7 +152,7 @@ export function CheckoutClient() {
             className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-gold-dark disabled:pointer-events-none disabled:opacity-50"
           >
             {confirming ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            {t('confirmAndPayButton')}
+            {confirming ? paymentT('redirectingToPayment') : paymentT('payButton', { amount: priceKzt.toLocaleString(), currency: 'KZT' })}
           </button>
         </>
       )}

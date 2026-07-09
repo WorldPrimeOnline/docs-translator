@@ -43,6 +43,7 @@
   "payment": {
     "payButton": "{amount} {currency} to'lash",
     "processing": "Qayta ishlanmoqda...",
+    "redirectingToPayment": "To'lovga yo'naltirilmoqda...",
     "paid": "To'lov tasdiqlandi",
     "unavailable": "Karta orqali to'lov vaqtincha mavjud emas.",
     "alreadyPaid": "Bu buyurtma allaqachon to'langan.",
