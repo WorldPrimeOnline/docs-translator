@@ -492,3 +492,19 @@ The 2026-07-04 layered-model correction (previous decision) fixed the whole-orde
 
 **Risks / caveats:**  
 `Not specified`
+
+---
+
+### 2026-07-09 — Webkassa Z-report: skip zreport/create when no qualifying operations since last successful Z-report
+
+**Decision:**  
+Before calling zreport/create, the worker (worker/src/lib/fiscal-z-report.ts) now checks for at least one issued fiscal_receipts row (operation_type sale/refund, provider=webkassa, provider_environment=FISCAL_PROVIDER_ENV) with issued_at after the last successful Z-report for the cashbox (or in the last 24h if no prior successful Z-report exists). If none exist, zreport/create is not called; fiscal_z_reports.status is set to skipped_no_operations (new value added to the CHECK constraint by migration 0045) instead of leaving a noisy failed/pending row. On a DB error while counting, the worker errs toward sending rather than skipping. Code 12/13 handling (already_closed) is unchanged and remains idempotent-safe as a fallback.
+
+**Rationale:**  
+Webkassa integrator reported cashbox SWK00529346 received Code 12 ('Смена уже закрыта') on zreport/create for 15+ consecutive days because the worker sent Z-report on a fixed daily schedule regardless of whether any fiscal operation (sale/purchase/return/cash in/cash out) had opened a shift. Per integrator recommendation, the shift only exists to close if a qualifying operation occurred since the last close.
+
+**Impacted files/docs:**  
+`Not specified`
+
+**Risks / caveats:**  
+Relies on fiscal_receipts.issued_at being set accurately by fiscal-processor.ts (it is, on successful issuance). Does not filter by a per-cashbox column on fiscal_receipts (matches existing single-cashbox assumption elsewhere in the file). forceRunZReport() (manual operator trigger) intentionally bypasses this guard.

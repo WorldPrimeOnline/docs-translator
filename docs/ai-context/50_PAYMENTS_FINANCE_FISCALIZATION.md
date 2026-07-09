@@ -162,15 +162,20 @@ Error handling:
 
 `worker/src/lib/fiscal-z-report.ts`:
 - `maybeRunScheduledZReport()` — runs daily at `WEBKASSA_Z_REPORT_HOUR` (default 23) in `WEBKASSA_Z_REPORT_TIMEZONE` (default Asia/Almaty)
-- **Guard**: skips if any `pending`/`retry_required` fiscal_receipts exist for the cashbox
+- **Guard 1**: skips if any `pending`/`retry_required` fiscal_receipts exist for the cashbox (don't close mid-batch)
+- **Guard 2 (2026-07-09)**: skips `zreport/create` entirely if there are no **qualifying operations** since the last successful Z-report — Webkassa only opens a shift when a sale/refund is fiscalized, so calling `zreport/create` with nothing to close just returns Code 12 ("Смена уже закрыта"). This was happening daily for 15+ days on cashbox SWK00529346 before the fix.
+  - Qualifying operation = `fiscal_receipts` row with `status = 'issued'`, `operation_type IN ('sale', 'refund')`, `provider = 'webkassa'`, `provider_environment = FISCAL_PROVIDER_ENV`, `issued_at` after the last successful Z-report for the cashbox (or `issued_at >= now() - interval '24 hours'` if no prior successful Z-report exists). "Successful" Z-report = status `issued` or `already_closed`.
+  - On skip: `fiscal_z_reports.status = 'skipped_no_operations'` (added to the CHECK constraint by migration `0045`) — no call to Webkassa is made, no error record created.
+  - On a DB error while counting qualifying operations, the worker errs toward **sending** (not skipping) — a stale-shift Error 11 is a worse failure mode than one extra idempotent Z-report call.
+  - Logs to watch: `[fiscal-z-report] operations check` (`lastSuccessfulZReportAt`, `operationsSinceLastZReport`, `decision`) and `[fiscal-z-report] skipped — no fiscal operations since last successful Z-report`.
 - **Idempotency**: `UNIQUE(cashbox_id, business_date)` in `fiscal_z_reports` table
 - Called from `reconcileFiscalAndRefunds()` AFTER `processPendingFiscalReceipts()`
-- `forceRunZReport()` — force run regardless of scheduled hour (for manual operator triggers)
+- `forceRunZReport()` — force run regardless of scheduled hour **and** the qualifying-operations guard (manual operator trigger only; unaffected by this change)
 
 ### DB tables (new)
 
 - `fiscal_cashbox_locks` (migration 0042) — distributed per-cashbox lock
-- `fiscal_z_reports` (migration 0043) — Z-report results, UNIQUE per cashbox/date
+- `fiscal_z_reports` (migration 0043; status enum extended by migration 0045 to add `skipped_no_operations`) — Z-report results, UNIQUE per cashbox/date
 
 ### Production env vars (Railway worker, Webkassa)
 

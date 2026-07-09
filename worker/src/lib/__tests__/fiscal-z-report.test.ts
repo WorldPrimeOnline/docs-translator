@@ -6,6 +6,10 @@
  * - Skips when credentials are missing
  * - Skips when Z-report already issued for today
  * - Skips when pending fiscal receipts exist
+ * - Skips when no qualifying (issued sale/refund) operations since last successful Z-report
+ * - Calls createZReport when an issued sale exists since last Z-report
+ * - Calls createZReport when an issued refund exists since last Z-report
+ * - Failed/pending receipts do not count as qualifying operations
  * - Calls createZReport and marks issued on success
  * - Marks already_closed when Webkassa returns alreadyClosed=true
  * - Idempotent: second call for same date skips
@@ -86,13 +90,44 @@ function makeZReportTableChain(opts: {
 }
 
 /**
- * fiscal_receipts count chain: .select().in().limit() — limit() resolves directly.
+ * fiscal_receipts count chain (pending guard): .select().in().limit() — limit() resolves directly.
  */
 function makeFiscalReceiptsCountChain(count: number) {
   return {
     select: jest.fn().mockReturnThis(),
     in: jest.fn().mockReturnThis(),
     limit: jest.fn().mockResolvedValue({ count, error: null }),
+  };
+}
+
+/**
+ * getLastSuccessfulZReportAt chain: .select().eq().in().not().order().limit().maybeSingle()
+ */
+function makeLastZReportChain(issuedAt: string | null) {
+  return {
+    select: jest.fn().mockReturnThis(),
+    eq: jest.fn().mockReturnThis(),
+    in: jest.fn().mockReturnThis(),
+    not: jest.fn().mockReturnThis(),
+    order: jest.fn().mockReturnThis(),
+    limit: jest.fn().mockReturnThis(),
+    maybeSingle: jest.fn().mockResolvedValue({
+      data: issuedAt ? { issued_at: issuedAt } : null,
+      error: null,
+    }),
+  };
+}
+
+/**
+ * countQualifyingOperationsSince chain: .select().eq().eq().eq().in().gte().limit()
+ */
+function makeQualifyingCountChain(count: number | null, error: { message: string } | null = null) {
+  return {
+    select: jest.fn().mockReturnThis(),
+    eq: jest.fn().mockReturnThis(),
+    in: jest.fn().mockReturnThis(),
+    gte: jest.fn().mockReturnThis(),
+    limit: jest.fn().mockResolvedValue({ count, error }),
   };
 }
 
@@ -178,16 +213,170 @@ describe('maybeRunScheduledZReport', () => {
     expect(mockCreateZReport).not.toHaveBeenCalled();
   });
 
-  it('calls createZReport and marks issued on success', async () => {
+  // ─── Qualifying-operations pre-check (2026-07-09) ──────────────────────────
+
+  it('skips zreport/create when no issued operations exist since last successful Z-report', async () => {
     const zCheckChain = makeZReportTableChain({ maybeSingleData: null });
     const zInsertChain = makeZReportTableChain({ singleData: { id: 'new-z-id' } });
     const fiscalCountChain = makeFiscalReceiptsCountChain(0); // no pending receipts
+    const lastZReportChain = makeLastZReportChain('2026-07-08T20:00:00.000Z');
+    const qualifyingCountChain = makeQualifyingCountChain(0); // nothing issued since then
     const zUpdateChain = makeZReportTableChain({});
 
     mockSupabaseFrom
       .mockReturnValueOnce(zCheckChain)
       .mockReturnValueOnce(zInsertChain)
       .mockReturnValueOnce(fiscalCountChain)
+      .mockReturnValueOnce(lastZReportChain)
+      .mockReturnValueOnce(qualifyingCountChain)
+      .mockReturnValueOnce(zUpdateChain);
+
+    await maybeRunScheduledZReport();
+
+    expect(mockCreateZReport).not.toHaveBeenCalled();
+    expect(zUpdateChain._updateFn).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'skipped_no_operations' }),
+    );
+  });
+
+  it('calls zreport/create when an issued sale exists since last Z-report', async () => {
+    const zCheckChain = makeZReportTableChain({ maybeSingleData: null });
+    const zInsertChain = makeZReportTableChain({ singleData: { id: 'new-z-id' } });
+    const fiscalCountChain = makeFiscalReceiptsCountChain(0);
+    const lastZReportChain = makeLastZReportChain('2026-07-08T20:00:00.000Z');
+    const qualifyingCountChain = makeQualifyingCountChain(1); // one issued sale since then
+    const zUpdateChain = makeZReportTableChain({});
+
+    mockSupabaseFrom
+      .mockReturnValueOnce(zCheckChain)
+      .mockReturnValueOnce(zInsertChain)
+      .mockReturnValueOnce(fiscalCountChain)
+      .mockReturnValueOnce(lastZReportChain)
+      .mockReturnValueOnce(qualifyingCountChain)
+      .mockReturnValueOnce(zUpdateChain);
+
+    mockCreateZReport.mockResolvedValue({ shiftNumber: 1, documentCount: 1, alreadyClosed: false, rawData: null });
+
+    await maybeRunScheduledZReport();
+
+    expect(mockCreateZReport).toHaveBeenCalledTimes(1);
+    expect(zUpdateChain._updateFn).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'issued' }),
+    );
+  });
+
+  it('calls zreport/create when an issued refund exists since last Z-report', async () => {
+    const zCheckChain = makeZReportTableChain({ maybeSingleData: null });
+    const zInsertChain = makeZReportTableChain({ singleData: { id: 'new-z-id' } });
+    const fiscalCountChain = makeFiscalReceiptsCountChain(0);
+    const lastZReportChain = makeLastZReportChain(null); // no prior successful Z-report → 24h fallback window
+    const qualifyingCountChain = makeQualifyingCountChain(1); // one issued refund in the last 24h
+    const zUpdateChain = makeZReportTableChain({});
+
+    mockSupabaseFrom
+      .mockReturnValueOnce(zCheckChain)
+      .mockReturnValueOnce(zInsertChain)
+      .mockReturnValueOnce(fiscalCountChain)
+      .mockReturnValueOnce(lastZReportChain)
+      .mockReturnValueOnce(qualifyingCountChain)
+      .mockReturnValueOnce(zUpdateChain);
+
+    mockCreateZReport.mockResolvedValue({ shiftNumber: 2, documentCount: 1, alreadyClosed: false, rawData: null });
+
+    await maybeRunScheduledZReport();
+
+    expect(mockCreateZReport).toHaveBeenCalledTimes(1);
+    // countQualifyingOperationsSince must have used the 24h fallback since no prior Z-report exists
+    expect(qualifyingCountChain.gte).toHaveBeenCalledWith('issued_at', expect.any(String));
+  });
+
+  it('failed/pending receipts do not count as qualifying operations (query only counts status=issued)', async () => {
+    const zCheckChain = makeZReportTableChain({ maybeSingleData: null });
+    const zInsertChain = makeZReportTableChain({ singleData: { id: 'new-z-id' } });
+    const fiscalCountChain = makeFiscalReceiptsCountChain(0);
+    const lastZReportChain = makeLastZReportChain('2026-07-08T20:00:00.000Z');
+    // Only failed/pending rows exist for the window — the DB-side status='issued' filter
+    // means the count comes back 0 even though rows technically exist.
+    const qualifyingCountChain = makeQualifyingCountChain(0);
+    const zUpdateChain = makeZReportTableChain({});
+
+    mockSupabaseFrom
+      .mockReturnValueOnce(zCheckChain)
+      .mockReturnValueOnce(zInsertChain)
+      .mockReturnValueOnce(fiscalCountChain)
+      .mockReturnValueOnce(lastZReportChain)
+      .mockReturnValueOnce(qualifyingCountChain)
+      .mockReturnValueOnce(zUpdateChain);
+
+    await maybeRunScheduledZReport();
+
+    expect(qualifyingCountChain.eq).toHaveBeenCalledWith('status', 'issued');
+    expect(mockCreateZReport).not.toHaveBeenCalled();
+    expect(zUpdateChain._updateFn).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'skipped_no_operations' }),
+    );
+  });
+
+  it('manual_hold-style receipts (non-issued statuses) do not count as qualifying operations', async () => {
+    // Same reasoning as above — status filter excludes anything other than 'issued'
+    // (pending_manual, blocked_by_config, retry_required, canceled, etc.).
+    const zCheckChain = makeZReportTableChain({ maybeSingleData: null });
+    const zInsertChain = makeZReportTableChain({ singleData: { id: 'new-z-id' } });
+    const fiscalCountChain = makeFiscalReceiptsCountChain(0);
+    const lastZReportChain = makeLastZReportChain('2026-07-08T20:00:00.000Z');
+    const qualifyingCountChain = makeQualifyingCountChain(0);
+    const zUpdateChain = makeZReportTableChain({});
+
+    mockSupabaseFrom
+      .mockReturnValueOnce(zCheckChain)
+      .mockReturnValueOnce(zInsertChain)
+      .mockReturnValueOnce(fiscalCountChain)
+      .mockReturnValueOnce(lastZReportChain)
+      .mockReturnValueOnce(qualifyingCountChain)
+      .mockReturnValueOnce(zUpdateChain);
+
+    await maybeRunScheduledZReport();
+
+    expect(mockCreateZReport).not.toHaveBeenCalled();
+  });
+
+  it('errs toward sending when the qualifying-operations count query fails', async () => {
+    const zCheckChain = makeZReportTableChain({ maybeSingleData: null });
+    const zInsertChain = makeZReportTableChain({ singleData: { id: 'new-z-id' } });
+    const fiscalCountChain = makeFiscalReceiptsCountChain(0);
+    const lastZReportChain = makeLastZReportChain('2026-07-08T20:00:00.000Z');
+    const qualifyingCountChain = makeQualifyingCountChain(null, { message: 'db error' });
+    const zUpdateChain = makeZReportTableChain({});
+
+    mockSupabaseFrom
+      .mockReturnValueOnce(zCheckChain)
+      .mockReturnValueOnce(zInsertChain)
+      .mockReturnValueOnce(fiscalCountChain)
+      .mockReturnValueOnce(lastZReportChain)
+      .mockReturnValueOnce(qualifyingCountChain)
+      .mockReturnValueOnce(zUpdateChain);
+
+    mockCreateZReport.mockResolvedValue({ alreadyClosed: false, rawData: null });
+
+    await maybeRunScheduledZReport();
+
+    expect(mockCreateZReport).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls createZReport and marks issued on success', async () => {
+    const zCheckChain = makeZReportTableChain({ maybeSingleData: null });
+    const zInsertChain = makeZReportTableChain({ singleData: { id: 'new-z-id' } });
+    const fiscalCountChain = makeFiscalReceiptsCountChain(0); // no pending receipts
+    const lastZReportChain = makeLastZReportChain('2026-07-08T20:00:00.000Z');
+    const qualifyingCountChain = makeQualifyingCountChain(1); // an issued sale exists
+    const zUpdateChain = makeZReportTableChain({});
+
+    mockSupabaseFrom
+      .mockReturnValueOnce(zCheckChain)
+      .mockReturnValueOnce(zInsertChain)
+      .mockReturnValueOnce(fiscalCountChain)
+      .mockReturnValueOnce(lastZReportChain)
+      .mockReturnValueOnce(qualifyingCountChain)
       .mockReturnValueOnce(zUpdateChain);
 
     mockCreateZReport.mockResolvedValue({
@@ -209,12 +398,16 @@ describe('maybeRunScheduledZReport', () => {
     const zCheckChain = makeZReportTableChain({ maybeSingleData: null });
     const zInsertChain = makeZReportTableChain({ singleData: { id: 'new-z-id' } });
     const fiscalCountChain = makeFiscalReceiptsCountChain(0);
+    const lastZReportChain = makeLastZReportChain('2026-07-08T20:00:00.000Z');
+    const qualifyingCountChain = makeQualifyingCountChain(1);
     const zUpdateChain = makeZReportTableChain({});
 
     mockSupabaseFrom
       .mockReturnValueOnce(zCheckChain)
       .mockReturnValueOnce(zInsertChain)
       .mockReturnValueOnce(fiscalCountChain)
+      .mockReturnValueOnce(lastZReportChain)
+      .mockReturnValueOnce(qualifyingCountChain)
       .mockReturnValueOnce(zUpdateChain);
 
     mockCreateZReport.mockResolvedValue({ alreadyClosed: true, rawData: null });
@@ -240,12 +433,16 @@ describe('maybeRunScheduledZReport', () => {
     const zCheckChain = makeZReportTableChain({ maybeSingleData: null });
     const zInsertChain = makeZReportTableChain({ singleData: { id: 'fail-z-id' } });
     const fiscalCountChain = makeFiscalReceiptsCountChain(0);
+    const lastZReportChain = makeLastZReportChain('2026-07-08T20:00:00.000Z');
+    const qualifyingCountChain = makeQualifyingCountChain(1);
     const zUpdateChain = makeZReportTableChain({});
 
     mockSupabaseFrom
       .mockReturnValueOnce(zCheckChain)
       .mockReturnValueOnce(zInsertChain)
       .mockReturnValueOnce(fiscalCountChain)
+      .mockReturnValueOnce(lastZReportChain)
+      .mockReturnValueOnce(qualifyingCountChain)
       .mockReturnValueOnce(zUpdateChain);
 
     mockCreateZReport.mockRejectedValue(new Error('Network timeout'));
