@@ -7,6 +7,12 @@
  * initializeOrderIntegrations() never completed (e.g. worker restarted mid-flight).
  */
 
+// This file only uses dynamic import() (inside test bodies) and no top-level
+// static import/export, which makes TypeScript treat it as a global script
+// rather than a module — its top-level `const`s then collide with any other
+// test file in the same position. Force module scope explicitly.
+export {};
+
 const jobsUpdates: Record<string, unknown>[] = [];
 const fetchCalls: Array<{ url: string; method: string | undefined }> = [];
 const limitCalls: Array<{ table: string; n: number }> = [];
