@@ -102,6 +102,36 @@ const FULFILLMENT_LABELS: Record<string, string> = {
   pickup:   'Самовывоз',
 };
 
+// ─── Applicant type description line (notarized orders only) ─────────────────
+// individual vs legal_entity directly determines the notary official fee tier
+// (NOTARY_APPLICANT_MRP_COEFFICIENT — src/lib/pricing/config.ts) but had no
+// visibility in Jira until this fix. No custom field exists for it, so it goes
+// into the issue description as a plain line (like the other operator-facing
+// context lines in createJiraIssue()'s descLines), not a custom field.
+
+const APPLICANT_TYPE_LABELS: Record<'individual' | 'legal_entity' | 'unknown', string> = {
+  individual:   'Физическое лицо',
+  legal_entity: 'Юридическое лицо',
+  unknown:      'не указан (требуется уточнение)',
+};
+
+/**
+ * Builds the "Тип заказчика для нотариального тарифа: ..." description line.
+ * Returns null — never a fabricated value — when the order isn't notarized
+ * (the two-tier notary fee only applies there) or when applicantType wasn't
+ * recorded (jobs created before jobs.applicant_type existed, migration 0046).
+ */
+export function buildApplicantTypeDescriptionLine(
+  serviceLevel: string,
+  applicantType: 'individual' | 'legal_entity' | 'unknown' | null | undefined,
+): string | null {
+  if (serviceLevel !== 'notarization_through_partners') return null;
+  if (!applicantType) return null;
+  const label = APPLICANT_TYPE_LABELS[applicantType];
+  if (!label) return null;
+  return `Тип заказчика для нотариального тарифа: ${label}`;
+}
+
 // ─── Payload builder ──────────────────────────────────────────────────────────
 
 export interface JiraIssueFieldsInput {

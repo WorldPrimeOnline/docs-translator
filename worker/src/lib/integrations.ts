@@ -23,7 +23,7 @@ import {
 } from './google-drive';
 import { downloadFile } from './r2';
 import type { ServiceLevel } from './output-plan';
-import { buildJiraIssueFields, JIRA_FIELDS } from './jira/order-fields';
+import { buildJiraIssueFields, JIRA_FIELDS, buildApplicantTypeDescriptionLine } from './jira/order-fields';
 import {
   buildFinanceIssuePayload,
   getFinanceConfig,
@@ -90,6 +90,7 @@ async function createJiraIssue(params: {
   targetLang: string;
   documentType: string;
   notaryCity?: string | null;
+  applicantType?: 'individual' | 'legal_entity' | 'unknown' | null;
   fulfillmentMethod?: 'pickup' | 'delivery' | null;
   deliveryPhone?: string | null;
   deliveryAddress?: string | null;
@@ -114,6 +115,7 @@ async function createJiraIssue(params: {
     `Languages: ${params.sourceLang} → ${params.targetLang}`,
     `Document type: ${params.documentType.split('|')[0] ?? params.documentType}`,
     params.notaryCity ? `Notary city: ${params.notaryCity}` : null,
+    buildApplicantTypeDescriptionLine(params.serviceLevel, params.applicantType),
     params.fulfillmentMethod ? `Fulfillment: ${params.fulfillmentMethod}` : null,
     params.driveUrl ? `Drive: ${params.driveUrl}` : null,
     `WPO order: ${params.wpoUrl}`,
@@ -764,6 +766,7 @@ export async function initializeOrderIntegrations(params: {
   targetLang: string;
   documentType: string;
   notaryCity?: string | null;
+  applicantType?: 'individual' | 'legal_entity' | 'unknown' | null;
   fulfillmentMethod?: 'pickup' | 'delivery' | null;
   deliveryPhone?: string | null;
   deliveryAddress?: string | null;
@@ -875,6 +878,7 @@ export async function initializeOrderIntegrations(params: {
           targetLang: params.targetLang,
           documentType: params.documentType,
           notaryCity: params.notaryCity,
+          applicantType: params.applicantType ?? null,
           fulfillmentMethod: params.fulfillmentMethod ?? null,
           deliveryPhone: params.deliveryPhone ?? null,
           deliveryAddress: params.deliveryAddress ?? null,

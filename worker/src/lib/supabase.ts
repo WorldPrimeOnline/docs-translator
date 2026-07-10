@@ -15,6 +15,8 @@ export interface JobRow {
   notarized: boolean;
   service_level: 'electronic' | 'official_with_translator_signature_and_provider_stamp' | 'notarization_through_partners' | null;
   notary_city: string | null;
+  /** individual | legal_entity | unknown. Determines notary official fee tier. NULL = not recorded (pre-migration jobs) — never infer from price. */
+  applicant_type: 'individual' | 'legal_entity' | 'unknown' | null;
   fulfillment_method: 'pickup' | 'delivery' | null;
   delivery_phone: string | null;
   delivery_address: string | null;

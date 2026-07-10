@@ -111,6 +111,8 @@ export type Database = {
           /** Primary service level field. Supersedes notarized boolean. */
           service_level: 'electronic' | 'official_with_translator_signature_and_provider_stamp' | 'notarization_through_partners' | null;
           notary_city: string | null;
+          /** individual | legal_entity | unknown. Determines notary official fee tier. NULL = not recorded (pre-migration jobs) — never infer from price. */
+          applicant_type: 'individual' | 'legal_entity' | 'unknown' | null;
           fulfillment_method: 'pickup' | 'delivery' | null;
           /** Stored server-side only. Never synced to Jira/Telegram. */
           delivery_phone: string | null;
@@ -145,6 +147,7 @@ export type Database = {
           workflow_status?: string | null;
           service_level?: 'electronic' | 'official_with_translator_signature_and_provider_stamp' | 'notarization_through_partners' | null;
           notary_city?: string | null;
+          applicant_type?: 'individual' | 'legal_entity' | 'unknown' | null;
           fulfillment_method?: 'pickup' | 'delivery' | null;
           delivery_phone?: string | null;
           delivery_address?: string | null;
@@ -173,6 +176,7 @@ export type Database = {
           workflow_status?: string | null;
           service_level?: 'electronic' | 'official_with_translator_signature_and_provider_stamp' | 'notarization_through_partners' | null;
           notary_city?: string | null;
+          applicant_type?: 'individual' | 'legal_entity' | 'unknown' | null;
           fulfillment_method?: 'pickup' | 'delivery' | null;
           delivery_phone?: string | null;
           delivery_address?: string | null;

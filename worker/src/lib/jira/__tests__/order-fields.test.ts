@@ -1,4 +1,4 @@
-import { buildJiraIssueFields, JIRA_FIELDS } from '../order-fields';
+import { buildJiraIssueFields, JIRA_FIELDS, buildApplicantTypeDescriptionLine } from '../order-fields';
 import type { JiraIssueFieldsInput } from '../order-fields';
 
 const BASE_INPUT: JiraIssueFieldsInput = {
@@ -183,5 +183,41 @@ describe('totalCost field', () => {
   it('sets totalCost when a positive amountKzt is provided', () => {
     const fields = buildJiraIssueFields({ ...BASE_INPUT, amountKzt: 9990 });
     expect(fields[JIRA_FIELDS.totalCost]).toBe(9990);
+  });
+});
+
+// ── buildApplicantTypeDescriptionLine (WO-75 incident follow-up, 2026-07-10) ──
+// individual vs legal_entity determines the notary official fee tier but had no
+// visibility in Jira — no custom field exists for it, so it's a description line.
+
+describe('buildApplicantTypeDescriptionLine', () => {
+  const NOTARIZED = 'notarization_through_partners';
+
+  it('returns the individual label for a notarized order', () => {
+    expect(buildApplicantTypeDescriptionLine(NOTARIZED, 'individual'))
+      .toBe('Тип заказчика для нотариального тарифа: Физическое лицо');
+  });
+
+  it('returns the legal_entity label for a notarized order', () => {
+    expect(buildApplicantTypeDescriptionLine(NOTARIZED, 'legal_entity'))
+      .toBe('Тип заказчика для нотариального тарифа: Юридическое лицо');
+  });
+
+  it('returns a non-fabricated "needs clarification" label for the unknown value', () => {
+    expect(buildApplicantTypeDescriptionLine(NOTARIZED, 'unknown'))
+      .toBe('Тип заказчика для нотариального тарифа: не указан (требуется уточнение)');
+  });
+
+  it('returns null (never fabricates a value) when applicantType is null — old order, never recorded', () => {
+    expect(buildApplicantTypeDescriptionLine(NOTARIZED, null)).toBeNull();
+  });
+
+  it('returns null when applicantType is undefined', () => {
+    expect(buildApplicantTypeDescriptionLine(NOTARIZED, undefined)).toBeNull();
+  });
+
+  it('returns null for a non-notarized order even if applicantType is present — the two-tier notary fee does not apply', () => {
+    expect(buildApplicantTypeDescriptionLine('official_with_translator_signature_and_provider_stamp', 'individual')).toBeNull();
+    expect(buildApplicantTypeDescriptionLine('electronic', 'legal_entity')).toBeNull();
   });
 });
