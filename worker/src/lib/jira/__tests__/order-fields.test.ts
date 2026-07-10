@@ -203,21 +203,29 @@ describe('buildApplicantTypeDescriptionLine', () => {
       .toBe('Тип заказчика для нотариального тарифа: Юридическое лицо');
   });
 
-  it('returns a non-fabricated "needs clarification" label for the unknown value', () => {
+  it('returns the safe "Не указан" line (never fabricates individual) for the unknown value', () => {
     expect(buildApplicantTypeDescriptionLine(NOTARIZED, 'unknown'))
-      .toBe('Тип заказчика для нотариального тарифа: не указан (требуется уточнение)');
+      .toBe('Тип заказчика для нотариального тарифа: Не указан');
   });
 
-  it('returns null (never fabricates a value) when applicantType is null — old order, never recorded', () => {
-    expect(buildApplicantTypeDescriptionLine(NOTARIZED, null)).toBeNull();
+  it('returns the safe "Не указан" line (never fabricates individual) when applicantType is null — old order, never recorded', () => {
+    expect(buildApplicantTypeDescriptionLine(NOTARIZED, null))
+      .toBe('Тип заказчика для нотариального тарифа: Не указан');
   });
 
-  it('returns null when applicantType is undefined', () => {
-    expect(buildApplicantTypeDescriptionLine(NOTARIZED, undefined)).toBeNull();
+  it('returns the safe "Не указан" line when applicantType is undefined', () => {
+    expect(buildApplicantTypeDescriptionLine(NOTARIZED, undefined))
+      .toBe('Тип заказчика для нотариального тарифа: Не указан');
   });
 
-  it('returns null for a non-notarized order even if applicantType is present — the two-tier notary fee does not apply', () => {
+  it('returns the safe "Не указан" line for any unsupported/unexpected value — no DB CHECK constraint guarantees the TS type at runtime', () => {
+    expect(buildApplicantTypeDescriptionLine(NOTARIZED, 'some-corrupt-value'))
+      .toBe('Тип заказчика для нотариального тарифа: Не указан');
+  });
+
+  it('returns null for a non-notarized order — no line at all, not even "Не указан", since the two-tier notary fee does not apply', () => {
     expect(buildApplicantTypeDescriptionLine('official_with_translator_signature_and_provider_stamp', 'individual')).toBeNull();
     expect(buildApplicantTypeDescriptionLine('electronic', 'legal_entity')).toBeNull();
+    expect(buildApplicantTypeDescriptionLine('electronic', null)).toBeNull();
   });
 });

@@ -109,26 +109,35 @@ const FULFILLMENT_LABELS: Record<string, string> = {
 // into the issue description as a plain line (like the other operator-facing
 // context lines in createJiraIssue()'s descLines), not a custom field.
 
-const APPLICANT_TYPE_LABELS: Record<'individual' | 'legal_entity' | 'unknown', string> = {
+const APPLICANT_TYPE_LABELS: Record<'individual' | 'legal_entity', string> = {
   individual:   'Физическое лицо',
   legal_entity: 'Юридическое лицо',
-  unknown:      'не указан (требуется уточнение)',
 };
+
+const APPLICANT_TYPE_UNSPECIFIED_LABEL = 'Не указан';
 
 /**
  * Builds the "Тип заказчика для нотариального тарифа: ..." description line.
- * Returns null — never a fabricated value — when the order isn't notarized
- * (the two-tier notary fee only applies there) or when applicantType wasn't
- * recorded (jobs created before jobs.applicant_type existed, migration 0046).
+ *
+ * Returns null ONLY when the order isn't notarized — the two-tier notary fee
+ * (individual vs legal_entity) doesn't apply to electronic/official orders, so
+ * the line is omitted entirely there, not shown with a placeholder.
+ *
+ * For notarized orders this ALWAYS returns a line: the real label for a known
+ * choice ('individual'/'legal_entity'), or the honest "Не указан" fallback for
+ * anything else — null, undefined, 'unknown', or any unsupported string (the
+ * jobs.applicant_type column has no DB-level CHECK constraint, so defend
+ * against unexpected values here rather than assuming the TS type at runtime).
+ * Never fabricates 'individual' as a default and never infers from price.
  */
 export function buildApplicantTypeDescriptionLine(
   serviceLevel: string,
-  applicantType: 'individual' | 'legal_entity' | 'unknown' | null | undefined,
+  applicantType: string | null | undefined,
 ): string | null {
   if (serviceLevel !== 'notarization_through_partners') return null;
-  if (!applicantType) return null;
-  const label = APPLICANT_TYPE_LABELS[applicantType];
-  if (!label) return null;
+  const label = applicantType === 'individual' || applicantType === 'legal_entity'
+    ? APPLICANT_TYPE_LABELS[applicantType]
+    : APPLICANT_TYPE_UNSPECIFIED_LABEL;
   return `Тип заказчика для нотариального тарифа: ${label}`;
 }
 

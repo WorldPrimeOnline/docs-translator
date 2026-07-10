@@ -97,11 +97,37 @@ describe('initializeOrderIntegrations — applicant type reaches the Jira issue 
     expect(desc).toContain('Тип заказчика для нотариального тарифа: Юридическое лицо');
   });
 
-  it('null (old order, never recorded) — no fabricated line appears anywhere in the description', async () => {
+  it('null (old order, never recorded) — safe "Не указан" line appears, never a fabricated "Физическое лицо"', async () => {
     const { initializeOrderIntegrations } = await import('../integrations');
     await initializeOrderIntegrations({ ...baseParams, applicantType: null });
 
     const issueCreateCall = fetchCalls.find((c) => c.url.endsWith('/issue'));
+    const desc = descriptionText(issueCreateCall!.body!);
+    expect(desc).toContain('Тип заказчика для нотариального тарифа: Не указан');
+    expect(desc).not.toContain('Физическое лицо');
+    expect(desc).not.toContain('Юридическое лицо');
+  });
+
+  it('electronic order — no applicant type line at all, not even "Не указан"', async () => {
+    const { initializeOrderIntegrations } = await import('../integrations');
+    await initializeOrderIntegrations({ ...baseParams, serviceLevel: 'electronic', applicantType: null });
+
+    const issueCreateCall = fetchCalls.find((c) => c.url.endsWith('/issue'));
+    // electronic orders never get a main Jira issue at all (createJiraIssue is
+    // gated on serviceLevel !== 'electronic') — confirm no issue-create call happened.
+    expect(issueCreateCall).toBeUndefined();
+  });
+
+  it('official order — no applicant type line in the description', async () => {
+    const { initializeOrderIntegrations } = await import('../integrations');
+    await initializeOrderIntegrations({
+      ...baseParams,
+      serviceLevel: 'official_with_translator_signature_and_provider_stamp',
+      applicantType: 'individual', // even if somehow present, must not be shown for a non-notarized order
+    });
+
+    const issueCreateCall = fetchCalls.find((c) => c.url.endsWith('/issue'));
+    expect(issueCreateCall?.body).toBeDefined();
     const desc = descriptionText(issueCreateCall!.body!);
     expect(desc).not.toContain('Тип заказчика');
   });
