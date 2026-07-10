@@ -23,7 +23,7 @@ import {
 } from './google-drive';
 import { downloadFile } from './r2';
 import type { ServiceLevel } from './output-plan';
-import { buildJiraIssueFields, JIRA_FIELDS } from './jira/order-fields';
+import { buildJiraIssueFields, JIRA_FIELDS, buildApplicantTypeDescriptionLine } from './jira/order-fields';
 import {
   buildFinanceIssuePayload,
   getFinanceConfig,
@@ -90,6 +90,7 @@ async function createJiraIssue(params: {
   targetLang: string;
   documentType: string;
   notaryCity?: string | null;
+  applicantType?: 'individual' | 'legal_entity' | 'unknown' | null;
   fulfillmentMethod?: 'pickup' | 'delivery' | null;
   deliveryPhone?: string | null;
   deliveryAddress?: string | null;
@@ -114,6 +115,7 @@ async function createJiraIssue(params: {
     `Languages: ${params.sourceLang} → ${params.targetLang}`,
     `Document type: ${params.documentType.split('|')[0] ?? params.documentType}`,
     params.notaryCity ? `Notary city: ${params.notaryCity}` : null,
+    buildApplicantTypeDescriptionLine(params.serviceLevel, params.applicantType),
     params.fulfillmentMethod ? `Fulfillment: ${params.fulfillmentMethod}` : null,
     params.driveUrl ? `Drive: ${params.driveUrl}` : null,
     `WPO order: ${params.wpoUrl}`,
@@ -481,6 +483,94 @@ export async function createPriceBreakdownIssue(params: {
   return issueKey;
 }
 
+// ─── Price breakdown reconciliation ─────────────────────────────────────────
+// initializeOrderIntegrations() creates the price breakdown issue fire-and-forget
+// (`void (async () => {...})()`), deliberately non-blocking so a slow/failed Jira
+// call never delays OCR start. In a long-running worker process that's normally
+// safe (unlike a serverless function, there's no "response returned, promise
+// frozen" risk) — but if the process restarts or crashes while that promise is
+// still in flight, the side effect is lost with nothing else ever retrying it.
+// WO-75 incident, 2026-07-09: exactly this happened during the Drive OAuth
+// incident response (worker was restarted while WO-75 was mid-pipeline) — the
+// main Jira issue (WO-75) was created, but its price breakdown issue never was,
+// and nothing noticed until an operator spotted it missing.
+//
+// This sweep finds jobs with a main Jira issue but no price breakdown issue yet
+// and retries via the same idempotent createPriceBreakdownIssue() (its own
+// jobs.price_jira_issue_key check prevents duplicates).
+
+const PRICE_BREAKDOWN_RETRY_AFTER_MINUTES = 15;
+// Configurable so ops can throttle the first run(s) after flipping
+// JIRA_PRICE_BREAKDOWN_ISSUE_ENABLED=true on an environment with an existing
+// backlog of jobs missing their price breakdown issue (see the backlog audit
+// script, scripts/prod/2026-07-09_audit-price-breakdown-backlog.ts) — e.g. set
+// PRICE_BREAKDOWN_RECONCILE_BATCH_SIZE=1 on Railway to drain the backlog one
+// job per 15-minute cycle instead of the default 10, then raise it back up.
+function getPriceBreakdownMaxItemsPerCycle(): number {
+  const raw = process.env.PRICE_BREAKDOWN_RECONCILE_BATCH_SIZE;
+  const parsed = raw ? Number.parseInt(raw, 10) : NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 10;
+}
+
+export async function reconcilePendingPriceBreakdownIssues(): Promise<void> {
+  const config = getPriceBreakdownConfig();
+  if (!config.enabled) return; // feature intentionally off — nothing to reconcile
+
+  const cutoff = new Date(Date.now() - PRICE_BREAKDOWN_RETRY_AFTER_MINUTES * 60 * 1000).toISOString();
+  const maxItemsPerCycle = getPriceBreakdownMaxItemsPerCycle();
+
+  const { data: candidates, error } = await supabase
+    .from('jobs')
+    .select('id, document_id, service_level, payment_source, jira_issue_key, price_jira_issue_key, created_at')
+    .not('jira_issue_key', 'is', null)
+    .is('price_jira_issue_key', null)
+    .lt('created_at', cutoff)
+    .order('created_at', { ascending: true })
+    .limit(maxItemsPerCycle);
+
+  if (error) {
+    console.error('[price-breakdown-reconcile] DB error fetching candidates:', error.message);
+    return;
+  }
+  if (!candidates || candidates.length === 0) return;
+
+  console.warn(`[price-breakdown-reconcile] ${candidates.length} job(s) missing a price breakdown issue — retrying`);
+
+  for (const job of candidates as Array<{
+    id: string; document_id: string; service_level: string | null;
+    payment_source: 'card_payment' | 'subscription' | null; jira_issue_key: string;
+  }>) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: doc } = await (supabase as any)
+      .from('documents')
+      .select('source_language, target_language, document_type')
+      .eq('id', job.document_id)
+      .maybeSingle();
+
+    if (!doc) {
+      console.error(`[price-breakdown-reconcile] document not found for job ${job.id} — skipping`);
+      continue;
+    }
+
+    try {
+      const issueKey = await createPriceBreakdownIssue({
+        jobId: job.id,
+        mainIssueKey: job.jira_issue_key,
+        serviceLevel: job.service_level ?? 'electronic',
+        sourceLanguage: doc.source_language as string,
+        targetLanguage: doc.target_language as string,
+        documentType: doc.document_type as string,
+        paymentSource: job.payment_source ?? null,
+      });
+      if (issueKey) {
+        console.log(`[price-breakdown-reconcile] ✓ job ${job.id.slice(0, 8)} → ${issueKey}`);
+      }
+    } catch (err) {
+      console.error(`[price-breakdown-reconcile] job ${job.id.slice(0, 8)} retry failed (non-fatal):`, err instanceof Error ? err.message : String(err));
+    }
+  }
+}
+
 /**
  * Update the description of an existing Jira price breakdown issue.
  * Used by the rebuild script to fix an already-created but empty issue.
@@ -676,6 +766,7 @@ export async function initializeOrderIntegrations(params: {
   targetLang: string;
   documentType: string;
   notaryCity?: string | null;
+  applicantType?: 'individual' | 'legal_entity' | 'unknown' | null;
   fulfillmentMethod?: 'pickup' | 'delivery' | null;
   deliveryPhone?: string | null;
   deliveryAddress?: string | null;
@@ -787,6 +878,7 @@ export async function initializeOrderIntegrations(params: {
           targetLang: params.targetLang,
           documentType: params.documentType,
           notaryCity: params.notaryCity,
+          applicantType: params.applicantType ?? null,
           fulfillmentMethod: params.fulfillmentMethod ?? null,
           deliveryPhone: params.deliveryPhone ?? null,
           deliveryAddress: params.deliveryAddress ?? null,

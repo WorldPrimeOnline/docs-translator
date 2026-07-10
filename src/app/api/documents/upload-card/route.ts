@@ -352,6 +352,7 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
     notarized,
     service_level: serviceLevel,
     notary_city: notaryCity ?? null,
+    applicant_type: notarized ? applicantType : null,
     fulfillment_method: fulfillmentMethod ?? null,
     delivery_phone: deliveryPhone ?? null,
     delivery_address: deliveryAddress ?? null,

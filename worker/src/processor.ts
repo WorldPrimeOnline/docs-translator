@@ -97,6 +97,7 @@ export async function processJob(jobId: string, documentId: string): Promise<voi
         targetLang: doc.target_language,
         documentType: doc.document_type,
         notaryCity: jobRow?.notary_city ?? null,
+        applicantType: jobRow?.applicant_type ?? null,
         fulfillmentMethod: jobRow?.fulfillment_method ?? null,
         deliveryPhone: jobRow?.delivery_phone ?? null,
         deliveryAddress: jobRow?.delivery_address ?? null,

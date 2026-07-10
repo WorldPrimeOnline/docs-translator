@@ -372,6 +372,7 @@ export async function convertDraftToOrder(draftId: string, userId: string): Prom
         notarized,
         service_level: draft.service_level,
         notary_city: draft.notary_city,
+        applicant_type: draft.applicant_type,
         fulfillment_method: draft.fulfillment_method,
         delivery_phone: draft.delivery_phone,
         delivery_address: draft.delivery_address,

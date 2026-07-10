@@ -6,6 +6,7 @@ import { reconcileFiscalAndRefunds, triggerReconcilePayments, triggerReconcileRe
 import { processPendingFiscalReceipts } from './lib/fiscal-processor';
 import { diagnoseWebkassaConnectivity } from './lib/webkassa-client';
 import { logDriveAuthModeWithHealthCheck } from './lib/google-drive';
+import { reconcilePendingPriceBreakdownIssues } from './lib/integrations';
 
 // ── State ──────────────────────────────────────────────────────────────────
 let running = false;   // true while we are processing a job
@@ -284,6 +285,17 @@ async function main(): Promise<void> {
       console.error('[worker] reconcile-refunds trigger error:', (err as Error).message);
     });
   }, REFUNDS_RECONCILE_INTERVAL_MS);
+
+  // Reconcile jobs missing their price breakdown Jira issue every 15 minutes.
+  // Catches the WO-75 class of bug: initializeOrderIntegrations() creates it
+  // fire-and-forget (non-blocking, so it never delays OCR start) — if the worker
+  // restarts mid-flight, that side effect can be lost with nothing else retrying it.
+  const PRICE_BREAKDOWN_RECONCILE_INTERVAL_MS = 15 * 60 * 1000;
+  setInterval(() => {
+    void reconcilePendingPriceBreakdownIssues().catch((err: unknown) => {
+      console.error('[worker] price breakdown reconciliation error:', (err as Error).message);
+    });
+  }, PRICE_BREAKDOWN_RECONCILE_INTERVAL_MS);
 }
 
 void main();
