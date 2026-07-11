@@ -360,6 +360,10 @@ export function calculatePrice(input: PricingInput, version: PricingVersion): Pr
     // is a plain-KZT fallback used only when the version doesn't carry an mrp_value at all.
     const mrpKzt = version.mrpValue != null ? version.mrpValue * 1000 : NOTARY_CONFIG.mrpValueFallbackKzt;
 
+    // 'unknown' is no longer a submittable value from any customer-facing entry point
+    // (OrderForm, upload-card, order-drafts — 2026-07-11 fix: notarized orders now require
+    // an explicit individual/legal_entity choice). This branch is defensive-only, for
+    // pre-existing legacy jobs rows that may still carry 'unknown' or a malformed value.
     const mrpCoeffOrReview = NOTARY_APPLICANT_MRP_COEFFICIENT[applicantType];
     let mrpCoeff: number;
     if (mrpCoeffOrReview === 'operator_review') {

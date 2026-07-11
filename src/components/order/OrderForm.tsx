@@ -129,7 +129,11 @@ export function OrderForm({ mode, onSubmitSuccess, draftId, onDraftIdChange, onD
   // — see docs/ai-context/40_TRANSLATION_PIPELINE.md "Electronic output policy".
   const [outputFormat, setOutputFormat] = useState<'html' | 'docx'>('docx');
   const [serviceLevel, setServiceLevel] = useState<ServiceLevel>('electronic');
-  const [applicantType, setApplicantType] = useState('individual');
+  // No default — an explicit individual/legal_entity choice is required for
+  // notarized orders (it directly determines the notary MRP tariff, a ~2x
+  // difference); silently defaulting to 'individual' would let an unanswered
+  // field under-price a legal-entity order. Irrelevant for electronic/official.
+  const [applicantType, setApplicantType] = useState('');
   const [notaryUrgencyLevel, setNotaryUrgencyLevel] = useState<'standard' | 'same_day'>('standard');
   const [notaryCity, setNotaryCity] = useState('');
   const [customerComment, setCustomerComment] = useState('');
@@ -209,7 +213,7 @@ export function OrderForm({ mode, onSubmitSuccess, draftId, onDraftIdChange, onD
     setServiceLevel(newLevel);
     if (newLevel !== 'notarization_through_partners') {
       setNotaryCity(''); setFulfillmentMethod(''); setDeliveryPhone(''); setDeliveryAddress('');
-      setApplicantType('individual'); setNotaryUrgencyLevel('standard');
+      setApplicantType(''); setNotaryUrgencyLevel('standard');
     }
   };
 
@@ -224,7 +228,7 @@ export function OrderForm({ mode, onSubmitSuccess, draftId, onDraftIdChange, onD
     sourceLang !== targetLang &&
     termsAccepted !== null &&
     (termsAccepted === true || consentChecked) &&
-    isNotaryDeliveryValid({ isNotarization, notaryCity, fulfillmentMethod, deliveryPhone, deliveryAddress });
+    isNotaryDeliveryValid({ isNotarization, notaryCity, fulfillmentMethod, deliveryPhone, deliveryAddress, applicantType });
 
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
@@ -566,12 +570,15 @@ export function OrderForm({ mode, onSubmitSuccess, draftId, onDraftIdChange, onD
               </div>
             )}
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('notary.applicantType')}</label>
-              <select value={applicantType} onChange={(e) => setApplicantType(e.target.value)} className={selectClass}>
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('notary.applicantType')} <span className="text-red-400">*</span></label>
+              <select value={applicantType} onChange={(e) => setApplicantType(e.target.value)} className={selectClass} required>
+                <option value="" disabled>{t('notary.applicantTypePlaceholder')}</option>
                 <option value="individual">{t('notary.individual')}</option>
                 <option value="legal_entity">{t('notary.legalEntity')}</option>
-                <option value="unknown">{t('notary.unknownApplicant')}</option>
               </select>
+              {applicantType === '' && (
+                <p className="text-xs text-red-400">{t('notary.applicantTypeRequired')}</p>
+              )}
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('notary.urgencyLevel')}</label>

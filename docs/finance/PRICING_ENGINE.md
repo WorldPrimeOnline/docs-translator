@@ -275,7 +275,7 @@ Only these fields are accepted from the public upload form. The backend schema r
 | `notaryCity` | Notarization | City selector |
 | `fulfillmentMethod` | Notarization | `pickup` / `delivery` |
 | `deliveryZone` | Delivery only | `almaty_standard` = 2 500 KZT; other zones → operator review |
-| `applicantType` | Notarization | `individual` / `legal_entity` / `unknown` → operator review |
+| `applicantType` | **Required for notarization** | `individual` / `legal_entity` — the API rejects notarized submissions without one; `'unknown'` is not a submittable value (2026-07-11 fix). The `NOTARY_APPLICANT_MRP_COEFFICIENT['unknown']` operator-review/individual-fallback branch in the calculator remains only as defensive handling for pre-existing legacy data. |
 | `notaryUrgencyLevel` | Notarization | `standard` / `same_day` (Almaty cutoff rules apply) |
 | `customerComment` | Optional | Free text, max 2 000 chars; stored on `jobs.customer_comment`; included in Jira description |
 

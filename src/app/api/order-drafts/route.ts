@@ -13,7 +13,8 @@ const VALID_SERVICE_LEVELS = [
   'official_with_translator_signature_and_provider_stamp',
   'notarization_through_partners',
 ] as const;
-const VALID_APPLICANT_TYPES = ['individual', 'legal_entity', 'unknown'] as const;
+// 'unknown' is intentionally not a submittable value — see upload-card/route.ts for why.
+const VALID_APPLICANT_TYPES = ['individual', 'legal_entity'] as const;
 const VALID_DELIVERY_ZONES = ['almaty_standard', 'remote_area', 'other_city', 'urgent_delivery'] as const;
 const VALID_NOTARY_URGENCY = ['standard', 'same_day'] as const;
 const VALID_FULFILLMENT = ['pickup', 'delivery'] as const;

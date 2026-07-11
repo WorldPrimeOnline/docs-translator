@@ -30,7 +30,10 @@ const VALID_SERVICE_LEVELS = [
   'notarization_through_partners',
 ] as const;
 
-const VALID_APPLICANT_TYPES = ['individual', 'legal_entity', 'unknown'] as const;
+// 'unknown' is intentionally not a submittable value — it directly determines the notary
+// MRP tariff (individual vs legal_entity, a ~2x difference), so notarized orders must always
+// carry an explicit choice. See src/lib/pricing/config.ts NOTARY_APPLICANT_MRP_COEFFICIENT.
+const VALID_APPLICANT_TYPES = ['individual', 'legal_entity'] as const;
 const VALID_DELIVERY_ZONES = ['almaty_standard', 'remote_area', 'other_city', 'urgent_delivery'] as const;
 const VALID_NOTARY_URGENCY = ['standard', 'same_day'] as const;
 
@@ -40,7 +43,7 @@ const UploadFormSchema = z
     targetLang: z.string().min(1),
     documentType: z.string().min(1),
     serviceLevel: z.enum(VALID_SERVICE_LEVELS).default('electronic'),
-    applicantType: z.enum(VALID_APPLICANT_TYPES).default('individual'),
+    applicantType: z.enum(VALID_APPLICANT_TYPES).optional(),
     notaryUrgencyLevel: z.enum(VALID_NOTARY_URGENCY).default('standard'),
     deliveryZone: z.enum(VALID_DELIVERY_ZONES).optional(),
     notaryCity: z.string().optional(),
@@ -64,6 +67,9 @@ const UploadFormSchema = z
       }
       if (!data.fulfillmentMethod) {
         ctx.addIssue({ code: 'custom', path: ['fulfillmentMethod'], message: 'Fulfillment method is required' });
+      }
+      if (!data.applicantType) {
+        ctx.addIssue({ code: 'custom', path: ['applicantType'], message: 'Applicant type is required for notarization orders' });
       }
       if (data.fulfillmentMethod === 'delivery') {
         if (!data.deliveryPhone) ctx.addIssue({ code: 'custom', path: ['deliveryPhone'], message: 'Phone is required for delivery' });
@@ -174,7 +180,7 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
     targetLang: formData.get('targetLang'),
     documentType: formData.get('documentType'),
     serviceLevel: formData.get('serviceLevel') ?? 'electronic',
-    applicantType: formData.get('applicantType') ?? 'individual',
+    applicantType: formData.get('applicantType') ?? undefined,
     notaryUrgencyLevel: formData.get('notaryUrgencyLevel') ?? 'standard',
     deliveryZone: formData.get('deliveryZone') ?? undefined,
     notaryCity: formData.get('notaryCity') ?? undefined,

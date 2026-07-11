@@ -7,6 +7,7 @@ function baseState(overrides: Partial<NotaryDeliveryFormState> = {}): NotaryDeli
     fulfillmentMethod: 'delivery',
     deliveryPhone: '+7 707 123 45 67',
     deliveryAddress: 'Казыбек Би 10, кв. 25',
+    applicantType: 'individual',
     ...overrides,
   };
 }
@@ -89,5 +90,12 @@ describe('isNotaryDeliveryValid', () => {
     expect(isNotaryDeliveryValid(pickupValid)).toBe(true);
     const afterSwitchToDelivery = { ...pickupValid, fulfillmentMethod: 'delivery' };
     expect(isNotaryDeliveryValid(afterSwitchToDelivery)).toBe(false);
+  });
+
+  it('requires an explicit individual/legal_entity applicant type for any notarized order', () => {
+    expect(isNotaryDeliveryValid(baseState({ applicantType: '' }))).toBe(false);
+    expect(isNotaryDeliveryValid(baseState({ applicantType: 'unknown' }))).toBe(false);
+    expect(isNotaryDeliveryValid(baseState({ applicantType: 'individual' }))).toBe(true);
+    expect(isNotaryDeliveryValid(baseState({ applicantType: 'legal_entity' }))).toBe(true);
   });
 });
