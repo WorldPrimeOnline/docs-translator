@@ -4,7 +4,7 @@ const config: Config = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   roots: ['<rootDir>/src', '<rootDir>/worker/src', '<rootDir>/tools/internal-ai-test-lab'],
-  testMatch: ['**/__tests__/**/*.test.ts'],
+  testMatch: ['**/__tests__/**/*.test.{ts,tsx}'],
   transform: {
     '^.+\\.tsx?$': [
       'ts-jest',
@@ -16,7 +16,9 @@ const config: Config = {
           module: 'commonjs',
           moduleResolution: 'node',
           target: 'es2020',
-          lib: ['es2020'],
+          lib: ['es2020', 'dom'],
+          jsx: 'react-jsx',
+          resolveJsonModule: true,
         },
       },
     ],

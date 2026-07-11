@@ -93,6 +93,7 @@ const BASE_DRAFT: OrderDraftRow = {
   converted_document_id: null,
   converted_quote_id: null,
   converted_price_kzt: null,
+  consent_accepted_at: '2026-01-01T00:00:00.000Z',
   ip_address: '1.2.3.4',
   expires_at: '2099-01-01T00:00:00.000Z',
   created_at: '2026-01-01T00:00:00.000Z',
@@ -147,6 +148,39 @@ describe('updateDraftFields', () => {
     expect(updateChain.update).toHaveBeenCalledWith(
       expect.objectContaining({ status: 'draft_created', pricing_snapshot: null }),
     );
+  });
+
+  it('records consent_accepted_at the first time consentAccepted:true is patched on a draft with no prior consent', async () => {
+    const unconsented = { ...BASE_DRAFT, consent_accepted_at: null };
+    const updateChain = chain({ data: unconsented, error: null });
+    mockFrom.mockReturnValueOnce(chain({ data: unconsented, error: null })).mockReturnValueOnce(updateChain);
+
+    await updateDraftFields('draft-1', { consentAccepted: true }, { sessionToken: 'sess-token' });
+
+    expect(updateChain.update).toHaveBeenCalledWith(
+      expect.objectContaining({ consent_accepted_at: expect.any(String) }),
+    );
+  });
+
+  it('does not overwrite an already-recorded consent_accepted_at on a later patch', async () => {
+    const updateChain = chain({ data: BASE_DRAFT, error: null });
+    mockFrom.mockReturnValueOnce(chain({ data: BASE_DRAFT, error: null })).mockReturnValueOnce(updateChain);
+
+    await updateDraftFields('draft-1', { consentAccepted: true, documentType: 'contract' }, { sessionToken: 'sess-token' });
+
+    const patchArg = (updateChain.update as jest.Mock).mock.calls[0][0] as Record<string, unknown>;
+    expect(patchArg.consent_accepted_at).toBeUndefined();
+  });
+
+  it('never sets consent_accepted_at when consentAccepted is false or omitted', async () => {
+    const unconsented = { ...BASE_DRAFT, consent_accepted_at: null };
+    const updateChain = chain({ data: unconsented, error: null });
+    mockFrom.mockReturnValueOnce(chain({ data: unconsented, error: null })).mockReturnValueOnce(updateChain);
+
+    await updateDraftFields('draft-1', { consentAccepted: false, documentType: 'contract' }, { sessionToken: 'sess-token' });
+
+    const patchArg = (updateChain.update as jest.Mock).mock.calls[0][0] as Record<string, unknown>;
+    expect(patchArg.consent_accepted_at).toBeUndefined();
   });
 });
 
@@ -339,6 +373,14 @@ describe('convertDraftToOrder', () => {
       value: { jobId: 'job-1', documentId: 'doc-1', quoteId: 'quote-1', priceKzt: 15000 },
     });
     expect(mockFrom).toHaveBeenCalledTimes(1); // no new insert attempted
+    expect(mockDownloadFile).not.toHaveBeenCalled();
+  });
+
+  it('returns CONSENT_NOT_ACCEPTED and never creates a document/job when the draft has no recorded consent', async () => {
+    const unconsented = { ...BASE_DRAFT, user_id: 'user-1', consent_accepted_at: null };
+    mockFrom.mockReturnValueOnce(chain({ data: unconsented, error: null }));
+    const result = await convertDraftToOrder('draft-1', 'user-1');
+    expect(result).toEqual({ ok: false, error: 'CONSENT_NOT_ACCEPTED' });
     expect(mockDownloadFile).not.toHaveBeenCalled();
   });
 

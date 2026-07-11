@@ -29,6 +29,7 @@ const UpdateDraftSchema = z.object({
   deliveryAddress: z.string().max(500).optional(),
   deliveryZone: z.enum(VALID_DELIVERY_ZONES).optional(),
   customerComment: z.string().max(2000).optional(),
+  consentAccepted: z.boolean().optional(),
   refCode: z.string().max(50).optional(),
   utmSource: z.string().max(200).optional(),
   utmMedium: z.string().max(200).optional(),

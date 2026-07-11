@@ -331,6 +331,10 @@ export function OrderForm({ mode, onSubmitSuccess, draftId, onDraftIdChange, onD
             }
           : {}),
         customerComment: customerComment.trim() || undefined,
+        // isFormValid already required (termsAccepted === true || consentChecked) before this
+        // submit could fire — record that acceptance on the draft now, since anonymous
+        // visitors have no session/user row yet to record it against (see migration 0047).
+        consentAccepted: termsAccepted === true || consentChecked,
         refCode: promoCode.trim() || undefined,
         utmSource: referral?.utmSource ?? undefined,
         utmMedium: referral?.utmMedium ?? undefined,
