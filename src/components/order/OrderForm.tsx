@@ -134,6 +134,9 @@ export function OrderForm({ mode, onSubmitSuccess, draftId, onDraftIdChange, onD
   // difference); silently defaulting to 'individual' would let an unanswered
   // field under-price a legal-entity order. Irrelevant for electronic/official.
   const [applicantType, setApplicantType] = useState('');
+  // Only surface the "required" hint after a submit was actually attempted while
+  // the field was empty — not on every render while the user is still filling the form.
+  const [submitAttempted, setSubmitAttempted] = useState(false);
   const [notaryUrgencyLevel, setNotaryUrgencyLevel] = useState<'standard' | 'same_day'>('standard');
   const [notaryCity, setNotaryCity] = useState('');
   const [customerComment, setCustomerComment] = useState('');
@@ -232,7 +235,7 @@ export function OrderForm({ mode, onSubmitSuccess, draftId, onDraftIdChange, onD
 
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
-    if (!isFormValid) return;
+    if (!isFormValid) { setSubmitAttempted(true); return; }
     if (files.length === 0) { toast.error(t('errors.pleaseSelectFile')); return; }
     setUploading(true);
 
@@ -576,7 +579,7 @@ export function OrderForm({ mode, onSubmitSuccess, draftId, onDraftIdChange, onD
                 <option value="individual">{t('notary.individual')}</option>
                 <option value="legal_entity">{t('notary.legalEntity')}</option>
               </select>
-              {applicantType === '' && (
+              {submitAttempted && applicantType === '' && (
                 <p className="text-xs text-red-400">{t('notary.applicantTypeRequired')}</p>
               )}
             </div>
