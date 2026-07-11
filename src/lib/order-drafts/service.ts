@@ -66,6 +66,7 @@ export async function createDraft(
       utm_campaign: input.utmCampaign ?? null,
       utm_content: input.utmContent ?? null,
       utm_term: input.utmTerm ?? null,
+      consent_accepted_at: input.consentAccepted ? new Date().toISOString() : null,
       ip_address: ipAddress,
     })
     .select('*')
@@ -75,7 +76,9 @@ export async function createDraft(
   return data as OrderDraftRow;
 }
 
-const FIELD_MAP: Record<keyof OrderDraftInput, string> = {
+// consentAccepted is intentionally excluded — it's a write-once boolean->timestamp
+// flag (see updateDraftFields below), not a 1:1 column copy like every other field here.
+const FIELD_MAP: Record<Exclude<keyof OrderDraftInput, 'consentAccepted'>, string> = {
   sourceLanguage: 'source_language',
   targetLanguage: 'target_language',
   documentType: 'document_type',
@@ -110,6 +113,13 @@ export async function updateDraftFields(
   const patchDb: Record<string, unknown> = { updated_at: new Date().toISOString() };
   for (const [key, column] of Object.entries(FIELD_MAP) as [keyof OrderDraftInput, string][]) {
     if (patch[key] !== undefined) patchDb[column] = patch[key];
+  }
+
+  // consentAccepted is a write-once flag, not a 1:1 column copy (like FIELD_MAP above):
+  // it only ever sets the timestamp the first time, and is never cleared by a later
+  // patch that omits or sends false — once given, consent stays recorded.
+  if (patch.consentAccepted === true && !draft.consent_accepted_at) {
+    patchDb.consent_accepted_at = new Date().toISOString();
   }
 
   // Editing any field after a price was already shown invalidates that snapshot.
@@ -288,6 +298,10 @@ export async function convertDraftToOrder(draftId: string, userId: string): Prom
     };
   }
 
+  // Defense in depth: CheckoutClient already refuses to auto-convert without recorded
+  // consent, but this is the actual guarantee — never create a payable order for a
+  // draft that never had its Terms of Service/Privacy Policy consent recorded.
+  if (!existing.consent_accepted_at) return { ok: false, error: 'CONSENT_NOT_ACCEPTED' };
   if (!existing.pricing_snapshot) return { ok: false, error: 'PRICE_NOT_CALCULATED' };
   if (!existing.file_keys || existing.file_keys.length === 0) return { ok: false, error: 'NO_FILE' };
 

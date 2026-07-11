@@ -51,6 +51,7 @@ export interface OrderDraftRow {
   converted_document_id: string | null;
   converted_quote_id: string | null;
   converted_price_kzt: number | null;
+  consent_accepted_at: string | null;
   ip_address: string | null;
   expires_at: string;
   created_at: string;
@@ -72,6 +73,8 @@ export interface OrderDraftInput {
   deliveryAddress?: string | null;
   deliveryZone?: string | null;
   customerComment?: string | null;
+  /** True when the visitor had the /start terms/consent box checked (or already accepted account-wide). Write-once — see updateDraftFields/createDraft; never clears an already-recorded acceptance. */
+  consentAccepted?: boolean;
   refCode?: string | null;
   utmSource?: string | null;
   utmMedium?: string | null;
