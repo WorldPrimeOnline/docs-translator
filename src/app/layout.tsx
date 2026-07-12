@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { Cormorant_Garamond, Geist_Mono, Inter } from 'next/font/google';
 import { headers } from 'next/headers';
+import { DEFAULT_LOCALE } from '@/i18n/locales';
+import { buildFallbackMetadata } from '@/lib/seo/site-metadata';
 import './globals.css';
 
 const inter = Inter({
@@ -19,15 +21,15 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 });
 
-export const metadata: Metadata = {
-  title: 'WPO Translations — AI Document Translation',
-  description:
-    'AI-powered document translation. Upload a scanned PDF and receive a translated version in minutes — passports, diplomas, contracts, bank statements and more.',
-  icons: {
-    icon: { url: '/icon.png', sizes: '512x512', type: 'image/png' },
-    apple: { url: '/icon.png', sizes: '512x512', type: 'image/png' },
-  },
-};
+/**
+ * Locale-aware fallback for routes with no generateMetadata of their own.
+ * next-intl middleware sets x-next-intl-locale, mirrored below in <html lang>.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const headersList = await headers();
+  const locale = headersList.get('x-next-intl-locale') ?? DEFAULT_LOCALE;
+  return buildFallbackMetadata(locale);
+}
 
 const IS_STAGING = process.env.NEXT_PUBLIC_APP_ENV === 'staging';
 
@@ -42,7 +44,7 @@ export default async function RootLayout({
 }>) {
   // next-intl middleware sets x-next-intl-locale so we can reflect it in <html lang>
   const headersList = await headers();
-  const locale = headersList.get('x-next-intl-locale') ?? 'en';
+  const locale = headersList.get('x-next-intl-locale') ?? DEFAULT_LOCALE;
 
   return (
     <html lang={locale} suppressHydrationWarning>

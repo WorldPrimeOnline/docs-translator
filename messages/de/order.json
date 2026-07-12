@@ -107,7 +107,7 @@
       "label": "SERVICELEVEL",
       "electronic": {
         "label": "Elektronische Übersetzung",
-        "desc": "Übersetzung per KI und OCR. Ohne Übersetzerunterschrift und Anbieterstempel. In 2–5 Minuten fertig."
+        "desc": "Elektronische Dokumentübersetzung in PDF oder DOCX ohne Unterschrift, Stempel oder notarielle Beglaubigung. Fertig in 2–5 Minuten."
       },
       "certified": {
         "label": "Übersetzung mit Anbieterstempel",
@@ -167,7 +167,7 @@
       "translating": "Übersetzung",
       "rendering": "Dokument wird erstellt",
       "done": "Fertig",
-      "aiProcessing": "KI-Verarbeitung",
+      "aiProcessing": "Verarbeitung",
       "sentToTranslator": "An Übersetzer weitergeleitet",
       "translatorReview": "Übersetzerprüfung",
       "signatureStamp": "Unterschrift und Stempel",

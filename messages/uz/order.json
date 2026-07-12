@@ -105,7 +105,7 @@
       "label": "XIZMAT DARAJASI",
       "electronic": {
         "label": "Elektron tarjima",
-        "desc": "Tarjima AI va OCR yordamida amalga oshiriladi. Tarjimon imzosi va ijrochi muhrisiz. 2–5 daqiqada tayyor."
+        "desc": "Hujjatning PDF yoki DOCX formatidagi elektron tarjimasi, imzosiz, muhrsiz va notarial tasdiqlashsiz. 2–5 daqiqada tayyor."
       },
       "certified": {
         "label": "Ijrochi muhri bilan tarjima",
@@ -161,7 +161,7 @@
       "translating": "Tarjimon",
       "rendering": "Hujjat tayyorlanmoqda",
       "done": "Tayyor",
-      "aiProcessing": "AI ishlov berish",
+      "aiProcessing": "Ishlov berilmoqda",
       "sentToTranslator": "Tarjimonga yuborildi",
       "translatorReview": "Tarjimon tekshiruvi",
       "signatureStamp": "Imzo va muhr",

@@ -105,7 +105,7 @@
       "label": "NIVEL DE SERVICIO",
       "electronic": {
         "label": "Traducción electrónica",
-        "desc": "Traducción procesada con IA y OCR. Sin firma del traductor ni sello del proveedor. Lista en 2–5 minutos."
+        "desc": "Traducción electrónica del documento en PDF o DOCX, sin firma, sello ni certificación notarial. Lista en 2–5 minutos."
       },
       "certified": {
         "label": "Traducción certificada",
@@ -161,7 +161,7 @@
       "translating": "Traduciendo",
       "rendering": "Generando documento",
       "done": "Completado",
-      "aiProcessing": "Procesamiento IA",
+      "aiProcessing": "Procesamiento",
       "sentToTranslator": "Enviado al traductor",
       "translatorReview": "Revisión del traductor",
       "signatureStamp": "Firma y sello",

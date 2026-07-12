@@ -10,7 +10,7 @@
     "paygNote": "From ₸1,500 — electronic translation. From ₸6,200 — translation with provider stamp.",
     "electronic": "Electronic translation",
     "electronicPrice": "from ₸1,500",
-    "electronicF1": "AI/OCR draft and automated formatting",
+    "electronicF1": "Draft translation with automatic formatting",
     "electronicF2": "PDF/DOCX output",
     "electronicF3": "Ready in 2–5 minutes",
     "electronicF4": "No translator signature or provider stamp",
@@ -33,7 +33,7 @@
         "price": "from ₸1,500",
         "unit": "per document",
         "features": [
-          "AI/OCR draft and automated formatting",
+          "Draft translation with automatic formatting",
           "PDF/DOCX result",
           "Usually 2–5 minutes",
           "No translator signature or agent stamp"
@@ -70,7 +70,7 @@
     "payg": "Pay per document",
     "feature1": "No commitment",
     "feature2": "All document types",
-    "feature3": "AI/OCR draft and automated formatting",
+    "feature3": "Draft translation with automatic formatting",
     "feature4": "Clean PDF output",
     "allDocTypes": "All document types",
     "cleanPdf": "Clean PDF output",
