@@ -82,6 +82,33 @@ function serviceLevelLabel(level: ServiceLevel): string {
   return 'electronic';
 }
 
+/**
+ * Best-effort lookup of the referring partner's Application ID for a job.
+ * Returns null (never throws) if the order has no referral, the partner_referrals
+ * row hasn't landed yet (attachReferralToOrder is fire-and-forget on the web side),
+ * or the partner record has no application_id on file.
+ */
+async function getPartnerApplicationId(jobId: string): Promise<string | null> {
+  try {
+    const { data: referral } = await supabase
+      .from('partner_referrals')
+      .select('partner_id')
+      .eq('job_id', jobId)
+      .maybeSingle();
+    if (!referral?.partner_id) return null;
+
+    const { data: partner } = await supabase
+      .from('partners')
+      .select('application_id')
+      .eq('id', referral.partner_id)
+      .maybeSingle();
+    return partner?.application_id ?? null;
+  } catch (err) {
+    console.error(`[worker-jira] getPartnerApplicationId failed for job ${jobId}:`, err instanceof Error ? err.message : err);
+    return null;
+  }
+}
+
 async function createJiraIssue(params: {
   jobId: string;
   customerId: string | null;
@@ -99,6 +126,8 @@ async function createJiraIssue(params: {
   wpoUrl: string;
   createdAt?: string;
   customerComment?: string | null;
+  /** partner_applications.id (UUID) of the referring partner — omitted when the order has no referral. */
+  partnerApplicationId?: string | null;
 }): Promise<{ issueKey: string; issueId: string; issueUrl: string } | null> {
   const auth = getJiraAuth();
   if (!auth) {
@@ -135,6 +164,7 @@ async function createJiraIssue(params: {
     deliveryPhone: params.deliveryPhone ?? null,
     deliveryAddress: params.deliveryAddress ?? null,
     driveUrl: params.driveUrl ?? null,
+    partnerApplicationId: params.partnerApplicationId ?? null,
   });
 
   const envLabel = (process.env.APP_ENV ?? 'production') === 'staging'
@@ -870,6 +900,7 @@ export async function initializeOrderIntegrations(params: {
     } else {
       try {
         const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.SITE_URL ?? 'https://wpotranslations.org';
+        const partnerApplicationId = await getPartnerApplicationId(params.jobId);
         const issue = await createJiraIssue({
           jobId: params.jobId,
           customerId: params.customerId ?? null,
@@ -887,6 +918,7 @@ export async function initializeOrderIntegrations(params: {
           wpoUrl: `${siteUrl}/dashboard`,
           createdAt: new Date().toISOString(),
           customerComment: params.customerComment ?? null,
+          partnerApplicationId,
         });
 
         if (issue) {
