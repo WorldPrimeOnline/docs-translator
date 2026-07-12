@@ -72,6 +72,10 @@ Delivery address and phone go only into `customfield_10076` / `customfield_10075
 
 See `worker/src/lib/jira/order-fields.ts` for all field IDs.
 
+### Partner referral attribution on the main order issue
+
+`customfield_10121` (`Partner ID`) — set on the main order issue (`WO`/`Заказ`) at issue-create time only, to the referring partner's `partner_applications.id` (the same UUID Jira Automation already knows as the Partnership issue's Application ID). Populated by `getPartnerApplicationId(jobId)` in `worker/src/lib/integrations.ts`, which does a best-effort lookup: `partner_referrals.job_id → partner_referrals.partner_id → partners.application_id`. Omitted entirely (never a placeholder) when the order has no referral, the referral row hasn't landed yet, or the partner has no `application_id` on file — matches the rest of the referral pipeline's best-effort, non-blocking convention (`src/lib/referral/server.ts`). Not backfilled after issue creation, same as the other order-creation-time-only fields (delivery address/phone). This is the only wiring between the referral system and Jira on the order side — no admin pages, no separate payout UI; Jira remains the back-office for partner reporting.
+
 ## Google Drive
 
 **Credentials** (all optional):

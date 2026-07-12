@@ -508,3 +508,19 @@ Webkassa integrator reported cashbox SWK00529346 received Code 12 ('Смена �
 
 **Risks / caveats:**  
 Relies on fiscal_receipts.issued_at being set accurately by fiscal-processor.ts (it is, on successful issuance). Does not filter by a per-cashbox column on fiscal_receipts (matches existing single-cashbox assumption elsewhere in the file). forceRunZReport() (manual operator trigger) intentionally bypasses this guard.
+
+---
+
+### 2026-07-11 — Partner Application ID written to main order Jira issue (customfield_10121)
+
+**Decision:**  
+worker/src/lib/integrations.ts initializeOrderIntegrations() now looks up the referring partner's Application ID (partner_referrals.job_id -> partner_id -> partners.application_id) and, when present, writes it to customfield_10121 on the main order issue at issue-create time only. Best-effort, non-throwing, omitted entirely (no placeholder) when there is no referral or the lookup misses. No admin UI, no new commission/payout tables — Jira remains the sole partner back-office surface.
+
+**Rationale:**  
+Requested minimal partner reporting via the existing Jira integration instead of building a payout/admin interface on the site. Reuses the existing partners/partner_referrals tables and the existing Partnership-issue Application ID that Jira Automation already tracks, so operators can filter/report on referred orders directly in Jira.
+
+**Impacted files/docs:**  
+`worker/src/lib/integrations.ts`, `worker/src/lib/jira/order-fields.ts`, `worker/src/lib/jira/__tests__/order-fields.test.ts`, `worker/src/lib/__tests__/integrations-partner-application-id.test.ts`, `docs/ai-context/60_INTEGRATIONS_JIRA_DRIVE_TELEGRAM.md`
+
+**Risks / caveats:**  
+Referral attribution is a point-in-time lookup at issue-create time only — if `attachReferralToOrder` (in `src/lib/referral/server.ts`, fire-and-forget on the web side) hasn't written the `partner_referrals` row yet when the worker creates the Jira issue, the field is silently omitted and never backfilled. Relies on `partners.application_id` being populated (set when a partner application is approved); referrals from partners created without a linked application leave the field empty.

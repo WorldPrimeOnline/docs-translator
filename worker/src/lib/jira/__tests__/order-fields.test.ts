@@ -186,6 +186,28 @@ describe('totalCost field', () => {
   });
 });
 
+// ── partnerApplicationId (customfield_10121) ────────────────────────────────
+
+describe('partnerApplicationId field', () => {
+  it('omits the field when the order has no referral', () => {
+    const fields = buildJiraIssueFields(BASE_INPUT);
+    expect(fields[JIRA_FIELDS.partnerApplicationId]).toBeUndefined();
+  });
+
+  it('omits the field when partnerApplicationId is null', () => {
+    const fields = buildJiraIssueFields({ ...BASE_INPUT, partnerApplicationId: null });
+    expect(fields[JIRA_FIELDS.partnerApplicationId]).toBeUndefined();
+  });
+
+  it('sets customfield_10121 to the partner Application ID when present', () => {
+    const fields = buildJiraIssueFields({
+      ...BASE_INPUT,
+      partnerApplicationId: '34c19be3-f501-4c24-894f-e46d22c229d9',
+    });
+    expect(fields[JIRA_FIELDS.partnerApplicationId]).toBe('34c19be3-f501-4c24-894f-e46d22c229d9');
+  });
+});
+
 // ── buildApplicantTypeDescriptionLine (WO-75 incident follow-up, 2026-07-10) ──
 // individual vs legal_entity determines the notary official fee tier but had no
 // visibility in Jira — no custom field exists for it, so it's a description line.

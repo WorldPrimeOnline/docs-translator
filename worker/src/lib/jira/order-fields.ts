@@ -32,6 +32,7 @@ export const JIRA_FIELDS = {
   documentType:      'customfield_10082', // single-select
   languagePair:      'customfield_10088', // text
   fulfillmentMethod: 'customfield_10087', // single-select
+  partnerApplicationId: 'customfield_10121', // text — partner_applications.id (UUID) when order came via a referral
 } as const;
 
 // ─── Language names (Russian display) ────────────────────────────────────────
@@ -156,6 +157,8 @@ export interface JiraIssueFieldsInput {
   deliveryAddress: string | null;
   driveUrl: string | null;
   amountKzt?: number | null;
+  /** partner_applications.id (UUID) of the referring partner — omitted when the order has no referral. */
+  partnerApplicationId?: string | null;
 }
 
 /**
@@ -178,6 +181,9 @@ export function buildJiraIssueFields(input: JiraIssueFieldsInput): Record<string
 
   if (input.amountKzt != null && input.amountKzt > 0) fields[f.totalCost] = input.amountKzt;
   fields[f.internalCost] = 0;
+
+  // Referring partner's Application ID (omitted entirely for non-referred orders)
+  if (input.partnerApplicationId) fields[f.partnerApplicationId] = input.partnerApplicationId;
 
   // Payment method (single-select)
   fields[f.paymentMethod] = { value: paymentMethodLabel(input.paymentSource) };
