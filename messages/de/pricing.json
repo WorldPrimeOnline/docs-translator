@@ -10,7 +10,7 @@
     "paygNote": "ab 1.500 ₸ — Elektronische Übersetzung. ab 6.200 ₸ — Übersetzung mit Anbieterstempel.",
     "electronic": "Elektronische Übersetzung",
     "electronicPrice": "ab 1.500 ₸",
-    "electronicF1": "AI/OCR-Entwurf und automatische Formatierung",
+    "electronicF1": "Vorläufige Übersetzung mit automatischer Formatierung",
     "electronicF2": "PDF/DOCX-Ergebnis",
     "electronicF3": "Bereit in 2–5 Minuten",
     "electronicF4": "Ohne Übersetzerunterschrift und Anbieterstempel",
@@ -33,7 +33,7 @@
         "price": "ab 1.500 ₸",
         "unit": "pro Dokument",
         "features": [
-          "AI/OCR-Entwurf und automatische Formatierung",
+          "Vorläufige Übersetzung mit automatischer Formatierung",
           "PDF/DOCX-Ergebnis",
           "Üblicherweise 2–5 Minuten",
           "Ohne Übersetzerunterschrift und Anbieterstempel"
@@ -70,7 +70,7 @@
     "payg": "Zahlung pro Dokument",
     "feature1": "Keine Verpflichtungen",
     "feature2": "Alle Dokumenttypen",
-    "feature3": "AI/OCR-Entwurf und automatische Formatierung",
+    "feature3": "Vorläufige Übersetzung mit automatischer Formatierung",
     "feature4": "Fertiges PDF als Ergebnis",
     "allDocTypes": "Alle Dokumenttypen",
     "cleanPdf": "Fertiges PDF als Ergebnis",

@@ -10,7 +10,7 @@
     "paygNote": "1.500 ₸'den başlayan — elektronik çeviri. 6.200 ₸'den başlayan — sağlayıcı kaşeli çeviri.",
     "electronic": "Elektronik çeviri",
     "electronicPrice": "1.500 ₸'den başlayan",
-    "electronicF1": "AI/OCR taslağı ve otomatik biçimlendirme",
+    "electronicF1": "Otomatik biçimlendirmeli taslak çeviri",
     "electronicF2": "PDF/DOCX çıktısı",
     "electronicF3": "2–5 dakikada hazır",
     "electronicF4": "Çevirmen imzası ve sağlayıcı kaşesi yoktur",
@@ -33,7 +33,7 @@
         "price": "1.500 ₸'den başlayan",
         "unit": "belge başına",
         "features": [
-          "AI/OCR taslağı ve otomatik biçimlendirme",
+          "Otomatik biçimlendirmeli taslak çeviri",
           "PDF/DOCX çıktısı",
           "Genellikle 2–5 dakika",
           "Çevirmen imzası ve sağlayıcı kaşesi yoktur"
@@ -70,7 +70,7 @@
     "payg": "Belge başına ödeme",
     "feature1": "Taahhüt yok",
     "feature2": "Tüm belge türleri",
-    "feature3": "AI/OCR taslağı ve otomatik biçimlendirme",
+    "feature3": "Otomatik biçimlendirmeli taslak çeviri",
     "feature4": "Hazır PDF çıktısı",
     "allDocTypes": "Tüm belge türleri",
     "cleanPdf": "Hazır PDF çıktısı",

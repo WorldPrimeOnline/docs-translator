@@ -105,7 +105,7 @@
       "label": "HYZMAT DEREJESI",
       "electronic": {
         "label": "Elektron terjime",
-        "desc": "Terjime AI we OCR arkaly amala aşyrylýar. Terjimeçiniň goly we ýerine ýetirijiniň möhüri ýok. 2–5 minutda taýyn."
+        "desc": "Resminamanyň PDF ýa-da DOCX formatyndaky elektron terjimesi, gol, möhür we notarial tassyklama bolmazdan. 2–5 minutda taýyn."
       },
       "certified": {
         "label": "Tassyklanan terjime",
@@ -161,7 +161,7 @@
       "translating": "Terjime edilýär",
       "rendering": "Resminama taýýarlanýar",
       "done": "Taýyn",
-      "aiProcessing": "AI işlemek",
+      "aiProcessing": "Işlemek",
       "sentToTranslator": "Terjimeçä iberildi",
       "translatorReview": "Terjimeçi barlagy",
       "signatureStamp": "Gol çekmek we möhür",

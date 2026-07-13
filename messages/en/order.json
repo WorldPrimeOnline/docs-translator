@@ -88,7 +88,7 @@
       "label": "SERVICE LEVEL",
       "electronic": {
         "label": "Electronic translation",
-        "desc": "Translation processed using AI and OCR. No translator signature or provider stamp. Ready in 2–5 minutes."
+        "desc": "Electronic document translation in PDF or DOCX without a signature, stamp or notarization. Ready in 2–5 minutes."
       },
       "certified": {
         "label": "Translation with provider stamp",
@@ -213,7 +213,7 @@
       "translating": "Translating",
       "rendering": "Generating Document",
       "done": "Completed",
-      "aiProcessing": "AI Processing",
+      "aiProcessing": "Processing",
       "sentToTranslator": "Sent to Translator",
       "translatorReview": "Translator Review",
       "signatureStamp": "Signature & Stamp",

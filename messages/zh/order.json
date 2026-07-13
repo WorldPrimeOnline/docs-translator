@@ -105,7 +105,7 @@
       "label": "服务级别",
       "electronic": {
         "label": "电子翻译",
-        "desc": "翻译通过 AI 和 OCR 完成。不含译者签名和服务商印章。通常 2–5 分钟内完成。"
+        "desc": "文件的电子翻译，PDF 或 DOCX 格式，不含签名、印章和公证认证。2–5 分钟内完成。"
       },
       "certified": {
         "label": "加盖服务商印章的翻译",
@@ -165,7 +165,7 @@
       "translating": "翻译中",
       "rendering": "生成文档",
       "done": "已完成",
-      "aiProcessing": "AI处理",
+      "aiProcessing": "处理中",
       "sentToTranslator": "已发送给翻译员",
       "translatorReview": "翻译员审核",
       "signatureStamp": "签名与盖章",

@@ -105,7 +105,7 @@
       "label": "서비스 수준",
       "electronic": {
         "label": "전자 번역",
-        "desc": "AI 및 OCR로 번역을 처리합니다. 번역가 서명 및 공급업체 도장 없음. 2–5분 내 완료."
+        "desc": "서명, 도장, 공증 없이 PDF 또는 DOCX 형식으로 제공되는 전자 문서 번역입니다. 2–5분 내 완료됩니다."
       },
       "certified": {
         "label": "공인 번역",
@@ -161,7 +161,7 @@
       "translating": "번역 중",
       "rendering": "문서 생성",
       "done": "완료",
-      "aiProcessing": "AI 처리",
+      "aiProcessing": "처리 중",
       "sentToTranslator": "번역가에게 전달됨",
       "translatorReview": "번역가 검토",
       "signatureStamp": "서명 및 도장",

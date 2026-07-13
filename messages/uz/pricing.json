@@ -10,7 +10,7 @@
     "paygNote": "1 500 ₸ dan — elektron tarjima. 6 200 ₸ dan — ijrochi muhri bilan tarjima.",
     "electronic": "Elektron tarjima",
     "electronicPrice": "1 500 ₸ dan",
-    "electronicF1": "AI/OCR-qoralama va avtomatik formatlash",
+    "electronicF1": "Avtomatik formatlash bilan qoralama tarjima",
     "electronicF2": "PDF/DOCX natijasi",
     "electronicF3": "Tayyor bo'lish vaqti 2–5 daqiqa",
     "electronicF4": "Tarjimon imzosi va ijrochi muhrisiz",
@@ -33,7 +33,7 @@
         "price": "1 500 ₸ dan",
         "unit": "bir hujjat uchun",
         "features": [
-          "AI/OCR-qoralama va avtomatik formatlash",
+          "Avtomatik formatlash bilan qoralama tarjima",
           "PDF/DOCX natijasi",
           "Odatda 2–5 daqiqa",
           "Tarjimon imzosi va ijrochi muhrisiz"
@@ -70,7 +70,7 @@
     "payg": "Hujjat uchun to'lov",
     "feature1": "Majburiyatsiz",
     "feature2": "Barcha hujjat turlari",
-    "feature3": "AI/OCR-qoralama va avtomatik formatlash",
+    "feature3": "Avtomatik formatlash bilan qoralama tarjima",
     "feature4": "Tayyor PDF natijasi",
     "allDocTypes": "Barcha hujjat turlari",
     "cleanPdf": "Tayyor PDF natijasi",

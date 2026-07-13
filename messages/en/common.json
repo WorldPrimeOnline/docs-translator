@@ -20,7 +20,7 @@
     "download": "Download",
     "processingPipeline": "Processing pipeline",
     "ocrExtract": "OCR Extract",
-    "aiTranslate": "AI Translate",
+    "aiTranslate": "Translate",
     "pdfGenerate": "PDF Generate",
     "langRu": "Russian",
     "langEn": "English"

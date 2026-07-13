@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import {
   Upload, Download, IdCard, FileHeart, GraduationCap, Landmark,
@@ -6,6 +7,16 @@ import {
   Clock, Globe, Server, Trash2, Eye, ChevronDown, CheckCircle2,
   FileCheck, Cpu, Plane, Building2, CreditCard, MapPin, ArrowRight, Plus,
 } from 'lucide-react';
+import { buildHomepageMetadata } from '@/lib/seo/site-metadata';
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return buildHomepageMetadata(locale);
+}
 
 export default async function Home({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;

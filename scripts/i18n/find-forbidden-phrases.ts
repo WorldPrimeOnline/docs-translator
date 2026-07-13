@@ -4,6 +4,18 @@
  * Forbidden phrases imply false guarantees or legally problematic claims about translation services.
  * See CLAUDE.md §9 for context.
  *
+ * Two independent rule sets:
+ *  - FORBIDDEN: false-promise / legally risky claims. Applies everywhere, including legal
+ *    content — a legal document is not exempt from "guaranteed accepted" either.
+ *  - AI_MARKETING_FORBIDDEN: AI-translator-style brand positioning (2026-07-13 cleanup —
+ *    WPO must not read as an AI translator/GPT-wrapper). Applies to marketing/UI/metadata
+ *    only. Plain, honest infrastructure disclosure ("uses OCR and AI to prepare a draft";
+ *    Official requires human review) is legitimate and deliberately NOT forbidden anywhere —
+ *    see docs/ai-context/DECISIONS.md. Excluded from this rule set via AI_MARKETING_ALLOWLIST:
+ *    legal/consent/privacy/terms content (required by law to name subprocessors — Mistral AI,
+ *    Anthropic — and disclose AI/OCR processing in full) and server-only API route handlers
+ *    (src/app/api/**, which never render marketing copy).
+ *
  * Exit code 1 when any forbidden phrase is found.
  */
 import fs from 'fs';
@@ -11,16 +23,34 @@ import path from 'path';
 
 const ROOT = path.resolve(__dirname, '../..');
 
+const LOCALES = ['ru', 'en', 'kk', 'zh', 'ko', 'tj', 'uz', 'tk', 'mn', 'ky', 'es', 'th', 'de', 'tr'];
+
 const SCAN_DIRS = [
   // Scan namespace subdirectories only (messages/{locale}/*.json), not the orphaned flat files
-  ...['ru', 'en', 'kk', 'zh', 'ko', 'tj', 'uz', 'tk', 'mn', 'ky', 'es'].map(
-    (l) => path.join(ROOT, 'messages', l),
-  ),
+  ...LOCALES.map((l) => path.join(ROOT, 'messages', l)),
   path.join(ROOT, 'src/app'),
   path.join(ROOT, 'src/components'),
   path.join(ROOT, 'src/lib/legal'),
   path.join(ROOT, 'src/lib/landing-pages'),
+  path.join(ROOT, 'src/lib/seo'),
 ];
+
+// Legal/consent/privacy/terms content is required to name subprocessors and disclose
+// AI/OCR processing — exempt (only) from AI_MARKETING_FORBIDDEN, not from FORBIDDEN.
+// Server-only API route handlers (src/app/api/**) never render marketing copy — internal
+// error messages / vendor names there are infrastructure, not public positioning.
+// Both are explicit, narrow allowlists rather than excluding entire directories.
+const AI_MARKETING_ALLOWLIST = new Set([
+  path.join(ROOT, 'src/lib/legal'),
+  ...LOCALES.map((l) => path.join(ROOT, 'messages', l, 'legal.json')),
+  path.join(ROOT, 'src/app/api'),
+]);
+
+function isAiMarketingAllowlisted(filePath: string): boolean {
+  return [...AI_MARKETING_ALLOWLIST].some(
+    (allowed) => filePath === allowed || filePath.startsWith(allowed + path.sep),
+  );
+}
 
 const SCAN_EXTENSIONS = new Set(['.json', '.tsx', '.ts', '.mdx', '.md']);
 
@@ -67,6 +97,30 @@ const FORBIDDEN: Array<[string, RegExp]> = [
   ['куәландырылмаған және нотариалды расталмаған', /куәландырылмаған және нотариалды расталмаған/],
 ];
 
+// AI-translator-style brand positioning — forbidden in marketing/UI/metadata, allowlisted
+// for legal/backend content (see AI_MARKETING_ALLOWLIST above). These target BRANDING
+// artifacts, not the word "AI"/"ИИ" in general — plain informational disclosure ("uses OCR
+// and AI to prepare a draft") is intentionally not matched by any of these patterns.
+const AI_MARKETING_FORBIDDEN: Array<[string, RegExp]> = [
+  ['AI Document Translation branding', /AI\s+Document\s+Translation/i],
+  ['AI-powered branding',        /AI[\s-]powered/i],
+  ['powered by AI branding',     /powered\s+by\s+AI/i],
+  ['AI translator branding',     /\bAI\s+translator\b/i],
+  ['AI/OCR feature-label branding', /AI\/OCR/i],
+  // Cyrillic word-final "-ии" (e.g. "наличии переводчика") must not false-positive as
+  // "ИИ-переводчик" — require ИИ not be preceded by a Cyrillic letter.
+  ['ИИ-переводчик branding',     /(?<![а-яёА-ЯЁ])ИИ[\s-]переводчик/i],
+  ['ИИ-перевод branding',        /(?<![а-яёА-ЯЁ])ИИ[\s-]перевод\b/i],
+  ['на базе ИИ branding',        /на\s+базе\s+(?<![а-яёА-ЯЁ])ИИ\b/i],
+  ['neural network branding',    /\bneural\s+network\b/i],
+  ['нейросеть branding',         /нейросет/i],
+  ['machine translation branding', /\bmachine\s+translation\b/i],
+  ['машинный перевод branding',  /машинн\w*\s+перевод/i],
+  ['Mistral vendor name in marketing', /\bMistral\b/],
+  ['Claude vendor name in marketing',  /\bClaude\b/],
+  ['GPT vendor name in marketing',     /\bGPT\b/],
+];
+
 let found = 0;
 
 function scanFile(filePath: string): void {
@@ -74,7 +128,11 @@ function scanFile(filePath: string): void {
   const lines = content.split('\n');
   const rel = path.relative(ROOT, filePath);
 
-  for (const [label, pattern] of FORBIDDEN) {
+  const rules = isAiMarketingAllowlisted(filePath)
+    ? FORBIDDEN
+    : [...FORBIDDEN, ...AI_MARKETING_FORBIDDEN];
+
+  for (const [label, pattern] of rules) {
     lines.forEach((line, i) => {
       if (pattern.test(line)) {
         console.error(`  ✗ [${label}]  ${rel}:${i + 1}`);

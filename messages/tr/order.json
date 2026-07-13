@@ -107,7 +107,7 @@
       "label": "HİZMET DÜZEYİ",
       "electronic": {
         "label": "Elektronik çeviri",
-        "desc": "Çeviri yapay zeka ve OCR ile gerçekleştirilir. Çevirmen imzası ve sağlayıcı kaşesi yoktur. 2–5 dakikada hazır."
+        "desc": "PDF veya DOCX formatında imza, kaşe veya noter onayı olmadan elektronik belge çevirisi. 2–5 dakikada hazır."
       },
       "certified": {
         "label": "Sağlayıcı kaşeli çeviri",
@@ -167,7 +167,7 @@
       "translating": "Çeviri",
       "rendering": "Belge oluşturma",
       "done": "Tamamlandı",
-      "aiProcessing": "Yapay zekâ işleme",
+      "aiProcessing": "İşleniyor",
       "sentToTranslator": "Çevirmene iletildi",
       "translatorReview": "Çevirmen incelemesi",
       "signatureStamp": "İmza ve kaşe",

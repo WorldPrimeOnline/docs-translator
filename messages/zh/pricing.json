@@ -10,7 +10,7 @@
     "paygNote": "1,500 ₸ 起——电子翻译。6,200 ₸ 起——加盖服务商印章的翻译。",
     "electronic": "电子翻译",
     "electronicPrice": "1,500 ₸ 起",
-    "electronicF1": "AI/OCR 草稿和自动格式化",
+    "electronicF1": "自动排版的初稿翻译",
     "electronicF2": "PDF/DOCX 输出",
     "electronicF3": "通常 2–5 分钟内完成",
     "electronicF4": "不含译者签名和服务商印章",
@@ -33,7 +33,7 @@
         "price": "1,500 ₸ 起",
         "unit": "每份文件",
         "features": [
-          "AI/OCR 草稿和自动格式化",
+          "自动排版的初稿翻译",
           "PDF/DOCX 输出",
           "通常 2–5 分钟内完成",
           "不含译者签名和服务商印章"
@@ -70,7 +70,7 @@
     "payg": "按文件计费",
     "feature1": "无需订阅",
     "feature2": "所有文件类型",
-    "feature3": "AI/OCR 草稿和自动格式化",
+    "feature3": "自动排版的初稿翻译",
     "feature4": "最终 PDF 输出",
     "allDocTypes": "所有文件类型",
     "cleanPdf": "最终 PDF 输出",
