@@ -196,7 +196,11 @@
       "logoutFailed": "Не удалось выйти",
       "unsupportedFileType": "Неподдерживаемый тип файла: {files}",
       "pleaseSelectFile": "Пожалуйста, выберите хотя бы один файл",
-      "failedTermsAcceptance": "Не удалось сохранить принятие условий."
+      "failedTermsAcceptance": "Не удалось сохранить принятие условий.",
+      "totalSizeExceeded": "Слишком большой общий размер файлов. Лимит — 50 МБ.",
+      "fileTooLarge": "Файл «{file}» превышает лимит в 25 МБ.",
+      "fileCountExceeded": "Слишком много файлов. Максимум — {max}.",
+      "invalidFileSignature": "Файл «{file}» не соответствует заявленному типу."
     },
     "uploadDocument": "Загрузить документ",
     "uploadedQuoteReady": "Документ загружен — стоимость: {price} ₸. Подтвердите оплату ниже.",

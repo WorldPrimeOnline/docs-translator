@@ -5,78 +5,28 @@
  * Returns job ID, quote ID, and price so the frontend can initiate Halyk ePay payment.
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 import { supabaseServer } from '@/lib/supabase/server';
 import { uploadFile } from '@/lib/r2/client';
 import { convertToPdf, mergePdfs } from '@/lib/convert-to-pdf';
 import { deriveBackcompatBooleans } from '@/lib/translation-workflow/output-plan';
-import { isValidNotaryCity } from '@/lib/notary/cities';
 import { getHalykConfig } from '@/lib/payments/halyk/config';
 import { computeQuoteForJob, saveQuote } from '@/lib/pricing/service';
 import { DOCUMENT_TYPE_COEFFICIENT } from '@/lib/pricing/config';
 import { attachReferralToOrder } from '@/lib/referral/server';
 import { calculatePartnerDiscount } from '@/lib/partners/discount';
-import type { Database } from '@/types';
+import {
+  MAX_FILE_SIZE_EACH,
+  MAX_TOTAL_SIZE,
+  UploadFormSchema,
+  getClientIp,
+  getAuthUser,
+} from '@/lib/documents/upload-card-shared';
 import type { ServiceLevel } from '@/lib/translation-prompts/types';
 
-const MAX_FILE_SIZE_EACH = 25 * 1024 * 1024;
-const MAX_TOTAL_SIZE = 50 * 1024 * 1024;
-
-const VALID_SERVICE_LEVELS = [
-  'electronic',
-  'official_with_translator_signature_and_provider_stamp',
-  'notarization_through_partners',
-] as const;
-
-// 'unknown' is intentionally not a submittable value — it directly determines the notary
-// MRP tariff (individual vs legal_entity, a ~2x difference), so notarized orders must always
-// carry an explicit choice. See src/lib/pricing/config.ts NOTARY_APPLICANT_MRP_COEFFICIENT.
-const VALID_APPLICANT_TYPES = ['individual', 'legal_entity'] as const;
-const VALID_DELIVERY_ZONES = ['almaty_standard', 'remote_area', 'other_city', 'urgent_delivery'] as const;
-const VALID_NOTARY_URGENCY = ['standard', 'same_day'] as const;
-
-const UploadFormSchema = z
-  .object({
-    sourceLang: z.string().min(1).refine((v) => v !== 'auto', { message: 'Source language must be specified explicitly' }),
-    targetLang: z.string().min(1),
-    documentType: z.string().min(1),
-    serviceLevel: z.enum(VALID_SERVICE_LEVELS).default('electronic'),
-    applicantType: z.enum(VALID_APPLICANT_TYPES).optional(),
-    notaryUrgencyLevel: z.enum(VALID_NOTARY_URGENCY).default('standard'),
-    deliveryZone: z.enum(VALID_DELIVERY_ZONES).optional(),
-    notaryCity: z.string().optional(),
-    fulfillmentMethod: z.enum(['pickup', 'delivery']).optional(),
-    deliveryPhone: z.string().max(30).optional(),
-    deliveryAddress: z.string().max(500).optional(),
-    customerComment: z.string().max(2000).optional().transform((v) => v?.trim() || undefined),
-  })
-  .superRefine((data, ctx) => {
-    if (data.serviceLevel === 'notarization_through_partners') {
-      if (!data.notaryCity) {
-        ctx.addIssue({ code: 'custom', path: ['notaryCity'], message: 'City is required for notarization orders' });
-      } else if (
-        typeof isValidNotaryCity === 'function' &&
-        (() => {
-          try { return isValidNotaryCity(data.notaryCity!); }
-          catch { return true; }
-        })() === false
-      ) {
-        ctx.addIssue({ code: 'custom', path: ['notaryCity'], message: 'City not supported for notarization' });
-      }
-      if (!data.fulfillmentMethod) {
-        ctx.addIssue({ code: 'custom', path: ['fulfillmentMethod'], message: 'Fulfillment method is required' });
-      }
-      if (!data.applicantType) {
-        ctx.addIssue({ code: 'custom', path: ['applicantType'], message: 'Applicant type is required for notarization orders' });
-      }
-      if (data.fulfillmentMethod === 'delivery') {
-        if (!data.deliveryPhone) ctx.addIssue({ code: 'custom', path: ['deliveryPhone'], message: 'Phone is required for delivery' });
-        if (!data.deliveryAddress) ctx.addIssue({ code: 'custom', path: ['deliveryAddress'], message: 'Address is required for delivery' });
-      }
-    }
-  });
+// Moved to src/lib/documents/upload-card-shared.ts (not duplicated) so the direct-to-R2
+// init/complete endpoints in this same directory share the exact same values/schema/
+// auth helper — Next.js's route-export type contract only allows HTTP-method exports
+// (GET/POST/etc.) from a route.ts file, so these can't be exported from here directly.
 
 const ALLOWED_MIME_TYPES: Record<string, string> = {
   'application/pdf': 'pdf',
@@ -93,33 +43,6 @@ function detectMimeType(file: File): string {
   if (ext === 'png') return 'image/png';
   if (ext === 'docx') return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
   return file.type;
-}
-
-function getClientIp(req: NextRequest): string | null {
-  const forwarded = req.headers.get('x-forwarded-for');
-  if (forwarded) {
-    const first = forwarded.split(',')[0]?.trim();
-    if (first) return first;
-  }
-  return req.headers.get('x-real-ip')?.trim() ?? null;
-}
-
-async function getAuthUser() {
-  const cookieStore = await cookies();
-  const supabase = createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll: () => cookieStore.getAll(),
-        setAll: (toSet) => {
-          toSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options));
-        },
-      },
-    },
-  );
-  const { data: { user } } = await supabase.auth.getUser();
-  return user;
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {

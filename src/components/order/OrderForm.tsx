@@ -278,38 +278,96 @@ export function OrderForm({ mode, onSubmitSuccess, draftId, onDraftIdChange, onD
     }
 
     if (mode === 'dashboard') {
-      const form = new FormData();
-      for (const f of files) form.append('file', f);
-      form.append('sourceLang', sourceLang);
-      form.append('targetLang', targetLang);
-      form.append('documentType', `${documentType}|${outputFormat}`);
-      form.append('serviceLevel', serviceLevel);
-      if (isNotarization) {
-        form.append('applicantType', applicantType);
-        form.append('notaryUrgencyLevel', notaryUrgencyLevel);
-        form.append('notaryCity', notaryCity);
-        if (fulfillmentMethod) form.append('fulfillmentMethod', fulfillmentMethod);
-        if (isDelivery) { form.append('deliveryPhone', deliveryPhone.trim()); form.append('deliveryAddress', deliveryAddress.trim()); }
-      }
-      if (customerComment.trim()) form.append('customerComment', customerComment.trim());
-
       // Attach referral params — promo field takes precedence over stored URL capture.
       // Server re-validates the code; client cannot influence discount or commission amounts.
       const activeCode = promoCode.trim();
-      if (activeCode) form.append('refCode', activeCode);
       const referralParams = loadReferralParams();
-      if (referralParams?.utmSource)   form.append('utmSource',   referralParams.utmSource);
-      if (referralParams?.utmMedium)   form.append('utmMedium',   referralParams.utmMedium);
-      if (referralParams?.utmCampaign) form.append('utmCampaign', referralParams.utmCampaign);
-      if (referralParams?.utmContent)  form.append('utmContent',  referralParams.utmContent);
-      if (referralParams?.utmTerm)     form.append('utmTerm',     referralParams.utmTerm);
+
+      const businessFields = {
+        sourceLang,
+        targetLang,
+        documentType: `${documentType}|${outputFormat}`,
+        serviceLevel,
+        ...(isNotarization
+          ? {
+              applicantType,
+              notaryUrgencyLevel,
+              notaryCity,
+              fulfillmentMethod: fulfillmentMethod || undefined,
+              ...(isDelivery ? { deliveryPhone: deliveryPhone.trim(), deliveryAddress: deliveryAddress.trim() } : {}),
+            }
+          : {}),
+        customerComment: customerComment.trim() || undefined,
+      };
 
       if (process.env.NODE_ENV !== 'production') {
         console.info('[upload-card payload]', { sourceLanguage: sourceLang, targetLanguage: targetLang, documentType: `${documentType}|${outputFormat}`, serviceLevel });
       }
 
-      const res = await fetch('/api/documents/upload-card', { method: 'POST', body: form });
-      let data: { jobId?: string; documentId?: string; error?: string; priceKzt?: number; quoteId?: string; requiresOperatorReview?: boolean; currency?: string; discountAppliedKzt?: number } = {};
+      // Direct-to-R2 upload: one init call (business fields + file metadata) -> one
+      // presigned PUT per file straight to Cloudflare R2 -> one complete call. No
+      // multipart file body ever goes through this Next.js route, so large files no
+      // longer hit Vercel's function payload limit (413 FUNCTION_PAYLOAD_TOO_LARGE).
+      // See src/app/api/documents/upload-card/{init,complete}/route.ts.
+      const initRes = await fetch('/api/documents/upload-card/init', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...businessFields,
+          files: files.map((f) => ({ originalName: f.name, mimeType: f.type, sizeBytes: f.size })),
+        }),
+      });
+      const initData = await initRes.json().catch(() => ({})) as {
+        uploadAttemptId?: string;
+        uploads?: Array<{ key: string; uploadUrl: string; originalName: string; mimeType: string; sizeBytes: number }>;
+        error?: string;
+        file?: string;
+        max?: number;
+      };
+      if (!initRes.ok || !initData.uploads || !initData.uploadAttemptId) {
+        toast.error(uploadErrorMessage(t, initData.error, initData.file, initData.max));
+        setUploading(false);
+        return;
+      }
+
+      const uploads = initData.uploads;
+      for (let i = 0; i < uploads.length; i++) {
+        const upload = uploads[i]!;
+        const file = files[i]!;
+        try {
+          const putRes = await fetch(upload.uploadUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': upload.mimeType },
+            body: file,
+          });
+          if (!putRes.ok) {
+            toast.error(t('errors.uploadFailed'));
+            setUploading(false);
+            return;
+          }
+        } catch {
+          toast.error(t('errors.uploadFailed'));
+          setUploading(false);
+          return;
+        }
+      }
+
+      const res = await fetch('/api/documents/upload-card/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...businessFields,
+          uploadAttemptId: initData.uploadAttemptId,
+          uploads: uploads.map((u, i) => ({ key: u.key, originalName: u.originalName, mimeType: u.mimeType, sizeBytes: files[i]!.size })),
+          refCode: activeCode || undefined,
+          utmSource: referralParams?.utmSource,
+          utmMedium: referralParams?.utmMedium,
+          utmCampaign: referralParams?.utmCampaign,
+          utmContent: referralParams?.utmContent,
+          utmTerm: referralParams?.utmTerm,
+        }),
+      });
+      let data: { jobId?: string; documentId?: string; error?: string; priceKzt?: number; quoteId?: string; requiresOperatorReview?: boolean; currency?: string; discountAppliedKzt?: number; file?: string; max?: number } = {};
       try {
         data = await res.json() as typeof data;
       } catch {
@@ -319,7 +377,7 @@ export function OrderForm({ mode, onSubmitSuccess, draftId, onDraftIdChange, onD
       }
 
       if (!res.ok || !data.jobId || !data.documentId) {
-        toast.error(data.error ?? t('errors.uploadFailed'));
+        toast.error(uploadErrorMessage(t, data.error, data.file, data.max));
         setUploading(false);
         return;
       }

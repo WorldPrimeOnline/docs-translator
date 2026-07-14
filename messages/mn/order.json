@@ -192,7 +192,11 @@
       "logoutFailed": "Гарах амжилтгүй боллоо",
       "unsupportedFileType": "Дэмжигдээгүй файлын төрөл: {files}",
       "pleaseSelectFile": "Дор хаяж нэг файл сонгоно уу",
-      "failedTermsAcceptance": "Нөхцлийг хүлээн зөвшөөрөхийг хадгалах амжилтгүй боллоо."
+      "failedTermsAcceptance": "Нөхцлийг хүлээн зөвшөөрөхийг хадгалах амжилтгүй боллоо.",
+      "totalSizeExceeded": "Total file size is too large. The limit is 50 MB.",
+      "fileTooLarge": "The file \"{file}\" exceeds the 25 MB limit.",
+      "fileCountExceeded": "Too many files. The maximum is {max}.",
+      "invalidFileSignature": "The file \"{file}\" does not match its file type."
     },
     "uploadDocument": "Upload document",
     "uploadedQuoteReady": "Document uploaded — price: {price} KZT. Confirm payment below.",

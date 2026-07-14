@@ -192,7 +192,11 @@
       "logoutFailed": "Баромадан муваффақ нашуд",
       "unsupportedFileType": "Навъи файли дастгирӣнашаванда: {files}",
       "pleaseSelectFile": "Лутфан ҳадди аққал як файл интихоб кунед",
-      "failedTermsAcceptance": "Қабул кардани шартҳо нигоҳ дошта нашуд."
+      "failedTermsAcceptance": "Қабул кардани шартҳо нигоҳ дошта нашуд.",
+      "totalSizeExceeded": "Total file size is too large. The limit is 50 MB.",
+      "fileTooLarge": "The file \"{file}\" exceeds the 25 MB limit.",
+      "fileCountExceeded": "Too many files. The maximum is {max}.",
+      "invalidFileSignature": "The file \"{file}\" does not match its file type."
     },
     "uploadDocument": "Upload document",
     "uploadedQuoteReady": "Document uploaded — price: {price} KZT. Confirm payment below.",

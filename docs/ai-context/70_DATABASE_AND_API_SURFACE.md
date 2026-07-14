@@ -41,7 +41,9 @@ Generated types at `src/types/supabase.ts`, re-exported from `src/types/index.ts
 | POST | `/api/subscriptions/create` | 503 placeholder — payment gateway not yet active |
 | GET | `/api/subscriptions/current` | Active subscription for the current user |
 | POST | `/api/subscriptions/use-document` | Check quota and decrement by 1 |
-| POST | `/api/documents/upload-card` | Card-payment upload path (Halyk ePay) — gated by `cardPaymentsActive` |
+| POST | `/api/documents/upload-card/init` | Dashboard direct-to-R2 upload step 1: business fields + file metadata JSON → one presigned R2 PUT URL per file at `card-upload-raw/{userId}/{uploadAttemptId}/{uuid}`, 10-min TTL. No file bytes in the request. |
+| POST | `/api/documents/upload-card/complete` | Step 2: browser has already PUT each file to R2; HeadObject-verifies, downloads, magic-byte checks, converts+merges to PDF, uploads to `documents/{userId}/{uploadAttemptId}/original.pdf`, then creates document+job+quote (`createCardOrder()`, `src/lib/documents/upload-card-shared.ts`) — same business logic as the legacy route's tail. Idempotent on `uploadAttemptId` (used as `documents.id`). |
+| POST | `/api/documents/upload-card` | **Legacy** — single multipart request carrying file bytes through this Vercel Function; kept only for cached old frontend bundles (gated by `cardPaymentsActive`). Hits Vercel's ~4.5 MB function payload limit (413) for larger files — the current dashboard frontend uses `/upload-card/init` + `/upload-card/complete` instead. |
 | POST | `/api/payments/halyk/initiate` | Initiate Halyk ePay payment, returns redirect URL |
 | POST | `/api/payments/halyk/callback` | Halyk ePay payment result callback — updates job payment status |
 | GET | `/api/cron/cleanup` | Daily 02:00 UTC — deletes files older than 30 days, expired `order_drafts`, and orphaned `draft-upload-raw/` R2 objects older than 24h (secured via `CRON_SECRET`) |

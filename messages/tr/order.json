@@ -196,7 +196,11 @@
       "logoutFailed": "Çıkış yapılamadı",
       "unsupportedFileType": "Desteklenmeyen dosya türü: {files}",
       "pleaseSelectFile": "Lütfen en az bir dosya seçin",
-      "failedTermsAcceptance": "Koşul kabulü kaydedilemedi."
+      "failedTermsAcceptance": "Koşul kabulü kaydedilemedi.",
+      "totalSizeExceeded": "Toplam dosya boyutu çok büyük. Sınır 50 MB'dir.",
+      "fileTooLarge": "\"{file}\" dosyası 25 MB sınırını aşıyor.",
+      "fileCountExceeded": "Çok fazla dosya. En fazla {max} dosya yüklenebilir.",
+      "invalidFileSignature": "\"{file}\" dosyası belirtilen türle eşleşmiyor."
     },
     "uploadDocument": "Belge yükle",
     "uploadedQuoteReady": "Belge yüklendi — fiyat: {price} ₸. Aşağıdan ödemeyi onaylayın.",

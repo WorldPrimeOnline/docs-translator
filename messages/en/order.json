@@ -242,7 +242,11 @@
       "logoutFailed": "Failed to log out",
       "unsupportedFileType": "Unsupported file type: {files}",
       "pleaseSelectFile": "Please select at least one file",
-      "failedTermsAcceptance": "Failed to save terms acceptance."
+      "failedTermsAcceptance": "Failed to save terms acceptance.",
+      "totalSizeExceeded": "Total file size is too large. The limit is 50 MB.",
+      "fileTooLarge": "The file \"{file}\" exceeds the 25 MB limit.",
+      "fileCountExceeded": "Too many files. The maximum is {max}.",
+      "invalidFileSignature": "The file \"{file}\" does not match its file type."
     },
     "promoCode": {
       "label": "PROMO CODE / PARTNER CODE",

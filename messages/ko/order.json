@@ -192,7 +192,11 @@
       "logoutFailed": "로그아웃에 실패했습니다",
       "unsupportedFileType": "지원되지 않는 파일 형식: {files}",
       "pleaseSelectFile": "파일을 하나 이상 선택해 주세요",
-      "failedTermsAcceptance": "이용약관 동의를 저장하지 못했습니다."
+      "failedTermsAcceptance": "이용약관 동의를 저장하지 못했습니다.",
+      "totalSizeExceeded": "Total file size is too large. The limit is 50 MB.",
+      "fileTooLarge": "The file \"{file}\" exceeds the 25 MB limit.",
+      "fileCountExceeded": "Too many files. The maximum is {max}.",
+      "invalidFileSignature": "The file \"{file}\" does not match its file type."
     },
     "uploadDocument": "Upload document",
     "uploadedQuoteReady": "Document uploaded — price: {price} KZT. Confirm payment below.",
