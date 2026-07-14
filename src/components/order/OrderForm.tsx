@@ -360,11 +360,17 @@ export function OrderForm({ mode, onSubmitSuccess, draftId, onDraftIdChange, onD
           uploadAttemptId: initData.uploadAttemptId,
           uploads: uploads.map((u, i) => ({ key: u.key, originalName: u.originalName, mimeType: u.mimeType, sizeBytes: files[i]!.size })),
           refCode: activeCode || undefined,
-          utmSource: referralParams?.utmSource,
-          utmMedium: referralParams?.utmMedium,
-          utmCampaign: referralParams?.utmCampaign,
-          utmContent: referralParams?.utmContent,
-          utmTerm: referralParams?.utmTerm,
+          // referralParams' UTM fields are typed `string | null` (ReferralParams,
+          // src/lib/referral/capture.ts, since URLSearchParams.get() returns null for
+          // an absent param) — `?? undefined` ensures a missing value is omitted from
+          // the JSON body entirely (JSON.stringify drops undefined-valued keys) rather
+          // than sent as an explicit null, which the backend's optional-string
+          // validation would otherwise reject.
+          utmSource: referralParams?.utmSource ?? undefined,
+          utmMedium: referralParams?.utmMedium ?? undefined,
+          utmCampaign: referralParams?.utmCampaign ?? undefined,
+          utmContent: referralParams?.utmContent ?? undefined,
+          utmTerm: referralParams?.utmTerm ?? undefined,
         }),
       });
       let data: { jobId?: string; documentId?: string; error?: string; priceKzt?: number; quoteId?: string; requiresOperatorReview?: boolean; currency?: string; discountAppliedKzt?: number; file?: string; max?: number } = {};

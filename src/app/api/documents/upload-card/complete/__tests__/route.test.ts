@@ -372,3 +372,68 @@ describe('idempotent replay — document/job not created twice', () => {
     expect(mockDownloadFile).not.toHaveBeenCalled();
   });
 });
+
+describe('UTM/refCode fields — regression for production 400 INVALID_UPLOAD_METADATA', () => {
+  it('accepts all UTM/refCode fields as explicit null', async () => {
+    mockHeadFile.mockResolvedValueOnce({ contentLength: 100, contentType: 'application/pdf' });
+    const res = await POST(makeRequest({
+      ...VALID_BODY_BASE,
+      uploads: oneUpload,
+      refCode: null, utmSource: null, utmMedium: null, utmCampaign: null, utmContent: null, utmTerm: null,
+    }));
+    expect(res.status).toBe(200);
+  });
+
+  it('accepts all UTM/refCode fields entirely absent', async () => {
+    mockHeadFile.mockResolvedValueOnce({ contentLength: 100, contentType: 'application/pdf' });
+    const res = await POST(makeRequest({ ...VALID_BODY_BASE, uploads: oneUpload }));
+    expect(res.status).toBe(200);
+  });
+
+  it('accepts and forwards non-empty valid UTM/refCode values to createCardOrder', async () => {
+    mockHeadFile.mockResolvedValueOnce({ contentLength: 100, contentType: 'application/pdf' });
+    const res = await POST(makeRequest({
+      ...VALID_BODY_BASE,
+      uploads: oneUpload,
+      refCode: 'PARTNER1', utmSource: 'google', utmMedium: 'cpc', utmCampaign: 'summer', utmContent: 'ad1', utmTerm: 'translate',
+    }));
+    expect(res.status).toBe(200);
+    expect(mockCreateCardOrder).toHaveBeenCalledWith(expect.objectContaining({
+      refCode: 'PARTNER1', utmSource: 'google', utmMedium: 'cpc', utmCampaign: 'summer', utmContent: 'ad1', utmTerm: 'translate',
+    }));
+  });
+
+  it('rejects a wrong type (object) for a UTM field', async () => {
+    const res = await POST(makeRequest({ ...VALID_BODY_BASE, uploads: oneUpload, utmSource: { nested: 'object' } }));
+    expect(res.status).toBe(400);
+    expect(mockHeadFile).not.toHaveBeenCalled();
+  });
+
+  it('rejects a wrong type (array) for a UTM field', async () => {
+    const res = await POST(makeRequest({ ...VALID_BODY_BASE, uploads: oneUpload, utmCampaign: ['array'] }));
+    expect(res.status).toBe(400);
+    expect(mockHeadFile).not.toHaveBeenCalled();
+  });
+
+  // This is the exact shape OrderForm.tsx (dashboard mode) sent before the fix:
+  // loadReferralParams() returns a ReferralParams object whose UTM fields are typed
+  // `string | null`, so spreading it into the request body without an `?? undefined`
+  // guard produced literal nulls — reproducing the production 400 end to end at the
+  // route level. The pre-existing test suite never sent explicit null (only
+  // undefined/absent), which is exactly why it didn't catch this before it shipped.
+  it('reproduces the real frontend-shaped payload (loadReferralParams() output spread with explicit nulls)', async () => {
+    mockHeadFile.mockResolvedValueOnce({ contentLength: 100, contentType: 'application/pdf' });
+    const frontendShapedBody = {
+      ...VALID_BODY_BASE,
+      uploads: oneUpload,
+      refCode: undefined, // activeCode || undefined — already safe pre-fix
+      utmSource: null,    // referralParams?.utmSource — was unsafe pre-fix
+      utmMedium: null,
+      utmCampaign: null,
+      utmContent: null,
+      utmTerm: null,
+    };
+    const res = await POST(makeRequest(frontendShapedBody));
+    expect(res.status).toBe(200);
+  });
+});

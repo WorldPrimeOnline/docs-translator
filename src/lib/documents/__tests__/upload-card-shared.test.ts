@@ -23,6 +23,7 @@ import {
   isValidCardRawUploadKey,
   cardFinalUploadKey,
   createCardOrder,
+  OptionalUtmFieldsSchema,
   type CardOrderInput,
 } from '../upload-card-shared';
 
@@ -320,5 +321,58 @@ describe('createCardOrder', () => {
     });
     // Pricing/job-insert must never run a second time for the same document.
     expect(mockComputeQuote).not.toHaveBeenCalled();
+  });
+});
+
+describe('OptionalUtmFieldsSchema — regression for the production 400 (explicit null rejected)', () => {
+  const ALL_NULL = { refCode: null, utmSource: null, utmMedium: null, utmCampaign: null, utmContent: null, utmTerm: null };
+  const ALL_ABSENT = {};
+  const ALL_VALID = { refCode: 'PARTNER1', utmSource: 'google', utmMedium: 'cpc', utmCampaign: 'summer', utmContent: 'ad1', utmTerm: 'translate' };
+
+  it('accepts every field as explicit null (root cause: ReferralParams sends null, not undefined)', () => {
+    const result = OptionalUtmFieldsSchema.safeParse(ALL_NULL);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).toEqual({});
+    }
+  });
+
+  it('accepts every field entirely absent', () => {
+    const result = OptionalUtmFieldsSchema.safeParse(ALL_ABSENT);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).toEqual({});
+    }
+  });
+
+  it('normalizes empty strings to undefined as well', () => {
+    const result = OptionalUtmFieldsSchema.safeParse({ refCode: '', utmSource: '', utmMedium: '', utmCampaign: '', utmContent: '', utmTerm: '' });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).toEqual({});
+    }
+  });
+
+  it('preserves non-empty valid values unchanged', () => {
+    const result = OptionalUtmFieldsSchema.safeParse(ALL_VALID);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).toEqual(ALL_VALID);
+    }
+  });
+
+  it('rejects a wrong type (object) for a UTM field', () => {
+    const result = OptionalUtmFieldsSchema.safeParse({ utmSource: { nested: 'object' } });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects a wrong type (array) for a UTM field', () => {
+    const result = OptionalUtmFieldsSchema.safeParse({ utmCampaign: ['array', 'value'] });
+    expect(result.success).toBe(false);
+  });
+
+  it('still enforces the max-length constraint on non-empty values', () => {
+    const result = OptionalUtmFieldsSchema.safeParse({ utmSource: 'x'.repeat(201) });
+    expect(result.success).toBe(false);
   });
 });
