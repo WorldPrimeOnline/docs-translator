@@ -300,6 +300,8 @@
       "noFile": "Bitte laden Sie zuerst ein Dokument hoch.",
       "unsupportedFileType": "Nicht unterstützter Dateityp: {files}",
       "invalidFileSignature": "Die Datei „{file}“ entspricht nicht dem angegebenen Dateityp.",
+      "fileTooLarge": "Die Datei „{file}“ überschreitet das Limit von 20 MB.",
+      "fileCountExceeded": "Zu viele Dateien. Maximal sind {max} erlaubt.",
       "totalSizeExceeded": "Die Gesamtdateigröße ist zu groß. Das Limit vor der Registrierung beträgt 20 MB.",
       "rateLimitedHourly": "Zu viele Preisberechnungen. Bitte versuchen Sie es in einer Stunde erneut.",
       "rateLimitedDaily": "Sie haben das heutige Limit für Preisberechnungen erreicht. Bitte versuchen Sie es morgen erneut.",

@@ -27,7 +27,7 @@ export interface DraftOwner {
 
 export type DraftResult<T> = { ok: true; value: T } | { ok: false; error: string };
 
-function isOwner(draft: OrderDraftRow, owner: DraftOwner): boolean {
+export function isOwner(draft: OrderDraftRow, owner: DraftOwner): boolean {
   if (draft.user_id) return draft.user_id === owner.userId;
   return !!owner.sessionToken && draft.anonymous_session_id === owner.sessionToken;
 }

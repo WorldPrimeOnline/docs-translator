@@ -23,6 +23,7 @@ import { Link } from '@/i18n/navigation';
 import { NOTARY_CITIES } from '@/lib/notary/cities';
 import { isNotaryDeliveryValid, isDeliverySelected } from '@/lib/translation-workflow/notary-delivery-validation';
 import { loadReferralParams } from '@/lib/referral/capture';
+import { MAX_UPLOAD_FILE_COUNT } from '@/lib/order-drafts/upload-constants';
 import type { ServiceLevel } from '@/lib/translation-prompts/types';
 
 interface PromoDiscountInfo {
@@ -58,6 +59,34 @@ export interface OrderFormProps {
   onDraftIdChange?: (draftId: string) => void;
   /** publicStart mode only — called after a successful draft price calculation. */
   onDraftPriced?: (price: DraftPriceResult, draftId: string) => void;
+}
+
+/**
+ * Maps the direct-to-R2 upload/init and upload/complete controlled error codes (see
+ * src/app/api/order-drafts/[draftId]/upload/{init,complete}/route.ts) to existing
+ * startWizard i18n copy. Codes with no distinct existing message (INVALID_UPLOAD_KEY,
+ * UPLOAD_OBJECT_NOT_FOUND, UPLOAD_SIZE_MISMATCH, UPLOAD_CONTENT_TYPE_MISMATCH,
+ * DIRECT_UPLOAD_FAILED, FILE_PROCESSING_FAILED, INVALID_UPLOAD_METADATA) fall back to
+ * the existing generic "upload failed" message rather than hardcoding new RU-only text.
+ */
+function uploadErrorMessage(
+  tStart: (key: string, values?: Record<string, string | number | Date>) => string,
+  code: string | undefined,
+  file: string | undefined,
+  max: number | undefined,
+): string {
+  switch (code) {
+    case 'TOTAL_SIZE_EXCEEDED':
+      return tStart('errors.totalSizeExceeded');
+    case 'FILE_SIZE_EXCEEDED':
+      return tStart('errors.fileTooLarge', { file: file ?? '' });
+    case 'FILE_COUNT_EXCEEDED':
+      return tStart('errors.fileCountExceeded', { max: max ?? MAX_UPLOAD_FILE_COUNT });
+    case 'INVALID_FILE_SIGNATURE':
+      return tStart('errors.invalidFileSignature', { file: file ?? '' });
+    default:
+      return tStart('errors.uploadFailed');
+  }
 }
 
 function ServiceLevelCard({ value, current, label, description, onChange }: {
@@ -364,14 +393,71 @@ export function OrderForm({ mode, onSubmitSuccess, draftId, onDraftIdChange, onD
         if (!res.ok) { toast.error(tStart('errors.genericError')); setUploading(false); return; }
       }
 
-      const uploadForm = new FormData();
-      for (const f of files) uploadForm.append('file', f);
-      const uploadRes = await fetch(`/api/order-drafts/${currentDraftId}/upload`, { method: 'POST', body: uploadForm });
-      if (!uploadRes.ok) {
-        const err = await uploadRes.json().catch(() => ({})) as { error?: string; file?: string };
-        if (err.error === 'TOTAL_SIZE_EXCEEDED') toast.error(tStart('errors.totalSizeExceeded'));
-        else if (err.error === 'INVALID_FILE_SIGNATURE') toast.error(tStart('errors.invalidFileSignature', { file: err.file ?? '' }));
-        else toast.error(tStart('errors.uploadFailed'));
+      // Direct-to-R2 upload: one init call (file metadata only) -> one presigned PUT per
+      // file straight to Cloudflare R2 -> one complete call. No multipart file body ever
+      // goes through this Next.js route, so large files no longer hit Vercel's function
+      // payload limit (413 FUNCTION_PAYLOAD_TOO_LARGE). See
+      // src/app/api/order-drafts/[draftId]/upload/{init,complete}/route.ts.
+      const initRes = await fetch(`/api/order-drafts/${currentDraftId}/upload/init`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          files: files.map((f) => ({ originalName: f.name, mimeType: f.type, sizeBytes: f.size })),
+        }),
+      });
+      const initData = await initRes.json().catch(() => ({})) as {
+        uploads?: Array<{ key: string; uploadUrl: string; originalName: string; mimeType: string; sizeBytes: number }>;
+        error?: string;
+        file?: string;
+        max?: number;
+      };
+      if (!initRes.ok || !initData.uploads) {
+        toast.error(uploadErrorMessage(tStart, initData.error, initData.file, initData.max));
+        setUploading(false);
+        return;
+      }
+
+      // Upload in the same order init returned them — order matters for PDF merge.
+      // On the first PUT failure: stop immediately, do not call complete or calculate.
+      // Any raw object already written to R2 for a later-failing batch is swept by the
+      // existing cleanup cron (draft-upload-raw/ prefix, 24h retention).
+      const uploads = initData.uploads;
+      for (let i = 0; i < uploads.length; i++) {
+        const upload = uploads[i]!;
+        const file = files[i]!;
+        try {
+          const putRes = await fetch(upload.uploadUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': upload.mimeType },
+            body: file,
+          });
+          if (!putRes.ok) {
+            toast.error(tStart('errors.uploadFailed'));
+            setUploading(false);
+            return;
+          }
+        } catch {
+          toast.error(tStart('errors.uploadFailed'));
+          setUploading(false);
+          return;
+        }
+      }
+
+      const completeRes = await fetch(`/api/order-drafts/${currentDraftId}/upload/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          uploads: uploads.map((u, i) => ({
+            key: u.key,
+            originalName: u.originalName,
+            mimeType: u.mimeType,
+            sizeBytes: files[i]!.size,
+          })),
+        }),
+      });
+      if (!completeRes.ok) {
+        const err = await completeRes.json().catch(() => ({})) as { error?: string; file?: string; max?: number };
+        toast.error(uploadErrorMessage(tStart, err.error, err.file, err.max));
         setUploading(false);
         return;
       }

@@ -300,6 +300,8 @@
       "noFile": "Lütfen önce bir belge yükleyin.",
       "unsupportedFileType": "Desteklenmeyen dosya türü: {files}",
       "invalidFileSignature": "\"{file}\" dosyası belirtilen türle eşleşmiyor.",
+      "fileTooLarge": "\"{file}\" dosyası 20 MB sınırını aşıyor.",
+      "fileCountExceeded": "Çok fazla dosya. En fazla {max} dosya yüklenebilir.",
       "totalSizeExceeded": "Toplam dosya boyutu çok büyük. Kayıttan önceki yükleme sınırı 20 MB'dir.",
       "rateLimitedHourly": "Çok fazla fiyat hesaplaması yapıldı. Lütfen bir saat sonra tekrar deneyin.",
       "rateLimitedDaily": "Günlük fiyat hesaplama sınırına ulaştınız. Lütfen yarın tekrar deneyin.",
