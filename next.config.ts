@@ -30,6 +30,18 @@ const HALYK_FRAME_DOMAINS = [
   'https://epay.homebank.kz',
 ].join(' ');
 
+// Direct-to-R2 browser uploads (presigned PUT — src/lib/r2/client.ts getPresignedPutUrl)
+// connect to the R2 bucket's own origin directly, bypassing this Next.js app entirely.
+// Derived from the same server-side R2_ACCOUNT_ID/R2_BUCKET_NAME env vars the R2 client
+// uses (never R2_ACCESS_KEY_ID/R2_SECRET_ACCESS_KEY — those never appear here), so each
+// Vercel environment (staging Preview vs. production) automatically gets exactly its
+// own bucket's origin in its own CSP — never the other environment's, never a wildcard.
+// AWS SDK v3's S3Client (no forcePathStyle set) signs virtual-hosted-style URLs, i.e.
+// https://{bucket}.{accountId}.r2.cloudflarestorage.com — must match that exactly.
+const R2_UPLOAD_ORIGIN = process.env.R2_ACCOUNT_ID && process.env.R2_BUCKET_NAME
+  ? `https://${process.env.R2_BUCKET_NAME}.${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`
+  : '';
+
 const securityHeaders = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
@@ -51,7 +63,7 @@ const securityHeaders = [
       `style-src 'self' 'unsafe-inline'`,
       `img-src 'self' data: blob: https:`,
       `font-src 'self' data:`,
-      `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://sentry.io ${HALYK_CONNECT_DOMAINS}`,
+      `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://sentry.io ${HALYK_CONNECT_DOMAINS}${R2_UPLOAD_ORIGIN ? ` ${R2_UPLOAD_ORIGIN}` : ''}`,
       `frame-src 'self' ${HALYK_FRAME_DOMAINS}${VERCEL_LIVE_DOMAINS}`,
       `frame-ancestors 'self'`,
       `form-action 'self'`,
