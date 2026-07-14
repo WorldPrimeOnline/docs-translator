@@ -139,3 +139,61 @@ it('rejects invalid business-field metadata (e.g. missing documentType)', async 
   const res = await POST(makeRequest({ sourceLang: 'ru', targetLang: 'en', files: [{ originalName: 'a.pdf', mimeType: 'application/pdf', sizeBytes: 100 }] }));
   expect(res.status).toBe(400);
 });
+
+describe('UTM/refCode fields — regression for production 400 INVALID_UPLOAD_METADATA', () => {
+  const oneFile = [{ originalName: 'a.pdf', mimeType: 'application/pdf', sizeBytes: 1000 }];
+
+  it('accepts all UTM/refCode fields as explicit null', async () => {
+    const res = await POST(makeRequest({
+      ...VALID_BODY_BASE,
+      files: oneFile,
+      refCode: null, utmSource: null, utmMedium: null, utmCampaign: null, utmContent: null, utmTerm: null,
+    }));
+    expect(res.status).toBe(200);
+  });
+
+  it('accepts all UTM/refCode fields entirely absent', async () => {
+    const res = await POST(makeRequest({ ...VALID_BODY_BASE, files: oneFile }));
+    expect(res.status).toBe(200);
+  });
+
+  it('accepts non-empty valid UTM/refCode values', async () => {
+    const res = await POST(makeRequest({
+      ...VALID_BODY_BASE,
+      files: oneFile,
+      refCode: 'PARTNER1', utmSource: 'google', utmMedium: 'cpc', utmCampaign: 'summer', utmContent: 'ad1', utmTerm: 'translate',
+    }));
+    expect(res.status).toBe(200);
+  });
+
+  it('rejects a wrong type (object) for a UTM field', async () => {
+    const res = await POST(makeRequest({ ...VALID_BODY_BASE, files: oneFile, utmSource: { nested: 'object' } }));
+    expect(res.status).toBe(400);
+  });
+
+  it('rejects a wrong type (array) for a UTM field', async () => {
+    const res = await POST(makeRequest({ ...VALID_BODY_BASE, files: oneFile, utmCampaign: ['array'] }));
+    expect(res.status).toBe(400);
+  });
+
+  // This is the exact shape OrderForm.tsx (dashboard mode) sends: loadReferralParams()
+  // returns a ReferralParams object whose UTM fields are typed `string | null`, so
+  // spreading it into the request body without an `?? undefined` guard produces
+  // literal nulls — this reproduces the production bug end to end at the route level
+  // (the pre-existing test suite never sent explicit null, only undefined/absent,
+  // which is exactly why it didn't catch this).
+  it('reproduces the real frontend-shaped payload (loadReferralParams() output spread with explicit nulls)', async () => {
+    const frontendShapedBody = {
+      ...VALID_BODY_BASE,
+      files: oneFile,
+      refCode: undefined, // activeCode || undefined — already safe pre-fix
+      utmSource: null,    // referralParams?.utmSource — was unsafe pre-fix
+      utmMedium: null,
+      utmCampaign: null,
+      utmContent: null,
+      utmTerm: null,
+    };
+    const res = await POST(makeRequest(frontendShapedBody));
+    expect(res.status).toBe(200);
+  });
+});

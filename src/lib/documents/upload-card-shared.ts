@@ -88,6 +88,41 @@ export const UploadFormSchema = z
     }
   });
 
+/**
+ * Normalizes `null` and `""` to `undefined` before validating as an optional string.
+ *
+ * Why this exists: `ReferralParams` (src/lib/referral/capture.ts) types every UTM
+ * field as `string | null`, because `URLSearchParams.get()` returns `null` — not
+ * `undefined` — for a parameter that isn't in the URL. A caller that spreads
+ * `loadReferralParams()` straight into a request body (without an explicit
+ * `?? undefined` guard) therefore sends explicit `null`, which a plain
+ * `z.string().optional()` rejects (only `undefined`/absent satisfies "optional", not
+ * `null`). This is a defensive backend normalization independent of the frontend fix —
+ * it also protects against already-cached old frontend bundles.
+ */
+function nullableOptionalString(max: number) {
+  return z.preprocess(
+    (val) => (val === null || val === '' ? undefined : val),
+    z.string().max(max).optional(),
+  );
+}
+
+/**
+ * Shared referral/UTM field schema for both upload-card/init and upload-card/complete
+ * — one definition so the two endpoints can't drift on how they tolerate null/empty
+ * values. Never used to relax required business fields (sourceLang, targetLang,
+ * documentType, serviceLevel, uploadAttemptId, uploads, raw keys) — those keep their
+ * own validation in UploadFormSchema/CompleteBodySchema/InitBodySchema untouched.
+ */
+export const OptionalUtmFieldsSchema = z.object({
+  refCode: nullableOptionalString(50),
+  utmSource: nullableOptionalString(200),
+  utmMedium: nullableOptionalString(200),
+  utmCampaign: nullableOptionalString(200),
+  utmContent: nullableOptionalString(200),
+  utmTerm: nullableOptionalString(200),
+});
+
 export function getClientIp(req: NextRequest): string | null {
   const forwarded = req.headers.get('x-forwarded-for');
   if (forwarded) {

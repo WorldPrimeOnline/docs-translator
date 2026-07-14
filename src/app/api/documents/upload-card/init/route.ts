@@ -12,6 +12,7 @@ import { getHalykConfig } from '@/lib/payments/halyk/config';
 import { getPresignedPutUrl } from '@/lib/r2/client';
 import {
   UploadFormSchema,
+  OptionalUtmFieldsSchema,
   getAuthUser,
   checkCardUploadRateLimit,
   buildCardRawUploadKey,
@@ -37,7 +38,7 @@ const InitFileSchema = z.object({
 
 const InitBodySchema = z.object({
   files: z.array(InitFileSchema).min(1),
-}).and(UploadFormSchema);
+}).and(UploadFormSchema).and(OptionalUtmFieldsSchema);
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {

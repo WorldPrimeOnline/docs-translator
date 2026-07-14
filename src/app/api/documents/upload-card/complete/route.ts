@@ -24,6 +24,7 @@ import { getHalykConfig } from '@/lib/payments/halyk/config';
 import { supabaseServer } from '@/lib/supabase/server';
 import {
   UploadFormSchema,
+  OptionalUtmFieldsSchema,
   getAuthUser,
   getClientIp,
   checkCardUploadRateLimit,
@@ -48,13 +49,7 @@ const CompleteUploadSchema = z.object({
 const CompleteBodySchema = z.object({
   uploadAttemptId: z.string().uuid(),
   uploads: z.array(CompleteUploadSchema).min(1),
-  refCode: z.string().max(50).optional(),
-  utmSource: z.string().max(200).optional(),
-  utmMedium: z.string().max(200).optional(),
-  utmCampaign: z.string().max(200).optional(),
-  utmContent: z.string().max(200).optional(),
-  utmTerm: z.string().max(200).optional(),
-}).and(UploadFormSchema);
+}).and(UploadFormSchema).and(OptionalUtmFieldsSchema);
 
 async function deleteRawObjects(keys: string[]): Promise<void> {
   const results = await Promise.allSettled(keys.map((k) => deleteFile(k)));
