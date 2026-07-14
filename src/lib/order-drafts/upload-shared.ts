@@ -11,6 +11,7 @@ import { getDraftRow, isOwner } from './service';
 import { getDraftSessionToken } from './session';
 import { getOptionalAuthUser } from './request-context';
 import { ALLOWED_MIME_TYPES, RAW_UPLOAD_PREFIX, DRAFT_UPLOADS_PREFIX } from './upload-constants';
+import { buildRawKey, isValidRawKey } from '@/lib/r2/upload-key-utils';
 import type { OrderDraftRow } from './types';
 
 export interface DraftUploadOwner {
@@ -73,7 +74,7 @@ export function buildCombinedOriginalName(originalNames: string[]): string {
 
 /** Server-generated only — never accept a raw upload key from the client on init. */
 export function buildRawUploadKey(draftId: string): string {
-  return `${RAW_UPLOAD_PREFIX}/${draftId}/${crypto.randomUUID()}`;
+  return buildRawKey(RAW_UPLOAD_PREFIX, draftId);
 }
 
 /** The permanent, single-object key a draft's merged PDF has always lived at. */
@@ -81,20 +82,12 @@ export function finalUploadKey(draftId: string): string {
   return `${DRAFT_UPLOADS_PREFIX}/${draftId}/original.pdf`;
 }
 
-const UUID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
-
 /**
  * Strictly validates `draft-upload-raw/{draftId}/{uuid}` — rejects keys belonging to
  * another draft, the final key, arbitrary/attacker-supplied keys, path traversal, and
- * wrong prefixes. Splitting into exactly 3 segments and requiring the last to be a
- * canonical UUID rules out extra path segments (`..`, nested paths) by construction.
+ * wrong prefixes. Delegates to the generic {prefix}/{scope}/{uuid} validator in
+ * src/lib/r2/upload-key-utils.ts (also used by documents/upload-card's direct-to-R2 flow).
  */
 export function isValidRawUploadKey(key: string, draftId: string): boolean {
-  const parts = key.split('/');
-  if (parts.length !== 3) return false;
-  const [prefix, keyDraftId, uuid] = parts;
-  if (prefix !== RAW_UPLOAD_PREFIX) return false;
-  if (keyDraftId !== draftId) return false;
-  if (!uuid || !UUID_RE.test(uuid)) return false;
-  return true;
+  return isValidRawKey(key, RAW_UPLOAD_PREFIX, draftId);
 }

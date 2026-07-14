@@ -196,7 +196,11 @@
       "logoutFailed": "ไม่สามารถออกจากระบบได้",
       "unsupportedFileType": "ประเภทไฟล์ที่ไม่รองรับ: {files}",
       "pleaseSelectFile": "กรุณาเลือกอย่างน้อยหนึ่งไฟล์",
-      "failedTermsAcceptance": "ไม่สามารถบันทึกการยอมรับข้อกำหนดได้"
+      "failedTermsAcceptance": "ไม่สามารถบันทึกการยอมรับข้อกำหนดได้",
+      "totalSizeExceeded": "ขนาดไฟล์รวมใหญ่เกินไป ขีดจำกัดคือ 50 MB",
+      "fileTooLarge": "ไฟล์ \"{file}\" มีขนาดเกิน 25 MB",
+      "fileCountExceeded": "ไฟล์มากเกินไป สูงสุด {max} ไฟล์",
+      "invalidFileSignature": "ไฟล์ \"{file}\" ไม่ตรงกับประเภทไฟล์ที่ระบุ"
     },
     "uploadDocument": "อัปโหลดเอกสาร",
     "uploadedQuoteReady": "อัปโหลดเอกสารแล้ว — ราคา: {price} ₸ ยืนยันการชำระเงินด้านล่าง",

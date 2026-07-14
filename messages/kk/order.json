@@ -192,7 +192,11 @@
       "logoutFailed": "Шығу сәтсіз аяқталды",
       "unsupportedFileType": "Қолдау көрсетілмейтін файл түрі: {files}",
       "pleaseSelectFile": "Кем дегенде бір файл таңдаңыз",
-      "failedTermsAcceptance": "Шарттарды қабылдауды сақтау сәтсіз аяқталды."
+      "failedTermsAcceptance": "Шарттарды қабылдауды сақтау сәтсіз аяқталды.",
+      "totalSizeExceeded": "Файлдардың жалпы көлемі тым үлкен. Шек — 50 МБ.",
+      "fileTooLarge": "«{file}» файлы 25 МБ шегінен асып кетті.",
+      "fileCountExceeded": "Файлдар тым көп. Ең көбі — {max}.",
+      "invalidFileSignature": "«{file}» файлы көрсетілген түрге сәйкес келмейді."
     },
     "uploadDocument": "Upload document",
     "uploadedQuoteReady": "Document uploaded — price: {price} KZT. Confirm payment below.",

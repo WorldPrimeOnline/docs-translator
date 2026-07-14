@@ -192,7 +192,11 @@
       "logoutFailed": "Чыгуу ийгиликсиз аяктады",
       "unsupportedFileType": "Колдоо көрсөтүлбөгөн файл түрү: {files}",
       "pleaseSelectFile": "Жок дегенде бир файл тандаңыз",
-      "failedTermsAcceptance": "Шарттарды кабыл алууну сактоо ийгиликсиз аяктады."
+      "failedTermsAcceptance": "Шарттарды кабыл алууну сактоо ийгиликсиз аяктады.",
+      "totalSizeExceeded": "Файлдардын жалпы көлөмү өтө чоң. Чек — 50 МБ.",
+      "fileTooLarge": "«{file}» файлы 25 МБ чегинен ашып кетти.",
+      "fileCountExceeded": "Файлдар өтө көп. Максимум — {max}.",
+      "invalidFileSignature": "«{file}» файлы көрсөтүлгөн түргө дал келбейт."
     },
     "uploadDocument": "Документти жүктөңүз",
     "uploadedQuoteReady": "Документ жүктөлдү — баасы: {price} ₸. Төмөндө төлөмдү ырастаңыз.",

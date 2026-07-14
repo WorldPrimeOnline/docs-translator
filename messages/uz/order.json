@@ -192,7 +192,11 @@
       "logoutFailed": "Chiqish muvaffaqiyatsiz tugadi",
       "unsupportedFileType": "Qo'llab-quvvatlanmaydigan fayl turi: {files}",
       "pleaseSelectFile": "Kamida bitta fayl tanlang",
-      "failedTermsAcceptance": "Shartlarni qabul qilishni saqlash muvaffaqiyatsiz tugadi."
+      "failedTermsAcceptance": "Shartlarni qabul qilishni saqlash muvaffaqiyatsiz tugadi.",
+      "totalSizeExceeded": "Fayllarning umumiy hajmi juda katta. Chegara — 50 MB.",
+      "fileTooLarge": "\"{file}\" fayli 25 MB chegarasidan oshib ketdi.",
+      "fileCountExceeded": "Fayllar juda ko'p. Maksimal soni — {max}.",
+      "invalidFileSignature": "\"{file}\" fayli e'lon qilingan turga mos kelmaydi."
     },
     "uploadDocument": "Hujjat yuklash",
     "uploadedQuoteReady": "Hujjat yuklandi — narx: {price} ₸. Quyida to'lovni tasdiqlang.",

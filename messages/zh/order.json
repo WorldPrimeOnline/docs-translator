@@ -196,7 +196,11 @@
       "logoutFailed": "退出登录失败",
       "unsupportedFileType": "不支持的文件类型：{files}",
       "pleaseSelectFile": "请至少选择一个文件",
-      "failedTermsAcceptance": "保存服务条款接受状态失败。"
+      "failedTermsAcceptance": "保存服务条款接受状态失败。",
+      "totalSizeExceeded": "文件总大小过大。限制为 50 MB。",
+      "fileTooLarge": "文件“{file}”超过 25 MB 限制。",
+      "fileCountExceeded": "文件数量过多，最多 {max} 个。",
+      "invalidFileSignature": "文件“{file}”与其文件类型不符。"
     },
     "uploadDocument": "上传文件",
     "uploadedQuoteReady": "文件已上传——价格：{price} ₸。请在下方确认付款。",

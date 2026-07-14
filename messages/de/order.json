@@ -196,7 +196,11 @@
       "logoutFailed": "Abmelden fehlgeschlagen",
       "unsupportedFileType": "Nicht unterstützter Dateityp: {files}",
       "pleaseSelectFile": "Bitte wählen Sie mindestens eine Datei aus",
-      "failedTermsAcceptance": "Zustimmung zu den Bedingungen konnte nicht gespeichert werden."
+      "failedTermsAcceptance": "Zustimmung zu den Bedingungen konnte nicht gespeichert werden.",
+      "totalSizeExceeded": "Die Gesamtdateigröße ist zu groß. Das Limit beträgt 50 MB.",
+      "fileTooLarge": "Die Datei „{file}“ überschreitet das Limit von 25 MB.",
+      "fileCountExceeded": "Zu viele Dateien. Maximal sind {max} erlaubt.",
+      "invalidFileSignature": "Die Datei „{file}“ entspricht nicht dem angegebenen Dateityp."
     },
     "uploadDocument": "Dokument hochladen",
     "uploadedQuoteReady": "Dokument hochgeladen — Preis: {price} ₸. Bestätigen Sie die Zahlung unten.",
