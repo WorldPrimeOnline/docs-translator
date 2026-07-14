@@ -300,6 +300,8 @@
       "noFile": "Iltimos, avval hujjatni yuklang.",
       "unsupportedFileType": "Qo'llab-quvvatlanmaydigan fayl turi: {files}",
       "invalidFileSignature": "\"{file}\" fayli e'lon qilingan turga mos kelmaydi.",
+      "fileTooLarge": "\"{file}\" fayli 20 MB chegarasidan oshib ketdi.",
+      "fileCountExceeded": "Fayllar juda ko'p. Maksimal soni — {max}.",
       "totalSizeExceeded": "Fayllarning umumiy hajmi juda katta. Ro'yxatdan o'tishdan oldingi cheklov — 20 MB.",
       "rateLimitedHourly": "Narx hisoblash juda ko'p marta bajarildi. Bir soatdan keyin qayta urinib ko'ring.",
       "rateLimitedDaily": "Kunlik narx hisoblash chegarasiga yetdingiz. Ertaga qayta urinib ko'ring.",

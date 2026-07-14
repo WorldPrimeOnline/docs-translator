@@ -300,6 +300,8 @@
       "noFile": "Please upload a document first.",
       "unsupportedFileType": "Unsupported file type: {files}",
       "invalidFileSignature": "The file \"{file}\" does not match its file type.",
+      "fileTooLarge": "The file \"{file}\" exceeds the 20 MB limit.",
+      "fileCountExceeded": "Too many files. The maximum is {max}.",
       "totalSizeExceeded": "Total file size is too large. The limit for uploads before sign-up is 20 MB.",
       "rateLimitedHourly": "Too many price calculations. Please try again in an hour.",
       "rateLimitedDaily": "You've reached today's limit for price calculations. Please try again tomorrow.",

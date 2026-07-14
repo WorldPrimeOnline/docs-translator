@@ -300,6 +300,8 @@
       "noFile": "请先上传文件。",
       "unsupportedFileType": "不支持的文件类型:{files}",
       "invalidFileSignature": "文件“{file}”与其文件类型不符。",
+      "fileTooLarge": "文件“{file}”超过 20 MB 限制。",
+      "fileCountExceeded": "文件数量过多,最多 {max} 个。",
       "totalSizeExceeded": "文件总大小过大。注册前上传的限制为 20 MB。",
       "rateLimitedHourly": "价格计算次数过多,请一小时后重试。",
       "rateLimitedDaily": "您已达到今日价格计算次数上限,请明天再试。",

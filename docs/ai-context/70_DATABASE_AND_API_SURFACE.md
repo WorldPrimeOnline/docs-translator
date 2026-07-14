@@ -44,7 +44,7 @@ Generated types at `src/types/supabase.ts`, re-exported from `src/types/index.ts
 | POST | `/api/documents/upload-card` | Card-payment upload path (Halyk ePay) — gated by `cardPaymentsActive` |
 | POST | `/api/payments/halyk/initiate` | Initiate Halyk ePay payment, returns redirect URL |
 | POST | `/api/payments/halyk/callback` | Halyk ePay payment result callback — updates job payment status |
-| GET | `/api/cron/cleanup` | Daily 02:00 UTC — deletes files older than 30 days (secured via `CRON_SECRET`) |
+| GET | `/api/cron/cleanup` | Daily 02:00 UTC — deletes files older than 30 days, expired `order_drafts`, and orphaned `draft-upload-raw/` R2 objects older than 24h (secured via `CRON_SECRET`) |
 | GET | `/api/cron/reconcile-payments` | Scheduled reconciliation of Halyk ePay payment statuses |
 | POST | `/api/admin/payments/refund` | Operator-initiated refund — creates `refund_transactions` row (pending_manual) |
 | POST | `/api/admin/payments/[paymentId]/refunds` | Same as above, payment-scoped path |
@@ -59,7 +59,9 @@ Generated types at `src/types/supabase.ts`, re-exported from `src/types/index.ts
 | GET | `/api/partners/qr/[code]` | Public — returns a PNG QR code for the partner's referral link. 404 for inactive/unknown codes. Cache-Control: public, max-age=86400. No auth. |
 | POST | `/api/order-drafts` | Public — creates a pre-checkout draft (no auth); sets the anonymous session cookie |
 | GET, PATCH | `/api/order-drafts/[draftId]` | Read/update draft fields — owner check via session cookie or `user_id`; editing after a price was shown invalidates the cached snapshot |
-| POST | `/api/order-drafts/[draftId]/upload` | Anonymous-safe file upload to the temp `draft-uploads/` R2 prefix — magic-byte + MIME/size validated (20 MB anonymous cap) |
+| POST | `/api/order-drafts/[draftId]/upload/init` | Batch JSON metadata (filename/MIME/size per file) → one presigned R2 PUT URL per file at `draft-upload-raw/{draftId}/{uuid}`, 10-min TTL. No file bytes in the request. |
+| POST | `/api/order-drafts/[draftId]/upload/complete` | Browser has already PUT each file straight to R2; this HeadObject-verifies actual size/type, downloads, magic-byte checks, converts+merges to PDF, writes the final `draft-uploads/{draftId}/original.pdf` key, calls `setDraftFile()`, deletes the raw objects. Idempotent — safe to retry. |
+| POST | `/api/order-drafts/[draftId]/upload` | **Legacy** — single multipart request carrying file bytes through this Vercel Function; kept only for cached old frontend bundles. Hits Vercel's ~4.5 MB function payload limit (413) for larger files — the current frontend uses `/upload/init` + `/upload/complete` instead. |
 | POST | `/api/order-drafts/[draftId]/calculate` | Computes a real KZT price via the existing pricing engine; rate-limited for anonymous callers (5/hour, 20/day) |
 | POST | `/api/order-drafts/[draftId]/attach` | Auth required — attaches an anonymous draft to the logged-in user after the auth detour |
 | POST | `/api/order-drafts/[draftId]/convert` | Auth required — materializes the draft into a real `documents`/`jobs` (`payment_pending`)/`price_quotes` row; idempotent |

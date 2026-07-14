@@ -1,47 +1,48 @@
 /**
- * Anonymous-safe file upload for a pre-checkout draft.
- * Files land in a temp `draft-uploads/` R2 prefix — never the permanent `documents/`
- * prefix — until the draft is converted into a real order at checkout time.
+ * LEGACY single-request draft upload endpoint — kept only for backward compatibility
+ * with already-cached old frontend bundles that still POST multipart/form-data here
+ * directly. This is the endpoint that hits Vercel's ~4.5 MB function payload limit
+ * (413 FUNCTION_PAYLOAD_TOO_LARGE) for any file over a few MB, which is exactly why
+ * the direct-to-R2 flow (init/route.ts + complete/route.ts, in this same directory)
+ * was introduced.
+ *
+ * The current frontend (src/components/order/OrderForm.tsx) no longer calls this
+ * endpoint — it uses init -> presigned PUT -> complete instead. Do not add an
+ * automatic fallback to this endpoint for large files: it would just reproduce the
+ * 413. Safe to delete this file entirely after one stable release cycle once no
+ * cached old bundle can still be pointing at it.
+ *
+ * Internals below now reuse the same shared constants/MIME/ownership/key helpers as
+ * init/complete, so the three endpoints cannot drift on limits or validation rules —
+ * only the transport (multipart body vs presigned R2 PUT) differs.
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { getDraftRow, setDraftFile } from '@/lib/order-drafts/service';
-import { getDraftSessionToken } from '@/lib/order-drafts/session';
-import { getOptionalAuthUser } from '@/lib/order-drafts/request-context';
+import { setDraftFile } from '@/lib/order-drafts/service';
 import { uploadFile } from '@/lib/r2/client';
 import { convertToPdf, mergePdfs } from '@/lib/convert-to-pdf';
 import { matchesClaimedMimeType } from '@/lib/file-validation/signature';
-
-const ALLOWED_MIME_TYPES: Record<string, string> = {
-  'application/pdf': 'pdf',
-  'image/jpeg': 'jpg',
-  'image/png': 'png',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
-};
-
-const ANONYMOUS_MAX_TOTAL_SIZE = 20 * 1024 * 1024;
-const AUTHENTICATED_MAX_TOTAL_SIZE = 50 * 1024 * 1024;
-const MAX_FILE_SIZE_EACH = 20 * 1024 * 1024;
-
-function detectMimeType(file: File): string {
-  if (file.type && ALLOWED_MIME_TYPES[file.type]) return file.type;
-  const ext = file.name.toLowerCase().split('.').pop() ?? '';
-  if (ext === 'pdf') return 'application/pdf';
-  if (ext === 'jpg' || ext === 'jpeg') return 'image/jpeg';
-  if (ext === 'png') return 'image/png';
-  if (ext === 'docx') return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-  return file.type;
-}
+import {
+  loadOwnedDraft,
+  resolveMimeType,
+  isAllowedMimeType,
+  buildCombinedOriginalName,
+  finalUploadKey,
+} from '@/lib/order-drafts/upload-shared';
+import {
+  MAX_FILE_SIZE_EACH,
+  ANONYMOUS_MAX_TOTAL_SIZE,
+  AUTHENTICATED_MAX_TOTAL_SIZE,
+} from '@/lib/order-drafts/upload-constants';
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ draftId: string }> }): Promise<NextResponse> {
   try {
     const { draftId } = await params;
-    const draft = await getDraftRow(draftId);
-    if (!draft) return NextResponse.json({ error: 'DRAFT_NOT_FOUND' }, { status: 404 });
 
-    const [sessionToken, user] = await Promise.all([getDraftSessionToken(), getOptionalAuthUser()]);
-    const owner = { sessionToken, userId: user?.id ?? null };
-    const owned = draft.user_id ? draft.user_id === owner.userId : draft.anonymous_session_id === owner.sessionToken;
-    if (!owned) return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });
+    const owned = await loadOwnedDraft(draftId);
+    if (!owned.ok) {
+      return NextResponse.json({ error: owned.error }, { status: owned.error === 'DRAFT_NOT_FOUND' ? 404 : 403 });
+    }
+    const { draft, owner } = owned;
     if (draft.status === 'converted') return NextResponse.json({ error: 'DRAFT_ALREADY_CONVERTED' }, { status: 409 });
 
     const formData = await request.formData();
@@ -50,16 +51,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'At least one file is required' }, { status: 400 });
     }
 
-    const totalCap = user ? AUTHENTICATED_MAX_TOTAL_SIZE : ANONYMOUS_MAX_TOTAL_SIZE;
+    const totalCap = owner.userId ? AUTHENTICATED_MAX_TOTAL_SIZE : ANONYMOUS_MAX_TOTAL_SIZE;
 
+    const mimes: string[] = [];
     for (const f of rawFiles) {
-      const mime = detectMimeType(f);
-      if (!ALLOWED_MIME_TYPES[mime]) {
+      const mime = resolveMimeType(f.name, f.type);
+      if (!isAllowedMimeType(mime)) {
         return NextResponse.json({ error: `Unsupported file type: ${f.name}` }, { status: 400 });
       }
       if (f.size > MAX_FILE_SIZE_EACH) {
         return NextResponse.json({ error: `File "${f.name}" exceeds the size limit` }, { status: 400 });
       }
+      mimes.push(mime);
     }
 
     const totalSize = rawFiles.reduce((s, f) => s + f.size, 0);
@@ -69,20 +72,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const buffers = await Promise.all(rawFiles.map((f) => f.arrayBuffer().then((b) => Buffer.from(b))));
     for (let i = 0; i < rawFiles.length; i++) {
-      const mime = detectMimeType(rawFiles[i]!);
-      if (!matchesClaimedMimeType(buffers[i]!, mime)) {
+      if (!matchesClaimedMimeType(buffers[i]!, mimes[i]!)) {
         return NextResponse.json({ error: 'INVALID_FILE_SIGNATURE', file: rawFiles[i]!.name }, { status: 400 });
       }
     }
 
     const pdfParts = await Promise.all(
-      rawFiles.map((f, i) => convertToPdf(buffers[i]!, detectMimeType(f))),
+      rawFiles.map((f, i) => convertToPdf(buffers[i]!, mimes[i]!)),
     );
     const pdfBuffer = await mergePdfs(pdfParts);
 
-    const firstName = rawFiles[0]!.name.replace(/[^a-zA-Z0-9._\- ]/g, '_').slice(0, 200);
-    const originalName = rawFiles.length === 1 ? firstName : `${rawFiles.length}_files_${firstName}`;
-    const r2Key = `draft-uploads/${draftId}/original.pdf`;
+    const originalName = buildCombinedOriginalName(rawFiles.map((f) => f.name));
+    const r2Key = finalUploadKey(draftId);
 
     await uploadFile(r2Key, pdfBuffer, 'application/pdf');
 

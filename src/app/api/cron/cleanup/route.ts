@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
-import { deleteFile } from '@/lib/r2/client';
+import { deleteFile, listObjectsByPrefix } from '@/lib/r2/client';
+import { RAW_UPLOAD_PREFIX } from '@/lib/order-drafts/upload-constants';
 
 const RETENTION_DAYS = 30;
+const RAW_UPLOAD_RETENTION_HOURS = 24;
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const cronSecret = process.env.CRON_SECRET;
@@ -25,63 +27,67 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Failed to fetch documents' }, { status: 500 });
   }
 
-  if (!docs || docs.length === 0) {
-    return NextResponse.json({ deleted: 0 });
-  }
-
+  // NOTE: previously this returned early here when there were no expired documents,
+  // which meant cleanupExpiredOrderDrafts() and cleanupOrphanedRawUploads() below
+  // never ran on any day with zero 30-day-old documents — a pre-existing bug (not
+  // introduced by the raw-upload sweep) that would have silently starved both sweeps.
+  // Fixed by only skipping the per-document deletion loop, not the rest of the route.
   let deleted = 0;
   const errors: string[] = [];
 
-  for (const doc of docs) {
-    try {
-      // Get all translated file keys for this document
-      const { data: jobs } = await supabaseServer
-        .from('jobs')
-        .select('id')
-        .eq('document_id', doc.id);
+  if (docs && docs.length > 0) {
+    for (const doc of docs) {
+      try {
+        // Get all translated file keys for this document
+        const { data: jobs } = await supabaseServer
+          .from('jobs')
+          .select('id')
+          .eq('document_id', doc.id);
 
-      const jobIds = (jobs ?? []).map((j) => j.id);
+        const jobIds = (jobs ?? []).map((j) => j.id);
 
-      if (jobIds.length > 0) {
-        const { data: translations } = await supabaseServer
-          .from('translations')
-          .select('translated_pdf_key')
-          .in('job_id', jobIds);
+        if (jobIds.length > 0) {
+          const { data: translations } = await supabaseServer
+            .from('translations')
+            .select('translated_pdf_key')
+            .in('job_id', jobIds);
 
-        for (const t of translations ?? []) {
-          await deleteFile(t.translated_pdf_key).catch((e: unknown) => {
-            console.error('[cleanup] R2 delete translated failed:', t.translated_pdf_key, e);
-          });
+          for (const t of translations ?? []) {
+            await deleteFile(t.translated_pdf_key).catch((e: unknown) => {
+              console.error('[cleanup] R2 delete translated failed:', t.translated_pdf_key, e);
+            });
+          }
         }
+
+        // Delete original file from R2
+        await deleteFile(doc.file_key).catch((e: unknown) => {
+          console.error('[cleanup] R2 delete original failed:', doc.file_key, e);
+        });
+
+        // Delete DB record (cascades to jobs, translations, ocr_results)
+        const { error: delError } = await supabaseServer
+          .from('documents')
+          .delete()
+          .eq('id', doc.id);
+
+        if (delError) {
+          errors.push(`doc ${doc.id}: ${delError.message}`);
+        } else {
+          deleted++;
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        errors.push(`doc ${doc.id}: ${msg}`);
       }
-
-      // Delete original file from R2
-      await deleteFile(doc.file_key).catch((e: unknown) => {
-        console.error('[cleanup] R2 delete original failed:', doc.file_key, e);
-      });
-
-      // Delete DB record (cascades to jobs, translations, ocr_results)
-      const { error: delError } = await supabaseServer
-        .from('documents')
-        .delete()
-        .eq('id', doc.id);
-
-      if (delError) {
-        errors.push(`doc ${doc.id}: ${delError.message}`);
-      } else {
-        deleted++;
-      }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      errors.push(`doc ${doc.id}: ${msg}`);
     }
+
+    console.log(`[cleanup] deleted ${deleted}/${docs.length} documents`);
   }
 
-  console.log(`[cleanup] deleted ${deleted}/${docs.length} documents`);
-
   const draftsDeleted = await cleanupExpiredOrderDrafts();
+  const rawUploadsDeleted = await cleanupOrphanedRawUploads();
 
-  return NextResponse.json({ deleted, errors: errors.length > 0 ? errors : undefined, draftsDeleted });
+  return NextResponse.json({ deleted, errors: errors.length > 0 ? errors : undefined, draftsDeleted, rawUploadsDeleted });
 }
 
 /**
@@ -120,5 +126,45 @@ async function cleanupExpiredOrderDrafts(): Promise<number> {
   }
 
   console.log(`[cleanup] deleted ${deleted}/${drafts.length} expired order_drafts`);
+  return deleted;
+}
+
+/**
+ * Sweeps temporary raw uploads (draft-upload-raw/{draftId}/{uuid}) left behind when a
+ * browser completed the presigned PUT to R2 but never called /upload/complete (tab
+ * closed, network drop, abandoned draft). These are invisible to
+ * cleanupExpiredOrderDrafts() above, because they are never recorded in any
+ * order_drafts.file_keys row — completion is what would have moved them into the
+ * final draft-uploads/{draftId}/original.pdf key (or deleted them outright).
+ *
+ * Deliberately scoped to the RAW_UPLOAD_PREFIX only via the R2 ListObjectsV2 Prefix
+ * filter — never touches draft-uploads/ (final draft PDFs) or documents/ (real orders).
+ */
+async function cleanupOrphanedRawUploads(): Promise<number> {
+  const cutoffMs = Date.now() - RAW_UPLOAD_RETENTION_HOURS * 60 * 60 * 1000;
+
+  let objects: Array<{ key: string; lastModified: Date | null }>;
+  try {
+    objects = await listObjectsByPrefix(`${RAW_UPLOAD_PREFIX}/`);
+  } catch (err) {
+    console.error('[cleanup] failed to list raw uploads:', err instanceof Error ? err.message : String(err));
+    return 0;
+  }
+
+  const stale = objects.filter((o) => o.lastModified !== null && o.lastModified.getTime() < cutoffMs);
+  if (stale.length === 0) return 0;
+
+  let deleted = 0;
+  for (const obj of stale) {
+    try {
+      await deleteFile(obj.key);
+      deleted++;
+    } catch (err) {
+      // Key only — never log filenames or file contents (client document handling rule).
+      console.error('[cleanup] raw upload delete failed:', obj.key, err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  console.log(`[cleanup] deleted ${deleted}/${stale.length} orphaned raw uploads`);
   return deleted;
 }
