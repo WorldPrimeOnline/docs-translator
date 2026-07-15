@@ -492,7 +492,13 @@ export async function createCardOrder(input: CardOrderInput): Promise<CardOrderR
   });
 
   if (input.refCode) {
-    void attachReferralToOrder({
+    // Awaited, not fire-and-forget: a Vercel serverless function's unawaited
+    // promises are not guaranteed to run to completion after the response is
+    // returned (same class of bug fixed for markQuotePaid/confirmReferral in
+    // the Halyk callback route — WO-75, 2026-07-09). attachReferralToOrder()
+    // itself never throws (catches internally), so this cannot turn a referral
+    // failure into an order-creation failure.
+    await attachReferralToOrder({
       jobId: job.id,
       userId: input.userId,
       refCode: input.refCode,

@@ -312,7 +312,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       // Best-effort referral attachment (subscription orders have no per-order KZT price).
       const refCode = (formData.get('refCode') as string | null) || null;
       if (refCode) {
-        void attachReferralToOrder({
+        // Awaited, not fire-and-forget — see src/lib/documents/upload-card-shared.ts
+        // for the WO-75-class Vercel unawaited-promise rationale.
+        await attachReferralToOrder({
           jobId,
           userId: user.id,
           refCode,

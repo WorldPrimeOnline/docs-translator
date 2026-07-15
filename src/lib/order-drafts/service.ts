@@ -427,7 +427,9 @@ export async function convertDraftToOrder(draftId: string, userId: string): Prom
     });
 
     if (draft.ref_code) {
-      void attachReferralToOrder({
+      // Awaited, not fire-and-forget — see src/lib/documents/upload-card-shared.ts
+      // for the WO-75-class Vercel unawaited-promise rationale.
+      await attachReferralToOrder({
         jobId: job.id,
         userId,
         refCode: draft.ref_code,
