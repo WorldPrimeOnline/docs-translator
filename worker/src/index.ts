@@ -6,7 +6,7 @@ import { reconcileFiscalAndRefunds, triggerReconcilePayments, triggerReconcileRe
 import { processPendingFiscalReceipts } from './lib/fiscal-processor';
 import { diagnoseWebkassaConnectivity } from './lib/webkassa-client';
 import { logDriveAuthModeWithHealthCheck } from './lib/google-drive';
-import { reconcilePendingPriceBreakdownIssues } from './lib/integrations';
+import { reconcilePendingPriceBreakdownIssues, reconcileMissingJiraIssues } from './lib/integrations';
 
 // ── State ──────────────────────────────────────────────────────────────────
 let running = false;   // true while we are processing a job
@@ -296,6 +296,18 @@ async function main(): Promise<void> {
       console.error('[worker] price breakdown reconciliation error:', (err as Error).message);
     });
   }, PRICE_BREAKDOWN_RECONCILE_INTERVAL_MS);
+
+  // Reconcile paid certified/notarized jobs missing their main Jira issue every
+  // 20 minutes. Prod incident, 2026-07-15: initializeOrderIntegrations() treats
+  // Jira issue creation as non-fatal ("continuing with OCR") so a failure never
+  // stops the job — but nothing was retrying it afterwards. Electronic orders
+  // are excluded on purpose: they never get a Jira issue by design.
+  const MISSING_JIRA_RECONCILE_INTERVAL_MS = 20 * 60 * 1000;
+  setInterval(() => {
+    void reconcileMissingJiraIssues().catch((err: unknown) => {
+      console.error('[worker] missing-Jira reconciliation error:', (err as Error).message);
+    });
+  }, MISSING_JIRA_RECONCILE_INTERVAL_MS);
 }
 
 void main();
