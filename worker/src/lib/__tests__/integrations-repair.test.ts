@@ -86,8 +86,10 @@ jest.mock('../r2', () => ({
 }));
 
 const mockBackfillJiraOrderFields = jest.fn();
+const mockGetPartnerApplicationId = jest.fn();
 jest.mock('../integrations', () => ({
   backfillJiraOrderFields: (...args: unknown[]) => mockBackfillJiraOrderFields(...args),
+  getPartnerApplicationId: (...args: unknown[]) => mockGetPartnerApplicationId(...args),
 }));
 
 import { repairOrderIntegrations } from '../integrations-repair';
@@ -112,6 +114,7 @@ beforeEach(() => {
   };
   mockIsDriveConfigured.mockReturnValue(true);
   mockBackfillJiraOrderFields.mockResolvedValue({ ok: true, updatedFields: ['documentsLink', 'deliveryPhone', 'deliveryAddress'], skippedFields: [] });
+  mockGetPartnerApplicationId.mockResolvedValue(null); // no referral by default
 });
 
 describe('repairOrderIntegrations — dry run', () => {
@@ -157,7 +160,37 @@ describe('repairOrderIntegrations — apply', () => {
       deliveryPhone: '+7 701 799 5422',
       deliveryAddress: 'ул.Мынбаева 46, офис 511',
       fulfillmentMethod: 'delivery',
+      partnerApplicationId: null,
     });
+  });
+
+  it('backfills partnerApplicationId onto an existing issue when a referral resolves one', async () => {
+    mockCreateOrderFolder.mockResolvedValue({
+      folderId: 'folder-1',
+      folderUrl: 'https://drive.google.com/drive/folders/folder-1',
+      subfolders: { source: 'src-1', aiDraft: 'ai-1', translatorResult: 't-1', signatureStamp: 's-1', notary: 'n-1', final: 'f-1' },
+    });
+    mockDownloadFile.mockResolvedValue(Buffer.from('fake'));
+    mockUploadFileToDrive.mockResolvedValue('file-id');
+    mockGetPartnerApplicationId.mockResolvedValue('34c19be3-f501-4c24-894f-e46d22c229d9');
+
+    await repairOrderIntegrations('job-1', false);
+
+    expect(mockBackfillJiraOrderFields).toHaveBeenCalledWith('WO-75', expect.objectContaining({
+      partnerApplicationId: '34c19be3-f501-4c24-894f-e46d22c229d9',
+    }));
+  });
+
+  it('dry run reports partnerApplicationId as a field it would patch, without calling backfillJiraOrderFields', async () => {
+    fakeJob.google_drive_folder_id = 'existing-folder';
+    fakeJob.google_drive_folder_url = 'https://drive.google.com/drive/folders/existing-folder';
+    mockGetSubfolderId.mockResolvedValue('existing-subfolder');
+    mockGetPartnerApplicationId.mockResolvedValue('34c19be3-f501-4c24-894f-e46d22c229d9');
+
+    const result = await repairOrderIntegrations('job-1', true);
+
+    expect(mockBackfillJiraOrderFields).not.toHaveBeenCalled();
+    expect(result.jiraUpdatedFields.some((f) => f.includes('partnerApplicationId'))).toBe(true);
   });
 
   it('is safe to rerun — skips folder creation when one already exists', async () => {

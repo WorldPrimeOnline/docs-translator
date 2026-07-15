@@ -24,6 +24,7 @@ import {
 import { downloadFile } from './r2';
 import type { ServiceLevel } from './output-plan';
 import { buildJiraIssueFields, JIRA_FIELDS, buildApplicantTypeDescriptionLine } from './jira/order-fields';
+import { searchJiraIssuesByJql } from './jira/search';
 import {
   buildFinanceIssuePayload,
   getFinanceConfig,
@@ -76,6 +77,35 @@ async function jiraFetch(path: string, options: RequestInit = {}): Promise<Respo
   }
 }
 
+/**
+ * Retry wrapper for Jira write calls (createIssue). Retries on network failure
+ * (jiraFetch returning null) or a 5xx response; a 4xx is a validation/permission
+ * problem that a retry cannot fix, so it is returned immediately for the caller
+ * to turn into a thrown error.
+ */
+async function jiraFetchWithRetry(path: string, options: RequestInit, maxRetries = 3): Promise<Response | null> {
+  let lastErr = 'unknown error';
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const res = await jiraFetch(path, options);
+    if (res && (res.ok || res.status < 500)) return res;
+    lastErr = res ? `HTTP ${res.status}` : 'network error (no response)';
+    if (attempt < maxRetries) {
+      const backoffMs = 500 * 2 ** (attempt - 1);
+      console.warn(`[worker-jira] ${path} attempt ${attempt}/${maxRetries} failed (${lastErr}) — retrying in ${backoffMs}ms`);
+      await new Promise((r) => setTimeout(r, backoffMs));
+    }
+  }
+  console.error(`[worker-jira] ${path} failed after ${maxRetries} attempts: ${lastErr}`);
+  return null;
+}
+
+/** Adapter for searchJiraIssuesByJql(), which expects a throwing fetch (it wraps the call in its own try/catch). */
+async function jiraFetchThrowing(path: string, options?: RequestInit): Promise<Response> {
+  const res = await jiraFetch(path, options);
+  if (!res) throw new Error('Jira fetch failed (network error or Jira not configured)');
+  return res;
+}
+
 function serviceLevelLabel(level: ServiceLevel): string {
   if (level === 'notarization_through_partners') return 'notarized';
   if (level === 'official_with_translator_signature_and_provider_stamp') return 'certified';
@@ -88,7 +118,7 @@ function serviceLevelLabel(level: ServiceLevel): string {
  * row hasn't landed yet (attachReferralToOrder is fire-and-forget on the web side),
  * or the partner record has no application_id on file.
  */
-async function getPartnerApplicationId(jobId: string): Promise<string | null> {
+export async function getPartnerApplicationId(jobId: string): Promise<string | null> {
   try {
     const { data: referral } = await supabase
       .from('partner_referrals')
@@ -189,8 +219,16 @@ async function createJiraIssue(params: {
     },
   };
 
-  const res = await jiraFetch('/issue', { method: 'POST', body: JSON.stringify(body) });
-  if (!res) return null;
+  const res = await jiraFetchWithRetry('/issue', { method: 'POST', body: JSON.stringify(body) });
+  if (!res) {
+    // Previously returned null here, which callers treated the same as "Jira
+    // not configured" and silently skipped — a genuine network failure left
+    // jobs.jira_sync_status untouched (never 'error'), so a paid order could
+    // end up with no Jira issue and no operator-visible signal at all.
+    // Throwing routes network failures through the same catch/alert path as
+    // HTTP errors below.
+    throw new Error('Jira createIssue failed: no response after retries (network error)');
+  }
 
   if (!res.ok) {
     const text = await res.text().catch(() => '');
@@ -582,6 +620,38 @@ export async function reconcilePendingPriceBreakdownIssues(): Promise<void> {
       continue;
     }
 
+    // Jira-side idempotency search before creating — createPriceBreakdownIssue()
+    // itself only checks jobs.price_jira_issue_key in Postgres, so a Story that
+    // was created in Jira but whose DB write was lost (e.g. worker restart
+    // mid-flight) would otherwise get duplicated by this reconciler. Mirrors
+    // the same hard-stop-on-failed-search safety contract already used by
+    // scripts/staging/rebuild-jira-price-breakdown.ts.
+    const expectedSummary = buildPriceBreakdownSummary(job.jira_issue_key);
+    const label = config.labels[0] ?? 'wpo-price-breakdown';
+    const jql = `project = "${config.projectKey}" AND labels = "${label}" AND summary = "${expectedSummary.replace(/"/g, '\\"')}"`;
+    const searchResult = await searchJiraIssuesByJql(jiraFetchThrowing, jql, ['summary', 'created'], 5);
+
+    if (!searchResult.ok) {
+      console.error(`[price-breakdown-reconcile] job ${job.id.slice(0, 8)} Jira idempotency search failed — skipping this cycle (never falls through to create): ${searchResult.error}`);
+      continue;
+    }
+
+    if (searchResult.issues.length > 0) {
+      const sorted = [...searchResult.issues].sort(
+        (a, b) => new Date(a.fields.created).getTime() - new Date(b.fields.created).getTime(),
+      );
+      const found = sorted[0];
+      const auth = getJiraAuth();
+      await updateJobIntegration(job.id, {
+        price_jira_issue_id: found.id,
+        price_jira_issue_key: found.key,
+        price_jira_issue_url: auth ? `${auth.baseUrl}/browse/${found.key}` : null,
+        price_jira_sync_status: 'recovered',
+      });
+      console.log(`[price-breakdown-reconcile] ✓ job ${job.id.slice(0, 8)} — found existing Story ${found.key} in Jira, adopted instead of creating${sorted.length > 1 ? ` (${sorted.length - 1} other match(es) found — review manually)` : ''}`);
+      continue;
+    }
+
     try {
       const issueKey = await createPriceBreakdownIssue({
         jobId: job.id,
@@ -675,11 +745,13 @@ export interface JiraOrderFieldsPatch {
   deliveryPhone?: string | null;
   deliveryAddress?: string | null;
   fulfillmentMethod?: 'pickup' | 'delivery' | null;
+  /** partner_applications.id (UUID) — same value/source as initializeOrderIntegrations' create-time lookup. */
+  partnerApplicationId?: string | null;
 }
 
 /** Fetches only the fields we might backfill, to avoid clobbering existing values. */
 async function getExistingJiraOrderFields(issueKey: string): Promise<Record<string, unknown> | null> {
-  const fieldIds = [JIRA_FIELDS.documentsLink, JIRA_FIELDS.deliveryPhone, JIRA_FIELDS.deliveryAddress].join(',');
+  const fieldIds = [JIRA_FIELDS.documentsLink, JIRA_FIELDS.deliveryPhone, JIRA_FIELDS.deliveryAddress, JIRA_FIELDS.partnerApplicationId].join(',');
   const res = await jiraFetch(`/issue/${issueKey}?fields=${fieldIds}`);
   if (!res || !res.ok) return null;
   const data = (await res.json()) as { fields: Record<string, unknown> };
@@ -721,6 +793,7 @@ export async function backfillJiraOrderFields(
     maybeSet(JIRA_FIELDS.deliveryPhone, 'deliveryPhone', patch.deliveryPhone ?? null);
     maybeSet(JIRA_FIELDS.deliveryAddress, 'deliveryAddress', patch.deliveryAddress ?? null);
   }
+  maybeSet(JIRA_FIELDS.partnerApplicationId, 'partnerApplicationId', patch.partnerApplicationId ?? null);
 
   if (Object.keys(fields).length === 0) {
     console.log(`${tag} nothing to backfill (all target fields already set or no data available)`);
@@ -769,6 +842,27 @@ async function updateJobIntegration(jobId: string, fields: Record<string, unknow
     .update({ ...fields, last_synced_at: new Date().toISOString() })
     .eq('id', jobId);
   if (error) console.error('[worker-integration] job update failed:', error.message);
+}
+
+/**
+ * Append-only audit trail for Jira sync events. Worker integration failures
+ * previously left no trace in job_audit_log at all — only a jobs.last_integration_error
+ * string that gets overwritten by the next attempt. Best-effort: never throws.
+ */
+async function writeIntegrationAuditLog(jobId: string, action: string, metadata: Record<string, unknown>): Promise<void> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any).from('job_audit_log').insert({
+      job_id: jobId,
+      actor: 'system',
+      source: 'worker',
+      action,
+      jira_issue_key: (metadata.jiraIssueKey as string | undefined) ?? null,
+      metadata,
+    });
+  } catch (err) {
+    console.error('[worker-integration] job_audit_log insert failed (non-fatal):', err instanceof Error ? err.message : String(err));
+  }
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
@@ -930,6 +1024,10 @@ export async function initializeOrderIntegrations(params: {
             jira_issue_url: issue.issueUrl,
             jira_sync_status: 'created',
           });
+          await writeIntegrationAuditLog(params.jobId, 'jira_issue_created', {
+            jiraIssueKey: issue.issueKey,
+            serviceLevel: params.serviceLevel,
+          });
           console.log(`${tag} ✓ Jira issue created: ${issue.issueKey}`);
 
           // Create price breakdown issue immediately after main issue (non-blocking).
@@ -969,6 +1067,7 @@ export async function initializeOrderIntegrations(params: {
         const msg = err instanceof Error ? err.message : String(err);
         console.error(`${tag} Jira issue creation failed: ${msg}`);
         await updateJobIntegration(params.jobId, { jira_sync_status: 'error', last_integration_error: msg });
+        await writeIntegrationAuditLog(params.jobId, 'jira_sync_error', { error: msg, serviceLevel: params.serviceLevel });
         const chatId = process.env.TELEGRAM_OPERATOR_CHAT_ID ?? process.env.TELEGRAM_TRANSLATOR_CHAT_ID;
         if (chatId) await sendTelegram(chatId, `⚠️ Jira issue creation failed\nJob: ${params.jobId.slice(0, 8)}\n${msg}`).catch(() => undefined);
       }
@@ -1059,4 +1158,307 @@ export async function triggerTranslatorReview(params: {
   }
 
   console.log(`${tag} ✓ translator review triggered — Jira Automation handles assignment`);
+}
+
+// ─── Recovery: ensure a paid, non-electronic order has its main Jira issue ────
+
+export interface EnsureJiraResult {
+  jobId: string;
+  dryRun: boolean;
+  outcome:
+    | 'already_linked'
+    | 'skipped_electronic'
+    | 'skipped_not_paid'
+    | 'would_adopt_existing'
+    | 'adopted_existing'
+    | 'would_create'
+    | 'created'
+    | 'error';
+  jiraIssueKey: string | null;
+  jiraIssueUrl: string | null;
+  detail: string;
+}
+
+/**
+ * Idempotent recovery for a single order missing its main Jira issue.
+ *
+ * Never touches payment_transactions, price_quotes, or documents — only
+ * jobs.jira_* fields and job_audit_log. Safe to call repeatedly:
+ *   1. jobs.jira_issue_key already set        -> no-op
+ *   2. service_level === 'electronic'         -> no-op (electronic orders never get a Jira issue by design)
+ *   3. no paid payment_transactions row        -> refuses to create anything for an unpaid order
+ *   4. Jira search by summary=jobId finds one -> adopts it (link restored, no new issue)
+ *   5. Jira search finds none                  -> creates exactly once
+ *
+ * A failed Jira search is a hard stop (mirrors scripts/staging/rebuild-jira-price-breakdown.ts) —
+ * never falls through to "create" when the search itself could not complete, since that
+ * risks a duplicate issue for an order that already has one Jira couldn't find right now.
+ */
+export async function ensureJiraIssueForPaidOrder(jobId: string, dryRun = false): Promise<EnsureJiraResult> {
+  const tag = `[ensure-jira:${jobId.slice(0, 8)}]${dryRun ? ' [dry-run]' : ''}`;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: job, error: jobErr } = await (supabase as any)
+    .from('jobs')
+    .select('id, service_level, payment_source, jira_issue_key, jira_issue_url, notary_city, applicant_type, fulfillment_method, delivery_phone, delivery_address, customer_comment, document_id, google_drive_folder_url')
+    .eq('id', jobId)
+    .single();
+
+  if (jobErr || !job) {
+    return { jobId, dryRun, outcome: 'error', jiraIssueKey: null, jiraIssueUrl: null, detail: `job not found: ${jobErr?.message ?? jobId}` };
+  }
+
+  if (job.jira_issue_key) {
+    return { jobId, dryRun, outcome: 'already_linked', jiraIssueKey: job.jira_issue_key, jiraIssueUrl: job.jira_issue_url ?? null, detail: 'jobs.jira_issue_key already set — nothing to do' };
+  }
+
+  const serviceLevel = (job.service_level ?? 'electronic') as ServiceLevel;
+  if (serviceLevel === 'electronic') {
+    return { jobId, dryRun, outcome: 'skipped_electronic', jiraIssueKey: null, jiraIssueUrl: null, detail: 'electronic orders never get a Jira issue by design — this is expected, not an incident' };
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: payment } = await (supabase as any)
+    .from('payment_transactions')
+    .select('status')
+    .eq('job_id', jobId)
+    .in('status', ['paid', 'completed'])
+    .maybeSingle();
+
+  const isSubscription = job.payment_source === 'subscription';
+  if (!payment && !isSubscription) {
+    return { jobId, dryRun, outcome: 'skipped_not_paid', jiraIssueKey: null, jiraIssueUrl: null, detail: 'no paid payment_transactions row and payment_source is not subscription — refusing to create a Jira issue for an unpaid order' };
+  }
+
+  if (!getJiraAuth()) {
+    return { jobId, dryRun, outcome: 'error', jiraIssueKey: null, jiraIssueUrl: null, detail: 'Jira credentials not configured (JIRA_BASE_URL/JIRA_EMAIL/JIRA_API_TOKEN)' };
+  }
+
+  const projectKey = process.env.JIRA_PROJECT_KEY ?? 'WO';
+  const jql = `project = "${projectKey}" AND summary = "${jobId}"`;
+  const searchResult = await searchJiraIssuesByJql(jiraFetchThrowing, jql, ['summary', 'created'], 5);
+
+  if (!searchResult.ok) {
+    return { jobId, dryRun, outcome: 'error', jiraIssueKey: null, jiraIssueUrl: null, detail: `Jira idempotency search failed — refusing to create: ${searchResult.error}` };
+  }
+
+  if (searchResult.issues.length > 0) {
+    const sorted = [...searchResult.issues].sort(
+      (a, b) => new Date(a.fields.created).getTime() - new Date(b.fields.created).getTime(),
+    );
+    const found = sorted[0];
+    const auth = getJiraAuth()!;
+    const issueUrl = `${auth.baseUrl}/browse/${found.key}`;
+    const dupeNote = sorted.length > 1 ? ` (${sorted.length - 1} other matching issue(s) found — review manually for duplicates)` : '';
+
+    if (dryRun) {
+      console.log(`${tag} would adopt existing Jira issue ${found.key}${dupeNote}`);
+      return { jobId, dryRun, outcome: 'would_adopt_existing', jiraIssueKey: found.key, jiraIssueUrl: issueUrl, detail: `found an existing, unlinked Jira issue${dupeNote}` };
+    }
+
+    await updateJobIntegration(jobId, {
+      jira_issue_id: found.id,
+      jira_issue_key: found.key,
+      jira_issue_url: issueUrl,
+      jira_sync_status: 'recovered',
+    });
+    await writeIntegrationAuditLog(jobId, 'jira_issue_recovered', { jiraIssueKey: found.key, duplicatesFound: sorted.length - 1 });
+    console.log(`${tag} ✓ adopted existing Jira issue ${found.key}${dupeNote}`);
+    return { jobId, dryRun, outcome: 'adopted_existing', jiraIssueKey: found.key, jiraIssueUrl: issueUrl, detail: `linked to a pre-existing Jira issue that was never written back to the job${dupeNote}` };
+  }
+
+  // Nothing in Jira — create exactly once.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: doc } = await (supabase as any)
+    .from('documents')
+    .select('user_id, source_language, target_language, document_type')
+    .eq('id', job.document_id)
+    .maybeSingle();
+
+  if (dryRun) {
+    console.log(`${tag} would create a new Jira issue (service_level=${serviceLevel})`);
+    return { jobId, dryRun, outcome: 'would_create', jiraIssueKey: null, jiraIssueUrl: null, detail: 'no existing issue found in Jira — a real run would create exactly one' };
+  }
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.SITE_URL ?? 'https://wpotranslations.org';
+  const partnerApplicationId = await getPartnerApplicationId(jobId);
+
+  try {
+    const issue = await createJiraIssue({
+      jobId,
+      customerId: doc?.user_id ?? null,
+      serviceLevel,
+      sourceLang: doc?.source_language ?? 'unknown',
+      targetLang: doc?.target_language ?? 'unknown',
+      documentType: doc?.document_type ?? 'unknown',
+      notaryCity: job.notary_city ?? null,
+      applicantType: job.applicant_type ?? null,
+      fulfillmentMethod: job.fulfillment_method ?? null,
+      deliveryPhone: job.delivery_phone ?? null,
+      deliveryAddress: job.delivery_address ?? null,
+      paymentSource: job.payment_source ?? null,
+      driveUrl: job.google_drive_folder_url ?? null,
+      wpoUrl: `${siteUrl}/dashboard`,
+      createdAt: new Date().toISOString(),
+      customerComment: job.customer_comment ?? null,
+      partnerApplicationId,
+    });
+
+    if (!issue) {
+      return { jobId, dryRun, outcome: 'error', jiraIssueKey: null, jiraIssueUrl: null, detail: 'Jira returned no issue (unexpected — auth check passed earlier)' };
+    }
+
+    await updateJobIntegration(jobId, {
+      jira_issue_id: issue.issueId,
+      jira_issue_key: issue.issueKey,
+      jira_issue_url: issue.issueUrl,
+      jira_sync_status: 'recovered',
+    });
+    await writeIntegrationAuditLog(jobId, 'jira_issue_recovered', { jiraIssueKey: issue.issueKey, source: 'recovery-create' });
+    console.log(`${tag} ✓ created Jira issue ${issue.issueKey}`);
+    return { jobId, dryRun, outcome: 'created', jiraIssueKey: issue.issueKey, jiraIssueUrl: issue.issueUrl, detail: 'no existing issue found in Jira — created a new one' };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    await updateJobIntegration(jobId, { jira_sync_status: 'error', last_integration_error: msg });
+    await writeIntegrationAuditLog(jobId, 'jira_sync_error', { error: msg, source: 'recovery-create' });
+    console.error(`${tag} Jira issue creation failed: ${msg}`);
+    return { jobId, dryRun, outcome: 'error', jiraIssueKey: null, jiraIssueUrl: null, detail: `Jira issue creation failed: ${msg}` };
+  }
+}
+
+const MISSING_JIRA_RETRY_AFTER_MINUTES = 20;
+
+function getMissingJiraMaxItemsPerCycle(): number {
+  const raw = process.env.MISSING_JIRA_RECONCILE_BATCH_SIZE;
+  const n = raw ? parseInt(raw, 10) : NaN;
+  return Number.isInteger(n) && n > 0 ? n : 10;
+}
+
+/**
+ * Periodic sweep for `status = paid AND service_level IN (certified, notarized)
+ * AND jira_issue_key IS NULL` — the reconciliation the incident on 2026-07-15
+ * showed was missing. Runs from worker/src/index.ts on the same interval
+ * pattern as reconcilePendingPriceBreakdownIssues(). Electronic orders are
+ * excluded — they never get a Jira issue by design, so they are not candidates.
+ * The 20-minute age cutoff avoids racing initializeOrderIntegrations() on a
+ * job that just started processing.
+ */
+export async function reconcileMissingJiraIssues(): Promise<void> {
+  const cutoff = new Date(Date.now() - MISSING_JIRA_RETRY_AFTER_MINUTES * 60 * 1000).toISOString();
+  const maxItemsPerCycle = getMissingJiraMaxItemsPerCycle();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: candidates, error } = await (supabase as any)
+    .from('jobs')
+    .select('id, service_level, created_at')
+    .is('jira_issue_key', null)
+    .in('service_level', ['notarization_through_partners', 'official_with_translator_signature_and_provider_stamp'])
+    .lt('created_at', cutoff)
+    .order('created_at', { ascending: true })
+    .limit(maxItemsPerCycle);
+
+  if (error) {
+    console.error('[jira-reconcile] DB error fetching candidates:', error.message);
+    return;
+  }
+  if (!candidates || candidates.length === 0) return;
+
+  console.warn(`[jira-reconcile] ${candidates.length} job(s) missing a main Jira issue — checking`);
+
+  for (const job of candidates as Array<{ id: string }>) {
+    try {
+      const result = await ensureJiraIssueForPaidOrder(job.id, false);
+      if (result.outcome === 'created' || result.outcome === 'adopted_existing') {
+        console.log(`[jira-reconcile] ✓ job ${job.id.slice(0, 8)} → ${result.outcome} (${result.jiraIssueKey})`);
+        const chatId = process.env.TELEGRAM_OPERATOR_CHAT_ID ?? process.env.TELEGRAM_TRANSLATOR_CHAT_ID;
+        if (chatId) {
+          await sendTelegram(
+            chatId,
+            `🔧 Jira issue auto-recovered for job ${job.id.slice(0, 8)}: ${result.outcome} → ${result.jiraIssueKey}`,
+          ).catch(() => undefined);
+        }
+      } else if (result.outcome === 'error') {
+        console.error(`[jira-reconcile] job ${job.id.slice(0, 8)} still failing: ${result.detail}`);
+      }
+      // skipped_not_paid / skipped_electronic: expected states, nothing to alert on.
+    } catch (err) {
+      console.error(`[jira-reconcile] job ${job.id.slice(0, 8)} unexpected error (non-fatal):`, err instanceof Error ? err.message : String(err));
+    }
+  }
+}
+
+// ─── Reconcile: paid, referred orders missing Partner ID in Jira ─────────────
+
+const PARTNER_ID_RECONCILE_LOOKBACK_DAYS = 30;
+
+function getPartnerIdReconcileMaxItemsPerCycle(): number {
+  const raw = process.env.PARTNER_ID_RECONCILE_BATCH_SIZE;
+  const n = raw ? parseInt(raw, 10) : NaN;
+  return Number.isInteger(n) && n > 0 ? n : 10;
+}
+
+/**
+ * Periodic sweep for orders whose main Jira issue exists but customfield_10121
+ * (Partner ID) may still be empty — the 2026-07-15 WO-77/WO-78 incident class:
+ * a referral existed and partners.application_id was on file well before the
+ * issue was created, but the field never made it in (root cause unconfirmed;
+ * DB and code both say it should have worked — see docs/ai-context/DECISIONS.md
+ * for the investigation).
+ *
+ * Unlike reconcileMissingJiraIssues()/reconcilePendingPriceBreakdownIssues(),
+ * there is no DB column mirroring "has customfield_10121 been set in Jira" —
+ * jobs.jira_sync_status is reused for workflow-stage mirroring by
+ * src/lib/integrations/workflow.ts (syncTranslatorDoneNotarized et al.), so it
+ * is not a reliable signal here. This sweep therefore re-checks the same
+ * candidate population (paid-eligible, referred, has a main issue, created
+ * within the lookback window) every cycle rather than shrinking via a DB flag.
+ * That is intentionally safe, not wasteful-and-risky: backfillJiraOrderFields()
+ * reads the live Jira value before writing and no-ops when already set, so an
+ * already-correct job costs one extra Jira GET per cycle, never a duplicate or
+ * incorrect write. getPartnerApplicationId() cheaply skips non-referred jobs
+ * (a single null-checked DB lookup) before any Jira call is made.
+ */
+export async function reconcileMissingPartnerIds(): Promise<void> {
+  const cutoff = new Date(Date.now() - PARTNER_ID_RECONCILE_LOOKBACK_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  const maxItemsPerCycle = getPartnerIdReconcileMaxItemsPerCycle();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: candidates, error } = await (supabase as any)
+    .from('jobs')
+    .select('id, jira_issue_key, service_level, created_at')
+    .not('jira_issue_key', 'is', null)
+    .in('service_level', ['notarization_through_partners', 'official_with_translator_signature_and_provider_stamp'])
+    .gt('created_at', cutoff)
+    .order('created_at', { ascending: true })
+    .limit(maxItemsPerCycle);
+
+  if (error) {
+    console.error('[partner-id-reconcile] DB error fetching candidates:', error.message);
+    return;
+  }
+  if (!candidates || candidates.length === 0) return;
+
+  for (const job of candidates as Array<{ id: string; jira_issue_key: string }>) {
+    try {
+      const partnerApplicationId = await getPartnerApplicationId(job.id);
+      if (!partnerApplicationId) continue; // no referral, or partner has no application_id — not this sweep's concern
+
+      const patchResult = await backfillJiraOrderFields(job.jira_issue_key, { partnerApplicationId });
+      if (!patchResult.ok) {
+        console.error(`[partner-id-reconcile] job ${job.id.slice(0, 8)} backfill check failed (non-fatal): ${patchResult.error}`);
+        continue;
+      }
+      if (patchResult.updatedFields.includes('partnerApplicationId')) {
+        console.log(`[partner-id-reconcile] ✓ job ${job.id.slice(0, 8)} → backfilled customfield_10121`);
+        await writeIntegrationAuditLog(job.id, 'partner_id_backfilled', {
+          jiraIssueKey: job.jira_issue_key,
+          partnerApplicationId,
+        });
+      }
+      // Already set: patchResult.skippedFields includes it — silent, no need
+      // to log every already-correct job every cycle.
+    } catch (err) {
+      console.error(`[partner-id-reconcile] job ${job.id.slice(0, 8)} unexpected error (non-fatal):`, err instanceof Error ? err.message : String(err));
+    }
+  }
 }

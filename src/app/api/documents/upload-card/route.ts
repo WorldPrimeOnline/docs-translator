@@ -360,7 +360,9 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
   // Best-effort referral attachment — must not block order creation or payment.
   const refCode = (formData.get('refCode') as string | null) || null;
   if (refCode) {
-    void attachReferralToOrder({
+    // Awaited, not fire-and-forget — see src/lib/documents/upload-card-shared.ts
+    // for the WO-75-class Vercel unawaited-promise rationale.
+    await attachReferralToOrder({
       jobId: job.id,
       userId: user.id,
       refCode,
