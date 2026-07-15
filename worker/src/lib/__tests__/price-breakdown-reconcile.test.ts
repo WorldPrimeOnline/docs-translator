@@ -144,6 +144,51 @@ describe('reconcilePendingPriceBreakdownIssues', () => {
     expect(jobUpdate).toBeDefined();
   });
 
+  it('2026-07-15 fix: adopts an existing Story found via Jira search instead of creating a duplicate', async () => {
+    global.fetch = jest.fn(async (input: unknown, init?: RequestInit) => {
+      const url = String(input);
+      fetchCalls.push({ url, method: init?.method });
+      if (url.includes('/search/jql')) {
+        return {
+          ok: true,
+          json: async () => ({ issues: [{ id: '777', key: 'WO-77', fields: { summary: 'Price Breakdown for WO-75', created: '2026-07-14T00:00:00Z' } }] }),
+        } as Response;
+      }
+      return { ok: true, json: async () => ({}) } as Response;
+    }) as unknown as typeof fetch;
+
+    const { reconcilePendingPriceBreakdownIssues } = await import('../integrations');
+    await reconcilePendingPriceBreakdownIssues();
+
+    const searchCall = fetchCalls.find((c) => c.url.includes('/search/jql'));
+    expect(searchCall).toBeDefined();
+
+    const createCall = fetchCalls.find((c) => c.url.includes('/issue') && !c.url.includes('/issueLink') && !c.url.includes('/search') && c.method === 'POST');
+    expect(createCall).toBeUndefined(); // never creates when search finds a match
+
+    const jobUpdate = jobsUpdates.find((u) => u.table === 'jobs' && (u.payload as Record<string, unknown>).price_jira_issue_key === 'WO-77');
+    expect(jobUpdate).toBeDefined();
+    expect((jobUpdate!.payload as Record<string, unknown>).price_jira_sync_status).toBe('recovered');
+  });
+
+  it('2026-07-15 fix: a failed Jira search is a hard stop — never creates', async () => {
+    global.fetch = jest.fn(async (input: unknown, init?: RequestInit) => {
+      const url = String(input);
+      fetchCalls.push({ url, method: init?.method });
+      if (url.includes('/search/jql')) {
+        return { ok: false, status: 500, text: async () => 'jira down' } as Response;
+      }
+      return { ok: true, json: async () => ({}) } as Response;
+    }) as unknown as typeof fetch;
+
+    const { reconcilePendingPriceBreakdownIssues } = await import('../integrations');
+    await expect(reconcilePendingPriceBreakdownIssues()).resolves.not.toThrow();
+
+    const createCall = fetchCalls.find((c) => c.url.includes('/issue') && !c.url.includes('/issueLink') && !c.url.includes('/search') && c.method === 'POST');
+    expect(createCall).toBeUndefined();
+    expect(jobsUpdates.some((u) => u.table === 'jobs' && 'price_jira_issue_key' in (u.payload as Record<string, unknown>))).toBe(false);
+  });
+
   it('skips a candidate gracefully when its document is missing (does not throw, does not block other candidates)', async () => {
     documentRow = null;
     const { reconcilePendingPriceBreakdownIssues } = await import('../integrations');

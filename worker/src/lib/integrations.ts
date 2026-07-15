@@ -620,6 +620,38 @@ export async function reconcilePendingPriceBreakdownIssues(): Promise<void> {
       continue;
     }
 
+    // Jira-side idempotency search before creating — createPriceBreakdownIssue()
+    // itself only checks jobs.price_jira_issue_key in Postgres, so a Story that
+    // was created in Jira but whose DB write was lost (e.g. worker restart
+    // mid-flight) would otherwise get duplicated by this reconciler. Mirrors
+    // the same hard-stop-on-failed-search safety contract already used by
+    // scripts/staging/rebuild-jira-price-breakdown.ts.
+    const expectedSummary = buildPriceBreakdownSummary(job.jira_issue_key);
+    const label = config.labels[0] ?? 'wpo-price-breakdown';
+    const jql = `project = "${config.projectKey}" AND labels = "${label}" AND summary = "${expectedSummary.replace(/"/g, '\\"')}"`;
+    const searchResult = await searchJiraIssuesByJql(jiraFetchThrowing, jql, ['summary', 'created'], 5);
+
+    if (!searchResult.ok) {
+      console.error(`[price-breakdown-reconcile] job ${job.id.slice(0, 8)} Jira idempotency search failed — skipping this cycle (never falls through to create): ${searchResult.error}`);
+      continue;
+    }
+
+    if (searchResult.issues.length > 0) {
+      const sorted = [...searchResult.issues].sort(
+        (a, b) => new Date(a.fields.created).getTime() - new Date(b.fields.created).getTime(),
+      );
+      const found = sorted[0];
+      const auth = getJiraAuth();
+      await updateJobIntegration(job.id, {
+        price_jira_issue_id: found.id,
+        price_jira_issue_key: found.key,
+        price_jira_issue_url: auth ? `${auth.baseUrl}/browse/${found.key}` : null,
+        price_jira_sync_status: 'recovered',
+      });
+      console.log(`[price-breakdown-reconcile] ✓ job ${job.id.slice(0, 8)} — found existing Story ${found.key} in Jira, adopted instead of creating${sorted.length > 1 ? ` (${sorted.length - 1} other match(es) found — review manually)` : ''}`);
+      continue;
+    }
+
     try {
       const issueKey = await createPriceBreakdownIssue({
         jobId: job.id,
