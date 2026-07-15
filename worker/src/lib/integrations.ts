@@ -118,7 +118,7 @@ function serviceLevelLabel(level: ServiceLevel): string {
  * row hasn't landed yet (attachReferralToOrder is fire-and-forget on the web side),
  * or the partner record has no application_id on file.
  */
-async function getPartnerApplicationId(jobId: string): Promise<string | null> {
+export async function getPartnerApplicationId(jobId: string): Promise<string | null> {
   try {
     const { data: referral } = await supabase
       .from('partner_referrals')
@@ -713,11 +713,13 @@ export interface JiraOrderFieldsPatch {
   deliveryPhone?: string | null;
   deliveryAddress?: string | null;
   fulfillmentMethod?: 'pickup' | 'delivery' | null;
+  /** partner_applications.id (UUID) — same value/source as initializeOrderIntegrations' create-time lookup. */
+  partnerApplicationId?: string | null;
 }
 
 /** Fetches only the fields we might backfill, to avoid clobbering existing values. */
 async function getExistingJiraOrderFields(issueKey: string): Promise<Record<string, unknown> | null> {
-  const fieldIds = [JIRA_FIELDS.documentsLink, JIRA_FIELDS.deliveryPhone, JIRA_FIELDS.deliveryAddress].join(',');
+  const fieldIds = [JIRA_FIELDS.documentsLink, JIRA_FIELDS.deliveryPhone, JIRA_FIELDS.deliveryAddress, JIRA_FIELDS.partnerApplicationId].join(',');
   const res = await jiraFetch(`/issue/${issueKey}?fields=${fieldIds}`);
   if (!res || !res.ok) return null;
   const data = (await res.json()) as { fields: Record<string, unknown> };
@@ -759,6 +761,7 @@ export async function backfillJiraOrderFields(
     maybeSet(JIRA_FIELDS.deliveryPhone, 'deliveryPhone', patch.deliveryPhone ?? null);
     maybeSet(JIRA_FIELDS.deliveryAddress, 'deliveryAddress', patch.deliveryAddress ?? null);
   }
+  maybeSet(JIRA_FIELDS.partnerApplicationId, 'partnerApplicationId', patch.partnerApplicationId ?? null);
 
   if (Object.keys(fields).length === 0) {
     console.log(`${tag} nothing to backfill (all target fields already set or no data available)`);
@@ -1348,6 +1351,82 @@ export async function reconcileMissingJiraIssues(): Promise<void> {
       // skipped_not_paid / skipped_electronic: expected states, nothing to alert on.
     } catch (err) {
       console.error(`[jira-reconcile] job ${job.id.slice(0, 8)} unexpected error (non-fatal):`, err instanceof Error ? err.message : String(err));
+    }
+  }
+}
+
+// ─── Reconcile: paid, referred orders missing Partner ID in Jira ─────────────
+
+const PARTNER_ID_RECONCILE_LOOKBACK_DAYS = 30;
+
+function getPartnerIdReconcileMaxItemsPerCycle(): number {
+  const raw = process.env.PARTNER_ID_RECONCILE_BATCH_SIZE;
+  const n = raw ? parseInt(raw, 10) : NaN;
+  return Number.isInteger(n) && n > 0 ? n : 10;
+}
+
+/**
+ * Periodic sweep for orders whose main Jira issue exists but customfield_10121
+ * (Partner ID) may still be empty — the 2026-07-15 WO-77/WO-78 incident class:
+ * a referral existed and partners.application_id was on file well before the
+ * issue was created, but the field never made it in (root cause unconfirmed;
+ * DB and code both say it should have worked — see docs/ai-context/DECISIONS.md
+ * for the investigation).
+ *
+ * Unlike reconcileMissingJiraIssues()/reconcilePendingPriceBreakdownIssues(),
+ * there is no DB column mirroring "has customfield_10121 been set in Jira" —
+ * jobs.jira_sync_status is reused for workflow-stage mirroring by
+ * src/lib/integrations/workflow.ts (syncTranslatorDoneNotarized et al.), so it
+ * is not a reliable signal here. This sweep therefore re-checks the same
+ * candidate population (paid-eligible, referred, has a main issue, created
+ * within the lookback window) every cycle rather than shrinking via a DB flag.
+ * That is intentionally safe, not wasteful-and-risky: backfillJiraOrderFields()
+ * reads the live Jira value before writing and no-ops when already set, so an
+ * already-correct job costs one extra Jira GET per cycle, never a duplicate or
+ * incorrect write. getPartnerApplicationId() cheaply skips non-referred jobs
+ * (a single null-checked DB lookup) before any Jira call is made.
+ */
+export async function reconcileMissingPartnerIds(): Promise<void> {
+  const cutoff = new Date(Date.now() - PARTNER_ID_RECONCILE_LOOKBACK_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  const maxItemsPerCycle = getPartnerIdReconcileMaxItemsPerCycle();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: candidates, error } = await (supabase as any)
+    .from('jobs')
+    .select('id, jira_issue_key, service_level, created_at')
+    .not('jira_issue_key', 'is', null)
+    .in('service_level', ['notarization_through_partners', 'official_with_translator_signature_and_provider_stamp'])
+    .gt('created_at', cutoff)
+    .order('created_at', { ascending: true })
+    .limit(maxItemsPerCycle);
+
+  if (error) {
+    console.error('[partner-id-reconcile] DB error fetching candidates:', error.message);
+    return;
+  }
+  if (!candidates || candidates.length === 0) return;
+
+  for (const job of candidates as Array<{ id: string; jira_issue_key: string }>) {
+    try {
+      const partnerApplicationId = await getPartnerApplicationId(job.id);
+      if (!partnerApplicationId) continue; // no referral, or partner has no application_id — not this sweep's concern
+
+      const patchResult = await backfillJiraOrderFields(job.jira_issue_key, { partnerApplicationId });
+      if (!patchResult.ok) {
+        console.error(`[partner-id-reconcile] job ${job.id.slice(0, 8)} backfill check failed (non-fatal): ${patchResult.error}`);
+        continue;
+      }
+      if (patchResult.updatedFields.includes('partnerApplicationId')) {
+        console.log(`[partner-id-reconcile] ✓ job ${job.id.slice(0, 8)} → backfilled customfield_10121`);
+        await writeIntegrationAuditLog(job.id, 'partner_id_backfilled', {
+          jiraIssueKey: job.jira_issue_key,
+          partnerApplicationId,
+        });
+      }
+      // Already set: patchResult.skippedFields includes it — silent, no need
+      // to log every already-correct job every cycle.
+    } catch (err) {
+      console.error(`[partner-id-reconcile] job ${job.id.slice(0, 8)} unexpected error (non-fatal):`, err instanceof Error ? err.message : String(err));
     }
   }
 }

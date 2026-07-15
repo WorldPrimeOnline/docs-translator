@@ -26,7 +26,7 @@ import {
   DRIVE_SUBFOLDER_NAMES,
 } from './google-drive';
 import { downloadFile } from './r2';
-import { backfillJiraOrderFields } from './integrations';
+import { backfillJiraOrderFields, getPartnerApplicationId } from './integrations';
 
 export interface RepairResult {
   jobId: string;
@@ -180,8 +180,13 @@ export async function repairOrderIntegrations(jobId: string, dryRun: boolean): P
     }
   }
 
-  // ── 3. Backfill Jira fields (documentsLink + delivery address/phone) ───────
+  // ── 3. Backfill Jira fields (documentsLink + delivery address/phone + Partner ID) ──
   if (job.jira_issue_key) {
+    // Same lookup initializeOrderIntegrations() uses at create time — reused here
+    // so a referral that lands (or gets its application_id set) after issue
+    // creation is not permanently stuck with an empty customfield_10121.
+    const partnerApplicationId = await getPartnerApplicationId(jobId);
+
     if (dryRun) {
       const wouldPatch: string[] = [];
       if (driveUrl) wouldPatch.push('documentsLink');
@@ -189,6 +194,7 @@ export async function repairOrderIntegrations(jobId: string, dryRun: boolean): P
         if (job.delivery_phone) wouldPatch.push('deliveryPhone');
         if (job.delivery_address) wouldPatch.push('deliveryAddress');
       }
+      if (partnerApplicationId) wouldPatch.push('partnerApplicationId');
       result.jiraUpdatedFields = wouldPatch.map((f) => `${f} (would patch if currently empty on the issue)`);
       console.log(`${tag} would attempt to backfill Jira ${job.jira_issue_key}: ${wouldPatch.join(', ') || '(nothing to backfill)'}`);
     } else {
@@ -197,6 +203,7 @@ export async function repairOrderIntegrations(jobId: string, dryRun: boolean): P
         deliveryPhone: job.delivery_phone,
         deliveryAddress: job.delivery_address,
         fulfillmentMethod: job.fulfillment_method,
+        partnerApplicationId,
       });
       if (!patchResult.ok) {
         result.errors.push(`Jira backfill failed: ${patchResult.error ?? 'unknown error'}`);

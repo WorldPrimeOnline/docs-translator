@@ -6,7 +6,7 @@ import { reconcileFiscalAndRefunds, triggerReconcilePayments, triggerReconcileRe
 import { processPendingFiscalReceipts } from './lib/fiscal-processor';
 import { diagnoseWebkassaConnectivity } from './lib/webkassa-client';
 import { logDriveAuthModeWithHealthCheck } from './lib/google-drive';
-import { reconcilePendingPriceBreakdownIssues, reconcileMissingJiraIssues } from './lib/integrations';
+import { reconcilePendingPriceBreakdownIssues, reconcileMissingJiraIssues, reconcileMissingPartnerIds } from './lib/integrations';
 
 // ── State ──────────────────────────────────────────────────────────────────
 let running = false;   // true while we are processing a job
@@ -308,6 +308,19 @@ async function main(): Promise<void> {
       console.error('[worker] missing-Jira reconciliation error:', (err as Error).message);
     });
   }, MISSING_JIRA_RECONCILE_INTERVAL_MS);
+
+  // Reconcile referred, paid certified/notarized jobs whose main Jira issue may
+  // still be missing Partner ID (customfield_10121) every 25 minutes. WO-77/
+  // WO-78 incident, 2026-07-15 — see worker/src/lib/integrations.ts
+  // reconcileMissingPartnerIds() for why this re-checks its candidate set every
+  // cycle instead of shrinking via a DB flag (no column mirrors Jira's live
+  // field value; backfillJiraOrderFields() is a safe no-op when already set).
+  const MISSING_PARTNER_ID_RECONCILE_INTERVAL_MS = 25 * 60 * 1000;
+  setInterval(() => {
+    void reconcileMissingPartnerIds().catch((err: unknown) => {
+      console.error('[worker] missing-Partner-ID reconciliation error:', (err as Error).message);
+    });
+  }, MISSING_PARTNER_ID_RECONCILE_INTERVAL_MS);
 }
 
 void main();
