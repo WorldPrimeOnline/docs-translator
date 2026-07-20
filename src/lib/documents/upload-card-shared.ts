@@ -22,7 +22,7 @@ import { supabaseServer } from '@/lib/supabase/server';
 import { isValidNotaryCity } from '@/lib/notary/cities';
 import { buildRawKey, isValidRawKey } from '@/lib/r2/upload-key-utils';
 import { deriveBackcompatBooleans } from '@/lib/translation-workflow/output-plan';
-import { computeQuoteForJob, saveQuote } from '@/lib/pricing/service';
+import { computeQuoteForJob, extractNotaryUrgencySnapshot, saveQuote } from '@/lib/pricing/service';
 import { DOCUMENT_TYPE_COEFFICIENT } from '@/lib/pricing/config';
 import { attachReferralToOrder } from '@/lib/referral/server';
 import { calculatePartnerDiscount } from '@/lib/partners/discount';
@@ -410,6 +410,8 @@ export async function createCardOrder(input: CardOrderInput): Promise<CardOrderR
     pricingResult = { ...pricingResult, amountKzt: finalPriceKzt };
   }
 
+  const notaryUrgencySnapshot = extractNotaryUrgencySnapshot(pricingResult);
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const jobInsertPayload: any = {
     document_id: doc.id,
@@ -429,6 +431,11 @@ export async function createCardOrder(input: CardOrderInput): Promise<CardOrderR
     discount_applied_kzt: discountKzt > 0 ? discountKzt : null,
     discount_code: discountKzt > 0 ? refCodeForDiscount : null,
     customer_comment: input.customerComment ?? null,
+    notary_urgency_level: notaryUrgencySnapshot?.level ?? null,
+    notary_urgency_window: notaryUrgencySnapshot?.effectiveWindow ?? null,
+    notary_urgency_multiplier: notaryUrgencySnapshot?.multiplier ?? null,
+    notary_urgency_cutoff_at: notaryUrgencySnapshot?.cutoffAt ?? null,
+    notary_urgency_fee_kzt: notaryUrgencySnapshot?.feeKzt ?? null,
   };
   const { data: job, error: jobError } = await supabaseServer
     .from('jobs')

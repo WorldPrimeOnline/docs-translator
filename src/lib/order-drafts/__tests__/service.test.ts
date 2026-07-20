@@ -25,6 +25,7 @@ jest.mock('@/lib/r2/client', () => ({
 jest.mock('@/lib/pricing/service', () => ({
   computeQuoteForJob: jest.fn(),
   saveQuote: jest.fn(),
+  extractNotaryUrgencySnapshot: jest.fn(() => null),
 }));
 jest.mock('@/lib/referral/server', () => ({
   attachReferralToOrder: jest.fn(),

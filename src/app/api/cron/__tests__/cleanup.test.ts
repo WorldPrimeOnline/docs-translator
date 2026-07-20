@@ -45,6 +45,11 @@ beforeEach(() => {
   // No stale `documents` rows and no expired `order_drafts` rows — isolates the
   // assertions below to the new raw-upload sweep.
   mockFrom.mockReturnValue(chain({ data: [], error: null }));
+  // Default fallback for the pricing-lab/ sweep's listObjectsByPrefix call (added
+  // 2026-07-18) — empty by default so it never interferes with the raw-upload
+  // assertions below. Tests can still queue a mockResolvedValueOnce() for the FIRST
+  // (raw-upload) call specifically; this default only satisfies later calls.
+  mockListObjectsByPrefix.mockResolvedValue([]);
 });
 
 it('rejects requests without the correct CRON_SECRET bearer token', async () => {
@@ -54,11 +59,14 @@ it('rejects requests without the correct CRON_SECRET bearer token', async () => 
   expect(mockListObjectsByPrefix).not.toHaveBeenCalled();
 });
 
-it('lists only the draft-upload-raw/ prefix — never draft-uploads/ or documents/', async () => {
-  mockListObjectsByPrefix.mockResolvedValueOnce([]);
+it('lists the draft-upload-raw/ prefix (and, separately, pricing-lab/ for the internal Pricing Lab sweep — never draft-uploads/ or documents/)', async () => {
+  mockListObjectsByPrefix.mockResolvedValueOnce([]); // draft-upload-raw/ call
   await GET(makeRequest());
   expect(mockListObjectsByPrefix).toHaveBeenCalledWith('draft-upload-raw/');
-  expect(mockListObjectsByPrefix).toHaveBeenCalledTimes(1);
+  expect(mockListObjectsByPrefix).toHaveBeenCalledWith('pricing-lab/');
+  expect(mockListObjectsByPrefix).not.toHaveBeenCalledWith('draft-uploads/');
+  expect(mockListObjectsByPrefix).not.toHaveBeenCalledWith(expect.stringMatching(/^documents\//));
+  expect(mockListObjectsByPrefix).toHaveBeenCalledTimes(2);
 });
 
 it('deletes raw uploads older than 24 hours', async () => {

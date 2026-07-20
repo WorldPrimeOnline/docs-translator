@@ -43,10 +43,42 @@ export interface PricingVersion {
   marketingRateDirect: number;
   partnerCommissionRate: number;
   targetProfitRate: number;
+  /** Legacy per-page internal cost reserve — electronic/pre-rewrite formula only. Distinct from the new formula's ocrRatePerPhysicalPageKzt/aiItRate — never conflate the two (see migration 0049). */
   aiItReservePerPageKzt: number;
   validFrom: string;
   validTo: string | null;
   metadata: Record<string, unknown>;
+
+  // ─── New formula fields (2026-07-17 rewrite, migration 0049) — official/notary only ────
+  /** Gross-up %: ai_it_reserve = actual_payment * aiItRate. NOT the same as aiItReservePerPageKzt. */
+  aiItRate: number;
+  channelReserveRate: number;
+  clientDiscountRate: number;
+  wpoCoordinationRate: number;
+  /** Added in migration 0056 (gap found during calculator rewrite — was missing from 0049). translator_payout = T * translatorPayoutRate. */
+  translatorPayoutRate: number;
+  /** Customer-facing O component rate — distinct from aiItReservePerPageKzt even though both are 100 KZT/page today. */
+  ocrRatePerPhysicalPageKzt: number;
+  courierFeeKzt: number;
+  printingFeeKzt: number;
+  extraPaperCopyFeeKzt: number;
+  roundingStepOfficialKzt: number;
+  roundingStepNotaryKzt: number;
+  /** Persisted public "from" price snapshot — null until scripts/staging/populate-public-pricing-snapshot.ts has run. Never computed at request time. */
+  publicElectronicPriceKzt: number | null;
+  publicOfficialMinPriceKzt: number | null;
+  publicNotaryMinPriceKzt: number | null;
+}
+
+/** A specific pricing_language_rates row, resolved for one source->target pair at quote time. */
+export interface PricingLanguageRate {
+  id: string;
+  pricingVersionId: string;
+  sourceLanguage: string;
+  targetLanguage: string;
+  rateKztPerTranslationPage: number;
+  active: boolean;
+  requiresOperatorReview: boolean;
 }
 
 export interface QuoteLineItem {
@@ -84,6 +116,32 @@ export interface PricingInput {
   salesChannel?: SalesChannel;
   partnerId?: string;
   notaryUrgencyLevel?: NotaryUrgencyLevel;
+
+  // ─── New formula fields (2026-07-17 rewrite) — official/notary only ───────────────────
+  /** Normalized (via normalizeSourceTextForPricing) character count with spaces, from a completed document_analysis revision. Required for official/notary quote creation — never guessed. */
+  sourceCharacterCountWithSpaces?: number;
+  /** The specific document_analysis.id this quote is based on. */
+  analysisId?: string;
+  /** The specific pricing_language_rates row resolved for sourceLanguage->targetLanguage. Resolved by the caller (service.ts), never looked up inside calculatePrice — keeps the function DB-free/pure. */
+  languageRate?: PricingLanguageRate;
+  /** Pre-quote-only manual price adjustment (M term), with mandatory reason when non-zero. */
+  manualAdjustmentKzt?: number;
+  manualAdjustmentReason?: string;
+  /**
+   * Resolved referral commission rate for THIS specific partner (partners.commission_rate,
+   * 5% or 10%), snapshotted at quote time. Falls back to pricing_versions.partnerCommissionRate
+   * only when no partner record exists. Resolved by the caller — calculatePrice never queries
+   * the partners table itself.
+   */
+  partnerCommissionRateOverride?: number;
+  /**
+   * ISO timestamp used instead of the real current time when resolving the notary same_day
+   * cutoff window (getNotaryCutoffWindow). Absent in every real customer-facing call site —
+   * production quote creation always uses the real current time. Exists so tooling (the
+   * internal Pricing Lab) can exercise before_noon/after_noon/after_18 deterministically
+   * without mocking a module in a running server. Never persisted onto a real price_quotes row.
+   */
+  nowOverride?: string;
 }
 
 export interface NotaryCutoffSnapshot {
@@ -191,6 +249,75 @@ export interface MarginBreakdown {
   paymentWideFeeAdjustmentKzt: number;
 }
 
+/**
+ * Full snapshot of the 2026-07-17 flat formula (official/notary only). Field names match the
+ * WPO-approved report vocabulary 1:1 (see the Russian financial report renderer) so the report
+ * and quote snapshot never need a separate translation layer between them.
+ *
+ * Terminology note: netProfitWpoKzt is deliberately NOT called "net profit" / "чистая прибыль"
+ * anywhere user-facing — it is margin BEFORE the business's own fixed costs (Jira, Vercel,
+ * Railway, salaries, accounting) are deducted. The Russian report labels it
+ * «Маржинальная прибыль заказа до постоянных расходов».
+ */
+export interface NewModelBreakdown {
+  // ─── Components (pre-gross-up) ────────────────────────────────────────────────
+  translationAmountKzt: number;        // T
+  ocrAmountKzt: number;                // O
+  notaryAmountKzt: number;             // N
+  courierAmountKzt: number;            // C
+  printingAmountKzt: number;           // P
+  coordinationBaseAmountKzt: number;   // W_base
+  notaryUrgencyMultiplier: number;     // U (always 1 for official)
+  urgencySurchargeKzt: number;         // W_final - W_base
+  coordinationFinalAmountKzt: number;  // W_final
+  manualAdjustmentKzt: number;         // M
+  componentSubtotalKzt: number;
+
+  // ─── Gross-up / rounding ───────────────────────────────────────────────────────
+  grossUpRate: number;
+  grossUpAmountKzt: number;
+  retailBeforeRoundingKzt: number;
+  roundingStepKzt: number;
+  roundingAdjustmentKzt: number;
+  retailPriceKzt: number;
+
+  // ─── Referral / channel ─────────────────────────────────────────────────────────
+  salesChannel: SalesChannel;
+  clientDiscountKzt: number;
+  actualPaymentKzt: number;
+  partnerCommissionRate: number;
+  channelBudgetKzt: number;
+  unusedChannelReserveKzt: number;
+
+  // ─── External payouts (cost_reservations: translator_payout, notary_payout, courier_payout, printing_cost, acquiring_fee, tax_reserve, partner_commission) ──
+  translatorPayoutKzt: number;
+  notaryPayoutKzt: number;
+  courierPayoutKzt: number;
+  printingCostKzt: number;
+  acquiringFeeKzt: number;
+  taxReserveKzt: number;
+  partnerCommissionKzt: number;
+
+  // ─── Internal reserves (cost_reservations: risk_reserve, marketing_reserve, ai_it_reserve, owner_reserve, unused_channel_reserve) ──
+  riskReserveKzt: number;
+  marketingReserveKzt: number;
+  aiItReserveKzt: number;
+  ownerReserveKzt: number;
+
+  // ─── Result ──────────────────────────────────────────────────────────────────
+  totalAllocationsKzt: number;
+  /** Margin BEFORE fixed business costs. Never labeled "net profit"/"чистая прибыль" user-facing. */
+  netProfitWpoKzt: number;
+  netMargin: number;
+  totalInternalReservesKzt: number;
+  totalCashRetainedByWpoKzt: number;
+  reconciliationDifferenceKzt: number;
+
+  // ─── Snapshot references ────────────────────────────────────────────────────────
+  languageRateId: string | null;
+  ratePerTranslationPageKzt: number;
+}
+
 export interface PricingResult {
   amountKzt: number;
   currency: 'KZT';
@@ -198,19 +325,28 @@ export interface PricingResult {
   items: QuoteLineItem[];
   pricingVersionId: string;
   pricingVersionCode: string;
-  internalCosts: InternalCostBreakdown;
-  margin: MarginBreakdown;
+  /** Present for the legacy formula (electronic; and pre-2026-07-17 official/notary quotes). Absent for new-model official/notary quotes — see newModel. */
+  internalCosts?: InternalCostBreakdown;
+  /** Present for the legacy formula. Absent for new-model official/notary quotes — see newModel. */
+  margin?: MarginBreakdown;
+  /** Present ONLY for official/notary quotes computed by the new (2026-07-17) flat formula. */
+  newModel?: NewModelBreakdown;
   requiresOperatorReview: boolean;
   reviewReasons: string[];
   context: {
     languagePair: string;
-    baseMinimumKzt: number;
-    extraWords: number;
-    additionalPages: number;
-    documentCoefficient: number;
-    urgencyCoefficient: number;
-    includedWordCount: number;
-    includedPageCount: number;
+    /** Legacy-formula-only (electronic). Undefined for new-model official/notary quotes. */
+    baseMinimumKzt?: number;
+    extraWords?: number;
+    additionalPages?: number;
+    documentCoefficient?: number;
+    urgencyCoefficient?: number;
+    includedWordCount?: number;
+    includedPageCount?: number;
     notaryCutoff?: NotaryCutoffSnapshot;
+    /** New-model only: exact translation page count (chars/1800, min 1) — reporting/snapshot value, never fed back into T. */
+    translationPageCountExact?: number;
+    /** New-model only: normalized character count used to derive T. */
+    sourceCharacterCountWithSpaces?: number;
   };
 }

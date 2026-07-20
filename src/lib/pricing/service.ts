@@ -4,7 +4,8 @@
  */
 import { supabaseServer } from '@/lib/supabase/server';
 import { calculatePrice } from './calculator';
-import type { PricingInput, PricingResult, PricingVersion, QuoteStatus } from './types';
+import { toDecimal } from './money';
+import type { NotaryUrgencyLevel, PricingInput, PricingLanguageRate, PricingResult, PricingVersion, QuoteStatus } from './types';
 
 // ─── Raw DB row shapes (new tables not yet in generated supabase.ts) ───────────
 
@@ -26,6 +27,79 @@ interface PricingVersionRow {
   valid_from: string;
   valid_to: string | null;
   metadata: Record<string, unknown>;
+  // ─── New formula fields (migration 0049/0056) ──────────────────────────────
+  ai_it_rate: string | number;
+  channel_reserve_rate: string | number;
+  client_discount_rate: string | number;
+  wpo_coordination_rate: string | number;
+  translator_payout_rate: string | number;
+  ocr_rate_per_physical_page_kzt: string | number;
+  courier_fee_kzt: string | number;
+  printing_fee_kzt: string | number;
+  extra_paper_copy_fee_kzt: string | number;
+  rounding_step_official_kzt: string | number;
+  rounding_step_notary_kzt: string | number;
+  public_electronic_price_kzt: string | number | null;
+  public_official_min_price_kzt: string | number | null;
+  public_notary_min_price_kzt: string | number | null;
+}
+
+interface PricingLanguageRateRow {
+  id: string;
+  pricing_version_id: string;
+  source_language: string;
+  target_language: string;
+  rate_kzt_per_translation_page: string | number;
+  active: boolean;
+  requires_operator_review: boolean;
+}
+
+const PRICING_VERSION_COLUMNS = [
+  'id', 'code', 'status', 'currency', 'internal_fx_rate', 'mrp_value',
+  'tax_rate', 'acquiring_rate', 'risk_reserve_rate', 'owner_reserve_rate',
+  'marketing_rate_direct', 'partner_commission_rate', 'target_profit_rate',
+  'ai_it_reserve_per_page_kzt', 'valid_from', 'valid_to', 'metadata',
+  'ai_it_rate', 'channel_reserve_rate', 'client_discount_rate', 'wpo_coordination_rate',
+  'translator_payout_rate', 'ocr_rate_per_physical_page_kzt', 'courier_fee_kzt',
+  'printing_fee_kzt', 'extra_paper_copy_fee_kzt', 'rounding_step_official_kzt',
+  'rounding_step_notary_kzt', 'public_electronic_price_kzt', 'public_official_min_price_kzt',
+  'public_notary_min_price_kzt',
+].join(', ');
+
+function mapPricingVersionRow(row: PricingVersionRow): PricingVersion {
+  return {
+    id: row.id,
+    code: row.code,
+    status: row.status as PricingVersion['status'],
+    currency: row.currency,
+    internalFxRate: row.internal_fx_rate != null ? Number(row.internal_fx_rate) : null,
+    mrpValue: row.mrp_value != null ? Number(row.mrp_value) : null,
+    taxRate: Number(row.tax_rate),
+    acquiringRate: Number(row.acquiring_rate),
+    riskReserveRate: Number(row.risk_reserve_rate),
+    ownerReserveRate: Number(row.owner_reserve_rate),
+    marketingRateDirect: Number(row.marketing_rate_direct),
+    partnerCommissionRate: Number(row.partner_commission_rate),
+    targetProfitRate: Number(row.target_profit_rate),
+    aiItReservePerPageKzt: Number(row.ai_it_reserve_per_page_kzt),
+    validFrom: row.valid_from,
+    validTo: row.valid_to,
+    metadata: row.metadata ?? {},
+    aiItRate: Number(row.ai_it_rate),
+    channelReserveRate: Number(row.channel_reserve_rate),
+    clientDiscountRate: Number(row.client_discount_rate),
+    wpoCoordinationRate: Number(row.wpo_coordination_rate),
+    translatorPayoutRate: Number(row.translator_payout_rate),
+    ocrRatePerPhysicalPageKzt: Number(row.ocr_rate_per_physical_page_kzt),
+    courierFeeKzt: Number(row.courier_fee_kzt),
+    printingFeeKzt: Number(row.printing_fee_kzt),
+    extraPaperCopyFeeKzt: Number(row.extra_paper_copy_fee_kzt),
+    roundingStepOfficialKzt: Number(row.rounding_step_official_kzt),
+    roundingStepNotaryKzt: Number(row.rounding_step_notary_kzt),
+    publicElectronicPriceKzt: row.public_electronic_price_kzt != null ? Number(row.public_electronic_price_kzt) : null,
+    publicOfficialMinPriceKzt: row.public_official_min_price_kzt != null ? Number(row.public_official_min_price_kzt) : null,
+    publicNotaryMinPriceKzt: row.public_notary_min_price_kzt != null ? Number(row.public_notary_min_price_kzt) : null,
+  };
 }
 
 interface PriceQuoteRow {
@@ -47,7 +121,7 @@ const db = supabaseServer as any;
 export async function getActivePricingVersion(): Promise<PricingVersion | null> {
   const { data, error } = await db
     .from('pricing_versions')
-    .select('*')
+    .select(PRICING_VERSION_COLUMNS)
     .eq('status', 'active')
     .or(`valid_to.is.null,valid_to.gt.${new Date().toISOString()}`)
     .order('valid_from', { ascending: false })
@@ -55,26 +129,121 @@ export async function getActivePricingVersion(): Promise<PricingVersion | null> 
     .maybeSingle();
 
   if (error || !data) return null;
+  return mapPricingVersionRow(data as PricingVersionRow);
+}
 
-  const row = data as PricingVersionRow;
+/**
+ * Fetch a pricing_versions row by its explicit `code`, regardless of `status`. Used only by
+ * tests/tooling that need to exercise the new-model draft version (2026-Q3-KZ-NEWMODEL) before
+ * it's activated — never by production quote-creation code, which always goes through
+ * getActivePricingVersion(). See docs/ai-context/DECISIONS.md (2026-07-17, activation order).
+ */
+export async function getPricingVersionByCode(code: string): Promise<PricingVersion | null> {
+  const { data, error } = await db
+    .from('pricing_versions')
+    .select(PRICING_VERSION_COLUMNS)
+    .eq('code', code)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return mapPricingVersionRow(data as PricingVersionRow);
+}
+
+/**
+ * Resolve the active pricing_language_rates row for a specific source->target pair under a
+ * given pricing_version_id. Returns null if no row exists at all (the caller/calculator routes
+ * this to operator_review — never a fabricated rate). An inactive or requires_operator_review
+ * row IS still returned (with its flags intact) so the calculator can report why review is
+ * needed, rather than treating "exists but inactive" the same as "doesn't exist".
+ */
+export async function getLanguageRate(
+  pricingVersionId: string,
+  sourceLanguage: string,
+  targetLanguage: string,
+): Promise<PricingLanguageRate | null> {
+  const { data, error } = await db
+    .from('pricing_language_rates')
+    .select('id, pricing_version_id, source_language, target_language, rate_kzt_per_translation_page, active, requires_operator_review')
+    .eq('pricing_version_id', pricingVersionId)
+    .eq('source_language', sourceLanguage)
+    .eq('target_language', targetLanguage)
+    .maybeSingle();
+
+  if (error || !data) return null;
+
+  const row = data as PricingLanguageRateRow;
   return {
     id: row.id,
-    code: row.code,
-    status: row.status as PricingVersion['status'],
-    currency: row.currency,
-    internalFxRate: row.internal_fx_rate != null ? Number(row.internal_fx_rate) : null,
-    mrpValue: row.mrp_value != null ? Number(row.mrp_value) : null,
-    taxRate: Number(row.tax_rate),
-    acquiringRate: Number(row.acquiring_rate),
-    riskReserveRate: Number(row.risk_reserve_rate),
-    ownerReserveRate: Number(row.owner_reserve_rate),
-    marketingRateDirect: Number(row.marketing_rate_direct),
-    partnerCommissionRate: Number(row.partner_commission_rate),
-    targetProfitRate: Number(row.target_profit_rate),
-    aiItReservePerPageKzt: Number(row.ai_it_reserve_per_page_kzt),
-    validFrom: row.valid_from,
-    validTo: row.valid_to,
-    metadata: row.metadata ?? {},
+    pricingVersionId: row.pricing_version_id,
+    sourceLanguage: row.source_language,
+    targetLanguage: row.target_language,
+    rateKztPerTranslationPage: Number(row.rate_kzt_per_translation_page),
+    active: row.active,
+    requiresOperatorReview: row.requires_operator_review,
+  };
+}
+
+/**
+ * Validates the channel-reserve invariant at config-load time (2026-07-17 decision):
+ * channel_reserve_rate must cover the worst case of client_discount_rate + the highest active
+ * partner commission rate, or unused_channel_reserve could go negative for a real referral
+ * order. Throws PRICING_CONFIG_INVALID rather than silently proceeding — a bad config must
+ * never produce a quote with a negative internal reserve.
+ */
+export async function validateChannelReserveInvariant(version: PricingVersion): Promise<void> {
+  const { data, error } = await db
+    .from('partners')
+    .select('commission_rate')
+    .eq('is_active', true)
+    .order('commission_rate', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const maxPartnerCommissionRate = !error && data ? Number((data as { commission_rate: string | number }).commission_rate) : version.partnerCommissionRate;
+
+  const required = toDecimal(version.clientDiscountRate)
+    .plus(toDecimal(maxPartnerCommissionRate).times(toDecimal(1).minus(version.clientDiscountRate)))
+    .toNumber();
+
+  if (version.channelReserveRate < required) {
+    throw new Error(
+      `PRICING_CONFIG_INVALID: channel_reserve_rate (${version.channelReserveRate}) < required (${required}) for pricing version '${version.code}' — client_discount_rate (${version.clientDiscountRate}) + max active partner commission (${maxPartnerCommissionRate}) is not covered. Fix pricing_versions.channel_reserve_rate before activating.`,
+    );
+  }
+}
+
+// ─── Notary urgency snapshot ────────────────────────────────────────────────
+
+/** Immutable copy of a PricingResult's notary urgency data, for jobs.notary_urgency_*. */
+export interface NotaryUrgencySnapshot {
+  level: NotaryUrgencyLevel;
+  /** 'standard' | 'before_noon' | 'after_noon' | 'after_18' */
+  effectiveWindow: string;
+  multiplier: number;
+  cutoffAt: string | null;
+  /** notary_urgency_fee line item amount, 0 when same_day resolved to multiplier 1.0 (no item pushed). */
+  feeKzt: number;
+}
+
+/**
+ * Derives the notary urgency snapshot to persist on jobs at order-creation time.
+ * Returns null for non-notarized orders (result.context.notaryCutoff is only ever
+ * set for serviceLevel === 'notarization_through_partners' — see calculator.ts).
+ * Must be called with the SAME PricingResult already used to save the quote —
+ * never recompute this later against current time.
+ */
+export function extractNotaryUrgencySnapshot(result: PricingResult): NotaryUrgencySnapshot | null {
+  const cutoff = result.context.notaryCutoff;
+  if (!cutoff) return null;
+
+  const feeItem = result.items.find(item => item.itemType === 'notary_urgency_fee');
+
+  return {
+    level: cutoff.notaryUrgencyLevel,
+    effectiveWindow: cutoff.effectiveWindow,
+    multiplier: cutoff.multiplier,
+    cutoffAt: cutoff.cutoffAt,
+    feeKzt: feeItem?.amountKzt ?? 0,
   };
 }
 
@@ -83,7 +252,19 @@ export async function computeQuoteForJob(
 ): Promise<{ result: PricingResult; version: PricingVersion } | { error: string }> {
   const version = await getActivePricingVersion();
   if (!version) return { error: 'PRICING_NOT_CONFIGURED' };
-  const result = calculatePrice(input, version);
+
+  let resolvedInput = input;
+  if (input.serviceLevel !== 'electronic') {
+    // Config-load-time invariant check — scoped to non-electronic quotes, the only ones that
+    // use channel_reserve_rate/client_discount_rate/partner commissions. Throws rather than
+    // silently proceeding with a config that could produce a negative internal reserve.
+    await validateChannelReserveInvariant(version);
+
+    const languageRate = await getLanguageRate(version.id, input.sourceLanguage, input.targetLanguage);
+    resolvedInput = { ...input, languageRate: languageRate ?? undefined };
+  }
+
+  const result = calculatePrice(resolvedInput, version);
   return { result, version };
 }
 
@@ -99,6 +280,8 @@ export async function saveQuote(
       ? overrideExpiresAt
       : new Date(Date.now() + expiresInHours * 60 * 60 * 1000).toISOString();
 
+  const nm = result.newModel;
+
   const { data: quote, error: quoteError } = await db
     .from('price_quotes')
     .insert({
@@ -112,8 +295,8 @@ export async function saveQuote(
       expires_at: expiresAt,
       source_word_count: input.sourceWordCount ?? null,
       physical_page_count: input.physicalPageCount ?? 1,
-      included_word_count: result.context.includedWordCount,
-      included_page_count: result.context.includedPageCount,
+      included_word_count: result.context.includedWordCount ?? null,
+      included_page_count: result.context.includedPageCount ?? null,
       source_language: input.sourceLanguage,
       target_language: input.targetLanguage,
       language_pair: result.context.languagePair,
@@ -126,8 +309,15 @@ export async function saveQuote(
       sales_channel: input.salesChannel ?? 'direct',
       pricing_context_json: result.context,
       breakdown_json: { items: result.items.filter(i => i.isClientVisible) },
-      internal_cost_json: result.internalCosts,
-      margin_json: result.margin,
+      internal_cost_json: result.internalCosts ?? {},
+      margin_json: result.margin ?? {},
+      // ─── New-model fields (undefined/null for the legacy electronic formula) ──
+      analysis_id: input.analysisId ?? null,
+      language_rate_id: nm?.languageRateId ?? null,
+      source_character_count_with_spaces: result.context.sourceCharacterCountWithSpaces ?? null,
+      translation_page_count_exact: result.context.translationPageCountExact ?? null,
+      manual_adjustment_kzt: nm?.manualAdjustmentKzt ?? 0,
+      wpo_financial_breakdown_json: nm ?? {},
     })
     .select('id')
     .single();
@@ -172,15 +362,36 @@ export async function saveQuote(
     }
   };
 
-  addReservation('ai_it_reserve',            result.internalCosts.aiItReserve,       'AI/IT processing cost reserve');
-  addReservation('tax_reserve',              result.internalCosts.taxReserve,        'Tax reserve (KZ)');
-  addReservation('acquiring_fee_estimate',   result.internalCosts.acquiringFee,      'Halyk ePay acquiring fee estimate');
-  addReservation('risk_reserve',             result.internalCosts.riskReserve,       'Chargeback/risk reserve');
-  addReservation('owner_reserve',            result.internalCosts.ownerReserve,      'Owner reserve');
-  addReservation('marketing_reserve',        result.internalCosts.marketingReserve,  'Marketing/CAC reserve');
-  addReservation('translator_reserved_cost', result.internalCosts.translatorReserved, 'Translator cost estimate (30% of translation)');
-  if (result.internalCosts.partnerCommission > 0) {
-    addReservation('partner_commission', result.internalCosts.partnerCommission, 'Partner commission');
+  if (nm) {
+    // New formula (2026-07-17) — EXACTLY these 12 cost_types. WPO's own coordination fee, its
+    // urgency surcharge, and manual_adjustment_kzt are revenue/price changes, not costs, and
+    // are deliberately NEVER reserved here — see docs/ai-context/DECISIONS.md.
+    // External payouts:
+    addReservation('translator_payout', nm.translatorPayoutKzt, 'Translator payout (30% of translation amount)');
+    addReservation('notary_payout',     nm.notaryPayoutKzt,     'Notary official fee (MRP × applicant coefficient)');
+    addReservation('courier_payout',    nm.courierPayoutKzt,    'Courier fee');
+    addReservation('printing_cost',     nm.printingCostKzt,     'Printing/binding + extra paper copies');
+    addReservation('acquiring_fee',     nm.acquiringFeeKzt,     'Halyk ePay acquiring fee reserve');
+    addReservation('tax_reserve',       nm.taxReserveKzt,       'Tax reserve (KZ)');
+    addReservation('partner_commission', nm.partnerCommissionKzt, 'Partner commission (referral)');
+    // Internal reserves:
+    addReservation('risk_reserve',            nm.riskReserveKzt,            'Risk/chargeback reserve');
+    addReservation('marketing_reserve',       nm.marketingReserveKzt,       'Marketing/CAC reserve');
+    addReservation('ai_it_reserve',           nm.aiItReserveKzt,            'AI/IT reserve');
+    addReservation('owner_reserve',           nm.ownerReserveKzt,           'Owner reserve');
+    addReservation('unused_channel_reserve',  nm.unusedChannelReserveKzt,   'Unused channel budget (retained internally for Direct; remainder after discount/commission for Referral)');
+  } else if (result.internalCosts) {
+    // Legacy formula (electronic; pre-2026-07-17 official/notary quotes) — unchanged.
+    addReservation('ai_it_reserve',            result.internalCosts.aiItReserve,       'AI/IT processing cost reserve');
+    addReservation('tax_reserve',              result.internalCosts.taxReserve,        'Tax reserve (KZ)');
+    addReservation('acquiring_fee_estimate',   result.internalCosts.acquiringFee,      'Halyk ePay acquiring fee estimate');
+    addReservation('risk_reserve',             result.internalCosts.riskReserve,       'Chargeback/risk reserve');
+    addReservation('owner_reserve',            result.internalCosts.ownerReserve,      'Owner reserve');
+    addReservation('marketing_reserve',        result.internalCosts.marketingReserve,  'Marketing/CAC reserve');
+    addReservation('translator_reserved_cost', result.internalCosts.translatorReserved, 'Translator cost estimate (30% of translation)');
+    if (result.internalCosts.partnerCommission > 0) {
+      addReservation('partner_commission', result.internalCosts.partnerCommission, 'Partner commission');
+    }
   }
 
   if (reservations.length > 0) {

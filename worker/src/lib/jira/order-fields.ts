@@ -142,6 +142,61 @@ export function buildApplicantTypeDescriptionLine(
   return `Тип заказчика для нотариального тарифа: ${label}`;
 }
 
+// ─── Notary urgency description lines (notarized orders only) ────────────────
+// WO-77 incident, 2026-07-15: the customer's same-day notary urgency choice was
+// priced correctly (multiplier 1.0, 0 KZT surcharge — before the 12:00 Almaty
+// cutoff) but never appeared in the main Jira issue, making it indistinguishable
+// from a standard order. No custom Jira field exists for this, so — same as
+// applicant type above — it goes into the description as plain lines. Always
+// shown for notarized orders, even when the multiplier is 1.0 and the surcharge
+// is 0 ₸: "0 ₸" is a meaningful, correctly-computed value here, not an absence
+// of data, and hiding the line at zero surcharge is exactly the bug being fixed.
+
+const NOTARY_URGENCY_LEVEL_LABELS: Record<string, string> = {
+  standard: 'Стандартная',
+  same_day: 'В тот же день',
+};
+
+const NOTARY_URGENCY_WINDOW_LABELS: Record<string, string> = {
+  standard: 'Без ограничения по времени',
+  before_noon: 'До 12:00 Алматы',
+  after_noon: '12:00–18:00 Алматы',
+  after_18: 'После 18:00 Алматы',
+};
+
+export interface NotaryUrgencyDescriptionSnapshot {
+  level: string;
+  window: string;
+  multiplier: number;
+  feeKzt: number;
+}
+
+/**
+ * Builds the 5 "Срочность нотариального оформления: ..." description lines.
+ *
+ * Returns an empty array when the order isn't notarized (general urgency has
+ * its own, unrelated concept — see UrgencyLevel vs NotaryUrgencyLevel in
+ * src/lib/pricing/types.ts) or when no urgency snapshot is available at all
+ * (e.g. a notarized job predating both migration 0048 and any quote row).
+ */
+export function buildNotaryUrgencyDescriptionLines(
+  serviceLevel: string,
+  snapshot: NotaryUrgencyDescriptionSnapshot | null | undefined,
+): string[] {
+  if (serviceLevel !== 'notarization_through_partners' || !snapshot) return [];
+
+  const levelLabel = NOTARY_URGENCY_LEVEL_LABELS[snapshot.level] ?? snapshot.level;
+  const windowLabel = NOTARY_URGENCY_WINDOW_LABELS[snapshot.window] ?? snapshot.window;
+
+  return [
+    `Срочность нотариального оформления: ${levelLabel}`,
+    `Временное окно: ${windowLabel}`,
+    `Коэффициент срочности: ×${snapshot.multiplier.toFixed(1)}`,
+    `Доплата за срочность: ${Math.round(snapshot.feeKzt)} ₸`,
+    'Доступность нотариуса: требует операционного подтверждения',
+  ];
+}
+
 // ─── Payload builder ──────────────────────────────────────────────────────────
 
 export interface JiraIssueFieldsInput {

@@ -165,6 +165,15 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     return NextResponse.redirect(url);
   }
 
+  // Pricing Lab (internal, staging-only) requires an authenticated session at minimum —
+  // the page itself and its API routes additionally check ENABLE_PRICING_LAB + the
+  // operator email allowlist (src/lib/internal/pricing-lab-guard.ts).
+  if (!user && cleanPath.startsWith('/internal')) {
+    const url = request.nextUrl.clone();
+    url.pathname = `${prefix}/auth/login`;
+    return NextResponse.redirect(url);
+  }
+
   // Checkout requires auth — unlike /dashboard, we preserve `?draftId=` via `next` so
   // the pre-checkout wizard draft is not lost across the login detour.
   if (!user && cleanPath.startsWith('/checkout')) {

@@ -23,7 +23,8 @@ import {
 } from './google-drive';
 import { downloadFile } from './r2';
 import type { ServiceLevel } from './output-plan';
-import { buildJiraIssueFields, JIRA_FIELDS, buildApplicantTypeDescriptionLine } from './jira/order-fields';
+import { buildJiraIssueFields, JIRA_FIELDS, buildApplicantTypeDescriptionLine, buildNotaryUrgencyDescriptionLines } from './jira/order-fields';
+import { resolveNotaryUrgencySnapshot, type ResolvedNotaryUrgencySnapshot, type JobUrgencyColumns } from './notary-urgency';
 import { searchJiraIssuesByJql } from './jira/search';
 import {
   buildFinanceIssuePayload,
@@ -139,6 +140,56 @@ export async function getPartnerApplicationId(jobId: string): Promise<string | n
   }
 }
 
+// ─── Notary urgency snapshot resolution ──────────────────────────────────────
+// Pure resolution logic lives in ./notary-urgency (shared with jira/price-breakdown.ts
+// without a circular import). This wrapper adds the DB lookup.
+
+/**
+ * DB-querying wrapper around resolveNotaryUrgencySnapshot() for a single job —
+ * mirrors getPartnerApplicationId()'s pattern of resolving its own data rather
+ * than requiring every caller to thread jobs-row fields through params.
+ * Non-fatal: any query error is logged and treated as "no snapshot available",
+ * never as a reason to fail issue creation.
+ */
+async function resolveNotaryUrgencySnapshotForJob(
+  jobId: string,
+  serviceLevel: string,
+): Promise<ResolvedNotaryUrgencySnapshot | null> {
+  if (serviceLevel !== 'notarization_through_partners') return null;
+
+  try {
+    const { data: job } = await supabase
+      .from('jobs')
+      .select('notary_urgency_level, notary_urgency_window, notary_urgency_multiplier, notary_urgency_cutoff_at, notary_urgency_fee_kzt')
+      .eq('id', jobId)
+      .maybeSingle();
+
+    const jobRow = job as JobUrgencyColumns | null;
+    if (jobRow?.notary_urgency_level != null) {
+      return resolveNotaryUrgencySnapshot(jobRow, null);
+    }
+
+    // Legacy fallback — no jobs-row snapshot, try the quote's immutable pricing_context_json.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: quoteRow } = await (supabase as any)
+      .from('price_quotes')
+      .select('pricing_context_json, breakdown_json')
+      .eq('job_id', jobId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!quoteRow) return null;
+    return resolveNotaryUrgencySnapshot(null, {
+      pricingContextJson: (quoteRow.pricing_context_json as Record<string, unknown>) ?? {},
+      breakdownJson: (quoteRow.breakdown_json as Record<string, unknown>) ?? {},
+    });
+  } catch (err) {
+    console.error(`[worker-jira] resolveNotaryUrgencySnapshotForJob failed for job ${jobId}:`, err instanceof Error ? err.message : err);
+    return null;
+  }
+}
+
 async function createJiraIssue(params: {
   jobId: string;
   customerId: string | null;
@@ -158,6 +209,8 @@ async function createJiraIssue(params: {
   customerComment?: string | null;
   /** partner_applications.id (UUID) of the referring partner — omitted when the order has no referral. */
   partnerApplicationId?: string | null;
+  /** Resolved via resolveNotaryUrgencySnapshot() — jobs columns preferred, quote JSON fallback for legacy jobs. */
+  notaryUrgencySnapshot?: ResolvedNotaryUrgencySnapshot | null;
 }): Promise<{ issueKey: string; issueId: string; issueUrl: string } | null> {
   const auth = getJiraAuth();
   if (!auth) {
@@ -175,6 +228,7 @@ async function createJiraIssue(params: {
     `Document type: ${params.documentType.split('|')[0] ?? params.documentType}`,
     params.notaryCity ? `Notary city: ${params.notaryCity}` : null,
     buildApplicantTypeDescriptionLine(params.serviceLevel, params.applicantType),
+    ...buildNotaryUrgencyDescriptionLines(params.serviceLevel, params.notaryUrgencySnapshot),
     params.fulfillmentMethod ? `Fulfillment: ${params.fulfillmentMethod}` : null,
     params.driveUrl ? `Drive: ${params.driveUrl}` : null,
     `WPO order: ${params.wpoUrl}`,
@@ -995,6 +1049,7 @@ export async function initializeOrderIntegrations(params: {
       try {
         const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.SITE_URL ?? 'https://wpotranslations.org';
         const partnerApplicationId = await getPartnerApplicationId(params.jobId);
+        const notaryUrgencySnapshot = await resolveNotaryUrgencySnapshotForJob(params.jobId, params.serviceLevel);
         const issue = await createJiraIssue({
           jobId: params.jobId,
           customerId: params.customerId ?? null,
@@ -1013,6 +1068,7 @@ export async function initializeOrderIntegrations(params: {
           createdAt: new Date().toISOString(),
           customerComment: params.customerComment ?? null,
           partnerApplicationId,
+          notaryUrgencySnapshot,
         });
 
         if (issue) {
@@ -1282,6 +1338,7 @@ export async function ensureJiraIssueForPaidOrder(jobId: string, dryRun = false)
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.SITE_URL ?? 'https://wpotranslations.org';
   const partnerApplicationId = await getPartnerApplicationId(jobId);
+  const notaryUrgencySnapshot = await resolveNotaryUrgencySnapshotForJob(jobId, serviceLevel);
 
   try {
     const issue = await createJiraIssue({
@@ -1298,6 +1355,7 @@ export async function ensureJiraIssueForPaidOrder(jobId: string, dryRun = false)
       deliveryAddress: job.delivery_address ?? null,
       paymentSource: job.payment_source ?? null,
       driveUrl: job.google_drive_folder_url ?? null,
+      notaryUrgencySnapshot,
       wpoUrl: `${siteUrl}/dashboard`,
       createdAt: new Date().toISOString(),
       customerComment: job.customer_comment ?? null,

@@ -25,6 +25,8 @@
  *   JIRA_PRICE_BREAKDOWN_LABELS         — comma-separated labels (default: 'wpo-price-breakdown')
  */
 
+import { resolveNotaryUrgencySnapshot } from '../notary-urgency';
+
 // ─── DB-mapped interfaces (Supabase returns snake_case → mapped to camelCase) ─
 
 export interface DbPriceQuoteItem {
@@ -256,6 +258,16 @@ export function buildPriceBreakdownDescription(params: PriceBreakdownFullParams)
   const langPair = params.quote?.languagePair
     ?? `${params.quote?.sourceLanguage ?? params.sourceLanguage}→${params.quote?.targetLanguage ?? params.targetLanguage}`;
 
+  // General translation urgency (hardcoded 'standard' for all card orders today — see
+  // src/lib/pricing/types.ts UrgencyLevel) is a DIFFERENT concept from notary urgency
+  // (customer-selected 'standard'/'same_day' for notarized orders — NotaryUrgencyLevel).
+  // Do not conflate them: showing only the general field previously made every notarized
+  // order's same-day selection invisible here (WO-77, 2026-07-15) since the general field
+  // is always 'standard' regardless of what the customer actually picked for notary timing.
+  const notaryUrgency = params.quote
+    ? resolveNotaryUrgencySnapshot(null, { pricingContextJson: params.quote.pricingContextJson, breakdownJson: params.quote.breakdownJson })
+    : null;
+
   const sectionARows: string[][] = [
     ['Main order issue', params.mainIssueKey],
     ['Quote ID', params.quote?.id ?? '—'],
@@ -272,7 +284,11 @@ export function buildPriceBreakdownDescription(params: PriceBreakdownFullParams)
     ['Included pages', String(params.quote?.includedPageCount ?? '—')],
     ['Source word count', String(params.quote?.sourceWordCount ?? '—')],
     ['Included words', String(params.quote?.includedWordCount ?? '—')],
-    ['Urgency level', params.quote?.urgencyLevel ?? '—'],
+    ['General translation urgency', params.quote?.urgencyLevel ?? '—'],
+    ['Notary urgency', notaryUrgency?.level ?? '—'],
+    ['Effective notary window', notaryUrgency?.window ?? '—'],
+    ['Notary urgency multiplier', notaryUrgency ? `×${notaryUrgency.multiplier.toFixed(1)}` : '—'],
+    ['Notary urgency surcharge', notaryUrgency ? kzt(notaryUrgency.feeKzt) : '—'],
     ['Fulfillment method', params.quote?.fulfillmentMethod ?? '—'],
     ['Sales channel', params.quote?.salesChannel ?? '—'],
     ['Payment source', params.paymentSource ?? '—'],

@@ -1,4 +1,4 @@
-import type { PricingInput, PricingResult, PricingVersion, QuoteLineItem, QuoteStatus, NotaryCutoffSnapshot } from './types';
+import type { PricingInput, PricingResult, PricingVersion, QuoteLineItem, QuoteStatus, NotaryCutoffSnapshot, NewModelBreakdown } from './types';
 import {
   resolveLanguageGroup,
   BASE_MINIMUM_KZT,
@@ -16,14 +16,25 @@ import {
   PRICE_ROUNDING_INCREMENT,
   PRESENTATION_SLIDE_FEE_KZT,
   MARGIN_FLOOR_CONFIG,
+  TRANSLATION_PAGE_CHAR_DIVISOR,
+  MIN_TRANSLATION_PAGES,
 } from './config';
 import { getNotaryCutoffWindow } from './almaty-time';
+import { toDecimal, roundToKopeks, roundUpToStep, applyRate, charsToPages, computeTranslationAmount, sumMoney, moneyDifference } from './money';
 
 function roundToIncrement(amount: number, increment: number): number {
   return Math.ceil(amount / increment) * increment;
 }
 
-export function calculatePrice(input: PricingInput, version: PricingVersion): PricingResult {
+/**
+ * LEGACY formula — electronic service level only, as of the 2026-07-17 flat-formula rewrite.
+ * This function is unchanged, byte-for-byte, from before the rewrite — electronic pricing
+ * must remain exactly as it was. Its notary-specific branches are dead code when called with
+ * serviceLevel='electronic' (which is the only way calculatePrice() invokes it now), kept only
+ * because splitting them out risked introducing a subtle behavior change; safer to leave the
+ * whole function untouched and simply stop calling it for official/notary.
+ */
+function calculateElectronicPrice(input: PricingInput, version: PricingVersion): PricingResult {
   const reviewReasons: string[] = [];
   const items: QuoteLineItem[] = [];
   let sortOrder = 0;
@@ -893,4 +904,414 @@ export function calculatePrice(input: PricingInput, version: PricingVersion): Pr
       ...(notaryCutoffSnapshot ? { notaryCutoff: notaryCutoffSnapshot } : {}),
     },
   };
+}
+
+/**
+ * NEW flat formula (2026-07-17 rewrite) — official_with_translator_signature_and_provider_stamp
+ * and notarization_through_partners only. Replaces per-document-type/urgency/scan-quality/
+ * layout/visual-marks/presentation modifiers and the two-layer margin-floor mechanism with a
+ * transparent T/O/N/C/P/W/M formula. See docs/ai-context/DECISIONS.md (2026-07-17) for the
+ * full approved model and worked fixtures.
+ *
+ * Pure function — never queries the DB itself. The caller (src/lib/pricing/service.ts) resolves
+ * `languageRate`, `sourceCharacterCountWithSpaces` (from a completed document_analysis
+ * revision), and `partnerCommissionRateOverride` (from partners.commission_rate) before calling
+ * this. Missing/invalid required inputs route to operator_review — never a fabricated value.
+ */
+function calculateOfficialNotaryPrice(input: PricingInput, version: PricingVersion): PricingResult {
+  const reviewReasons: string[] = [];
+  const items: QuoteLineItem[] = [];
+  let sortOrder = 0;
+  const nextSort = () => sortOrder++;
+
+  const { serviceLevel } = input;
+  const salesChannel = input.salesChannel ?? 'direct';
+  const applicantType = input.applicantType ?? 'individual';
+  const extraCopies = Math.max(0, input.extraPaperCopies ?? 0);
+  const fulfillmentMethod = input.fulfillmentMethod;
+  const deliveryRequired = input.deliveryRequired ?? false;
+  const languagePair = `${input.sourceLanguage}→${input.targetLanguage}`;
+
+  // 1. Presentations are not yet priced by this formula — forced operator_review.
+  if (input.documentType === 'presentation') {
+    reviewReasons.push('presentation_pricing_not_yet_supported — presentations require a dedicated pricing flow not yet implemented');
+  }
+
+  // 2. Scan quality / layout — non-standard triggers operator_review, NO automatic surcharge
+  // (removed per the 2026-07-17 decision — see docs/ai-context/DECISIONS.md).
+  const scanQuality = input.scanQuality ?? 'normal';
+  if (scanQuality !== 'normal') {
+    reviewReasons.push(`Scan quality '${scanQuality}' requires operator review (no automatic surcharge in the new formula)`);
+  }
+  const layoutComplexity = input.layoutComplexity ?? 'standard';
+  if (layoutComplexity !== 'standard') {
+    reviewReasons.push(`Layout complexity '${layoutComplexity}' requires operator review (no automatic fee in the new formula)`);
+  }
+  const visualMarksComplexity = input.visualMarksComplexity ?? 'normal';
+  if (visualMarksComplexity !== 'normal') {
+    reviewReasons.push(`Visual marks complexity '${visualMarksComplexity}' requires operator review (no automatic surcharge in the new formula — stamps/signatures/QR/photos are standard handling)`);
+  }
+
+  // 3. Language rate — resolved by the caller. Missing/inactive/flagged -> operator_review,
+  // never a fabricated rate (see src/lib/pricing/service.ts getLanguageRate()).
+  const languageRate = input.languageRate;
+  let ratePerPage = 0;
+  if (!languageRate) {
+    reviewReasons.push(`No active language rate found for ${languagePair} — requires operator review`);
+  } else {
+    ratePerPage = languageRate.rateKztPerTranslationPage;
+    if (languageRate.requiresOperatorReview) {
+      reviewReasons.push(`Language rate for ${languagePair} is marked requires_operator_review`);
+    }
+    if (!languageRate.active) {
+      reviewReasons.push(`Language rate for ${languagePair} is inactive — requires operator review`);
+    }
+  }
+
+  // 4. Character count — must come from a completed document_analysis revision, never guessed.
+  const characterCount = input.sourceCharacterCountWithSpaces;
+  if (characterCount == null || characterCount <= 0) {
+    reviewReasons.push('No character count available from document analysis — requires operator review');
+  }
+  const safeCharacterCount = characterCount != null && characterCount > 0 ? characterCount : 0;
+  const translationPageCountExact = Math.max(
+    MIN_TRANSLATION_PAGES,
+    charsToPages(safeCharacterCount, TRANSLATION_PAGE_CHAR_DIVISOR).toNumber(),
+  );
+
+  // 5. T — translation amount, computed directly from the integer character count (never from
+  // a previously-rounded page count — see money.ts computeTranslationAmount).
+  const T = safeCharacterCount > 0 && ratePerPage > 0
+    ? computeTranslationAmount(safeCharacterCount, ratePerPage, TRANSLATION_PAGE_CHAR_DIVISOR)
+    : 0;
+  if (T > 0) {
+    items.push({
+      itemType: 'translation_amount',
+      label: `Перевод (${translationPageCountExact.toFixed(2)} стр. × ${ratePerPage} ₸)`,
+      quantity: translationPageCountExact,
+      unitPriceKzt: ratePerPage,
+      amountKzt: T,
+      isClientVisible: true,
+      isCost: false,
+      sortOrder: nextSort(),
+      metadataJson: {
+        sourceCharacterCountWithSpaces: safeCharacterCount,
+        translationPageCountExact,
+        languageRateId: languageRate?.id ?? null,
+      },
+    });
+  }
+
+  // 6. O — OCR/technical processing, physical pages (cheap pdf-lib page count, no OCR needed).
+  const physicalPageCount = Math.max(1, input.physicalPageCount ?? 1);
+  const O = roundToKopeks(toDecimal(physicalPageCount).times(version.ocrRatePerPhysicalPageKzt));
+  items.push({
+    itemType: 'ocr_amount',
+    label: `OCR и техническая обработка (${physicalPageCount} стр. × ${version.ocrRatePerPhysicalPageKzt} ₸)`,
+    quantity: physicalPageCount,
+    unitPriceKzt: version.ocrRatePerPhysicalPageKzt,
+    amountKzt: O,
+    isClientVisible: true,
+    isCost: false,
+    sortOrder: nextSort(),
+  });
+
+  // 7. N — notary official fee (0 for official; MRP × applicant coefficient for notary).
+  // Same MRP-based logic as the legacy formula — unchanged, just no margin-floor step after it.
+  let N = 0;
+  let notaryPayoutKzt = 0;
+  if (serviceLevel === 'notarization_through_partners') {
+    const mrpKzt = version.mrpValue != null ? version.mrpValue * 1000 : NOTARY_CONFIG.mrpValueFallbackKzt;
+    const mrpCoeffOrReview = NOTARY_APPLICANT_MRP_COEFFICIENT[applicantType];
+    let mrpCoeff: number;
+    if (mrpCoeffOrReview === 'operator_review') {
+      reviewReasons.push(`Applicant type '${applicantType}' requires operator confirmation for notary fee`);
+      mrpCoeff = NOTARY_CONFIG.mrpCoefficient_individual;
+    } else {
+      mrpCoeff = mrpCoeffOrReview;
+    }
+    N = roundToKopeks(toDecimal(mrpKzt).times(mrpCoeff));
+    notaryPayoutKzt = N;
+    items.push({
+      itemType: 'notary_official_fee',
+      label: 'Нотариус (МРП × коэффициент заявителя)',
+      quantity: 1,
+      unitPriceKzt: N,
+      amountKzt: N,
+      isClientVisible: true,
+      isCost: false,
+      sortOrder: nextSort(),
+      metadataJson: { mrpKzt, mrpCoeff, applicantType },
+    });
+  }
+
+  // 8. C — courier, notarization_through_partners + delivery only.
+  let C = 0;
+  let courierPayoutKzt = 0;
+  if (serviceLevel === 'notarization_through_partners' && deliveryRequired && fulfillmentMethod === 'delivery') {
+    C = Number(version.courierFeeKzt);
+    courierPayoutKzt = C;
+    items.push({
+      itemType: 'courier_amount',
+      label: 'Курьер',
+      quantity: 1,
+      unitPriceKzt: C,
+      amountKzt: C,
+      isClientVisible: true,
+      isCost: false,
+      sortOrder: nextSort(),
+    });
+  }
+
+  // 9. P — printing/binding (+ extra paper copies, notary only). Both configurable, currently
+  // 0 ₸/0 ₸ by default pending real confirmation from the notary partner.
+  const basePrintingFee = Number(version.printingFeeKzt) || 0;
+  let extraCopiesFee = 0;
+  if (serviceLevel === 'notarization_through_partners' && extraCopies > 0) {
+    extraCopiesFee = roundToKopeks(toDecimal(extraCopies).times(version.extraPaperCopyFeeKzt));
+  }
+  const P = roundToKopeks(toDecimal(basePrintingFee).plus(extraCopiesFee));
+  const printingCostKzt = P;
+  if (basePrintingFee > 0) {
+    items.push({
+      itemType: 'printing_fee', label: 'Печать/сшивка', quantity: 1,
+      unitPriceKzt: basePrintingFee, amountKzt: basePrintingFee,
+      isClientVisible: true, isCost: false, sortOrder: nextSort(),
+    });
+  }
+  if (extraCopiesFee > 0) {
+    items.push({
+      itemType: 'extra_paper_copies',
+      label: `Доп. бумажные копии (${extraCopies} × ${version.extraPaperCopyFeeKzt} ₸)`,
+      quantity: extraCopies, unitPriceKzt: version.extraPaperCopyFeeKzt, amountKzt: extraCopiesFee,
+      isClientVisible: true, isCost: false, sortOrder: nextSort(),
+    });
+  }
+
+  // 10. W_base / notary urgency / W_final — urgency applies ONLY to the coordination fee, and
+  // ONLY for notarization_through_partners (always ×1 for official — see docs/ai-context/DECISIONS.md §6.6).
+  // NOT rounded to kopeks here — W_base/W_final are intermediate formula values, not yet a
+  // terminal ledger amount. The approved model's own worked examples carry full precision
+  // through this step (e.g. "1 587,675 ₸") and round only at genuine terminal points: T (per
+  // money.ts computeTranslationAmount), the retail rounding step, and final reserve amounts
+  // computed against actualPayment. Rounding here would compound into a visibly wrong
+  // componentSubtotal/retail for some inputs.
+  const componentsForCoordination = toDecimal(T).plus(N).plus(C).toNumber();
+  const W_base = toDecimal(componentsForCoordination).times(version.wpoCoordinationRate).toNumber();
+
+  let notaryUrgencyMultiplier = 1;
+  let notaryCutoffSnapshot: NotaryCutoffSnapshot | undefined;
+  if (serviceLevel === 'notarization_through_partners') {
+    const notaryUrgencyLevel = input.notaryUrgencyLevel ?? 'standard';
+    if (notaryUrgencyLevel === 'same_day') {
+      const cutoffInfo = getNotaryCutoffWindow(input.nowOverride ? new Date(input.nowOverride) : undefined);
+      notaryUrgencyMultiplier = cutoffInfo.multiplier;
+      notaryCutoffSnapshot = {
+        notaryUrgencyLevel,
+        effectiveWindow: cutoffInfo.window,
+        multiplier: cutoffInfo.multiplier,
+        quoteExpiresAt: cutoffInfo.quoteExpiresAt,
+        cutoffAt: cutoffInfo.cutoffAt,
+        pricingTimezone: 'Asia/Almaty',
+        windowLabel: cutoffInfo.windowLabel,
+      };
+    } else {
+      notaryCutoffSnapshot = {
+        notaryUrgencyLevel: 'standard', effectiveWindow: 'standard', multiplier: 1.0,
+        quoteExpiresAt: '', cutoffAt: null, pricingTimezone: 'Asia/Almaty', windowLabel: 'standard',
+      };
+    }
+  }
+  const W_final = toDecimal(W_base).times(notaryUrgencyMultiplier).toNumber();
+  const urgencySurcharge = toDecimal(W_final).minus(W_base).toNumber();
+
+  items.push({
+    itemType: 'wpo_coordination_base',
+    label: `Базовая комиссия WPO (${(version.wpoCoordinationRate * 100).toFixed(0)}%)`,
+    quantity: 1, unitPriceKzt: W_base, amountKzt: W_base,
+    isClientVisible: true, isCost: false, sortOrder: nextSort(),
+  });
+  if (urgencySurcharge > 0) {
+    items.push({
+      itemType: 'wpo_coordination_urgency_surcharge',
+      label: `Надбавка за срочность (×${notaryUrgencyMultiplier.toFixed(1)})`,
+      quantity: 1, unitPriceKzt: urgencySurcharge, amountKzt: urgencySurcharge,
+      isClientVisible: true, isCost: false, sortOrder: nextSort(),
+    });
+  }
+  items.push({
+    itemType: 'wpo_coordination_final',
+    label: 'Итоговая комиссия WPO',
+    quantity: 1, unitPriceKzt: W_final, amountKzt: W_final,
+    isClientVisible: true, isCost: false, sortOrder: nextSort(),
+    metadataJson: { coordinationBaseAmountKzt: W_base, notaryUrgencyMultiplier, urgencySurchargeKzt: urgencySurcharge },
+  });
+
+  // 11. M — manual adjustment. Pre-quote only; mandatory reason when non-zero (see
+  // "Manual adjustment & quote immutability" in docs/ai-context/DECISIONS.md).
+  const M = input.manualAdjustmentKzt ?? 0;
+  if (M !== 0) {
+    if (!input.manualAdjustmentReason || input.manualAdjustmentReason.trim() === '') {
+      reviewReasons.push('Manual adjustment requires a reason');
+    }
+    items.push({
+      itemType: 'manual_adjustment',
+      label: `Ручная корректировка: ${input.manualAdjustmentReason?.trim() || '(причина не указана)'}`,
+      quantity: 1, unitPriceKzt: M, amountKzt: M,
+      isClientVisible: true, isCost: false, sortOrder: nextSort(),
+    });
+  }
+
+  // 12. component_subtotal = T + O + N + C + P + W_final + M — full precision preserved (not
+  // rounded to kopeks); only retail_before_rounding/retail below are genuine rounding points.
+  const componentSubtotal = toDecimal(T).plus(O).plus(N).plus(C).plus(P).plus(W_final).plus(M).toNumber();
+
+  // 13. Gross-up. Derived from the version's rate columns every time — never stored, so it
+  // can never drift from its components (tax + acquiring + risk + marketing + ai_it + owner + channel).
+  const grossUpRate = toDecimal(version.taxRate)
+    .plus(version.acquiringRate)
+    .plus(version.riskReserveRate)
+    .plus(version.marketingRateDirect)
+    .plus(version.aiItRate)
+    .plus(version.ownerReserveRate)
+    .plus(version.channelReserveRate)
+    .toNumber();
+  const oneMinusGrossUp = toDecimal(1).minus(grossUpRate);
+  if (oneMinusGrossUp.lte(0)) {
+    throw new Error(
+      `PRICING_CONFIG_INVALID: gross_up_rate (${grossUpRate}) >= 100% for pricing version '${version.code}'. Cannot solve for a valid price — fix pricing_versions rates before quoting.`,
+    );
+  }
+  const retailBeforeRounding = roundToKopeks(toDecimal(componentSubtotal).dividedBy(oneMinusGrossUp));
+  const grossUpAmount = moneyDifference(retailBeforeRounding, componentSubtotal);
+
+  const roundingStep = serviceLevel === 'notarization_through_partners'
+    ? version.roundingStepNotaryKzt
+    : version.roundingStepOfficialKzt;
+  const retailPrice = roundUpToStep(retailBeforeRounding, roundingStep);
+  const roundingAdjustment = moneyDifference(retailPrice, retailBeforeRounding);
+
+  // 14. Referral discount — applied to the ROUNDED retail price. Never re-rounded afterward.
+  const clientDiscount = salesChannel === 'referral' ? applyRate(retailPrice, version.clientDiscountRate) : 0;
+  const actualPayment = moneyDifference(retailPrice, clientDiscount);
+
+  // 15. Partner commission — referral only, from the caller-resolved per-partner rate
+  // (partners.commission_rate), falling back to the version-level rate only if no partner
+  // record exists. Computed against actualPayment, not retail.
+  const partnerCommissionRate = salesChannel === 'referral'
+    ? (input.partnerCommissionRateOverride ?? version.partnerCommissionRate)
+    : 0;
+  const partnerCommissionKzt = salesChannel === 'referral' ? applyRate(actualPayment, partnerCommissionRate) : 0;
+
+  // 16. Reserves — all computed against actualPayment, never retail or the translation rate.
+  const taxReserveKzt = applyRate(actualPayment, version.taxRate);
+  const acquiringFeeKzt = applyRate(actualPayment, version.acquiringRate);
+  const riskReserveKzt = applyRate(actualPayment, version.riskReserveRate);
+  const marketingReserveKzt = applyRate(actualPayment, version.marketingRateDirect);
+  const aiItReserveKzt = applyRate(actualPayment, version.aiItRate);
+  const ownerReserveKzt = applyRate(actualPayment, version.ownerReserveRate);
+  const translatorPayoutKzt = applyRate(T, version.translatorPayoutRate);
+
+  // 17. Channel budget — computed against the ROUNDED retail price, never retailBeforeRounding.
+  const channelBudgetKzt = applyRate(retailPrice, version.channelReserveRate);
+  const unusedChannelReserveKzt = roundToKopeks(
+    toDecimal(channelBudgetKzt).minus(clientDiscount).minus(partnerCommissionKzt),
+  );
+  if (unusedChannelReserveKzt < 0) {
+    reviewReasons.push('unused_channel_reserve is negative — channel_reserve_rate configuration cannot cover this discount/commission combination');
+  }
+
+  // 18. Result — deliberately NOT called "net profit"/"чистая прибыль" anywhere user-facing;
+  // this is margin BEFORE the business's own fixed costs (see NewModelBreakdown doc comment).
+  const totalAllocationsKzt = roundToKopeks(
+    toDecimal(translatorPayoutKzt)
+      .plus(notaryPayoutKzt).plus(courierPayoutKzt).plus(printingCostKzt)
+      .plus(taxReserveKzt).plus(acquiringFeeKzt).plus(partnerCommissionKzt)
+      .plus(riskReserveKzt).plus(marketingReserveKzt).plus(aiItReserveKzt).plus(ownerReserveKzt)
+      .plus(unusedChannelReserveKzt),
+  );
+  const netProfitWpoKzt = moneyDifference(actualPayment, totalAllocationsKzt);
+  const netMargin = actualPayment > 0 ? netProfitWpoKzt / actualPayment : 0;
+  const totalInternalReservesKzt = roundToKopeks(
+    toDecimal(riskReserveKzt).plus(marketingReserveKzt).plus(aiItReserveKzt).plus(ownerReserveKzt).plus(unusedChannelReserveKzt),
+  );
+  const totalCashRetainedByWpoKzt = sumMoney(netProfitWpoKzt, totalInternalReservesKzt);
+  const reconciliationDifferenceKzt = moneyDifference(actualPayment, sumMoney(totalAllocationsKzt, netProfitWpoKzt));
+
+  const finalStatus: QuoteStatus = reviewReasons.length > 0 ? 'requires_operator_review' : 'quoted';
+
+  const newModel: NewModelBreakdown = {
+    translationAmountKzt: T,
+    ocrAmountKzt: O,
+    notaryAmountKzt: N,
+    courierAmountKzt: C,
+    printingAmountKzt: P,
+    coordinationBaseAmountKzt: W_base,
+    notaryUrgencyMultiplier,
+    urgencySurchargeKzt: urgencySurcharge,
+    coordinationFinalAmountKzt: W_final,
+    manualAdjustmentKzt: M,
+    componentSubtotalKzt: componentSubtotal,
+    grossUpRate,
+    grossUpAmountKzt: grossUpAmount,
+    retailBeforeRoundingKzt: retailBeforeRounding,
+    roundingStepKzt: roundingStep,
+    roundingAdjustmentKzt: roundingAdjustment,
+    retailPriceKzt: retailPrice,
+    salesChannel,
+    clientDiscountKzt: clientDiscount,
+    actualPaymentKzt: actualPayment,
+    partnerCommissionRate,
+    channelBudgetKzt,
+    unusedChannelReserveKzt,
+    translatorPayoutKzt,
+    notaryPayoutKzt,
+    courierPayoutKzt,
+    printingCostKzt,
+    acquiringFeeKzt,
+    taxReserveKzt,
+    partnerCommissionKzt,
+    riskReserveKzt,
+    marketingReserveKzt,
+    aiItReserveKzt,
+    ownerReserveKzt,
+    totalAllocationsKzt,
+    netProfitWpoKzt,
+    netMargin,
+    totalInternalReservesKzt,
+    totalCashRetainedByWpoKzt,
+    reconciliationDifferenceKzt,
+    languageRateId: languageRate?.id ?? null,
+    ratePerTranslationPageKzt: ratePerPage,
+  };
+
+  return {
+    amountKzt: Math.max(0, actualPayment),
+    currency: 'KZT',
+    status: finalStatus,
+    items,
+    pricingVersionId: version.id,
+    pricingVersionCode: version.code,
+    newModel,
+    requiresOperatorReview: reviewReasons.length > 0,
+    reviewReasons,
+    context: {
+      languagePair,
+      translationPageCountExact,
+      sourceCharacterCountWithSpaces: safeCharacterCount,
+      ...(notaryCutoffSnapshot ? { notaryCutoff: notaryCutoffSnapshot } : {}),
+    },
+  };
+}
+
+/**
+ * Dispatcher — electronic uses the untouched legacy formula; official/notary use the new flat
+ * formula (2026-07-17 rewrite). Same signature/contract as before the rewrite, so every
+ * existing call site (src/lib/pricing/service.ts computeQuoteForJob, etc.) is unaffected.
+ */
+export function calculatePrice(input: PricingInput, version: PricingVersion): PricingResult {
+  if (input.serviceLevel === 'electronic') {
+    return calculateElectronicPrice(input, version);
+  }
+  return calculateOfficialNotaryPrice(input, version);
 }

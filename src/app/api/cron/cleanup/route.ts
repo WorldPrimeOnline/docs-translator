@@ -5,6 +5,7 @@ import { RAW_UPLOAD_PREFIX } from '@/lib/order-drafts/upload-constants';
 
 const RETENTION_DAYS = 30;
 const RAW_UPLOAD_RETENTION_HOURS = 24;
+const PRICING_LAB_RETENTION_HOURS = 1;
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const cronSecret = process.env.CRON_SECRET;
@@ -86,8 +87,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   const draftsDeleted = await cleanupExpiredOrderDrafts();
   const rawUploadsDeleted = await cleanupOrphanedRawUploads();
+  const pricingLabFilesDeleted = await cleanupStalePricingLabFiles();
 
-  return NextResponse.json({ deleted, errors: errors.length > 0 ? errors : undefined, draftsDeleted, rawUploadsDeleted });
+  return NextResponse.json({ deleted, errors: errors.length > 0 ? errors : undefined, draftsDeleted, rawUploadsDeleted, pricingLabFilesDeleted });
 }
 
 /**
@@ -166,5 +168,50 @@ async function cleanupOrphanedRawUploads(): Promise<number> {
   }
 
   console.log(`[cleanup] deleted ${deleted}/${stale.length} orphaned raw uploads`);
+  return deleted;
+}
+
+/**
+ * Sweeps internal Pricing Lab test files (pricing-lab/{operatorUserId}/{uuid}.{ext} — see
+ * src/app/api/internal/pricing-lab/analyze-file/route.ts). This is a DEFENSE-IN-DEPTH backstop,
+ * not the primary cleanup mechanism — the Pricing Lab UI's "Удалить" button deletes a file
+ * immediately, and a failed analysis deletes its own upload right away. This sweep only catches
+ * files an operator uploaded and never explicitly deleted (tab closed, forgot).
+ *
+ * Retention is 1 hour, but this cron itself runs once daily (Vercel Hobby plan allows only one
+ * cron job — see the other sweeps above) — so in practice a forgotten file may live up to
+ * ~24h before this sweep catches it, not a strict 1-hour guarantee on its own. The strict
+ * "maximum 1 hour" requirement is met by the immediate-delete paths, not this sweep alone;
+ * this is disclosed explicitly, not silently assumed to be a real 1-hour SLA.
+ *
+ * Scoped to the pricing-lab/ prefix only — never touches documents/ (real customer orders)
+ * or draft-uploads/ (real order drafts). Test data is kept structurally separate from real
+ * customer data, per the "never mix retention policies" rule.
+ */
+async function cleanupStalePricingLabFiles(): Promise<number> {
+  const cutoffMs = Date.now() - PRICING_LAB_RETENTION_HOURS * 60 * 60 * 1000;
+
+  let objects: Array<{ key: string; lastModified: Date | null }>;
+  try {
+    objects = await listObjectsByPrefix('pricing-lab/');
+  } catch (err) {
+    console.error('[cleanup] failed to list pricing-lab files:', err instanceof Error ? err.message : String(err));
+    return 0;
+  }
+
+  const stale = objects.filter((o) => o.lastModified !== null && o.lastModified.getTime() < cutoffMs);
+  if (stale.length === 0) return 0;
+
+  let deleted = 0;
+  for (const obj of stale) {
+    try {
+      await deleteFile(obj.key);
+      deleted++;
+    } catch (err) {
+      console.error('[cleanup] pricing-lab file delete failed:', obj.key, err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  console.log(`[cleanup] deleted ${deleted}/${stale.length} stale pricing-lab files`);
   return deleted;
 }

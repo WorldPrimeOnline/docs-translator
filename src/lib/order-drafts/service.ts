@@ -7,7 +7,7 @@
  */
 import { supabaseServer } from '@/lib/supabase/server';
 import { downloadFile, uploadFile } from '@/lib/r2/client';
-import { computeQuoteForJob, saveQuote } from '@/lib/pricing/service';
+import { computeQuoteForJob, extractNotaryUrgencySnapshot, saveQuote } from '@/lib/pricing/service';
 import { deriveBackcompatBooleans } from '@/lib/translation-workflow/output-plan';
 import { attachReferralToOrder } from '@/lib/referral/server';
 import { calculatePartnerDiscount } from '@/lib/partners/discount';
@@ -375,6 +375,8 @@ export async function convertDraftToOrder(draftId: string, userId: string): Prom
       return { ok: false, error: docError?.message ?? 'document_insert_failed' };
     }
 
+    const notaryUrgencySnapshot = extractNotaryUrgencySnapshot(pricingResult);
+
     const { data: job, error: jobError } = await db
       .from('jobs')
       .insert({
@@ -395,6 +397,11 @@ export async function convertDraftToOrder(draftId: string, userId: string): Prom
         discount_applied_kzt: discountAppliedKzt > 0 ? discountAppliedKzt : null,
         discount_code: discountAppliedKzt > 0 ? discountCode : null,
         customer_comment: draft.customer_comment,
+        notary_urgency_level: notaryUrgencySnapshot?.level ?? null,
+        notary_urgency_window: notaryUrgencySnapshot?.effectiveWindow ?? null,
+        notary_urgency_multiplier: notaryUrgencySnapshot?.multiplier ?? null,
+        notary_urgency_cutoff_at: notaryUrgencySnapshot?.cutoffAt ?? null,
+        notary_urgency_fee_kzt: notaryUrgencySnapshot?.feeKzt ?? null,
       })
       .select()
       .single();
