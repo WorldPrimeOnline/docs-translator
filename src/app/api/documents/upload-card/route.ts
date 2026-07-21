@@ -12,6 +12,8 @@ import { deriveBackcompatBooleans } from '@/lib/translation-workflow/output-plan
 import { getHalykConfig } from '@/lib/payments/halyk/config';
 import { computeQuoteForJob, saveQuote } from '@/lib/pricing/service';
 import { DOCUMENT_TYPE_COEFFICIENT } from '@/lib/pricing/config';
+import { classifyPricingReviewReasons, PRICING_REVIEW_HTTP_STATUS } from '@/lib/pricing/review-classification';
+import { resolveDocumentAnalysisForPricing } from '@/lib/document-analysis/service';
 import { attachReferralToOrder } from '@/lib/referral/server';
 import { calculatePartnerDiscount } from '@/lib/partners/discount';
 import {
@@ -214,15 +216,51 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Failed to create document record' }, { status: 500 });
   }
 
+  // Real document analysis (2026-07-22) is required for Official/Notary — see
+  // src/lib/documents/upload-card-shared.ts's createCardOrder for the canonical version of
+  // this same wiring (this legacy route keeps its own copy since it can't import a shared
+  // helper defined in a route.ts file). Electronic keeps its exact prior behavior untouched.
+  let analysisId: string | undefined;
+  let physicalPageCountForPricing: number | undefined = 1;
+  let sourceCharacterCountWithSpaces: number | undefined;
+
+  if (serviceLevel !== 'electronic') {
+    // pdfBuffer (built above via convertToPdf+mergePdfs) is already the exact file that was
+    // uploaded to R2 — reuse it directly rather than downloading it back.
+    const analysisOutcome = await resolveDocumentAnalysisForPricing(
+      doc.id,
+      'application/pdf',
+      () => Promise.resolve(pdfBuffer),
+    );
+
+    if (analysisOutcome.kind === 'in_progress') {
+      return NextResponse.json({ error: 'ANALYSIS_IN_PROGRESS' }, { status: 409 });
+    }
+    if (analysisOutcome.kind === 'failed') {
+      console.error('[upload-card] document analysis failed:', analysisOutcome.reason, { correlationId });
+      await supabaseServer.from('documents').update({ status: 'failed' }).eq('id', docId);
+      return NextResponse.json({ error: 'ANALYSIS_FAILED' }, { status: 500 });
+    }
+    if (analysisOutcome.kind === 'requires_operator_review') {
+      return NextResponse.json({ error: 'ANALYSIS_REQUIRES_OPERATOR_REVIEW' }, { status: 422 });
+    }
+
+    analysisId = analysisOutcome.row.id;
+    physicalPageCountForPricing = analysisOutcome.row.physicalPageCount ?? undefined;
+    sourceCharacterCountWithSpaces = analysisOutcome.row.sourceCharacterCountWithSpaces ?? undefined;
+  }
+
   // Dynamic pricing: compute quote from pricing engine
   const pricingInput = {
     documentId: doc.id,
+    analysisId,
     userId: user.id,
     sourceLanguage: sourceLang,
     targetLanguage: targetLang,
     serviceLevel: serviceLevel as ServiceLevel,
     documentType: pricingDocumentType,
-    physicalPageCount: 1, // conservative default; OCR hasn't run yet
+    physicalPageCount: physicalPageCountForPricing,
+    sourceCharacterCountWithSpaces,
     // System-derived defaults — not from customer input
     urgencyLevel: 'standard' as const,
     scanQuality: 'normal' as const,
@@ -240,12 +278,28 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
   const quoteResult = await computeQuoteForJob(pricingInput);
 
   if ('error' in quoteResult) {
-    console.error('[upload-card] pricing not configured:', quoteResult.error, { correlationId });
+    // See upload-card-shared.ts's createCardOrder for why all three error codes
+    // (PRICING_NOT_CONFIGURED / SERVICE_LEVEL_PRICING_DISABLED / PRICING_VERSION_MISMATCH)
+    // map to the same 503 — pricing simply isn't available right now, never fabricated.
+    console.error('[upload-card] pricing not available:', quoteResult.error, { correlationId });
     await supabaseServer.from('documents').update({ status: 'failed' }).eq('id', docId);
-    return NextResponse.json({ error: 'PRICING_NOT_CONFIGURED' }, { status: 503 });
+    return NextResponse.json({ error: quoteResult.error }, { status: 503 });
   }
 
+  const { version } = quoteResult;
   let { result: pricingResult } = quoteResult;
+
+  // 2026-07-22/23: same fix as upload-card-shared.ts's createCardOrder — WPO has no manual
+  // operator pricing process, so requiresOperatorReview=true is a terminal failure here, never
+  // "success with a note". Classified rather than collapsed into one generic code. No job is
+  // created for any of these.
+  if (pricingResult.requiresOperatorReview) {
+    const classification = classifyPricingReviewReasons(pricingResult.reviewReasons);
+    console.error('[upload-card] pricing requires operator review — refusing to create a job', { correlationId, classification, reviewReasons: pricingResult.reviewReasons });
+    await supabaseServer.from('documents').update({ status: 'failed' }).eq('id', docId);
+    return NextResponse.json({ error: classification }, { status: PRICING_REVIEW_HTTP_STATUS[classification] });
+  }
+
   const basePreDiscountKzt = Math.round(pricingResult.amountKzt);
 
   // Apply partner client discount server-side (re-validate; never trust client value)
@@ -313,13 +367,19 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
   // For same-day notary orders, use the cutoff-aware expiry from the pricing result.
   const notaryCutoffExpiry = pricingResult.context.notaryCutoff?.quoteExpiresAt;
   const cutoffExpiresAt = notaryCutoffExpiry && notaryCutoffExpiry.length > 0 ? notaryCutoffExpiry : undefined;
-  const savedQuote = await saveQuote({ ...pricingInput, jobId: job.id }, pricingResult, 24, cutoffExpiresAt);
-  const quoteId = 'quoteId' in savedQuote ? savedQuote.quoteId : null;
+  const savedQuote = await saveQuote({ ...pricingInput, jobId: job.id }, pricingResult, version, 24, cutoffExpiresAt);
 
   if ('error' in savedQuote) {
-    // Non-fatal: job and price_kzt are set; payment can still proceed using jobs.price_kzt
-    console.error('[upload-card] failed to save quote (non-fatal):', savedQuote.error, { correlationId });
+    // 2026-07-23 (precise wording): a job in a payable status (payment_pending) must never exist
+    // without a saved quote — see upload-card-shared.ts's createCardOrder for the full
+    // rationale. The job row is NOT deleted — it's transitioned OUT of payment_pending to
+    // status='failed' (kept as an audit record), never left payable with no quote.
+    console.error('[upload-card] failed to save quote — job moved to failed:', savedQuote.error, { correlationId });
+    await supabaseServer.from('jobs').update({ status: 'failed', error_message: 'Quote save failed' }).eq('id', job.id);
+    await supabaseServer.from('documents').update({ status: 'failed' }).eq('id', docId);
+    return NextResponse.json({ error: 'QUOTE_SAVE_FAILED' }, { status: 500 });
   }
+  const quoteId = savedQuote.quoteId;
 
   await supabaseServer.from('job_audit_log').insert({
     job_id: job.id,
@@ -386,8 +446,10 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
     discountAppliedKzt: discountKzt > 0 ? discountKzt : undefined,
     discountCode: discountKzt > 0 ? refCodeForDiscount : undefined,
     quoteId,
-    requiresOperatorReview: pricingResult.requiresOperatorReview,
-    reviewReasons: pricingResult.requiresOperatorReview ? pricingResult.reviewReasons : undefined,
+    // Always false/undefined — requiresOperatorReview=true is classified and handled as a
+    // terminal failure above, before any job is created.
+    requiresOperatorReview: false,
+    reviewReasons: undefined,
     currency: 'KZT',
     paymentRequired: true,
   });

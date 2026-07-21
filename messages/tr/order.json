@@ -211,6 +211,7 @@
     "quoteExpired": "Hesaplama sona erdi",
     "quoteRecalculate": "Yeniden hesapla",
     "quoteCalculating": "Fiyat hesaplanıyor...",
+    "quoteUnavailable": "Fiyat otomatik olarak hesaplanamadı. Lütfen belgeyi tekrar yükleyin.",
     "paymentPendingTitle": "Ödeme kontrol ediliyor",
     "paymentPendingDesc": "Tutar zaten çekildiyse tekrar ödeme yapmayın. Durumu otomatik olarak güncelleyeceğiz.",
     "quoteRecalculating": "Sipariş durumu güncelleniyor...",

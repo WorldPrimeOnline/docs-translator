@@ -1,4 +1,4 @@
-import type { PricingResult } from '@/lib/pricing/types';
+import type { PricingResult, PricingVersion } from '@/lib/pricing/types';
 
 export type DraftStatus = 'draft_created' | 'price_calculated' | 'checkout_started' | 'expired' | 'converted';
 
@@ -9,8 +9,29 @@ export interface DraftFileKey {
   sizeBytes: number;
 }
 
+/**
+ * Cached result of analyzeDocumentForPricing() for order_drafts.file_keys[0], keyed by that
+ * exact R2 key — order_drafts has no documents.id yet (a real `documents` row, and therefore a
+ * document_analysis row, only exists after convertDraftToOrder()), so this is the pre-document
+ * equivalent of document_analysis's "reuse a completed analysis, never re-run OCR" guarantee.
+ * Invalidated (a fresh analysis runs) only if fileKey no longer matches file_keys[0].key — e.g.
+ * after a re-upload. requiresOperatorReview drafts never reach pricing_snapshot/price_calculated.
+ */
+export interface DraftAnalysisSnapshot {
+  fileKey: string;
+  method: string;
+  characterCount: number;
+  physicalPageCount: number | null;
+  requiresOperatorReview: boolean;
+  reviewReasons: string[];
+}
+
 export interface DraftPricingSnapshot {
   result: PricingResult;
+  /** The exact pricing_versions row used at calculation time — saveQuote()'s formula_version
+   * snapshot must reflect what was actually quoted, not whatever version happens to be active
+   * later at conversion time. */
+  version: PricingVersion;
   computedAt: string;
   /** Pre-discount amount in KZT. Present only when a partner discount was applied. */
   priceBeforeDiscountKzt?: number;
@@ -41,6 +62,7 @@ export interface OrderDraftRow {
   customer_comment: string | null;
   file_keys: DraftFileKey[];
   pricing_snapshot: DraftPricingSnapshot | null;
+  analysis_snapshot: DraftAnalysisSnapshot | null;
   ref_code: string | null;
   utm_source: string | null;
   utm_medium: string | null;

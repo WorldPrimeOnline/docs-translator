@@ -54,6 +54,8 @@ function makeQuote(overrides: Partial<DbPriceQuote> = {}): DbPriceQuote {
     internalCostJson: { taxReserve: 450 },
     marginJson: { grossRevenue: 15000, totalCosts: 6000, targetProfit: 3750, estimatedMarginKzt: 9000, estimatedMarginRate: 0.60 },
     breakdownJson: { items: [] },
+    wpoFinancialBreakdownJson: {},
+    sourceCharacterCountWithSpaces: null,
     ...overrides,
   };
 }

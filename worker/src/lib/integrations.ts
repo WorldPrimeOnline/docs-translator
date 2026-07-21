@@ -440,7 +440,7 @@ async function loadPriceBreakdownData(jobId: string, tag: string): Promise<{
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: quoteRow } = await (supabase as any)
     .from('price_quotes')
-    .select('id, document_id, amount_kzt, currency, status, source_language, target_language, language_pair, document_type, service_level, physical_page_count, included_page_count, included_word_count, source_word_count, urgency_level, sales_channel, fulfillment_method, pricing_version_id, pricing_context_json, internal_cost_json, margin_json, breakdown_json')
+    .select('id, document_id, amount_kzt, currency, status, source_language, target_language, language_pair, document_type, service_level, physical_page_count, included_page_count, included_word_count, source_word_count, urgency_level, sales_channel, fulfillment_method, pricing_version_id, pricing_context_json, internal_cost_json, margin_json, breakdown_json, wpo_financial_breakdown_json, source_character_count_with_spaces')
     .eq('job_id', jobId)
     .order('created_at', { ascending: false })
     .limit(1)

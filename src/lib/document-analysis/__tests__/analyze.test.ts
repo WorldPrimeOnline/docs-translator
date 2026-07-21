@@ -25,6 +25,7 @@ jest.mock('../physical-pages', () => ({ getPhysicalPageCount: (...args: unknown[
 const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 const PDF_MIME = 'application/pdf';
 const JPG_MIME = 'image/jpeg';
+const PNG_MIME = 'image/png';
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -134,6 +135,32 @@ describe('analyzeDocumentForPricing', () => {
     expect(result.requiresOperatorReview).toBe(true);
     expect(result.qualitySignals.possiblyHandwrittenOrIllegible).toBe(true);
     expect(result.reviewReasons.some((r) => r.includes('handwritten'))).toBe(true);
+  });
+
+  it('PNG (2026-07-21 regression, spec #5): converted to a one-page PDF, physicalPageCount is always 1 — never invented separately from the render', async () => {
+    mockConvertToPdf.mockResolvedValue(Buffer.from('image-as-pdf'));
+    mockGetPhysicalPageCount.mockResolvedValue(1);
+    mockExtractPdfTextLayer.mockResolvedValue(null);
+    mockExtractTextFromPdf.mockResolvedValue({ markdown: 'Текст, распознанный на скане документа.', pageMarkdowns: [], pageCount: 1 });
+
+    const { analyzeDocumentForPricing } = await import('../analyze');
+    const result = await analyzeDocumentForPricing(Buffer.from('fake-png'), PNG_MIME);
+
+    expect(mockConvertToPdf).toHaveBeenCalledWith(expect.anything(), PNG_MIME);
+    expect(result.physicalPageCount).toBe(1);
+  });
+
+  it('DOCX (2026-07-21 regression, spec #7): page-count render fails -> physicalPageCount is null, never a fabricated 1', async () => {
+    mockExtractDocxText.mockResolvedValue('Настоящий текст документа для расчёта цены без надёжного количества страниц.');
+    mockConvertToPdf.mockRejectedValue(new Error('LibreOffice not available in this environment'));
+
+    const { analyzeDocumentForPricing } = await import('../analyze');
+    const result = await analyzeDocumentForPricing(Buffer.from('fake-docx'), DOCX_MIME);
+
+    expect(result.method).toBe('docx_text');
+    expect(result.physicalPageCount).toBeNull();
+    expect(result.characterCount).toBeGreaterThan(0);
+    expect(result.requiresOperatorReview).toBe(false); // extraction itself succeeded — a missing page count alone is not a review reason
   });
 
   it('never fabricates a confidence score — quality signals contain only real measured fields', async () => {

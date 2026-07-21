@@ -24,6 +24,9 @@ import { buildRawKey, isValidRawKey } from '@/lib/r2/upload-key-utils';
 import { deriveBackcompatBooleans } from '@/lib/translation-workflow/output-plan';
 import { computeQuoteForJob, extractNotaryUrgencySnapshot, saveQuote } from '@/lib/pricing/service';
 import { DOCUMENT_TYPE_COEFFICIENT } from '@/lib/pricing/config';
+import { classifyPricingReviewReasons, PRICING_REVIEW_HTTP_STATUS } from '@/lib/pricing/review-classification';
+import { resolveDocumentAnalysisForPricing } from '@/lib/document-analysis/service';
+import { downloadFile } from '@/lib/r2/client';
 import { attachReferralToOrder } from '@/lib/referral/server';
 import { calculatePartnerDiscount } from '@/lib/partners/discount';
 import type { Database } from '@/types';
@@ -283,6 +286,28 @@ export type CardOrderResult =
  * converted, and uploaded by the /complete route), instead of being received as a
  * multipart body in the same request.
  */
+/**
+ * Structured per-stage log — 2026-07-22, added after a staging incident
+ * ("Failed to create job") that was undiagnosable from Vercel logs alone because
+ * only the final catch-all error was logged, with no visibility into which of
+ * document insert / document analysis / computeQuoteForJob / job insert / saveQuote
+ * actually ran or what stage the request was in when it failed. One line per stage,
+ * always including the Supabase error's code/message/details/hint verbatim (never
+ * just error.message) since PostgREST error codes (e.g. 42703 "column does not
+ * exist") are what actually distinguish a schema/migration gap from a data problem.
+ */
+function logStage(
+  correlationId: string,
+  stage: string,
+  outcome: 'start' | 'ok' | 'error',
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  extra?: Record<string, unknown> | { code?: any; message?: any; details?: any; hint?: any },
+): void {
+  const line = `[upload-card/complete] stage=${stage} outcome=${outcome}`;
+  if (outcome === 'error') console.error(line, { correlationId, ...extra });
+  else console.log(line, { correlationId, ...extra });
+}
+
 export async function createCardOrder(input: CardOrderInput): Promise<CardOrderResult> {
   const correlationId = crypto.randomUUID();
   const { notarized } = deriveBackcompatBooleans(input.serviceLevel);
@@ -332,6 +357,8 @@ export async function createCardOrder(input: CardOrderInput): Promise<CardOrderR
     }
   }
 
+  logStage(correlationId, 'document_insert', 'start', { serviceLevel: input.serviceLevel, existingDoc: !!existingDoc });
+
   const documentPayload = {
     id: input.uploadAttemptId,
     user_id: input.userId,
@@ -350,24 +377,60 @@ export async function createCardOrder(input: CardOrderInput): Promise<CardOrderR
     : await supabaseServer.from('documents').insert(documentPayload).select().single();
 
   if (docError || !doc) {
-    console.error('[upload-card/complete] document insert failed', {
-      correlationId,
-      code: docError?.code,
-      message: docError?.message,
-      details: docError?.details,
-      hint: docError?.hint,
-    });
+    logStage(correlationId, 'document_insert', 'error', { code: docError?.code, message: docError?.message, details: docError?.details, hint: docError?.hint });
     return { ok: false, status: 500, error: 'Failed to create document record' };
+  }
+  logStage(correlationId, 'document_insert', 'ok', { documentId: doc.id });
+
+  // Real document analysis (2026-07-22) is required for Official/Notary — the old
+  // physicalPageCount=1 conservative default never reflected the actual document, so T (the
+  // translation component) came out as 0 for every non-electronic order. Electronic keeps its
+  // exact prior behavior (still physicalPageCount:1, still no analysis call) — untouched.
+  let analysisId: string | undefined;
+  let physicalPageCountForPricing: number | undefined = 1;
+  let sourceCharacterCountWithSpaces: number | undefined;
+
+  if (input.serviceLevel !== 'electronic') {
+    logStage(correlationId, 'document_analysis', 'start', { documentId: doc.id });
+    // input.fileKey always points at the merged, already-converted PDF by this point (the
+    // /complete route runs convertToPdf()+mergePdfs() before calling createCardOrder) — so this
+    // is always a PDF analysis, never DOCX/image-specific handling.
+    const analysisOutcome = await resolveDocumentAnalysisForPricing(
+      doc.id,
+      'application/pdf',
+      () => downloadFile(input.fileKey),
+    );
+
+    if (analysisOutcome.kind === 'in_progress') {
+      logStage(correlationId, 'document_analysis', 'error', { reason: 'already in flight for this document' });
+      return { ok: false, status: 409, error: 'ANALYSIS_IN_PROGRESS' };
+    }
+    if (analysisOutcome.kind === 'failed') {
+      logStage(correlationId, 'document_analysis', 'error', { reason: analysisOutcome.reason });
+      await supabaseServer.from('documents').update({ status: 'failed' }).eq('id', doc.id);
+      return { ok: false, status: 500, error: 'ANALYSIS_FAILED' };
+    }
+    if (analysisOutcome.kind === 'requires_operator_review') {
+      logStage(correlationId, 'document_analysis', 'error', { reason: 'requires_operator_review', reasons: analysisOutcome.reasons });
+      return { ok: false, status: 422, error: 'ANALYSIS_REQUIRES_OPERATOR_REVIEW' };
+    }
+
+    analysisId = analysisOutcome.row.id;
+    physicalPageCountForPricing = analysisOutcome.row.physicalPageCount ?? undefined;
+    sourceCharacterCountWithSpaces = analysisOutcome.row.sourceCharacterCountWithSpaces ?? undefined;
+    logStage(correlationId, 'document_analysis', 'ok', { analysisId, physicalPageCountForPricing, sourceCharacterCountWithSpaces });
   }
 
   const pricingInput = {
     documentId: doc.id,
+    analysisId,
     userId: input.userId,
     sourceLanguage: input.sourceLang,
     targetLanguage: input.targetLang,
     serviceLevel: input.serviceLevel,
     documentType: pricingDocumentType,
-    physicalPageCount: 1, // conservative default; OCR hasn't run yet
+    physicalPageCount: physicalPageCountForPricing,
+    sourceCharacterCountWithSpaces,
     urgencyLevel: 'standard' as const,
     scanQuality: 'normal' as const,
     layoutComplexity: 'standard' as const,
@@ -381,15 +444,43 @@ export async function createCardOrder(input: CardOrderInput): Promise<CardOrderR
     salesChannel: 'direct' as const,
   };
 
+  logStage(correlationId, 'compute_quote', 'start', { serviceLevel: input.serviceLevel });
   const quoteResult = await computeQuoteForJob(pricingInput);
 
   if ('error' in quoteResult) {
-    console.error('[upload-card/complete] pricing not configured:', quoteResult.error, { correlationId });
+    // PRICING_NOT_CONFIGURED (no active version), SERVICE_LEVEL_PRICING_DISABLED (flag off for
+    // this service level), and PRICING_VERSION_MISMATCH (flag on but active version isn't the
+    // corrected new-model row) all mean the same thing to the caller: pricing isn't available
+    // right now — same 503 the old PRICING_NOT_CONFIGURED path already used, exact error passed
+    // through for logging/support, never surfaced as a fabricated price.
+    logStage(correlationId, 'compute_quote', 'error', { reason: quoteResult.error });
     await supabaseServer.from('documents').update({ status: 'failed' }).eq('id', doc.id);
-    return { ok: false, status: 503, error: 'PRICING_NOT_CONFIGURED' };
+    return { ok: false, status: 503, error: quoteResult.error };
+  }
+  logStage(correlationId, 'compute_quote', 'ok', { pricingVersionCode: quoteResult.version?.code, amountKzt: quoteResult.result.amountKzt, requiresOperatorReview: quoteResult.result.requiresOperatorReview });
+
+  const { version } = quoteResult;
+  let { result: pricingResult } = quoteResult;
+
+  // 2026-07-22/23: WPO has no manual operator pricing process — requiresOperatorReview=true is a
+  // terminal failure for this flow, never a "success with a note" (the old behavior: create the
+  // job anyway with a degenerate/meaningless price and no quote, then have the frontend show
+  // "an operator will calculate the price" — which is not true and left the order stuck in
+  // payment_pending forever with no payable quote). The one legitimate reason a human ever needs
+  // to look at a document — it being genuinely unreadable/handwritten/empty — is already caught
+  // earlier and separately, at the document_analysis stage (ANALYSIS_REQUIRES_OPERATOR_REVIEW,
+  // above), before computeQuoteForJob is ever called. Reaching this point with
+  // requiresOperatorReview=true is NOT always "the document is unsupported" — classify it
+  // (LANGUAGE_RATE_MISSING / PRICING_VERSION_MISMATCH / DOCUMENT_ANALYSIS_FAILED /
+  // UNSUPPORTED_DOCUMENT) rather than collapsing every cause into one generic code. No job is
+  // created for any of these.
+  if (pricingResult.requiresOperatorReview) {
+    const classification = classifyPricingReviewReasons(pricingResult.reviewReasons);
+    logStage(correlationId, 'compute_quote', 'error', { reason: 'requires_operator_review', classification, reviewReasons: pricingResult.reviewReasons });
+    await supabaseServer.from('documents').update({ status: 'failed' }).eq('id', doc.id);
+    return { ok: false, status: PRICING_REVIEW_HTTP_STATUS[classification], error: classification };
   }
 
-  let { result: pricingResult } = quoteResult;
   const basePreDiscountKzt = Math.round(pricingResult.amountKzt);
 
   let discountKzt = 0;
@@ -437,6 +528,7 @@ export async function createCardOrder(input: CardOrderInput): Promise<CardOrderR
     notary_urgency_cutoff_at: notaryUrgencySnapshot?.cutoffAt ?? null,
     notary_urgency_fee_kzt: notaryUrgencySnapshot?.feeKzt ?? null,
   };
+  logStage(correlationId, 'job_insert', 'start', { documentId: doc.id, serviceLevel: input.serviceLevel, hasNotaryUrgencySnapshot: notaryUrgencySnapshot != null });
   const { data: job, error: jobError } = await supabaseServer
     .from('jobs')
     .insert(jobInsertPayload)
@@ -444,25 +536,34 @@ export async function createCardOrder(input: CardOrderInput): Promise<CardOrderR
     .single();
 
   if (jobError || !job) {
-    console.error('[upload-card/complete] job insert failed', {
-      correlationId,
-      code: jobError?.code,
-      message: jobError?.message,
-      details: jobError?.details,
-      hint: jobError?.hint,
-    });
+    logStage(correlationId, 'job_insert', 'error', { code: jobError?.code, message: jobError?.message, details: jobError?.details, hint: jobError?.hint });
     await supabaseServer.from('documents').update({ status: 'failed' }).eq('id', doc.id);
     return { ok: false, status: 500, error: 'Failed to create job' };
   }
+  logStage(correlationId, 'job_insert', 'ok', { jobId: job.id });
 
   const notaryCutoffExpiry = pricingResult.context.notaryCutoff?.quoteExpiresAt;
   const cutoffExpiresAt = notaryCutoffExpiry && notaryCutoffExpiry.length > 0 ? notaryCutoffExpiry : undefined;
-  const savedQuote = await saveQuote({ ...pricingInput, jobId: job.id }, pricingResult, 24, cutoffExpiresAt);
-  const quoteId = 'quoteId' in savedQuote ? savedQuote.quoteId : null;
+  logStage(correlationId, 'save_quote', 'start', { jobId: job.id });
+  const savedQuote = await saveQuote({ ...pricingInput, jobId: job.id }, pricingResult, version, 24, cutoffExpiresAt);
 
   if ('error' in savedQuote) {
-    console.error('[upload-card/complete] failed to save quote (non-fatal):', savedQuote.error, { correlationId });
+    // 2026-07-23 (precise wording): a job in a payable status (payment_pending) must never
+    // exist without a saved quote — that is exactly the stuck-forever "Рассчитываем
+    // стоимость..." state this fix removes (src/app/[locale]/dashboard/page.tsx has no quote to
+    // show and never will). The job row itself is NOT deleted and does not "not exist" — there
+    // is no DB transaction spanning both inserts (separate PostgREST calls), so this is a
+    // status-only compensating action: the job is transitioned OUT of payment_pending to
+    // status='failed' (kept as an audit record of the attempt, with error_message explaining
+    // why), and the document is marked failed too. The invariant is "no payable job without a
+    // quote", not "the job record is removed".
+    logStage(correlationId, 'save_quote', 'error', { reason: savedQuote.error });
+    await supabaseServer.from('jobs').update({ status: 'failed', error_message: 'Quote save failed' }).eq('id', job.id);
+    await supabaseServer.from('documents').update({ status: 'failed' }).eq('id', doc.id);
+    return { ok: false, status: 500, error: 'QUOTE_SAVE_FAILED' };
   }
+  const quoteId = savedQuote.quoteId;
+  logStage(correlationId, 'save_quote', 'ok', { quoteId });
 
   await supabaseServer.from('job_audit_log').insert({
     job_id: job.id,
@@ -531,8 +632,12 @@ export async function createCardOrder(input: CardOrderInput): Promise<CardOrderR
       discountAppliedKzt: discountKzt > 0 ? discountKzt : undefined,
       discountCode: discountKzt > 0 ? refCodeForDiscount ?? undefined : undefined,
       quoteId,
-      requiresOperatorReview: pricingResult.requiresOperatorReview,
-      reviewReasons: pricingResult.requiresOperatorReview ? pricingResult.reviewReasons : undefined,
+      // Always false/undefined here — requiresOperatorReview=true is classified and handled as
+      // a terminal failure above (LANGUAGE_RATE_MISSING / PRICING_VERSION_MISMATCH /
+      // DOCUMENT_ANALYSIS_FAILED / UNSUPPORTED_DOCUMENT), before any job is created. Kept on the type for API
+      // stability (existing frontend reads it) rather than as a real success-path variant.
+      requiresOperatorReview: false,
+      reviewReasons: undefined,
     },
   };
 }

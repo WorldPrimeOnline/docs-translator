@@ -22,7 +22,10 @@
     "partners:payouts": "tsx scripts/partners/generate-monthly-payout.ts",
     "partners:mark-paid": "tsx scripts/partners/mark-payout-paid.ts",
     "wpo:ai-test": "tsx tools/internal-ai-test-lab/run-ai-translation-test.ts",
-    "wpo:ai-test:typecheck": "tsc --noEmit -p tools/internal-ai-test-lab/tsconfig.json"
+    "wpo:ai-test:typecheck": "tsc --noEmit -p tools/internal-ai-test-lab/tsconfig.json",
+    "pricing:calculate": "tsx tools/pricing-cli/index.ts",
+    "pricing:fixtures": "tsx tools/pricing-cli/fixtures.ts",
+    "pricing:typecheck": "tsc --noEmit -p tools/pricing-cli/tsconfig.json"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",

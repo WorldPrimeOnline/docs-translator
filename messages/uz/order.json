@@ -207,6 +207,7 @@
     "quoteExpired": "Narx muddati o'tdi",
     "quoteRecalculate": "Qayta hisoblash",
     "quoteCalculating": "Narx hisoblanmoqda...",
+    "quoteUnavailable": "Narxni avtomatik hisoblab bo'lmadi. Iltimos, hujjatni qayta yuklang.",
     "quoteRecalculating": "Buyurtma holati yangilanmoqda...",
     "priceHint": "Aniq narx hujjat yuklanganidan va tahlil qilinganidan so'ng hisoblanadi.",
     "priceHintElectronic": "Elektron tarjima — 1 500 ₸ dan. Yakuniy narx yuklanganidan so'ng.",

@@ -3,6 +3,11 @@ import { calculateDraftPrice } from '@/lib/order-drafts/service';
 import { getDraftSessionToken } from '@/lib/order-drafts/session';
 import { getClientIp, getOptionalAuthUser } from '@/lib/order-drafts/request-context';
 import { checkAnonymousPreflightRateLimit, recordAnonymousPreflightAttempt } from '@/lib/order-drafts/rate-limit';
+import { PRICING_REVIEW_HTTP_STATUS, type PricingReviewClassification } from '@/lib/pricing/review-classification';
+
+function isPricingReviewClassification(error: string): error is PricingReviewClassification {
+  return error in PRICING_REVIEW_HTTP_STATUS;
+}
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ draftId: string }> }): Promise<NextResponse> {
   try {
@@ -22,7 +27,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const result = await calculateDraftPrice(draftId, { sessionToken, userId: user?.id ?? null });
     if (!result.ok) {
-      const status = result.error === 'DRAFT_NOT_FOUND' ? 404 : result.error === 'FORBIDDEN' ? 403 : 422;
+      const status = result.error === 'DRAFT_NOT_FOUND' ? 404
+        : result.error === 'FORBIDDEN' ? 403
+        : isPricingReviewClassification(result.error) ? PRICING_REVIEW_HTTP_STATUS[result.error]
+        : 422;
       return NextResponse.json({ error: result.error }, { status });
     }
 

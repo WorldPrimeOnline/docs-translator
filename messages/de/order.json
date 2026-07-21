@@ -211,6 +211,7 @@
     "quoteExpired": "Kalkulation abgelaufen",
     "quoteRecalculate": "Neu berechnen",
     "quoteCalculating": "Preis wird berechnet...",
+    "quoteUnavailable": "Der Preis konnte nicht automatisch berechnet werden. Bitte laden Sie das Dokument erneut hoch.",
     "paymentPendingTitle": "Zahlung wird geprüft",
     "paymentPendingDesc": "Wenn der Betrag bereits abgebucht wurde, zahlen Sie bitte nicht erneut. Wir aktualisieren den Status automatisch.",
     "quoteRecalculating": "Auftragsstatus wird aktualisiert...",

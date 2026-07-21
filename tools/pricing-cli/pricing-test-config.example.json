@@ -1,0 +1,13 @@
+{
+  "pricingVersionCode": "2026-Q3-KZ-NEWMODEL",
+  "pricingVersionSource": "local",
+  "sourceLanguage": "ru",
+  "targetLanguage": "en",
+  "serviceLevel": "official_with_translator_signature_and_provider_stamp",
+  "applicantType": "individual",
+  "deliveryRequired": false,
+  "notaryUrgency": "standard",
+  "channel": "direct",
+  "partnerCommissionRate": 0,
+  "manualAdjustmentKzt": 0
+}

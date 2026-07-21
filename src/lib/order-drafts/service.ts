@@ -11,9 +11,11 @@ import { computeQuoteForJob, extractNotaryUrgencySnapshot, saveQuote } from '@/l
 import { deriveBackcompatBooleans } from '@/lib/translation-workflow/output-plan';
 import { attachReferralToOrder } from '@/lib/referral/server';
 import { calculatePartnerDiscount } from '@/lib/partners/discount';
+import { analyzeDocumentForPricing } from '@/lib/document-analysis/analyze';
+import { classifyPricingReviewReasons } from '@/lib/pricing/review-classification';
 import type { PricingInput, PricingResult } from '@/lib/pricing/types';
 import type { ServiceLevel } from '@/lib/translation-prompts/types';
-import type { DraftFileKey, DraftPricingSnapshot, OrderDraftInput, OrderDraftRow } from './types';
+import type { DraftAnalysisSnapshot, DraftFileKey, DraftPricingSnapshot, OrderDraftInput, OrderDraftRow } from './types';
 
 // order_drafts / anonymous_rate_limit_events are not in the generated Supabase types —
 // same `as any` escape hatch already used in src/lib/pricing/service.ts for price_quotes.
@@ -156,17 +158,21 @@ export async function setDraftFile(
 
 function buildPricingInput(
   draft: OrderDraftRow,
-  extra?: { documentId?: string; jobId?: string; userId?: string },
+  extra?: { documentId?: string; jobId?: string; userId?: string; analysisId?: string; analysis?: DraftAnalysisSnapshot | null },
 ): PricingInput {
   return {
     documentId: extra?.documentId,
+    analysisId: extra?.analysisId,
     jobId: extra?.jobId,
     userId: extra?.userId ?? draft.user_id ?? undefined,
     sourceLanguage: draft.source_language!,
     targetLanguage: draft.target_language!,
     serviceLevel: (draft.service_level ?? 'electronic') as ServiceLevel,
     documentType: draft.document_type ?? undefined,
-    physicalPageCount: 1, // conservative default — matches upload-card; no OCR before payment
+    // Electronic: unchanged conservative default (matches upload-card, no analysis call at all).
+    // Non-electronic: real analysis-derived counts, wired via resolveDraftAnalysis() (2026-07-22).
+    physicalPageCount: extra?.analysis ? (extra.analysis.physicalPageCount ?? undefined) : 1,
+    sourceCharacterCountWithSpaces: extra?.analysis ? extra.analysis.characterCount : undefined,
     urgencyLevel: 'standard',
     scanQuality: 'normal',
     layoutComplexity: 'standard',
@@ -179,6 +185,53 @@ function buildPricingInput(
     deliveryRequired: draft.fulfillment_method === 'delivery',
     salesChannel: 'direct',
   };
+}
+
+export type DraftAnalysisOutcome =
+  | { kind: 'completed'; snapshot: DraftAnalysisSnapshot }
+  | { kind: 'requires_operator_review'; reasons: string[] }
+  | { kind: 'failed'; reason: string };
+
+/**
+ * order_drafts-specific equivalent of src/lib/document-analysis/service.ts's
+ * resolveDocumentAnalysisForPricing() — there is no documents.id yet at draft stage (a real
+ * document only exists after convertDraftToOrder()), so the "don't re-run OCR" cache lives on
+ * order_drafts.analysis_snapshot instead of the document_analysis table, keyed by
+ * file_keys[0].key. Invalidated only by a different file key (re-upload).
+ */
+async function resolveDraftAnalysis(draft: OrderDraftRow): Promise<DraftAnalysisOutcome> {
+  const fileKey = draft.file_keys?.[0];
+  if (!fileKey) return { kind: 'failed', reason: 'NO_FILE' };
+
+  const cached = draft.analysis_snapshot;
+  if (cached && cached.fileKey === fileKey.key) {
+    return cached.requiresOperatorReview
+      ? { kind: 'requires_operator_review', reasons: cached.reviewReasons }
+      : { kind: 'completed', snapshot: cached };
+  }
+
+  let result;
+  try {
+    const buffer = await downloadFile(fileKey.key);
+    result = await analyzeDocumentForPricing(buffer, fileKey.mimeType);
+  } catch (err) {
+    return { kind: 'failed', reason: err instanceof Error ? err.message : String(err) };
+  }
+
+  const snapshot: DraftAnalysisSnapshot = {
+    fileKey: fileKey.key,
+    method: result.method,
+    characterCount: result.characterCount,
+    physicalPageCount: result.physicalPageCount,
+    requiresOperatorReview: result.requiresOperatorReview,
+    reviewReasons: result.reviewReasons,
+  };
+
+  await db.from('order_drafts').update({ analysis_snapshot: snapshot, updated_at: new Date().toISOString() }).eq('id', draft.id);
+
+  return snapshot.requiresOperatorReview
+    ? { kind: 'requires_operator_review', reasons: snapshot.reviewReasons }
+    : { kind: 'completed', snapshot };
 }
 
 export async function calculateDraftPrice(
@@ -196,10 +249,29 @@ export async function calculateDraftPrice(
     return { ok: false, error: 'LANGUAGE_PAIR_MUST_DIFFER' };
   }
 
-  const quoteResult = await computeQuoteForJob(buildPricingInput(draft));
+  let analysis: DraftAnalysisSnapshot | undefined;
+  if (draft.service_level !== 'electronic') {
+    const analysisOutcome = await resolveDraftAnalysis(draft);
+    if (analysisOutcome.kind === 'requires_operator_review') return { ok: false, error: 'ANALYSIS_REQUIRES_OPERATOR_REVIEW' };
+    if (analysisOutcome.kind === 'failed') return { ok: false, error: 'ANALYSIS_FAILED' };
+    analysis = analysisOutcome.snapshot;
+  }
+
+  const quoteResult = await computeQuoteForJob(buildPricingInput(draft, { analysis }));
   if ('error' in quoteResult) return { ok: false, error: quoteResult.error };
 
+  const { version } = quoteResult;
   let { result: pricingResult } = quoteResult;
+
+  // 2026-07-22/23: same fix as createCardOrder — WPO has no manual operator pricing process, so
+  // requiresOperatorReview=true here is a terminal failure, never a priced draft with a note.
+  // The genuine "document needs a human look" case is already handled above, at the analysis
+  // stage (ANALYSIS_REQUIRES_OPERATOR_REVIEW). Classified rather than collapsed into one generic
+  // code — see src/lib/pricing/review-classification.ts.
+  if (pricingResult.requiresOperatorReview) {
+    return { ok: false, error: classifyPricingReviewReasons(pricingResult.reviewReasons) };
+  }
+
   const basePreDiscountKzt = Math.round(pricingResult.amountKzt);
 
   // Apply partner client discount server-side (re-validate; never trust client value) —
@@ -224,6 +296,7 @@ export async function calculateDraftPrice(
 
   const snapshot: DraftPricingSnapshot = {
     result: pricingResult,
+    version,
     computedAt: new Date().toISOString(),
     priceBeforeDiscountKzt: discountKzt > 0 ? basePreDiscountKzt : undefined,
     discountAppliedKzt: discountKzt > 0 ? discountKzt : undefined,
@@ -375,6 +448,31 @@ export async function convertDraftToOrder(draftId: string, userId: string): Prom
       return { ok: false, error: docError?.message ?? 'document_insert_failed' };
     }
 
+    // Materialize the cached draft-stage analysis (resolveDraftAnalysis(), calculateDraftPrice)
+    // into a real document_analysis row now that a real documents.id finally exists — never
+    // re-runs analyzeDocumentForPricing() here. A draft can only reach pricing_snapshot !=
+    // null (checked above) via a 'completed' (non-review) analysis, so this is always
+    // status='completed' when analysis_snapshot is present.
+    let analysisId: string | undefined;
+    if (draft.analysis_snapshot) {
+      const snap = draft.analysis_snapshot;
+      const { data: analysisRow } = await db
+        .from('document_analysis')
+        .insert({
+          document_id: doc.id,
+          revision: 1,
+          status: 'completed',
+          method: snap.method,
+          source_character_count_with_spaces: snap.characterCount,
+          physical_page_count: snap.physicalPageCount,
+          page_count_method: snap.physicalPageCount != null ? 'pdf_lib_page_count' : null,
+          completed_at: new Date().toISOString(),
+        })
+        .select('id')
+        .single();
+      analysisId = analysisRow?.id;
+    }
+
     const notaryUrgencySnapshot = extractNotaryUrgencySnapshot(pricingResult);
 
     const { data: job, error: jobError } = await db
@@ -412,10 +510,10 @@ export async function convertDraftToOrder(draftId: string, userId: string): Prom
       return { ok: false, error: jobError?.message ?? 'job_insert_failed' };
     }
 
-    const pricingInput = buildPricingInput(draft, { documentId: doc.id, jobId: job.id, userId });
+    const pricingInput = buildPricingInput(draft, { documentId: doc.id, jobId: job.id, userId, analysisId, analysis: draft.analysis_snapshot });
     const notaryCutoffExpiry = pricingResult.context.notaryCutoff?.quoteExpiresAt;
     const cutoffExpiresAt = notaryCutoffExpiry && notaryCutoffExpiry.length > 0 ? notaryCutoffExpiry : undefined;
-    const savedQuote = await saveQuote(pricingInput, pricingResult, 24, cutoffExpiresAt);
+    const savedQuote = await saveQuote(pricingInput, pricingResult, snapshot.version, 24, cutoffExpiresAt);
     const quoteId = 'quoteId' in savedQuote ? savedQuote.quoteId : null;
 
     if ('error' in savedQuote) {

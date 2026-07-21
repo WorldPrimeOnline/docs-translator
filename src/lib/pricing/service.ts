@@ -5,7 +5,12 @@
 import { supabaseServer } from '@/lib/supabase/server';
 import { calculatePrice } from './calculator';
 import { toDecimal } from './money';
+import { getPricingFeatureFlags } from './feature-flags';
 import type { NotaryUrgencyLevel, PricingInput, PricingLanguageRate, PricingResult, PricingVersion, QuoteStatus } from './types';
+
+/** The only pricing_versions row the new-model flags are allowed to consider "correct". */
+const NEW_MODEL_VERSION_CODE = '2026-Q3-KZ-NEWMODEL';
+const NEW_MODEL_FORMULA_VERSION = 'new_2026_07_21';
 
 // ─── Raw DB row shapes (new tables not yet in generated supabase.ts) ───────────
 
@@ -255,6 +260,28 @@ export async function computeQuoteForJob(
 
   let resolvedInput = input;
   if (input.serviceLevel !== 'electronic') {
+    // 2026-07-22: Official/Notary gate. There is no separate legacy formula for these two
+    // service levels left in this codebase (calculator.ts's dispatcher sends anything but
+    // 'electronic' straight to calculateOfficialNotaryPrice) — so when the matching flag is
+    // off, this refuses to quote at all rather than silently pricing against whatever version
+    // happens to be active. See docs/ai-context/DECISIONS.md.
+    const flags = getPricingFeatureFlags();
+    const flagForServiceLevel =
+      input.serviceLevel === 'official_with_translator_signature_and_provider_stamp'
+        ? flags.enableNewOfficialPricing
+        : input.serviceLevel === 'notarization_through_partners'
+          ? flags.enableNewNotaryPricing
+          : true; // any other future non-electronic service level is not yet gated by these two flags
+
+    if (!flagForServiceLevel) return { error: 'SERVICE_LEVEL_PRICING_DISABLED' };
+
+    // The flag being on is only meaningful against the corrected new-model version — never
+    // silently price a gated service level against a version that doesn't carry the approved
+    // 2026-07-21 rates (e.g. the MVP row's stale marketing/owner-reserve/mrp defaults).
+    if (version.code !== NEW_MODEL_VERSION_CODE || version.metadata?.formula_version !== NEW_MODEL_FORMULA_VERSION) {
+      return { error: 'PRICING_VERSION_MISMATCH' };
+    }
+
     // Config-load-time invariant check — scoped to non-electronic quotes, the only ones that
     // use channel_reserve_rate/client_discount_rate/partner commissions. Throws rather than
     // silently proceeding with a config that could produce a negative internal reserve.
@@ -271,6 +298,7 @@ export async function computeQuoteForJob(
 export async function saveQuote(
   input: PricingInput,
   result: PricingResult,
+  version: PricingVersion,
   expiresInHours = 24,
   overrideExpiresAt?: string,
 ): Promise<{ quoteId: string } | { error: string }> {
@@ -318,6 +346,9 @@ export async function saveQuote(
       translation_page_count_exact: result.context.translationPageCountExact ?? null,
       manual_adjustment_kzt: nm?.manualAdjustmentKzt ?? 0,
       wpo_financial_breakdown_json: nm ?? {},
+      // Snapshotted at save time so a later edit to pricing_versions.metadata can never change
+      // what formula an already-quoted (let alone already-paid) order is recorded against.
+      formula_version: (version.metadata?.formula_version as string | undefined) ?? null,
     })
     .select('id')
     .single();
@@ -414,7 +445,10 @@ export async function markQuotePaid(quoteId: string, paymentTransactionId: strin
   await db
     .from('price_quotes')
     .update({ status: 'paid', paid_at: now, price_locked_at: now, updated_at: now })
-    .eq('id', quoteId);
+    .eq('id', quoteId)
+    // Mirrors markQuotePaymentPending's guard — never re-run this against an already-paid
+    // quote (a retried webhook/callback must not touch paid_at/price_locked_at a second time).
+    .in('status', ['quoted', 'payment_pending', 'requires_operator_review']);
 
   await db
     .from('cost_reservations')

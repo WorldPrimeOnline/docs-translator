@@ -211,6 +211,7 @@
     "quoteExpired": "报价已过期",
     "quoteRecalculate": "重新计算",
     "quoteCalculating": "正在计算价格...",
+    "quoteUnavailable": "无法自动计算价格。请重新上传文件。",
     "quoteRecalculating": "正在刷新订单状态...",
     "priceHint": "精确价格在文件上传和分析后计算。",
     "priceHintElectronic": "电子翻译——1,500 ₸ 起。上传后显示最终价格。",

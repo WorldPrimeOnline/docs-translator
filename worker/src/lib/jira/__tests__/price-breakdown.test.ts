@@ -72,6 +72,8 @@ function makeQuote(overrides: Partial<DbPriceQuote> = {}): DbPriceQuote {
     internalCostJson: { taxReserve: 216, acquiringFee: 180, translatorReserved: 1950 },
     marginJson: { grossRevenue: 7200, totalCosts: 4000, targetProfit: 1800, estimatedMarginKzt: 3200, estimatedMarginRate: 0.44 },
     breakdownJson: { items: [] },
+    wpoFinancialBreakdownJson: {},
+    sourceCharacterCountWithSpaces: null,
     ...overrides,
   };
 }
@@ -255,6 +257,54 @@ describe('buildPriceBreakdownDescription — ADF structure', () => {
     codeBlocks.forEach(cb => {
       expect((cb.attrs as Record<string, unknown>).language).toBe('json');
     });
+  });
+});
+
+describe('buildPriceBreakdownDescription — new Russian FinancialReportModel report (2026-07-22)', () => {
+  const NM_FIXTURE = {
+    physicalPageCount: 1, characterPages: 1, billableTranslationPages: 1, translationPageBasis: 'physical_pages',
+    translationAmountKzt: 3000, ocrAmountKzt: 100, notaryAmountKzt: 2292.25, courierAmountKzt: 5000, printingAmountKzt: 0,
+    coordinationBaseAmountKzt: 3087.675, manualAdjustmentKzt: 0, componentSubtotalKzt: 13479.925,
+    grossUpRate: 0.455, grossUpAmountKzt: 11253.89, roundingStepKzt: 500, standardRetailKzt: 25000,
+    urgencyMultiplier: 1, urgencySurchargeKzt: 0, retailKzt: 25000,
+    salesChannel: 'direct', clientDiscountKzt: 0, actualPaymentKzt: 25000,
+    translatorPayoutKzt: 900, notaryPayoutKzt: 2292.25, courierPayoutKzt: 5000, printingCostKzt: 0,
+    acquiringFeeKzt: 625, taxReserveKzt: 750, partnerCommissionKzt: 0,
+    riskReserveKzt: 1250, marketingReserveKzt: 1250, aiItReserveKzt: 2500, ownerReserveKzt: 0, unusedChannelReserveKzt: 5000,
+    netProfitWpoKzt: 5432.75, netMargin: 0.2173, totalCashRetainedByWpoKzt: 15432.75, reconciliationDifferenceKzt: 0,
+    ratePerTranslationPageKzt: 3000,
+  };
+
+  afterEach(() => { delete process.env.ENABLE_NEW_JIRA_PRICING_REPORT; });
+
+  it('flag off (default): uses the legacy English operator-audit report, never the new renderer', () => {
+    const quote = makeQuote({ wpoFinancialBreakdownJson: NM_FIXTURE as unknown as Record<string, unknown> });
+    const text = collectText(buildPriceBreakdownDescription(makeParams({ quote })));
+    expect(text).toContain('WPO Price Breakdown');
+    expect(text).not.toContain('Расчёт стоимости заказа');
+  });
+
+  it('flag on + no wpoFinancialBreakdownJson (legacy quote): falls through to the legacy report', () => {
+    process.env.ENABLE_NEW_JIRA_PRICING_REPORT = 'true';
+    const text = collectText(buildPriceBreakdownDescription(makeParams({ quote: makeQuote({ wpoFinancialBreakdownJson: {} }) })));
+    expect(text).toContain('WPO Price Breakdown');
+  });
+
+  it('flag on + wpoFinancialBreakdownJson present: renders the new Russian report with all 6 blocks', () => {
+    process.env.ENABLE_NEW_JIRA_PRICING_REPORT = 'true';
+    const quote = makeQuote({ wpoFinancialBreakdownJson: NM_FIXTURE as unknown as Record<string, unknown>, fulfillmentMethod: 'delivery' });
+    const doc = buildPriceBreakdownDescription(makeParams({ mainIssueKey: 'WO-77', quote }));
+    const text = collectText(doc);
+
+    expect(text).toContain('Расчёт стоимости заказа WO-77');
+    expect(text).toContain('Документ и анализ');
+    expect(text).toContain('Параметры заказа');
+    expect(text).toContain('Формирование клиентской цены');
+    expect(text).toContain('Внешние выплаты');
+    expect(text).toContain('Внутренние резервы');
+    expect(text).toContain('Результат');
+    expect(text).toContain('Курьер');
+    expect(text).not.toContain('WPO Price Breakdown — Operator Audit');
   });
 });
 

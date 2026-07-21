@@ -207,6 +207,7 @@
     "quoteExpired": "Quote expired",
     "quoteRecalculate": "Recalculate",
     "quoteCalculating": "Calculating price...",
+    "quoteUnavailable": "Calculating failed. Please upload the document again.",
     "quoteRecalculating": "Refreshing order status...",
     "priceHint": "The exact price is calculated after document upload and analysis.",
     "priceHintElectronic": "Electronic translation — from ₸1,500. Final price after upload.",

@@ -40,7 +40,8 @@ export interface DocumentAnalysisResult {
   rawText: string;
   normalizedText: string;
   characterCount: number;
-  physicalPageCount: number;
+  /** null for DOCX when the page-count render fails — never a fabricated guess (2026-07-21). */
+  physicalPageCount: number | null;
   qualitySignals: AnalysisQualitySignals;
   requiresOperatorReview: boolean;
   reviewReasons: string[];
@@ -52,14 +53,20 @@ function isDocx(mimeType: string): boolean {
   return mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 }
 
+export interface AnalyzeDocumentOptions {
+  /** Forwarded verbatim to extractTextFromPdf() — see its docblock (@/lib/ocr/mistral.ts). */
+  mistralApiKey?: string;
+}
+
 export async function analyzeDocumentForPricing(
   buffer: Buffer,
   mimeType: string,
+  options?: AnalyzeDocumentOptions,
 ): Promise<DocumentAnalysisResult> {
   const reviewReasons: string[] = [];
   let method: AnalysisMethod;
   let rawText: string;
-  let physicalPageCount: number;
+  let physicalPageCount: number | null;
   let ocrPageCount: number | undefined;
 
   if (isDocx(mimeType)) {
@@ -74,7 +81,10 @@ export async function analyzeDocumentForPricing(
       const pdfForPageCount = await convertToPdf(buffer, mimeType);
       physicalPageCount = await getPhysicalPageCount(pdfForPageCount);
     } catch {
-      physicalPageCount = 1;
+      // Never fabricate a page count — a reliable count requires rendering, and rendering just
+      // failed. Billing must fall back to characterPages (see calculateOfficialNotaryPrice's
+      // reliablePhysicalPageCount gate) rather than silently billing off an invented "1 page".
+      physicalPageCount = null;
     }
   } else {
     let pdfBuffer: Buffer;
@@ -97,7 +107,7 @@ export async function analyzeDocumentForPricing(
     } else {
       method = 'ocr';
       try {
-        const ocrResult = await extractTextFromPdf(pdfBuffer);
+        const ocrResult = await extractTextFromPdf(pdfBuffer, { mistralApiKey: options?.mistralApiKey });
         rawText = ocrResult.markdown;
         ocrPageCount = ocrResult.pageCount;
       } catch (err) {
@@ -108,9 +118,11 @@ export async function analyzeDocumentForPricing(
   }
 
   const { normalizedText, characterCount } = normalizeSourceTextForPricing(rawText);
-  const charsPerPhysicalPage = physicalPageCount > 0 ? characterCount / physicalPageCount : 0;
+  // physicalPageCount === null (DOCX render failure) means this sanity check can't run — there's
+  // no reliable page count to compare against, and docx_text already means extraction succeeded.
+  const charsPerPhysicalPage = physicalPageCount != null && physicalPageCount > 0 ? characterCount / physicalPageCount : 0;
   const emptyOrNearEmpty = characterCount === 0;
-  const possiblyHandwrittenOrIllegible = !emptyOrNearEmpty && charsPerPhysicalPage < MIN_CHARS_PER_PAGE_AFTER_OCR;
+  const possiblyHandwrittenOrIllegible = physicalPageCount != null && !emptyOrNearEmpty && charsPerPhysicalPage < MIN_CHARS_PER_PAGE_AFTER_OCR;
 
   if (emptyOrNearEmpty) {
     reviewReasons.push('No text could be extracted from this document — requires operator review, no fallback estimate.');

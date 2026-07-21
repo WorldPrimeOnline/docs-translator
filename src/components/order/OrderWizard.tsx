@@ -58,11 +58,10 @@ export function OrderWizard() {
           ) : null}
         </div>
 
-        {price.requiresOperatorReview && (
-          <p className="mb-4 rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-400">
-            {t('requiresOperatorReviewNotice')}
-          </p>
-        )}
+        {/* 2026-07-22: requiresOperatorReview is never true here anymore — calculateDraftPrice()
+            treats it as a terminal UNSUPPORTED_DOCUMENT failure before a draft is ever priced
+            (WPO has no manual operator pricing process), so reaching this screen always means a
+            real, automatically-computed price exists. */}
 
         <div className="flex flex-col gap-2 sm:flex-row">
           <button

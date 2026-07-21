@@ -102,7 +102,8 @@ export interface PricingInput {
   serviceLevel: ServiceLevel;
   documentType?: string;
   sourceWordCount?: number;
-  physicalPageCount?: number;
+  /** null/undefined means "no reliable physical page count" — billing falls back to characterPages. */
+  physicalPageCount?: number | null;
   complexity?: 'simple' | 'complex';
   urgencyLevel?: UrgencyLevel;
   scanQuality?: ScanQuality;
@@ -249,10 +250,15 @@ export interface MarginBreakdown {
   paymentWideFeeAdjustmentKzt: number;
 }
 
+/** Which candidate won max(1, reliablePhysicalPageCount, characterPages) — see calculator.ts's calculateOfficialNotaryPrice. */
+export type TranslationPageBasis = 'minimum_one_page' | 'physical_pages' | 'character_count';
+
 /**
- * Full snapshot of the 2026-07-17 flat formula (official/notary only). Field names match the
- * WPO-approved report vocabulary 1:1 (see the Russian financial report renderer) so the report
- * and quote snapshot never need a separate translation layer between them.
+ * Full snapshot of the 2026-07-21 flat formula (official/notary only; supersedes the 2026-07-17
+ * version's billable-pages/delivery/urgency semantics — see docs/finance/PRICING_ENGINE.md and
+ * docs/ai-context/DECISIONS.md for the full rationale). Field names match the WPO-approved
+ * report vocabulary 1:1 (see the Russian financial report renderer) so the report and quote
+ * snapshot never need a separate translation layer between them.
  *
  * Terminology note: netProfitWpoKzt is deliberately NOT called "net profit" / "чистая прибыль"
  * anywhere user-facing — it is margin BEFORE the business's own fixed costs (Jira, Vercel,
@@ -260,28 +266,50 @@ export interface MarginBreakdown {
  * «Маржинальная прибыль заказа до постоянных расходов».
  */
 export interface NewModelBreakdown {
+  // ─── Billable translation pages (2026-07-21) ───────────────────────────────────
+  /** Reliable physical page count used for pricing, or null when unavailable (e.g. DOCX with
+   * no manualPhysicalPageCountOverride) — never fabricated by rendering/guessing. */
+  physicalPageCount: number | null;
+  /** charactersWithSpaces / 1800 — full precision, never rounded or floored. */
+  characterPages: number;
+  /** max(1, physicalPageCount, characterPages) — the actual billable page count used for T. */
+  billableTranslationPages: number;
+  /** Which of the three candidates won the max() above. */
+  translationPageBasis: TranslationPageBasis;
+
   // ─── Components (pre-gross-up) ────────────────────────────────────────────────
   translationAmountKzt: number;        // T
   ocrAmountKzt: number;                // O
   notaryAmountKzt: number;             // N
   courierAmountKzt: number;            // C
   printingAmountKzt: number;           // P
-  coordinationBaseAmountKzt: number;   // W_base
-  notaryUrgencyMultiplier: number;     // U (always 1 for official)
-  urgencySurchargeKzt: number;         // W_final - W_base
-  coordinationFinalAmountKzt: number;  // W_final
+  /** WPO coordination fee (30% × (T+N+C), OCR excluded per the approved model). Never
+   * urgency-multiplied as of 2026-07-21 — urgency now multiplies the whole standard retail
+   * instead (see urgencyMultiplier/urgencySurchargeKzt/retailKzt below), never just this fee. */
+  coordinationBaseAmountKzt: number;   // W
   manualAdjustmentKzt: number;         // M
   componentSubtotalKzt: number;
 
-  // ─── Gross-up / rounding ───────────────────────────────────────────────────────
+  // ─── Gross-up / rounding (standard order, BEFORE urgency) ──────────────────────
   grossUpRate: number;
   grossUpAmountKzt: number;
   retailBeforeRoundingKzt: number;
   roundingStepKzt: number;
   roundingAdjustmentKzt: number;
-  retailPriceKzt: number;
+  /** Full standard-order retail (T+O+N+C+P+W+M, grossed up, rounded to step) — BEFORE any
+   * urgency multiplier. This is what the order would cost with no urgency at all. */
+  standardRetailKzt: number;
 
-  // ─── Referral / channel ─────────────────────────────────────────────────────────
+  // ─── Urgency (2026-07-21: multiplies the ENTIRE standard retail) ───────────────
+  /** 1 for standard/before_noon or official; 1.5 for after_noon; 2 for after_18 (notary only). */
+  urgencyMultiplier: number;
+  /** retailKzt - standardRetailKzt — the whole-order surcharge for urgency. NOT part of
+   * coordinationBaseAmountKzt/W, and NOT applied to any external payout. */
+  urgencySurchargeKzt: number;
+  /** standardRetailKzt × urgencyMultiplier — the actual client-facing retail price. */
+  retailKzt: number;
+
+  // ─── Referral / channel (computed from retailKzt, i.e. AFTER urgency) ──────────
   salesChannel: SalesChannel;
   clientDiscountKzt: number;
   actualPaymentKzt: number;
@@ -289,7 +317,9 @@ export interface NewModelBreakdown {
   channelBudgetKzt: number;
   unusedChannelReserveKzt: number;
 
-  // ─── External payouts (cost_reservations: translator_payout, notary_payout, courier_payout, printing_cost, acquiring_fee, tax_reserve, partner_commission) ──
+  // ─── External payouts — NEVER urgency-multiplied (translator/notary/courier get the same
+  // payout regardless of how urgent the client's order was) ──────────────────────
+  // (cost_reservations: translator_payout, notary_payout, courier_payout, printing_cost, acquiring_fee, tax_reserve, partner_commission)
   translatorPayoutKzt: number;
   notaryPayoutKzt: number;
   courierPayoutKzt: number;

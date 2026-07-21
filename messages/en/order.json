@@ -23,6 +23,7 @@
     "quoteExpired": "Quote expired",
     "quoteRecalculate": "Recalculate",
     "quoteCalculating": "Calculating price...",
+    "quoteUnavailable": "Failed to calculate the price automatically. Please upload the document again.",
     "paymentPendingTitle": "Payment is being verified",
     "paymentPendingDesc": "If money was charged, do not pay again. We will update the status automatically.",
     "quoteRecalculating": "Refreshing order status...",
