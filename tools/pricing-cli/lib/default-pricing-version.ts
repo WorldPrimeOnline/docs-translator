@@ -63,22 +63,62 @@ const RU_TARGET_RATES: Record<string, number> = {
   ar: 6000.00,
 };
 
-/** Only covers the seeded RU -> X pairs; returns null for anything else (never fabricated). */
+const RUSSIAN_ANCHOR_LANGUAGE = 'ru';
+
+function normalizeLanguageCode(language: string): string {
+  return language.trim().toLowerCase();
+}
+
+interface LocalBaseRate {
+  language: string;
+  rateId: string;
+  rateKztPerTranslationPage: number;
+  active: boolean;
+  requiresOperatorReview: boolean;
+}
+
+function getLocalBaseRate(language: string): LocalBaseRate | null {
+  const rate = RU_TARGET_RATES[language];
+  if (rate == null) return null;
+  return { language, rateId: `local-default-ru-${language}`, rateKztPerTranslationPage: rate, active: true, requiresOperatorReview: false };
+}
+
+/**
+ * Mirrors src/lib/pricing/service.ts's getLanguageRate symmetric pair resolution (2026-07-26
+ * decision), against this file's local RU_TARGET_RATES instead of the DB: RU_TARGET_RATES rows
+ * are each language X's base rate relative to Russian, the anchor. A pair's rate is
+ * max(base(source), base(target)), so EN<->ZH resolves from the same 14 rows without a
+ * separately-listed EN->ZH entry. Returns null only when a non-Russian side has no base rate at
+ * all (never fabricated).
+ */
 export function getDefaultLanguageRate(
   pricingVersionId: string,
   sourceLanguage: string,
   targetLanguage: string,
 ): PricingLanguageRate | null {
-  if (sourceLanguage !== 'ru') return null;
-  const rate = RU_TARGET_RATES[targetLanguage];
-  if (rate == null) return null;
+  const source = normalizeLanguageCode(sourceLanguage);
+  const target = normalizeLanguageCode(targetLanguage);
+
+  const sourceBaseRate = source === RUSSIAN_ANCHOR_LANGUAGE ? null : getLocalBaseRate(source);
+  const targetBaseRate = target === RUSSIAN_ANCHOR_LANGUAGE ? null : getLocalBaseRate(target);
+
+  if (source !== RUSSIAN_ANCHOR_LANGUAGE && !sourceBaseRate) return null;
+  if (target !== RUSSIAN_ANCHOR_LANGUAGE && !targetBaseRate) return null;
+  if (!sourceBaseRate && !targetBaseRate) return null;
+
+  const sourceRateKzt = sourceBaseRate?.rateKztPerTranslationPage ?? 0;
+  const targetRateKzt = targetBaseRate?.rateKztPerTranslationPage ?? 0;
+  const winningSide: 'source' | 'target' = sourceRateKzt >= targetRateKzt ? 'source' : 'target';
+  const winner = (winningSide === 'source' ? sourceBaseRate : targetBaseRate)!;
+
   return {
-    id: `local-default-ru-${targetLanguage}`,
+    id: winner.rateId,
     pricingVersionId,
-    sourceLanguage,
-    targetLanguage,
-    rateKztPerTranslationPage: rate,
-    active: true,
-    requiresOperatorReview: false,
+    sourceLanguage: source,
+    targetLanguage: target,
+    rateKztPerTranslationPage: Math.max(sourceRateKzt, targetRateKzt),
+    active: (sourceBaseRate?.active ?? true) && (targetBaseRate?.active ?? true),
+    requiresOperatorReview: (sourceBaseRate?.requiresOperatorReview ?? false) || (targetBaseRate?.requiresOperatorReview ?? false),
+    resolution: { sourceBaseRate, targetBaseRate, winningSide },
   };
 }

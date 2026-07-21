@@ -90,6 +90,9 @@ export async function resolvePricingVersion(params: ResolvedFileParams): Promise
       rateKztPerTranslationPage: params.languageRateOverrideKzt,
       active: true,
       requiresOperatorReview: false,
+      // A direct CLI rate override bypasses base-rate resolution entirely — no base rates
+      // contributed, so there is nothing to record on either side.
+      resolution: { sourceBaseRate: null, targetBaseRate: null, winningSide: 'source' },
     };
     languageRateSource = 'override';
   } else if (params.pricingVersionSource === 'staging') {

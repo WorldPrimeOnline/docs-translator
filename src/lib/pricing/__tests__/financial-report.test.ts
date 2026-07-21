@@ -25,7 +25,15 @@ function mockNewModelVersion(overrides: Partial<PricingVersion> = {}): PricingVe
 }
 
 function mockLanguageRate(overrides: Partial<PricingLanguageRate> = {}): PricingLanguageRate {
-  return { id: 'rate-ru-en', pricingVersionId: 'v-newmodel', sourceLanguage: 'ru', targetLanguage: 'en', rateKztPerTranslationPage: 3000, active: true, requiresOperatorReview: false, ...overrides };
+  return {
+    id: 'rate-ru-en', pricingVersionId: 'v-newmodel', sourceLanguage: 'ru', targetLanguage: 'en', rateKztPerTranslationPage: 3000, active: true, requiresOperatorReview: false,
+    resolution: {
+      sourceBaseRate: null,
+      targetBaseRate: { language: 'en', rateId: 'rate-ru-en', rateKztPerTranslationPage: 3000, active: true, requiresOperatorReview: false },
+      winningSide: 'target',
+    },
+    ...overrides,
+  };
 }
 
 function notaryInput(overrides: Partial<PricingInput> = {}): PricingInput {

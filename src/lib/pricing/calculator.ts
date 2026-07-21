@@ -1349,6 +1349,7 @@ function calculateOfficialNotaryPrice(input: PricingInput, version: PricingVersi
     reconciliationDifferenceKzt,
     languageRateId: languageRate?.id ?? null,
     ratePerTranslationPageKzt: ratePerPage,
+    languagePairResolution: languageRate?.resolution ?? null,
   };
 
   return {

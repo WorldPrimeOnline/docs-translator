@@ -56,6 +56,12 @@ function mockLanguageRate(overrides: Partial<PricingLanguageRate> = {}): Pricing
   return {
     id: 'rate-ru-en', pricingVersionId: 'v-newmodel', sourceLanguage: 'ru', targetLanguage: 'en',
     rateKztPerTranslationPage: 3000, active: true, requiresOperatorReview: false,
+    // ru is the anchor (no stored row) — en's base rate (3000) wins the max() by default.
+    resolution: {
+      sourceBaseRate: null,
+      targetBaseRate: { language: 'en', rateId: 'rate-ru-en', rateKztPerTranslationPage: 3000, active: true, requiresOperatorReview: false },
+      winningSide: 'target',
+    },
     ...overrides,
   };
 }

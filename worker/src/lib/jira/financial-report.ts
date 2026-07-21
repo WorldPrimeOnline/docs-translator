@@ -18,6 +18,20 @@ export type ServiceLevel =
   | 'official_with_translator_signature_and_provider_stamp'
   | 'notarization_through_partners';
 
+export interface LanguagePairBaseRateLike {
+  language: string;
+  rateId: string;
+  rateKztPerTranslationPage: number;
+  active: boolean;
+  requiresOperatorReview: boolean;
+}
+
+export interface LanguagePairResolutionLike {
+  sourceBaseRate: LanguagePairBaseRateLike | null;
+  targetBaseRate: LanguagePairBaseRateLike | null;
+  winningSide: 'source' | 'target';
+}
+
 export interface NewModelBreakdownLike {
   physicalPageCount: number | null;
   characterPages: number;
@@ -58,6 +72,7 @@ export interface NewModelBreakdownLike {
   totalCashRetainedByWpoKzt: number;
   reconciliationDifferenceKzt: number;
   ratePerTranslationPageKzt: number;
+  languagePairResolution: LanguagePairResolutionLike | null;
 }
 
 export interface FinancialReportModel {
@@ -184,6 +199,18 @@ function documentAnalysisLinesRu(model: FinancialReportModel): string[] {
   return lines;
 }
 
+/** See src/lib/pricing/financial-report.ts's languagePairResolutionLineRu — kept in sync manually. */
+function languagePairResolutionLineRu(nm: NewModelBreakdownLike): string | null {
+  const res = nm.languagePairResolution;
+  if (!res) return null;
+  const sideLabel = (base: LanguagePairBaseRateLike | null): string =>
+    base ? `${base.language.toUpperCase()} ${fmtNum(base.rateKztPerTranslationPage)} ₸/стр` : 'RU (якорь, 0 ₸)';
+  const sourceLabel = sideLabel(res.sourceBaseRate);
+  const targetLabel = sideLabel(res.targetBaseRate);
+  const winnerLabel = res.winningSide === 'source' ? sourceLabel : targetLabel;
+  return `База ставки: ${sourceLabel} / ${targetLabel} → применена ${winnerLabel} (выше)`;
+}
+
 function formationLinesRu(nm: NewModelBreakdownLike, sourceCharacterCountWithSpaces: number | null): string[] {
   const lines: string[] = [];
   lines.push(
@@ -191,6 +218,8 @@ function formationLinesRu(nm: NewModelBreakdownLike, sourceCharacterCountWithSpa
       ? `Перевод: ${fmtNum(sourceCharacterCountWithSpaces ?? 0)} × ${fmtNum(nm.ratePerTranslationPageKzt)} / 1 800 = ${fmtKzt(nm.translationAmountKzt)}`
       : `Перевод: ${fmtPages(nm.billableTranslationPages)} стр. × ${fmtNum(nm.ratePerTranslationPageKzt)} = ${fmtKzt(nm.translationAmountKzt)}`,
   );
+  const resolutionLine = languagePairResolutionLineRu(nm);
+  if (resolutionLine) lines.push(resolutionLine);
   lines.push(`OCR и техническая обработка: ${fmtKzt(nm.ocrAmountKzt)}`);
   if (nm.notaryAmountKzt > 0) lines.push(`Нотариус: ${fmtKzt(nm.notaryAmountKzt)}`);
   if (nm.courierAmountKzt > 0) lines.push(`Курьер: ${fmtKzt(nm.courierAmountKzt)}`);

@@ -70,7 +70,38 @@ export interface PricingVersion {
   publicNotaryMinPriceKzt: number | null;
 }
 
-/** A specific pricing_language_rates row, resolved for one source->target pair at quote time. */
+/**
+ * One contributing side of a resolved language pair (2026-07-26 symmetric pair resolution) —
+ * the actual pricing_language_rates row for a single non-Russian language's base rate.
+ */
+export interface LanguagePairBaseRate {
+  language: string;
+  rateId: string;
+  rateKztPerTranslationPage: number;
+  active: boolean;
+  requiresOperatorReview: boolean;
+}
+
+/**
+ * Records which two base rates produced a resolved pair rate (2026-07-26 decision):
+ * pricing_language_rates rows are RU->X base rates, not directional pairs — a pair's rate is
+ * max(base(source), base(target)), so both contributing sides must be snapshotted for audit,
+ * not just the winning one. null on a side means that side IS the Russian anchor language
+ * (no stored row — the anchor contributes 0 to the max, never "missing").
+ */
+export interface LanguagePairResolution {
+  sourceBaseRate: LanguagePairBaseRate | null;
+  targetBaseRate: LanguagePairBaseRate | null;
+  winningSide: 'source' | 'target';
+}
+
+/**
+ * A pricing_language_rates-derived rate, resolved for one source->target pair at quote time.
+ * Since 2026-07-26 this is a SYMMETRIC resolution built from up to two RU->X base rate rows
+ * (see getLanguageRate in service.ts) — `id` is the winning contributor's row id (kept so
+ * price_quotes.language_rate_id's FK to pricing_language_rates stays valid), and `resolution`
+ * carries the full audit trail of both contributing sides.
+ */
 export interface PricingLanguageRate {
   id: string;
   pricingVersionId: string;
@@ -79,6 +110,7 @@ export interface PricingLanguageRate {
   rateKztPerTranslationPage: number;
   active: boolean;
   requiresOperatorReview: boolean;
+  resolution: LanguagePairResolution;
 }
 
 export interface QuoteLineItem {
@@ -346,6 +378,8 @@ export interface NewModelBreakdown {
   // ─── Snapshot references ────────────────────────────────────────────────────────
   languageRateId: string | null;
   ratePerTranslationPageKzt: number;
+  /** null only when languageRateId is also null (no language rate resolved at all). */
+  languagePairResolution: LanguagePairResolution | null;
 }
 
 export interface PricingResult {

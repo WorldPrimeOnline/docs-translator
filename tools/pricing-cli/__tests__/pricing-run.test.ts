@@ -128,9 +128,19 @@ describe('runPricingForFile — classification', () => {
     expect(result.pricingResult?.newModel?.translationAmountKzt).toBe(3000); // 1800 chars @ 3000/page
   });
 
-  it('unseeded language pair -> operator_review / no_language_rate (never fabricates a rate)', async () => {
+  // 2026-07-26: pricing_language_rates rows are RU->X base rates, not directional pairs — en ->
+  // ru resolves symmetrically from the same seeded ru -> en row and prices normally.
+  it('reverse-direction pair (en->ru) resolves symmetrically to the same rate as ru->en -> success', async () => {
     analyzeLocalFile.mockResolvedValue({ kind: 'analyzed', fromCache: false, result: analysisResult() });
     const params = resolveFileParams({ sourceLanguage: 'en', targetLanguage: 'ru', serviceLevel: 'official' }, 'test');
+    const result = await runPricingForFile('f.pdf', 'f.pdf', Buffer.from(''), '.pdf', params, RUN_OPTS);
+    expect(result.status).toBe('success');
+    expect(result.pricingResult?.newModel?.translationAmountKzt).toBe(3000); // 1800 chars @ 3000/page
+  });
+
+  it('genuinely unseeded language pair -> operator_review / no_language_rate (never fabricates a rate)', async () => {
+    analyzeLocalFile.mockResolvedValue({ kind: 'analyzed', fromCache: false, result: analysisResult() });
+    const params = resolveFileParams({ sourceLanguage: 'en', targetLanguage: 'xx', serviceLevel: 'official' }, 'test');
     const result = await runPricingForFile('f.pdf', 'f.pdf', Buffer.from(''), '.pdf', params, RUN_OPTS);
     expect(result.status).toBe('operator_review');
     expect(result.reasonCode).toBe('no_language_rate');

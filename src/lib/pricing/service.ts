@@ -6,7 +6,18 @@ import { supabaseServer } from '@/lib/supabase/server';
 import { calculatePrice } from './calculator';
 import { toDecimal } from './money';
 import { getPricingFeatureFlags } from './feature-flags';
-import type { NotaryUrgencyLevel, PricingInput, PricingLanguageRate, PricingResult, PricingVersion, QuoteStatus } from './types';
+import type { LanguagePairBaseRate, NotaryUrgencyLevel, PricingInput, PricingLanguageRate, PricingResult, PricingVersion, QuoteStatus } from './types';
+
+/**
+ * Russian is the anchor language for pricing_language_rates (2026-07-26 decision): every seeded
+ * row is RU->X, encoding X's base rate relative to Russian. Russian itself has no stored row —
+ * it is never "missing", it simply contributes 0 to the pair-rate max() below.
+ */
+const RUSSIAN_ANCHOR_LANGUAGE = 'ru';
+
+function normalizeLanguageCode(language: string): string {
+  return language.trim().toLowerCase();
+}
 
 /** The only pricing_versions row the new-model flags are allowed to consider "correct". */
 const NEW_MODEL_VERSION_CODE = '2026-Q3-KZ-NEWMODEL';
@@ -155,36 +166,79 @@ export async function getPricingVersionByCode(code: string): Promise<PricingVers
 }
 
 /**
- * Resolve the active pricing_language_rates row for a specific source->target pair under a
- * given pricing_version_id. Returns null if no row exists at all (the caller/calculator routes
- * this to operator_review — never a fabricated rate). An inactive or requires_operator_review
- * row IS still returned (with its flags intact) so the calculator can report why review is
- * needed, rather than treating "exists but inactive" the same as "doesn't exist".
+ * Look up a single non-Russian language's base rate row (pricing_language_rates: source_language
+ * = 'ru', target_language = that language). Russian itself has no row — callers must special-case
+ * it before calling this (see getLanguageRate below); this function is never called with 'ru'.
  */
-export async function getLanguageRate(
-  pricingVersionId: string,
-  sourceLanguage: string,
-  targetLanguage: string,
-): Promise<PricingLanguageRate | null> {
+async function getBaseLanguageRate(pricingVersionId: string, language: string): Promise<LanguagePairBaseRate | null> {
   const { data, error } = await db
     .from('pricing_language_rates')
     .select('id, pricing_version_id, source_language, target_language, rate_kzt_per_translation_page, active, requires_operator_review')
     .eq('pricing_version_id', pricingVersionId)
-    .eq('source_language', sourceLanguage)
-    .eq('target_language', targetLanguage)
+    .eq('source_language', RUSSIAN_ANCHOR_LANGUAGE)
+    .eq('target_language', language)
     .maybeSingle();
 
   if (error || !data) return null;
 
   const row = data as PricingLanguageRateRow;
   return {
-    id: row.id,
-    pricingVersionId: row.pricing_version_id,
-    sourceLanguage: row.source_language,
-    targetLanguage: row.target_language,
+    language,
+    rateId: row.id,
     rateKztPerTranslationPage: Number(row.rate_kzt_per_translation_page),
     active: row.active,
     requiresOperatorReview: row.requires_operator_review,
+  };
+}
+
+/**
+ * Resolve a source->target language pair's rate under a given pricing_version_id.
+ *
+ * 2026-07-26 decision: pricing_language_rates rows are NOT directional pairs — the seeded
+ * RU->X rows each represent language X's base rate relative to Russian, the anchor language.
+ * A pair's actual rate is max(base(source), base(target)), independent of direction, so
+ * RU->EN, EN->RU, EN->ZH, and ZH->EN all resolve correctly from the same 14 seeded rows —
+ * every language-pair permutation is never separately seeded.
+ *
+ * Returns null (routes to operator_review, never a fabricated rate) only when at least one
+ * non-Russian side has no base rate row at all under this version — Russian itself is never
+ * "missing" since it has no row by design. An inactive or requires_operator_review base row on
+ * either contributing side still resolves (so the calculator can report WHY review is needed),
+ * propagated onto the resolved pair via active/requiresOperatorReview below — the pair is only
+ * as trustworthy as its least-confirmed contributing base rate.
+ */
+export async function getLanguageRate(
+  pricingVersionId: string,
+  sourceLanguage: string,
+  targetLanguage: string,
+): Promise<PricingLanguageRate | null> {
+  const source = normalizeLanguageCode(sourceLanguage);
+  const target = normalizeLanguageCode(targetLanguage);
+
+  const [sourceBaseRate, targetBaseRate] = await Promise.all([
+    source === RUSSIAN_ANCHOR_LANGUAGE ? Promise.resolve(null) : getBaseLanguageRate(pricingVersionId, source),
+    target === RUSSIAN_ANCHOR_LANGUAGE ? Promise.resolve(null) : getBaseLanguageRate(pricingVersionId, target),
+  ]);
+
+  if (source !== RUSSIAN_ANCHOR_LANGUAGE && !sourceBaseRate) return null;
+  if (target !== RUSSIAN_ANCHOR_LANGUAGE && !targetBaseRate) return null;
+  // ru->ru is not a real translation pair — nothing to resolve either side.
+  if (!sourceBaseRate && !targetBaseRate) return null;
+
+  const sourceRateKzt = sourceBaseRate?.rateKztPerTranslationPage ?? 0;
+  const targetRateKzt = targetBaseRate?.rateKztPerTranslationPage ?? 0;
+  const winningSide: 'source' | 'target' = sourceRateKzt >= targetRateKzt ? 'source' : 'target';
+  const winner = (winningSide === 'source' ? sourceBaseRate : targetBaseRate)!;
+
+  return {
+    id: winner.rateId,
+    pricingVersionId,
+    sourceLanguage: source,
+    targetLanguage: target,
+    rateKztPerTranslationPage: Math.max(sourceRateKzt, targetRateKzt),
+    active: (sourceBaseRate?.active ?? true) && (targetBaseRate?.active ?? true),
+    requiresOperatorReview: (sourceBaseRate?.requiresOperatorReview ?? false) || (targetBaseRate?.requiresOperatorReview ?? false),
+    resolution: { sourceBaseRate, targetBaseRate, winningSide },
   };
 }
 

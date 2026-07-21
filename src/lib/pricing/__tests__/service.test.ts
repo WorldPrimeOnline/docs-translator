@@ -16,7 +16,7 @@ jest.mock('../calculator', () => ({
 }));
 
 import { supabaseServer } from '@/lib/supabase/server';
-import { computeQuoteForJob, markQuotePaid } from '../service';
+import { computeQuoteForJob, getLanguageRate, markQuotePaid } from '../service';
 import { _resetPricingFeatureFlagsCache } from '../feature-flags';
 import type { PricingInput } from '../types';
 
@@ -116,6 +116,91 @@ describe('computeQuoteForJob', () => {
     mockFrom.mockReturnValueOnce(chain({ data: null, error: null }));
     const result = await computeQuoteForJob(baseInput());
     expect(result).toEqual({ error: 'PRICING_NOT_CONFIGURED' });
+  });
+});
+
+/**
+ * 2026-07-26 fix: pricing_language_rates rows are RU->X base rates, not directional pairs.
+ * getLanguageRate must resolve max(base(source), base(target)) symmetrically — Russian
+ * contributes 0 (it has no stored row and is never "missing"), so RU<->EN and EN<->ZH both
+ * resolve correctly from the same seeded RU->X rows without a separately-seeded reverse row.
+ */
+function baseRateRow(targetLanguage: string, rateKzt: number, overrides: Partial<Record<string, unknown>> = {}) {
+  return {
+    id: `rate-ru-${targetLanguage}`,
+    pricing_version_id: 'v1',
+    source_language: 'ru',
+    target_language: targetLanguage,
+    rate_kzt_per_translation_page: rateKzt,
+    active: true,
+    requires_operator_review: false,
+    ...overrides,
+  };
+}
+
+describe('getLanguageRate — symmetric pair resolution', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('RU -> EN resolves to EN base rate (3000), source (ru) contributes null', async () => {
+    mockFrom.mockReturnValueOnce(chain({ data: baseRateRow('en', 3000), error: null })); // base rate for 'en'
+    const rate = await getLanguageRate('v1', 'ru', 'en');
+    expect(rate?.rateKztPerTranslationPage).toBe(3000);
+    expect(rate?.resolution.winningSide).toBe('target');
+    expect(rate?.resolution.sourceBaseRate).toBeNull();
+    expect(rate?.resolution.targetBaseRate?.language).toBe('en');
+  });
+
+  it('EN -> RU resolves symmetrically to the same 3000 as RU -> EN, target (ru) contributes null', async () => {
+    mockFrom.mockReturnValueOnce(chain({ data: baseRateRow('en', 3000), error: null })); // base rate for 'en' (now the source side)
+    const rate = await getLanguageRate('v1', 'en', 'ru');
+    expect(rate?.rateKztPerTranslationPage).toBe(3000);
+    expect(rate?.resolution.winningSide).toBe('source');
+    expect(rate?.resolution.targetBaseRate).toBeNull();
+    expect(rate?.resolution.sourceBaseRate?.language).toBe('en');
+  });
+
+  it('EN -> ZH resolves to max(base(en)=3000, base(zh)=5000) = 5000, zh wins', async () => {
+    mockFrom
+      .mockReturnValueOnce(chain({ data: baseRateRow('en', 3000), error: null })) // source base rate (en)
+      .mockReturnValueOnce(chain({ data: baseRateRow('zh', 5000), error: null })); // target base rate (zh)
+    const rate = await getLanguageRate('v1', 'en', 'zh');
+    expect(rate?.rateKztPerTranslationPage).toBe(5000);
+    expect(rate?.resolution.winningSide).toBe('target');
+  });
+
+  it('ZH -> EN resolves to the same 5000 as EN -> ZH (direction-independent)', async () => {
+    mockFrom
+      .mockReturnValueOnce(chain({ data: baseRateRow('zh', 5000), error: null })) // source base rate (zh)
+      .mockReturnValueOnce(chain({ data: baseRateRow('en', 3000), error: null })); // target base rate (en)
+    const rate = await getLanguageRate('v1', 'zh', 'en');
+    expect(rate?.rateKztPerTranslationPage).toBe(5000);
+    expect(rate?.resolution.winningSide).toBe('source');
+  });
+
+  it('does not return LANGUAGE_RATE_MISSING (null) when both languages have seeded base rates', async () => {
+    mockFrom
+      .mockReturnValueOnce(chain({ data: baseRateRow('en', 3000), error: null }))
+      .mockReturnValueOnce(chain({ data: baseRateRow('zh', 5000), error: null }));
+    const rate = await getLanguageRate('v1', 'en', 'zh');
+    expect(rate).not.toBeNull();
+  });
+
+  it('returns null (routes to operator review) when a non-Russian side has no base rate at all', async () => {
+    mockFrom
+      .mockReturnValueOnce(chain({ data: baseRateRow('en', 3000), error: null })) // en exists
+      .mockReturnValueOnce(chain({ data: null, error: null }));                    // xx does not
+    const rate = await getLanguageRate('v1', 'en', 'xx');
+    expect(rate).toBeNull();
+  });
+
+  it('normalizes language codes (case/whitespace) before resolving', async () => {
+    mockFrom.mockReturnValueOnce(chain({ data: baseRateRow('en', 3000), error: null }));
+    const rate = await getLanguageRate('v1', ' RU ', 'EN');
+    expect(rate?.sourceLanguage).toBe('ru');
+    expect(rate?.targetLanguage).toBe('en');
+    expect(rate?.rateKztPerTranslationPage).toBe(3000);
   });
 });
 

@@ -41,8 +41,24 @@ describe('getDefaultLanguageRate', () => {
     expect(rate?.rateKztPerTranslationPage).toBe(3000);
   });
 
-  it('returns null for an unseeded pair (e.g. en -> ru)', () => {
-    expect(getDefaultLanguageRate('v1', 'en', 'ru')).toBeNull();
+  // 2026-07-26: pricing_language_rates rows are NOT directional pairs — RU->X rows are X's base
+  // rate relative to Russian, the anchor. EN -> RU resolves symmetrically to the same 3000 as
+  // RU -> EN, it is never "unseeded"/null.
+  it('resolves the reverse direction symmetrically (en -> ru = ru -> en)', () => {
+    const rate = getDefaultLanguageRate('v1', 'en', 'ru');
+    expect(rate?.rateKztPerTranslationPage).toBe(3000);
+    expect(rate?.resolution.winningSide).toBe('source');
+    expect(rate?.resolution.sourceBaseRate?.language).toBe('en');
+    expect(rate?.resolution.targetBaseRate).toBeNull();
+  });
+
+  it('resolves a non-Russian pair as max(base(source), base(target)) (en -> zh = zh -> en = 5000)', () => {
+    expect(getDefaultLanguageRate('v1', 'en', 'zh')?.rateKztPerTranslationPage).toBe(5000);
+    expect(getDefaultLanguageRate('v1', 'zh', 'en')?.rateKztPerTranslationPage).toBe(5000);
+  });
+
+  it('returns null when a non-Russian side has no base rate at all', () => {
+    expect(getDefaultLanguageRate('v1', 'en', 'xx')).toBeNull();
   });
 });
 
@@ -74,8 +90,16 @@ describe('resolvePricingVersion — local mode', () => {
     );
   });
 
-  it('reports not_found for an unseeded language pair instead of fabricating a rate', async () => {
+  // 2026-07-26: pricing_language_rates rows are RU->X base rates, not directional pairs — en ->
+  // ru resolves symmetrically from the same seeded ru -> en row, it is not "unseeded".
+  it('resolves en -> ru symmetrically from the seeded ru -> en base rate (not "unseeded")', async () => {
     const resolved = await resolvePricingVersion(baseParams({ sourceLanguage: 'en', targetLanguage: 'ru' }));
+    expect(resolved.languageRate?.rateKztPerTranslationPage).toBe(3000);
+    expect(resolved.languageRateSource).toBe('default');
+  });
+
+  it('reports not_found only when a non-Russian side truly has no base rate at all', async () => {
+    const resolved = await resolvePricingVersion(baseParams({ sourceLanguage: 'en', targetLanguage: 'xx' }));
     expect(resolved.languageRate).toBeUndefined();
     expect(resolved.languageRateSource).toBe('not_found');
   });

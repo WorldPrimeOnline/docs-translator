@@ -15,7 +15,7 @@
  * Never parses a rendered report back out — Jira/CLI/JSON snapshot all come from this one model,
  * not from each other's rendered text.
  */
-import type { NewModelBreakdown, SalesChannel, ServiceLevel, TranslationPageBasis } from './types';
+import type { LanguagePairBaseRate, NewModelBreakdown, SalesChannel, ServiceLevel, TranslationPageBasis } from './types';
 
 export interface FinancialReportModel {
   document: {
@@ -150,6 +150,22 @@ export function documentAnalysisLinesRu(model: FinancialReportModel): string[] {
   return lines;
 }
 
+/**
+ * "База ставки: EN 3000 ₸/стр / ZH 5000 ₸/стр → применена ZH (выше)" — records which two base
+ * rates (2026-07-26 symmetric pair resolution) produced the resolved per-page rate, for audit.
+ * Russian anchor side (no stored row) prints as "RU (якорь, 0 ₸)".
+ */
+function languagePairResolutionLineRu(nm: NewModelBreakdown): string | null {
+  const res = nm.languagePairResolution;
+  if (!res) return null;
+  const sideLabel = (base: LanguagePairBaseRate | null): string =>
+    base ? `${base.language.toUpperCase()} ${fmtNum(base.rateKztPerTranslationPage)} ₸/стр` : 'RU (якорь, 0 ₸)';
+  const sourceLabel = sideLabel(res.sourceBaseRate);
+  const targetLabel = sideLabel(res.targetBaseRate);
+  const winnerLabel = res.winningSide === 'source' ? sourceLabel : targetLabel;
+  return `База ставки: ${sourceLabel} / ${targetLabel} → применена ${winnerLabel} (выше)`;
+}
+
 /** Block 3 — price formation, as a flat list of lines. */
 function formationLinesRu(nm: NewModelBreakdown, sourceCharacterCountWithSpaces: number | null): string[] {
   const lines: string[] = [];
@@ -158,6 +174,8 @@ function formationLinesRu(nm: NewModelBreakdown, sourceCharacterCountWithSpaces:
       ? `Перевод: ${fmtNum(sourceCharacterCountWithSpaces ?? 0)} × ${fmtNum(nm.ratePerTranslationPageKzt)} / 1 800 = ${fmtKzt(nm.translationAmountKzt)}`
       : `Перевод: ${fmtPages(nm.billableTranslationPages)} стр. × ${fmtNum(nm.ratePerTranslationPageKzt)} = ${fmtKzt(nm.translationAmountKzt)}`,
   );
+  const resolutionLine = languagePairResolutionLineRu(nm);
+  if (resolutionLine) lines.push(resolutionLine);
   lines.push(`OCR и техническая обработка: ${fmtKzt(nm.ocrAmountKzt)}`);
   if (nm.notaryAmountKzt > 0) lines.push(`Нотариус: ${fmtKzt(nm.notaryAmountKzt)}`);
   if (nm.courierAmountKzt > 0) lines.push(`Курьер: ${fmtKzt(nm.courierAmountKzt)}`);
