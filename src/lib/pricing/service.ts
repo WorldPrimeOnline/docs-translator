@@ -6,6 +6,7 @@ import { supabaseServer } from '@/lib/supabase/server';
 import { calculatePrice } from './calculator';
 import { toDecimal } from './money';
 import { getPricingFeatureFlags } from './feature-flags';
+import { buildPriceQuoteInsertRow } from './quote-row-mapper';
 import type { LanguagePairBaseRate, NotaryUrgencyLevel, PricingInput, PricingLanguageRate, PricingResult, PricingVersion, QuoteStatus } from './types';
 
 /**
@@ -362,48 +363,9 @@ export async function saveQuote(
       ? overrideExpiresAt
       : new Date(Date.now() + expiresInHours * 60 * 60 * 1000).toISOString();
 
-  const nm = result.newModel;
-
   const { data: quote, error: quoteError } = await db
     .from('price_quotes')
-    .insert({
-      job_id: input.jobId ?? null,
-      document_id: input.documentId ?? null,
-      user_id: input.userId ?? null,
-      pricing_version_id: result.pricingVersionId,
-      status: result.status,
-      amount_kzt: result.amountKzt,
-      currency: result.currency,
-      expires_at: expiresAt,
-      source_word_count: input.sourceWordCount ?? null,
-      physical_page_count: input.physicalPageCount ?? 1,
-      included_word_count: result.context.includedWordCount ?? null,
-      included_page_count: result.context.includedPageCount ?? null,
-      source_language: input.sourceLanguage,
-      target_language: input.targetLanguage,
-      language_pair: result.context.languagePair,
-      document_type: input.documentType ?? null,
-      service_level: input.serviceLevel,
-      urgency_level: input.urgencyLevel ?? 'standard',
-      fulfillment_method: input.fulfillmentMethod ?? null,
-      delivery_required: input.deliveryRequired ?? false,
-      partner_id: input.partnerId ?? null,
-      sales_channel: input.salesChannel ?? 'direct',
-      pricing_context_json: result.context,
-      breakdown_json: { items: result.items.filter(i => i.isClientVisible) },
-      internal_cost_json: result.internalCosts ?? {},
-      margin_json: result.margin ?? {},
-      // ─── New-model fields (undefined/null for the legacy electronic formula) ──
-      analysis_id: input.analysisId ?? null,
-      language_rate_id: nm?.languageRateId ?? null,
-      source_character_count_with_spaces: result.context.sourceCharacterCountWithSpaces ?? null,
-      translation_page_count_exact: result.context.translationPageCountExact ?? null,
-      manual_adjustment_kzt: nm?.manualAdjustmentKzt ?? 0,
-      wpo_financial_breakdown_json: nm ?? {},
-      // Snapshotted at save time so a later edit to pricing_versions.metadata can never change
-      // what formula an already-quoted (let alone already-paid) order is recorded against.
-      formula_version: (version.metadata?.formula_version as string | undefined) ?? null,
-    })
+    .insert(buildPriceQuoteInsertRow(input, result, version, expiresAt))
     .select('id')
     .single();
 
@@ -412,6 +374,7 @@ export async function saveQuote(
   }
 
   const quoteId = (quote as { id: string }).id;
+  const nm = result.newModel;
 
   // Insert line items
   if (result.items.length > 0) {
