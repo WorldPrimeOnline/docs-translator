@@ -1,17 +1,29 @@
 #!/usr/bin/env npx tsx
 /**
- * Pre-deploy / startup pricing invariant gate (2026-07-28 decision).
+ * Pre-deploy / startup pricing invariant gate (2026-07-28 decision, revised 2026-07-29 for the
+ * production cutover — see docs/ai-context/DECISIONS.md).
  *
  * Before ANY deployment (staging or production) goes live, this must pass:
- *   1. There is exactly one ACTIVE pricing_versions row.
- *   2. Its code is the expected new-model code and its metadata.formula_version matches the
- *      expected formula version — the same check computeQuoteForJob() enforces per-request
- *      (src/lib/pricing/service.ts), but here it fails the BUILD, not a customer's checkout.
+ *   1. A pricing_versions row with the expected NEWMODEL code exists AT ALL — deliberately NOT
+ *      gated on status='active'. The 2026-07-29 production cutover plan requires NEWMODEL to be
+ *      fully prepared and deployed while MVP is STILL the active version (old code/deployment
+ *      still serving traffic) — the operator flips MVP->archived / NEWMODEL->active in one
+ *      transaction only AFTER confirming the new deployment is live. Gating this build check on
+ *      status='active' would make that exact sequence impossible to build/deploy at all.
+ *   2. Its metadata.formula_version matches the expected formula version.
  *   3. Every supported non-Russian language (RU_TARGET_LANGUAGES below — the same 14 languages
  *      seeded by migration 0051 / tools/pricing-cli/lib/default-pricing-version.ts's
  *      RU_TARGET_RATES; kept in sync manually, same convention as this repo's other
  *      intentionally-duplicated cross-module constants) has an active, non-review base rate row
- *      in pricing_language_rates for the active version.
+ *      in pricing_language_rates for the NEWMODEL version — regardless of whether NEWMODEL is
+ *      the currently-active version.
+ *
+ * This is a BUILD-time readiness check only. The RUNTIME gate stays strict and unchanged
+ * (computeQuoteForJob in src/lib/pricing/service.ts still requires the ACTUAL active version to
+ * be NEWMODEL with the correct formula_version before pricing Official/Notary) — so Official/
+ * Notary checkout correctly stays hard-blocked (PRICING_VERSION_MISMATCH, never a fabricated
+ * price) for the entire window between this deployment going live and the operator's manual
+ * MVP->archived / NEWMODEL->active cutover.
  *
  * Any violation exits 1 — wired into `npm run build` (see package.json's `build` script) so a
  * broken pricing config fails the Vercel build itself, before the new deployment is ever
@@ -52,8 +64,6 @@ interface PricingVersionRow {
   code: string;
   status: string;
   metadata: Record<string, unknown> | null;
-  valid_from: string;
-  valid_to: string | null;
 }
 
 interface PricingLanguageRateRow {
@@ -77,50 +87,49 @@ async function main(): Promise<void> {
 
   console.log(`[verify-pricing-invariants] Checking pricing config at ${supabaseUrl.replace(/\/\/.*@/, '//***@')}...`);
 
-  const { data: versions, error: versionsError } = await db
+  // Deliberately NOT filtered on status='active' — see the docblock above. NEWMODEL must exist
+  // and be fully prepared regardless of which version is currently the live/active one.
+  const { data: versionRows, error: versionsError } = await db
     .from('pricing_versions')
-    .select('id, code, status, metadata, valid_from, valid_to')
-    .eq('status', 'active')
-    .or(`valid_to.is.null,valid_to.gt.${new Date().toISOString()}`);
+    .select('id, code, status, metadata')
+    .eq('code', EXPECTED_VERSION_CODE);
 
   if (versionsError) {
     violations.push(`Could not query pricing_versions: ${versionsError.message}`);
   } else {
-    const activeVersions = (versions ?? []) as PricingVersionRow[];
-    if (activeVersions.length === 0) {
-      violations.push('No ACTIVE pricing_versions row found.');
-    } else if (activeVersions.length > 1) {
-      violations.push(`Expected exactly one ACTIVE pricing_versions row, found ${activeVersions.length}: ${activeVersions.map((v) => v.code).join(', ')}.`);
+    const matches = (versionRows ?? []) as PricingVersionRow[];
+    if (matches.length === 0) {
+      violations.push(`No pricing_versions row with code '${EXPECTED_VERSION_CODE}' exists.`);
     } else {
-      const version = activeVersions[0];
-      if (version.code !== EXPECTED_VERSION_CODE) {
-        violations.push(`Active pricing_versions.code is '${version.code}', expected '${EXPECTED_VERSION_CODE}'.`);
+      if (matches.length > 1) {
+        violations.push(`Expected exactly one pricing_versions row with code '${EXPECTED_VERSION_CODE}', found ${matches.length}.`);
       }
+      const version = matches[0];
+      console.log(`[verify-pricing-invariants] Found ${EXPECTED_VERSION_CODE} (status='${version.status}') — build check does not require status='active'; the runtime gate in computeQuoteForJob() still does.`);
+
       const formulaVersion = version.metadata?.formula_version;
       if (formulaVersion !== EXPECTED_FORMULA_VERSION) {
-        violations.push(`Active pricing_versions.metadata.formula_version is '${String(formulaVersion)}', expected '${EXPECTED_FORMULA_VERSION}'.`);
+        violations.push(`pricing_versions '${EXPECTED_VERSION_CODE}'.metadata.formula_version is '${String(formulaVersion)}', expected '${EXPECTED_FORMULA_VERSION}'.`);
       }
 
-      if (version.code === EXPECTED_VERSION_CODE) {
-        const { data: rates, error: ratesError } = await db
-          .from('pricing_language_rates')
-          .select('target_language, active, requires_operator_review')
-          .eq('pricing_version_id', version.id)
-          .eq('source_language', 'ru');
+      const { data: rates, error: ratesError } = await db
+        .from('pricing_language_rates')
+        .select('target_language, active, requires_operator_review')
+        .eq('pricing_version_id', version.id)
+        .eq('source_language', 'ru');
 
-        if (ratesError) {
-          violations.push(`Could not query pricing_language_rates: ${ratesError.message}`);
-        } else {
-          const rateByLanguage = new Map((rates as PricingLanguageRateRow[]).map((r) => [r.target_language, r]));
-          for (const language of RU_TARGET_LANGUAGES) {
-            const rate = rateByLanguage.get(language);
-            if (!rate) {
-              violations.push(`No pricing_language_rates row for ru -> ${language} under the active version.`);
-            } else if (!rate.active) {
-              violations.push(`pricing_language_rates row for ru -> ${language} is inactive.`);
-            } else if (rate.requires_operator_review) {
-              violations.push(`pricing_language_rates row for ru -> ${language} is marked requires_operator_review.`);
-            }
+      if (ratesError) {
+        violations.push(`Could not query pricing_language_rates: ${ratesError.message}`);
+      } else {
+        const rateByLanguage = new Map((rates as PricingLanguageRateRow[]).map((r) => [r.target_language, r]));
+        for (const language of RU_TARGET_LANGUAGES) {
+          const rate = rateByLanguage.get(language);
+          if (!rate) {
+            violations.push(`No pricing_language_rates row for ru -> ${language} under ${EXPECTED_VERSION_CODE}.`);
+          } else if (!rate.active) {
+            violations.push(`pricing_language_rates row for ru -> ${language} is inactive.`);
+          } else if (rate.requires_operator_review) {
+            violations.push(`pricing_language_rates row for ru -> ${language} is marked requires_operator_review.`);
           }
         }
       }
@@ -130,11 +139,11 @@ async function main(): Promise<void> {
   if (violations.length > 0) {
     console.error(`\n[verify-pricing-invariants] FAILED — ${violations.length} pricing config violation(s):`);
     for (const v of violations) console.error(`  - ${v}`);
-    console.error('\nThis build must not go live with a broken pricing config. Fix the pricing_versions/pricing_language_rates rows and rebuild.');
+    console.error(`\nThis build must not go live without ${EXPECTED_VERSION_CODE} fully prepared. Fix the pricing_versions/pricing_language_rates rows and rebuild.`);
     process.exit(1);
   }
 
-  console.log(`[verify-pricing-invariants] OK — active version is ${EXPECTED_VERSION_CODE} (formula_version=${EXPECTED_FORMULA_VERSION}), all ${RU_TARGET_LANGUAGES.length} supported languages have an active base rate.`);
+  console.log(`[verify-pricing-invariants] OK — ${EXPECTED_VERSION_CODE} exists with formula_version=${EXPECTED_FORMULA_VERSION}, all ${RU_TARGET_LANGUAGES.length} supported languages have an active base rate. (status='active' not required at build time — runtime gate stays strict.)`);
 }
 
 main().catch((err) => {
