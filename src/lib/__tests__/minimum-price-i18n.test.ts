@@ -1,8 +1,8 @@
 /**
  * Public-facing minimum ("from") price correction — approved production
- * baseline after the layered notary margin pricing model went live:
- *   electronic 1,500 KZT · official/certified 6,200 KZT ·
- *   notarized pickup 15,000 KZT · notarized + Almaty delivery 21,000 KZT.
+ * baseline (2026-07-28 update, pricing formula/DB public price fields untouched):
+ *   electronic 1,500 KZT · official/certified 5,000 KZT ·
+ *   notarized pickup 13,000 KZT · notarized + Almaty delivery 21,000 KZT.
  *
  * These are marketing "from" prices (the real final price for the cheapest
  * realistic order under the current pricing engine), NOT the internal
@@ -21,18 +21,21 @@ function loadMessages(locale: string, ns: string): Record<string, unknown> {
   return JSON.parse(raw) as Record<string, unknown>;
 }
 
-const OLD_PRICE_PATTERNS = [/5[ ,.]500/, /11[ ,.]000/];
+// 5,500 / 11,000 are figures from before the FIRST correction; 6,200 / 15,000 are this file's
+// own previous baseline, now itself stale after the 2026-07-28 update — both eras must never
+// silently reappear.
+const OLD_PRICE_PATTERNS = [/5[ ,.]500/, /11[ ,.]000/, /6[ ,.]200/, /15[ ,.]000/];
 
 describe('minimum price i18n — no stale pre-correction figures remain', () => {
   for (const locale of LOCALE_CODES) {
-    it(`${locale}: pricing.json has no old 5,500 / 11,000 figures`, () => {
+    it(`${locale}: pricing.json has no old 5,500 / 11,000 / 6,200 / 15,000 figures`, () => {
       const pricing = JSON.stringify(loadMessages(locale, 'pricing'));
       for (const pattern of OLD_PRICE_PATTERNS) {
         expect(pattern.test(pricing)).toBe(false);
       }
     });
 
-    it(`${locale}: order.json price hints have no old 5,500 / 11,000 figures`, () => {
+    it(`${locale}: order.json price hints have no old 5,500 / 11,000 / 6,200 / 15,000 figures`, () => {
       const order = loadMessages(locale, 'order') as { dashboard: Record<string, unknown> };
       const hints = JSON.stringify({
         priceHintOfficial: order.dashboard.priceHintOfficial,
@@ -45,37 +48,37 @@ describe('minimum price i18n — no stale pre-correction figures remain', () => 
   }
 });
 
-describe('minimum price i18n — official/certified minimum shows 6,200', () => {
+describe('minimum price i18n — official/certified minimum shows 5,000', () => {
   for (const locale of LOCALE_CODES) {
-    it(`${locale}: pricing.json agentStampPrice and tiers.agentStamp.price contain 6,200`, () => {
+    it(`${locale}: pricing.json agentStampPrice and tiers.agentStamp.price contain 5,000`, () => {
       const pricing = loadMessages(locale, 'pricing') as {
         pricing: { agentStampPrice: string; tiers: { agentStamp: { price: string } } };
       };
-      expect(/6[ ,.]200/.test(pricing.pricing.agentStampPrice)).toBe(true);
-      expect(/6[ ,.]200/.test(pricing.pricing.tiers.agentStamp.price)).toBe(true);
+      expect(/5[ ,.]000/.test(pricing.pricing.agentStampPrice)).toBe(true);
+      expect(/5[ ,.]000/.test(pricing.pricing.tiers.agentStamp.price)).toBe(true);
     });
   }
 
-  it('ru: order.json priceHintOfficial shows 6,200', () => {
+  it('ru: order.json priceHintOfficial shows 5,000', () => {
     const order = loadMessages('ru', 'order') as { dashboard: { priceHintOfficial: string } };
-    expect(order.dashboard.priceHintOfficial).toContain('6 200');
+    expect(order.dashboard.priceHintOfficial).toContain('5 000');
   });
 });
 
-describe('minimum price i18n — notarized minimum shows 15,000', () => {
+describe('minimum price i18n — notarized minimum shows 13,000', () => {
   for (const locale of LOCALE_CODES) {
-    it(`${locale}: pricing.json notarizedPrice and tiers.notarized.price contain 15,000`, () => {
+    it(`${locale}: pricing.json notarizedPrice and tiers.notarized.price contain 13,000`, () => {
       const pricing = loadMessages(locale, 'pricing') as {
         pricing: { notarizedPrice: string; tiers: { notarized: { price: string } } };
       };
-      expect(/15[ ,.]000/.test(pricing.pricing.notarizedPrice)).toBe(true);
-      expect(/15[ ,.]000/.test(pricing.pricing.tiers.notarized.price)).toBe(true);
+      expect(/13[ ,.]000/.test(pricing.pricing.notarizedPrice)).toBe(true);
+      expect(/13[ ,.]000/.test(pricing.pricing.tiers.notarized.price)).toBe(true);
     });
   }
 
-  it('ru: order.json priceHintNotarized shows 15,000', () => {
+  it('ru: order.json priceHintNotarized shows 13,000', () => {
     const order = loadMessages('ru', 'order') as { dashboard: { priceHintNotarized: string } };
-    expect(order.dashboard.priceHintNotarized).toContain('15 000');
+    expect(order.dashboard.priceHintNotarized).toContain('13 000');
   });
 });
 
@@ -105,10 +108,10 @@ describe('minimum price i18n — upload/service-level cards match landing pages'
     };
     expect(order.dashboard.priceHintElectronic).toContain('1 500');
     expect(pricing.pricing.electronicPrice).toContain('1 500');
-    expect(order.dashboard.priceHintOfficial).toContain('6 200');
-    expect(pricing.pricing.agentStampPrice).toContain('6 200');
-    expect(order.dashboard.priceHintNotarized).toContain('15 000');
-    expect(pricing.pricing.notarizedPrice).toContain('15 000');
+    expect(order.dashboard.priceHintOfficial).toContain('5 000');
+    expect(pricing.pricing.agentStampPrice).toContain('5 000');
+    expect(order.dashboard.priceHintNotarized).toContain('13 000');
+    expect(pricing.pricing.notarizedPrice).toContain('13 000');
   });
 });
 

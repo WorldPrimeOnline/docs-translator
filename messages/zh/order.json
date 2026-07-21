@@ -215,8 +215,8 @@
     "quoteRecalculating": "正在刷新订单状态...",
     "priceHint": "精确价格在文件上传和分析后计算。",
     "priceHintElectronic": "电子翻译——1,500 ₸ 起。上传后显示最终价格。",
-    "priceHintOfficial": "加盖服务商印章的翻译——6,200 ₸ 起。上传后显示最终价格。",
-    "priceHintNotarized": "公证翻译——15,000 ₸ 起。上传后显示最终价格。阿拉木图配送——21,000 ₸ 起。",
+    "priceHintOfficial": "加盖服务商印章的翻译——5,000 ₸ 起。上传后显示最终价格。",
+    "priceHintNotarized": "公证翻译——13,000 ₸ 起。上传后显示最终价格。阿拉木图配送——21,000 ₸ 起。",
     "urgency": {
       "label": "紧急程度",
       "standard": "标准",

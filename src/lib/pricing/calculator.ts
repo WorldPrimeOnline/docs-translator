@@ -989,8 +989,20 @@ function calculateOfficialNotaryPrice(input: PricingInput, version: PricingVersi
   }
 
   // 4. Character count — must come from a completed document_analysis revision, never guessed.
+  // "Reliable" physical page count is computed here (not only at step 5) because it is now also
+  // an alternative billing signal when the character count is unavailable — see the
+  // review-reason gate immediately below. PDF (real pdf-lib count) and JPG/PNG (always exactly
+  // 1 file = 1 page) are reliable; DOCX has none without rendering (null when rendering failed).
+  const reliablePhysicalPageCount = input.physicalPageCount != null && input.physicalPageCount > 0
+    ? input.physicalPageCount
+    : null;
   const characterCount = input.sourceCharacterCountWithSpaces;
-  if (characterCount == null || characterCount <= 0) {
+  // 2026-07-28 decision: a zero/missing character count is only a genuine "cannot price this
+  // document" signal when there is ALSO no reliable physical page count — billableTranslationPages
+  // below already takes max(reliablePhysicalPageCount, characterPages, minimum 1 page), so a
+  // normal supported document (e.g. OCR unavailable, but a real PDF/JPG/PNG page count exists)
+  // still prices correctly by page instead of being forced into operator review.
+  if ((characterCount == null || characterCount <= 0) && reliablePhysicalPageCount == null) {
     reviewReasons.push('No character count available from document analysis — requires operator review');
   }
   const safeCharacterCount = characterCount != null && characterCount > 0 ? characterCount : 0;
@@ -1002,16 +1014,7 @@ function calculateOfficialNotaryPrice(input: PricingInput, version: PricingVersi
   // exact/unrounded character-based page count, and the 1-page floor. See
   // docs/finance/PRICING_ENGINE.md "Billable translation pages" for the full rationale and
   // worked examples.
-  //
-  // "Reliable" physical page count: PDF (real pdf-lib count) and JPG/PNG (always exactly 1
-  // file = 1 page) are reliable. DOCX has NO reliable page count without rendering — the
-  // caller (tools/pricing-cli) must never fabricate one; it either omits physicalPageCount
-  // entirely (falls through to characterPages) or supplies an explicit operator-confirmed
-  // manualPhysicalPageCountOverride, which arrives here as a normal physicalPageCount value.
   const characterPages = charsToPages(safeCharacterCount, TRANSLATION_PAGE_CHAR_DIVISOR).toNumber();
-  const reliablePhysicalPageCount = input.physicalPageCount != null && input.physicalPageCount > 0
-    ? input.physicalPageCount
-    : null;
 
   const pageCandidates: Array<{ basis: TranslationPageBasis; pages: number }> = [
     ...(reliablePhysicalPageCount != null ? [{ basis: 'physical_pages' as const, pages: reliablePhysicalPageCount }] : []),

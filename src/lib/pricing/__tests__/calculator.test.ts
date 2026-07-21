@@ -300,10 +300,28 @@ describe('calculatePrice — operator_review triggers (new formula)', () => {
     expect(result.reviewReasons.some(r => r.includes('language rate'))).toBe(true);
   });
 
-  it('routes to operator_review when no character count is available (never guesses)', () => {
-    const result = calculatePrice(baseOfficialInput({ sourceCharacterCountWithSpaces: undefined }), mockNewModelVersion());
+  // 2026-07-28: a missing character count is only a genuine "cannot price" signal when there is
+  // ALSO no reliable physical page count — billableTranslationPages falls back to page-based
+  // billing otherwise, so a normal supported document (OCR unavailable, real page count known)
+  // must still get an automatic price, never operator_review.
+  it('routes to operator_review when no character count AND no reliable physical page count are available (never guesses)', () => {
+    const result = calculatePrice(
+      baseOfficialInput({ sourceCharacterCountWithSpaces: undefined, physicalPageCount: undefined }),
+      mockNewModelVersion(),
+    );
     expect(result.status).toBe('requires_operator_review');
     expect(result.reviewReasons.some(r => r.includes('character count'))).toBe(true);
+  });
+
+  it('prices normally (never operator_review) when character count is missing but a reliable physical page count exists', () => {
+    const result = calculatePrice(
+      baseOfficialInput({ sourceCharacterCountWithSpaces: undefined, physicalPageCount: 3 }),
+      mockNewModelVersion(),
+    );
+    expect(result.status).not.toBe('requires_operator_review');
+    expect(result.requiresOperatorReview).toBe(false);
+    expect(result.newModel?.translationPageBasis).toBe('physical_pages');
+    expect(result.newModel?.billableTranslationPages).toBe(3);
   });
 
   it('routes presentation documents to operator_review — no auto pricing yet', () => {

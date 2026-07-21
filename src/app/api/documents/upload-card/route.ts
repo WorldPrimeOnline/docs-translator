@@ -12,7 +12,8 @@ import { deriveBackcompatBooleans } from '@/lib/translation-workflow/output-plan
 import { getHalykConfig } from '@/lib/payments/halyk/config';
 import { computeQuoteForJob, saveQuote } from '@/lib/pricing/service';
 import { DOCUMENT_TYPE_COEFFICIENT } from '@/lib/pricing/config';
-import { classifyPricingReviewReasons, PRICING_REVIEW_HTTP_STATUS } from '@/lib/pricing/review-classification';
+import { classifyPricingReviewReasons } from '@/lib/pricing/review-classification';
+import { reportInternalPricingFailure } from '@/lib/pricing/internal-failure';
 import { resolveDocumentAnalysisForPricing } from '@/lib/document-analysis/service';
 import { attachReferralToOrder } from '@/lib/referral/server';
 import { calculatePartnerDiscount } from '@/lib/partners/discount';
@@ -239,10 +240,15 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
     if (analysisOutcome.kind === 'failed') {
       console.error('[upload-card] document analysis failed:', analysisOutcome.reason, { correlationId });
       await supabaseServer.from('documents').update({ status: 'failed' }).eq('id', docId);
-      return NextResponse.json({ error: 'ANALYSIS_FAILED' }, { status: 500 });
+      const failure = reportInternalPricingFailure('DOCUMENT_ANALYSIS_PIPELINE_FAILED', { correlationId, documentId: docId, reason: analysisOutcome.reason });
+      return NextResponse.json({ error: failure.error }, { status: failure.status });
     }
     if (analysisOutcome.kind === 'requires_operator_review') {
-      return NextResponse.json({ error: 'ANALYSIS_REQUIRES_OPERATOR_REVIEW' }, { status: 422 });
+      // Genuinely corrupted/unreadable file — a distinct, honest, customer-actionable code
+      // (never "operator review" — WPO has no such process), not folded into the generic
+      // internal-failure bucket above. See upload-card-shared.ts's createCardOrder for the
+      // matching comment.
+      return NextResponse.json({ error: 'INVALID_DOCUMENT' }, { status: 422 });
     }
 
     analysisId = analysisOutcome.row.id;
@@ -278,26 +284,28 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
   const quoteResult = await computeQuoteForJob(pricingInput);
 
   if ('error' in quoteResult) {
-    // See upload-card-shared.ts's createCardOrder for why all three error codes
-    // (PRICING_NOT_CONFIGURED / SERVICE_LEVEL_PRICING_DISABLED / PRICING_VERSION_MISMATCH)
-    // map to the same 503 — pricing simply isn't available right now, never fabricated.
+    // PRICING_NOT_CONFIGURED / SERVICE_LEVEL_PRICING_DISABLED / PRICING_VERSION_MISMATCH are all
+    // internal config problems — never surfaced to the customer by name (2026-07-28), only the
+    // real reason logged to Sentry for ops to fix. See upload-card-shared.ts's createCardOrder.
     console.error('[upload-card] pricing not available:', quoteResult.error, { correlationId });
     await supabaseServer.from('documents').update({ status: 'failed' }).eq('id', docId);
-    return NextResponse.json({ error: quoteResult.error }, { status: 503 });
+    const failure = reportInternalPricingFailure(quoteResult.error, { correlationId, documentId: docId, serviceLevel });
+    return NextResponse.json({ error: failure.error }, { status: failure.status });
   }
 
   const { version } = quoteResult;
   let { result: pricingResult } = quoteResult;
 
-  // 2026-07-22/23: same fix as upload-card-shared.ts's createCardOrder — WPO has no manual
+  // 2026-07-22/23/28: same fix as upload-card-shared.ts's createCardOrder — WPO has no manual
   // operator pricing process, so requiresOperatorReview=true is a terminal failure here, never
-  // "success with a note". Classified rather than collapsed into one generic code. No job is
+  // "success with a note", and never surfaced to the customer by classification name. No job is
   // created for any of these.
   if (pricingResult.requiresOperatorReview) {
     const classification = classifyPricingReviewReasons(pricingResult.reviewReasons);
     console.error('[upload-card] pricing requires operator review — refusing to create a job', { correlationId, classification, reviewReasons: pricingResult.reviewReasons });
     await supabaseServer.from('documents').update({ status: 'failed' }).eq('id', docId);
-    return NextResponse.json({ error: classification }, { status: PRICING_REVIEW_HTTP_STATUS[classification] });
+    const failure = reportInternalPricingFailure(classification, { correlationId, documentId: docId, reviewReasons: pricingResult.reviewReasons });
+    return NextResponse.json({ error: failure.error }, { status: failure.status });
   }
 
   const basePreDiscountKzt = Math.round(pricingResult.amountKzt);

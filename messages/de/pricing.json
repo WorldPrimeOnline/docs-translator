@@ -7,7 +7,7 @@
     "mostPopular": "Beliebteste Wahl",
     "startTranslating": "Übersetzung starten",
     "allPricesNote": "Alle Preise in ₸ (Tenge) · Kein Abonnement · Endpreis wird nach dem Hochladen berechnet",
-    "paygNote": "ab 1.500 ₸ — Elektronische Übersetzung. ab 6.200 ₸ — Übersetzung mit Anbieterstempel.",
+    "paygNote": "ab 1.500 ₸ — Elektronische Übersetzung. ab 5.000 ₸ — Übersetzung mit Anbieterstempel.",
     "electronic": "Elektronische Übersetzung",
     "electronicPrice": "ab 1.500 ₸",
     "electronicF1": "Vorläufige Übersetzung mit automatischer Formatierung",
@@ -15,13 +15,13 @@
     "electronicF3": "Bereit in 2–5 Minuten",
     "electronicF4": "Ohne Übersetzerunterschrift und Anbieterstempel",
     "agentStamp": "Übersetzung mit Anbieterstempel",
-    "agentStampPrice": "ab 6.200 ₸",
+    "agentStampPrice": "ab 5.000 ₸",
     "agentStampF1": "Prüfung durch einen menschlichen Übersetzer",
     "agentStampF2": "Anbieterstempel",
     "agentStampF3": "Finales PDF mit Formatierung",
     "agentStampF4": "Ohne notarielle Beglaubigung",
     "notarized": "Notariell beglaubigte Übersetzung",
-    "notarizedPrice": "ab 15.000 ₸",
+    "notarizedPrice": "ab 13.000 ₸",
     "notarizedF1": "Übersetzung mit Anbieterstempel",
     "notarizedF2": "Partnerprozess mit einem Notar",
     "notarizedF3": "Notarielle Beglaubigung der Übersetzerunterschrift",
@@ -42,7 +42,7 @@
       },
       "agentStamp": {
         "title": "Übersetzung mit Anbieterstempel",
-        "price": "ab 6.200 ₸",
+        "price": "ab 5.000 ₸",
         "unit": "pro Dokument",
         "features": [
           "Prüfung durch einen Menschen",
@@ -54,7 +54,7 @@
       },
       "notarized": {
         "title": "Notariell beglaubigte Übersetzung",
-        "price": "ab 15.000 ₸",
+        "price": "ab 13.000 ₸",
         "unit": "pro Dokument",
         "features": [
           "Übersetzung mit Anbieterstempel",

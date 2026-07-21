@@ -24,7 +24,8 @@ import { buildRawKey, isValidRawKey } from '@/lib/r2/upload-key-utils';
 import { deriveBackcompatBooleans } from '@/lib/translation-workflow/output-plan';
 import { computeQuoteForJob, extractNotaryUrgencySnapshot, saveQuote } from '@/lib/pricing/service';
 import { DOCUMENT_TYPE_COEFFICIENT } from '@/lib/pricing/config';
-import { classifyPricingReviewReasons, PRICING_REVIEW_HTTP_STATUS } from '@/lib/pricing/review-classification';
+import { classifyPricingReviewReasons } from '@/lib/pricing/review-classification';
+import { reportInternalPricingFailure } from '@/lib/pricing/internal-failure';
 // 2026-07-24: deliberately NOT a top-level import here — @/lib/document-analysis/service
 // transitively pulls in pdf-parse/pdfjs-dist (PDF text-layer extraction), which crashed at
 // MODULE INIT time ("ReferenceError: DOMMatrix is not defined") the moment ANYTHING was
@@ -415,13 +416,21 @@ export async function createCardOrder(input: CardOrderInput): Promise<CardOrderR
       return { ok: false, status: 409, error: 'ANALYSIS_IN_PROGRESS' };
     }
     if (analysisOutcome.kind === 'failed') {
+      // 2026-07-28: an unexpected analysis-pipeline crash (R2 download error, unhandled
+      // exception, etc.) is an internal failure, not something the customer can fix by
+      // re-uploading the same file — never surfaced with a specific technical reason.
       logStage(correlationId, 'document_analysis', 'error', { reason: analysisOutcome.reason });
       await supabaseServer.from('documents').update({ status: 'failed' }).eq('id', doc.id);
-      return { ok: false, status: 500, error: 'ANALYSIS_FAILED' };
+      const failure = reportInternalPricingFailure('DOCUMENT_ANALYSIS_PIPELINE_FAILED', { correlationId, documentId: doc.id, reason: analysisOutcome.reason });
+      return { ok: false, status: failure.status, error: failure.error };
     }
     if (analysisOutcome.kind === 'requires_operator_review') {
-      logStage(correlationId, 'document_analysis', 'error', { reason: 'requires_operator_review', reasons: analysisOutcome.reasons });
-      return { ok: false, status: 422, error: 'ANALYSIS_REQUIRES_OPERATOR_REVIEW' };
+      // Genuinely corrupted/unreadable file (2026-07-28: the only case analyzeDocumentForPricing
+      // still flags after the OCR/physical-page-count fallback fix) — a distinct, honest,
+      // customer-actionable code (never "operator review" — WPO has no such process), NOT
+      // folded into the generic internal-failure bucket above.
+      logStage(correlationId, 'document_analysis', 'error', { reason: 'invalid_document', reasons: analysisOutcome.reasons });
+      return { ok: false, status: 422, error: 'INVALID_DOCUMENT' };
     }
 
     analysisId = analysisOutcome.row.id;
@@ -459,12 +468,12 @@ export async function createCardOrder(input: CardOrderInput): Promise<CardOrderR
   if ('error' in quoteResult) {
     // PRICING_NOT_CONFIGURED (no active version), SERVICE_LEVEL_PRICING_DISABLED (flag off for
     // this service level), and PRICING_VERSION_MISMATCH (flag on but active version isn't the
-    // corrected new-model row) all mean the same thing to the caller: pricing isn't available
-    // right now — same 503 the old PRICING_NOT_CONFIGURED path already used, exact error passed
-    // through for logging/support, never surfaced as a fabricated price.
+    // corrected new-model row) are all internal config problems — never surfaced to the
+    // customer by name (2026-07-28), only the real reason logged to Sentry for ops to fix.
     logStage(correlationId, 'compute_quote', 'error', { reason: quoteResult.error });
     await supabaseServer.from('documents').update({ status: 'failed' }).eq('id', doc.id);
-    return { ok: false, status: 503, error: quoteResult.error };
+    const failure = reportInternalPricingFailure(quoteResult.error, { correlationId, documentId: doc.id, serviceLevel: input.serviceLevel });
+    return { ok: false, status: failure.status, error: failure.error };
   }
   logStage(correlationId, 'compute_quote', 'ok', { pricingVersionCode: quoteResult.version?.code, amountKzt: quoteResult.result.amountKzt, requiresOperatorReview: quoteResult.result.requiresOperatorReview });
 
@@ -484,10 +493,14 @@ export async function createCardOrder(input: CardOrderInput): Promise<CardOrderR
   // UNSUPPORTED_DOCUMENT) rather than collapsing every cause into one generic code. No job is
   // created for any of these.
   if (pricingResult.requiresOperatorReview) {
+    // 2026-07-28: classification is still computed (and logged) for ops/Sentry triage, but never
+    // returned to the customer by name — "operator review" in any form is an internal config
+    // problem WPO has no manual process for, not a customer-facing outcome.
     const classification = classifyPricingReviewReasons(pricingResult.reviewReasons);
     logStage(correlationId, 'compute_quote', 'error', { reason: 'requires_operator_review', classification, reviewReasons: pricingResult.reviewReasons });
     await supabaseServer.from('documents').update({ status: 'failed' }).eq('id', doc.id);
-    return { ok: false, status: PRICING_REVIEW_HTTP_STATUS[classification], error: classification };
+    const failure = reportInternalPricingFailure(classification, { correlationId, documentId: doc.id, reviewReasons: pricingResult.reviewReasons });
+    return { ok: false, status: failure.status, error: failure.error };
   }
 
   const basePreDiscountKzt = Math.round(pricingResult.amountKzt);

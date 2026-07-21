@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm run verify:pricing-invariants && next build",
+    "verify:pricing-invariants": "tsx scripts/verify-pricing-invariants.ts",
     "verify:pdf-bundle": "tsx scripts/verify-pdf-bundle-trace.ts",
     "build:verify": "next build && npm run verify:pdf-bundle",
     "start": "next start",

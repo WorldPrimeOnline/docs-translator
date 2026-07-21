@@ -217,8 +217,8 @@
     "quoteRecalculating": "Sipariş durumu güncelleniyor...",
     "priceHint": "Kesin fiyat belge yüklendikten ve analiz edildikten sonra hesaplanır.",
     "priceHintElectronic": "Elektronik çeviri — 1.500 ₸'den başlayan. Nihai fiyat yüklemeden sonra.",
-    "priceHintOfficial": "Sağlayıcı kaşeli çeviri — 6.200 ₸'den başlayan. Nihai fiyat yüklemeden sonra.",
-    "priceHintNotarized": "Noter onaylı çeviri — 15.000 ₸'den başlayan. Nihai fiyat yüklemeden sonra. Almatı'da teslimat — 21.000 ₸'den başlayan.",
+    "priceHintOfficial": "Sağlayıcı kaşeli çeviri — 5.000 ₸'den başlayan. Nihai fiyat yüklemeden sonra.",
+    "priceHintNotarized": "Noter onaylı çeviri — 13.000 ₸'den başlayan. Nihai fiyat yüklemeden sonra. Almatı'da teslimat — 21.000 ₸'den başlayan.",
     "urgency": {
       "label": "ACİLİYET",
       "standard": "Standart",

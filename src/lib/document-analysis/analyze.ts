@@ -17,6 +17,7 @@
  * Never fabricates a character count or falls back to a guessed page count on failure —
  * failure routes to operator_review with a real reason, per docs/ai-context/DECISIONS.md.
  */
+import * as Sentry from '@sentry/nextjs';
 import { convertToPdf } from '@/lib/convert-to-pdf';
 import { extractTextFromPdf } from '@/lib/ocr/mistral';
 import { extractDocxText } from './docx';
@@ -79,7 +80,12 @@ export async function analyzeDocumentForPricing(
     try {
       rawText = await extractDocxText(buffer);
     } catch (err) {
-      reviewReasons.push(`DOCX text extraction failed: ${err instanceof Error ? err.message : String(err)}`);
+      // 2026-07-28 decision: a DOCX text-extraction failure alone is not necessarily an invalid
+      // document — if the physical-page render below still succeeds, billing can fall back to
+      // page-based pricing (see the emptyOrNearEmpty gate further down). Logged for ops
+      // visibility only; never pushed to reviewReasons here — that gate is the single source of
+      // truth for whether this document is genuinely unpriceable.
+      Sentry.captureException(err, { level: 'warning', tags: { component: 'document-analysis-docx-extraction' } });
       rawText = '';
     }
     try {
@@ -118,7 +124,18 @@ export async function analyzeDocumentForPricing(
         rawText = ocrResult.markdown;
         ocrPageCount = ocrResult.pageCount;
       } catch (err) {
-        reviewReasons.push(`OCR failed: ${err instanceof Error ? err.message : String(err)}`);
+        // 2026-07-28 decision: OCR being unavailable/failing is NOT the same as an invalid
+        // document. getPhysicalPageCount() never throws (physical-pages.ts falls back to 1 on
+        // any render failure), so physicalPageCount here is always a reliable, real count for
+        // this branch (real pdf-lib page count for PDFs; always exactly 1 for JPG/PNG, per
+        // convertToPdf's single-page conversion) — calculateOfficialNotaryPrice's
+        // reliablePhysicalPageCount gate can bill on it even with characterCount === 0. This is
+        // an internal/operational failure (OCR provider outage, rate limit, etc.) that must
+        // never block a normal supported document from getting an automatic price — logged for
+        // ops visibility (Sentry), never surfaced to the customer, never pushed to
+        // reviewReasons. See the emptyOrNearEmpty gate below for the genuine "nothing to bill
+        // on at all" case.
+        Sentry.captureException(err, { level: 'warning', tags: { component: 'document-analysis-ocr-fallback' } });
         rawText = '';
       }
     }
@@ -129,9 +146,17 @@ export async function analyzeDocumentForPricing(
   // no reliable page count to compare against, and docx_text already means extraction succeeded.
   const charsPerPhysicalPage = physicalPageCount != null && physicalPageCount > 0 ? characterCount / physicalPageCount : 0;
   const emptyOrNearEmpty = characterCount === 0;
+  const hasReliablePhysicalPageCount = physicalPageCount != null && physicalPageCount > 0;
   const possiblyHandwrittenOrIllegible = physicalPageCount != null && !emptyOrNearEmpty && charsPerPhysicalPage < MIN_CHARS_PER_PAGE_AFTER_OCR;
 
-  if (emptyOrNearEmpty) {
+  // 2026-07-28 decision: no character count is only a real "invalid document" signal when there
+  // is ALSO no reliable physical page count to bill against — calculateOfficialNotaryPrice's
+  // billableTranslationPages already takes max(reliablePhysicalPageCount, characterPages, 1), so
+  // a zero character count with a real physical page count (any PDF/JPG/PNG that at least opens)
+  // still prices correctly by page. Only a genuinely corrupted/unreadable file (no text AND no
+  // page count at all — DOCX render failure stacked with extraction failure) has truly nothing
+  // to bill on.
+  if (emptyOrNearEmpty && !hasReliablePhysicalPageCount) {
     reviewReasons.push('No text could be extracted from this document — requires operator review, no fallback estimate.');
   } else if (possiblyHandwrittenOrIllegible) {
     reviewReasons.push(`Extracted text is unusually short for ${physicalPageCount} physical page(s) (${charsPerPhysicalPage.toFixed(1)} chars/page) — possibly handwritten or illegible, requires operator review.`);

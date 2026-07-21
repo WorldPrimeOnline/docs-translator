@@ -217,8 +217,8 @@
     "quoteRecalculating": "Auftragsstatus wird aktualisiert...",
     "priceHint": "Der genaue Preis wird nach dem Hochladen und der Analyse des Dokuments berechnet.",
     "priceHintElectronic": "Elektronische Übersetzung — ab 1.500 ₸. Endpreis nach dem Hochladen.",
-    "priceHintOfficial": "Übersetzung mit Anbieterstempel — ab 6.200 ₸. Endpreis nach dem Hochladen.",
-    "priceHintNotarized": "Notarielle Übersetzung — ab 15.000 ₸. Endpreis nach dem Hochladen. Lieferung in Almaty — ab 21.000 ₸.",
+    "priceHintOfficial": "Übersetzung mit Anbieterstempel — ab 5.000 ₸. Endpreis nach dem Hochladen.",
+    "priceHintNotarized": "Notarielle Übersetzung — ab 13.000 ₸. Endpreis nach dem Hochladen. Lieferung in Almaty — ab 21.000 ₸.",
     "urgency": {
       "label": "DRINGLICHKEIT",
       "standard": "Standard",

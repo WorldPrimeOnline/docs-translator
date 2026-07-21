@@ -20,6 +20,8 @@ jest.mock('@/lib/r2/client', () => ({
 jest.mock('@/lib/document-analysis/service', () => ({
   resolveDocumentAnalysisForPricing: jest.fn(),
 }));
+const mockCaptureMessage = jest.fn();
+jest.mock('@sentry/nextjs', () => ({ captureMessage: (...args: unknown[]) => mockCaptureMessage(...args) }));
 
 import { supabaseServer } from '@/lib/supabase/server';
 import { computeQuoteForJob, saveQuote } from '@/lib/pricing/service';
@@ -262,7 +264,7 @@ describe('createCardOrder', () => {
       expect(mockSaveQuote).toHaveBeenCalledTimes(1);
     });
 
-    it('regression (2026-07-23): the exact staging incident (no active language rate for ru->zh) classifies as LANGUAGE_RATE_MISSING, not a generic UNSUPPORTED_DOCUMENT — no job created', async () => {
+    it('regression (2026-07-28): the exact staging incident (no active language rate for ru->zh) is reported to Sentry with the real classification, but the customer only ever sees the generic PRICING_UNAVAILABLE — no job created', async () => {
       // The staging incident: no active language rate for ru->zh under the active version made
       // calculateOfficialNotaryPrice return requiresOperatorReview=true with a meaningless
       // degenerate price (300 KZT, OCR-only, zero translation). The old code created the job
@@ -291,7 +293,13 @@ describe('createCardOrder', () => {
 
       const result = await createCardOrder(baseInput({ serviceLevel: 'official_with_translator_signature_and_provider_stamp' }));
 
-      expect(result).toEqual({ ok: false, status: 422, error: 'LANGUAGE_RATE_MISSING' });
+      // 2026-07-28: WPO has no manual operator process — LANGUAGE_RATE_MISSING is never
+      // surfaced to the customer, only via Sentry (the classification IS the tag/reason there).
+      expect(result).toEqual({ ok: false, status: 503, error: 'PRICING_UNAVAILABLE' });
+      expect(mockCaptureMessage).toHaveBeenCalledWith(
+        expect.stringContaining('LANGUAGE_RATE_MISSING'),
+        expect.objectContaining({ tags: expect.objectContaining({ reason: 'LANGUAGE_RATE_MISSING' }) }),
+      );
       expect(docUpdateChain.update).toHaveBeenCalledWith({ status: 'failed' });
       expect(mockSaveQuote).not.toHaveBeenCalled();
       // Exactly 4 .from() calls total (users, existing-doc, doc insert, doc-failed update) —
@@ -299,7 +307,7 @@ describe('createCardOrder', () => {
       expect(mockFrom).toHaveBeenCalledTimes(4);
     });
 
-    it('regression (2026-07-23): a genuinely unsupported document type (presentation) classifies as UNSUPPORTED_DOCUMENT, distinct from LANGUAGE_RATE_MISSING/PRICING_VERSION_MISMATCH/DOCUMENT_ANALYSIS_FAILED', async () => {
+    it('regression (2026-07-28): a genuinely unsupported document type (presentation) is reported to Sentry as UNSUPPORTED_DOCUMENT, but the customer only sees the generic PRICING_UNAVAILABLE', async () => {
       mockResolveAnalysis.mockResolvedValueOnce({
         kind: 'completed',
         row: { id: 'analysis-1', documentId: 'attempt-1', revision: 1, status: 'completed', method: 'pdf_text_layer', sourceCharacterCountWithSpaces: 1800, physicalPageCount: 1 },
@@ -320,11 +328,15 @@ describe('createCardOrder', () => {
 
       const result = await createCardOrder(baseInput({ serviceLevel: 'official_with_translator_signature_and_provider_stamp', documentType: 'presentation' }));
 
-      expect(result).toEqual({ ok: false, status: 422, error: 'UNSUPPORTED_DOCUMENT' });
+      expect(result).toEqual({ ok: false, status: 503, error: 'PRICING_UNAVAILABLE' });
+      expect(mockCaptureMessage).toHaveBeenCalledWith(
+        expect.stringContaining('UNSUPPORTED_DOCUMENT'),
+        expect.objectContaining({ tags: expect.objectContaining({ reason: 'UNSUPPORTED_DOCUMENT' }) }),
+      );
       expect(mockSaveQuote).not.toHaveBeenCalled();
     });
 
-    it('regression (2026-07-23): a config-level review reason (unused_channel_reserve negative) classifies as PRICING_VERSION_MISMATCH (503), not UNSUPPORTED_DOCUMENT', async () => {
+    it('regression (2026-07-28): a config-level review reason (unused_channel_reserve negative) is reported to Sentry as PRICING_VERSION_MISMATCH, but the customer only sees the generic PRICING_UNAVAILABLE', async () => {
       mockResolveAnalysis.mockResolvedValueOnce({
         kind: 'completed',
         row: { id: 'analysis-1', documentId: 'attempt-1', revision: 1, status: 'completed', method: 'pdf_text_layer', sourceCharacterCountWithSpaces: 1800, physicalPageCount: 1 },
@@ -345,7 +357,7 @@ describe('createCardOrder', () => {
 
       const result = await createCardOrder(baseInput({ serviceLevel: 'official_with_translator_signature_and_provider_stamp' }));
 
-      expect(result).toEqual({ ok: false, status: 503, error: 'PRICING_VERSION_MISMATCH' });
+      expect(result).toEqual({ ok: false, status: 503, error: 'PRICING_UNAVAILABLE' });
     });
 
     it('regression (2026-07-23, atomicity invariant): job created successfully but saveQuote fails — the job row is KEPT (as a failed audit record, not deleted) but is transitioned OUT of payment_pending, so no payable job ever exists without a quote', async () => {
@@ -410,7 +422,7 @@ describe('createCardOrder', () => {
       expect(mockComputeQuote).not.toHaveBeenCalled();
     });
 
-    it('analysis failed: document marked failed, 500 returned, no quote created', async () => {
+    it('analysis pipeline failed: document marked failed, generic PRICING_UNAVAILABLE returned (never the raw pipeline reason), no quote created', async () => {
       mockResolveAnalysis.mockResolvedValueOnce({ kind: 'failed', reason: 'R2 download failed' });
       const failUpdateChain = chain({ data: null, error: null });
       mockFrom
@@ -421,12 +433,16 @@ describe('createCardOrder', () => {
 
       const result = await createCardOrder(baseInput({ serviceLevel: 'official_with_translator_signature_and_provider_stamp' }));
 
-      expect(result).toEqual({ ok: false, status: 500, error: 'ANALYSIS_FAILED' });
+      expect(result).toEqual({ ok: false, status: 503, error: 'PRICING_UNAVAILABLE' });
+      expect(mockCaptureMessage).toHaveBeenCalledWith(
+        expect.stringContaining('DOCUMENT_ANALYSIS_PIPELINE_FAILED'),
+        expect.objectContaining({ tags: expect.objectContaining({ reason: 'DOCUMENT_ANALYSIS_PIPELINE_FAILED' }) }),
+      );
       expect(failUpdateChain.update).toHaveBeenCalledWith(expect.objectContaining({ status: 'failed' }));
       expect(mockComputeQuote).not.toHaveBeenCalled();
     });
 
-    it('analysis requires_operator_review: no quote created, 422 returned', async () => {
+    it('analysis requires_operator_review (genuinely corrupted/unreadable file): no quote created, INVALID_DOCUMENT returned — a distinct, honest, customer-facing code, never "operator review"', async () => {
       mockResolveAnalysis.mockResolvedValueOnce({ kind: 'requires_operator_review', row: { id: 'analysis-1' }, reasons: ['possibly handwritten'] });
       mockFrom
         .mockReturnValueOnce(chain({ data: null, error: null }))
@@ -435,11 +451,11 @@ describe('createCardOrder', () => {
 
       const result = await createCardOrder(baseInput({ serviceLevel: 'notarization_through_partners' }));
 
-      expect(result).toEqual({ ok: false, status: 422, error: 'ANALYSIS_REQUIRES_OPERATOR_REVIEW' });
+      expect(result).toEqual({ ok: false, status: 422, error: 'INVALID_DOCUMENT' });
       expect(mockComputeQuote).not.toHaveBeenCalled();
     });
 
-    it('computeQuoteForJob SERVICE_LEVEL_PRICING_DISABLED/PRICING_VERSION_MISMATCH both surface as 503 with the exact error code', async () => {
+    it('computeQuoteForJob SERVICE_LEVEL_PRICING_DISABLED/PRICING_VERSION_MISMATCH both surface as the generic PRICING_UNAVAILABLE, never the raw internal code', async () => {
       mockResolveAnalysis.mockResolvedValueOnce({
         kind: 'completed',
         row: { id: 'analysis-1', sourceCharacterCountWithSpaces: 1800, physicalPageCount: 1 },
@@ -453,7 +469,11 @@ describe('createCardOrder', () => {
 
       const result = await createCardOrder(baseInput({ serviceLevel: 'official_with_translator_signature_and_provider_stamp' }));
 
-      expect(result).toEqual({ ok: false, status: 503, error: 'PRICING_VERSION_MISMATCH' });
+      expect(result).toEqual({ ok: false, status: 503, error: 'PRICING_UNAVAILABLE' });
+      expect(mockCaptureMessage).toHaveBeenCalledWith(
+        expect.stringContaining('PRICING_VERSION_MISMATCH'),
+        expect.objectContaining({ tags: expect.objectContaining({ reason: 'PRICING_VERSION_MISMATCH' }) }),
+      );
     });
   });
 
@@ -494,7 +514,7 @@ describe('createCardOrder', () => {
     );
   });
 
-  it('marks the document failed and returns PRICING_NOT_CONFIGURED when pricing errors', async () => {
+  it('marks the document failed and returns the generic PRICING_UNAVAILABLE (never the raw PRICING_NOT_CONFIGURED) when pricing errors', async () => {
     mockComputeQuote.mockResolvedValueOnce({ error: 'PRICING_NOT_CONFIGURED' });
     const docInsertChain = chain({ data: { id: 'attempt-1' }, error: null });
     const docUpdateChain = chain({ data: null, error: null });
@@ -507,7 +527,11 @@ describe('createCardOrder', () => {
 
     const result = await createCardOrder(baseInput());
 
-    expect(result).toEqual({ ok: false, status: 503, error: 'PRICING_NOT_CONFIGURED' });
+    expect(result).toEqual({ ok: false, status: 503, error: 'PRICING_UNAVAILABLE' });
+    expect(mockCaptureMessage).toHaveBeenCalledWith(
+      expect.stringContaining('PRICING_NOT_CONFIGURED'),
+      expect.objectContaining({ tags: expect.objectContaining({ reason: 'PRICING_NOT_CONFIGURED' }) }),
+    );
     expect(docUpdateChain.update).toHaveBeenCalledWith({ status: 'failed' });
   });
 

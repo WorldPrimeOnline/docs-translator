@@ -34,6 +34,8 @@ jest.mock('@/lib/document-analysis/analyze', () => ({
 jest.mock('@/lib/referral/server', () => ({
   attachReferralToOrder: jest.fn(),
 }));
+const mockCaptureMessage = jest.fn();
+jest.mock('@sentry/nextjs', () => ({ captureMessage: (...args: unknown[]) => mockCaptureMessage(...args) }));
 
 import { supabaseServer } from '@/lib/supabase/server';
 import { downloadFile, uploadFile } from '@/lib/r2/client';
@@ -207,17 +209,21 @@ describe('calculateDraftPrice', () => {
     expect(mockComputeQuote).not.toHaveBeenCalled();
   });
 
-  it('passes through a pricing engine error without writing to the draft', async () => {
+  it('never surfaces a pricing engine error by name to the caller — generic PRICING_UNAVAILABLE, real reason to Sentry', async () => {
     mockFrom.mockReturnValueOnce(chain({ data: BASE_DRAFT, error: null }));
     mockComputeQuote.mockResolvedValueOnce({ error: 'PRICING_NOT_CONFIGURED' });
 
     const result = await calculateDraftPrice('draft-1', { sessionToken: 'sess-token' });
 
-    expect(result).toEqual({ ok: false, error: 'PRICING_NOT_CONFIGURED' });
+    expect(result).toEqual({ ok: false, error: 'PRICING_UNAVAILABLE' });
+    expect(mockCaptureMessage).toHaveBeenCalledWith(
+      expect.stringContaining('PRICING_NOT_CONFIGURED'),
+      expect.objectContaining({ tags: expect.objectContaining({ reason: 'PRICING_NOT_CONFIGURED' }) }),
+    );
     expect(mockFrom).toHaveBeenCalledTimes(1); // only the read — no update attempted
   });
 
-  it('regression (2026-07-23): requiresOperatorReview=true from computeQuoteForJob is a terminal, CLASSIFIED failure — never a priced draft with a note (WPO has no manual operator pricing)', async () => {
+  it('regression (2026-07-28): requiresOperatorReview=true from computeQuoteForJob is a terminal failure, reported to Sentry with its real classification, but never surfaced to the customer by name (WPO has no manual operator pricing)', async () => {
     mockFrom.mockReturnValueOnce(chain({ data: BASE_DRAFT, error: null }));
     mockComputeQuote.mockResolvedValueOnce({
       result: { amountKzt: 300, currency: 'KZT', requiresOperatorReview: true, reviewReasons: ['No active language rate found for ru→en — requires operator review'], context: {}, items: [] },
@@ -226,9 +232,13 @@ describe('calculateDraftPrice', () => {
 
     const result = await calculateDraftPrice('draft-1', { sessionToken: 'sess-token' });
 
-    // The exact staging incident's cause (missing language rate) classifies as
-    // LANGUAGE_RATE_MISSING, not a generic UNSUPPORTED_DOCUMENT.
-    expect(result).toEqual({ ok: false, error: 'LANGUAGE_RATE_MISSING' });
+    // The exact staging incident's cause (missing language rate) is reported to Sentry as
+    // LANGUAGE_RATE_MISSING, but the customer only ever sees the generic PRICING_UNAVAILABLE.
+    expect(result).toEqual({ ok: false, error: 'PRICING_UNAVAILABLE' });
+    expect(mockCaptureMessage).toHaveBeenCalledWith(
+      expect.stringContaining('LANGUAGE_RATE_MISSING'),
+      expect.objectContaining({ tags: expect.objectContaining({ reason: 'LANGUAGE_RATE_MISSING' }) }),
+    );
     expect(mockFrom).toHaveBeenCalledTimes(1); // only the read — no pricing_snapshot/status write
   });
 
@@ -329,23 +339,27 @@ describe('calculateDraftPrice', () => {
       expect(mockDownloadFile).toHaveBeenCalledWith('draft-uploads/draft-1/reuploaded.pdf');
     });
 
-    it('analysis requiring operator review: no snapshot saved, ANALYSIS_REQUIRES_OPERATOR_REVIEW returned, computeQuoteForJob never called', async () => {
+    it('analysis requiring operator review (genuinely corrupted/unreadable file): no snapshot saved, INVALID_DOCUMENT returned — a distinct, honest, customer-facing code, computeQuoteForJob never called', async () => {
       mockAnalyzeDocument.mockResolvedValueOnce({ method: 'ocr', characterCount: 0, physicalPageCount: 1, requiresOperatorReview: true, reviewReasons: ['No text could be extracted'] });
       mockDownloadFile.mockResolvedValueOnce(Buffer.from('pdf-bytes'));
       mockFrom.mockReturnValueOnce(chain({ data: draftWithFile, error: null })).mockReturnValueOnce(chain({ data: null, error: null }));
 
       const result = await calculateDraftPrice('draft-1', { sessionToken: 'sess-token' });
 
-      expect(result).toEqual({ ok: false, error: 'ANALYSIS_REQUIRES_OPERATOR_REVIEW' });
+      expect(result).toEqual({ ok: false, error: 'INVALID_DOCUMENT' });
       expect(mockComputeQuote).not.toHaveBeenCalled();
     });
 
-    it('no file uploaded yet: ANALYSIS_FAILED, never calls analyzeDocumentForPricing', async () => {
+    it('no file uploaded yet: generic PRICING_UNAVAILABLE (never the raw pipeline reason), never calls analyzeDocumentForPricing', async () => {
       mockFrom.mockReturnValueOnce(chain({ data: { ...BASE_DRAFT, service_level: 'notarization_through_partners', file_keys: [] }, error: null }));
 
       const result = await calculateDraftPrice('draft-1', { sessionToken: 'sess-token' });
 
-      expect(result).toEqual({ ok: false, error: 'ANALYSIS_FAILED' });
+      expect(result).toEqual({ ok: false, error: 'PRICING_UNAVAILABLE' });
+      expect(mockCaptureMessage).toHaveBeenCalledWith(
+        expect.stringContaining('DOCUMENT_ANALYSIS_PIPELINE_FAILED'),
+        expect.objectContaining({ tags: expect.objectContaining({ reason: 'DOCUMENT_ANALYSIS_PIPELINE_FAILED' }) }),
+      );
       expect(mockAnalyzeDocument).not.toHaveBeenCalled();
     });
   });

@@ -211,8 +211,8 @@
     "quoteRecalculating": "Refreshing order status...",
     "priceHint": "The exact price is calculated after document upload and analysis.",
     "priceHintElectronic": "Electronic translation — from ₸1,500. Final price after upload.",
-    "priceHintOfficial": "Official translation — from 6 200 ₸. Final price after upload.",
-    "priceHintNotarized": "Notarized translation — from 15 000 ₸. Final price after upload. Delivery in Almaty — from 21 000 ₸.",
+    "priceHintOfficial": "Official translation — from 5 000 ₸. Final price after upload.",
+    "priceHintNotarized": "Notarized translation — from 13 000 ₸. Final price after upload. Delivery in Almaty — from 21 000 ₸.",
     "urgency": {
       "label": "HOWLUKMAÇLYK",
       "standard": "Standart",

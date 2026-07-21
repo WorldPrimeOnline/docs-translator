@@ -20,6 +20,7 @@ import { calculatePartnerDiscount } from '@/lib/partners/discount';
 // never performs analysis. Loaded via a dynamic import() inside resolveDraftAnalysis() below,
 // the only call site.
 import { classifyPricingReviewReasons } from '@/lib/pricing/review-classification';
+import { reportInternalPricingFailure } from '@/lib/pricing/internal-failure';
 import type { PricingInput, PricingResult } from '@/lib/pricing/types';
 import type { ServiceLevel } from '@/lib/translation-prompts/types';
 import type { DraftAnalysisSnapshot, DraftFileKey, DraftPricingSnapshot, OrderDraftInput, OrderDraftRow } from './types';
@@ -261,24 +262,39 @@ export async function calculateDraftPrice(
   let analysis: DraftAnalysisSnapshot | undefined;
   if (draft.service_level !== 'electronic') {
     const analysisOutcome = await resolveDraftAnalysis(draft);
-    if (analysisOutcome.kind === 'requires_operator_review') return { ok: false, error: 'ANALYSIS_REQUIRES_OPERATOR_REVIEW' };
-    if (analysisOutcome.kind === 'failed') return { ok: false, error: 'ANALYSIS_FAILED' };
+    if (analysisOutcome.kind === 'requires_operator_review') {
+      // Genuinely corrupted/unreadable file — a distinct, honest, customer-actionable code
+      // (never "operator review" — WPO has no such process). See upload-card-shared.ts's
+      // createCardOrder for the matching comment.
+      return { ok: false, error: 'INVALID_DOCUMENT' };
+    }
+    if (analysisOutcome.kind === 'failed') {
+      const failure = reportInternalPricingFailure('DOCUMENT_ANALYSIS_PIPELINE_FAILED', { draftId, reason: analysisOutcome.reason });
+      return { ok: false, error: failure.error };
+    }
     analysis = analysisOutcome.snapshot;
   }
 
   const quoteResult = await computeQuoteForJob(buildPricingInput(draft, { analysis }));
-  if ('error' in quoteResult) return { ok: false, error: quoteResult.error };
+  if ('error' in quoteResult) {
+    // PRICING_NOT_CONFIGURED / SERVICE_LEVEL_PRICING_DISABLED / PRICING_VERSION_MISMATCH are all
+    // internal config problems — never surfaced to the customer by name (2026-07-28), only the
+    // real reason logged to Sentry for ops to fix.
+    const failure = reportInternalPricingFailure(quoteResult.error, { draftId, serviceLevel: draft.service_level });
+    return { ok: false, error: failure.error };
+  }
 
   const { version } = quoteResult;
   let { result: pricingResult } = quoteResult;
 
-  // 2026-07-22/23: same fix as createCardOrder — WPO has no manual operator pricing process, so
-  // requiresOperatorReview=true here is a terminal failure, never a priced draft with a note.
-  // The genuine "document needs a human look" case is already handled above, at the analysis
-  // stage (ANALYSIS_REQUIRES_OPERATOR_REVIEW). Classified rather than collapsed into one generic
-  // code — see src/lib/pricing/review-classification.ts.
+  // 2026-07-22/23/28: same fix as createCardOrder — WPO has no manual operator pricing process,
+  // so requiresOperatorReview=true here is a terminal failure, never a priced draft with a note,
+  // and never surfaced to the customer by classification name. The genuine "document needs a
+  // human look" case is already handled above (INVALID_DOCUMENT).
   if (pricingResult.requiresOperatorReview) {
-    return { ok: false, error: classifyPricingReviewReasons(pricingResult.reviewReasons) };
+    const classification = classifyPricingReviewReasons(pricingResult.reviewReasons);
+    const failure = reportInternalPricingFailure(classification, { draftId, reviewReasons: pricingResult.reviewReasons });
+    return { ok: false, error: failure.error };
   }
 
   const basePreDiscountKzt = Math.round(pricingResult.amountKzt);

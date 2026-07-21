@@ -9,7 +9,9 @@ const mockExtractTextFromPdf = jest.fn();
 const mockExtractDocxText = jest.fn();
 const mockExtractPdfTextLayer = jest.fn();
 const mockGetPhysicalPageCount = jest.fn();
+const mockCaptureException = jest.fn();
 
+jest.mock('@sentry/nextjs', () => ({ captureException: (...args: unknown[]) => mockCaptureException(...args) }));
 jest.mock('@/lib/convert-to-pdf', () => ({ convertToPdf: (...args: unknown[]) => mockConvertToPdf(...args) }));
 jest.mock('@/lib/ocr/mistral', () => ({ extractTextFromPdf: (...args: unknown[]) => mockExtractTextFromPdf(...args) }));
 jest.mock('../docx', () => ({ extractDocxText: (...args: unknown[]) => mockExtractDocxText(...args) }));
@@ -98,9 +100,26 @@ describe('analyzeDocumentForPricing', () => {
     expect(result.method).toBe('ocr');
   });
 
-  it('empty extracted text (all methods yield nothing) -> requires_operator_review, no fallback estimate', async () => {
+  // 2026-07-28 decision: empty extracted text is no longer an automatic operator_review when a
+  // reliable physical page count exists (getPhysicalPageCount never throws in production — it
+  // always returns >= 1 — so this branch always has a real page count to bill against). Only
+  // when there is truly NO page count either does this become a genuine invalid-document case.
+  it('empty extracted text but a reliable physical page count exists -> prices by page, never operator_review', async () => {
     mockExtractPdfTextLayer.mockResolvedValue(null);
     mockGetPhysicalPageCount.mockResolvedValue(1);
+    mockExtractTextFromPdf.mockResolvedValue({ markdown: '', pageMarkdowns: [], pageCount: 1 });
+
+    const { analyzeDocumentForPricing } = await import('../analyze');
+    const result = await analyzeDocumentForPricing(Buffer.from('empty-pdf'), PDF_MIME);
+
+    expect(result.characterCount).toBe(0);
+    expect(result.physicalPageCount).toBe(1);
+    expect(result.requiresOperatorReview).toBe(false);
+  });
+
+  it('empty extracted text AND no reliable physical page count -> genuine operator_review, no fallback estimate', async () => {
+    mockExtractPdfTextLayer.mockResolvedValue(null);
+    mockGetPhysicalPageCount.mockResolvedValue(0); // simulates the true "nothing to bill on" edge case
     mockExtractTextFromPdf.mockResolvedValue({ markdown: '', pageMarkdowns: [], pageCount: 1 });
 
     const { analyzeDocumentForPricing } = await import('../analyze');
@@ -111,16 +130,33 @@ describe('analyzeDocumentForPricing', () => {
     expect(result.reviewReasons.some((r) => r.includes('No text could be extracted'))).toBe(true);
   });
 
-  it('OCR throwing an error -> requires_operator_review with the real reason, not a crash', async () => {
+  it('OCR throwing an error but a reliable physical page count exists -> prices by page, logs to Sentry, never operator_review', async () => {
     mockExtractPdfTextLayer.mockResolvedValue(null);
-    mockGetPhysicalPageCount.mockResolvedValue(1);
+    mockGetPhysicalPageCount.mockResolvedValue(3);
+    mockExtractTextFromPdf.mockRejectedValue(new Error('Mistral OCR 500: server error'));
+
+    const { analyzeDocumentForPricing } = await import('../analyze');
+    const result = await analyzeDocumentForPricing(Buffer.from('bad-pdf'), PDF_MIME);
+
+    expect(result.requiresOperatorReview).toBe(false);
+    expect(result.physicalPageCount).toBe(3);
+    expect(result.reviewReasons.some((r) => r.includes('OCR failed'))).toBe(false);
+    expect(mockCaptureException).toHaveBeenCalledWith(
+      expect.any(Error),
+      expect.objectContaining({ tags: expect.objectContaining({ component: 'document-analysis-ocr-fallback' }) }),
+    );
+  });
+
+  it('OCR throwing an error AND no reliable physical page count -> genuine operator_review', async () => {
+    mockExtractPdfTextLayer.mockResolvedValue(null);
+    mockGetPhysicalPageCount.mockResolvedValue(0);
     mockExtractTextFromPdf.mockRejectedValue(new Error('Mistral OCR 500: server error'));
 
     const { analyzeDocumentForPricing } = await import('../analyze');
     const result = await analyzeDocumentForPricing(Buffer.from('bad-pdf'), PDF_MIME);
 
     expect(result.requiresOperatorReview).toBe(true);
-    expect(result.reviewReasons.some((r) => r.includes('OCR failed'))).toBe(true);
+    expect(result.reviewReasons.some((r) => r.includes('No text could be extracted'))).toBe(true);
   });
 
   it('critically low text yield relative to page count -> flagged as possibly handwritten/illegible', async () => {
@@ -161,6 +197,38 @@ describe('analyzeDocumentForPricing', () => {
     expect(result.physicalPageCount).toBeNull();
     expect(result.characterCount).toBeGreaterThan(0);
     expect(result.requiresOperatorReview).toBe(false); // extraction itself succeeded — a missing page count alone is not a review reason
+  });
+
+  // 2026-07-28 decision: a DOCX text-extraction failure alone is not an invalid document if the
+  // physical-page render still succeeds — billing falls back to page-based pricing.
+  it('DOCX: text extraction fails but page-count render succeeds -> prices by page, logs to Sentry, never operator_review', async () => {
+    mockExtractDocxText.mockRejectedValue(new Error('mammoth: corrupted zip entry'));
+    mockConvertToPdf.mockResolvedValue(Buffer.from('fake-pdf'));
+    mockGetPhysicalPageCount.mockResolvedValue(2);
+
+    const { analyzeDocumentForPricing } = await import('../analyze');
+    const result = await analyzeDocumentForPricing(Buffer.from('fake-docx'), DOCX_MIME);
+
+    expect(result.method).toBe('docx_text');
+    expect(result.physicalPageCount).toBe(2);
+    expect(result.characterCount).toBe(0);
+    expect(result.requiresOperatorReview).toBe(false);
+    expect(mockCaptureException).toHaveBeenCalledWith(
+      expect.any(Error),
+      expect.objectContaining({ tags: expect.objectContaining({ component: 'document-analysis-docx-extraction' }) }),
+    );
+  });
+
+  it('DOCX: BOTH text extraction and page-count render fail -> genuine operator_review (nothing to bill on)', async () => {
+    mockExtractDocxText.mockRejectedValue(new Error('mammoth: corrupted zip entry'));
+    mockConvertToPdf.mockRejectedValue(new Error('LibreOffice not available in this environment'));
+
+    const { analyzeDocumentForPricing } = await import('../analyze');
+    const result = await analyzeDocumentForPricing(Buffer.from('fake-docx'), DOCX_MIME);
+
+    expect(result.physicalPageCount).toBeNull();
+    expect(result.characterCount).toBe(0);
+    expect(result.requiresOperatorReview).toBe(true);
   });
 
   it('never fabricates a confidence score — quality signals contain only real measured fields', async () => {
