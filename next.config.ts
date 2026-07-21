@@ -75,8 +75,14 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   trailingSlash: false,
 
-  // Prevent webpack from bundling puppeteer-core (native bindings)
-  serverExternalPackages: ['puppeteer-core'],
+  // Prevent webpack from bundling native-binding packages — webpack's bundling breaks their
+  // native addon loading (puppeteer-core's Chromium binary; @napi-rs/canvas's platform-specific
+  // .node binary, which pdf-parse/pdfjs-dist need for PDF text-layer extraction). Externalized
+  // here so Node's own require() resolves them at runtime with native bindings intact, instead
+  // of pdfjs-dist silently falling through to its browser code path (which references
+  // DOMMatrix, undefined in any Node runtime) when webpack mangles the canvas addon — the exact
+  // "ReferenceError: DOMMatrix is not defined" crash fixed 2026-07-24.
+  serverExternalPackages: ['puppeteer-core', 'pdf-parse', 'pdfjs-dist', '@napi-rs/canvas'],
 
   async headers() {
     return [

@@ -20,9 +20,14 @@
 import { convertToPdf } from '@/lib/convert-to-pdf';
 import { extractTextFromPdf } from '@/lib/ocr/mistral';
 import { extractDocxText } from './docx';
-import { extractPdfTextLayer, isTextLayerSufficient } from './pdf-text-layer';
 import { getPhysicalPageCount } from './physical-pages';
 import { normalizeSourceTextForPricing } from './normalize';
+// 2026-07-24: NOT a top-level import — pdf-text-layer.ts wraps `pdf-parse` (pdfjs-dist +
+// @napi-rs/canvas internally), which crashed at module-init time in some bundling contexts
+// ("ReferenceError: DOMMatrix is not defined"). Loaded dynamically, only inside the non-DOCX
+// (PDF/image) branch below — a DOCX-only analysis never touches this chain at all. See also
+// next.config.ts's serverExternalPackages (stops webpack from mangling the native canvas
+// binary) and upload-card-shared.ts's matching dynamic import of this whole module.
 
 export type AnalysisMethod = 'docx_text' | 'pdf_text_layer' | 'ocr' | 'manual';
 
@@ -100,6 +105,8 @@ export async function analyzeDocumentForPricing(
     }
     physicalPageCount = await getPhysicalPageCount(pdfBuffer);
 
+    // Dynamic import — see the top-of-file comment; only PDFs/images ever reach this branch.
+    const { extractPdfTextLayer, isTextLayerSufficient } = await import('./pdf-text-layer');
     const textLayer = await extractPdfTextLayer(pdfBuffer);
     if (isTextLayerSufficient(textLayer)) {
       method = 'pdf_text_layer';

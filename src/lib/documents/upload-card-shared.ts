@@ -25,7 +25,14 @@ import { deriveBackcompatBooleans } from '@/lib/translation-workflow/output-plan
 import { computeQuoteForJob, extractNotaryUrgencySnapshot, saveQuote } from '@/lib/pricing/service';
 import { DOCUMENT_TYPE_COEFFICIENT } from '@/lib/pricing/config';
 import { classifyPricingReviewReasons, PRICING_REVIEW_HTTP_STATUS } from '@/lib/pricing/review-classification';
-import { resolveDocumentAnalysisForPricing } from '@/lib/document-analysis/service';
+// 2026-07-24: deliberately NOT a top-level import here — @/lib/document-analysis/service
+// transitively pulls in pdf-parse/pdfjs-dist (PDF text-layer extraction), which crashed at
+// MODULE INIT time ("ReferenceError: DOMMatrix is not defined") the moment ANYTHING was
+// imported from this file — including /api/documents/upload-card/init, which only creates a
+// presigned upload URL and has no business needing document analysis at all. Loaded via a
+// dynamic import() inside createCardOrder() below (the /complete path only), so init's bundle
+// never includes this chain. See also next.config.ts's serverExternalPackages, which stops
+// webpack from mangling @napi-rs/canvas's native binary in the /complete bundle itself.
 import { downloadFile } from '@/lib/r2/client';
 import { attachReferralToOrder } from '@/lib/referral/server';
 import { calculatePartnerDiscount } from '@/lib/partners/discount';
@@ -392,6 +399,8 @@ export async function createCardOrder(input: CardOrderInput): Promise<CardOrderR
 
   if (input.serviceLevel !== 'electronic') {
     logStage(correlationId, 'document_analysis', 'start', { documentId: doc.id });
+    // Dynamic import — see the top-of-file comment on why this is never a static import.
+    const { resolveDocumentAnalysisForPricing } = await import('@/lib/document-analysis/service');
     // input.fileKey always points at the merged, already-converted PDF by this point (the
     // /complete route runs convertToPdf()+mergePdfs() before calling createCardOrder) — so this
     // is always a PDF analysis, never DOCX/image-specific handling.

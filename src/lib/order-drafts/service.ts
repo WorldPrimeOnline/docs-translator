@@ -11,7 +11,14 @@ import { computeQuoteForJob, extractNotaryUrgencySnapshot, saveQuote } from '@/l
 import { deriveBackcompatBooleans } from '@/lib/translation-workflow/output-plan';
 import { attachReferralToOrder } from '@/lib/referral/server';
 import { calculatePartnerDiscount } from '@/lib/partners/discount';
-import { analyzeDocumentForPricing } from '@/lib/document-analysis/analyze';
+// 2026-07-24: deliberately NOT a top-level import — @/lib/document-analysis/analyze
+// transitively pulls in pdf-parse/pdfjs-dist for PDF text-layer extraction, which crashed at
+// module-init time ("ReferenceError: DOMMatrix is not defined") in some bundling contexts. This
+// file is imported by @/lib/order-drafts/upload-shared.ts, which is in turn imported by
+// /api/documents/upload-card/init/route.ts (for unrelated MIME/filename helpers) — so a static
+// import here was silently pulling document-analysis into that route's bundle even though init
+// never performs analysis. Loaded via a dynamic import() inside resolveDraftAnalysis() below,
+// the only call site.
 import { classifyPricingReviewReasons } from '@/lib/pricing/review-classification';
 import type { PricingInput, PricingResult } from '@/lib/pricing/types';
 import type { ServiceLevel } from '@/lib/translation-prompts/types';
@@ -213,6 +220,8 @@ async function resolveDraftAnalysis(draft: OrderDraftRow): Promise<DraftAnalysis
   let result;
   try {
     const buffer = await downloadFile(fileKey.key);
+    // Dynamic import — see the top-of-file comment on why this is never a static import.
+    const { analyzeDocumentForPricing } = await import('@/lib/document-analysis/analyze');
     result = await analyzeDocumentForPricing(buffer, fileKey.mimeType);
   } catch (err) {
     return { kind: 'failed', reason: err instanceof Error ? err.message : String(err) };

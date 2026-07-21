@@ -65,6 +65,40 @@ beforeEach(() => {
   mockGetPresignedPutUrl.mockImplementation((key: string) => Promise.resolve(`https://r2.example/${key}?sig=abc`));
 });
 
+describe('regression (2026-07-24): module load never pulls in document-analysis/pdfjs-dist', () => {
+  // Reproduces the exact staging crash: importing this route (which imports
+  // upload-card-shared.ts — loaded here via jest.requireActual, the REAL module, not a stub)
+  // used to eagerly load @/lib/document-analysis/service -> analyze.ts -> pdf-text-layer.ts ->
+  // pdf-parse -> pdfjs-dist at MODULE INIT time, crashing with
+  // "ReferenceError: DOMMatrix is not defined" in Vercel's bundling environment — even though
+  // this route only creates a presigned upload URL and never performs document analysis. By the
+  // time this describe block runs, `import { POST } from '../route'` (top of this file) has
+  // already fully loaded the real module graph, so require.cache is the ground truth for what
+  // actually got pulled in.
+  it('DOMMatrix is not defined in this test environment (proves the test is meaningful, not accidentally passing)', () => {
+    expect((globalThis as { DOMMatrix?: unknown }).DOMMatrix).toBeUndefined();
+  });
+
+  it('require.cache contains no pdfjs-dist, pdf-parse, or document-analysis module after loading the init route', () => {
+    const loadedPaths = Object.keys(require.cache);
+    const forbidden = ['pdfjs-dist', 'pdf-parse', 'document-analysis', '@napi-rs/canvas', 'pdf-text-layer'];
+    const offenders = loadedPaths.filter((p) => forbidden.some((f) => p.includes(f)));
+    expect(offenders).toEqual([]);
+  });
+
+  it('the real upload-card-shared.ts source has no top-level (static) import of document-analysis/service', () => {
+    // Static-source check, matching the existing pattern in
+    // worker/src/__tests__/index.startup.test.ts — the dynamic import() inside
+    // createCardOrder() is fine and expected; only a top-level `import ... from
+    // '@/lib/document-analysis/service'` would re-introduce the bug.
+    const fs = jest.requireActual('fs') as typeof import('fs');
+    const path = jest.requireActual('path') as typeof import('path');
+    const src = fs.readFileSync(path.join(__dirname, '../../../../../../lib/documents/upload-card-shared.ts'), 'utf-8');
+    const staticImportLines = src.split('\n').filter((l) => /^\s*import\b/.test(l));
+    expect(staticImportLines.some((l) => l.includes('@/lib/document-analysis/service'))).toBe(false);
+  });
+});
+
 it('returns 503 when Halyk card payments are disabled', async () => {
   mockGetHalykConfig.mockReturnValue({ enabled: false });
   const res = await POST(makeRequest({ ...VALID_BODY_BASE, files: [{ originalName: 'a.pdf', mimeType: 'application/pdf', sizeBytes: 100 }] }));
