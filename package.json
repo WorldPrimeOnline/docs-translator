@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "verify:pdf-bundle": "tsx scripts/verify-pdf-bundle-trace.ts",
+    "build:verify": "next build && npm run verify:pdf-bundle",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
