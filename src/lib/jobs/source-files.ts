@@ -6,10 +6,31 @@
  */
 import { supabaseServer } from '@/lib/supabase/server';
 
-// job_source_files/job_result_files (migration 0063) aren't in the generated Database
-// types yet — same `as any` pattern src/lib/document-analysis/service.ts uses for
-// document_analysis until the types are regenerated post-migration.
-const db = supabaseServer as any;
+/** Exact insert row shape for job_source_files (migration 0063). */
+interface JobSourceFilesInsertRow {
+  job_id: string;
+  sequence: number;
+  original_filename: string;
+  r2_key: string;
+  content_sha256: string;
+  mime_type: string;
+  physical_page_count: number | null;
+  converted_pdf_r2_key: string;
+}
+
+/**
+ * job_source_files isn't in the generated Database type yet (migration 0063 predates
+ * the last `supabase gen types` run). Rather than casting the whole client through
+ * `any`, this describes exactly the one call this file makes — through `unknown`,
+ * never `any` — so a typo in the table name or row shape still fails to compile.
+ */
+interface JobSourceFilesClient {
+  from(table: 'job_source_files'): {
+    insert(rows: JobSourceFilesInsertRow[]): Promise<{ error: { message: string } | null }>;
+  };
+}
+
+const db = supabaseServer as unknown as JobSourceFilesClient;
 
 export interface JobSourceFileInput {
   sequence: number;
