@@ -83,6 +83,26 @@ export function finalUploadKey(draftId: string): string {
 }
 
 /**
+ * Permanent per-source-file key (2026-07-31 multi-file fulfillment decision) — the
+ * ORIGINAL bytes (not the PDF-converted copy used for merging/pricing) of one deduped
+ * customer upload, in stable sequence order. `sequence` is 1-based. Extension is
+ * derived from the resolved MIME type so a photo stays a photo, not a forced .pdf.
+ */
+export function permanentSourceKey(draftId: string, sequence: number, mimeType: string): string {
+  const ext = ALLOWED_MIME_TYPES[mimeType] ?? 'bin';
+  return `${DRAFT_UPLOADS_PREFIX}/${draftId}/sources/${String(sequence).padStart(3, '0')}.${ext}`;
+}
+
+/**
+ * Permanent per-source CONVERTED PDF key — distinct from permanentSourceKey's original
+ * bytes. The worker's OCR step reads this key (extractTextFromPdf requires PDF input);
+ * permanentSourceKey stays the true original for Drive display and dedup.
+ */
+export function permanentConvertedPdfKey(draftId: string, sequence: number): string {
+  return `${DRAFT_UPLOADS_PREFIX}/${draftId}/sources/${String(sequence).padStart(3, '0')}.converted.pdf`;
+}
+
+/**
  * Strictly validates `draft-upload-raw/{draftId}/{uuid}` — rejects keys belonging to
  * another draft, the final key, arbitrary/attacker-supplied keys, path traversal, and
  * wrong prefixes. Delegates to the generic {prefix}/{scope}/{uuid} validator in

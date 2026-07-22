@@ -17,9 +17,11 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import crypto from 'crypto';
 import { downloadFile, uploadFile, deleteFile, headFile } from '@/lib/r2/client';
 import { matchesClaimedMimeType } from '@/lib/file-validation/signature';
 import { convertToPdf, mergePdfs } from '@/lib/convert-to-pdf';
+import { getPhysicalPageCount } from '@/lib/document-analysis/physical-pages';
 import { getHalykConfig } from '@/lib/payments/halyk/config';
 import { supabaseServer } from '@/lib/supabase/server';
 import {
@@ -31,9 +33,12 @@ import {
   findExistingCardOrder,
   isValidCardRawUploadKey,
   cardFinalUploadKey,
+  cardSourceKey,
+  cardConvertedPdfKey,
   createCardOrder,
   MAX_FILE_SIZE_EACH,
   MAX_TOTAL_SIZE,
+  type JobSourceFileInput,
 } from '@/lib/documents/upload-card-shared';
 import { resolveMimeType, buildCombinedOriginalName } from '@/lib/order-drafts/upload-shared';
 import { MAX_UPLOAD_FILE_COUNT } from '@/lib/order-drafts/upload-constants';
@@ -181,14 +186,50 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     // ─── Convert + merge (existing functions, unchanged). Keep raw objects on failure
-    // so a retry doesn't have to re-upload the files. ───
+    // so a retry doesn't have to re-upload the files. Also computes per-source hash +
+    // physical page count here (2026-08-01 multi-file fulfillment decision) — no
+    // dedup is applied in this flow (unlike order-drafts' 2026-07-29 fix), so sequence
+    // is a straight 1:1 map of upload order; every upload becomes its own
+    // job_source_files row, duplicates included, since this route has never
+    // deduplicated and changing that now would be a pricing-affecting behavior change
+    // out of scope for this fix. ───
     let pdfBuffer: Buffer;
+    let sourceHashes: string[];
+    let sourcePageCounts: number[];
+    let sourcePdfParts: Buffer[];
     try {
-      const pdfParts = await Promise.all(buffers.map((buf, i) => convertToPdf(buf, resolvedMimes[i]!)));
-      pdfBuffer = await mergePdfs(pdfParts);
+      sourcePdfParts = await Promise.all(buffers.map((buf, i) => convertToPdf(buf, resolvedMimes[i]!)));
+      sourceHashes = buffers.map((buf) => crypto.createHash('sha256').update(buf).digest('hex'));
+      sourcePageCounts = await Promise.all(sourcePdfParts.map((part) => getPhysicalPageCount(part)));
+      pdfBuffer = await mergePdfs(sourcePdfParts);
     } catch (err) {
       console.error('[upload-card/complete] conversion failed:', user.id, err);
       return NextResponse.json({ error: 'FILE_PROCESSING_FAILED' }, { status: 500 });
+    }
+
+    let sources: JobSourceFileInput[];
+    try {
+      sources = await Promise.all(buffers.map(async (buf, i) => {
+        const sequence = i + 1;
+        const srcKey = cardSourceKey(user.id, data.uploadAttemptId, sequence, resolvedMimes[i]!);
+        const convertedKey = cardConvertedPdfKey(user.id, data.uploadAttemptId, sequence);
+        await Promise.all([
+          uploadFile(srcKey, buf, resolvedMimes[i]!),
+          uploadFile(convertedKey, sourcePdfParts[i]!, 'application/pdf'),
+        ]);
+        return {
+          sequence,
+          originalName: uploads[i]!.originalName,
+          r2Key: srcKey,
+          contentSha256: sourceHashes[i]!,
+          mimeType: resolvedMimes[i]!,
+          physicalPageCount: sourcePageCounts[i]!,
+          convertedPdfR2Key: convertedKey,
+        } satisfies JobSourceFileInput;
+      }));
+    } catch (err) {
+      console.error('[upload-card/complete] permanent source upload failed:', user.id, err);
+      return NextResponse.json({ error: 'SOURCE_UPLOAD_FAILED' }, { status: 500 });
     }
 
     const finalKey = cardFinalUploadKey(user.id, data.uploadAttemptId);
@@ -228,6 +269,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       utmCampaign: data.utmCampaign ?? null,
       utmContent: data.utmContent ?? null,
       utmTerm: data.utmTerm ?? null,
+      sources,
     });
 
     if (!orderResult.ok) {

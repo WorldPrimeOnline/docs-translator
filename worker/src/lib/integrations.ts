@@ -953,6 +953,13 @@ export async function initializeOrderIntegrations(params: {
   customerId?: string | null;
   /** R2 key of the source PDF — uploaded to Drive 01_SOURCE if provided */
   sourceFileKey?: string | null;
+  /**
+   * Multi-source jobs (job_source_files rows exist, 2026-08-01 decision) upload each
+   * REAL original source to 01_SOURCE themselves, with NNN-prefixed naming — set this
+   * to skip this function's single hardcoded source.pdf upload (which would otherwise
+   * upload the internal merged pricing/analysis bundle under a misleading name).
+   */
+  skipMergedSourceUpload?: boolean;
   /** Optional order comment from the customer — included in Jira description */
   customerComment?: string | null;
 }): Promise<InitResult> {
@@ -1025,7 +1032,7 @@ export async function initializeOrderIntegrations(params: {
   }
 
   // ── 2. Upload source PDF to Drive 01_SOURCE ────────────────────────────────
-  if (sourceFolderId && params.sourceFileKey) {
+  if (sourceFolderId && params.sourceFileKey && !params.skipMergedSourceUpload) {
     try {
       const pdfBuf = await downloadFile(params.sourceFileKey);
       await uploadFileToDrive(sourceFolderId, 'source.pdf', pdfBuf, 'application/pdf');

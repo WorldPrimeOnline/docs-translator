@@ -612,6 +612,7 @@ describe('convertDraftToOrder', () => {
       .mockReturnValueOnce(usersUpsertChain)                     // users upsert
       .mockReturnValueOnce(docInsertChain)                       // documents insert
       .mockReturnValueOnce(jobInsertChain)                       // jobs insert
+      .mockReturnValueOnce(chain({ error: null }))                // job_source_files insert
       .mockReturnValueOnce(auditInsertChain)                     // job_audit_log insert
       .mockReturnValueOnce(finalMarkChain);                      // final order_drafts update
 
@@ -638,6 +639,106 @@ describe('convertDraftToOrder', () => {
     );
   });
 
+  it('creates one job_source_files row per original upload, sequence taken from draft.file_keys[0].sources — never re-derives order from filenames', async () => {
+    const priced = pricedDraftWithFile({
+      file_keys: [{
+        key: 'draft-uploads/draft-1/original.pdf',
+        originalName: '2_files_passport.pdf',
+        mimeType: 'application/pdf',
+        sizeBytes: 2000,
+        sources: [
+          { sequence: 1, originalName: 'passport.pdf', permanentKey: 'draft-uploads/draft-1/sources/001.pdf', contentSha256: 'hash-a', mimeType: 'application/pdf', physicalPageCount: 1, convertedPdfKey: 'draft-uploads/draft-1/sources/001.converted.pdf' },
+          { sequence: 2, originalName: 'visa.jpg', permanentKey: 'draft-uploads/draft-1/sources/002.jpg', contentSha256: 'hash-b', mimeType: 'image/jpeg', physicalPageCount: 1, convertedPdfKey: 'draft-uploads/draft-1/sources/002.converted.pdf' },
+        ],
+      }],
+    });
+
+    mockDownloadFile.mockResolvedValueOnce(Buffer.from('pdf-bytes'));
+    mockUploadFile.mockResolvedValueOnce(undefined);
+    mockSaveQuote.mockResolvedValueOnce({ quoteId: 'quote-99' });
+
+    const jobInsertChain = chain({ data: { id: 'job-99' }, error: null });
+    const sourceFilesInsertChain = chain({ error: null });
+    mockFrom
+      .mockReturnValueOnce(chain({ data: priced, error: null })) // existing check
+      .mockReturnValueOnce(chain({ data: priced, error: null })) // atomic claim succeeds
+      .mockReturnValueOnce(chain({ data: null, error: null }))   // users upsert
+      .mockReturnValueOnce(chain({ data: { id: 'doc-99' }, error: null })) // documents insert
+      .mockReturnValueOnce(jobInsertChain)                       // jobs insert
+      .mockReturnValueOnce(sourceFilesInsertChain)                // job_source_files insert
+      .mockReturnValueOnce(chain({ error: null }))                // job_audit_log insert
+      .mockReturnValueOnce(chain({ data: null, error: null }));   // final order_drafts update
+
+    const result = await convertDraftToOrder('draft-1', 'user-1');
+
+    expect(result.ok).toBe(true);
+    expect(sourceFilesInsertChain.insert).toHaveBeenCalledWith([
+      expect.objectContaining({ job_id: 'job-99', sequence: 1, original_filename: 'passport.pdf', r2_key: 'draft-uploads/draft-1/sources/001.pdf', content_sha256: 'hash-a', mime_type: 'application/pdf', physical_page_count: 1 }),
+      expect.objectContaining({ job_id: 'job-99', sequence: 2, original_filename: 'visa.jpg', r2_key: 'draft-uploads/draft-1/sources/002.jpg', content_sha256: 'hash-b', mime_type: 'image/jpeg', physical_page_count: 1 }),
+    ]);
+  });
+
+  it('legacy pre-0063 draft (no file_keys[0].sources at all): a job_source_files insert failure is non-fatal — the order still converts', async () => {
+    // pricedDraftWithFile() default file_keys has no `sources` field — this is exactly
+    // the "draft created before migration 0063 shipped" case, the ONLY one allowed to
+    // fall back to a synthesized single row and tolerate an insert failure.
+    const priced = pricedDraftWithFile();
+    mockDownloadFile.mockResolvedValueOnce(Buffer.from('pdf-bytes'));
+    mockUploadFile.mockResolvedValueOnce(undefined);
+    mockSaveQuote.mockResolvedValueOnce({ quoteId: 'quote-99' });
+
+    mockFrom
+      .mockReturnValueOnce(chain({ data: priced, error: null }))
+      .mockReturnValueOnce(chain({ data: priced, error: null }))
+      .mockReturnValueOnce(chain({ data: null, error: null }))
+      .mockReturnValueOnce(chain({ data: { id: 'doc-99' }, error: null }))
+      .mockReturnValueOnce(chain({ data: { id: 'job-99' }, error: null }))
+      .mockReturnValueOnce(chain({ error: { message: 'insert failed' } })) // job_source_files insert fails
+      .mockReturnValueOnce(chain({ error: null }))
+      .mockReturnValueOnce(chain({ data: null, error: null }));
+
+    const result = await convertDraftToOrder('draft-1', 'user-1');
+    expect(result.ok).toBe(true);
+  });
+
+  it('new-style draft WITH real file_keys[0].sources: a job_source_files insert failure is FATAL — job/document/draft are rolled back, no silent gap', async () => {
+    const priced = pricedDraftWithFile({
+      file_keys: [{
+        key: 'draft-uploads/draft-1/original.pdf',
+        originalName: 'passport.pdf',
+        mimeType: 'application/pdf',
+        sizeBytes: 1000,
+        sources: [
+          { sequence: 1, originalName: 'passport.pdf', permanentKey: 'draft-uploads/draft-1/sources/001.pdf', contentSha256: 'hash-a', mimeType: 'application/pdf', physicalPageCount: 1, convertedPdfKey: 'draft-uploads/draft-1/sources/001.converted.pdf' },
+        ],
+      }],
+    });
+    mockDownloadFile.mockResolvedValueOnce(Buffer.from('pdf-bytes'));
+    mockUploadFile.mockResolvedValueOnce(undefined);
+
+    const jobFailChain = chain({ error: null });
+    const docFailChain = chain({ error: null });
+    const draftRevertChain = chain({ error: null });
+    mockFrom
+      .mockReturnValueOnce(chain({ data: priced, error: null })) // existing check
+      .mockReturnValueOnce(chain({ data: priced, error: null })) // atomic claim succeeds
+      .mockReturnValueOnce(chain({ data: null, error: null }))   // users upsert
+      .mockReturnValueOnce(chain({ data: { id: 'doc-99' }, error: null })) // documents insert
+      .mockReturnValueOnce(chain({ data: { id: 'job-99' }, error: null })) // jobs insert
+      .mockReturnValueOnce(chain({ error: { message: 'insert failed' } })) // job_source_files insert fails
+      .mockReturnValueOnce(jobFailChain)     // jobs -> status: failed
+      .mockReturnValueOnce(docFailChain)     // documents -> status: failed
+      .mockReturnValueOnce(draftRevertChain); // order_drafts -> status: price_calculated
+
+    const result = await convertDraftToOrder('draft-1', 'user-1');
+
+    expect(result).toEqual({ ok: false, error: 'SOURCE_FILES_INSERT_FAILED' });
+    expect(mockSaveQuote).not.toHaveBeenCalled();
+    expect(jobFailChain.update).toHaveBeenCalledWith(expect.objectContaining({ status: 'failed' }));
+    expect(docFailChain.update).toHaveBeenCalledWith(expect.objectContaining({ status: 'failed' }));
+    expect(draftRevertChain.update).toHaveBeenCalledWith(expect.objectContaining({ status: 'price_calculated' }));
+  });
+
   it('non-electronic with a cached analysis_snapshot: materializes exactly one document_analysis row (never re-analyzes), analysisId flows into saveQuote', async () => {
     const priced = pricedDraftWithFile({
       service_level: 'official_with_translator_signature_and_provider_stamp',
@@ -659,6 +760,7 @@ describe('convertDraftToOrder', () => {
       .mockReturnValueOnce(docInsertChain)                       // documents insert
       .mockReturnValueOnce(analysisInsertChain)                  // document_analysis insert
       .mockReturnValueOnce(jobInsertChain)                       // jobs insert
+      .mockReturnValueOnce(chain({ error: null }))               // job_source_files insert
       .mockReturnValueOnce(chain({ error: null }))               // job_audit_log insert
       .mockReturnValueOnce(chain({ data: null, error: null }));  // final order_drafts update
 
@@ -714,6 +816,7 @@ describe('convertDraftToOrder', () => {
       .mockReturnValueOnce(chain({ data: null, error: null }))   // users upsert
       .mockReturnValueOnce(chain({ data: { id: 'doc-99' }, error: null })) // documents insert
       .mockReturnValueOnce(jobInsertChain)                       // jobs insert
+      .mockReturnValueOnce(chain({ error: null }))                // job_source_files insert
       .mockReturnValueOnce(chain({ error: null }))                // job_audit_log insert
       .mockReturnValueOnce(chain({ data: null, error: null }));   // final order_drafts update
 
@@ -765,6 +868,7 @@ describe('convertDraftToOrder', () => {
       .mockReturnValueOnce(chain({ data: null, error: null }))
       .mockReturnValueOnce(chain({ data: { id: 'doc-99' }, error: null }))
       .mockReturnValueOnce(jobInsertChain)
+      .mockReturnValueOnce(chain({ error: null })) // job_source_files insert
       .mockReturnValueOnce(chain({ error: null }))
       .mockReturnValueOnce(chain({ data: null, error: null }));
 

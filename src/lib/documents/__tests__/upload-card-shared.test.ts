@@ -154,6 +154,7 @@ describe('createCardOrder', () => {
       documentType: 'passport_id|pdf',
       serviceLevel: 'electronic',
       notaryUrgencyLevel: 'standard',
+      sources: [{ sequence: 1, originalName: 'passport.pdf', r2Key: 'documents/user-1/attempt-1/sources/001.pdf', contentSha256: 'hash-a', mimeType: 'application/pdf', physicalPageCount: 1, convertedPdfR2Key: 'documents/user-1/attempt-1/sources/001.converted.pdf' }],
       ...overrides,
     };
   }
@@ -174,6 +175,7 @@ describe('createCardOrder', () => {
       .mockReturnValueOnce(chain({ data: null, error: null })) // existing-document lookup — none found
       .mockReturnValueOnce(docInsertChain)
       .mockReturnValueOnce(jobInsertChain)
+      .mockReturnValueOnce(chain({ error: null })) // job_source_files insert
       .mockReturnValueOnce(auditChain);
 
     const result = await createCardOrder(baseInput());
@@ -213,6 +215,7 @@ describe('createCardOrder', () => {
         .mockReturnValueOnce(chain({ data: null, error: null }))
         .mockReturnValueOnce(docInsertChain)
         .mockReturnValueOnce(jobInsertChain)
+        .mockReturnValueOnce(chain({ error: null })) // job_source_files insert
         .mockReturnValueOnce(auditChain);
 
       const result = await createCardOrder(baseInput({ serviceLevel: 'official_with_translator_signature_and_provider_stamp' }));
@@ -245,6 +248,7 @@ describe('createCardOrder', () => {
         .mockReturnValueOnce(chain({ data: null, error: null })) // existing-document lookup — none
         .mockReturnValueOnce(chain({ data: { id: 'attempt-1' }, error: null })) // documents insert
         .mockReturnValueOnce(jobInsertChain) // jobs insert
+        .mockReturnValueOnce(chain({ error: null })) // job_source_files insert
         .mockReturnValueOnce(chain({ error: null })); // job_audit_log
 
       const result = await createCardOrder(baseInput({ serviceLevel: 'official_with_translator_signature_and_provider_stamp' }));
@@ -378,6 +382,7 @@ describe('createCardOrder', () => {
         .mockReturnValueOnce(chain({ data: null, error: null })) // existing-document lookup — none
         .mockReturnValueOnce(chain({ data: { id: 'attempt-1' }, error: null })) // documents insert
         .mockReturnValueOnce(chain({ data: { id: 'job-1' }, error: null })) // jobs insert succeeds
+        .mockReturnValueOnce(chain({ error: null })) // job_source_files insert succeeds
         .mockReturnValueOnce(jobUpdateChain) // job UPDATEd (not deleted) out of payment_pending
         .mockReturnValueOnce(docUpdateChain); // document marked failed
 
@@ -399,6 +404,7 @@ describe('createCardOrder', () => {
         .mockReturnValueOnce(chain({ data: null, error: null }))
         .mockReturnValueOnce(chain({ data: { id: 'attempt-1' }, error: null }))
         .mockReturnValueOnce(chain({ data: { id: 'job-1' }, error: null }))
+        .mockReturnValueOnce(chain({ error: null })) // job_source_files insert
         .mockReturnValueOnce(chain({ error: null }));
 
       await createCardOrder(baseInput({ serviceLevel: 'electronic' }));
@@ -502,6 +508,7 @@ describe('createCardOrder', () => {
       .mockReturnValueOnce(chain({ data: { id: 'attempt-1' }, error: null })) // documents insert
       .mockReturnValueOnce(partnerChain) // partners lookup
       .mockReturnValueOnce(jobInsertChain) // jobs insert
+      .mockReturnValueOnce(chain({ error: null })) // job_source_files insert
       .mockReturnValueOnce(chain({ error: null })); // job_audit_log
 
     const result = await createCardOrder(baseInput({ refCode: 'partner1' }));
@@ -607,6 +614,7 @@ describe('createCardOrder', () => {
       .mockReturnValueOnce(chain({ data: { id: 'attempt-1' }, error: null })) // documents insert
       .mockReturnValueOnce(chain({ data: null, error: null })) // partners lookup (no matching discount partner)
       .mockReturnValueOnce(chain({ data: { id: 'job-1' }, error: null })) // jobs insert
+      .mockReturnValueOnce(chain({ error: null })) // job_source_files insert
       .mockReturnValueOnce(chain({ error: null })); // job_audit_log
 
     const result = await createCardOrder(baseInput({ refCode: 'PARTNER1' }));
@@ -631,6 +639,7 @@ describe('createCardOrder', () => {
       .mockReturnValueOnce(chain({ data: null, error: null })) // existing-job lookup for that document — none (job insert never got that far)
       .mockReturnValueOnce(docUpdateChain) // document UPDATE (not insert) — reused
       .mockReturnValueOnce(jobInsertChain) // jobs insert succeeds this time
+      .mockReturnValueOnce(chain({ error: null })) // job_source_files insert
       .mockReturnValueOnce(chain({ error: null })); // job_audit_log
 
     const result = await createCardOrder(baseInput());

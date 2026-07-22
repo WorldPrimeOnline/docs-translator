@@ -37,8 +37,12 @@ import { reportInternalPricingFailure } from '@/lib/pricing/internal-failure';
 import { downloadFile } from '@/lib/r2/client';
 import { attachReferralToOrder } from '@/lib/referral/server';
 import { calculatePartnerDiscount } from '@/lib/partners/discount';
+import { insertJobSourceFiles, type JobSourceFileInput } from '@/lib/jobs/source-files';
+import { ALLOWED_MIME_TYPES } from '@/lib/order-drafts/upload-constants';
 import type { Database } from '@/types';
 import type { ServiceLevel } from '@/lib/translation-prompts/types';
+
+export type { JobSourceFileInput };
 
 // Same values the legacy endpoint has always enforced — moved here (not duplicated)
 // so the legacy route and the new init/complete endpoints share one source.
@@ -185,6 +189,27 @@ export function cardFinalUploadKey(userId: string, uploadAttemptId: string): str
   return `documents/${userId}/${uploadAttemptId}/original.pdf`;
 }
 
+/**
+ * Permanent per-source-file key (2026-08-01 multi-file fulfillment decision) — the
+ * ORIGINAL bytes (not the PDF-converted copy used for merging/pricing) of one raw
+ * card-payment upload, in stable client-upload order. `sequence` is 1-based.
+ * Mirrors order-drafts/upload-shared.ts's permanentSourceKey, same R2 layout
+ * convention as cardFinalUploadKey above.
+ */
+export function cardSourceKey(userId: string, uploadAttemptId: string, sequence: number, mimeType: string): string {
+  const ext = ALLOWED_MIME_TYPES[mimeType] ?? 'bin';
+  return `documents/${userId}/${uploadAttemptId}/sources/${String(sequence).padStart(3, '0')}.${ext}`;
+}
+
+/**
+ * Permanent per-source CONVERTED PDF key — distinct from cardSourceKey's original bytes.
+ * The worker's OCR step reads this key (extractTextFromPdf requires PDF input);
+ * cardSourceKey stays the true original for Drive display/dedup.
+ */
+export function cardConvertedPdfKey(userId: string, uploadAttemptId: string, sequence: number): string {
+  return `documents/${userId}/${uploadAttemptId}/sources/${String(sequence).padStart(3, '0')}.converted.pdf`;
+}
+
 /** Same 10-uploads/hour-per-user limit the legacy endpoint has always enforced. */
 export async function checkCardUploadRateLimit(userId: string): Promise<boolean> {
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
@@ -268,6 +293,14 @@ export interface CardOrderInput {
   utmCampaign?: string | null;
   utmContent?: string | null;
   utmTerm?: string | null;
+  /**
+   * One entry per original client upload, sequence taken strictly from upload order
+   * (2026-08-01 multi-file fulfillment decision, migration 0063). Required — every
+   * call site creates a brand-new job in this function (the idempotency check above
+   * returns early before this is ever needed for a replay), so there is no legacy
+   * gap here the way convertDraftToOrder has for pre-migration order_drafts.
+   */
+  sources: JobSourceFileInput[];
 }
 
 export interface CardOrderSuccess {
@@ -563,6 +596,20 @@ export async function createCardOrder(input: CardOrderInput): Promise<CardOrderR
     return { ok: false, status: 500, error: 'Failed to create job' };
   }
   logStage(correlationId, 'job_insert', 'ok', { jobId: job.id });
+
+  // job_source_files: always strict here — this function only ever creates a brand-new
+  // job (idempotency check above replays instead of re-running this), so real
+  // per-source metadata is always available; a failure here must not leave a job in a
+  // payable state with an incomplete/missing source-file record.
+  logStage(correlationId, 'job_source_files_insert', 'start', { jobId: job.id, count: input.sources.length });
+  const sourceFilesResult = await insertJobSourceFiles(job.id, input.sources, { strict: true });
+  if (!sourceFilesResult.ok) {
+    logStage(correlationId, 'job_source_files_insert', 'error', { reason: sourceFilesResult.error });
+    await supabaseServer.from('jobs').update({ status: 'failed', error_message: 'job_source_files insert failed' }).eq('id', job.id);
+    await supabaseServer.from('documents').update({ status: 'failed' }).eq('id', doc.id);
+    return { ok: false, status: 500, error: 'SOURCE_FILES_INSERT_FAILED' };
+  }
+  logStage(correlationId, 'job_source_files_insert', 'ok', { jobId: job.id });
 
   const notaryCutoffExpiry = pricingResult.context.notaryCutoff?.quoteExpiresAt;
   const cutoffExpiresAt = notaryCutoffExpiry && notaryCutoffExpiry.length > 0 ? notaryCutoffExpiry : undefined;

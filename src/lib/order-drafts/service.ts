@@ -11,6 +11,7 @@ import { computeQuoteForJob, extractNotaryUrgencySnapshot, saveQuote } from '@/l
 import { deriveBackcompatBooleans } from '@/lib/translation-workflow/output-plan';
 import { attachReferralToOrder } from '@/lib/referral/server';
 import { calculatePartnerDiscount } from '@/lib/partners/discount';
+import { insertJobSourceFiles, type JobSourceFileInput } from '@/lib/jobs/source-files';
 // 2026-07-24: deliberately NOT a top-level import — @/lib/document-analysis/analyze
 // transitively pulls in pdf-parse/pdfjs-dist for PDF text-layer extraction, which crashed at
 // module-init time ("ReferenceError: DOMMatrix is not defined") in some bundling contexts. This
@@ -235,10 +236,9 @@ async function resolveDraftAnalysis(draft: OrderDraftRow): Promise<DraftAnalysis
     physicalPageCount: result.physicalPageCount,
     requiresOperatorReview: result.requiresOperatorReview,
     reviewReasons: result.reviewReasons,
-    // Provenance carried forward from upload/complete's dedup step — see DraftFileKey's
-    // doc comment (2026-07-29 incident fix).
-    sourceUploadCount: fileKey.sourceUploadCount,
-    sourceUploadIds: fileKey.sourceUploadIds,
+    // Provenance carried forward from upload/complete's dedup step — see DraftSourceFile's
+    // doc comment (2026-07-29/07-31 fixes).
+    sources: fileKey.sources,
   };
 
   await db.from('order_drafts').update({ analysis_snapshot: snapshot, updated_at: new Date().toISOString() }).eq('id', draft.id);
@@ -330,10 +330,9 @@ export async function calculateDraftPrice(
     priceBeforeDiscountKzt: discountKzt > 0 ? basePreDiscountKzt : undefined,
     discountAppliedKzt: discountKzt > 0 ? discountKzt : undefined,
     discountCode: discountKzt > 0 ? refCodeForDiscount : undefined,
-    // Carried forward from the analysis snapshot — see DraftFileKey's doc comment
-    // (2026-07-29 incident fix). undefined for electronic (no document analysis at all).
-    sourceUploadCount: analysis?.sourceUploadCount,
-    sourceUploadIds: analysis?.sourceUploadIds,
+    // Carried forward from the analysis snapshot — see DraftSourceFile's doc comment
+    // (2026-07-29/07-31 fixes). undefined for electronic (no document analysis at all).
+    sources: analysis?.sources,
   };
 
   const { data, error } = await db
@@ -541,6 +540,44 @@ export async function convertDraftToOrder(draftId: string, userId: string): Prom
       await db.from('documents').update({ status: 'failed' }).eq('id', docId);
       await db.from('order_drafts').update({ status: 'price_calculated' }).eq('id', draftId);
       return { ok: false, error: jobError?.message ?? 'job_insert_failed' };
+    }
+
+    // ─── job_source_files: one row per ORIGINAL uploaded file, sequence taken strictly
+    // from client upload order (2026-07-31/08-01 multi-file fulfillment decision,
+    // migration 0063). draft.file_keys[0].sources is populated by upload/complete for
+    // every draft created after that fix — `strict: true` for those, since per-source
+    // worker processing and Drive read-back depend on this row set being complete. A
+    // pre-existing draft without it (stuck in price_calculated before this deploy,
+    // genuinely has no per-source metadata to insert) falls back to a single
+    // synthesized row and is the ONLY case allowed to be non-fatal. ───
+    const hasRealSources = !!sourceFileKey.sources;
+    const sourcesForJob: JobSourceFileInput[] = (sourceFileKey.sources ?? [{
+      sequence: 1,
+      originalName: sourceFileKey.originalName,
+      permanentKey: sourceFileKey.key,
+      contentSha256: '',
+      mimeType: sourceFileKey.mimeType,
+      physicalPageCount: draft.analysis_snapshot?.physicalPageCount ?? null,
+      // The legacy fallback's "one source" IS the merged draft PDF itself — already a
+      // valid PDF, so it doubles as its own converted-PDF key.
+      convertedPdfKey: sourceFileKey.key,
+    }]).map((s) => ({
+      sequence: s.sequence,
+      originalName: s.originalName,
+      r2Key: s.permanentKey,
+      contentSha256: s.contentSha256 || 'unknown-pre-2026-07-31-draft',
+      mimeType: s.mimeType,
+      physicalPageCount: s.physicalPageCount,
+      convertedPdfR2Key: s.convertedPdfKey,
+    }));
+
+    const sourceFilesResult = await insertJobSourceFiles(job.id, sourcesForJob, { strict: hasRealSources });
+    if (!sourceFilesResult.ok) {
+      console.error('[order-drafts] job_source_files insert failed (fatal — real source metadata was present):', sourceFilesResult.error);
+      await db.from('jobs').update({ status: 'failed', error_message: 'job_source_files insert failed' }).eq('id', job.id);
+      await db.from('documents').update({ status: 'failed' }).eq('id', docId);
+      await db.from('order_drafts').update({ status: 'price_calculated' }).eq('id', draftId);
+      return { ok: false, error: 'SOURCE_FILES_INSERT_FAILED' };
     }
 
     const pricingInput = buildPricingInput(draft, { documentId: doc.id, jobId: job.id, userId, analysisId, analysis: draft.analysis_snapshot });

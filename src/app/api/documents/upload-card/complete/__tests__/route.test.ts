@@ -268,6 +268,40 @@ describe('createCardOrder invocation and R2 error handling', () => {
     }));
   });
 
+  it('builds job_source_files-ready `sources` (sequence from upload order, per-source R2 key, hash, mime, page count) and passes them to createCardOrder', async () => {
+    mockHeadFile
+      .mockResolvedValueOnce({ contentLength: 100, contentType: 'application/pdf' })
+      .mockResolvedValueOnce({ contentLength: 200, contentType: 'image/jpeg' });
+    const twoUploads = [
+      { key: RAW_KEY, originalName: 'passport.pdf', mimeType: 'application/pdf', sizeBytes: 100 },
+      { key: `card-upload-raw/user-1/${UPLOAD_ATTEMPT_ID}/33333333-3333-3333-3333-333333333333`, originalName: 'visa.jpg', mimeType: 'image/jpeg', sizeBytes: 200 },
+    ];
+
+    const res = await POST(makeRequest({ ...VALID_BODY_BASE, uploads: twoUploads }));
+
+    expect(res.status).toBe(200);
+    expect(mockCreateCardOrder).toHaveBeenCalledWith(expect.objectContaining({
+      sources: [
+        expect.objectContaining({
+          sequence: 1, originalName: 'passport.pdf', mimeType: 'application/pdf',
+          r2Key: expect.stringMatching(new RegExp(`^documents/user-1/${UPLOAD_ATTEMPT_ID}/sources/001\\.pdf$`)),
+          convertedPdfR2Key: expect.stringMatching(new RegExp(`^documents/user-1/${UPLOAD_ATTEMPT_ID}/sources/001\\.converted\\.pdf$`)),
+        }),
+        expect.objectContaining({
+          sequence: 2, originalName: 'visa.jpg', mimeType: 'image/jpeg',
+          r2Key: expect.stringMatching(new RegExp(`^documents/user-1/${UPLOAD_ATTEMPT_ID}/sources/002\\.jpg$`)),
+          convertedPdfR2Key: expect.stringMatching(new RegExp(`^documents/user-1/${UPLOAD_ATTEMPT_ID}/sources/002\\.converted\\.pdf$`)),
+        }),
+      ],
+    }));
+    // Per-source ORIGINAL uploads must land at their own key, distinct from the final merged key.
+    expect(mockUploadFile).toHaveBeenCalledWith(expect.stringContaining('/sources/001.pdf'), expect.any(Buffer), 'application/pdf');
+    expect(mockUploadFile).toHaveBeenCalledWith(expect.stringContaining('/sources/002.jpg'), expect.any(Buffer), 'image/jpeg');
+    // Per-source CONVERTED PDFs (what the worker's OCR step actually reads) are uploaded too.
+    expect(mockUploadFile).toHaveBeenCalledWith(expect.stringContaining('/sources/001.converted.pdf'), expect.any(Buffer), 'application/pdf');
+    expect(mockUploadFile).toHaveBeenCalledWith(expect.stringContaining('/sources/002.converted.pdf'), expect.any(Buffer), 'application/pdf');
+  });
+
   it('deletes raw objects only after createCardOrder succeeds', async () => {
     mockHeadFile.mockResolvedValueOnce({ contentLength: 100, contentType: 'application/pdf' });
     await POST(makeRequest({ ...VALID_BODY_BASE, uploads: oneUpload }));
@@ -289,9 +323,21 @@ describe('createCardOrder invocation and R2 error handling', () => {
     expect(mockDeleteFile).not.toHaveBeenCalled();
   });
 
-  it('returns DIRECT_UPLOAD_FAILED and does not call createCardOrder when the final R2 upload fails (R2 error)', async () => {
+  it('returns SOURCE_UPLOAD_FAILED and does not call createCardOrder when the permanent per-source upload fails (R2 error)', async () => {
     mockHeadFile.mockResolvedValueOnce({ contentLength: 100, contentType: 'application/pdf' });
     mockUploadFile.mockRejectedValueOnce(new Error('R2 unavailable'));
+    const res = await POST(makeRequest({ ...VALID_BODY_BASE, uploads: oneUpload }));
+
+    expect(res.status).toBe(500);
+    expect((await res.json() as { error?: string }).error).toBe('SOURCE_UPLOAD_FAILED');
+    expect(mockCreateCardOrder).not.toHaveBeenCalled();
+  });
+
+  it('returns DIRECT_UPLOAD_FAILED and does not call createCardOrder when the final merged-PDF R2 upload fails (R2 error)', async () => {
+    mockHeadFile.mockResolvedValueOnce({ contentLength: 100, contentType: 'application/pdf' });
+    // First two uploadFile calls are the one source's original + converted-PDF permanent
+    // uploads (both succeed); the third is the final merged-PDF upload (fails).
+    mockUploadFile.mockResolvedValueOnce(undefined).mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error('R2 unavailable'));
     const res = await POST(makeRequest({ ...VALID_BODY_BASE, uploads: oneUpload }));
 
     expect(res.status).toBe(500);
