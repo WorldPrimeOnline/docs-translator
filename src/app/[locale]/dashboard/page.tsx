@@ -7,8 +7,8 @@ import { toast } from 'sonner';
 import { FileText, Download, AlertCircle, Loader2, Clock, RefreshCw, Receipt } from 'lucide-react';
 import { HalykPayButton } from '@/components/payment/HalykPayButton';
 import { createClient } from '@/lib/supabase/client';
-import { getCustomerOrderState } from '@/lib/translation-workflow/customer-order-state';
 import { bucketOrders } from '@/lib/translation-workflow/order-buckets';
+import { applyPolledOrderUpdate, type PolledOrderData } from '@/lib/translation-workflow/dashboard-polling';
 import { OrderForm } from '@/components/order/OrderForm';
 
 interface OrderEntry {
@@ -551,23 +551,10 @@ export default function DashboardPage() {
           const res = await fetch(`/api/jobs/${o.jobId}`);
           if (res.status === 404) return { gone: true } as const;
           if (!res.ok) return null;
-          return (await res.json()) as {
-            status: string;
-            progress: number;
-            errorMessage: string | null;
-            workflowStatus: string | null;
-            serviceLevel: string;
-            fulfillmentMethod: 'pickup' | 'delivery' | null;
-            hasReadyResultFiles: boolean | null;
+          return (await res.json()) as PolledOrderData & {
             priceBeforeDiscountKzt: number | null;
             discountAppliedKzt: number | null;
             discountCode: string | null;
-            latestQuoteId: string | null;
-            quoteStatus: string | null;
-            quoteAmountKzt: number | null;
-            quoteCurrency: string | null;
-            quoteExpiresAt: string | null;
-            quoteRequiresOperatorReview: boolean;
           };
         }),
       );
@@ -580,41 +567,15 @@ export default function DashboardPage() {
       });
 
       setOrders((prev) => {
-        const next = [...prev];
+        let next = prev;
         polling.forEach((o, i) => {
           const r = results[i];
           if (r?.status !== 'fulfilled' || !r.value || 'gone' in r.value) return;
-          const data = r.value;
-          const idx = next.findIndex((x) => x.documentId === o.documentId);
-          if (idx < 0) return;
-          const state = getCustomerOrderState({
-            jobStatus: data.status,
-            progressPercent: data.progress,
-            workflowStatus: data.workflowStatus,
-            serviceLevel: data.serviceLevel,
-            fulfillmentMethod: data.fulfillmentMethod ?? null,
-            hasReadyResultFiles: data.hasReadyResultFiles ?? undefined,
-          });
-          next[idx] = {
-            ...next[idx]!,
-            jobStatus: data.status,
-            workflowStatus: data.workflowStatus,
-            fulfillmentMethod: data.fulfillmentMethod ?? null,
-            progressPercent: state.progressPercent,
-            errorMessage: data.errorMessage,
-            customerStatus: state.customerStatus,
-            canDownload: state.canDownload,
-            isActive: state.isActive,
-            isTerminal: state.isTerminal,
-            latestQuoteId: data.latestQuoteId ?? next[idx]!.latestQuoteId,
-            quoteStatus: data.quoteStatus ?? next[idx]!.quoteStatus,
-            quoteAmountKzt: data.quoteAmountKzt ?? next[idx]!.quoteAmountKzt,
-            quoteCurrency: data.quoteCurrency ?? next[idx]!.quoteCurrency,
-            quoteExpiresAt: data.quoteExpiresAt ?? next[idx]!.quoteExpiresAt,
-            quoteRequiresOperatorReview: data.quoteRequiresOperatorReview ?? next[idx]!.quoteRequiresOperatorReview,
-            stages: state.stages,
-            // fiscalUrl and fiscalReceiptStatus are not polled per-job; they come from loadOrders()
-          };
+          // applyPolledOrderUpdate() always preserves array length — a polled
+          // update rewrites the matching entry in place, it never removes one
+          // (2026-08-01 incident: a multi-source Electronic order must stay in
+          // the list once completed, never disappear).
+          next = applyPolledOrderUpdate(next, o.documentId, r.value);
         });
         return next;
       });

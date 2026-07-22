@@ -42,6 +42,27 @@ function sanitizeDownloadFilename(name: string): string {
   return name.replace(/[^a-zA-Z0-9._\- ]/g, '_').slice(0, 150);
 }
 
+/**
+ * 2026-08-01 incident fix: the customer-facing multi-source result filename is always
+ * a fixed, safe "Output" name — never the customer's original upload filename (which
+ * may contain personal/sensitive text) and never the internal `translated.docx`/
+ * per-stage R2 artifact name. A single ready result is `Output.ext`; with more than
+ * one, each is prefixed with its 1-based sequence (`001_Output.ext`, `002_Output.ext`,
+ * ...) so the customer can tell which result belongs to which uploaded source, in the
+ * same order they uploaded them. Internal R2 keys and 01_SOURCE Drive filenames
+ * (sequence + original filename) are completely unaffected — this only changes what
+ * the browser/ZIP shows.
+ */
+function outputFilename(sequence: number, ext: string, isSingleFile: boolean): string {
+  return isSingleFile ? `Output${ext}` : `${String(sequence).padStart(3, '0')}_Output${ext}`;
+}
+
+/** `WPO_<first 8 chars of job id>_Output.zip` — the customer-facing name for a
+ * multi-result ZIP download. */
+function outputZipFilename(jobId: string): string {
+  return `WPO_${jobId.slice(0, 8)}_Output.zip`;
+}
+
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ documentId: string }> },
@@ -82,7 +103,7 @@ export async function GET(
     .eq('job_id', job.id);
 
   if (totalSources && totalSources > 0) {
-    return serveMultiSourceDownload(job, totalSources, doc.filename);
+    return serveMultiSourceDownload(job, totalSources);
   }
 
   // ── Download gating by service level ──────────────────────────────────────
@@ -179,7 +200,6 @@ interface MultiSourceJob {
 async function serveMultiSourceDownload(
   job: MultiSourceJob,
   totalSources: number,
-  docFilename: string,
 ): Promise<NextResponse> {
   const resultStatus = await getResultFilesStatus(job.id, job.service_level);
 
@@ -219,8 +239,7 @@ async function serveMultiSourceDownload(
       const file = files[0]!;
       const ext = extOf(file.filename);
       const contentType = MIME[ext] ?? 'application/octet-stream';
-      const baseName = sanitizeDownloadFilename((docFilename ?? 'translation').replace(/\.[^./]+$/, ''));
-      const downloadFilename = `${baseName}${ext}`;
+      const downloadFilename = outputFilename(file.sequenceMin, ext, true);
       const buffer = await downloadFile(file.r2Key);
       return new NextResponse(new Uint8Array(buffer), {
         status: 200,
@@ -235,26 +254,26 @@ async function serveMultiSourceDownload(
 
     const zip = new JSZip();
     const usedNames = new Set<string>();
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i]!;
+    for (const file of files) {
       const buffer = await downloadFile(file.r2Key);
-      let entryName = sanitizeDownloadFilename(file.filename);
+      const ext = extOf(file.filename);
+      let entryName = outputFilename(file.sequenceMin, ext, false);
       if (usedNames.has(entryName)) {
-        // Deterministic disambiguation by position — never silently overwrite an
-        // entry in the ZIP (would drop one of the customer's files).
-        entryName = `${String(i + 1).padStart(3, '0')}_${entryName}`;
+        // Two different result groups landed on the same minimum sequence — should
+        // never happen given job_result_files' own uniqueness, but never silently
+        // overwrite an entry in the ZIP (would drop one of the customer's files).
+        entryName = sanitizeDownloadFilename(`${entryName}_${file.filename}`);
       }
       usedNames.add(entryName);
       zip.file(entryName, buffer);
     }
     const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
-    const baseName = sanitizeDownloadFilename((docFilename ?? 'translation').replace(/\.[^./]+$/, ''));
 
     return new NextResponse(new Uint8Array(zipBuffer), {
       status: 200,
       headers: {
         'Content-Type': 'application/zip',
-        'Content-Disposition': `attachment; filename="${baseName}.zip"`,
+        'Content-Disposition': `attachment; filename="${outputZipFilename(job.id)}"`,
         'Content-Length': String(zipBuffer.length),
         'Cache-Control': 'private, max-age=300',
       },

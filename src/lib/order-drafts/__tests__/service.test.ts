@@ -401,6 +401,42 @@ describe('calculateDraftPrice', () => {
     );
   });
 
+  it('2026-08-01 incident fix: a referral discount on an electronic order is capped so the final payable amount never drops below 1500 KZT', async () => {
+    // base 1600 with a nominal 300 KZT discount would leave 1300 — below the floor.
+    const pricingResult = { amountKzt: 1600, currency: 'KZT', requiresOperatorReview: false, reviewReasons: [], context: {} };
+    const partnerChain = chain({
+      data: {
+        is_active: true,
+        client_discount_enabled: true,
+        client_discount_type: 'fixed',
+        client_discount_value: 300,
+        client_discount_min_order_amount: 0,
+        client_discount_max_amount: null,
+      },
+      error: null,
+    });
+    const updateChain = chain({ data: { ...BASE_DRAFT, ref_code: 'partner1', status: 'price_calculated' }, error: null });
+    mockFrom
+      .mockReturnValueOnce(chain({ data: { ...BASE_DRAFT, ref_code: 'partner1', service_level: 'electronic' }, error: null }))
+      .mockReturnValueOnce(partnerChain)
+      .mockReturnValueOnce(updateChain);
+    mockComputeQuote.mockResolvedValueOnce({ result: pricingResult, version: { id: 'v1' } });
+
+    const result = await calculateDraftPrice('draft-1', { sessionToken: 'sess-token' });
+
+    expect(result.ok).toBe(true);
+    expect(updateChain.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pricing_snapshot: expect.objectContaining({
+          result: expect.objectContaining({ amountKzt: 1500 }), // floored, not 1300
+          priceBeforeDiscountKzt: 1600,
+          discountAppliedKzt: 100, // capped from the nominal 300
+          discountCode: 'PARTNER1',
+        }),
+      }),
+    );
+  });
+
   it('does not apply a discount and leaves the snapshot amount untouched when the partner code is invalid/inactive', async () => {
     const pricingResult = { amountKzt: 15000, currency: 'KZT', requiresOperatorReview: false, reviewReasons: [], context: {} };
     const partnerChain = chain({ data: null, error: null }); // no matching partner

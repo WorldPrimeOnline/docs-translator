@@ -521,6 +521,45 @@ describe('createCardOrder', () => {
     );
   });
 
+  it('2026-08-01 incident fix: a referral discount on an electronic order is capped so the final payable amount never drops below 1500 KZT', async () => {
+    // base 1600 with a nominal 300 KZT discount would leave 1300 — below the floor.
+    mockComputeQuote.mockResolvedValueOnce({
+      result: { amountKzt: 1600, currency: 'KZT', requiresOperatorReview: false, reviewReasons: [], context: {}, items: [] },
+    });
+    mockSaveQuote.mockResolvedValueOnce({ quoteId: 'quote-1' });
+
+    const partnerChain = chain({
+      data: {
+        is_active: true,
+        client_discount_enabled: true,
+        client_discount_type: 'fixed',
+        client_discount_value: 300,
+        client_discount_min_order_amount: 0,
+        client_discount_max_amount: null,
+      },
+      error: null,
+    });
+    const jobInsertChain = chain({ data: { id: 'job-1' }, error: null });
+
+    mockFrom
+      .mockReturnValueOnce(chain({ data: null, error: null }))
+      .mockReturnValueOnce(chain({ data: null, error: null }))
+      .mockReturnValueOnce(chain({ data: { id: 'attempt-1' }, error: null }))
+      .mockReturnValueOnce(partnerChain)
+      .mockReturnValueOnce(jobInsertChain)
+      .mockReturnValueOnce(chain({ error: null })) // job_source_files insert
+      .mockReturnValueOnce(chain({ error: null })); // job_audit_log
+
+    const result = await createCardOrder(baseInput({ refCode: 'partner1' }));
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.priceKzt).toBe(1500); // floored, not 1300
+    expect(jobInsertChain.insert).toHaveBeenCalledWith(
+      expect.objectContaining({ price_kzt: 1500, price_before_discount_kzt: 1600, discount_applied_kzt: 100, discount_code: 'PARTNER1' }),
+    );
+  });
+
   it('marks the document failed and returns the generic PRICING_UNAVAILABLE (never the raw PRICING_NOT_CONFIGURED) when pricing errors', async () => {
     mockComputeQuote.mockResolvedValueOnce({ error: 'PRICING_NOT_CONFIGURED' });
     const docInsertChain = chain({ data: { id: 'attempt-1' }, error: null });

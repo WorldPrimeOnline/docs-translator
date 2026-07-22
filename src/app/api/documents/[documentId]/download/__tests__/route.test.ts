@@ -108,7 +108,7 @@ describe('legacy jobs (no job_source_files) — exact pre-existing behavior', ()
 });
 
 describe('multi-source jobs (job_source_files rows exist)', () => {
-  it('electronic: single ready result file downloads directly', async () => {
+  it('electronic: single ready result file downloads directly as "Output.docx" — never the original filename or the internal translated.docx name', async () => {
     mockFrom
       .mockReturnValueOnce(chain({ data: { user_id: USER.id, filename: 'passport.pdf', document_type: 'passport_id' }, error: null }))
       .mockReturnValueOnce(chain({ data: { id: 'job-1', workflow_status: null, service_level: 'electronic', fulfillment_method: null }, error: null }))
@@ -121,14 +121,30 @@ describe('multi-source jobs (job_source_files rows exist)', () => {
 
     const res = await callGET();
     expect(res.status).toBe(200);
-    expect(res.headers.get('Content-Disposition')).toContain('.docx');
+    expect(res.headers.get('Content-Disposition')).toBe('attachment; filename="Output.docx"');
     expect(res.headers.get('Content-Type')).toContain('wordprocessingml');
   });
 
-  it('electronic: multiple ready result files are zipped, sorted by minimum sequence', async () => {
+  it('electronic: single ready result file, html output — "Output.html"', async () => {
+    mockFrom
+      .mockReturnValueOnce(chain({ data: { user_id: USER.id, filename: 'passport.pdf', document_type: 'passport_id' }, error: null }))
+      .mockReturnValueOnce(chain({ data: { id: 'job-1', workflow_status: null, service_level: 'electronic', fulfillment_method: null }, error: null }))
+      .mockReturnValueOnce(chain({ count: 1 }));
+    mockGetResultFilesStatus.mockResolvedValueOnce({
+      isMultiSource: true, hasReadyResultFiles: true,
+      readyFiles: [{ sequenceMin: 1, sourceSequences: [1], filename: 'passport_translated.html', r2Key: 'k1' }],
+    });
+    mockDownloadFile.mockResolvedValueOnce(Buffer.from('html-bytes'));
+
+    const res = await callGET();
+    expect(res.status).toBe(200);
+    expect(res.headers.get('Content-Disposition')).toBe('attachment; filename="Output.html"');
+  });
+
+  it('electronic: multiple ready result files are zipped as WPO_<short-job-id>_Output.zip, entries named 001_Output.docx/002_Output.docx, sorted by minimum sequence', async () => {
     mockFrom
       .mockReturnValueOnce(chain({ data: { user_id: USER.id, filename: 'docs.pdf', document_type: 'passport_id' }, error: null }))
-      .mockReturnValueOnce(chain({ data: { id: 'job-1', workflow_status: null, service_level: 'electronic', fulfillment_method: null }, error: null }))
+      .mockReturnValueOnce(chain({ data: { id: 'job-12345678-abcd', workflow_status: null, service_level: 'electronic', fulfillment_method: null }, error: null }))
       .mockReturnValueOnce(chain({ count: 2 }));
     mockGetResultFilesStatus.mockResolvedValueOnce({
       isMultiSource: true, hasReadyResultFiles: true,
@@ -142,9 +158,14 @@ describe('multi-source jobs (job_source_files rows exist)', () => {
     const res = await callGET();
     expect(res.status).toBe(200);
     expect(res.headers.get('Content-Type')).toBe('application/zip');
-    expect(res.headers.get('Content-Disposition')).toContain('.zip');
+    expect(res.headers.get('Content-Disposition')).toBe('attachment; filename="WPO_job-1234_Output.zip"');
     expect(mockDownloadFile).toHaveBeenCalledWith('k1');
     expect(mockDownloadFile).toHaveBeenCalledWith('k2');
+
+    const zipBuffer = Buffer.from(await res.arrayBuffer());
+    const JSZip = (await import('jszip')).default;
+    const zip = await JSZip.loadAsync(zipBuffer);
+    expect(Object.keys(zip.files).sort()).toEqual(['001_Output.docx', '002_Output.docx']);
   });
 
   it('official: not fully synced (hasReadyResultFiles=false) → 403 even at ready_for_delivery', async () => {
@@ -173,6 +194,7 @@ describe('multi-source jobs (job_source_files rows exist)', () => {
     const res = await callGET();
     expect(res.status).toBe(200);
     expect(mockDownloadFile).toHaveBeenCalledWith('results/signature_stamp/001.pdf');
+    expect(res.headers.get('Content-Disposition')).toBe('attachment; filename="Output.pdf"');
   });
 
   it('notary — THE key behavior change: fully synced → downloadable (legacy notary was always blocked)', async () => {
@@ -189,6 +211,7 @@ describe('multi-source jobs (job_source_files rows exist)', () => {
     const res = await callGET();
     expect(res.status).toBe(200);
     expect(mockDownloadFile).toHaveBeenCalledWith('results/notary/001.pdf');
+    expect(res.headers.get('Content-Disposition')).toBe('attachment; filename="Output.pdf"');
   });
 
   it('notary: not yet synced → 403, never falls back to serving anything', async () => {

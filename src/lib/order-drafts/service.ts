@@ -11,6 +11,7 @@ import { computeQuoteForJob, extractNotaryUrgencySnapshot, saveQuote } from '@/l
 import { deriveBackcompatBooleans } from '@/lib/translation-workflow/output-plan';
 import { attachReferralToOrder } from '@/lib/referral/server';
 import { calculatePartnerDiscount } from '@/lib/partners/discount';
+import { capDiscountForElectronicMinimum } from '@/lib/pricing/config';
 import { insertJobSourceFiles, type JobSourceFileInput } from '@/lib/jobs/source-files';
 // 2026-07-24: deliberately NOT a top-level import — @/lib/document-analysis/analyze
 // transitively pulls in pdf-parse/pdfjs-dist for PDF text-layer extraction, which crashed at
@@ -315,6 +316,7 @@ export async function calculateDraftPrice(
       .maybeSingle();
 
     discountKzt = calculatePartnerDiscount(basePreDiscountKzt, discountPartner);
+    discountKzt = capDiscountForElectronicMinimum(basePreDiscountKzt, discountKzt, draft.service_level);
   }
 
   // Patch the snapshot amount so the saved quote (and Halyk payment amount) equals what

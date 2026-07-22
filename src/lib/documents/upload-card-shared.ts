@@ -37,6 +37,7 @@ import { reportInternalPricingFailure } from '@/lib/pricing/internal-failure';
 import { downloadFile } from '@/lib/r2/client';
 import { attachReferralToOrder } from '@/lib/referral/server';
 import { calculatePartnerDiscount } from '@/lib/partners/discount';
+import { capDiscountForElectronicMinimum } from '@/lib/pricing/config';
 import { insertJobSourceFiles, type JobSourceFileInput } from '@/lib/jobs/source-files';
 import { ALLOWED_MIME_TYPES } from '@/lib/order-drafts/upload-constants';
 import type { Database } from '@/types';
@@ -548,6 +549,7 @@ export async function createCardOrder(input: CardOrderInput): Promise<CardOrderR
       .maybeSingle();
 
     discountKzt = calculatePartnerDiscount(basePreDiscountKzt, discountPartner);
+    discountKzt = capDiscountForElectronicMinimum(basePreDiscountKzt, discountKzt, input.serviceLevel);
   }
 
   const finalPriceKzt = basePreDiscountKzt - discountKzt;

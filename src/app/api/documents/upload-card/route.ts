@@ -19,6 +19,7 @@ import { reportInternalPricingFailure } from '@/lib/pricing/internal-failure';
 import { resolveDocumentAnalysisForPricing } from '@/lib/document-analysis/service';
 import { attachReferralToOrder } from '@/lib/referral/server';
 import { calculatePartnerDiscount } from '@/lib/partners/discount';
+import { capDiscountForElectronicMinimum } from '@/lib/pricing/config';
 import { insertJobSourceFiles, type JobSourceFileInput } from '@/lib/jobs/source-files';
 import {
   MAX_FILE_SIZE_EACH,
@@ -346,6 +347,7 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
       .maybeSingle();
 
     discountKzt = calculatePartnerDiscount(basePreDiscountKzt, discountPartner);
+    discountKzt = capDiscountForElectronicMinimum(basePreDiscountKzt, discountKzt, serviceLevel);
   }
 
   const finalPriceKzt = basePreDiscountKzt - discountKzt;

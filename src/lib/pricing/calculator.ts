@@ -18,6 +18,7 @@ import {
   MARGIN_FLOOR_CONFIG,
   TRANSLATION_PAGE_CHAR_DIVISOR,
   MIN_TRANSLATION_PAGES,
+  ELECTRONIC_MINIMUM_PAYABLE_KZT,
 } from './config';
 import { getNotaryCutoffWindow } from './almaty-time';
 import { toDecimal, roundToKopeks, roundUpToStep, applyRate, charsToPages, computeTranslationAmount, sumMoney, moneyDifference } from './money';
@@ -760,6 +761,34 @@ function calculateElectronicPrice(input: PricingInput, version: PricingVersion):
     finalClientPrice = roundToIncrement(finalBeforePaymentWideFees / paymentWideDenominator, finalRoundingIncrement);
   } else {
     finalClientPrice = roundToIncrement(finalBeforePaymentWideFees, finalRoundingIncrement);
+  }
+
+  // 19b. Electronic minimum payable floor (2026-08-01 incident fix) — a legitimate
+  // per-formula price (e.g. minimum 1000 × document coefficient 1.1 = 1100, then
+  // payment-wide fee gross-up to 1300) can still land under the amount WPO is willing
+  // to actually charge for Electronic. Applied AFTER rounding, so it's the true final
+  // floor on the no-discount price; capDiscountForElectronicMinimum() in config.ts
+  // separately caps any discount so it can't undercut this floor either. Never applies
+  // to official/notarized — this function's own header comment confirms it is only
+  // ever invoked for serviceLevel='electronic'.
+  if (serviceLevel === 'electronic' && finalClientPrice < ELECTRONIC_MINIMUM_PAYABLE_KZT) {
+    const electronicMinimumFloorAdjustment = ELECTRONIC_MINIMUM_PAYABLE_KZT - finalClientPrice;
+    items.push({
+      itemType: 'electronic_minimum_floor_adjustment',
+      label: `Electronic minimum payable floor (up to ${ELECTRONIC_MINIMUM_PAYABLE_KZT} KZT)`,
+      quantity: 1,
+      unitPriceKzt: electronicMinimumFloorAdjustment,
+      amountKzt: electronicMinimumFloorAdjustment,
+      isClientVisible: false,
+      isCost: false,
+      sortOrder: nextSort(),
+      metadataJson: {
+        reason: 'electronic_minimum_floor',
+        floorKzt: ELECTRONIC_MINIMUM_PAYABLE_KZT,
+        priceBeforeFloor: finalClientPrice,
+      },
+    });
+    finalClientPrice = ELECTRONIC_MINIMUM_PAYABLE_KZT;
   }
 
   // 20. Recompute payment-wide fees against the TRUE final client price.

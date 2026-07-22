@@ -116,6 +116,76 @@ describe('calculatePrice — electronic (unchanged legacy formula)', () => {
   });
 });
 
+// ─── 2026-08-01 staging incident: Electronic minimum payable floor ────────────────
+// job 29b5fa37-24ac-4269-b965-c024429560da, ru→en, documentType='other', 2 source
+// files (physical page counts [2,1], but electronic never runs document analysis so
+// physicalPageCount defaults to 1 regardless of source count) — priced at 1300 KZT
+// (minimum 1000 × document coefficient 1.1 = 1100, then payment-wide fee gross-up to
+// 1300), below the 1500 KZT minimum WPO is willing to charge for Electronic.
+describe('calculatePrice — electronic minimum payable floor (2026-08-01 incident fix)', () => {
+  // Matches the REAL active staging pricing_versions row's rates as reconstructed from
+  // the incident order's own internal_cost_json/margin_json (ownerReserveRate=0,
+  // marketingRateDirect=0.05, targetProfitRate=0.25 — NOT the generic
+  // mockElectronicVersion() fixture's 0.07/0.10, which produces a different,
+  // already-above-1500 result and would not actually exercise the floor).
+  function incidentVersion(overrides: Partial<PricingVersion> = {}): PricingVersion {
+    return mockElectronicVersion({ ownerReserveRate: 0, marketingRateDirect: 0.05, targetProfitRate: 0.25, ...overrides });
+  }
+
+  function incidentInput(overrides: Partial<PricingInput> = {}): PricingInput {
+    return {
+      sourceLanguage: 'ru', targetLanguage: 'en', serviceLevel: 'electronic',
+      documentType: 'other', physicalPageCount: 1, salesChannel: 'direct',
+      ...overrides,
+    };
+  }
+
+  it('reproduces the exact incident: without the floor this would price at 1300 KZT — with it, floors to exactly 1500', () => {
+    const result = calculatePrice(incidentInput(), incidentVersion());
+    expect(result.amountKzt).toBe(1500);
+    expect(result.amountKzt).toBeGreaterThanOrEqual(1500);
+  });
+
+  it('records an electronic_minimum_floor_adjustment line item with the pre-floor price', () => {
+    const result = calculatePrice(incidentInput(), incidentVersion());
+    const floorItem = result.items.find((i) => i.itemType === 'electronic_minimum_floor_adjustment');
+    expect(floorItem).toBeDefined();
+    expect(floorItem?.metadataJson?.priceBeforeFloor).toBe(1300);
+    expect(floorItem?.metadataJson?.floorKzt).toBe(1500);
+  });
+
+  it('direct sale, no discount: final payable is always >= 1500 for electronic', () => {
+    const result = calculatePrice(incidentInput({ salesChannel: 'direct' }), incidentVersion());
+    expect(result.amountKzt).toBeGreaterThanOrEqual(1500);
+  });
+
+  it('a genuinely larger order (well above 1500 on its own formula) is NOT affected by the floor — no adjustment line item', () => {
+    const result = calculatePrice(
+      incidentInput({ documentType: 'contract', sourceWordCount: 5000 }),
+      incidentVersion(),
+    );
+    expect(result.amountKzt).toBeGreaterThan(1500);
+    expect(result.items.find((i) => i.itemType === 'electronic_minimum_floor_adjustment')).toBeUndefined();
+  });
+
+  it('2 source files does not double the minimum — physicalPageCount stays whatever the caller passed (electronic never multiplies by source/file count), and the floor still applies correctly to the single-document price', () => {
+    // Multiple uploaded files can be photographs of pages of ONE document — pricing must
+    // never multiply the base minimum by job_source_files count. This reproduces the
+    // incident's actual physicalPageCount=1 (electronic's conservative default,
+    // independent of how many files were uploaded) and confirms the result is the
+    // correctly-floored SINGLE-document price, not e.g. 2 × 1500 = 3000.
+    const result = calculatePrice(incidentInput({ physicalPageCount: 1 }), incidentVersion());
+    expect(result.amountKzt).toBe(1500);
+    expect(result.amountKzt).not.toBe(3000);
+  });
+
+  it('official/notarized pricing has no such floor and is completely unaffected', () => {
+    const officialInput: PricingInput = baseOfficialInput({ sourceCharacterCountWithSpaces: 10 });
+    const result = calculatePrice(officialInput, mockNewModelVersion());
+    expect(result.items.find((i) => i.itemType === 'electronic_minimum_floor_adjustment')).toBeUndefined();
+  });
+});
+
 // ─── New formula: WPO-approved fixtures ────────────────────────────────────────────
 
 describe('calculatePrice — official/notary new formula: approved fixtures', () => {
