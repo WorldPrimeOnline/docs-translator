@@ -16,6 +16,16 @@ export interface OrderStateInput {
   workflowStatus: string | null;
   serviceLevel: string | null;
   fulfillmentMethod?: 'pickup' | 'delivery' | null;
+  /**
+   * 2026-08-01 multi-file fulfillment decision — whether job_result_files has a
+   * complete, non-overlapping 'ready' set for this job's relevant stage
+   * (signature_stamp for Official, notary for Notarized; Electronic doesn't use this
+   * input at all). ONLY meaningful for multi-source jobs (job_source_files rows
+   * exist) — the caller computes this via a DB query and passes it in; this function
+   * stays dependency-free. Omit entirely for legacy single-file jobs to get the
+   * exact pre-2026-08-01 behavior (see canCustomerDownload).
+   */
+  hasReadyResultFiles?: boolean;
 }
 
 export type CustomerStatus =
@@ -223,18 +233,34 @@ function deriveCustomerStatus(
 
 /**
  * Whether the customer can download the translated file.
- * Physical notarized orders (delivery or pickup) NEVER allow electronic download —
- * the final product is a physical notarized document.
+ *
+ * Legacy (single-file, `hasReadyResultFiles` omitted): behavior is EXACTLY what it
+ * was before the 2026-08-01 multi-file fulfillment decision — physical notarized
+ * orders never allow electronic download; certified/official allows it once the
+ * operator confirms ready_for_delivery/delivered; electronic only once completed.
+ *
+ * Multi-source (`hasReadyResultFiles` explicitly passed, computed by the caller from
+ * job_result_files coverage — see src/lib/translation-workflow/result-file-coverage.ts):
+ * - Notarized: digital download opens once the notary result is FULLY synced from
+ *   Drive (job_result_files stage='notary'), regardless of pickup/delivery fulfillment
+ *   or physical delivery status — a deliberate change from "never downloadable".
+ * - Official: still requires the existing operator confirmation (ready_for_delivery/
+ *   delivered) AND a fully-synced signature_stamp result — the sync is an additional
+ *   necessary condition, never a bypass of the human approval step.
+ * - Electronic: unaffected either way (gate is purely customerStatus === 'completed').
  */
 export function canCustomerDownload(
   customerStatus: CustomerStatus,
   serviceLevel: string | null,
+  hasReadyResultFiles?: boolean,
 ): boolean {
   if (serviceLevel === 'notarization_through_partners') {
-    return false; // physical document — no electronic download at any stage
+    return hasReadyResultFiles === true;
   }
   if (serviceLevel === 'official_with_translator_signature_and_provider_stamp') {
-    return customerStatus === 'ready_for_delivery' || customerStatus === 'delivered';
+    const operatorConfirmed = customerStatus === 'ready_for_delivery' || customerStatus === 'delivered';
+    if (hasReadyResultFiles === undefined) return operatorConfirmed;
+    return operatorConfirmed && hasReadyResultFiles;
   }
   // Electronic
   return customerStatus === 'completed';
@@ -258,12 +284,12 @@ export function isCustomerOrderTerminal(customerStatus: CustomerStatus): boolean
 // ─── Main export ──────────────────────────────────────────────────────────────
 
 export function getCustomerOrderState(input: OrderStateInput): CustomerOrderState {
-  const { jobStatus, progressPercent, workflowStatus, serviceLevel, fulfillmentMethod } = input;
+  const { jobStatus, progressPercent, workflowStatus, serviceLevel, fulfillmentMethod, hasReadyResultFiles } = input;
 
   const customerStatus = deriveCustomerStatus(jobStatus, workflowStatus, serviceLevel);
 
   const isTerminal = isCustomerOrderTerminal(customerStatus);
-  const canDownload = canCustomerDownload(customerStatus, serviceLevel);
+  const canDownload = canCustomerDownload(customerStatus, serviceLevel, hasReadyResultFiles);
 
   // Active = has outstanding human/physical steps OR is electronic awaiting download.
   // Terminal orders with canDownload=true (electronic completed, certified delivered)

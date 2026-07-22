@@ -66,3 +66,36 @@ export async function upsertJobResultFile(input: UpsertJobResultFileInput): Prom
   if (error) return { ok: false, error: error.message };
   return { ok: true };
 }
+
+export interface ExistingJobResultFileRow {
+  id: string;
+  source_sequences: number[];
+  status: JobResultFileStatus;
+  drive_file_id: string | null;
+}
+
+/** All current rows for (jobId, stage) — used by the Drive sync reconciler to diff
+ * the current Drive folder listing against what's already stored. */
+export async function getResultFilesForStage(jobId: string, stage: JobResultFileStage): Promise<ExistingJobResultFileRow[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data } = await (supabase as any)
+    .from('job_result_files')
+    .select('id, source_sequences, status, drive_file_id')
+    .eq('job_id', jobId)
+    .eq('stage', stage);
+  return (data ?? []) as ExistingJobResultFileRow[];
+}
+
+/**
+ * Deletes job_result_files rows by id — used ONLY to remove rows superseded by a
+ * folder reconciliation (e.g. staff replaced one grouped file covering [1..10] with
+ * two smaller files covering [1..5] and [6..10]; the stale [1..10] row must not
+ * linger and be double-counted as coverage alongside the two new rows).
+ */
+export async function deleteJobResultFilesByIds(ids: string[]): Promise<UpsertJobResultFileResult> {
+  if (ids.length === 0) return { ok: true };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any).from('job_result_files').delete().in('id', ids);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}

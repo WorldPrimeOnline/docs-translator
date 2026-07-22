@@ -105,3 +105,27 @@ export function validateResultFileMapping(
   if (errors.length > 0) return { ok: false, errors };
   return { ok: true, groups };
 }
+
+/**
+ * Coverage-only check over already-resolved sequence groups (e.g. stored
+ * job_result_files.source_sequences rows) — no filename parsing. Used to decide
+ * whether a stage's CURRENTLY STORED 'ready' rows fully cover 1..totalSources before
+ * treating that stage as deliverable to the customer. A web-app-side copy of this
+ * exact check lives in src/lib/translation-workflow/result-file-coverage.ts (that
+ * file is canonical for the customer-projection read path per
+ * customer-order-state.ts's own "never duplicate" rule) — this worker copy is used
+ * by the reconciler to decide whether a job still needs another sync attempt.
+ */
+export function isFullyCovered(totalSources: number, sequenceGroups: number[][]): boolean {
+  const covered = new Set<number>();
+  for (const group of sequenceGroups) {
+    for (const seq of group) {
+      if (covered.has(seq)) return false; // overlap
+      covered.add(seq);
+    }
+  }
+  for (let s = 1; s <= totalSources; s++) {
+    if (!covered.has(s)) return false; // gap
+  }
+  return true;
+}

@@ -7,6 +7,7 @@ import { processPendingFiscalReceipts } from './lib/fiscal-processor';
 import { diagnoseWebkassaConnectivity } from './lib/webkassa-client';
 import { logDriveAuthModeWithHealthCheck } from './lib/google-drive';
 import { reconcilePendingPriceBreakdownIssues, reconcileMissingJiraIssues, reconcileMissingPartnerIds } from './lib/integrations';
+import { reconcileResultFileSyncs } from './lib/result-file-sync';
 
 // ── State ──────────────────────────────────────────────────────────────────
 let running = false;   // true while we are processing a job
@@ -321,6 +322,24 @@ async function main(): Promise<void> {
       console.error('[worker] missing-Partner-ID reconciliation error:', (err as Error).message);
     });
   }, MISSING_PARTNER_ID_RECONCILE_INTERVAL_MS);
+
+  // Reconcile pending/failed Drive→R2 result-file syncs (signature_stamp/notary,
+  // 2026-08-01 multi-file fulfillment decision) every 3 minutes — deliberately much
+  // shorter than the ops-repair reconcilers above, since this one gates a real
+  // customer-facing download: the Jira webhook already triggers a best-effort sync
+  // right after the relevant workflow_status transition, but the signed/notarized
+  // file can still be mid-upload in Drive when that webhook fires, or the attempt
+  // can fail transiently — this is the retry mechanism, not the only one. Startup
+  // run recovers anything left pending from a worker restart.
+  const RESULT_SYNC_RECONCILE_INTERVAL_MS = 3 * 60 * 1000;
+  void reconcileResultFileSyncs().catch((err: unknown) => {
+    console.error('[worker] result-file-sync reconciliation startup error:', (err as Error).message);
+  });
+  setInterval(() => {
+    void reconcileResultFileSyncs().catch((err: unknown) => {
+      console.error('[worker] result-file-sync reconciliation error:', (err as Error).message);
+    });
+  }, RESULT_SYNC_RECONCILE_INTERVAL_MS);
 }
 
 void main();

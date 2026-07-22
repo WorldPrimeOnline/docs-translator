@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { supabaseServer } from '@/lib/supabase/server';
+import { getResultFilesStatus } from '@/lib/jobs/result-files-status';
 import type { Database } from '@/types';
 
 type JobStatus =
@@ -82,6 +83,11 @@ export async function GET(
   type QuoteRow = { id: string; status: string; amount_kzt: number; currency: string; expires_at: string; pricing_context_json: Record<string, unknown> };
   const quote: QuoteRow | null = quotes?.[0] ?? null;
 
+  // 2026-08-01 multi-file fulfillment decision — see /api/jobs/route.ts for the
+  // matching batch version. isMultiSource=false (legacy jobs) omits the field
+  // client-side so getCustomerOrderState falls back to its exact prior behavior.
+  const resultFilesStatus = await getResultFilesStatus(jobId, job.service_level ?? 'electronic');
+
   return NextResponse.json({
     status: job.status as JobStatus,
     progress: job.progress_percent,
@@ -89,6 +95,7 @@ export async function GET(
     workflowStatus: job.workflow_status ?? null,
     serviceLevel: job.service_level ?? 'electronic',
     fulfillmentMethod: (job.fulfillment_method as 'pickup' | 'delivery' | null) ?? null,
+    hasReadyResultFiles: resultFilesStatus.isMultiSource ? resultFilesStatus.hasReadyResultFiles : null,
     priceBeforeDiscountKzt: job.price_before_discount_kzt ?? null,
     discountAppliedKzt: job.discount_applied_kzt ?? null,
     discountCode: job.discount_code ?? null,

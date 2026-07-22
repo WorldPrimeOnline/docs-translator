@@ -6,7 +6,7 @@
  * 1:1 per-source files, a single grouped range file, several grouped files, gaps,
  * overlaps, out-of-range sequences, and the N=1 unprefixed-filename exception.
  */
-import { parseSequenceRangeFromFilename, validateResultFileMapping } from '../result-file-mapping';
+import { parseSequenceRangeFromFilename, validateResultFileMapping, isFullyCovered } from '../result-file-mapping';
 
 describe('parseSequenceRangeFromFilename', () => {
   it('parses a single-sequence prefix', () => {
@@ -107,5 +107,31 @@ describe('validateResultFileMapping', () => {
       { filename: '001_TRANSLATOR_RESULT.pdf' },
     ]);
     expect(result.ok).toBe(false);
+  });
+});
+
+describe('isFullyCovered', () => {
+  it('true for individual per-source groups covering 1..N with no gaps', () => {
+    expect(isFullyCovered(3, [[1], [2], [3]])).toBe(true);
+  });
+
+  it('true for a single group covering the whole range', () => {
+    expect(isFullyCovered(10, [[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]])).toBe(true);
+  });
+
+  it('true for several non-overlapping grouped ranges covering the whole range', () => {
+    expect(isFullyCovered(5, [[1, 2, 3], [4, 5]])).toBe(true);
+  });
+
+  it('false when a sequence is missing (gap)', () => {
+    expect(isFullyCovered(3, [[1], [3]])).toBe(false);
+  });
+
+  it('false when two groups overlap on the same sequence — this is the point-5 stale-row scenario', () => {
+    expect(isFullyCovered(10, [[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [1, 2, 3, 4, 5]])).toBe(false);
+  });
+
+  it('false for an empty set against a non-zero total', () => {
+    expect(isFullyCovered(1, [])).toBe(false);
   });
 });

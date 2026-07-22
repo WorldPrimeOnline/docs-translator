@@ -558,6 +558,7 @@ export default function DashboardPage() {
             workflowStatus: string | null;
             serviceLevel: string;
             fulfillmentMethod: 'pickup' | 'delivery' | null;
+            hasReadyResultFiles: boolean | null;
             priceBeforeDiscountKzt: number | null;
             discountAppliedKzt: number | null;
             discountCode: string | null;
@@ -592,6 +593,7 @@ export default function DashboardPage() {
             workflowStatus: data.workflowStatus,
             serviceLevel: data.serviceLevel,
             fulfillmentMethod: data.fulfillmentMethod ?? null,
+            hasReadyResultFiles: data.hasReadyResultFiles ?? undefined,
           });
           next[idx] = {
             ...next[idx]!,

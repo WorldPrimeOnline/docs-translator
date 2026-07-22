@@ -137,6 +137,40 @@ function jiraUrl(issueKey: string): string | null {
   return `${creds.baseUrl}/browse/${issueKey}`;
 }
 
+/**
+ * 2026-08-01 multi-file fulfillment decision: marks the document completed for a
+ * multi-source (job_source_files rows exist) notarized order once physical delivery
+ * is confirmed. No-op for legacy single-file jobs (job_source_files empty) — their
+ * documents.status handling is completely unchanged. Non-fatal: a failure here must
+ * never fail the DELIVERED webhook itself, since workflow_status has already been
+ * durably updated by the time this runs.
+ */
+async function completeDocumentIfMultiSourceNotarized(jobId: string, tag: string): Promise<void> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { count: totalSources } = await (supabaseServer as any)
+      .from('job_source_files')
+      .select('id', { count: 'exact', head: true })
+      .eq('job_id', jobId);
+    if (!totalSources || totalSources === 0) return;
+
+    const { data: jobRow } = await supabaseServer
+      .from('jobs')
+      .select('document_id, service_level')
+      .eq('id', jobId)
+      .single();
+    if (jobRow?.service_level !== 'notarization_through_partners' || !jobRow.document_id) return;
+
+    const { error } = await supabaseServer
+      .from('documents')
+      .update({ status: 'completed' })
+      .eq('id', jobRow.document_id);
+    if (error) console.error(`${tag} multi-source notarized document completion failed:`, error.message);
+  } catch (err) {
+    console.error(`${tag} multi-source notarized document completion error (non-fatal):`, err instanceof Error ? err.message : String(err));
+  }
+}
+
 // ─── 1. Post-upload: create Drive folder + upload source + create Jira issue ──
 
 export async function initializeOrderIntegrations(params: {
@@ -754,6 +788,16 @@ export async function syncDelivered(params: {
       eventType: 'DELIVERED',
     });
     if (!applied) return { applied: false };
+
+    // 2026-08-01 multi-file fulfillment decision: for a multi-source notarized order
+    // with delivery fulfillment, digital access already opened as soon as the notary
+    // result finished syncing (see canCustomerDownload's hasReadyResultFiles input) —
+    // but the order itself only completes now, once physical delivery is confirmed
+    // ("не завершать заказ до доставки"). Scoped to multi-source jobs only — legacy
+    // single-file notarized jobs never get digital access regardless, so their
+    // documents.status is intentionally left untouched here, unchanged from before.
+    await completeDocumentIfMultiSourceNotarized(params.jobId, tag);
+
     await audit({
       jobId: params.jobId,
       actor: 'operator',

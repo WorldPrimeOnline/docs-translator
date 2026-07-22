@@ -392,3 +392,50 @@ export async function uploadFileToDrive(
 export async function getSubfolderId(parentFolderId: string, subfolderName: string): Promise<string | null> {
   return findExistingFolder(subfolderName, parentFolderId);
 }
+
+export interface DriveFileListing {
+  id: string;
+  name: string;
+}
+
+/**
+ * Lists all non-trashed, non-folder files directly in `folderId` — used by the
+ * Drive read-back sync (2026-08-01 multi-file fulfillment decision) to read staff
+ * uploads from 04_SIGNATURE_AND_STAMP/05_NOTARY. Paginates through the full result
+ * set (Drive caps a single page at 1000) so a folder with many files is never
+ * silently truncated, which would make the sync's mapping-validation see a false gap.
+ */
+export async function listFilesInFolder(folderId: string): Promise<DriveFileListing[]> {
+  const q = encodeURIComponent(`'${folderId}' in parents and trashed=false and mimeType!='application/vnd.google-apps.folder'`);
+  const files: DriveFileListing[] = [];
+  let pageToken: string | undefined;
+
+  do {
+    const pageParam = pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : '';
+    const res = await driveGet(`/files?q=${q}&fields=nextPageToken,files(id,name)&pageSize=1000${pageParam}`);
+    if (!res.ok) {
+      const t = await res.text().catch(() => '');
+      throw new Error(`Drive listFilesInFolder(${folderId}) failed: ${res.status} ${t.slice(0, 200)}`);
+    }
+    const data = (await res.json()) as { files: DriveFileListing[]; nextPageToken?: string };
+    files.push(...data.files);
+    pageToken = data.nextPageToken;
+  } while (pageToken);
+
+  return files;
+}
+
+/** Downloads a Drive file's raw bytes by ID — never exposed to the customer directly; the
+ * caller re-uploads to R2 and only that R2 copy is ever served. */
+export async function downloadFileFromDrive(fileId: string): Promise<Buffer> {
+  const token = await getAccessToken();
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    const t = await res.text().catch(() => '');
+    throw new Error(`Drive downloadFileFromDrive(${fileId}) failed: ${res.status} ${t.slice(0, 200)}`);
+  }
+  const arrayBuf = await res.arrayBuffer();
+  return Buffer.from(arrayBuf);
+}

@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { supabaseServer } from '@/lib/supabase/server';
 import { getCustomerOrderState } from '@/lib/translation-workflow/customer-order-state';
+import { getResultFilesStatus } from '@/lib/jobs/result-files-status';
 import type { Database } from '@/types';
 
 async function getAuthUser() {
@@ -119,10 +120,23 @@ export async function GET(): Promise<NextResponse> {
     }
   }
 
+  // 2026-08-01 multi-file fulfillment decision: batch-resolve job_result_files
+  // readiness for every job with a job (legacy single-file jobs resolve to
+  // isMultiSource=false, in which case hasReadyResultFiles is omitted below so
+  // getCustomerOrderState falls back to its exact pre-existing behavior).
+  const resultFilesStatusByJob = new Map<string, Awaited<ReturnType<typeof getResultFilesStatus>>>();
+  await Promise.all(
+    Array.from(latestJobByDoc.values()).map(async (job) => {
+      const status = await getResultFilesStatus(job.id, job.service_level ?? 'electronic');
+      resultFilesStatusByJob.set(job.id, status);
+    }),
+  );
+
   const result = docs.map((doc) => {
     const job = latestJobByDoc.get(doc.id) ?? null;
     const quote = job ? (latestQuoteByJob.get(job.id) ?? null) : null;
     const fiscal = job ? (fiscalByJob.get(job.id) ?? null) : null;
+    const resultFilesStatus = job ? resultFilesStatusByJob.get(job.id) : undefined;
 
     const state = job
       ? getCustomerOrderState({
@@ -131,6 +145,7 @@ export async function GET(): Promise<NextResponse> {
           workflowStatus: job.workflow_status ?? null,
           serviceLevel: job.service_level ?? 'electronic',
           fulfillmentMethod: (job.fulfillment_method as 'pickup' | 'delivery' | null) ?? null,
+          hasReadyResultFiles: resultFilesStatus?.isMultiSource ? resultFilesStatus.hasReadyResultFiles : undefined,
         })
       : null;
 

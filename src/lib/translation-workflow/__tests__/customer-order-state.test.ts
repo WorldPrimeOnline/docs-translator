@@ -341,6 +341,78 @@ describe('Standalone helpers', () => {
   });
 });
 
+describe('2026-08-01 multi-file fulfillment decision — hasReadyResultFiles', () => {
+  const OFFICIAL = 'official_with_translator_signature_and_provider_stamp';
+  const NOTARY = 'notarization_through_partners';
+
+  it('legacy (hasReadyResultFiles omitted): notarized stays never-downloadable at any status', () => {
+    for (const ws of ['notarized', 'ready_for_delivery', 'ready_for_pickup', 'delivered', 'picked_up']) {
+      const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: ws, serviceLevel: NOTARY });
+      expect(s.canDownload).toBe(false);
+    }
+  });
+
+  it('legacy (hasReadyResultFiles omitted): official keeps the exact old operator-confirmation-only gate', () => {
+    const s1 = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'ready_for_delivery', serviceLevel: OFFICIAL });
+    expect(s1.canDownload).toBe(true);
+    const s2 = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'translator_approved', serviceLevel: OFFICIAL });
+    expect(s2.canDownload).toBe(false);
+  });
+
+  it('multi-source notary: hasReadyResultFiles=true opens download even mid-delivery (not terminal, no operator ready_for_delivery status needed)', () => {
+    const s = getCustomerOrderState({
+      jobStatus: 'completed', progressPercent: 100, workflowStatus: 'out_for_delivery', serviceLevel: NOTARY,
+      fulfillmentMethod: 'delivery', hasReadyResultFiles: true,
+    });
+    expect(s.canDownload).toBe(true);
+    expect(s.isTerminal).toBe(false); // order itself isn't done until delivered — only download opened
+  });
+
+  it('multi-source notary: hasReadyResultFiles=false keeps download closed even at notarized/ready_for_delivery', () => {
+    const s = getCustomerOrderState({
+      jobStatus: 'completed', progressPercent: 100, workflowStatus: 'notarized', serviceLevel: NOTARY,
+      hasReadyResultFiles: false,
+    });
+    expect(s.canDownload).toBe(false);
+  });
+
+  it('multi-source official: hasReadyResultFiles=false blocks download even after operator marks ready_for_delivery (sync must also be complete)', () => {
+    const s = getCustomerOrderState({
+      jobStatus: 'completed', progressPercent: 100, workflowStatus: 'ready_for_delivery', serviceLevel: OFFICIAL,
+      hasReadyResultFiles: false,
+    });
+    expect(s.canDownload).toBe(false);
+  });
+
+  it('multi-source official: hasReadyResultFiles=true + ready_for_delivery → downloadable (both conditions met)', () => {
+    const s = getCustomerOrderState({
+      jobStatus: 'completed', progressPercent: 100, workflowStatus: 'ready_for_delivery', serviceLevel: OFFICIAL,
+      hasReadyResultFiles: true,
+    });
+    expect(s.canDownload).toBe(true);
+  });
+
+  it('multi-source official: hasReadyResultFiles=true alone (before operator confirms) does NOT bypass the human approval gate', () => {
+    const s = getCustomerOrderState({
+      jobStatus: 'completed', progressPercent: 100, workflowStatus: 'translator_approved', serviceLevel: OFFICIAL,
+      hasReadyResultFiles: true,
+    });
+    expect(s.canDownload).toBe(false);
+  });
+
+  it('canCustomerDownload standalone: notary explicit hasReadyResultFiles=true/false', () => {
+    expect(canCustomerDownload('notarized', NOTARY, true)).toBe(true);
+    expect(canCustomerDownload('notarized', NOTARY, false)).toBe(false);
+    expect(canCustomerDownload('notarized', NOTARY)).toBe(false);
+  });
+
+  it('canCustomerDownload standalone: official requires both operatorConfirmed and hasReadyResultFiles when explicitly passed', () => {
+    expect(canCustomerDownload('ready_for_delivery', OFFICIAL, true)).toBe(true);
+    expect(canCustomerDownload('ready_for_delivery', OFFICIAL, false)).toBe(false);
+    expect(canCustomerDownload('ready_for_delivery', OFFICIAL)).toBe(true); // legacy omitted
+  });
+});
+
 describe('getCustomerOrderState — security: download gating', () => {
   it('certified in AI processing → never downloadable', () => {
     const SL = 'official_with_translator_signature_and_provider_stamp';
