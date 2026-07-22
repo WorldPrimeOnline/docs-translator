@@ -23,7 +23,7 @@ import {
 } from './google-drive';
 import { downloadFile } from './r2';
 import type { ServiceLevel } from './output-plan';
-import { buildJiraIssueFields, JIRA_FIELDS, buildApplicantTypeDescriptionLine, buildNotaryUrgencyDescriptionLines } from './jira/order-fields';
+import { buildJiraIssueFields, JIRA_FIELDS, buildApplicantTypeDescriptionLine, buildNotaryUrgencyDescriptionLines, stagingSecurityField, isStagingJiraEnvironment } from './jira/order-fields';
 import { resolveNotaryUrgencySnapshot, type ResolvedNotaryUrgencySnapshot, type JobUrgencyColumns } from './notary-urgency';
 import { searchJiraIssuesByJql } from './jira/search';
 import {
@@ -270,6 +270,7 @@ async function createJiraIssue(params: {
       },
       labels: [envLabel],
       ...customFields,
+      ...stagingSecurityField(),
     },
   };
 
@@ -378,7 +379,7 @@ export async function createFinanceReportIssue(params: {
   };
 
   const financeConfig = getFinanceConfig();
-  if (!financeConfig.securityLevelId) {
+  if (!financeConfig.securityLevelId && !isStagingJiraEnvironment()) {
     console.warn(`${tag} Finance report created WITHOUT Jira security level. Configure JIRA_FINANCE_SECURITY_LEVEL_ID before granting translators broad project access.`);
   }
 

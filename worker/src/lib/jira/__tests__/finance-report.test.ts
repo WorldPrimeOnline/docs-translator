@@ -83,6 +83,36 @@ describe('buildFinanceIssuePayload', () => {
     expect((payload.fields as Record<string, unknown>).security).toEqual({ id: '10001' });
   });
 
+  describe('staging Jira Admin security level (2026-08-01) — staging always wins', () => {
+    it('staging + no JIRA_FINANCE_SECURITY_LEVEL_ID: forces the hardcoded Admin level', () => {
+      process.env.APP_ENV = 'staging';
+      delete process.env.JIRA_FINANCE_SECURITY_LEVEL_ID;
+      const payload = buildFinanceIssuePayload(baseParams);
+      expect((payload.fields as Record<string, unknown>).security).toEqual({ id: '10000' });
+    });
+
+    it('staging + JIRA_FINANCE_SECURITY_LEVEL_ID also set: Admin still wins, the finance-specific level is ignored', () => {
+      process.env.APP_ENV = 'staging';
+      process.env.JIRA_FINANCE_SECURITY_LEVEL_ID = '10001';
+      const payload = buildFinanceIssuePayload(baseParams);
+      expect((payload.fields as Record<string, unknown>).security).toEqual({ id: '10000' });
+    });
+
+    it('production + no JIRA_FINANCE_SECURITY_LEVEL_ID: security field absent — unchanged prior behavior', () => {
+      process.env.APP_ENV = 'production';
+      delete process.env.JIRA_FINANCE_SECURITY_LEVEL_ID;
+      const payload = buildFinanceIssuePayload(baseParams);
+      expect('security' in (payload.fields as Record<string, unknown>)).toBe(false);
+    });
+
+    it('production + JIRA_FINANCE_SECURITY_LEVEL_ID set: uses the configured level, not Admin — unchanged prior behavior', () => {
+      process.env.APP_ENV = 'production';
+      process.env.JIRA_FINANCE_SECURITY_LEVEL_ID = '10001';
+      const payload = buildFinanceIssuePayload(baseParams);
+      expect((payload.fields as Record<string, unknown>).security).toEqual({ id: '10001' });
+    });
+  });
+
   it('includes all required labels', () => {
     delete process.env.JIRA_FINANCE_LABELS;
     const payload = buildFinanceIssuePayload(baseParams);

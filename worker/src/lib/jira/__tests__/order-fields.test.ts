@@ -1,4 +1,4 @@
-import { buildJiraIssueFields, JIRA_FIELDS, buildApplicantTypeDescriptionLine } from '../order-fields';
+import { buildJiraIssueFields, JIRA_FIELDS, buildApplicantTypeDescriptionLine, JIRA_ADMIN_SECURITY_LEVEL_ID, isStagingJiraEnvironment, stagingSecurityField } from '../order-fields';
 import type { JiraIssueFieldsInput } from '../order-fields';
 
 const BASE_INPUT: JiraIssueFieldsInput = {
@@ -249,5 +249,43 @@ describe('buildApplicantTypeDescriptionLine', () => {
     expect(buildApplicantTypeDescriptionLine('official_with_translator_signature_and_provider_stamp', 'individual')).toBeNull();
     expect(buildApplicantTypeDescriptionLine('electronic', 'legal_entity')).toBeNull();
     expect(buildApplicantTypeDescriptionLine('electronic', null)).toBeNull();
+  });
+});
+
+describe('staging Jira Admin security level (2026-08-01)', () => {
+  const ORIGINAL_APP_ENV = process.env.APP_ENV;
+
+  afterEach(() => {
+    if (ORIGINAL_APP_ENV === undefined) delete process.env.APP_ENV;
+    else process.env.APP_ENV = ORIGINAL_APP_ENV;
+  });
+
+  it('JIRA_ADMIN_SECURITY_LEVEL_ID is the real Admin level ID found via the Jira metadata API for project WO (never guessed)', () => {
+    // Looked up via GET /rest/api/3/project/WO/securitylevel — see
+    // scripts/staging/find-jira-security-levels.ts. Only one level exists: "Admin".
+    expect(JIRA_ADMIN_SECURITY_LEVEL_ID).toBe('10000');
+  });
+
+  it('isStagingJiraEnvironment reads APP_ENV — the existing convention, no new env var', () => {
+    process.env.APP_ENV = 'staging';
+    expect(isStagingJiraEnvironment()).toBe(true);
+
+    process.env.APP_ENV = 'production';
+    expect(isStagingJiraEnvironment()).toBe(false);
+
+    delete process.env.APP_ENV;
+    expect(isStagingJiraEnvironment()).toBe(false); // defaults to production-safe
+  });
+
+  it('stagingSecurityField returns the Admin security field on staging', () => {
+    process.env.APP_ENV = 'staging';
+    expect(stagingSecurityField()).toEqual({ security: { id: '10000' } });
+  });
+
+  it('stagingSecurityField returns an empty object on production — the security field is fully absent, not null/undefined', () => {
+    process.env.APP_ENV = 'production';
+    const result = stagingSecurityField();
+    expect(result).toEqual({});
+    expect('security' in result).toBe(false);
   });
 });

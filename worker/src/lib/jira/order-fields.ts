@@ -35,6 +35,31 @@ export const JIRA_FIELDS = {
   partnerApplicationId: 'customfield_10121', // text — partner_applications.id (UUID) when order came via a referral
 } as const;
 
+// ─── Security level (staging isolation) ──────────────────────────────────────
+// 2026-08-01: every Jira issue this project creates while running as staging gets
+// this hardcoded "Admin" issue security level, so staging test orders are never
+// visible to the same broad set of Jira project users as real production orders.
+// The real numeric ID was looked up via the Jira REST API
+// (GET /rest/api/3/project/WO/securitylevel — see
+// scripts/staging/find-jira-security-levels.ts) against the actual project;
+// never guessed. No new env var — reuses the existing APP_ENV staging convention
+// already used elsewhere in this codebase (e.g. this file's callers' envLabel logic).
+export const JIRA_ADMIN_SECURITY_LEVEL_ID = '10000';
+
+export function isStagingJiraEnvironment(): boolean {
+  return (process.env.APP_ENV ?? 'production') === 'staging';
+}
+
+/**
+ * `{ security: { id: JIRA_ADMIN_SECURITY_LEVEL_ID } }` on staging, `{}` on
+ * production — spread directly into any Jira issue-creation `fields` object.
+ * Every create-issue call site in this project must use this, not its own
+ * environment check, so staging/production behavior can never drift between them.
+ */
+export function stagingSecurityField(): { security?: { id: string } } {
+  return isStagingJiraEnvironment() ? { security: { id: JIRA_ADMIN_SECURITY_LEVEL_ID } } : {};
+}
+
 // ─── Language names (Russian display) ────────────────────────────────────────
 
 const LANG_NAMES: Record<string, string> = {

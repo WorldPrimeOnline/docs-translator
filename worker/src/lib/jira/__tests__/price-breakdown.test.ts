@@ -1,6 +1,7 @@
 import {
   buildPriceBreakdownDescription,
   buildPriceBreakdownSummary,
+  buildPriceBreakdownPayload,
   hasLegacyItemTypes,
   mapPriceQuoteItem,
   mapCostReservation,
@@ -101,6 +102,38 @@ function makeParams(overrides: Partial<PriceBreakdownFullParams> = {}): PriceBre
 describe('buildPriceBreakdownSummary', () => {
   it('returns canonical summary string', () => {
     expect(buildPriceBreakdownSummary('WO-42')).toBe('Price Breakdown for WO-42');
+  });
+});
+
+describe('buildPriceBreakdownPayload — staging Jira Admin security level (2026-08-01)', () => {
+  const ORIGINAL_APP_ENV = process.env.APP_ENV;
+
+  afterEach(() => {
+    if (ORIGINAL_APP_ENV === undefined) delete process.env.APP_ENV;
+    else process.env.APP_ENV = ORIGINAL_APP_ENV;
+  });
+
+  it('staging: fields.security is the hardcoded Admin level', () => {
+    process.env.APP_ENV = 'staging';
+    const payload = buildPriceBreakdownPayload(makeParams()) as { fields: Record<string, unknown> };
+    expect(payload.fields.security).toEqual({ id: '10000' });
+  });
+
+  it('production: fields.security is completely absent — not null, not undefined key', () => {
+    process.env.APP_ENV = 'production';
+    const payload = buildPriceBreakdownPayload(makeParams()) as { fields: Record<string, unknown> };
+    expect('security' in payload.fields).toBe(false);
+  });
+
+  it('the rest of the payload is unaffected by the environment', () => {
+    process.env.APP_ENV = 'staging';
+    const stagingPayload = buildPriceBreakdownPayload(makeParams()) as { fields: Record<string, unknown> };
+    process.env.APP_ENV = 'production';
+    const prodPayload = buildPriceBreakdownPayload(makeParams()) as { fields: Record<string, unknown> };
+
+    const { security: _s1, ...stagingRest } = stagingPayload.fields;
+    const { security: _s2, ...prodRest } = prodPayload.fields;
+    expect(stagingRest).toEqual(prodRest);
   });
 });
 
