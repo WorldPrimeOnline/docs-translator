@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { ArrowRight } from 'lucide-react';
@@ -22,6 +22,25 @@ export function OrderWizard() {
 
   const [draftId, setDraftId] = useState<string | null>(null);
   const [price, setPrice] = useState<DraftPriceResult | null>(null);
+  const priceHeadingRef = useRef<HTMLHeadingElement>(null);
+
+  // 2026-07-30 fix: the price-ready card replaces the (often much taller) form at the same
+  // spot in the tree — the browser keeps whatever scroll position the user had while filling
+  // out the form (frequently scrolled down near the submit button), which can now point at
+  // empty space below the shorter card. Runs exactly once per transition into the ready state
+  // (price goes from null -> an object) — never on polling/unrelated re-renders, since nothing
+  // else in this branch ever changes the `price` object reference.
+  useEffect(() => {
+    if (!price) return;
+    const card = priceHeadingRef.current;
+    if (!card) return;
+
+    const prefersReducedMotion = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    card.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth', block: 'start' });
+    // preventScroll: focus() itself would otherwise trigger a second, competing scroll jump
+    // (most browsers scroll a newly focused element into view by default).
+    card.focus({ preventScroll: true });
+  }, [price]);
 
   const handlePay = async (): Promise<void> => {
     if (!draftId) return;
@@ -39,7 +58,7 @@ export function OrderWizard() {
   if (price && draftId) {
     return (
       <div className="rounded-lg border border-white/10 bg-card p-6">
-        <h2 className="mb-1 text-lg font-semibold text-foreground">{t('priceReadyTitle')}</h2>
+        <h2 ref={priceHeadingRef} tabIndex={-1} className="mb-1 text-lg font-semibold text-foreground focus-visible:ring-2 focus-visible:ring-primary/50 rounded">{t('priceReadyTitle')}</h2>
         <p className="mb-5 text-sm text-muted-foreground">{t('signInHint')}</p>
 
         <div className="mb-5 rounded-lg border border-primary/30 bg-primary/5 p-5 text-center">
