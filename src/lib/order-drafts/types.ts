@@ -7,6 +7,17 @@ export interface DraftFileKey {
   originalName: string;
   mimeType: string;
   sizeBytes: number;
+  /**
+   * Provenance of the merged PDF at `key` (2026-07-29 incident fix — see
+   * src/app/api/order-drafts/[draftId]/upload/complete/route.ts). sourceUploadCount/
+   * sourceUploadIds reflect the DEDUPED source list actually merged (raw uploads with
+   * identical content hashes collapse to one before mergePdfs()) — a stale/duplicated
+   * client retry can never inflate these past the count of genuinely distinct files.
+   * Absent on drafts completed before this fix.
+   */
+  sourceUploadCount?: number;
+  sourceUploadIds?: string[];
+  sourceContentHashes?: string[];
 }
 
 /**
@@ -24,6 +35,9 @@ export interface DraftAnalysisSnapshot {
   physicalPageCount: number | null;
   requiresOperatorReview: boolean;
   reviewReasons: string[];
+  /** Copied from file_keys[0] at analysis time — see DraftFileKey's doc comment. */
+  sourceUploadCount?: number;
+  sourceUploadIds?: string[];
 }
 
 export interface DraftPricingSnapshot {
@@ -39,6 +53,9 @@ export interface DraftPricingSnapshot {
   discountAppliedKzt?: number;
   /** Normalized (uppercased) partner referral code the discount was validated against. */
   discountCode?: string | null;
+  /** Copied from the analysis snapshot at calculate time — see DraftFileKey's doc comment. */
+  sourceUploadCount?: number;
+  sourceUploadIds?: string[];
 }
 
 /** Raw `order_drafts` row shape — snake_case, matches the DB column names exactly. */

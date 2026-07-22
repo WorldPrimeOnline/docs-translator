@@ -235,6 +235,10 @@ async function resolveDraftAnalysis(draft: OrderDraftRow): Promise<DraftAnalysis
     physicalPageCount: result.physicalPageCount,
     requiresOperatorReview: result.requiresOperatorReview,
     reviewReasons: result.reviewReasons,
+    // Provenance carried forward from upload/complete's dedup step — see DraftFileKey's
+    // doc comment (2026-07-29 incident fix).
+    sourceUploadCount: fileKey.sourceUploadCount,
+    sourceUploadIds: fileKey.sourceUploadIds,
   };
 
   await db.from('order_drafts').update({ analysis_snapshot: snapshot, updated_at: new Date().toISOString() }).eq('id', draft.id);
@@ -326,6 +330,10 @@ export async function calculateDraftPrice(
     priceBeforeDiscountKzt: discountKzt > 0 ? basePreDiscountKzt : undefined,
     discountAppliedKzt: discountKzt > 0 ? discountKzt : undefined,
     discountCode: discountKzt > 0 ? refCodeForDiscount : undefined,
+    // Carried forward from the analysis snapshot — see DraftFileKey's doc comment
+    // (2026-07-29 incident fix). undefined for electronic (no document analysis at all).
+    sourceUploadCount: analysis?.sourceUploadCount,
+    sourceUploadIds: analysis?.sourceUploadIds,
   };
 
   const { data, error } = await db

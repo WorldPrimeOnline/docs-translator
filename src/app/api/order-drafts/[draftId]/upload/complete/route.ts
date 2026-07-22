@@ -18,10 +18,12 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import crypto from 'crypto';
 import { downloadFile, uploadFile, deleteFile, headFile } from '@/lib/r2/client';
 import { setDraftFile } from '@/lib/order-drafts/service';
 import { matchesClaimedMimeType } from '@/lib/file-validation/signature';
 import { convertToPdf, mergePdfs } from '@/lib/convert-to-pdf';
+import { getPhysicalPageCount } from '@/lib/document-analysis/physical-pages';
 import {
   loadOwnedDraft,
   resolveMimeType,
@@ -165,12 +167,61 @@ export async function POST(
       }
     }
 
-    // ─── Convert + merge (existing functions, unchanged). Do NOT delete raw objects on
-    // failure here — these can be transient/fixable, so keep them around for a retry. ───
+    // ─── Convert + dedupe + merge. Do NOT delete raw objects on failure here — these
+    // can be transient/fixable, so keep them around for a retry. ───
+    //
+    // 2026-07-29 incident fix: a stale/retried client submission (e.g. upload succeeded,
+    // pricing failed, the customer re-added the same file before retrying) previously had
+    // no server-side guard against merging genuine byte-identical duplicates into one PDF —
+    // mergePdfs() faithfully merges whatever it's given, doubling the real page/character
+    // count for a document that is actually one page. Deduplicate by content hash of the
+    // CONVERTED PDF part (not the raw upload) so this holds regardless of original
+    // mimetype/whether convertToPdf changed the bytes — before mergePdfs() ever sees the
+    // list, never inside it (mergePdfs itself is untouched).
     let pdfBuffer: Buffer;
+    let dedupedKeys: string[];
+    let dedupedHashes: string[];
+    let sourcePageCounts: number[];
     try {
       const pdfParts = await Promise.all(buffers.map((buf, i) => convertToPdf(buf, resolvedMimes[i]!)));
-      pdfBuffer = await mergePdfs(pdfParts);
+      const hashes = pdfParts.map((part) => crypto.createHash('sha256').update(part).digest('hex'));
+
+      const seenHashes = new Set<string>();
+      const dedupedParts: Buffer[] = [];
+      dedupedKeys = [];
+      dedupedHashes = [];
+      const droppedKeys: string[] = [];
+      for (let i = 0; i < pdfParts.length; i++) {
+        const hash = hashes[i]!;
+        if (seenHashes.has(hash)) {
+          droppedKeys.push(keys[i]!);
+          continue;
+        }
+        seenHashes.add(hash);
+        dedupedParts.push(pdfParts[i]!);
+        dedupedKeys.push(keys[i]!);
+        dedupedHashes.push(hash);
+      }
+
+      sourcePageCounts = await Promise.all(dedupedParts.map((part) => getPhysicalPageCount(part)));
+
+      // Structured log BEFORE merge/analysis — draft id, upload count, upload ids,
+      // filenames, hashes, individual page counts (2026-07-29 requirement).
+      console.log('[order-drafts] upload/complete: pre-merge diagnostic', {
+        draftId,
+        rawUploadCount: uploads.length,
+        dedupedUploadCount: dedupedParts.length,
+        uploadIds: keys,
+        droppedDuplicateKeys: droppedKeys,
+        filenames: uploads.map((u) => u.originalName),
+        contentHashes: dedupedHashes,
+        sourcePageCounts,
+      });
+      if (droppedKeys.length > 0) {
+        console.warn('[order-drafts] upload/complete: dropped duplicate upload(s) before merge (retry appended stale content)', { draftId, droppedKeys });
+      }
+
+      pdfBuffer = await mergePdfs(dedupedParts);
     } catch (err) {
       console.error('[order-drafts] upload/complete: conversion failed:', draftId, err);
       return NextResponse.json({ error: 'FILE_PROCESSING_FAILED' }, { status: 500 });
@@ -183,10 +234,23 @@ export async function POST(
       return NextResponse.json({ error: 'DIRECT_UPLOAD_FAILED' }, { status: 500 });
     }
 
-    const combinedName = buildCombinedOriginalName(uploads.map((u) => u.originalName));
+    // Combined display name reflects the DEDUPED set — a dropped duplicate must never show
+    // up as an extra "file" in the customer-facing name.
+    const dedupedKeySet = new Set(dedupedKeys);
+    const combinedName = buildCombinedOriginalName(
+      uploads.filter((u) => dedupedKeySet.has(u.key)).map((u) => u.originalName),
+    );
     const result = await setDraftFile(
       draftId,
-      { key: finalKey, originalName: combinedName, mimeType: 'application/pdf', sizeBytes: pdfBuffer.length },
+      {
+        key: finalKey,
+        originalName: combinedName,
+        mimeType: 'application/pdf',
+        sizeBytes: pdfBuffer.length,
+        sourceUploadCount: dedupedKeys.length,
+        sourceUploadIds: dedupedKeys,
+        sourceContentHashes: dedupedHashes,
+      },
       owner,
     );
 

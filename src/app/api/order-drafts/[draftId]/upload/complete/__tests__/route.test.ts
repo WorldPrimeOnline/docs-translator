@@ -31,6 +31,9 @@ jest.mock('@/lib/convert-to-pdf', () => ({
   convertToPdf: jest.fn(),
   mergePdfs: jest.fn(),
 }));
+jest.mock('@/lib/document-analysis/physical-pages', () => ({
+  getPhysicalPageCount: jest.fn(),
+}));
 
 import { NextRequest } from 'next/server';
 import { POST } from '../route';
@@ -40,6 +43,7 @@ import { getOptionalAuthUser } from '@/lib/order-drafts/request-context';
 import { downloadFile, uploadFile, deleteFile, headFile } from '@/lib/r2/client';
 import { matchesClaimedMimeType } from '@/lib/file-validation/signature';
 import { convertToPdf, mergePdfs } from '@/lib/convert-to-pdf';
+import { getPhysicalPageCount } from '@/lib/document-analysis/physical-pages';
 import type { OrderDraftRow } from '@/lib/order-drafts/types';
 
 const mockGetDraftRow = getDraftRow as jest.Mock;
@@ -53,6 +57,7 @@ const mockHeadFile = headFile as jest.Mock;
 const mockMatchesClaimedMimeType = matchesClaimedMimeType as jest.Mock;
 const mockConvertToPdf = convertToPdf as jest.Mock;
 const mockMergePdfs = mergePdfs as jest.Mock;
+const mockGetPhysicalPageCount = getPhysicalPageCount as jest.Mock;
 
 const RAW_KEY_1 = 'draft-upload-raw/draft-1/11111111-1111-1111-1111-111111111111';
 const RAW_KEY_2 = 'draft-upload-raw/draft-1/22222222-2222-2222-2222-222222222222';
@@ -123,6 +128,7 @@ beforeEach(() => {
   mockUploadFile.mockResolvedValue(undefined);
   mockDeleteFile.mockResolvedValue(undefined);
   mockSetDraftFile.mockResolvedValue({ ok: true, value: { ...BASE_DRAFT, file_keys: [{ key: FINAL_KEY, originalName: 'passport.pdf', mimeType: 'application/pdf', sizeBytes: 9 }] } });
+  mockGetPhysicalPageCount.mockResolvedValue(1);
 });
 
 describe('ownership / draft state', () => {
@@ -418,3 +424,120 @@ describe('idempotent replay', () => {
     expect(mockSetDraftFile).toHaveBeenCalled();
   });
 });
+
+describe('content-hash dedup before mergePdfs (2026-07-29 incident regression)', () => {
+  // Reproduces the exact reported production sequence: /complete already succeeded once
+  // for a single real document, pricing/calculate then failed, and a later retry's
+  // uploads list ended up containing the SAME file content twice (client-side stale
+  // accumulation) under a reprocessing path (e.g. the final object briefly unavailable).
+  // mergePdfs() must never see both copies — physicalPageCount/characterCount must not
+  // double for what is actually a one-page document.
+  it('collapses two byte-identical uploads to one before merging — draft ends up with sourceUploadCount=1, not 2', async () => {
+    mockHeadFile
+      .mockResolvedValueOnce({ contentLength: 3, contentType: 'application/pdf' })
+      .mockResolvedValueOnce({ contentLength: 3, contentType: 'application/pdf' });
+    // Same identical bytes downloaded for both raw keys — a duplicate upload of the same file.
+    mockDownloadFile.mockResolvedValueOnce(Buffer.from('AAA')).mockResolvedValueOnce(Buffer.from('AAA'));
+    mockGetPhysicalPageCount.mockResolvedValueOnce(1); // only ever called once — for the single deduped part
+
+    const uploads = [
+      { key: RAW_KEY_1, originalName: 'passport.pdf', mimeType: 'application/pdf', sizeBytes: 3 },
+      { key: RAW_KEY_2, originalName: 'passport.pdf', mimeType: 'application/pdf', sizeBytes: 3 },
+    ];
+    const { request, params } = makeRequest('draft-1', { uploads });
+    const res = await POST(request, { params });
+
+    expect(res.status).toBe(200);
+    // mergePdfs must receive exactly ONE part, not two — this is what prevents the
+    // page/character count from doubling downstream.
+    const mergedArg = mockMergePdfs.mock.calls[0]![0] as Buffer[];
+    expect(mergedArg).toHaveLength(1);
+    expect(mockGetPhysicalPageCount).toHaveBeenCalledTimes(1);
+
+    expect(mockSetDraftFile).toHaveBeenCalledWith(
+      'draft-1',
+      expect.objectContaining({
+        sourceUploadCount: 1,
+        sourceUploadIds: [RAW_KEY_1],
+      }),
+      expect.anything(),
+    );
+    // Both raw objects (including the dropped duplicate) still get cleaned up — nothing
+    // stale is left lying around in R2.
+    expect(mockDeleteFile).toHaveBeenCalledWith(RAW_KEY_1);
+    expect(mockDeleteFile).toHaveBeenCalledWith(RAW_KEY_2);
+  });
+
+  it('two genuinely different files are NOT deduped — sourceUploadCount reflects both', async () => {
+    mockHeadFile
+      .mockResolvedValueOnce({ contentLength: 3, contentType: 'application/pdf' })
+      .mockResolvedValueOnce({ contentLength: 3, contentType: 'application/pdf' });
+    mockDownloadFile.mockResolvedValueOnce(Buffer.from('AAA')).mockResolvedValueOnce(Buffer.from('BBB'));
+    mockGetPhysicalPageCount.mockResolvedValueOnce(1).mockResolvedValueOnce(2);
+
+    const uploads = [
+      { key: RAW_KEY_1, originalName: 'front.pdf', mimeType: 'application/pdf', sizeBytes: 3 },
+      { key: RAW_KEY_2, originalName: 'back.pdf', mimeType: 'application/pdf', sizeBytes: 3 },
+    ];
+    const { request, params } = makeRequest('draft-1', { uploads });
+    const res = await POST(request, { params });
+
+    expect(res.status).toBe(200);
+    const mergedArg = mockMergePdfs.mock.calls[0]![0] as Buffer[];
+    expect(mergedArg).toHaveLength(2);
+    expect(mockSetDraftFile).toHaveBeenCalledWith(
+      'draft-1',
+      expect.objectContaining({ sourceUploadCount: 2, sourceUploadIds: [RAW_KEY_1, RAW_KEY_2] }),
+      expect.anything(),
+    );
+  });
+
+  it('full incident sequence: complete succeeds (1 file) -> retry with a stale duplicate appended -> still deduped to 1 on reprocess', async () => {
+    // Step 1: first successful completion, single real file.
+    mockHeadFile.mockResolvedValueOnce({ contentLength: 3, contentType: 'application/pdf' });
+    mockDownloadFile.mockResolvedValueOnce(Buffer.from('AAA'));
+    mockGetPhysicalPageCount.mockResolvedValueOnce(1);
+    const { request: req1, params: params1 } = makeRequest('draft-1', { uploads: [uploads0(RAW_KEY_1)] });
+    const res1 = await POST(req1, { params: params1 });
+    expect(res1.status).toBe(200);
+    expect(mockSetDraftFile).toHaveBeenLastCalledWith(
+      'draft-1',
+      expect.objectContaining({ sourceUploadCount: 1, sourceUploadIds: [RAW_KEY_1] }),
+      expect.anything(),
+    );
+
+    // Step 2: pricing/calculate fails (simulated elsewhere — calculateDraftPrice, not this
+    // route). The client retries; its stale `files` state now also includes the same
+    // document a second time. The draft's final object momentarily fails its HeadObject
+    // probe (e.g. R2 read-after-write edge case), so /complete falls through to
+    // reprocessing — with the client's (stale, duplicated) uploads list.
+    mockGetDraftRow.mockResolvedValueOnce({
+      ...BASE_DRAFT,
+      file_keys: [{ key: FINAL_KEY, originalName: 'passport.pdf', mimeType: 'application/pdf', sizeBytes: 3, sourceUploadCount: 1, sourceUploadIds: [RAW_KEY_1] }],
+    });
+    mockHeadFile
+      .mockResolvedValueOnce(null) // final-key probe fails -> reprocess
+      .mockResolvedValueOnce({ contentLength: 3, contentType: 'application/pdf' })
+      .mockResolvedValueOnce({ contentLength: 3, contentType: 'application/pdf' });
+    mockDownloadFile.mockResolvedValueOnce(Buffer.from('AAA')).mockResolvedValueOnce(Buffer.from('AAA'));
+    mockGetPhysicalPageCount.mockResolvedValueOnce(1);
+
+    const retryUploads = [uploads0('draft-upload-raw/draft-1/33333333-3333-3333-3333-333333333333'), uploads0('draft-upload-raw/draft-1/44444444-4444-4444-4444-444444444444')];
+    const { request: req2, params: params2 } = makeRequest('draft-1', { uploads: retryUploads });
+    const res2 = await POST(req2, { params: params2 });
+
+    expect(res2.status).toBe(200);
+    // Draft still ends up with exactly ONE source upload — never doubled by the retry.
+    expect(mockSetDraftFile).toHaveBeenLastCalledWith(
+      'draft-1',
+      expect.objectContaining({ sourceUploadCount: 1 }),
+      expect.anything(),
+    );
+    const mergedArg = mockMergePdfs.mock.calls[mockMergePdfs.mock.calls.length - 1]![0] as Buffer[];
+    expect(mergedArg).toHaveLength(1);
+  });
+});
+
+function uploads0(key: string) {
+  return { key, originalName: 'passport.pdf', mimeType: 'application/pdf', sizeBytes: 3 };
+}
