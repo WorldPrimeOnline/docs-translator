@@ -8,14 +8,25 @@ jest.mock('@/lib/supabase/server', () => ({
 jest.mock('@/lib/pricing/service', () => ({
   computeQuoteForJob: jest.fn(),
   saveQuote: jest.fn(),
+  extractNotaryUrgencySnapshot: jest.fn(() => null),
 }));
 jest.mock('@/lib/referral/server', () => ({
   attachReferralToOrder: jest.fn(),
 }));
+jest.mock('@/lib/r2/client', () => ({
+  downloadFile: jest.fn(),
+  uploadFile: jest.fn(),
+}));
+jest.mock('@/lib/document-analysis/service', () => ({
+  resolveDocumentAnalysisForPricing: jest.fn(),
+}));
+const mockCaptureMessage = jest.fn();
+jest.mock('@sentry/nextjs', () => ({ captureMessage: (...args: unknown[]) => mockCaptureMessage(...args) }));
 
 import { supabaseServer } from '@/lib/supabase/server';
 import { computeQuoteForJob, saveQuote } from '@/lib/pricing/service';
 import { attachReferralToOrder } from '@/lib/referral/server';
+import { resolveDocumentAnalysisForPricing } from '@/lib/document-analysis/service';
 import {
   checkCardUploadRateLimit,
   findExistingCardOrder,
@@ -179,6 +190,293 @@ describe('createCardOrder', () => {
     );
   });
 
+  describe('Official/Notary — document analysis wiring (2026-07-22)', () => {
+    const mockResolveAnalysis = resolveDocumentAnalysisForPricing as jest.Mock;
+
+    it('completed analysis: pricingInput carries the real characterCount/physicalPageCount/analysisId, no hardcoded physicalPageCount:1', async () => {
+      mockResolveAnalysis.mockResolvedValueOnce({
+        kind: 'completed',
+        row: { id: 'analysis-1', documentId: 'attempt-1', revision: 1, status: 'completed', method: 'pdf_text_layer', sourceCharacterCountWithSpaces: 671, physicalPageCount: 2 },
+      });
+      mockComputeQuote.mockResolvedValueOnce({
+        result: { amountKzt: 7400, currency: 'KZT', requiresOperatorReview: false, reviewReasons: [], context: {}, items: [] },
+        version: { code: '2026-Q3-KZ-NEWMODEL' },
+      });
+      mockSaveQuote.mockResolvedValueOnce({ quoteId: 'quote-1' });
+
+      const usersUpsertChain = chain({ data: null, error: null });
+      const docInsertChain = chain({ data: { id: 'attempt-1' }, error: null });
+      const jobInsertChain = chain({ data: { id: 'job-1' }, error: null });
+      const auditChain = chain({ error: null });
+      mockFrom
+        .mockReturnValueOnce(usersUpsertChain)
+        .mockReturnValueOnce(chain({ data: null, error: null }))
+        .mockReturnValueOnce(docInsertChain)
+        .mockReturnValueOnce(jobInsertChain)
+        .mockReturnValueOnce(auditChain);
+
+      const result = await createCardOrder(baseInput({ serviceLevel: 'official_with_translator_signature_and_provider_stamp' }));
+
+      expect(result.ok).toBe(true);
+      expect(mockResolveAnalysis).toHaveBeenCalledWith('attempt-1', 'application/pdf', expect.any(Function));
+      expect(mockComputeQuote).toHaveBeenCalledWith(
+        expect.objectContaining({ analysisId: 'analysis-1', physicalPageCount: 2, sourceCharacterCountWithSpaces: 671 }),
+      );
+    });
+
+    it('regression (2026-07-22): Official upload with completed document analysis produces an automatic quote and a payable order — never operator_review, never a job without a quote', async () => {
+      // Reproduces the correct behavior for the exact staging scenario that broke: a supported,
+      // successfully-analyzed Official document must ALWAYS auto-price. WPO has no manual
+      // operator pricing step — requiresOperatorReview must be false end-to-end, a real quote
+      // must be saved, and the job must never be created without one.
+      mockResolveAnalysis.mockResolvedValueOnce({
+        kind: 'completed',
+        row: { id: 'analysis-1', documentId: 'attempt-1', revision: 1, status: 'completed', method: 'pdf_text_layer', sourceCharacterCountWithSpaces: 1800, physicalPageCount: 1 },
+      });
+      mockComputeQuote.mockResolvedValueOnce({
+        result: { amountKzt: 7400, currency: 'KZT', requiresOperatorReview: false, reviewReasons: [], context: {}, items: [] },
+        version: { code: '2026-Q3-KZ-NEWMODEL', metadata: { formula_version: 'new_2026_07_21' } },
+      });
+      mockSaveQuote.mockResolvedValueOnce({ quoteId: 'quote-real-1' });
+
+      const jobInsertChain = chain({ data: { id: 'job-1' }, error: null });
+      mockFrom
+        .mockReturnValueOnce(chain({ data: null, error: null })) // users upsert
+        .mockReturnValueOnce(chain({ data: null, error: null })) // existing-document lookup — none
+        .mockReturnValueOnce(chain({ data: { id: 'attempt-1' }, error: null })) // documents insert
+        .mockReturnValueOnce(jobInsertChain) // jobs insert
+        .mockReturnValueOnce(chain({ error: null })); // job_audit_log
+
+      const result = await createCardOrder(baseInput({ serviceLevel: 'official_with_translator_signature_and_provider_stamp' }));
+
+      expect(result).toEqual({
+        ok: true,
+        value: expect.objectContaining({
+          jobId: 'job-1',
+          documentId: 'attempt-1',
+          priceKzt: 7400,
+          quoteId: 'quote-real-1',
+          requiresOperatorReview: false,
+          reviewReasons: undefined,
+        }),
+      });
+      expect(jobInsertChain.insert).toHaveBeenCalledWith(expect.objectContaining({ status: 'payment_pending' }));
+      expect(mockSaveQuote).toHaveBeenCalledTimes(1);
+    });
+
+    it('regression (2026-07-28): the exact staging incident (no active language rate for ru->zh) is reported to Sentry with the real classification, but the customer only ever sees the generic PRICING_UNAVAILABLE — no job created', async () => {
+      // The staging incident: no active language rate for ru->zh under the active version made
+      // calculateOfficialNotaryPrice return requiresOperatorReview=true with a meaningless
+      // degenerate price (300 KZT, OCR-only, zero translation). The old code created the job
+      // anyway (payment_pending, no quote) and the frontend showed "an operator will calculate
+      // the price" — which does not exist at WPO. This must now be a clean, job-free failure,
+      // and specifically classified as a language-pair/configuration gap, not lumped in with a
+      // genuinely unsupported document.
+      mockResolveAnalysis.mockResolvedValueOnce({
+        kind: 'completed',
+        row: { id: 'analysis-1', documentId: 'attempt-1', revision: 1, status: 'completed', method: 'pdf_text_layer', sourceCharacterCountWithSpaces: undefined, physicalPageCount: 1 },
+      });
+      mockComputeQuote.mockResolvedValueOnce({
+        result: {
+          amountKzt: 300, currency: 'KZT', requiresOperatorReview: true,
+          reviewReasons: ['No active language rate found for ru→zh — requires operator review'],
+          context: {}, items: [],
+        },
+        version: { code: '2026-Q3-KZ-MVP' },
+      });
+      const docUpdateChain = chain({ data: null, error: null });
+      mockFrom
+        .mockReturnValueOnce(chain({ data: null, error: null })) // users upsert
+        .mockReturnValueOnce(chain({ data: null, error: null })) // existing-document lookup — none
+        .mockReturnValueOnce(chain({ data: { id: 'attempt-1' }, error: null })) // documents insert
+        .mockReturnValueOnce(docUpdateChain); // document marked failed — NO jobs insert follows
+
+      const result = await createCardOrder(baseInput({ serviceLevel: 'official_with_translator_signature_and_provider_stamp' }));
+
+      // 2026-07-28: WPO has no manual operator process — LANGUAGE_RATE_MISSING is never
+      // surfaced to the customer, only via Sentry (the classification IS the tag/reason there).
+      expect(result).toEqual({ ok: false, status: 503, error: 'PRICING_UNAVAILABLE' });
+      expect(mockCaptureMessage).toHaveBeenCalledWith(
+        expect.stringContaining('LANGUAGE_RATE_MISSING'),
+        expect.objectContaining({ tags: expect.objectContaining({ reason: 'LANGUAGE_RATE_MISSING' }) }),
+      );
+      expect(docUpdateChain.update).toHaveBeenCalledWith({ status: 'failed' });
+      expect(mockSaveQuote).not.toHaveBeenCalled();
+      // Exactly 4 .from() calls total (users, existing-doc, doc insert, doc-failed update) —
+      // no 5th call, i.e. jobs.insert() was never reached.
+      expect(mockFrom).toHaveBeenCalledTimes(4);
+    });
+
+    it('regression (2026-07-28): a genuinely unsupported document type (presentation) is reported to Sentry as UNSUPPORTED_DOCUMENT, but the customer only sees the generic PRICING_UNAVAILABLE', async () => {
+      mockResolveAnalysis.mockResolvedValueOnce({
+        kind: 'completed',
+        row: { id: 'analysis-1', documentId: 'attempt-1', revision: 1, status: 'completed', method: 'pdf_text_layer', sourceCharacterCountWithSpaces: 1800, physicalPageCount: 1 },
+      });
+      mockComputeQuote.mockResolvedValueOnce({
+        result: {
+          amountKzt: 0, currency: 'KZT', requiresOperatorReview: true,
+          reviewReasons: ['presentation_pricing_not_yet_supported — presentations require a dedicated pricing flow not yet implemented'],
+          context: {}, items: [],
+        },
+        version: { code: '2026-Q3-KZ-NEWMODEL' },
+      });
+      mockFrom
+        .mockReturnValueOnce(chain({ data: null, error: null }))
+        .mockReturnValueOnce(chain({ data: null, error: null }))
+        .mockReturnValueOnce(chain({ data: { id: 'attempt-1' }, error: null }))
+        .mockReturnValueOnce(chain({ data: null, error: null }));
+
+      const result = await createCardOrder(baseInput({ serviceLevel: 'official_with_translator_signature_and_provider_stamp', documentType: 'presentation' }));
+
+      expect(result).toEqual({ ok: false, status: 503, error: 'PRICING_UNAVAILABLE' });
+      expect(mockCaptureMessage).toHaveBeenCalledWith(
+        expect.stringContaining('UNSUPPORTED_DOCUMENT'),
+        expect.objectContaining({ tags: expect.objectContaining({ reason: 'UNSUPPORTED_DOCUMENT' }) }),
+      );
+      expect(mockSaveQuote).not.toHaveBeenCalled();
+    });
+
+    it('regression (2026-07-28): a config-level review reason (unused_channel_reserve negative) is reported to Sentry as PRICING_VERSION_MISMATCH, but the customer only sees the generic PRICING_UNAVAILABLE', async () => {
+      mockResolveAnalysis.mockResolvedValueOnce({
+        kind: 'completed',
+        row: { id: 'analysis-1', documentId: 'attempt-1', revision: 1, status: 'completed', method: 'pdf_text_layer', sourceCharacterCountWithSpaces: 1800, physicalPageCount: 1 },
+      });
+      mockComputeQuote.mockResolvedValueOnce({
+        result: {
+          amountKzt: 0, currency: 'KZT', requiresOperatorReview: true,
+          reviewReasons: ['unused_channel_reserve is negative — channel_reserve_rate configuration cannot cover this discount/commission combination'],
+          context: {}, items: [],
+        },
+        version: { code: '2026-Q3-KZ-NEWMODEL' },
+      });
+      mockFrom
+        .mockReturnValueOnce(chain({ data: null, error: null }))
+        .mockReturnValueOnce(chain({ data: null, error: null }))
+        .mockReturnValueOnce(chain({ data: { id: 'attempt-1' }, error: null }))
+        .mockReturnValueOnce(chain({ data: null, error: null }));
+
+      const result = await createCardOrder(baseInput({ serviceLevel: 'official_with_translator_signature_and_provider_stamp' }));
+
+      expect(result).toEqual({ ok: false, status: 503, error: 'PRICING_UNAVAILABLE' });
+    });
+
+    it('regression (2026-07-23, atomicity invariant): job created successfully but saveQuote fails — the job row is KEPT (as a failed audit record, not deleted) but is transitioned OUT of payment_pending, so no payable job ever exists without a quote', async () => {
+      mockResolveAnalysis.mockResolvedValueOnce({
+        kind: 'completed',
+        row: { id: 'analysis-1', documentId: 'attempt-1', revision: 1, status: 'completed', method: 'pdf_text_layer', sourceCharacterCountWithSpaces: 1800, physicalPageCount: 1 },
+      });
+      mockComputeQuote.mockResolvedValueOnce({
+        result: { amountKzt: 7400, currency: 'KZT', requiresOperatorReview: false, reviewReasons: [], context: {}, items: [] },
+        version: { code: '2026-Q3-KZ-NEWMODEL' },
+      });
+      mockSaveQuote.mockResolvedValueOnce({ error: 'quote_insert_failed' });
+
+      const jobUpdateChain = chain({ data: null, error: null });
+      const docUpdateChain = chain({ data: null, error: null });
+      mockFrom
+        .mockReturnValueOnce(chain({ data: null, error: null })) // users upsert
+        .mockReturnValueOnce(chain({ data: null, error: null })) // existing-document lookup — none
+        .mockReturnValueOnce(chain({ data: { id: 'attempt-1' }, error: null })) // documents insert
+        .mockReturnValueOnce(chain({ data: { id: 'job-1' }, error: null })) // jobs insert succeeds
+        .mockReturnValueOnce(jobUpdateChain) // job UPDATEd (not deleted) out of payment_pending
+        .mockReturnValueOnce(docUpdateChain); // document marked failed
+
+      const result = await createCardOrder(baseInput({ serviceLevel: 'official_with_translator_signature_and_provider_stamp' }));
+
+      expect(result).toEqual({ ok: false, status: 500, error: 'QUOTE_SAVE_FAILED' });
+      // The invariant under test: the job row is UPDATEd (kept, as an audit record) — never
+      // a delete — and its status must never remain/become 'payment_pending' without a quote.
+      expect(jobUpdateChain.update).toHaveBeenCalledWith({ status: 'failed', error_message: 'Quote save failed' });
+      expect(jobUpdateChain.update).not.toHaveBeenCalledWith(expect.objectContaining({ status: 'payment_pending' }));
+      expect(docUpdateChain.update).toHaveBeenCalledWith({ status: 'failed' });
+    });
+
+    it('electronic never calls resolveDocumentAnalysisForPricing at all — untouched path', async () => {
+      mockComputeQuote.mockResolvedValueOnce({ result: { amountKzt: 15000, currency: 'KZT', requiresOperatorReview: false, reviewReasons: [], context: {}, items: [] } });
+      mockSaveQuote.mockResolvedValueOnce({ quoteId: 'quote-1' });
+      mockFrom
+        .mockReturnValueOnce(chain({ data: null, error: null }))
+        .mockReturnValueOnce(chain({ data: null, error: null }))
+        .mockReturnValueOnce(chain({ data: { id: 'attempt-1' }, error: null }))
+        .mockReturnValueOnce(chain({ data: { id: 'job-1' }, error: null }))
+        .mockReturnValueOnce(chain({ error: null }));
+
+      await createCardOrder(baseInput({ serviceLevel: 'electronic' }));
+
+      expect(mockResolveAnalysis).not.toHaveBeenCalled();
+      expect(mockComputeQuote).toHaveBeenCalledWith(expect.objectContaining({ physicalPageCount: 1 }));
+    });
+
+    it('analysis in_progress: no job/quote created, 409 returned, computeQuoteForJob never called', async () => {
+      mockResolveAnalysis.mockResolvedValueOnce({ kind: 'in_progress' });
+      const usersUpsertChain = chain({ data: null, error: null });
+      const docInsertChain = chain({ data: { id: 'attempt-1' }, error: null });
+      mockFrom
+        .mockReturnValueOnce(usersUpsertChain)
+        .mockReturnValueOnce(chain({ data: null, error: null }))
+        .mockReturnValueOnce(docInsertChain);
+
+      const result = await createCardOrder(baseInput({ serviceLevel: 'notarization_through_partners' }));
+
+      expect(result).toEqual({ ok: false, status: 409, error: 'ANALYSIS_IN_PROGRESS' });
+      expect(mockComputeQuote).not.toHaveBeenCalled();
+    });
+
+    it('analysis pipeline failed: document marked failed, generic PRICING_UNAVAILABLE returned (never the raw pipeline reason), no quote created', async () => {
+      mockResolveAnalysis.mockResolvedValueOnce({ kind: 'failed', reason: 'R2 download failed' });
+      const failUpdateChain = chain({ data: null, error: null });
+      mockFrom
+        .mockReturnValueOnce(chain({ data: null, error: null }))
+        .mockReturnValueOnce(chain({ data: null, error: null }))
+        .mockReturnValueOnce(chain({ data: { id: 'attempt-1' }, error: null }))
+        .mockReturnValueOnce(failUpdateChain);
+
+      const result = await createCardOrder(baseInput({ serviceLevel: 'official_with_translator_signature_and_provider_stamp' }));
+
+      expect(result).toEqual({ ok: false, status: 503, error: 'PRICING_UNAVAILABLE' });
+      expect(mockCaptureMessage).toHaveBeenCalledWith(
+        expect.stringContaining('DOCUMENT_ANALYSIS_PIPELINE_FAILED'),
+        expect.objectContaining({ tags: expect.objectContaining({ reason: 'DOCUMENT_ANALYSIS_PIPELINE_FAILED' }) }),
+      );
+      expect(failUpdateChain.update).toHaveBeenCalledWith(expect.objectContaining({ status: 'failed' }));
+      expect(mockComputeQuote).not.toHaveBeenCalled();
+    });
+
+    it('analysis requires_operator_review (genuinely corrupted/unreadable file): no quote created, INVALID_DOCUMENT returned — a distinct, honest, customer-facing code, never "operator review"', async () => {
+      mockResolveAnalysis.mockResolvedValueOnce({ kind: 'requires_operator_review', row: { id: 'analysis-1' }, reasons: ['possibly handwritten'] });
+      mockFrom
+        .mockReturnValueOnce(chain({ data: null, error: null }))
+        .mockReturnValueOnce(chain({ data: null, error: null }))
+        .mockReturnValueOnce(chain({ data: { id: 'attempt-1' }, error: null }));
+
+      const result = await createCardOrder(baseInput({ serviceLevel: 'notarization_through_partners' }));
+
+      expect(result).toEqual({ ok: false, status: 422, error: 'INVALID_DOCUMENT' });
+      expect(mockComputeQuote).not.toHaveBeenCalled();
+    });
+
+    it('computeQuoteForJob SERVICE_LEVEL_PRICING_DISABLED/PRICING_VERSION_MISMATCH both surface as the generic PRICING_UNAVAILABLE, never the raw internal code', async () => {
+      mockResolveAnalysis.mockResolvedValueOnce({
+        kind: 'completed',
+        row: { id: 'analysis-1', sourceCharacterCountWithSpaces: 1800, physicalPageCount: 1 },
+      });
+      mockComputeQuote.mockResolvedValueOnce({ error: 'PRICING_VERSION_MISMATCH' });
+      mockFrom
+        .mockReturnValueOnce(chain({ data: null, error: null }))
+        .mockReturnValueOnce(chain({ data: null, error: null }))
+        .mockReturnValueOnce(chain({ data: { id: 'attempt-1' }, error: null }))
+        .mockReturnValueOnce(chain({ data: null, error: null })); // document marked failed
+
+      const result = await createCardOrder(baseInput({ serviceLevel: 'official_with_translator_signature_and_provider_stamp' }));
+
+      expect(result).toEqual({ ok: false, status: 503, error: 'PRICING_UNAVAILABLE' });
+      expect(mockCaptureMessage).toHaveBeenCalledWith(
+        expect.stringContaining('PRICING_VERSION_MISMATCH'),
+        expect.objectContaining({ tags: expect.objectContaining({ reason: 'PRICING_VERSION_MISMATCH' }) }),
+      );
+    });
+  });
+
   it('applies a partner discount and stores discount fields on the job', async () => {
     mockComputeQuote.mockResolvedValueOnce({
       result: { amountKzt: 15000, currency: 'KZT', requiresOperatorReview: false, reviewReasons: [], context: {}, items: [] },
@@ -216,7 +514,7 @@ describe('createCardOrder', () => {
     );
   });
 
-  it('marks the document failed and returns PRICING_NOT_CONFIGURED when pricing errors', async () => {
+  it('marks the document failed and returns the generic PRICING_UNAVAILABLE (never the raw PRICING_NOT_CONFIGURED) when pricing errors', async () => {
     mockComputeQuote.mockResolvedValueOnce({ error: 'PRICING_NOT_CONFIGURED' });
     const docInsertChain = chain({ data: { id: 'attempt-1' }, error: null });
     const docUpdateChain = chain({ data: null, error: null });
@@ -229,7 +527,11 @@ describe('createCardOrder', () => {
 
     const result = await createCardOrder(baseInput());
 
-    expect(result).toEqual({ ok: false, status: 503, error: 'PRICING_NOT_CONFIGURED' });
+    expect(result).toEqual({ ok: false, status: 503, error: 'PRICING_UNAVAILABLE' });
+    expect(mockCaptureMessage).toHaveBeenCalledWith(
+      expect.stringContaining('PRICING_NOT_CONFIGURED'),
+      expect.objectContaining({ tags: expect.objectContaining({ reason: 'PRICING_NOT_CONFIGURED' }) }),
+    );
     expect(docUpdateChain.update).toHaveBeenCalledWith({ status: 'failed' });
   });
 
@@ -252,6 +554,44 @@ describe('createCardOrder', () => {
 
     expect(result).toEqual({ ok: false, status: 500, error: 'Failed to create job' });
     expect(docUpdateChain.update).toHaveBeenCalledWith({ status: 'failed' });
+  });
+
+  it('regression (2026-07-22 staging incident): a schema-drift Postgres error (42703 column does not exist) on jobs.insert() surfaces the full code/message/details/hint in the structured stage log, not just a generic message', async () => {
+    // Reproduces the exact staging failure: migration 0048 (jobs.notary_urgency_*) was applied
+    // to the code (extractNotaryUrgencySnapshot/jobInsertPayload always reference these columns)
+    // before it was applied to the staging database — every job insert failed with this exact
+    // PostgREST error, for every service level, not just notarized orders.
+    mockComputeQuote.mockResolvedValueOnce({
+      result: { amountKzt: 15000, currency: 'KZT', requiresOperatorReview: false, reviewReasons: [], context: {}, items: [] },
+      version: { code: '2026-Q3-KZ-MVP' },
+    });
+    const jobInsertChain = chain({
+      data: null,
+      error: { code: '42703', message: 'column jobs.notary_urgency_level does not exist', details: null, hint: null },
+    });
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    mockFrom
+      .mockReturnValueOnce(chain({ data: null, error: null })) // users upsert
+      .mockReturnValueOnce(chain({ data: null, error: null })) // existing-document lookup — none found
+      .mockReturnValueOnce(chain({ data: { id: 'attempt-1' }, error: null })) // documents insert
+      .mockReturnValueOnce(jobInsertChain)
+      .mockReturnValueOnce(chain({ data: null, error: null })); // document marked failed
+
+    const result = await createCardOrder(baseInput());
+
+    expect(result).toEqual({ ok: false, status: 500, error: 'Failed to create job' });
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      expect.stringContaining('stage=job_insert outcome=error'),
+      expect.objectContaining({
+        code: '42703',
+        message: 'column jobs.notary_urgency_level does not exist',
+        details: null,
+        hint: null,
+      }),
+    );
+
+    consoleErrorSpy.mockRestore();
   });
 
   it('does not block on referral attach failure (best-effort)', async () => {

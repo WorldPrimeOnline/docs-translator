@@ -3,6 +3,7 @@ import { calculateDraftPrice } from '@/lib/order-drafts/service';
 import { getDraftSessionToken } from '@/lib/order-drafts/session';
 import { getClientIp, getOptionalAuthUser } from '@/lib/order-drafts/request-context';
 import { checkAnonymousPreflightRateLimit, recordAnonymousPreflightAttempt } from '@/lib/order-drafts/rate-limit';
+import { INTERNAL_PRICING_FAILURE_ERROR, INTERNAL_PRICING_FAILURE_HTTP_STATUS } from '@/lib/pricing/internal-failure';
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ draftId: string }> }): Promise<NextResponse> {
   try {
@@ -22,7 +23,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const result = await calculateDraftPrice(draftId, { sessionToken, userId: user?.id ?? null });
     if (!result.ok) {
-      const status = result.error === 'DRAFT_NOT_FOUND' ? 404 : result.error === 'FORBIDDEN' ? 403 : 422;
+      // INVALID_DOCUMENT (genuinely corrupted/unreadable file) and every other remaining code
+      // (MISSING_FIELDS, LANGUAGE_PAIR_MUST_DIFFER, etc.) all fall through to 422.
+      const status = result.error === 'DRAFT_NOT_FOUND' ? 404
+        : result.error === 'FORBIDDEN' ? 403
+        : result.error === INTERNAL_PRICING_FAILURE_ERROR ? INTERNAL_PRICING_FAILURE_HTTP_STATUS
+        : 422;
       return NextResponse.json({ error: result.error }, { status });
     }
 

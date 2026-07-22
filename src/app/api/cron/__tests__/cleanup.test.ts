@@ -54,10 +54,12 @@ it('rejects requests without the correct CRON_SECRET bearer token', async () => 
   expect(mockListObjectsByPrefix).not.toHaveBeenCalled();
 });
 
-it('lists only the draft-upload-raw/ prefix — never draft-uploads/ or documents/', async () => {
-  mockListObjectsByPrefix.mockResolvedValueOnce([]);
+it('lists the draft-upload-raw/ prefix only (never draft-uploads/ or documents/)', async () => {
+  mockListObjectsByPrefix.mockResolvedValueOnce([]); // draft-upload-raw/ call
   await GET(makeRequest());
   expect(mockListObjectsByPrefix).toHaveBeenCalledWith('draft-upload-raw/');
+  expect(mockListObjectsByPrefix).not.toHaveBeenCalledWith('draft-uploads/');
+  expect(mockListObjectsByPrefix).not.toHaveBeenCalledWith(expect.stringMatching(/^documents\//));
   expect(mockListObjectsByPrefix).toHaveBeenCalledTimes(1);
 });
 

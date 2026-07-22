@@ -51,6 +51,7 @@ const BASE_DRAFT: OrderDraftRow = {
   customer_comment: null,
   file_keys: [],
   pricing_snapshot: null,
+  analysis_snapshot: null,
   ref_code: null,
   utm_source: null,
   utm_medium: null,

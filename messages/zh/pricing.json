@@ -7,7 +7,7 @@
     "mostPopular": "热门选择",
     "startTranslating": "开始翻译",
     "allPricesNote": "所有价格以 ₸（坚戈）计 · 无需订阅 · 最终价格在上传文件后计算",
-    "paygNote": "1,500 ₸ 起——电子翻译。6,200 ₸ 起——加盖服务商印章的翻译。",
+    "paygNote": "1,500 ₸ 起——电子翻译。5,000 ₸ 起——加盖服务商印章的翻译。",
     "electronic": "电子翻译",
     "electronicPrice": "1,500 ₸ 起",
     "electronicF1": "自动排版的初稿翻译",
@@ -15,13 +15,13 @@
     "electronicF3": "通常 2–5 分钟内完成",
     "electronicF4": "不含译者签名和服务商印章",
     "agentStamp": "加盖服务商印章的翻译",
-    "agentStampPrice": "6,200 ₸ 起",
+    "agentStampPrice": "5,000 ₸ 起",
     "agentStampF1": "人工译者审核",
     "agentStampF2": "服务商印章",
     "agentStampF3": "最终格式化 PDF",
     "agentStampF4": "不含公证",
     "notarized": "公证翻译",
-    "notarizedPrice": "15,000 ₸ 起",
+    "notarizedPrice": "13,000 ₸ 起",
     "notarizedF1": "加盖服务商印章的翻译",
     "notarizedF2": "公证合作方流程",
     "notarizedF3": "公证人对译者签名的认证",
@@ -42,7 +42,7 @@
       },
       "agentStamp": {
         "title": "加盖服务商印章的翻译",
-        "price": "6,200 ₸ 起",
+        "price": "5,000 ₸ 起",
         "unit": "每份文件",
         "features": [
           "人工审核",
@@ -54,7 +54,7 @@
       },
       "notarized": {
         "title": "公证翻译",
-        "price": "15,000 ₸ 起",
+        "price": "13,000 ₸ 起",
         "unit": "每份文件",
         "features": [
           "加盖服务商印章的翻译",

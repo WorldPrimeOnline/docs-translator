@@ -7,7 +7,7 @@
     "mostPopular": "Most popular",
     "startTranslating": "Start translation",
     "allPricesNote": "All prices in ₸ (tenge) · No subscription · Final price calculated after document upload",
-    "paygNote": "From ₸1,500 — electronic translation. From ₸6,200 — translation with provider stamp.",
+    "paygNote": "From ₸1,500 — electronic translation. From ₸5,000 — translation with provider stamp.",
     "electronic": "Electronic translation",
     "electronicPrice": "from ₸1,500",
     "electronicF1": "Draft translation with automatic formatting",
@@ -15,13 +15,13 @@
     "electronicF3": "Ready in 2–5 minutes",
     "electronicF4": "No translator signature or provider stamp",
     "agentStamp": "Translation with provider stamp",
-    "agentStampPrice": "from ₸6,200",
+    "agentStampPrice": "from ₸5,000",
     "agentStampF1": "Human translator review",
     "agentStampF2": "Provider stamp",
     "agentStampF3": "Formatted final PDF",
     "agentStampF4": "Not a notarized translation",
     "notarized": "Notarized translation",
-    "notarizedPrice": "from ₸15,000",
+    "notarizedPrice": "from ₸13,000",
     "notarizedF1": "Translation with provider stamp",
     "notarizedF2": "Partner process with a notary",
     "notarizedF3": "Notarial certification of translator's signature",
@@ -42,7 +42,7 @@
       },
       "agentStamp": {
         "title": "Translation with provider stamp",
-        "price": "from ₸6,200",
+        "price": "from ₸5,000",
         "unit": "per document",
         "features": [
           "Human review",
@@ -54,7 +54,7 @@
       },
       "notarized": {
         "title": "Notarized translation",
-        "price": "from ₸15,000",
+        "price": "from ₸13,000",
         "unit": "per document",
         "features": [
           "Translation with provider stamp",

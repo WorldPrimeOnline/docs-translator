@@ -75,8 +75,35 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   trailingSlash: false,
 
-  // Prevent webpack from bundling puppeteer-core (native bindings)
-  serverExternalPackages: ['puppeteer-core'],
+  // Prevent webpack from bundling native-binding packages — webpack's bundling breaks their
+  // native addon loading (puppeteer-core's Chromium binary; @napi-rs/canvas's platform-specific
+  // .node binary, which pdf-parse/pdfjs-dist need for PDF text-layer extraction). Externalized
+  // here so Node's own require() resolves them at runtime with native bindings intact, instead
+  // of pdfjs-dist silently falling through to its browser code path (which references
+  // DOMMatrix, undefined in any Node runtime) when webpack mangles the canvas addon — the exact
+  // "ReferenceError: DOMMatrix is not defined" crash fixed 2026-07-24.
+  //
+  // serverExternalPackages only stops *webpack* from bundling these — it does nothing for
+  // Vercel's separate @vercel/nft file-tracing step, which decides what actually ships in the
+  // deployed function. Confirmed by inspecting the real trace file after a local `next build`
+  // (.next/server/app/api/documents/upload-card/complete/route.js.nft.json): it contained 0
+  // @napi-rs/canvas files. @napi-rs/canvas's index.js does a runtime-conditional require() of
+  // one of ~10 optionalDependencies platform packages (e.g. @napi-rs/canvas-linux-x64-gnu) based
+  // on process.platform/arch — nft's static analysis can't follow that branch, so the native
+  // .node binary silently never made it into the deployed bundle even though webpack correctly
+  // left the require() alone. outputFileTracingIncludes force-includes it for the two route
+  // groups that reach analyzeDocumentForPricing()'s PDF branch (2026-07-25 fix).
+  serverExternalPackages: ['puppeteer-core', 'pdf-parse', 'pdfjs-dist', '@napi-rs/canvas'],
+  outputFileTracingIncludes: {
+    '/api/documents/upload-card/**': [
+      './node_modules/@napi-rs/canvas/**',
+      './node_modules/@napi-rs/canvas-linux-x64-gnu/**',
+    ],
+    '/api/order-drafts/**': [
+      './node_modules/@napi-rs/canvas/**',
+      './node_modules/@napi-rs/canvas-linux-x64-gnu/**',
+    ],
+  },
 
   async headers() {
     return [

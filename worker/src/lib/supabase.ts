@@ -17,6 +17,12 @@ export interface JobRow {
   notary_city: string | null;
   /** individual | legal_entity | unknown. Determines notary official fee tier. NULL = not recorded (pre-migration jobs) — never infer from price. */
   applicant_type: 'individual' | 'legal_entity' | 'unknown' | null;
+  /** Immutable notary urgency snapshot (migration 0048) — copied from the pricing result at quote time, never recomputed. NULL for non-notarized orders and for jobs predating this column (fall back to price_quotes.pricing_context_json.notaryCutoff). */
+  notary_urgency_level: 'standard' | 'same_day' | null;
+  notary_urgency_window: string | null;
+  notary_urgency_multiplier: number | string | null;
+  notary_urgency_cutoff_at: string | null;
+  notary_urgency_fee_kzt: number | string | null;
   fulfillment_method: 'pickup' | 'delivery' | null;
   delivery_phone: string | null;
   delivery_address: string | null;

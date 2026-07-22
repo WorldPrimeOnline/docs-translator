@@ -25,10 +25,17 @@ jest.mock('@/lib/r2/client', () => ({
 jest.mock('@/lib/pricing/service', () => ({
   computeQuoteForJob: jest.fn(),
   saveQuote: jest.fn(),
+  extractNotaryUrgencySnapshot: jest.fn(() => null),
+}));
+const mockAnalyzeDocument = jest.fn();
+jest.mock('@/lib/document-analysis/analyze', () => ({
+  analyzeDocumentForPricing: (...args: unknown[]) => mockAnalyzeDocument(...args),
 }));
 jest.mock('@/lib/referral/server', () => ({
   attachReferralToOrder: jest.fn(),
 }));
+const mockCaptureMessage = jest.fn();
+jest.mock('@sentry/nextjs', () => ({ captureMessage: (...args: unknown[]) => mockCaptureMessage(...args) }));
 
 import { supabaseServer } from '@/lib/supabase/server';
 import { downloadFile, uploadFile } from '@/lib/r2/client';
@@ -83,6 +90,7 @@ const BASE_DRAFT: OrderDraftRow = {
   customer_comment: null,
   file_keys: [],
   pricing_snapshot: null,
+  analysis_snapshot: null,
   ref_code: null,
   utm_source: null,
   utm_medium: null,
@@ -201,14 +209,37 @@ describe('calculateDraftPrice', () => {
     expect(mockComputeQuote).not.toHaveBeenCalled();
   });
 
-  it('passes through a pricing engine error without writing to the draft', async () => {
+  it('never surfaces a pricing engine error by name to the caller — generic PRICING_UNAVAILABLE, real reason to Sentry', async () => {
     mockFrom.mockReturnValueOnce(chain({ data: BASE_DRAFT, error: null }));
     mockComputeQuote.mockResolvedValueOnce({ error: 'PRICING_NOT_CONFIGURED' });
 
     const result = await calculateDraftPrice('draft-1', { sessionToken: 'sess-token' });
 
-    expect(result).toEqual({ ok: false, error: 'PRICING_NOT_CONFIGURED' });
+    expect(result).toEqual({ ok: false, error: 'PRICING_UNAVAILABLE' });
+    expect(mockCaptureMessage).toHaveBeenCalledWith(
+      expect.stringContaining('PRICING_NOT_CONFIGURED'),
+      expect.objectContaining({ tags: expect.objectContaining({ reason: 'PRICING_NOT_CONFIGURED' }) }),
+    );
     expect(mockFrom).toHaveBeenCalledTimes(1); // only the read — no update attempted
+  });
+
+  it('regression (2026-07-28): requiresOperatorReview=true from computeQuoteForJob is a terminal failure, reported to Sentry with its real classification, but never surfaced to the customer by name (WPO has no manual operator pricing)', async () => {
+    mockFrom.mockReturnValueOnce(chain({ data: BASE_DRAFT, error: null }));
+    mockComputeQuote.mockResolvedValueOnce({
+      result: { amountKzt: 300, currency: 'KZT', requiresOperatorReview: true, reviewReasons: ['No active language rate found for ru→en — requires operator review'], context: {}, items: [] },
+      version: { code: '2026-Q3-KZ-MVP' },
+    });
+
+    const result = await calculateDraftPrice('draft-1', { sessionToken: 'sess-token' });
+
+    // The exact staging incident's cause (missing language rate) is reported to Sentry as
+    // LANGUAGE_RATE_MISSING, but the customer only ever sees the generic PRICING_UNAVAILABLE.
+    expect(result).toEqual({ ok: false, error: 'PRICING_UNAVAILABLE' });
+    expect(mockCaptureMessage).toHaveBeenCalledWith(
+      expect.stringContaining('LANGUAGE_RATE_MISSING'),
+      expect.objectContaining({ tags: expect.objectContaining({ reason: 'LANGUAGE_RATE_MISSING' }) }),
+    );
+    expect(mockFrom).toHaveBeenCalledTimes(1); // only the read — no pricing_snapshot/status write
   });
 
   it('stores the pricing snapshot and flips status to price_calculated on success', async () => {
@@ -226,6 +257,111 @@ describe('calculateDraftPrice', () => {
         pricing_snapshot: expect.objectContaining({ result: pricingResult }),
       }),
     );
+  });
+
+  describe('non-electronic — document analysis wiring (2026-07-22)', () => {
+    const draftWithFile = {
+      ...BASE_DRAFT,
+      service_level: 'official_with_translator_signature_and_provider_stamp',
+      file_keys: [{ key: 'draft-uploads/draft-1/original.pdf', originalName: 'passport.pdf', mimeType: 'application/pdf', sizeBytes: 1000 }],
+    };
+
+    beforeEach(() => jest.clearAllMocks());
+
+    it('no cached analysis_snapshot: runs analyzeDocumentForPricing once, caches the result on order_drafts, uses real counts in pricingInput', async () => {
+      mockAnalyzeDocument.mockResolvedValueOnce({
+        method: 'pdf_text_layer', characterCount: 671, physicalPageCount: 2,
+        requiresOperatorReview: false, reviewReasons: [],
+      });
+      mockDownloadFile.mockResolvedValueOnce(Buffer.from('pdf-bytes'));
+      const cacheUpdateChain = chain({ data: null, error: null });
+      const snapshotUpdateChain = chain({ data: { ...draftWithFile, status: 'price_calculated' }, error: null });
+      mockFrom
+        .mockReturnValueOnce(chain({ data: draftWithFile, error: null })) // getDraftRow
+        .mockReturnValueOnce(cacheUpdateChain)                            // analysis_snapshot cache write
+        .mockReturnValueOnce(snapshotUpdateChain);                        // pricing_snapshot write
+      mockComputeQuote.mockResolvedValueOnce({
+        result: { amountKzt: 14700, currency: 'KZT', requiresOperatorReview: false, reviewReasons: [], context: {} },
+        version: { id: 'v1' },
+      });
+
+      const result = await calculateDraftPrice('draft-1', { sessionToken: 'sess-token' });
+
+      expect(result.ok).toBe(true);
+      expect(mockAnalyzeDocument).toHaveBeenCalledTimes(1);
+      expect(cacheUpdateChain.update).toHaveBeenCalledWith(
+        expect.objectContaining({ analysis_snapshot: expect.objectContaining({ characterCount: 671, physicalPageCount: 2 }) }),
+      );
+      expect(mockComputeQuote).toHaveBeenCalledWith(
+        expect.objectContaining({ physicalPageCount: 2, sourceCharacterCountWithSpaces: 671 }),
+      );
+    });
+
+    it('a cached analysis_snapshot for the SAME file key is reused — never calls analyzeDocumentForPricing again', async () => {
+      const draftWithCache = {
+        ...draftWithFile,
+        analysis_snapshot: { fileKey: 'draft-uploads/draft-1/original.pdf', method: 'pdf_text_layer', characterCount: 3366, physicalPageCount: 1, requiresOperatorReview: false, reviewReasons: [] },
+      };
+      const snapshotUpdateChain = chain({ data: { ...draftWithCache, status: 'price_calculated' }, error: null });
+      mockFrom.mockReturnValueOnce(chain({ data: draftWithCache, error: null })).mockReturnValueOnce(snapshotUpdateChain);
+      mockComputeQuote.mockResolvedValueOnce({
+        result: { amountKzt: 5610, currency: 'KZT', requiresOperatorReview: false, reviewReasons: [], context: {} },
+        version: { id: 'v1' },
+      });
+
+      const result = await calculateDraftPrice('draft-1', { sessionToken: 'sess-token' });
+
+      expect(result.ok).toBe(true);
+      expect(mockAnalyzeDocument).not.toHaveBeenCalled();
+      expect(mockDownloadFile).not.toHaveBeenCalled();
+      expect(mockComputeQuote).toHaveBeenCalledWith(
+        expect.objectContaining({ physicalPageCount: 1, sourceCharacterCountWithSpaces: 3366 }),
+      );
+    });
+
+    it('a re-uploaded file (different file key) invalidates the cache and re-analyzes', async () => {
+      const draftWithStaleCache = {
+        ...draftWithFile,
+        file_keys: [{ key: 'draft-uploads/draft-1/reuploaded.pdf', originalName: 'passport2.pdf', mimeType: 'application/pdf', sizeBytes: 2000 }],
+        analysis_snapshot: { fileKey: 'draft-uploads/draft-1/original.pdf', method: 'pdf_text_layer', characterCount: 100, physicalPageCount: 1, requiresOperatorReview: false, reviewReasons: [] },
+      };
+      mockAnalyzeDocument.mockResolvedValueOnce({ method: 'pdf_text_layer', characterCount: 5000, physicalPageCount: 3, requiresOperatorReview: false, reviewReasons: [] });
+      mockDownloadFile.mockResolvedValueOnce(Buffer.from('new-pdf-bytes'));
+      mockFrom
+        .mockReturnValueOnce(chain({ data: draftWithStaleCache, error: null }))
+        .mockReturnValueOnce(chain({ data: null, error: null }))
+        .mockReturnValueOnce(chain({ data: { ...draftWithStaleCache, status: 'price_calculated' }, error: null }));
+      mockComputeQuote.mockResolvedValueOnce({ result: { amountKzt: 8333, currency: 'KZT', requiresOperatorReview: false, reviewReasons: [], context: {} }, version: { id: 'v1' } });
+
+      await calculateDraftPrice('draft-1', { sessionToken: 'sess-token' });
+
+      expect(mockAnalyzeDocument).toHaveBeenCalledTimes(1);
+      expect(mockDownloadFile).toHaveBeenCalledWith('draft-uploads/draft-1/reuploaded.pdf');
+    });
+
+    it('analysis requiring operator review (genuinely corrupted/unreadable file): no snapshot saved, INVALID_DOCUMENT returned — a distinct, honest, customer-facing code, computeQuoteForJob never called', async () => {
+      mockAnalyzeDocument.mockResolvedValueOnce({ method: 'ocr', characterCount: 0, physicalPageCount: 1, requiresOperatorReview: true, reviewReasons: ['No text could be extracted'] });
+      mockDownloadFile.mockResolvedValueOnce(Buffer.from('pdf-bytes'));
+      mockFrom.mockReturnValueOnce(chain({ data: draftWithFile, error: null })).mockReturnValueOnce(chain({ data: null, error: null }));
+
+      const result = await calculateDraftPrice('draft-1', { sessionToken: 'sess-token' });
+
+      expect(result).toEqual({ ok: false, error: 'INVALID_DOCUMENT' });
+      expect(mockComputeQuote).not.toHaveBeenCalled();
+    });
+
+    it('no file uploaded yet: generic PRICING_UNAVAILABLE (never the raw pipeline reason), never calls analyzeDocumentForPricing', async () => {
+      mockFrom.mockReturnValueOnce(chain({ data: { ...BASE_DRAFT, service_level: 'notarization_through_partners', file_keys: [] }, error: null }));
+
+      const result = await calculateDraftPrice('draft-1', { sessionToken: 'sess-token' });
+
+      expect(result).toEqual({ ok: false, error: 'PRICING_UNAVAILABLE' });
+      expect(mockCaptureMessage).toHaveBeenCalledWith(
+        expect.stringContaining('DOCUMENT_ANALYSIS_PIPELINE_FAILED'),
+        expect.objectContaining({ tags: expect.objectContaining({ reason: 'DOCUMENT_ANALYSIS_PIPELINE_FAILED' }) }),
+      );
+      expect(mockAnalyzeDocument).not.toHaveBeenCalled();
+    });
   });
 
   it('applies the partner discount and patches the snapshot amount when ref_code matches an active discount partner', async () => {
@@ -422,6 +558,7 @@ describe('convertDraftToOrder', () => {
           reviewReasons: [],
           context: { languagePair: 'ru-en', baseMinimumKzt: 0, extraWords: 0, additionalPages: 0, documentCoefficient: 1, urgencyCoefficient: 1, includedWordCount: 0, includedPageCount: 1 },
         },
+        version: {} as never,
         computedAt: '2026-01-01T00:00:00.000Z',
       },
       file_keys: [{ key: 'draft-uploads/draft-1/original.pdf', originalName: 'passport.pdf', mimeType: 'application/pdf', sizeBytes: 1000 }],
@@ -501,6 +638,45 @@ describe('convertDraftToOrder', () => {
     );
   });
 
+  it('non-electronic with a cached analysis_snapshot: materializes exactly one document_analysis row (never re-analyzes), analysisId flows into saveQuote', async () => {
+    const priced = pricedDraftWithFile({
+      service_level: 'official_with_translator_signature_and_provider_stamp',
+      analysis_snapshot: { fileKey: 'draft-uploads/draft-1/original.pdf', method: 'pdf_text_layer', characterCount: 671, physicalPageCount: 2, requiresOperatorReview: false, reviewReasons: [] },
+    });
+
+    mockDownloadFile.mockResolvedValueOnce(Buffer.from('pdf-bytes'));
+    mockUploadFile.mockResolvedValueOnce(undefined);
+    mockSaveQuote.mockResolvedValueOnce({ quoteId: 'quote-99' });
+
+    const docInsertChain = chain({ data: { id: 'doc-99' }, error: null });
+    const analysisInsertChain = chain({ data: { id: 'analysis-99' }, error: null });
+    const jobInsertChain = chain({ data: { id: 'job-99' }, error: null });
+
+    mockFrom
+      .mockReturnValueOnce(chain({ data: priced, error: null })) // existing check
+      .mockReturnValueOnce(chain({ data: priced, error: null })) // atomic claim succeeds
+      .mockReturnValueOnce(chain({ data: null, error: null }))   // users upsert
+      .mockReturnValueOnce(docInsertChain)                       // documents insert
+      .mockReturnValueOnce(analysisInsertChain)                  // document_analysis insert
+      .mockReturnValueOnce(jobInsertChain)                       // jobs insert
+      .mockReturnValueOnce(chain({ error: null }))               // job_audit_log insert
+      .mockReturnValueOnce(chain({ data: null, error: null }));  // final order_drafts update
+
+    const result = await convertDraftToOrder('draft-1', 'user-1');
+
+    expect(result.ok).toBe(true);
+    expect(analysisInsertChain.insert).toHaveBeenCalledWith(
+      expect.objectContaining({ document_id: 'doc-99', revision: 1, status: 'completed', source_character_count_with_spaces: 671, physical_page_count: 2 }),
+    );
+    expect(mockSaveQuote).toHaveBeenCalledWith(
+      expect.objectContaining({ analysisId: 'analysis-99' }),
+      expect.anything(),
+      expect.anything(),
+      24,
+      undefined,
+    );
+  });
+
   it('persists the discounted quote into the real order: job carries discount fields and the discounted amount is what saveQuote/Halyk see', async () => {
     const priced = pricedDraftWithFile({
       ref_code: 'PARTNER1',
@@ -518,6 +694,7 @@ describe('convertDraftToOrder', () => {
           reviewReasons: [],
           context: { languagePair: 'ru-en', baseMinimumKzt: 0, extraWords: 0, additionalPages: 0, documentCoefficient: 1, urgencyCoefficient: 1, includedWordCount: 0, includedPageCount: 1 },
         },
+        version: {} as never,
         computedAt: '2026-01-01T00:00:00.000Z',
         priceBeforeDiscountKzt: 15000,
         discountAppliedKzt: 1500,
@@ -558,6 +735,7 @@ describe('convertDraftToOrder', () => {
     expect(mockSaveQuote).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({ amountKzt: 13500 }),
+      expect.anything(),
       24,
       undefined,
     );

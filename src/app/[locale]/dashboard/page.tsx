@@ -370,11 +370,16 @@ function ActiveOrderCard({ entry, locale, onRecalculate }: { entry: OrderEntry; 
           );
         }
 
-        // No quote yet / calculating
+        // 2026-07-22: a payment_pending job and its price_quotes row are created together, in
+        // the same synchronous request (createCardOrder()/convertDraftToOrder()) — there is no
+        // legitimate transient window where one exists without the other. Reaching this branch
+        // means an order got stuck in that (now-prevented, but possibly pre-existing) broken
+        // state — never show an indefinite "calculating" spinner for it; there's nothing left to
+        // wait for. WPO has no manual operator pricing step that would ever resolve this later.
         return (
-          <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            {t('quoteCalculating')}
+          <div className="mt-3 flex items-start gap-2 rounded-md border border-red-500/20 bg-red-500/5 p-3">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
+            <p className="text-xs text-red-400">{t('quoteUnavailable')}</p>
           </div>
         );
       })()}

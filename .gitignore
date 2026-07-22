@@ -51,6 +51,15 @@ tools/internal-ai-test-lab/input/*
 tools/internal-ai-test-lab/input/batch/*
 !tools/internal-ai-test-lab/input/batch/.gitkeep
 
+# Pricing CLI — local test documents, local reports, local extraction cache, local secrets.
+# Never commit real test documents or their extracted text/reports.
+tools/pricing-cli/.env*.local
+.pricing-cache/
+test-documents/*
+!test-documents/.gitkeep
+!test-documents/manifest.example.json
+pricing-results/
+
 # editor
 .vscode/
 

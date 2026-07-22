@@ -7,13 +7,23 @@
  */
 import { supabaseServer } from '@/lib/supabase/server';
 import { downloadFile, uploadFile } from '@/lib/r2/client';
-import { computeQuoteForJob, saveQuote } from '@/lib/pricing/service';
+import { computeQuoteForJob, extractNotaryUrgencySnapshot, saveQuote } from '@/lib/pricing/service';
 import { deriveBackcompatBooleans } from '@/lib/translation-workflow/output-plan';
 import { attachReferralToOrder } from '@/lib/referral/server';
 import { calculatePartnerDiscount } from '@/lib/partners/discount';
+// 2026-07-24: deliberately NOT a top-level import — @/lib/document-analysis/analyze
+// transitively pulls in pdf-parse/pdfjs-dist for PDF text-layer extraction, which crashed at
+// module-init time ("ReferenceError: DOMMatrix is not defined") in some bundling contexts. This
+// file is imported by @/lib/order-drafts/upload-shared.ts, which is in turn imported by
+// /api/documents/upload-card/init/route.ts (for unrelated MIME/filename helpers) — so a static
+// import here was silently pulling document-analysis into that route's bundle even though init
+// never performs analysis. Loaded via a dynamic import() inside resolveDraftAnalysis() below,
+// the only call site.
+import { classifyPricingReviewReasons } from '@/lib/pricing/review-classification';
+import { reportInternalPricingFailure } from '@/lib/pricing/internal-failure';
 import type { PricingInput, PricingResult } from '@/lib/pricing/types';
 import type { ServiceLevel } from '@/lib/translation-prompts/types';
-import type { DraftFileKey, DraftPricingSnapshot, OrderDraftInput, OrderDraftRow } from './types';
+import type { DraftAnalysisSnapshot, DraftFileKey, DraftPricingSnapshot, OrderDraftInput, OrderDraftRow } from './types';
 
 // order_drafts / anonymous_rate_limit_events are not in the generated Supabase types —
 // same `as any` escape hatch already used in src/lib/pricing/service.ts for price_quotes.
@@ -156,17 +166,21 @@ export async function setDraftFile(
 
 function buildPricingInput(
   draft: OrderDraftRow,
-  extra?: { documentId?: string; jobId?: string; userId?: string },
+  extra?: { documentId?: string; jobId?: string; userId?: string; analysisId?: string; analysis?: DraftAnalysisSnapshot | null },
 ): PricingInput {
   return {
     documentId: extra?.documentId,
+    analysisId: extra?.analysisId,
     jobId: extra?.jobId,
     userId: extra?.userId ?? draft.user_id ?? undefined,
     sourceLanguage: draft.source_language!,
     targetLanguage: draft.target_language!,
     serviceLevel: (draft.service_level ?? 'electronic') as ServiceLevel,
     documentType: draft.document_type ?? undefined,
-    physicalPageCount: 1, // conservative default — matches upload-card; no OCR before payment
+    // Electronic: unchanged conservative default (matches upload-card, no analysis call at all).
+    // Non-electronic: real analysis-derived counts, wired via resolveDraftAnalysis() (2026-07-22).
+    physicalPageCount: extra?.analysis ? (extra.analysis.physicalPageCount ?? undefined) : 1,
+    sourceCharacterCountWithSpaces: extra?.analysis ? extra.analysis.characterCount : undefined,
     urgencyLevel: 'standard',
     scanQuality: 'normal',
     layoutComplexity: 'standard',
@@ -179,6 +193,55 @@ function buildPricingInput(
     deliveryRequired: draft.fulfillment_method === 'delivery',
     salesChannel: 'direct',
   };
+}
+
+export type DraftAnalysisOutcome =
+  | { kind: 'completed'; snapshot: DraftAnalysisSnapshot }
+  | { kind: 'requires_operator_review'; reasons: string[] }
+  | { kind: 'failed'; reason: string };
+
+/**
+ * order_drafts-specific equivalent of src/lib/document-analysis/service.ts's
+ * resolveDocumentAnalysisForPricing() — there is no documents.id yet at draft stage (a real
+ * document only exists after convertDraftToOrder()), so the "don't re-run OCR" cache lives on
+ * order_drafts.analysis_snapshot instead of the document_analysis table, keyed by
+ * file_keys[0].key. Invalidated only by a different file key (re-upload).
+ */
+async function resolveDraftAnalysis(draft: OrderDraftRow): Promise<DraftAnalysisOutcome> {
+  const fileKey = draft.file_keys?.[0];
+  if (!fileKey) return { kind: 'failed', reason: 'NO_FILE' };
+
+  const cached = draft.analysis_snapshot;
+  if (cached && cached.fileKey === fileKey.key) {
+    return cached.requiresOperatorReview
+      ? { kind: 'requires_operator_review', reasons: cached.reviewReasons }
+      : { kind: 'completed', snapshot: cached };
+  }
+
+  let result;
+  try {
+    const buffer = await downloadFile(fileKey.key);
+    // Dynamic import — see the top-of-file comment on why this is never a static import.
+    const { analyzeDocumentForPricing } = await import('@/lib/document-analysis/analyze');
+    result = await analyzeDocumentForPricing(buffer, fileKey.mimeType);
+  } catch (err) {
+    return { kind: 'failed', reason: err instanceof Error ? err.message : String(err) };
+  }
+
+  const snapshot: DraftAnalysisSnapshot = {
+    fileKey: fileKey.key,
+    method: result.method,
+    characterCount: result.characterCount,
+    physicalPageCount: result.physicalPageCount,
+    requiresOperatorReview: result.requiresOperatorReview,
+    reviewReasons: result.reviewReasons,
+  };
+
+  await db.from('order_drafts').update({ analysis_snapshot: snapshot, updated_at: new Date().toISOString() }).eq('id', draft.id);
+
+  return snapshot.requiresOperatorReview
+    ? { kind: 'requires_operator_review', reasons: snapshot.reviewReasons }
+    : { kind: 'completed', snapshot };
 }
 
 export async function calculateDraftPrice(
@@ -196,10 +259,44 @@ export async function calculateDraftPrice(
     return { ok: false, error: 'LANGUAGE_PAIR_MUST_DIFFER' };
   }
 
-  const quoteResult = await computeQuoteForJob(buildPricingInput(draft));
-  if ('error' in quoteResult) return { ok: false, error: quoteResult.error };
+  let analysis: DraftAnalysisSnapshot | undefined;
+  if (draft.service_level !== 'electronic') {
+    const analysisOutcome = await resolveDraftAnalysis(draft);
+    if (analysisOutcome.kind === 'requires_operator_review') {
+      // Genuinely corrupted/unreadable file — a distinct, honest, customer-actionable code
+      // (never "operator review" — WPO has no such process). See upload-card-shared.ts's
+      // createCardOrder for the matching comment.
+      return { ok: false, error: 'INVALID_DOCUMENT' };
+    }
+    if (analysisOutcome.kind === 'failed') {
+      const failure = reportInternalPricingFailure('DOCUMENT_ANALYSIS_PIPELINE_FAILED', { draftId, reason: analysisOutcome.reason });
+      return { ok: false, error: failure.error };
+    }
+    analysis = analysisOutcome.snapshot;
+  }
 
+  const quoteResult = await computeQuoteForJob(buildPricingInput(draft, { analysis }));
+  if ('error' in quoteResult) {
+    // PRICING_NOT_CONFIGURED / SERVICE_LEVEL_PRICING_DISABLED / PRICING_VERSION_MISMATCH are all
+    // internal config problems — never surfaced to the customer by name (2026-07-28), only the
+    // real reason logged to Sentry for ops to fix.
+    const failure = reportInternalPricingFailure(quoteResult.error, { draftId, serviceLevel: draft.service_level });
+    return { ok: false, error: failure.error };
+  }
+
+  const { version } = quoteResult;
   let { result: pricingResult } = quoteResult;
+
+  // 2026-07-22/23/28: same fix as createCardOrder — WPO has no manual operator pricing process,
+  // so requiresOperatorReview=true here is a terminal failure, never a priced draft with a note,
+  // and never surfaced to the customer by classification name. The genuine "document needs a
+  // human look" case is already handled above (INVALID_DOCUMENT).
+  if (pricingResult.requiresOperatorReview) {
+    const classification = classifyPricingReviewReasons(pricingResult.reviewReasons);
+    const failure = reportInternalPricingFailure(classification, { draftId, reviewReasons: pricingResult.reviewReasons });
+    return { ok: false, error: failure.error };
+  }
+
   const basePreDiscountKzt = Math.round(pricingResult.amountKzt);
 
   // Apply partner client discount server-side (re-validate; never trust client value) —
@@ -224,6 +321,7 @@ export async function calculateDraftPrice(
 
   const snapshot: DraftPricingSnapshot = {
     result: pricingResult,
+    version,
     computedAt: new Date().toISOString(),
     priceBeforeDiscountKzt: discountKzt > 0 ? basePreDiscountKzt : undefined,
     discountAppliedKzt: discountKzt > 0 ? discountKzt : undefined,
@@ -375,6 +473,33 @@ export async function convertDraftToOrder(draftId: string, userId: string): Prom
       return { ok: false, error: docError?.message ?? 'document_insert_failed' };
     }
 
+    // Materialize the cached draft-stage analysis (resolveDraftAnalysis(), calculateDraftPrice)
+    // into a real document_analysis row now that a real documents.id finally exists — never
+    // re-runs analyzeDocumentForPricing() here. A draft can only reach pricing_snapshot !=
+    // null (checked above) via a 'completed' (non-review) analysis, so this is always
+    // status='completed' when analysis_snapshot is present.
+    let analysisId: string | undefined;
+    if (draft.analysis_snapshot) {
+      const snap = draft.analysis_snapshot;
+      const { data: analysisRow } = await db
+        .from('document_analysis')
+        .insert({
+          document_id: doc.id,
+          revision: 1,
+          status: 'completed',
+          method: snap.method,
+          source_character_count_with_spaces: snap.characterCount,
+          physical_page_count: snap.physicalPageCount,
+          page_count_method: snap.physicalPageCount != null ? 'pdf_lib_page_count' : null,
+          completed_at: new Date().toISOString(),
+        })
+        .select('id')
+        .single();
+      analysisId = analysisRow?.id;
+    }
+
+    const notaryUrgencySnapshot = extractNotaryUrgencySnapshot(pricingResult);
+
     const { data: job, error: jobError } = await db
       .from('jobs')
       .insert({
@@ -395,6 +520,11 @@ export async function convertDraftToOrder(draftId: string, userId: string): Prom
         discount_applied_kzt: discountAppliedKzt > 0 ? discountAppliedKzt : null,
         discount_code: discountAppliedKzt > 0 ? discountCode : null,
         customer_comment: draft.customer_comment,
+        notary_urgency_level: notaryUrgencySnapshot?.level ?? null,
+        notary_urgency_window: notaryUrgencySnapshot?.effectiveWindow ?? null,
+        notary_urgency_multiplier: notaryUrgencySnapshot?.multiplier ?? null,
+        notary_urgency_cutoff_at: notaryUrgencySnapshot?.cutoffAt ?? null,
+        notary_urgency_fee_kzt: notaryUrgencySnapshot?.feeKzt ?? null,
       })
       .select()
       .single();
@@ -405,10 +535,10 @@ export async function convertDraftToOrder(draftId: string, userId: string): Prom
       return { ok: false, error: jobError?.message ?? 'job_insert_failed' };
     }
 
-    const pricingInput = buildPricingInput(draft, { documentId: doc.id, jobId: job.id, userId });
+    const pricingInput = buildPricingInput(draft, { documentId: doc.id, jobId: job.id, userId, analysisId, analysis: draft.analysis_snapshot });
     const notaryCutoffExpiry = pricingResult.context.notaryCutoff?.quoteExpiresAt;
     const cutoffExpiresAt = notaryCutoffExpiry && notaryCutoffExpiry.length > 0 ? notaryCutoffExpiry : undefined;
-    const savedQuote = await saveQuote(pricingInput, pricingResult, 24, cutoffExpiresAt);
+    const savedQuote = await saveQuote(pricingInput, pricingResult, snapshot.version, 24, cutoffExpiresAt);
     const quoteId = 'quoteId' in savedQuote ? savedQuote.quoteId : null;
 
     if ('error' in savedQuote) {

@@ -1,0 +1,18 @@
+{
+  "defaults": {
+    "sourceLanguage": "ru",
+    "targetLanguage": "en",
+    "serviceLevel": "official"
+  },
+  "files": {
+    "passport.pdf": {
+      "serviceLevel": "notary",
+      "applicantType": "individual",
+      "deliveryRequired": true,
+      "notaryUrgency": "after_noon"
+    },
+    "diploma.docx": {
+      "targetLanguage": "de"
+    }
+  }
+}

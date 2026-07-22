@@ -390,9 +390,11 @@ export function OrderForm({ mode, onSubmitSuccess, draftId, onDraftIdChange, onD
 
       setUploading(false);
       setFiles([]);
-      if (data.requiresOperatorReview) {
-        toast.success(t('uploadedRequiresReview'));
-      } else if (data.discountAppliedKzt && data.discountAppliedKzt > 0) {
+      // 2026-07-22: requiresOperatorReview is never true on a successful (ok:true) response
+      // anymore — createCardOrder() treats it as a terminal UNSUPPORTED_DOCUMENT failure before
+      // any job is created (WPO has no manual operator pricing process), so reaching this branch
+      // always means a real, automatically-computed price exists.
+      if (data.discountAppliedKzt && data.discountAppliedKzt > 0) {
         toast.success(t('uploadedQuoteReadyWithDiscount', {
           price: (data.priceKzt ?? 0).toLocaleString(),
           saved: data.discountAppliedKzt.toLocaleString(),

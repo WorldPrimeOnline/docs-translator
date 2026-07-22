@@ -4,7 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm run verify:pricing-invariants && next build",
+    "verify:pricing-invariants": "tsx scripts/verify-pricing-invariants.ts",
+    "verify:pdf-bundle": "tsx scripts/verify-pdf-bundle-trace.ts",
+    "build:verify": "next build && npm run verify:pdf-bundle",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
@@ -22,7 +25,10 @@
     "partners:payouts": "tsx scripts/partners/generate-monthly-payout.ts",
     "partners:mark-paid": "tsx scripts/partners/mark-payout-paid.ts",
     "wpo:ai-test": "tsx tools/internal-ai-test-lab/run-ai-translation-test.ts",
-    "wpo:ai-test:typecheck": "tsc --noEmit -p tools/internal-ai-test-lab/tsconfig.json"
+    "wpo:ai-test:typecheck": "tsc --noEmit -p tools/internal-ai-test-lab/tsconfig.json",
+    "pricing:calculate": "tsx tools/pricing-cli/index.ts",
+    "pricing:fixtures": "tsx tools/pricing-cli/fixtures.ts",
+    "pricing:typecheck": "tsc --noEmit -p tools/pricing-cli/tsconfig.json"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",
@@ -39,6 +45,7 @@
     "@tonconnect/ui-react": "^2.4.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "decimal.js-light": "^2.5.1",
     "docx": "^9.7.1",
     "lucide-react": "^1.16.0",
     "mammoth": "^1.12.0",
@@ -47,6 +54,7 @@
     "next-intl": "^4.12.0",
     "next-themes": "^0.4.6",
     "pdf-lib": "^1.17.1",
+    "pdf-parse": "^2.4.5",
     "qrcode": "^1.5.4",
     "qrcode.react": "^4.2.0",
     "react": "19.1.0",

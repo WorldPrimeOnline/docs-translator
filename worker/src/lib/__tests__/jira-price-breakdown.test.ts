@@ -54,6 +54,8 @@ function makeQuote(overrides: Partial<DbPriceQuote> = {}): DbPriceQuote {
     internalCostJson: { taxReserve: 450 },
     marginJson: { grossRevenue: 15000, totalCosts: 6000, targetProfit: 3750, estimatedMarginKzt: 9000, estimatedMarginRate: 0.60 },
     breakdownJson: { items: [] },
+    wpoFinancialBreakdownJson: {},
+    sourceCharacterCountWithSpaces: null,
     ...overrides,
   };
 }
@@ -154,6 +156,71 @@ describe('buildPriceBreakdownDescription', () => {
   it('shows WARNING when items are empty (legacy quote)', () => {
     const text = JSON.stringify(buildPriceBreakdownDescription({ ...BASE_PARAMS, items: [] }));
     expect(text).toContain('WARNING');
+  });
+});
+
+// ─── Notary urgency (WO-77, 2026-07-15) ────────────────────────────────────────
+
+describe('buildPriceBreakdownDescription — notary urgency', () => {
+  it('does NOT misleadingly show notary urgency as "standard" when the general urgency_level is standard but the customer selected same_day notary urgency', () => {
+    const params: PriceBreakdownFullParams = {
+      ...BASE_PARAMS,
+      serviceLevel: 'notarization_through_partners',
+      quote: makeQuote({
+        serviceLevel: 'notarization_through_partners',
+        urgencyLevel: 'standard', // general urgency — hardcoded 'standard' for all card orders
+        pricingContextJson: {
+          notaryCutoff: {
+            notaryUrgencyLevel: 'same_day',
+            effectiveWindow: 'before_noon',
+            multiplier: 1.0,
+            cutoffAt: '2026-07-15T07:00:00.000Z',
+            pricingTimezone: 'Asia/Almaty',
+          },
+        },
+        breakdownJson: { items: [] },
+      }),
+    };
+    const text = JSON.stringify(buildPriceBreakdownDescription(params));
+    expect(text).toContain('General translation urgency');
+    expect(text).toContain('Notary urgency');
+    // The general field is genuinely 'standard' — that row is allowed to say so —
+    // but the notary-specific row must show 'same_day', which only this row can produce.
+    expect(text).toContain('same_day');
+  });
+
+  it('WO-77 case: same_day resolved to multiplier 1.0 and 0 KZT surcharge is shown explicitly, not omitted', () => {
+    const params: PriceBreakdownFullParams = {
+      ...BASE_PARAMS,
+      serviceLevel: 'notarization_through_partners',
+      quote: makeQuote({
+        serviceLevel: 'notarization_through_partners',
+        pricingContextJson: {
+          notaryCutoff: {
+            notaryUrgencyLevel: 'same_day',
+            effectiveWindow: 'before_noon',
+            multiplier: 1.0,
+            cutoffAt: '2026-07-15T07:00:00.000Z',
+            pricingTimezone: 'Asia/Almaty',
+          },
+        },
+        breakdownJson: { items: [] }, // no notary_urgency_fee item pushed — multiplier is 1.0
+      }),
+    };
+    const text = JSON.stringify(buildPriceBreakdownDescription(params));
+    expect(text).toContain('Effective notary window');
+    expect(text).toContain('before_noon');
+    expect(text).toContain('Notary urgency multiplier');
+    expect(text).toContain('×1.0');
+    expect(text).toContain('Notary urgency surcharge');
+    expect(text).toContain('0.00 KZT');
+  });
+
+  it('shows "—" for notary urgency rows when the quote has no notaryCutoff (non-notarized order)', () => {
+    const desc = buildPriceBreakdownDescription(BASE_PARAMS); // official_with_translator_signature_and_provider_stamp, no notaryCutoff
+    const text = JSON.stringify(desc);
+    expect(text).toContain('Notary urgency');
+    expect(text).not.toContain('same_day');
   });
 });
 

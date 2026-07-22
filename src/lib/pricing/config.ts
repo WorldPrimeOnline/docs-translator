@@ -19,6 +19,19 @@ export type LanguageGroup =
   | 'kz_ja_th'
   | 'other';
 
+// ─── LEGACY (electronic-only as of the 2026-07-17 formula rewrite) ────────────────────────────
+// BASE_MINIMUM_KZT/BASE_MINIMUM_KZT_SOURCE, EXTRA_WORD_RATE_KZT, ADDITIONAL_PAGE_RATE_KZT,
+// URGENCY_COEFFICIENT, SCAN_QUALITY_SURCHARGE, LAYOUT_COMPLEXITY_CONFIG, VISUAL_MARKS_FEE_KZT,
+// PRESENTATION_SLIDE_FEE_KZT, and MARGIN_FLOOR_CONFIG below are used ONLY by the electronic
+// pricing path (calculateElectronicPrice in calculator.ts) going forward. The new flat formula
+// for official_with_translator_signature_and_provider_stamp/notarization_through_partners (see
+// calculateOfficialNotaryPrice) does not read any of these — it uses pricing_language_rates +
+// the new scalar fields on pricing_versions instead (migration 0049/0050). Kept here, unchanged,
+// because electronic's calculation must remain byte-identical to before this rewrite — do not
+// remove or repurpose any of these for the new formula. A test in calculator.test.ts proves the
+// new official/notary path never reads BASE_MINIMUM_KZT.<group>.official/
+// .notarization_through_partners specifically.
+//
 // Source rates: electronic and official tiers only. Notarization is NOT a separate translation
 // base tier — a notarized order's translation/service layer is priced identically to official;
 // notary_official_fee, notary_coordination_fee, printing_binding_fee, and delivery_fee are
@@ -185,11 +198,15 @@ export const NOTARY_CONFIG = {
 
 export const PRICE_ROUNDING_INCREMENT = 100;
 
-// ─── Margin floor (commercial floor) ───────────────────────────────────────────
+// ─── Margin floor (commercial floor) — LEGACY, electronic-only as of 2026-07-17 ────────────────
 // Automatic pricing floor: if estimated margin after internal costs/reserves
 // falls below targetMarginRate, the calculator raises the final price via a
 // margin_floor_adjustment line item. This never blocks checkout — it only
 // adjusts the price before the quote is shown/saved. See docs/ai-context/DECISIONS.md.
+// The official_with_translator_signature_and_provider_stamp/notarization_through_partners
+// entries below are read only by pre-2026-07-17 quotes replayed for audit — the new formula
+// removes the margin-floor mechanism from the customer price entirely (see
+// docs/ai-context/DECISIONS.md, 2026-07-17). Only the `electronic` entries are read going forward.
 export const MARGIN_FLOOR_CONFIG = {
   enableMarginFloor: true,
   // Same target for all service levels today; kept as a per-level map so an
@@ -214,6 +231,15 @@ export const NOTARY_URGENCY_CONFIG = {
   same_day_after_noon:  { multiplier: 1.5, cutoffHour: 18 },
   same_day_after_18:    { multiplier: 2.0, windowHours: 2 },
 } as const;
+
+// ─── New flat formula (2026-07-17 rewrite) — official/notary only ─────────────────────────────
+// All scalar rates/fees for the new formula live on pricing_versions (migration 0049) and
+// pricing_language_rates (migration 0050) — DB-editable, versioned, never a magic number in
+// calculator.ts. These two constants are the only new pure-config values, since 1800 chars/page
+// and a 1-page minimum are structural facts about the formula itself, not a business rate that
+// changes per pricing version.
+export const TRANSLATION_PAGE_CHAR_DIVISOR = 1800;
+export const MIN_TRANSLATION_PAGES = 1;
 
 // ─── Language resolution ───────────────────────────────────────────────────────
 

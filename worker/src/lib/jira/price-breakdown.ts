@@ -25,6 +25,9 @@
  *   JIRA_PRICE_BREAKDOWN_LABELS         — comma-separated labels (default: 'wpo-price-breakdown')
  */
 
+import { resolveNotaryUrgencySnapshot } from '../notary-urgency';
+import { buildFinancialReportModel, renderPricingReportForJira, type NewModelBreakdownLike, type ServiceLevel } from './financial-report';
+
 // ─── DB-mapped interfaces (Supabase returns snake_case → mapped to camelCase) ─
 
 export interface DbPriceQuoteItem {
@@ -72,6 +75,9 @@ export interface DbPriceQuote {
   internalCostJson: Record<string, unknown>;   // internal_cost_json
   marginJson: Record<string, unknown>;          // margin_json
   breakdownJson: Record<string, unknown>;       // breakdown_json
+  // ─── New-model fields (2026-07-22) — null/empty for legacy electronic quotes ────
+  wpoFinancialBreakdownJson: Record<string, unknown>;    // wpo_financial_breakdown_json
+  sourceCharacterCountWithSpaces: number | null;         // source_character_count_with_spaces
 }
 
 export interface PriceBreakdownFullParams {
@@ -142,6 +148,8 @@ export function mapPriceQuote(row: Record<string, unknown>): DbPriceQuote {
     internalCostJson: (row.internal_cost_json as Record<string, unknown>) ?? {},
     marginJson: (row.margin_json as Record<string, unknown>) ?? {},
     breakdownJson: (row.breakdown_json as Record<string, unknown>) ?? {},
+    wpoFinancialBreakdownJson: (row.wpo_financial_breakdown_json as Record<string, unknown>) ?? {},
+    sourceCharacterCountWithSpaces: row.source_character_count_with_spaces != null ? Number(row.source_character_count_with_spaces) : null,
   };
 }
 
@@ -159,6 +167,16 @@ export function getPriceBreakdownConfig() {
     labels: (process.env.JIRA_PRICE_BREAKDOWN_LABELS ?? PRICE_BREAKDOWN_LABELS.join(','))
       .split(',').map(l => l.trim()).filter(Boolean),
   };
+}
+
+/**
+ * 2026-07-22: selects the new Russian FinancialReportModel-based renderer (financial-report.ts)
+ * over the legacy English operator-audit ADF below. Unlike OFFICIAL_WORKFLOW_ENABLED (defined
+ * but never actually checked anywhere), this flag is read at the one real call site in
+ * buildPriceBreakdownDescription() — see the branch at the top of that function.
+ */
+export function isNewJiraPricingReportEnabled(): boolean {
+  return process.env.ENABLE_NEW_JIRA_PRICING_REPORT === 'true';
 }
 
 // ─── Summary ──────────────────────────────────────────────────────────────────
@@ -239,6 +257,28 @@ function pct(rate: number): string {
 // ─── Description builder ──────────────────────────────────────────────────────
 
 export function buildPriceBreakdownDescription(params: PriceBreakdownFullParams): Record<string, unknown> {
+  // 2026-07-22: new Russian FinancialReportModel-based report — same shared model/renderer the
+  // CLI's local .report.md uses (src/lib/pricing/financial-report.ts / this worker's synced
+  // copy in ./financial-report.ts). Only takes over when the flag is on AND the quote actually
+  // has a wpo_financial_breakdown_json (new-model quotes only) — legacy/electronic quotes and a
+  // disabled flag both fall through to the existing English operator-audit report unchanged.
+  if (isNewJiraPricingReportEnabled() && params.quote && Object.keys(params.quote.wpoFinancialBreakdownJson).length > 0) {
+    const nm = params.quote.wpoFinancialBreakdownJson as unknown as NewModelBreakdownLike;
+    const model = buildFinancialReportModel({
+      nm,
+      legacyAmountKzt: params.quote.amountKzt,
+      filename: params.documentId,
+      physicalPageCount: params.quote.physicalPageCount,
+      charactersWithSpaces: params.quote.sourceCharacterCountWithSpaces,
+      sourceLanguage: params.quote.sourceLanguage ?? params.sourceLanguage,
+      targetLanguage: params.quote.targetLanguage ?? params.targetLanguage,
+      serviceLevel: (params.quote.serviceLevel ?? params.serviceLevel) as ServiceLevel,
+      deliveryRequired: params.quote.fulfillmentMethod === 'delivery',
+      salesChannel: (params.quote.salesChannel as 'direct' | 'referral' | null) ?? 'direct',
+    });
+    return renderPricingReportForJira(model, params.mainIssueKey);
+  }
+
   const nodes: Record<string, unknown>[] = [];
 
   nodes.push(adfHeading(1, 'WPO Price Breakdown — Operator Audit'));
@@ -256,6 +296,16 @@ export function buildPriceBreakdownDescription(params: PriceBreakdownFullParams)
   const langPair = params.quote?.languagePair
     ?? `${params.quote?.sourceLanguage ?? params.sourceLanguage}→${params.quote?.targetLanguage ?? params.targetLanguage}`;
 
+  // General translation urgency (hardcoded 'standard' for all card orders today — see
+  // src/lib/pricing/types.ts UrgencyLevel) is a DIFFERENT concept from notary urgency
+  // (customer-selected 'standard'/'same_day' for notarized orders — NotaryUrgencyLevel).
+  // Do not conflate them: showing only the general field previously made every notarized
+  // order's same-day selection invisible here (WO-77, 2026-07-15) since the general field
+  // is always 'standard' regardless of what the customer actually picked for notary timing.
+  const notaryUrgency = params.quote
+    ? resolveNotaryUrgencySnapshot(null, { pricingContextJson: params.quote.pricingContextJson, breakdownJson: params.quote.breakdownJson })
+    : null;
+
   const sectionARows: string[][] = [
     ['Main order issue', params.mainIssueKey],
     ['Quote ID', params.quote?.id ?? '—'],
@@ -272,7 +322,11 @@ export function buildPriceBreakdownDescription(params: PriceBreakdownFullParams)
     ['Included pages', String(params.quote?.includedPageCount ?? '—')],
     ['Source word count', String(params.quote?.sourceWordCount ?? '—')],
     ['Included words', String(params.quote?.includedWordCount ?? '—')],
-    ['Urgency level', params.quote?.urgencyLevel ?? '—'],
+    ['General translation urgency', params.quote?.urgencyLevel ?? '—'],
+    ['Notary urgency', notaryUrgency?.level ?? '—'],
+    ['Effective notary window', notaryUrgency?.window ?? '—'],
+    ['Notary urgency multiplier', notaryUrgency ? `×${notaryUrgency.multiplier.toFixed(1)}` : '—'],
+    ['Notary urgency surcharge', notaryUrgency ? kzt(notaryUrgency.feeKzt) : '—'],
     ['Fulfillment method', params.quote?.fulfillmentMethod ?? '—'],
     ['Sales channel', params.quote?.salesChannel ?? '—'],
     ['Payment source', params.paymentSource ?? '—'],

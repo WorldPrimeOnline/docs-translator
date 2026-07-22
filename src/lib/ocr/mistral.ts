@@ -14,6 +14,18 @@ export interface OcrResult {
   pageCount: number;
 }
 
+export interface ExtractTextFromPdfOptions {
+  /**
+   * Explicit API key, bypassing @/lib/env entirely when provided. @/lib/env's `env` proxy
+   * validates its FULL schema (NODE_ENV, R2_*, ANTHROPIC_API_KEY, NEXT_PUBLIC_SUPABASE_*, ...)
+   * on first property access — fine for the web app (already has all of it), but wrong for a
+   * standalone caller (tools/pricing-cli) that only ever has MISTRAL_API_KEY. Passing this
+   * option means `env.MISTRAL_API_KEY` is never touched, so that validation never fires.
+   * Omit it (the default) to keep the existing @/lib/env-backed behavior unchanged.
+   */
+  mistralApiKey?: string;
+}
+
 const MISTRAL_OCR_URL = 'https://api.mistral.ai/v1/ocr';
 const MAX_RETRIES = 3;
 
@@ -28,7 +40,8 @@ function stripImageRefs(markdown: string): string {
     .trim();
 }
 
-export async function extractTextFromPdf(pdfBuffer: Buffer): Promise<OcrResult> {
+export async function extractTextFromPdf(pdfBuffer: Buffer, options?: ExtractTextFromPdfOptions): Promise<OcrResult> {
+  const apiKey = options?.mistralApiKey ?? env.MISTRAL_API_KEY;
   const base64 = pdfBuffer.toString('base64');
   const body = {
     model: 'mistral-ocr-latest',
@@ -47,7 +60,7 @@ export async function extractTextFromPdf(pdfBuffer: Buffer): Promise<OcrResult> 
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${env.MISTRAL_API_KEY}`,
+        Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify(body),
     });
