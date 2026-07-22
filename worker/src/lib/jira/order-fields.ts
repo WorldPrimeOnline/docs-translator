@@ -36,14 +36,27 @@ export const JIRA_FIELDS = {
 } as const;
 
 // ─── Security level (staging isolation) ──────────────────────────────────────
-// 2026-08-01: every Jira issue this project creates while running as staging gets
-// this hardcoded "Admin" issue security level, so staging test orders are never
-// visible to the same broad set of Jira project users as real production orders.
-// The real numeric ID was looked up via the Jira REST API
-// (GET /rest/api/3/project/WO/securitylevel — see
-// scripts/staging/find-jira-security-levels.ts) against the actual project;
-// never guessed. No new env var — reuses the existing APP_ENV staging convention
-// already used elsewhere in this codebase (e.g. this file's callers' envLabel logic).
+// 2026-08-01, re-verified 2026-08-01 with the exact Jira user/token this app uses
+// (see src/lib/jira/config.ts / this file's own credentials): every Jira issue this
+// project creates in the WO project (id 10033) while running as staging gets this
+// hardcoded "Admin" issue security level, so staging test orders are never visible
+// to the same broad set of Jira project users as real production orders.
+//
+// Confirmed on THREE independent Jira REST API checks against project WO (never
+// guessed, never concluded from a single endpoint) — see
+// scripts/staging/find-jira-security-levels.ts:
+//   1. GET /project/WO/securitylevel                 -> id=10000, name="Admin"
+//   2. GET /project/10033/issuesecuritylevelscheme    -> scheme "WPO Basic Scheme"
+//      (id 10000) attached, with exactly one level: id=10000, name="Admin"
+//   3. GET /issue/createmeta?issuetypeNames=Заказ     -> `security` field IS
+//      offered for this issue type, allowedValues=[{id:10000, name:"Admin"}]
+//
+// project WPO (partner applications, a DIFFERENT project, id 10066) has NO issue
+// security scheme at all — confirmed the same way, see partner-client.ts's own
+// comment — so this constant/helper must never be applied there.
+//
+// No new env var — reuses the existing APP_ENV staging convention already used
+// elsewhere in this codebase (e.g. this file's callers' envLabel logic).
 export const JIRA_ADMIN_SECURITY_LEVEL_ID = '10000';
 
 export function isStagingJiraEnvironment(): boolean {
