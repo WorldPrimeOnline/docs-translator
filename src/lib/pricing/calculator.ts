@@ -1211,11 +1211,15 @@ function calculateOfficialNotaryPrice(input: PricingInput, version: PricingVersi
     // coordinationVolumeTiers prices bit-for-bit identically to before this feature.
     const componentsForCoordination = toDecimal(T).plus(N).plus(C).toNumber();
     W = toDecimal(componentsForCoordination).times(version.wpoCoordinationRate).toNumber();
-    // Informational decomposition only (never fed back into money math) — for the
-    // breakdown/report consumers that now always look for these fields.
-    translationCoordinationKzt = roundToKopeks(toDecimal(T).times(version.wpoCoordinationRate));
-    notaryCoordinationKzt = roundToKopeks(toDecimal(N).times(version.wpoCoordinationRate));
-    courierCoordinationKzt = roundToKopeks(toDecimal(C).times(version.wpoCoordinationRate));
+    // Informational decomposition only (never fed back into money math) — deliberately
+    // NOT rounded per-piece, for the same reason W itself isn't (see the "NOT rounded to
+    // kopeks here" note above): rounding each piece independently would not sum back to
+    // the true W in general. 2026-08-05: confirmed against the real WO-98 job's old-flat
+    // numbers (notary coordination = 687.675, not 687.68) — this is the exact unrounded
+    // value the pre-2026-08-04 formula always implied but never surfaced anywhere.
+    translationCoordinationKzt = toDecimal(T).times(version.wpoCoordinationRate).toNumber();
+    notaryCoordinationKzt = toDecimal(N).times(version.wpoCoordinationRate).toNumber();
+    courierCoordinationKzt = toDecimal(C).times(version.wpoCoordinationRate).toNumber();
   }
 
   items.push({

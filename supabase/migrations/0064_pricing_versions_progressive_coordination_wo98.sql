@@ -29,11 +29,15 @@
 --   - Does not change ENABLE_NEW_OFFICIAL_PRICING/ENABLE_NEW_NOTARY_PRICING — those
 --     flags are unrelated to which pricing_versions row is active.
 --
--- Rollback: `DELETE FROM public.pricing_versions WHERE code =
+-- Rollback (2026-08-05 correction — this simple DELETE is ONLY safe BEFORE this row is
+-- ever activated): `DELETE FROM public.pricing_versions WHERE code =
 -- '2026-Q3-KZ-NEWMODEL-COORD-TIERS';` (cascades to its cloned pricing_language_rates
--- rows via ON DELETE CASCADE) — safe at any time before activation, since nothing else
--- can reference a 'draft' row (price_quotes.pricing_version_id only ever gets set to
--- whichever version was ACTIVE at quote time).
+-- rows via ON DELETE CASCADE) — safe only while the row is still 'draft' and nothing
+-- else references it. Once scripts/staging/activate-progressive-coordination-version.ts
+-- has activated it, price_quotes.pricing_version_id rows may point at it — deleting it
+-- at that point would orphan those quotes. After activation, use
+-- scripts/staging/rollback-progressive-coordination-version.ts instead (migration 0065's
+-- rollback_pricing_version() — flips status back to 'draft', never deletes).
 
 with new_version as (
   insert into public.pricing_versions (

@@ -492,6 +492,72 @@ describe('calculatePrice — progressive WPO coordination (WO-98)', () => {
       prevAmount = result.amountKzt;
     }
   });
+
+  // 2026-08-05 corrective fix: the original test suite only proved the NEW tiered total
+  // in isolation. This directly compares the OLD flat-rate total against the NEW tiered
+  // total for the exact same WO-98 input, and asserts the full retail difference
+  // (163000 -> 156000), closing the gap the follow-up review flagged.
+  it('old (flat 30%) vs new (tiered) total WPO coordination and retail — full side-by-side comparison', () => {
+    const flatVersion = mockNewModelVersion(); // no coordinationVolumeTiers -> flat-rate fallback
+    const tieredVersion = wo98Version();
+    const input = wo98Input();
+
+    const oldResult = calculatePrice(input, flatVersion);
+    const newResult = calculatePrice(input, tieredVersion);
+    const oldNm = oldResult.newModel!;
+    const newNm = newResult.newModel!;
+
+    // Components feeding coordination are IDENTICAL between old and new — only the
+    // coordination rate application differs.
+    expect(oldNm.translationAmountKzt).toBe(newNm.translationAmountKzt); // 60236.67
+    expect(oldNm.notaryAmountKzt).toBe(newNm.notaryAmountKzt); // 2292.25
+    expect(oldNm.courierAmountKzt).toBe(newNm.courierAmountKzt); // 5000
+
+    // OLD: single unrounded multiplication of (T+N+C) * 30% for the ACTUAL W value; the
+    // per-component decomposition (informational only, never fed back into money math)
+    // is ALSO unrounded per-piece — confirmed against the real WO-98 job's own old-flat
+    // numbers (notary coordination = 687.675, not 687.68).
+    expect(oldNm.translationCoordinationKzt).toBeCloseTo(18071.001, 3); // 60236.67 * 30%
+    expect(oldNm.notaryCoordinationKzt).toBeCloseTo(687.675, 3); // 2292.25 * 30%
+    expect(oldNm.courierCoordinationKzt).toBe(1500.00); // 5000 * 30%
+    // Full OLD total (T+N+C combined, single multiplication — the actual value used
+    // downstream, and equal to the sum of the three unrounded informational pieces above).
+    expect(oldNm.coordinationBaseAmountKzt).toBeCloseTo(20258.676, 3);
+
+    // NEW: tiered translation portion, flat notary/courier.
+    expect(newNm.translationCoordinationKzt).toBe(14297.33);
+    expect(newNm.notaryCoordinationKzt).toBe(687.68);
+    expect(newNm.courierCoordinationKzt).toBe(1500.00);
+    expect(newNm.coordinationBaseAmountKzt).toBe(16485.01);
+
+    // The two totals are genuinely different (tiering saves real money on this order).
+    expect(newNm.coordinationBaseAmountKzt).toBeLessThan(oldNm.coordinationBaseAmountKzt);
+
+    // Full retail difference: 163000 (old, matches the REAL WO-98 job's persisted
+    // price_kzt) -> 156000 (new).
+    expect(oldNm.standardRetailKzt).toBe(163000);
+    expect(newNm.standardRetailKzt).toBe(156000);
+    expect(oldResult.amountKzt).toBe(163000);
+    expect(newResult.amountKzt).toBe(156000);
+  });
+
+  it('the "итого"/total coordination figure (coordinationBaseAmountKzt) always includes notary + courier coordination, never translation-only — checked on both the calculator result AND what would be persisted to wpo_financial_breakdown_json', () => {
+    const result = calculatePrice(wo98Input(), wo98Version());
+    const nm = result.newModel!;
+    const translationOnly = nm.translationCoordinationKzt!;
+    // The persisted/rendered total must be strictly greater than the translation-only
+    // portion whenever notary/courier coordination is non-zero — proving "итого" is not
+    // silently dropping them.
+    expect(nm.coordinationBaseAmountKzt).toBeGreaterThan(translationOnly);
+    expect(nm.coordinationBaseAmountKzt).toBeCloseTo(
+      translationOnly + nm.notaryCoordinationKzt! + nm.courierCoordinationKzt!, 2,
+    );
+    // wpo_financial_breakdown_json is exactly `nm` (see quote-row-mapper.ts's
+    // buildPriceQuoteInsertRow: wpo_financial_breakdown_json: nm ?? {}) — no separate
+    // persistence path exists, so asserting on `nm` here IS asserting on what gets
+    // persisted and what the Jira/CLI renderer reads.
+    expect(nm.coordinationBaseAmountKzt).toBe(16485.01);
+  });
 });
 
 // ─── Corrected values (regressions against earlier draft mistakes) ────────────────

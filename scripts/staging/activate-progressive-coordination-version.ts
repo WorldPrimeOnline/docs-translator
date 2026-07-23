@@ -1,14 +1,21 @@
 #!/usr/bin/env npx tsx
 /**
  * Activates '2026-Q3-KZ-NEWMODEL-COORD-TIERS' (WO-98 progressive WPO coordination,
- * 2026-08-04) on staging: archives the currently-active '2026-Q3-KZ-NEWMODEL' row and
- * flips the new tiered-coordination row to active — the "one controlled step" the
- * operator performs manually, mirroring activate-newmodel-pricing-version.ts's exact
- * pattern. Never run against production (hard-refuses if APP_ENV=production).
+ * 2026-08-04) on staging — the "one controlled step" the operator performs manually.
+ * Never run against production (hard-refuses if APP_ENV=production).
  *
- * PREPARED, NOT RUN by the assistant. Requires migration 0064 to have been applied
- * first (creates the draft row + its cloned pricing_language_rates) — this script
- * refuses if the new row doesn't exist yet.
+ * 2026-08-05 correction: the previous version of this script did two separate
+ * .update() calls (archive old, then activate new) — NOT atomic. A crash/network
+ * failure between them could leave ZERO active pricing versions, breaking every
+ * quote ("no active pricing version"). Now calls the atomic
+ * activate_pricing_version() Postgres function (migration 0065, prepared, not
+ * applied) — one transaction: either both status flips happen, or neither does. The
+ * function itself also verifies at most one active version exists BEFORE acting and
+ * exactly one active version exists AFTER acting, raising (full rollback) otherwise.
+ *
+ * PREPARED, NOT RUN by the assistant. Requires BOTH migration 0064 (creates the draft
+ * row + its cloned pricing_language_rates) AND migration 0065 (the RPC functions) to
+ * have been applied first — this script's own pre-checks refuse otherwise.
  *
  * Usage:
  *   npx tsx scripts/staging/activate-progressive-coordination-version.ts --dry-run   # preview only
@@ -55,33 +62,37 @@ async function main(): Promise<void> {
   console.log(`[activate-progressive-coordination] APP_ENV: ${appEnv}`);
   console.log(`[activate-progressive-coordination] mode: ${dryRun ? 'DRY RUN (pass --apply to actually activate)' : 'APPLY'}`);
 
-  const { data: oldRow, error: oldErr } = await db.from('pricing_versions').select('id, code, status').eq('code', OLD_CODE).maybeSingle();
-  const { data: newRow, error: newErr } = await db.from('pricing_versions').select('id, code, status, metadata').eq('code', NEW_CODE).maybeSingle();
+  const { data: allVersions, error: listErr } = await db.from('pricing_versions').select('id, code, status');
+  if (listErr) { console.error('FATAL:', listErr); process.exit(1); }
 
-  if (oldErr || newErr) { console.error('FATAL:', oldErr ?? newErr); process.exit(1); }
-  if (!newRow) { console.error(`FATAL: ${NEW_CODE} row not found — apply migration 0064 first.`); process.exit(1); }
+  const oldRow = (allVersions ?? []).find((v: { code: string }) => v.code === OLD_CODE);
+  const newRow = (allVersions ?? []).find((v: { code: string }) => v.code === NEW_CODE);
+  const activeVersions = (allVersions ?? []).filter((v: { status: string }) => v.status === 'active');
 
   console.log(`\nCurrent state:`);
   console.log(`  ${OLD_CODE}: ${oldRow ? oldRow.status : '(not found)'}`);
-  console.log(`  ${NEW_CODE}: ${newRow.status}, formula_version=${newRow.metadata?.formula_version ?? '(none)'}, tiers=${JSON.stringify(newRow.metadata?.coordinationVolumeTiers ?? null)}`);
+  console.log(`  ${NEW_CODE}: ${newRow ? newRow.status : '(not found — apply migration 0064 first)'}`);
+  console.log(`  Active versions right now: ${activeVersions.length} (${activeVersions.map((v: { code: string }) => v.code).join(', ') || 'none'})`);
 
-  if (newRow.status === 'active') {
-    console.log(`\n${NEW_CODE} is already active — nothing to do.`);
-    return;
-  }
-  if (newRow.metadata?.formula_version !== EXPECTED_FORMULA_VERSION) {
-    console.error(`\nFATAL: ${NEW_CODE}.metadata.formula_version is '${newRow.metadata?.formula_version}', expected '${EXPECTED_FORMULA_VERSION}'. Refusing to activate.`);
+  if (!newRow) { console.error(`\nFATAL: ${NEW_CODE} row not found — apply migration 0064 first.`); process.exit(1); }
+  if (newRow.status === 'active') { console.log(`\n${NEW_CODE} is already active — nothing to do.`); return; }
+  if (activeVersions.length > 1) {
+    console.error(`\nFATAL: ${activeVersions.length} active pricing versions found (expected 0 or 1) — this is a pre-existing data integrity problem. Refusing to activate on top of it; investigate manually first.`);
     process.exit(1);
   }
-  if (!Array.isArray(newRow.metadata?.coordinationVolumeTiers) || newRow.metadata.coordinationVolumeTiers.length === 0) {
+
+  const { data: newRowFull } = await db.from('pricing_versions').select('metadata').eq('code', NEW_CODE).maybeSingle();
+  if (newRowFull?.metadata?.formula_version !== EXPECTED_FORMULA_VERSION) {
+    console.error(`\nFATAL: ${NEW_CODE}.metadata.formula_version is '${newRowFull?.metadata?.formula_version}', expected '${EXPECTED_FORMULA_VERSION}'. Refusing to activate.`);
+    process.exit(1);
+  }
+  if (!Array.isArray(newRowFull?.metadata?.coordinationVolumeTiers) || newRowFull.metadata.coordinationVolumeTiers.length === 0) {
     console.error(`\nFATAL: ${NEW_CODE}.metadata.coordinationVolumeTiers is missing/empty. Refusing to activate a "coordination tiers" version with no tiers configured.`);
     process.exit(1);
   }
 
-  console.log(`\nPlanned change:`);
-  if (oldRow && oldRow.status === 'active') {
-    console.log(`  ${OLD_CODE}: active -> archived`);
-  }
+  console.log(`\nPlanned change (atomic — activate_pricing_version() RPC, migration 0065):`);
+  if (oldRow && oldRow.status === 'active') console.log(`  ${OLD_CODE}: active -> archived`);
   console.log(`  ${NEW_CODE}: ${newRow.status} -> active`);
 
   if (dryRun) {
@@ -89,18 +100,22 @@ async function main(): Promise<void> {
     return;
   }
 
-  if (oldRow && oldRow.status === 'active') {
-    const { error } = await db.from('pricing_versions').update({ status: 'archived', valid_to: new Date().toISOString() }).eq('id', oldRow.id);
-    if (error) { console.error('FATAL archiving old version:', error); process.exit(1); }
-    console.log(`  ${OLD_CODE} archived.`);
+  const { data: rpcResult, error: rpcError } = await db.rpc('activate_pricing_version', {
+    p_new_code: NEW_CODE,
+    p_old_code: OLD_CODE,
+  });
+  if (rpcError) {
+    console.error('\nFATAL: activate_pricing_version() raised — nothing was changed (full transaction rollback):', rpcError.message);
+    process.exit(1);
   }
+  console.log('\nActivated:', rpcResult);
 
-  const { error: activateErr } = await db.from('pricing_versions').update({ status: 'active', valid_from: new Date().toISOString() }).eq('id', newRow.id);
-  if (activateErr) { console.error('FATAL activating new version:', activateErr); process.exit(1); }
-  console.log(`  ${NEW_CODE} activated.`);
-
-  const { data: check } = await db.from('pricing_versions').select('code, status').eq('status', 'active').maybeSingle();
-  console.log(`\nVerification — active version is now: ${check?.code} (${check?.status})`);
+  const { data: finalActive } = await db.from('pricing_versions').select('code, status').eq('status', 'active');
+  console.log(`\nVerification — active version(s) now: ${JSON.stringify(finalActive)} (expected exactly 1, code=${NEW_CODE})`);
+  if ((finalActive ?? []).length !== 1) {
+    console.error('WARNING: expected exactly 1 active version after activation — investigate immediately.');
+    process.exit(1);
+  }
 }
 
 main();
