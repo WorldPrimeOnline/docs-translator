@@ -16,6 +16,7 @@
  * not from each other's rendered text.
  */
 import type { LanguagePairBaseRate, NewModelBreakdown, SalesChannel, ServiceLevel, TranslationPageBasis } from './types';
+import type { TranslationTierBreakdownEntry } from './coordination-tiers';
 
 export interface FinancialReportModel {
   document: {
@@ -166,6 +167,44 @@ function languagePairResolutionLineRu(nm: NewModelBreakdown): string | null {
   return `База ставки: ${sourceLabel} / ${targetLabel} → применена ${winnerLabel} (выше)`;
 }
 
+/**
+ * "первые 5 стр." / "страницы 5–10" / "страницы свыше 10" — 2026-08-04 progressive
+ * WPO coordination. First tier (fromPage=0) always reads "первые N стр."; the last
+ * (upToPage=null) tier always reads "страницы свыше N"; any middle tier reads
+ * "страницы A–B".
+ */
+function translationTierLabelRu(tier: TranslationTierBreakdownEntry): string {
+  if (tier.fromPage === 0) return `первые ${fmtNum(tier.upToPage ?? tier.pages)} стр.`;
+  if (tier.upToPage === null) return `страницы свыше ${fmtNum(tier.fromPage)}`;
+  return `страницы ${fmtNum(tier.fromPage)}–${fmtNum(tier.upToPage)}`;
+}
+
+/**
+ * "Комиссия WPO:" breakdown lines (2026-08-04 progressive coordination) — one line per
+ * translation tier that actually contributed pages, plus notary/courier coordination
+ * (only when N/C > 0), plus a total. Falls back to the single pre-2026-08-04 line when
+ * the pricing version has no coordinationVolumeTiers configured (translationTiers is
+ * empty) — this is what keeps every old quote's report byte-identical to before.
+ */
+function coordinationLinesRu(nm: NewModelBreakdown): string[] {
+  const tiers = nm.translationTiers ?? [];
+  if (tiers.length === 0) {
+    return [`Комиссия WPO: ${fmtKzt(nm.coordinationBaseAmountKzt)}`];
+  }
+  const lines: string[] = ['Комиссия WPO:'];
+  for (const tier of tiers) {
+    lines.push(`- перевод, ${translationTierLabelRu(tier)} × ${fmtNum(tier.rate * 100)}%: ${fmtKzt(tier.coordinationAmountKzt)}`);
+  }
+  if (nm.notaryAmountKzt > 0) {
+    lines.push(`- нотариус × ${fmtNum((nm.notaryCoordinationKzt ?? 0) / nm.notaryAmountKzt * 100)}%: ${fmtKzt(nm.notaryCoordinationKzt ?? 0)}`);
+  }
+  if (nm.courierAmountKzt > 0) {
+    lines.push(`- курьер × ${fmtNum((nm.courierCoordinationKzt ?? 0) / nm.courierAmountKzt * 100)}%: ${fmtKzt(nm.courierCoordinationKzt ?? 0)}`);
+  }
+  lines.push(`- итого: ${fmtKzt(nm.coordinationBaseAmountKzt)}`);
+  return lines;
+}
+
 /** Block 3 — price formation, as a flat list of lines. */
 function formationLinesRu(nm: NewModelBreakdown, sourceCharacterCountWithSpaces: number | null): string[] {
   const lines: string[] = [];
@@ -180,7 +219,7 @@ function formationLinesRu(nm: NewModelBreakdown, sourceCharacterCountWithSpaces:
   if (nm.notaryAmountKzt > 0) lines.push(`Нотариус: ${fmtKzt(nm.notaryAmountKzt)}`);
   if (nm.courierAmountKzt > 0) lines.push(`Курьер: ${fmtKzt(nm.courierAmountKzt)}`);
   if (nm.printingAmountKzt > 0) lines.push(`Печать: ${fmtKzt(nm.printingAmountKzt)}`);
-  lines.push(`Комиссия WPO: ${fmtKzt(nm.coordinationBaseAmountKzt)}`);
+  lines.push(...coordinationLinesRu(nm));
   if (nm.manualAdjustmentKzt !== 0) lines.push(`Ручная корректировка: ${fmtKzt(nm.manualAdjustmentKzt)}`);
   lines.push(`Сумма компонентов: ${fmtKzt(nm.componentSubtotalKzt)}`);
   lines.push(`Gross-up ${fmtPct(nm.grossUpRate)}: ${fmtKzt(nm.grossUpAmountKzt)}`);

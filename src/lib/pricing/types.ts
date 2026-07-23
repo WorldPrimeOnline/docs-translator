@@ -68,6 +68,18 @@ export interface PricingVersion {
   publicElectronicPriceKzt: number | null;
   publicOfficialMinPriceKzt: number | null;
   publicNotaryMinPriceKzt: number | null;
+
+  // ─── Progressive WPO coordination (2026-08-04) — official/notary translation-portion
+  // only. Parsed from `metadata` (existing JSONB column, no new migration) by
+  // parseCoordinationConfig() in coordination-tiers.ts; null on any version that never
+  // configured this (including every pre-2026-08-04 version) — the calculator falls
+  // back to the flat wpoCoordinationRate for the translation portion in that case, so
+  // old versions price EXACTLY as before. ────────────────────────────────────────────
+  coordinationVolumeTiers?: import('./coordination-tiers').CoordinationVolumeTier[] | null;
+  /** Falls back to wpoCoordinationRate when null/absent. */
+  notaryCoordinationRate?: number | null;
+  /** Falls back to wpoCoordinationRate when null/absent. */
+  courierCoordinationRate?: number | null;
 }
 
 /**
@@ -315,10 +327,19 @@ export interface NewModelBreakdown {
   notaryAmountKzt: number;             // N
   courierAmountKzt: number;            // C
   printingAmountKzt: number;           // P
-  /** WPO coordination fee (30% × (T+N+C), OCR excluded per the approved model). Never
-   * urgency-multiplied as of 2026-07-21 — urgency now multiplies the whole standard retail
-   * instead (see urgencyMultiplier/urgencySurchargeKzt/retailKzt below), never just this fee. */
+  /** WPO coordination fee (T+N+C portions each coordinated at their own rate, OCR excluded
+   * per the approved model). Never urgency-multiplied as of 2026-07-21 — urgency now
+   * multiplies the whole standard retail instead (see urgencyMultiplier/urgencySurchargeKzt/
+   * retailKzt below), never just this fee. */
   coordinationBaseAmountKzt: number;   // W
+  // ─── Progressive coordination breakdown (2026-08-04) — informational, always present.
+  // translationCoordinationKzt + notaryCoordinationKzt + courierCoordinationKzt ===
+  // coordinationBaseAmountKzt. translationTiers is empty when no coordinationVolumeTiers
+  // are configured on this pricing version (flat-rate fallback — see calculator.ts step 10).
+  translationCoordinationKzt?: number;
+  notaryCoordinationKzt?: number;
+  courierCoordinationKzt?: number;
+  translationTiers?: import('./coordination-tiers').TranslationTierBreakdownEntry[];
   manualAdjustmentKzt: number;         // M
   componentSubtotalKzt: number;
 

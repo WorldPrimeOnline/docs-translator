@@ -22,6 +22,7 @@ import {
 } from './config';
 import { getNotaryCutoffWindow } from './almaty-time';
 import { toDecimal, roundToKopeks, roundUpToStep, applyRate, charsToPages, computeTranslationAmount, sumMoney, moneyDifference } from './money';
+import { computeTranslationCoordination, type TranslationTierBreakdownEntry } from './coordination-tiers';
 
 function roundToIncrement(amount: number, increment: number): number {
   return Math.ceil(amount / increment) * increment;
@@ -1176,20 +1177,59 @@ function calculateOfficialNotaryPrice(input: PricingInput, version: PricingVersi
   // 10. W — WPO coordination fee. 2026-07-21: NEVER urgency-multiplied anymore — urgency now
   // multiplies the WHOLE standard retail (see step 14 below), not just this fee. Computed once,
   // always at the base rate, for both official (always ×1 anyway) and notary.
-  // NOT rounded to kopeks here — W is an intermediate formula value, not yet a terminal ledger
-  // amount. The approved model's own worked examples carry full precision through this step
-  // (e.g. "1 587,675 ₸") and round only at genuine terminal points: T (per money.ts
-  // computeTranslationAmount), the retail rounding step, and final reserve amounts computed
-  // against actualPayment. Rounding here would compound into a visibly wrong
-  // componentSubtotal/retail for some inputs.
-  const componentsForCoordination = toDecimal(T).plus(N).plus(C).toNumber();
-  const W = toDecimal(componentsForCoordination).times(version.wpoCoordinationRate).toNumber();
+  //
+  // 2026-08-04 progressive coordination: the TRANSLATION portion of W is now tiered by
+  // billableTranslationPages when the active pricing_versions.metadata configures
+  // coordinationVolumeTiers (WO-98) — pages beyond the first 5/10 are coordinated at a
+  // lower rate, since coordinating a 20-page order isn't 4x the effort of a 5-page one.
+  // Falls back to the exact flat-rate formula (T * wpoCoordinationRate) when no tiers are
+  // configured, so every pre-2026-08-04 pricing version — and every version whose
+  // metadata doesn't set this — prices IDENTICALLY to before. Notary/courier coordination
+  // use their own configured rates (falling back to wpoCoordinationRate), independent of
+  // the translation tiers. Nothing else in this function (T, N, C, O, P, payouts,
+  // gross-up, reserves, urgency, discount, commission) is touched by this change.
+  const translationTiers = version.coordinationVolumeTiers ?? null;
+  const tiersActive = !!translationTiers && translationTiers.length > 0 && T > 0;
+
+  let W: number;
+  let translationCoordinationKzt: number;
+  let notaryCoordinationKzt: number;
+  let courierCoordinationKzt: number;
+  let translationTierBreakdown: TranslationTierBreakdownEntry[] = [];
+
+  if (tiersActive) {
+    const tiered = computeTranslationCoordination(billableTranslationPages, ratePerPage, translationTiers!);
+    translationCoordinationKzt = tiered.totalKzt;
+    translationTierBreakdown = tiered.tiers;
+    notaryCoordinationKzt = N > 0 ? applyRate(N, version.notaryCoordinationRate ?? version.wpoCoordinationRate) : 0;
+    courierCoordinationKzt = C > 0 ? applyRate(C, version.courierCoordinationRate ?? version.wpoCoordinationRate) : 0;
+    W = toDecimal(translationCoordinationKzt).plus(notaryCoordinationKzt).plus(courierCoordinationKzt).toNumber();
+  } else {
+    // EXACT pre-2026-08-04 formula — a single unrounded multiplication of the combined
+    // T+N+C base, never three separately-rounded pieces (see the "NOT rounded to kopeks
+    // here" rationale above) — this is what guarantees every pricing version without
+    // coordinationVolumeTiers prices bit-for-bit identically to before this feature.
+    const componentsForCoordination = toDecimal(T).plus(N).plus(C).toNumber();
+    W = toDecimal(componentsForCoordination).times(version.wpoCoordinationRate).toNumber();
+    // Informational decomposition only (never fed back into money math) — for the
+    // breakdown/report consumers that now always look for these fields.
+    translationCoordinationKzt = roundToKopeks(toDecimal(T).times(version.wpoCoordinationRate));
+    notaryCoordinationKzt = roundToKopeks(toDecimal(N).times(version.wpoCoordinationRate));
+    courierCoordinationKzt = roundToKopeks(toDecimal(C).times(version.wpoCoordinationRate));
+  }
 
   items.push({
     itemType: 'wpo_coordination',
     label: `Комиссия WPO (${(version.wpoCoordinationRate * 100).toFixed(0)}%)`,
     quantity: 1, unitPriceKzt: W, amountKzt: W,
     isClientVisible: true, isCost: false, sortOrder: nextSort(),
+    metadataJson: {
+      translationCoordinationKzt,
+      notaryCoordinationKzt,
+      courierCoordinationKzt,
+      totalCoordinationKzt: W,
+      translationTiers: translationTierBreakdown,
+    },
   });
 
   // Notary urgency multiplier — resolved here (same NOTARY_URGENCY_CONFIG values, same
@@ -1345,6 +1385,10 @@ function calculateOfficialNotaryPrice(input: PricingInput, version: PricingVersi
     courierAmountKzt: C,
     printingAmountKzt: P,
     coordinationBaseAmountKzt: W,
+    translationCoordinationKzt,
+    notaryCoordinationKzt,
+    courierCoordinationKzt,
+    translationTiers: translationTierBreakdown,
     manualAdjustmentKzt: M,
     componentSubtotalKzt: componentSubtotal,
     grossUpRate,

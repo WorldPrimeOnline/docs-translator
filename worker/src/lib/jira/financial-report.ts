@@ -32,6 +32,17 @@ export interface LanguagePairResolutionLike {
   winningSide: 'source' | 'target';
 }
 
+/** Mirrors src/lib/pricing/coordination-tiers.ts's TranslationTierBreakdownEntry. */
+export interface TranslationTierBreakdownEntryLike {
+  fromPage: number;
+  upToPage: number | null;
+  pages: number;
+  rate: number;
+  ratePerPageKzt: number;
+  translationAmountKzt: number;
+  coordinationAmountKzt: number;
+}
+
 export interface NewModelBreakdownLike {
   physicalPageCount: number | null;
   characterPages: number;
@@ -43,6 +54,14 @@ export interface NewModelBreakdownLike {
   courierAmountKzt: number;
   printingAmountKzt: number;
   coordinationBaseAmountKzt: number;
+  // 2026-08-04 progressive coordination — optional so a wpo_financial_breakdown_json
+  // snapshot from BEFORE this feature (no coordinationVolumeTiers configured, or an
+  // older quote row) still parses fine; formationLinesRu falls back to the single
+  // pre-2026-08-04 "Комиссия WPO: X" line when translationTiers is empty/absent.
+  translationCoordinationKzt?: number;
+  notaryCoordinationKzt?: number;
+  courierCoordinationKzt?: number;
+  translationTiers?: TranslationTierBreakdownEntryLike[];
   manualAdjustmentKzt: number;
   componentSubtotalKzt: number;
   grossUpRate: number;
@@ -211,6 +230,33 @@ function languagePairResolutionLineRu(nm: NewModelBreakdownLike): string | null 
   return `База ставки: ${sourceLabel} / ${targetLabel} → применена ${winnerLabel} (выше)`;
 }
 
+/** See src/lib/pricing/financial-report.ts's translationTierLabelRu — kept in sync manually. */
+function translationTierLabelRu(tier: TranslationTierBreakdownEntryLike): string {
+  if (tier.fromPage === 0) return `первые ${fmtNum(tier.upToPage ?? tier.pages)} стр.`;
+  if (tier.upToPage === null) return `страницы свыше ${fmtNum(tier.fromPage)}`;
+  return `страницы ${fmtNum(tier.fromPage)}–${fmtNum(tier.upToPage)}`;
+}
+
+/** See src/lib/pricing/financial-report.ts's coordinationLinesRu — kept in sync manually. */
+function coordinationLinesRu(nm: NewModelBreakdownLike): string[] {
+  const tiers = nm.translationTiers ?? [];
+  if (tiers.length === 0) {
+    return [`Комиссия WPO: ${fmtKzt(nm.coordinationBaseAmountKzt)}`];
+  }
+  const lines: string[] = ['Комиссия WPO:'];
+  for (const tier of tiers) {
+    lines.push(`- перевод, ${translationTierLabelRu(tier)} × ${fmtNum(tier.rate * 100)}%: ${fmtKzt(tier.coordinationAmountKzt)}`);
+  }
+  if (nm.notaryAmountKzt > 0) {
+    lines.push(`- нотариус × ${fmtNum((nm.notaryCoordinationKzt ?? 0) / nm.notaryAmountKzt * 100)}%: ${fmtKzt(nm.notaryCoordinationKzt ?? 0)}`);
+  }
+  if (nm.courierAmountKzt > 0) {
+    lines.push(`- курьер × ${fmtNum((nm.courierCoordinationKzt ?? 0) / nm.courierAmountKzt * 100)}%: ${fmtKzt(nm.courierCoordinationKzt ?? 0)}`);
+  }
+  lines.push(`- итого: ${fmtKzt(nm.coordinationBaseAmountKzt)}`);
+  return lines;
+}
+
 function formationLinesRu(nm: NewModelBreakdownLike, sourceCharacterCountWithSpaces: number | null): string[] {
   const lines: string[] = [];
   lines.push(
@@ -224,7 +270,7 @@ function formationLinesRu(nm: NewModelBreakdownLike, sourceCharacterCountWithSpa
   if (nm.notaryAmountKzt > 0) lines.push(`Нотариус: ${fmtKzt(nm.notaryAmountKzt)}`);
   if (nm.courierAmountKzt > 0) lines.push(`Курьер: ${fmtKzt(nm.courierAmountKzt)}`);
   if (nm.printingAmountKzt > 0) lines.push(`Печать: ${fmtKzt(nm.printingAmountKzt)}`);
-  lines.push(`Комиссия WPO: ${fmtKzt(nm.coordinationBaseAmountKzt)}`);
+  lines.push(...coordinationLinesRu(nm));
   if (nm.manualAdjustmentKzt !== 0) lines.push(`Ручная корректировка: ${fmtKzt(nm.manualAdjustmentKzt)}`);
   lines.push(`Сумма компонентов: ${fmtKzt(nm.componentSubtotalKzt)}`);
   lines.push(`Gross-up ${fmtPct(nm.grossUpRate)}: ${fmtKzt(nm.grossUpAmountKzt)}`);

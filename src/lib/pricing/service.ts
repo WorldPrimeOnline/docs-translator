@@ -7,6 +7,7 @@ import { calculatePrice } from './calculator';
 import { toDecimal } from './money';
 import { getPricingFeatureFlags } from './feature-flags';
 import { buildPriceQuoteInsertRow } from './quote-row-mapper';
+import { parseCoordinationConfig } from './coordination-tiers';
 import type { LanguagePairBaseRate, NotaryUrgencyLevel, PricingInput, PricingLanguageRate, PricingResult, PricingVersion, QuoteStatus } from './types';
 
 /**
@@ -84,6 +85,7 @@ const PRICING_VERSION_COLUMNS = [
 ].join(', ');
 
 function mapPricingVersionRow(row: PricingVersionRow): PricingVersion {
+  const coordinationConfig = parseCoordinationConfig(row.metadata);
   return {
     id: row.id,
     code: row.code,
@@ -116,6 +118,9 @@ function mapPricingVersionRow(row: PricingVersionRow): PricingVersion {
     publicElectronicPriceKzt: row.public_electronic_price_kzt != null ? Number(row.public_electronic_price_kzt) : null,
     publicOfficialMinPriceKzt: row.public_official_min_price_kzt != null ? Number(row.public_official_min_price_kzt) : null,
     publicNotaryMinPriceKzt: row.public_notary_min_price_kzt != null ? Number(row.public_notary_min_price_kzt) : null,
+    coordinationVolumeTiers: coordinationConfig.translationTiers,
+    notaryCoordinationRate: coordinationConfig.notaryCoordinationRate,
+    courierCoordinationRate: coordinationConfig.courierCoordinationRate,
   };
 }
 

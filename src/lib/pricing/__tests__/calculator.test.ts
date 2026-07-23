@@ -328,6 +328,172 @@ describe('calculatePrice — official/notary new formula: approved fixtures', ()
   });
 });
 
+// ─── 2026-08-04 progressive WPO coordination (WO-98) ──────────────────────────────
+// Only the WPO coordination fee (W)'s translation portion is tiered by
+// billableTranslationPages when the pricing version configures coordinationVolumeTiers.
+// T, O, N, C, P, payouts, gross-up, reserves, urgency, discount, and commission are all
+// completely untouched — every other describe block in this file (unmodified, still
+// using mockNewModelVersion() with no tiers configured) already proves the flat-rate
+// fallback is byte-identical to before this feature.
+describe('calculatePrice — progressive WPO coordination (WO-98)', () => {
+  const WO98_TIERS = [
+    { fromPage: 0, upToPage: 5, rate: 0.30 },
+    { fromPage: 5, upToPage: 10, rate: 0.25 },
+    { fromPage: 10, upToPage: null, rate: 0.20 },
+  ];
+
+  function wo98Version(overrides: Partial<PricingVersion> = {}): PricingVersion {
+    return mockNewModelVersion({
+      coordinationVolumeTiers: WO98_TIERS,
+      notaryCoordinationRate: 0.30,
+      courierCoordinationRate: 0.30,
+      ...overrides,
+    });
+  }
+
+  // 36142 chars / 1800 = 20.078888888... pages, matching the approved WO-98 spec's
+  // billableTranslationPages=20.0788888889 exactly.
+  function wo98Input(overrides: Partial<PricingInput> = {}): PricingInput {
+    return baseNotaryInput({
+      sourceCharacterCountWithSpaces: 36142,
+      physicalPageCount: 10, // -> O = 1000; character_count (20.08) still wins the page-basis max()
+      fulfillmentMethod: 'delivery',
+      deliveryRequired: true,
+      salesChannel: 'direct',
+      ...overrides,
+    });
+  }
+
+  it('WO-98 control: exact tier breakdown and every downstream figure from the approved spec', () => {
+    const result = calculatePrice(wo98Input(), wo98Version());
+    const nm = result.newModel!;
+
+    // Inputs, reproduced exactly as given.
+    expect(nm.billableTranslationPages).toBeCloseTo(20.0788888889, 9);
+    expect(nm.translationAmountKzt).toBe(60236.67);
+    expect(nm.ocrAmountKzt).toBe(1000);
+    expect(nm.notaryAmountKzt).toBe(2292.25);
+    expect(nm.courierAmountKzt).toBe(5000);
+    expect(nm.grossUpRate).toBeCloseTo(0.455, 10);
+
+    // Tier breakdown.
+    expect(nm.translationTiers).toEqual([
+      expect.objectContaining({ fromPage: 0, upToPage: 5, pages: 5, rate: 0.30, coordinationAmountKzt: 4500.00 }),
+      expect.objectContaining({ fromPage: 5, upToPage: 10, pages: 5, rate: 0.25, coordinationAmountKzt: 3750.00 }),
+      expect.objectContaining({ fromPage: 10, upToPage: null, rate: 0.20, coordinationAmountKzt: 6047.33 }),
+    ]);
+    expect(nm.translationTiers![2]!.pages).toBeCloseTo(10.0788888889, 9);
+    expect(nm.translationCoordinationKzt).toBe(14297.33);
+    expect(nm.notaryCoordinationKzt).toBe(687.68);
+    expect(nm.courierCoordinationKzt).toBe(1500.00);
+    expect(nm.coordinationBaseAmountKzt).toBe(16485.01); // W = total WPO coordination
+
+    // Component subtotal / gross-up / rounding.
+    expect(nm.componentSubtotalKzt).toBeCloseTo(85013.93, 2);
+    expect(nm.retailBeforeRoundingKzt).toBeCloseTo(155988.86, 1);
+    expect(nm.standardRetailKzt).toBe(156000);
+    expect(nm.retailKzt).toBe(156000); // direct, no urgency -> same as standard retail
+    expect(nm.actualPaymentKzt).toBe(156000); // direct, no discount
+
+    // Protected/unchanged values.
+    expect(nm.translatorPayoutKzt).toBe(18071.00); // T * 30%, unaffected by tiering
+    expect(nm.notaryPayoutKzt).toBe(2292.25); // = N exactly, never touched by coordination
+    expect(nm.courierPayoutKzt).toBe(5000.00); // = C exactly, never touched by coordination
+    expect(nm.channelBudgetKzt).toBe(31200); // 20% of retail
+    expect(nm.reconciliationDifferenceKzt).toBe(0);
+  });
+
+  it('WO-98 referral: real actualPayment-based commission (not retail-based) — channel reserve covers both with no negative remainder', () => {
+    const result = calculatePrice(wo98Input({ salesChannel: 'referral', partnerCommissionRateOverride: 0.10 }), wo98Version());
+    const nm = result.newModel!;
+    expect(nm.standardRetailKzt).toBe(156000);
+    expect(nm.retailKzt).toBe(156000);
+    expect(nm.clientDiscountKzt).toBe(15600); // 156000 * 10%
+    expect(nm.actualPaymentKzt).toBe(140400); // 156000 - 15600
+    // Per the existing, unchanged formula (step 16: "Computed against actualPayment, not
+    // retail" — see Fixture 4 above), partner commission is 140400 * 10% = 14040, NOT
+    // 15600. This is the real, correct figure under the protected existing formula.
+    expect(nm.partnerCommissionKzt).toBe(14040);
+    expect(nm.channelBudgetKzt).toBe(31200);
+    expect(nm.unusedChannelReserveKzt).toBe(1560); // 31200 - 15600 - 14040, still positive
+    expect(nm.unusedChannelReserveKzt).toBeGreaterThanOrEqual(0);
+  });
+
+  it('at or below 5 billable pages, price is IDENTICAL to the flat-rate (no-tiers) formula, including rounding', () => {
+    const flatVersion = mockNewModelVersion(); // no coordinationVolumeTiers at all
+    const tieredVersion = wo98Version();
+    const input = baseOfficialInput({ sourceCharacterCountWithSpaces: 1000 }); // 1 page, well under 5
+
+    const flatResult = calculatePrice(input, flatVersion);
+    const tieredResult = calculatePrice(input, tieredVersion);
+
+    expect(tieredResult.amountKzt).toBe(flatResult.amountKzt);
+    expect(tieredResult.newModel!.coordinationBaseAmountKzt).toBe(flatResult.newModel!.coordinationBaseAmountKzt);
+    expect(tieredResult.newModel!.retailKzt).toBe(flatResult.newModel!.retailKzt);
+  });
+
+  it('Fixture 1 (Official, 1 page) reproduced byte-for-byte with tiers configured — 1-page presets unaffected', () => {
+    const result = calculatePrice(baseOfficialInput(), wo98Version());
+    const nm = result.newModel!;
+    expect(nm.translationAmountKzt).toBe(3000);
+    expect(nm.componentSubtotalKzt).toBe(4000);
+    expect(nm.standardRetailKzt).toBe(7400);
+    expect(result.amountKzt).toBe(7400);
+    expect(nm.translationTiers).toEqual([
+      expect.objectContaining({ fromPage: 0, upToPage: 5, pages: 1, rate: 0.30 }),
+    ]);
+  });
+
+  it('Fixture 2 (Notary standard, 1 page) reproduced byte-for-byte with tiers configured', () => {
+    const result = calculatePrice(baseNotaryInput(), wo98Version());
+    const nm = result.newModel!;
+    expect(nm.notaryAmountKzt).toBe(2292.25);
+    expect(nm.standardRetailKzt).toBe(13000);
+    expect(result.amountKzt).toBe(13000);
+  });
+
+  it('a pricing version with no coordinationVolumeTiers configured falls back to the exact flat formula (old versions unaffected)', () => {
+    const result = calculatePrice(wo98Input(), mockNewModelVersion()); // no tiers
+    const nm = result.newModel!;
+    // Flat formula: W = (T+N+C) * 30%, no per-tier breakdown.
+    expect(nm.translationTiers).toEqual([]);
+    const expectedW = (60236.67 + 2292.25 + 5000) * 0.30;
+    expect(nm.coordinationBaseAmountKzt).toBeCloseTo(expectedW, 2);
+  });
+
+  it('a pricing version with an empty coordinationVolumeTiers array also falls back to the flat formula, never throws', () => {
+    // Malformed-metadata rejection (non-contiguous, doesn't start at 0, last tier not
+    // open-ended, etc.) is validated once at the DB-row boundary — see
+    // parseCoordinationConfig()'s own tests in coordination-tiers.test.ts, which cover
+    // every malformed shape exhaustively. By the time a PricingVersion reaches the
+    // calculator, coordinationVolumeTiers is already either null or a validated array —
+    // this only checks the calculator's own empty-array edge case.
+    const badVersion = mockNewModelVersion({ coordinationVolumeTiers: [] });
+    expect(() => calculatePrice(wo98Input(), badVersion)).not.toThrow();
+    const result = calculatePrice(wo98Input(), badVersion);
+    expect(result.newModel!.translationTiers).toEqual([]);
+    expect(result.newModel!.coordinationBaseAmountKzt).toBeCloseTo((60236.67 + 2292.25 + 5000) * 0.30, 2);
+  });
+
+  it('Electronic is completely unaffected by coordinationVolumeTiers being present on the version', () => {
+    const version = wo98Version();
+    const input: PricingInput = { sourceLanguage: 'ru', targetLanguage: 'en', serviceLevel: 'electronic', sourceWordCount: 500, physicalPageCount: 1 };
+    const result = calculatePrice(input, version);
+    expect(result.newModel).toBeUndefined();
+  });
+
+  it('boundary/monotonicity spot check through the full calculator: 1, 4.99, 5, 5.01, 9.99, 10, 10.01, 20.0788888889 pages never produce a lower price than a smaller page count', () => {
+    const pageCounts = [1, 4.99, 5, 5.01, 9.99, 10, 10.01, 20.0788888889];
+    let prevAmount = 0;
+    for (const pages of pageCounts) {
+      const chars = Math.round(pages * 1800);
+      const result = calculatePrice(wo98Input({ sourceCharacterCountWithSpaces: chars, physicalPageCount: 1 }), wo98Version());
+      expect(result.amountKzt).toBeGreaterThanOrEqual(prevAmount);
+      prevAmount = result.amountKzt;
+    }
+  });
+});
+
 // ─── Corrected values (regressions against earlier draft mistakes) ────────────────
 
 describe('calculatePrice — corrected values', () => {
