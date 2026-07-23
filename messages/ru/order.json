@@ -48,6 +48,7 @@
       "completed": "Завершено",
       "failed": "Ошибка",
       "awaitingTranslatorReview": "Передано переводчику — ожидает проверки",
+      "translatorReviewInProgress": "Перевод проверяется переводчиком",
       "awaitingSignatureStamp": "Ожидает подписи и печати переводчика",
       "awaitingNotaryReview": "Передано нотариусу — ожидает нотариального заверения",
       "awaitingFinalQa": "Ожидает финальной проверки качества",

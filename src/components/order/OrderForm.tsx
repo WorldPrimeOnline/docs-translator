@@ -24,6 +24,7 @@ import { NOTARY_CITIES } from '@/lib/notary/cities';
 import { isNotaryDeliveryValid, isDeliverySelected } from '@/lib/translation-workflow/notary-delivery-validation';
 import { loadReferralParams } from '@/lib/referral/capture';
 import { MAX_UPLOAD_FILE_COUNT } from '@/lib/order-drafts/upload-constants';
+import { mergeFileSelection, removeFileAt } from '@/lib/order-drafts/file-selection';
 import type { ServiceLevel } from '@/lib/translation-prompts/types';
 
 interface PromoDiscountInfo {
@@ -237,12 +238,9 @@ export function OrderForm({ mode, onSubmitSuccess, draftId, onDraftIdChange, onD
     const rejected = incoming.filter((f) => !isAccepted(f));
     if (rejected.length > 0) toast.error(t('errors.unsupportedFileType', { files: rejected.map((f) => f.name).join(', ') }));
     if (accepted.length === 0) return;
-    if (uploadedBatchRef.current) {
-      setFiles(accepted);
-      uploadedBatchRef.current = false;
-    } else {
-      setFiles((prev) => [...prev, ...accepted]);
-    }
+    const wasUploadedBatch = uploadedBatchRef.current;
+    if (wasUploadedBatch) uploadedBatchRef.current = false;
+    setFiles((prev) => mergeFileSelection(prev, accepted, wasUploadedBatch));
   }
 
   function formatBytes(bytes: number): string {
@@ -602,7 +600,7 @@ export function OrderForm({ mode, onSubmitSuccess, draftId, onDraftIdChange, onD
                 {fileIcon(f)}
                 <span className="flex-1 truncate text-xs text-foreground">{f.name}</span>
                 <span className="shrink-0 text-xs text-muted-foreground">{formatBytes(f.size)}</span>
-                <button type="button" onClick={(e) => { e.stopPropagation(); uploadedBatchRef.current = false; setFiles((p) => p.filter((_, j) => j !== i)); }}
+                <button type="button" onClick={(e) => { e.stopPropagation(); uploadedBatchRef.current = false; setFiles((p) => removeFileAt(p, i)); }}
                   className="shrink-0 rounded p-0.5 text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors">
                   <X className="h-3.5 w-3.5" />
                 </button>

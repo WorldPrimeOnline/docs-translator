@@ -99,6 +99,7 @@ function StatusBadge({ customerStatus }: { customerStatus: string | null }) {
   // Human review / physical delivery stages
   if (
     status === 'awaiting_translator_review' ||
+    status === 'translator_review_in_progress' ||
     status === 'awaiting_signature_stamp' ||
     status === 'awaiting_notary_review' ||
     status === 'awaiting_final_qa' ||
@@ -201,6 +202,7 @@ function useStatusLabel() {
       case 'translation_in_progress': return t('status.translating', { pct });
       case 'pdf_rendering':        return t('status.rendering', { pct });
       case 'awaiting_translator_review': return t('status.awaitingTranslatorReview');
+      case 'translator_review_in_progress': return t('status.translatorReviewInProgress');
       case 'awaiting_signature_stamp':   return t('status.awaitingSignatureStamp');
       case 'awaiting_notary_review':     return t('status.awaitingNotaryReview');
       case 'awaiting_final_qa':          return t('status.awaitingFinalQa');

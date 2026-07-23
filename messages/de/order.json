@@ -48,6 +48,7 @@
       "completed": "Abgeschlossen",
       "failed": "Fehler",
       "awaitingTranslatorReview": "An Übersetzer weitergeleitet — wartet auf Prüfung",
+      "translatorReviewInProgress": "Der Übersetzer prüft die Übersetzung",
       "awaitingSignatureStamp": "Wartet auf Übersetzerunterschrift und Stempel",
       "awaitingNotaryReview": "An Notar weitergeleitet — wartet auf Beglaubigung",
       "awaitingFinalQa": "Wartet auf abschließende Qualitätsprüfung",

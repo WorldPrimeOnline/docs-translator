@@ -46,6 +46,7 @@
       "completed": "완료됨",
       "failed": "실패",
       "awaitingTranslatorReview": "번역가에게 전송됨 — 검토 대기 중",
+      "translatorReviewInProgress": "번역가가 번역을 검토 중입니다",
       "awaitingSignatureStamp": "번역가 서명 및 도장 대기 중",
       "awaitingNotaryReview": "공증인에게 전송됨 — 공증 대기 중",
       "awaitingFinalQa": "최종 품질 검사 대기 중",

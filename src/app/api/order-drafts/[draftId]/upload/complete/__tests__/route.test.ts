@@ -560,6 +560,73 @@ describe('content-hash dedup before mergePdfs (2026-07-29 incident regression)',
   });
 });
 
+describe('sequence assignment is by request order, never by completion timing (WO-98 multi-file order-preservation audit, 2026-08-04)', () => {
+  it('10 files whose downloads/conversions resolve in an artificially REVERSED order still persist as sequence 1..10, in original request order', async () => {
+    const N = 10;
+    const rawKeys = Array.from({ length: N }, (_, i) => `draft-upload-raw/draft-1/${String(i).padStart(8, '0')}-0000-0000-0000-000000000000`);
+    const uploads = rawKeys.map((key, i) => ({ key, originalName: `${i + 1}.jpg`, mimeType: 'image/jpeg', sizeBytes: 3 }));
+
+    mockHeadFile.mockImplementation(() => Promise.resolve({ contentLength: 3, contentType: 'image/jpeg' }));
+
+    // downloadFile: the LAST key requested resolves FIRST in wall-clock time —
+    // real setTimeout-based races, not just mock queue order.
+    mockDownloadFile.mockImplementation((key: string) => {
+      const idx = rawKeys.indexOf(key);
+      const delayMs = (N - idx) * 3;
+      return new Promise((resolve) => setTimeout(() => resolve(Buffer.from(`FILE-${idx}`)), delayMs));
+    });
+    // convertToPdf: reversed again, independently, relative to the download stagger.
+    mockConvertToPdf.mockImplementation((buf: Buffer) => {
+      const idx = Number(buf.toString().split('-')[1]);
+      const delayMs = idx * 3;
+      return new Promise((resolve) => setTimeout(() => resolve(Buffer.from(buf.toString())), delayMs));
+    });
+    mockGetPhysicalPageCount.mockImplementation(() => Promise.resolve(1));
+
+    const { request, params } = makeRequest('draft-1', { uploads });
+    const res = await POST(request, { params });
+
+    expect(res.status).toBe(200);
+    const sourcesArg = (mockSetDraftFile.mock.calls[0]![1] as { sources: Array<{ sequence: number; originalName: string }> }).sources;
+    expect(sourcesArg.map((s) => s.sequence)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    expect(sourcesArg.map((s) => s.originalName)).toEqual(uploads.map((u) => u.originalName));
+
+    const mergedArg = mockMergePdfs.mock.calls[0]![0] as Buffer[];
+    expect(mergedArg.map((b) => b.toString())).toEqual(Array.from({ length: N }, (_, i) => `FILE-${i}`));
+  });
+
+  it('identical filenames with DIFFERENT content hash are never deduped — both survive, in sequence order', async () => {
+    mockHeadFile
+      .mockResolvedValueOnce({ contentLength: 3, contentType: 'application/pdf' })
+      .mockResolvedValueOnce({ contentLength: 3, contentType: 'application/pdf' });
+    // Same claimed originalName, genuinely different bytes (e.g. two different pages
+    // the customer happened to name identically on their own device).
+    mockDownloadFile.mockResolvedValueOnce(Buffer.from('PAGE-A')).mockResolvedValueOnce(Buffer.from('PAGE-B'));
+    mockGetPhysicalPageCount.mockResolvedValueOnce(1).mockResolvedValueOnce(1);
+
+    const uploads = [
+      { key: RAW_KEY_1, originalName: 'scan.jpg', mimeType: 'application/pdf', sizeBytes: 3 },
+      { key: RAW_KEY_2, originalName: 'scan.jpg', mimeType: 'application/pdf', sizeBytes: 3 },
+    ];
+    const { request, params } = makeRequest('draft-1', { uploads });
+    const res = await POST(request, { params });
+
+    expect(res.status).toBe(200);
+    const mergedArg = mockMergePdfs.mock.calls[0]![0] as Buffer[];
+    expect(mergedArg).toHaveLength(2);
+    expect(mockSetDraftFile).toHaveBeenCalledWith(
+      'draft-1',
+      expect.objectContaining({
+        sources: [
+          expect.objectContaining({ sequence: 1, originalName: 'scan.jpg' }),
+          expect.objectContaining({ sequence: 2, originalName: 'scan.jpg' }),
+        ],
+      }),
+      expect.anything(),
+    );
+  });
+});
+
 function uploads0(key: string) {
   return { key, originalName: 'passport.pdf', mimeType: 'application/pdf', sizeBytes: 3 };
 }

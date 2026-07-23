@@ -148,6 +148,7 @@
       "completed": "Completed",
       "failed": "Failed",
       "awaitingTranslatorReview": "Sent to translator — awaiting review",
+      "translatorReviewInProgress": "Translator is reviewing the translation",
       "awaitingSignatureStamp": "Awaiting translator signature and stamp",
       "awaitingNotaryReview": "Sent to notary — awaiting certification",
       "awaitingFinalQa": "Awaiting final quality check",

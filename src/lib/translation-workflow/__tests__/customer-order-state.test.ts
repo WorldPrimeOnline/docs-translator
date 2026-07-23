@@ -50,6 +50,25 @@ describe('getCustomerOrderState — certified', () => {
     expect(s.progressPercent).toBeLessThan(100);
   });
 
+  // 2026-08-04: Jira status "В работе у переводчика" → workflow_status =
+  // translator_review_in_progress. Order stays active, not downloadable, same
+  // "translator_review" stage bucket as awaiting_translator_review.
+  it('translator_review_in_progress (Official) → NOT downloadable, NOT terminal, active', () => {
+    const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'translator_review_in_progress', serviceLevel: SL });
+    expect(s.customerStatus).toBe('translator_review_in_progress');
+    expect(s.canDownload).toBe(false);
+    expect(s.isTerminal).toBe(false);
+    expect(s.isActive).toBe(true);
+  });
+
+  it('translator_review_in_progress (Official) maps to the same current stage as awaiting_translator_review', () => {
+    const a = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'awaiting_translator_review', serviceLevel: SL });
+    const b = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'translator_review_in_progress', serviceLevel: SL });
+    const stageA = a.stages.findIndex((x) => x.current);
+    const stageB = b.stages.findIndex((x) => x.current);
+    expect(stageB).toBe(stageA);
+  });
+
   it('translator_approved → NOT downloadable', () => {
     const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'translator_approved', serviceLevel: SL });
     expect(s.customerStatus).toBe('translator_approved');
@@ -123,6 +142,14 @@ describe('getCustomerOrderState — notarized delivery', () => {
     expect(s.customerStatus).toBe('assigned_to_notary');
     expect(s.canDownload).toBe(false);
     expect(s.isTerminal).toBe(false);
+  });
+
+  it('translator_review_in_progress (Notary) → NOT downloadable, NOT terminal, active, unaffected by hasReadyResultFiles', () => {
+    const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'translator_review_in_progress', serviceLevel: SL, hasReadyResultFiles: false });
+    expect(s.customerStatus).toBe('translator_review_in_progress');
+    expect(s.canDownload).toBe(false);
+    expect(s.isTerminal).toBe(false);
+    expect(s.isActive).toBe(true);
   });
 
   it('notarization_in_progress → NOT downloadable', () => {

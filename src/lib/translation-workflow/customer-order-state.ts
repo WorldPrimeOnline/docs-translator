@@ -35,6 +35,7 @@ export type CustomerStatus =
   | 'translation_in_progress'
   | 'pdf_rendering'
   | 'awaiting_translator_review'
+  | 'translator_review_in_progress'
   | 'translator_approved'
   | 'awaiting_signature_stamp'
   | 'assigned_to_notary'
@@ -139,7 +140,7 @@ function certifiedCurrentStage(jobStatus: string, workflowStatus: string | null)
     jobStatus === 'ocr_in_progress' || jobStatus === 'ocr_completed' ||
     jobStatus === 'translation_in_progress' || jobStatus === 'pdf_rendering'
   ) return 1;
-  if (!workflowStatus || workflowStatus === 'awaiting_translator_review') return 2;
+  if (!workflowStatus || workflowStatus === 'awaiting_translator_review' || workflowStatus === 'translator_review_in_progress') return 2;
   if (workflowStatus === 'translator_approved') return 3;
   if (workflowStatus === 'awaiting_signature_stamp') return 4;
   if (workflowStatus === 'ready_for_delivery') return 5;
@@ -154,7 +155,7 @@ function notarizedCurrentStage(jobStatus: string, workflowStatus: string | null)
     jobStatus === 'ocr_in_progress' || jobStatus === 'ocr_completed' ||
     jobStatus === 'translation_in_progress' || jobStatus === 'pdf_rendering'
   ) return 1;
-  if (!workflowStatus || workflowStatus === 'awaiting_translator_review') return 2;
+  if (!workflowStatus || workflowStatus === 'awaiting_translator_review' || workflowStatus === 'translator_review_in_progress') return 2;
   // translator_approved and assigned_to_notary both map to stage 4 (index 3)
   if (workflowStatus === 'translator_approved' || workflowStatus === 'assigned_to_notary') return 3;
   if (workflowStatus === 'notarization_in_progress') return 4;
@@ -212,6 +213,11 @@ function deriveCustomerStatus(
   if (jobStatus === 'completed') {
     if (!workflowStatus || serviceLevel === 'electronic') return 'completed';
     if (workflowStatus === 'awaiting_translator_review') return 'awaiting_translator_review';
+    // 2026-08-04: Jira status "В работе у переводчика" — translator has started actively
+    // reviewing (distinct from merely being assigned/awaiting review). Same gating as
+    // awaiting_translator_review — order stays active, not downloadable, Drive read-back
+    // does not run, 03_TRANSLATOR_RESULT is not published yet.
+    if (workflowStatus === 'translator_review_in_progress') return 'translator_review_in_progress';
     // Legacy: pre-workflow-update jobs had workflow_status='completed' set by the worker
     // instead of 'awaiting_translator_review'. Treat as awaiting review for certified/notarized.
     if (workflowStatus === 'completed') return 'awaiting_translator_review';

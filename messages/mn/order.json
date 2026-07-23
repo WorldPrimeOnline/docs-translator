@@ -46,6 +46,7 @@
       "completed": "Дууссан",
       "failed": "Амжилтгүй",
       "awaitingTranslatorReview": "Орчуулагчид илгээгдсэн — хянуулж байна",
+      "translatorReviewInProgress": "Орчуулагч орчуулгыг шалгаж байна",
       "awaitingSignatureStamp": "Орчуулагчийн гарын үсэг, тамгыг хүлээж байна",
       "awaitingNotaryReview": "Нотариуст илгээгдсэн — баталгаажуулалтыг хүлээж байна",
       "awaitingFinalQa": "Эцсийн чанарын шалгалтыг хүлээж байна",

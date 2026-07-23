@@ -46,6 +46,7 @@
       "completed": "Tamamlandy",
       "failed": "Şowsuz",
       "awaitingTranslatorReview": "Terjimeçä iberildi — seredilmegine garaşylýar",
+      "translatorReviewInProgress": "Terjimeçi terjimäni barlaýar",
       "awaitingSignatureStamp": "Terjimeçiniň goly we möhürine garaşylýar",
       "awaitingNotaryReview": "Notariusa iberildi — tassyklanmagyna garaşylýar",
       "awaitingFinalQa": "Jemleýji hil barlagyna garaşylýar",

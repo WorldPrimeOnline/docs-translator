@@ -48,6 +48,7 @@
       "completed": "เสร็จสมบูรณ์",
       "failed": "เกิดข้อผิดพลาด",
       "awaitingTranslatorReview": "ส่งให้นักแปลแล้ว — รอการตรวจสอบ",
+      "translatorReviewInProgress": "นักแปลกำลังตรวจสอบการแปล",
       "awaitingSignatureStamp": "รอลายเซ็นและตราของนักแปล",
       "awaitingNotaryReview": "ส่งให้โนตารีแล้ว — รอการรับรองเอกสาร",
       "awaitingFinalQa": "รอการตรวจสอบคุณภาพขั้นสุดท้าย",

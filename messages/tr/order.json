@@ -48,6 +48,7 @@
       "completed": "Tamamlandı",
       "failed": "Hata",
       "awaitingTranslatorReview": "Çevirmene iletildi — inceleme bekleniyor",
+      "translatorReviewInProgress": "Çevirmen çeviriyi inceliyor",
       "awaitingSignatureStamp": "Çevirmen imzası ve kaşesi bekleniyor",
       "awaitingNotaryReview": "Notere iletildi — onay bekleniyor",
       "awaitingFinalQa": "Son kalite kontrolü bekleniyor",

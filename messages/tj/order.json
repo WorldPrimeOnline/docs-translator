@@ -46,6 +46,7 @@
       "completed": "Анҷом ёфт",
       "failed": "Хато",
       "awaitingTranslatorReview": "Ба тарҷумон фиристода шуд — интизори баррасӣ",
+      "translatorReviewInProgress": "Тарҷумон тарҷумаро баррасӣ карда истодааст",
       "awaitingSignatureStamp": "Интизори имзо ва мӯҳри тарҷумон",
       "awaitingNotaryReview": "Ба нотариус фиристода шуд — интизори тасдиқ",
       "awaitingFinalQa": "Интизори санҷиши ниҳоии сифат",

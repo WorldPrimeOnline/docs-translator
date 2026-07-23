@@ -655,6 +655,47 @@ export async function syncInformational(params: {
   }
 }
 
+/**
+ * Jira status "В работе у переводчика" (2026-08-04) — the translator has started
+ * actively reviewing the AI draft, distinct from merely being assigned. Same shape as
+ * syncNotaryInProgress: forward-only via safeUpdateWorkflowStatus (rank 2, between
+ * awaiting_translator_review=1 and translator_approved=3 — see WORKFLOW_RANK above),
+ * idempotent (the webhook route's eventId guard handles exact-duplicate retries;
+ * safeUpdateWorkflowStatus's rank check makes a same-status repeat a harmless no-op
+ * re-write). Never publishes 03_TRANSLATOR_RESULT and never triggers Drive read-back —
+ * those remain gated on TRANSLATOR_COMPLETED only.
+ */
+export async function syncTranslatorInProgress(params: {
+  jobId: string;
+  jiraIssueKey: string;
+}): Promise<{ applied: boolean }> {
+  const tag = `[integration:${params.jobId.slice(0, 8)}]`;
+  try {
+    const { applied } = await safeUpdateWorkflowStatus({
+      jobId: params.jobId,
+      newStatus: 'translator_review_in_progress',
+      fields: { jira_sync_status: 'translator_review_in_progress', workflow_status: 'translator_review_in_progress' },
+      jiraIssueKey: params.jiraIssueKey,
+      eventType: 'TRANSLATOR_IN_PROGRESS',
+    });
+    if (!applied) return { applied: false };
+    await audit({
+      jobId: params.jobId,
+      actor: 'translator',
+      source: 'jira_webhook',
+      action: 'translator_review_in_progress',
+      newStatus: 'translator_review_in_progress',
+      jiraIssueKey: params.jiraIssueKey,
+    });
+    console.log(`${tag} ✓ translator review in progress: Supabase synced`);
+    return { applied: true };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`${tag} syncTranslatorInProgress failed: ${msg}`);
+    return { applied: false };
+  }
+}
+
 export async function syncNotaryInProgress(params: {
   jobId: string;
   jiraIssueKey: string;

@@ -377,6 +377,56 @@ describe('createCardOrder invocation and R2 error handling', () => {
   });
 });
 
+describe('sequence assignment is by request order, never by completion timing (WO-98 multi-file order-preservation audit, 2026-08-04)', () => {
+  it('10 files whose downloads/conversions resolve in an artificially REVERSED order still persist as sequence 1..10, in original request order', async () => {
+    const N = 10;
+    const rawKeys = Array.from({ length: N }, (_, i) => `card-upload-raw/user-1/${UPLOAD_ATTEMPT_ID}/${String(i).padStart(8, '0')}-0000-0000-0000-000000000000`);
+    const uploads = rawKeys.map((key, i) => ({ key, originalName: `${i + 1}.jpg`, mimeType: 'image/jpeg', sizeBytes: 3 }));
+
+    mockHeadFile.mockImplementation(() => Promise.resolve({ contentLength: 3, contentType: 'image/jpeg' }));
+    mockDownloadFile.mockImplementation((key: string) => {
+      const idx = rawKeys.indexOf(key);
+      const delayMs = (N - idx) * 3; // last key requested resolves FIRST
+      return new Promise((resolve) => setTimeout(() => resolve(Buffer.from(`FILE-${idx}`)), delayMs));
+    });
+    mockConvertToPdf.mockImplementation((buf: Buffer) => {
+      const idx = Number(buf.toString().split('-')[1]);
+      const delayMs = idx * 3; // reversed again, independently
+      return new Promise((resolve) => setTimeout(() => resolve(Buffer.from(buf.toString())), delayMs));
+    });
+
+    const res = await POST(makeRequest({ ...VALID_BODY_BASE, uploads }));
+
+    expect(res.status).toBe(200);
+    const sourcesArg = (mockCreateCardOrder.mock.calls[0]![0] as { sources: Array<{ sequence: number; originalName: string }> }).sources;
+    expect(sourcesArg.map((s) => s.sequence)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    expect(sourcesArg.map((s) => s.originalName)).toEqual(uploads.map((u) => u.originalName));
+
+    const mergedArg = mockMergePdfs.mock.calls[0]![0] as Buffer[];
+    expect(mergedArg.map((b) => b.toString())).toEqual(Array.from({ length: N }, (_, i) => `FILE-${i}`));
+  });
+
+  it('identical filenames survive as two distinct sources, in sequence order (this flow never dedupes)', async () => {
+    mockHeadFile
+      .mockResolvedValueOnce({ contentLength: 3, contentType: 'application/pdf' })
+      .mockResolvedValueOnce({ contentLength: 3, contentType: 'application/pdf' });
+    mockDownloadFile.mockResolvedValueOnce(Buffer.from('PAGE-A')).mockResolvedValueOnce(Buffer.from('PAGE-B'));
+
+    const uploads = [
+      { key: RAW_KEY, originalName: 'scan.jpg', mimeType: 'application/pdf', sizeBytes: 3 },
+      { key: `card-upload-raw/user-1/${UPLOAD_ATTEMPT_ID}/44444444-4444-4444-4444-444444444444`, originalName: 'scan.jpg', mimeType: 'application/pdf', sizeBytes: 3 },
+    ];
+    const res = await POST(makeRequest({ ...VALID_BODY_BASE, uploads }));
+
+    expect(res.status).toBe(200);
+    const sourcesArg = (mockCreateCardOrder.mock.calls[0]![0] as { sources: Array<{ sequence: number; originalName: string }> }).sources;
+    expect(sourcesArg).toEqual([
+      expect.objectContaining({ sequence: 1, originalName: 'scan.jpg' }),
+      expect.objectContaining({ sequence: 2, originalName: 'scan.jpg' }),
+    ]);
+  });
+});
+
 describe('idempotent replay — document/job not created twice', () => {
   it('returns success without touching R2 or createCardOrder when an order already exists for this uploadAttemptId', async () => {
     mockFindExisting.mockResolvedValueOnce({

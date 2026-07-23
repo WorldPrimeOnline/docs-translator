@@ -46,6 +46,7 @@
       "completed": "已完成",
       "failed": "失败",
       "awaitingTranslatorReview": "已发送给译者——等待审核",
+      "translatorReviewInProgress": "译者正在审核翻译",
       "awaitingSignatureStamp": "等待译者签名和盖章",
       "awaitingNotaryReview": "已发送给公证人——等待公证",
       "awaitingFinalQa": "等待最终质量检查",

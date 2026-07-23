@@ -46,6 +46,7 @@
       "completed": "Аяқталды",
       "failed": "Қате",
       "awaitingTranslatorReview": "Аудармашыға жіберілді — тексеруді күтуде",
+      "translatorReviewInProgress": "Аудармашы аударманы тексеріп жатыр",
       "awaitingSignatureStamp": "Аудармашының қолы мен мөрін күтуде",
       "awaitingNotaryReview": "Нотариусқа жіберілді — куәландыруды күтуде",
       "awaitingFinalQa": "Түпкілікті сапа тексеруін күтуде",

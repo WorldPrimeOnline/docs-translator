@@ -46,6 +46,7 @@
       "completed": "Аяктаган",
       "failed": "Ишке ашкан жок",
       "awaitingTranslatorReview": "Котормочуга жиберилди — каралышын күтүүдө",
+      "translatorReviewInProgress": "Котормочу котормону текшерип жатат",
       "awaitingSignatureStamp": "Котормочунун колу жана мөөрүн күтүүдө",
       "awaitingNotaryReview": "Нотариуска жиберилди — күбөлөндүрүүнү күтүүдө",
       "awaitingFinalQa": "Акыркы сапат текшерүүсүн күтүүдө",

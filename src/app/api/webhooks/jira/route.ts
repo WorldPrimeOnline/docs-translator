@@ -19,6 +19,7 @@ import { supabaseServer } from '@/lib/supabase/server';
 import {
   syncTranslatorDoneCertified,
   syncTranslatorDoneNotarized,
+  syncTranslatorInProgress,
   syncNotaryInProgress,
   syncNotaryDone,
   syncTranslatorDeclined,
@@ -43,7 +44,7 @@ const JiraWebhookSchema = z.object({
     'ASSIGNEE_CHANGED',
     // Translator lifecycle
     'TRANSLATOR_ACCEPTED',    // informational
-    'TRANSLATOR_IN_PROGRESS', // informational
+    'TRANSLATOR_IN_PROGRESS', // sets workflow_status = translator_review_in_progress (2026-08-04)
     'TRANSLATOR_COMPLETED',   // sets workflow_status
     'TRANSLATOR_DECLINED',
     // Notary lifecycle
@@ -223,9 +224,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
       // Informational only — write audit, no workflow_status change
       case 'TRANSLATOR_ACCEPTED':
-      case 'TRANSLATOR_IN_PROGRESS':
       case 'NOTARY_ACCEPTED':
         await syncInformational({ jobId, jiraIssueKey: issueKey, event: eventType });
+        break;
+
+      case 'TRANSLATOR_IN_PROGRESS':
+        result = await syncTranslatorInProgress({ jobId, jiraIssueKey: issueKey });
         break;
 
       case 'TRANSLATOR_COMPLETED': {

@@ -46,6 +46,7 @@
       "completed": "Bajarildi",
       "failed": "Xato",
       "awaitingTranslatorReview": "Tarjimonga yuborildi — ko'rib chiqish kutilmoqda",
+      "translatorReviewInProgress": "Tarjimon tarjimani ko'rib chiqmoqda",
       "awaitingSignatureStamp": "Tarjimon imzosi va muhrini kutmoqda",
       "awaitingNotaryReview": "Notariusga yuborildi — tasdiqlash kutilmoqda",
       "awaitingFinalQa": "Yakuniy sifat tekshiruvi kutilmoqda",
