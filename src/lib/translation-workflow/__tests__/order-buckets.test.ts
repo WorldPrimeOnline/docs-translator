@@ -12,22 +12,31 @@
  */
 import { getCustomerOrderState } from '../customer-order-state';
 import { bucketOrders, visibleOrders, type Bucketable } from '../order-buckets';
+import type { SortableOrder } from '../order-sort';
 
-interface FakeOrder extends Bucketable {
-  documentId: string;
+// Default createdAt for fixtures that don't care about ordering — a fixed value
+// so equal-timestamp tie-breaking (by documentId) never affects unrelated tests.
+const DEFAULT_CREATED_AT = '2026-01-01T00:00:00.000Z';
+
+interface FakeOrder extends Bucketable, SortableOrder {
   outputFormat?: 'docx' | 'html' | 'pdf';
 }
 
-function orderFromState(documentId: string, state: ReturnType<typeof getCustomerOrderState>, outputFormat?: FakeOrder['outputFormat']): FakeOrder {
-  return { documentId, isActive: state.isActive, isTerminal: state.isTerminal, outputFormat };
+function orderFromState(
+  documentId: string,
+  state: ReturnType<typeof getCustomerOrderState>,
+  outputFormat?: FakeOrder['outputFormat'],
+  sortCreatedAt: string = DEFAULT_CREATED_AT,
+): FakeOrder {
+  return { documentId, isActive: state.isActive, isTerminal: state.isTerminal, outputFormat, sortCreatedAt };
 }
 
 describe('bucketOrders — every order lands in exactly one bucket (no silent drops)', () => {
   it('an order never appears in zero or multiple buckets', () => {
     const orders: FakeOrder[] = [
-      { documentId: 'a', isActive: true, isTerminal: false },
-      { documentId: 'b', isActive: true, isTerminal: true },
-      { documentId: 'c', isActive: false, isTerminal: true },
+      { documentId: 'a', isActive: true, isTerminal: false, sortCreatedAt: DEFAULT_CREATED_AT },
+      { documentId: 'b', isActive: true, isTerminal: true, sortCreatedAt: DEFAULT_CREATED_AT },
+      { documentId: 'c', isActive: false, isTerminal: true, sortCreatedAt: DEFAULT_CREATED_AT },
     ];
     const { activeOrders, readyOrders, historyOrders } = bucketOrders(orders);
     const totalBucketed = activeOrders.length + readyOrders.length + historyOrders.length;
@@ -135,5 +144,70 @@ describe('5. completed electronic order does not disappear after worker completi
     );
     const visible = visibleOrders([completed, stillProcessing]);
     expect(visible.map((o) => o.documentId).sort()).toEqual(['a903c6fc-5006-4672-b81b-17a161645fe5', 'other-doc'].sort());
+  });
+});
+
+describe('6. visibleOrders — created_at DESC ordering (2026-08-03 dashboard-ordering incident)', () => {
+  it('an old payment_pending order never outranks a newer completed order', () => {
+    const oldPending = orderFromState(
+      'doc-old-pending',
+      getCustomerOrderState({ jobStatus: 'queued', progressPercent: 0, workflowStatus: null, serviceLevel: 'electronic' }),
+      undefined,
+      '2026-07-01T00:00:00.000Z',
+    );
+    const newCompleted = orderFromState(
+      'doc-new-completed',
+      getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'completed', serviceLevel: 'electronic' }),
+      'docx',
+      '2026-08-03T00:00:00.000Z',
+    );
+
+    // Old pending listed FIRST in the input — bucket-concatenation would have put
+    // it first in the output too (activeOrders before readyOrders). Must not.
+    const visible = visibleOrders([oldPending, newCompleted]);
+    expect(visible.map((o) => o.documentId)).toEqual(['doc-new-completed', 'doc-old-pending']);
+  });
+
+  it('a new job appearing after a full reload lands first, regardless of its position in the input array', () => {
+    const old1 = orderFromState('old-1', getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'completed', serviceLevel: 'electronic' }), undefined, '2026-06-01T00:00:00.000Z');
+    const old2 = orderFromState('old-2', getCustomerOrderState({ jobStatus: 'payment_pending', progressPercent: 0, workflowStatus: null, serviceLevel: 'electronic' }), undefined, '2026-06-15T00:00:00.000Z');
+    const brandNew = orderFromState('brand-new', getCustomerOrderState({ jobStatus: 'queued', progressPercent: 0, workflowStatus: null, serviceLevel: 'electronic' }), undefined, '2026-08-03T00:00:00.000Z');
+
+    expect(visibleOrders([old1, old2, brandNew]).map((o) => o.documentId)[0]).toBe('brand-new');
+    // Order of the input array must not matter — even inserted first, it still sorts to position 0.
+    expect(visibleOrders([brandNew, old1, old2]).map((o) => o.documentId)[0]).toBe('brand-new');
+  });
+
+  it('processing -> completed keeps the same position (created_at is untouched by a status transition)', () => {
+    const documentId = 'doc-transition';
+    const createdAt = '2026-07-15T00:00:00.000Z';
+    const other = orderFromState('doc-other-newer', getCustomerOrderState({ jobStatus: 'queued', progressPercent: 0, workflowStatus: null, serviceLevel: 'electronic' }), undefined, '2026-08-01T00:00:00.000Z');
+
+    const processing = orderFromState(documentId, getCustomerOrderState({ jobStatus: 'translation_in_progress', progressPercent: 50, workflowStatus: null, serviceLevel: 'electronic' }), undefined, createdAt);
+    const beforeOrder = visibleOrders([other, processing]).map((o) => o.documentId);
+    expect(beforeOrder).toEqual(['doc-other-newer', documentId]);
+
+    // Same documentId/createdAt, now completed — position relative to `other` must be identical.
+    const completed = orderFromState(documentId, getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'completed', serviceLevel: 'electronic' }), undefined, createdAt);
+    const afterOrder = visibleOrders([other, completed]).map((o) => o.documentId);
+    expect(afterOrder).toEqual(['doc-other-newer', documentId]);
+  });
+
+  it('a scrambled/out-of-order input (as a poll response might arrive) is still rendered sorted by created_at DESC', () => {
+    const a = orderFromState('a', getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'completed', serviceLevel: 'electronic' }), undefined, '2026-08-01T00:00:00.000Z');
+    const b = orderFromState('b', getCustomerOrderState({ jobStatus: 'queued', progressPercent: 0, workflowStatus: null, serviceLevel: 'electronic' }), undefined, '2026-08-03T00:00:00.000Z');
+    const c = orderFromState('c', getCustomerOrderState({ jobStatus: 'payment_pending', progressPercent: 0, workflowStatus: null, serviceLevel: 'electronic' }), undefined, '2026-08-02T00:00:00.000Z');
+
+    expect(visibleOrders([a, b, c]).map((o) => o.documentId)).toEqual(['b', 'c', 'a']);
+    expect(visibleOrders([c, a, b]).map((o) => o.documentId)).toEqual(['b', 'c', 'a']);
+  });
+
+  it('a completed order never disappears and never moves below older orders', () => {
+    const older = orderFromState('older', getCustomerOrderState({ jobStatus: 'payment_pending', progressPercent: 0, workflowStatus: null, serviceLevel: 'electronic' }), undefined, '2026-01-01T00:00:00.000Z');
+    const completed = orderFromState('newer-completed', getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'completed', serviceLevel: 'electronic' }), 'docx', '2026-08-03T00:00:00.000Z');
+
+    const visible = visibleOrders([older, completed]);
+    expect(visible.map((o) => o.documentId)).toContain('newer-completed');
+    expect(visible.map((o) => o.documentId).indexOf('newer-completed')).toBeLessThan(visible.map((o) => o.documentId).indexOf('older'));
   });
 });

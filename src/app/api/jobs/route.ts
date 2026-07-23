@@ -132,7 +132,27 @@ export async function GET(): Promise<NextResponse> {
     }),
   );
 
-  const result = docs.map((doc) => {
+  // 2026-08-03 dashboard-ordering incident: this response must be strictly
+  // jobs.created_at DESC (falling back to documents.created_at only for a
+  // document with no job at all yet), with a stable id DESC tie-breaker — NEVER
+  // grouped by status. The old code mapped over `docs` (sorted by
+  // documents.created_at DESC) unchanged, which is not the same ordering
+  // guarantee once a document's job is created later than the document itself.
+  const sortedDocs = [...docs].sort((a, b) => {
+    const jobA = latestJobByDoc.get(a.id) ?? null;
+    const jobB = latestJobByDoc.get(b.id) ?? null;
+    const aCreatedAt = jobA?.created_at ?? a.created_at;
+    const bCreatedAt = jobB?.created_at ?? b.created_at;
+    const aTime = new Date(aCreatedAt).getTime();
+    const bTime = new Date(bCreatedAt).getTime();
+    if (aTime !== bTime) return bTime - aTime;
+    const aId = jobA?.id ?? a.id;
+    const bId = jobB?.id ?? b.id;
+    if (aId === bId) return 0;
+    return aId < bId ? 1 : -1;
+  });
+
+  const result = sortedDocs.map((doc) => {
     const job = latestJobByDoc.get(doc.id) ?? null;
     const quote = job ? (latestQuoteByJob.get(job.id) ?? null) : null;
     const fiscal = job ? (fiscalByJob.get(job.id) ?? null) : null;
@@ -165,6 +185,12 @@ export async function GET(): Promise<NextResponse> {
       errorMessage: job?.error_message ?? null,
       createdAt: doc.created_at,
       updatedAt: job?.created_at ?? doc.created_at,
+      // Dashboard sort key ONLY — jobs.created_at (documents.created_at fallback
+      // when a document has no job yet). Deliberately separate from `createdAt`
+      // above (documents.created_at, shown to the user as "Создан …") and from
+      // `updatedAt` (not actually a last-modified timestamp despite the name) —
+      // see src/lib/translation-workflow/order-sort.ts.
+      sortCreatedAt: job?.created_at ?? doc.created_at,
       customerStatus: state?.customerStatus ?? null,
       canDownload: state?.canDownload ?? false,
       isActive: state?.isActive ?? false,

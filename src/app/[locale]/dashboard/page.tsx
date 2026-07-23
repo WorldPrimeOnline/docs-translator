@@ -7,7 +7,8 @@ import { toast } from 'sonner';
 import { FileText, Download, AlertCircle, Loader2, Clock, RefreshCw, Receipt } from 'lucide-react';
 import { HalykPayButton } from '@/components/payment/HalykPayButton';
 import { createClient } from '@/lib/supabase/client';
-import { bucketOrders } from '@/lib/translation-workflow/order-buckets';
+import { bucketOrders, visibleOrders } from '@/lib/translation-workflow/order-buckets';
+import { sortByCreatedAtDesc } from '@/lib/translation-workflow/order-sort';
 import { applyPolledOrderUpdate, type PolledOrderData } from '@/lib/translation-workflow/dashboard-polling';
 import { OrderForm } from '@/components/order/OrderForm';
 
@@ -27,6 +28,8 @@ interface OrderEntry {
   errorMessage: string | null;
   createdAt: string;
   updatedAt: string;
+  /** Dashboard sort key ONLY (jobs.created_at) — see order-sort.ts. Never used for display. */
+  sortCreatedAt: string;
   customerStatus: string | null;
   canDownload: boolean;
   isActive: boolean;
@@ -495,7 +498,10 @@ export default function DashboardPage() {
   // ready_for_delivery is "active" but also showable in history — put it in active for now.
   // Bucketing itself lives in a shared, unit-tested pure function — see
   // src/lib/translation-workflow/order-buckets.ts and its __tests__.
-  const { activeOrders, readyOrders, historyOrders } = bucketOrders(orders);
+  // visibleOrders() (active+ready, sorted by created_at DESC — 2026-08-03 fix) is
+  // what's actually rendered; historyOrders keeps its own separate section/order.
+  const visible = visibleOrders(orders);
+  const { historyOrders } = bucketOrders(orders);
 
   // ─── Load all orders from API (source of truth) ──────────────────────────────
 
@@ -513,7 +519,10 @@ export default function DashboardPage() {
           break;
         }
         const data = (await res.json()) as { jobs: OrderEntry[] };
-        setOrders(data.jobs);
+        // Defensive re-sort — the API already returns created_at DESC, but the
+        // dashboard's own ordering guarantee must not depend on trusting that
+        // (2026-08-03 incident: never bucket/group by status either).
+        setOrders(sortByCreatedAtDesc(data.jobs));
         break;
       } catch (e) {
         console.error(`[dashboard] loadOrders failed (attempt ${attempt + 1}):`, e);
@@ -577,7 +586,11 @@ export default function DashboardPage() {
           // the list once completed, never disappear).
           next = applyPolledOrderUpdate(next, o.documentId, r.value);
         });
-        return next;
+        // Re-sort after every merge (2026-08-03 incident) — a no-op for position
+        // in practice, since applyPolledOrderUpdate() never touches
+        // sortCreatedAt, but guarantees the invariant holds even if a future
+        // poll response ever arrives in a different order.
+        return sortByCreatedAtDesc(next);
       });
     } catch (e) {
       console.error('[dashboard] poll error:', e);
@@ -668,11 +681,11 @@ export default function DashboardPage() {
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
             Loading…
           </div>
-        ) : activeOrders.length === 0 && readyOrders.length === 0 ? (
+        ) : visible.length === 0 ? (
           <p className="text-xs text-muted-foreground">{t('noActiveOrders')}</p>
         ) : (
           <>
-            {[...activeOrders, ...readyOrders].map((o) => (
+            {visible.map((o) => (
               <ActiveOrderCard key={o.documentId} entry={o} locale={locale} onRecalculate={handleRecalculate} />
             ))}
           </>
