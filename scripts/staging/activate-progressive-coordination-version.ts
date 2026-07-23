@@ -2,24 +2,34 @@
 /**
  * Activates '2026-Q3-KZ-NEWMODEL-COORD-TIERS' (WO-98 progressive WPO coordination,
  * 2026-08-04) on staging — the "one controlled step" the operator performs manually.
- * Never run against production (hard-refuses if APP_ENV=production).
  *
- * 2026-08-05 correction: the previous version of this script did two separate
- * .update() calls (archive old, then activate new) — NOT atomic. A crash/network
- * failure between them could leave ZERO active pricing versions, breaking every
- * quote ("no active pricing version"). Now calls the atomic
- * activate_pricing_version() Postgres function (migration 0065, prepared, not
- * applied) — one transaction: either both status flips happen, or neither does. The
- * function itself also verifies at most one active version exists BEFORE acting and
- * exactly one active version exists AFTER acting, raising (full rollback) otherwise.
+ * 2026-08-06 security/concurrency audit corrective fix:
+ *   - Default-deny environment check (was: refuse only if APP_ENV==='production';
+ *     now: refuse unless APP_ENV/NEXT_PUBLIC_APP_ENV is explicitly 'staging' — an
+ *     unset/misconfigured env var no longer silently proceeds).
+ *   - Requires BOTH --apply AND --confirm-staging together to make any change —
+ *     --apply alone is treated as a dry run, forcing the operator to affirmatively
+ *     type out that this targets staging in the command itself.
+ *   - Prints the exact before/after active version code explicitly, and re-reads the
+ *     DB after the RPC call (never trusts the RPC's own return value alone) to verify
+ *     exactly one active version exists, with its code.
+ *
+ * Calls the atomic activate_pricing_version() Postgres function (migration 0065,
+ * prepared, not applied) — one transaction, serialized via a session-wide advisory
+ * lock, service_role-only (REVOKEd from anon/authenticated/PUBLIC — never reachable
+ * via the client Supabase API). The function itself re-verifies every precondition
+ * (exactly one active version beforehand and it must be the expected old code; new
+ * version must be status='draft'; new version's active language-rate count must match
+ * the active version's) and the postcondition (exactly one active version afterward),
+ * raising — and rolling back the whole transaction — on any violation.
  *
  * PREPARED, NOT RUN by the assistant. Requires BOTH migration 0064 (creates the draft
- * row + its cloned pricing_language_rates) AND migration 0065 (the RPC functions) to
- * have been applied first — this script's own pre-checks refuse otherwise.
+ * row + its cloned pricing_language_rates) AND migration 0065 (the RPC functions,
+ * with their REVOKE/GRANT) to have been applied first.
  *
  * Usage:
- *   npx tsx scripts/staging/activate-progressive-coordination-version.ts --dry-run   # preview only
- *   npx tsx scripts/staging/activate-progressive-coordination-version.ts --apply    # actually activate
+ *   npx tsx scripts/staging/activate-progressive-coordination-version.ts --dry-run
+ *   npx tsx scripts/staging/activate-progressive-coordination-version.ts --apply --confirm-staging
  */
 import * as fs from 'fs';
 import * as path from 'path';
@@ -36,8 +46,11 @@ loadEnvFile('.env.staging.local');
 loadEnvFile('.env.local');
 
 const appEnv = process.env.NEXT_PUBLIC_APP_ENV ?? process.env.APP_ENV ?? '(not set)';
-if (appEnv === 'production') {
-  console.error('[activate-progressive-coordination] REFUSED: this script must never run against production.');
+// Default-deny: only an EXPLICIT 'staging' proceeds. An unset/blank/unexpected value
+// (e.g. a misconfigured shell, or accidentally sourcing production env vars) refuses
+// exactly like 'production' would — "not staging" is refused, not just "is production".
+if (appEnv !== 'staging') {
+  console.error(`[activate-progressive-coordination] REFUSED: APP_ENV/NEXT_PUBLIC_APP_ENV is '${appEnv}', not 'staging'. This script only ever runs against staging.`);
   process.exit(1);
 }
 
@@ -55,12 +68,22 @@ const OLD_CODE = '2026-Q3-KZ-NEWMODEL';
 const NEW_CODE = '2026-Q3-KZ-NEWMODEL-COORD-TIERS';
 const EXPECTED_FORMULA_VERSION = 'new_2026_07_21';
 
+async function readActiveVersions(): Promise<Array<{ code: string; status: string }>> {
+  const { data, error } = await db.from('pricing_versions').select('code, status').eq('status', 'active');
+  if (error) { console.error('FATAL reading active versions:', error.message); process.exit(1); }
+  return data ?? [];
+}
+
 async function main(): Promise<void> {
   const apply = process.argv.includes('--apply');
-  const dryRun = !apply;
+  const confirmStaging = process.argv.includes('--confirm-staging');
+  const willApply = apply && confirmStaging;
 
   console.log(`[activate-progressive-coordination] APP_ENV: ${appEnv}`);
-  console.log(`[activate-progressive-coordination] mode: ${dryRun ? 'DRY RUN (pass --apply to actually activate)' : 'APPLY'}`);
+  if (apply && !confirmStaging) {
+    console.log('[activate-progressive-coordination] --apply given without --confirm-staging — treating as DRY RUN. Pass both flags together to actually activate.');
+  }
+  console.log(`[activate-progressive-coordination] mode: ${willApply ? 'APPLY' : 'DRY RUN'}`);
 
   const { data: allVersions, error: listErr } = await db.from('pricing_versions').select('id, code, status');
   if (listErr) { console.error('FATAL:', listErr); process.exit(1); }
@@ -69,15 +92,19 @@ async function main(): Promise<void> {
   const newRow = (allVersions ?? []).find((v: { code: string }) => v.code === NEW_CODE);
   const activeVersions = (allVersions ?? []).filter((v: { status: string }) => v.status === 'active');
 
-  console.log(`\nCurrent state:`);
+  console.log(`\nBEFORE:`);
   console.log(`  ${OLD_CODE}: ${oldRow ? oldRow.status : '(not found)'}`);
   console.log(`  ${NEW_CODE}: ${newRow ? newRow.status : '(not found — apply migration 0064 first)'}`);
-  console.log(`  Active versions right now: ${activeVersions.length} (${activeVersions.map((v: { code: string }) => v.code).join(', ') || 'none'})`);
+  console.log(`  Active version(s): ${activeVersions.map((v: { code: string }) => v.code).join(', ') || '(none)'} (count: ${activeVersions.length})`);
 
   if (!newRow) { console.error(`\nFATAL: ${NEW_CODE} row not found — apply migration 0064 first.`); process.exit(1); }
   if (newRow.status === 'active') { console.log(`\n${NEW_CODE} is already active — nothing to do.`); return; }
-  if (activeVersions.length > 1) {
-    console.error(`\nFATAL: ${activeVersions.length} active pricing versions found (expected 0 or 1) — this is a pre-existing data integrity problem. Refusing to activate on top of it; investigate manually first.`);
+  if (activeVersions.length !== 1 || activeVersions[0].code !== OLD_CODE) {
+    console.error(`\nFATAL: expected exactly one active version with code ${OLD_CODE} — found ${JSON.stringify(activeVersions)}. This is a pre-existing data problem; investigate manually before activating.`);
+    process.exit(1);
+  }
+  if (newRow.status !== 'draft') {
+    console.error(`\nFATAL: ${NEW_CODE} has status '${newRow.status}' (expected 'draft'). Refusing.`);
     process.exit(1);
   }
 
@@ -91,12 +118,22 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  console.log(`\nPlanned change (atomic — activate_pricing_version() RPC, migration 0065):`);
-  if (oldRow && oldRow.status === 'active') console.log(`  ${OLD_CODE}: active -> archived`);
-  console.log(`  ${NEW_CODE}: ${newRow.status} -> active`);
+  // Language-rate parity is also enforced INSIDE activate_pricing_version() itself —
+  // checked here too so a dry run surfaces the same problem before anyone tries --apply.
+  const { count: oldRateCount } = await db.from('pricing_language_rates').select('id', { count: 'exact', head: true }).eq('pricing_version_id', oldRow.id).eq('active', true);
+  const { count: newRateCount } = await db.from('pricing_language_rates').select('id', { count: 'exact', head: true }).eq('pricing_version_id', newRow.id).eq('active', true);
+  console.log(`  Active language rates — ${OLD_CODE}: ${oldRateCount}, ${NEW_CODE}: ${newRateCount}`);
+  if (oldRateCount !== newRateCount) {
+    console.error(`\nFATAL: language-rate count mismatch (${OLD_CODE}=${oldRateCount}, ${NEW_CODE}=${newRateCount}) — refusing.`);
+    process.exit(1);
+  }
 
-  if (dryRun) {
-    console.log('\nDry run — no changes made. Re-run with --apply to actually activate.');
+  console.log(`\nPlanned change (atomic — activate_pricing_version() RPC, migration 0065):`);
+  console.log(`  before_active_code: ${OLD_CODE}`);
+  console.log(`  after_active_code:  ${NEW_CODE}`);
+
+  if (!willApply) {
+    console.log('\nDry run — no changes made. Re-run with BOTH --apply and --confirm-staging to actually activate.');
     return;
   }
 
@@ -108,14 +145,16 @@ async function main(): Promise<void> {
     console.error('\nFATAL: activate_pricing_version() raised — nothing was changed (full transaction rollback):', rpcError.message);
     process.exit(1);
   }
-  console.log('\nActivated:', rpcResult);
+  console.log('\nRPC result:', rpcResult);
 
-  const { data: finalActive } = await db.from('pricing_versions').select('code, status').eq('status', 'active');
-  console.log(`\nVerification — active version(s) now: ${JSON.stringify(finalActive)} (expected exactly 1, code=${NEW_CODE})`);
-  if ((finalActive ?? []).length !== 1) {
-    console.error('WARNING: expected exactly 1 active version after activation — investigate immediately.');
+  // Never trust the RPC's own return value alone — re-read the DB independently.
+  const finalActive = await readActiveVersions();
+  console.log(`\nAFTER (re-read from DB): ${JSON.stringify(finalActive)}`);
+  if (finalActive.length !== 1 || finalActive[0].code !== NEW_CODE) {
+    console.error(`FATAL: post-activation verification failed — expected exactly one active version with code ${NEW_CODE}. Investigate immediately.`);
     process.exit(1);
   }
+  console.log(`Verified: exactly one active version, code=${NEW_CODE}.`);
 }
 
 main();
