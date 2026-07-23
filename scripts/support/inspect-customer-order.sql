@@ -15,20 +15,28 @@
 -- Schema notes baked into this file (see the audit in the same PR for full detail):
 --   - One documents row per order; `file_key` is the ALREADY-MERGED source PDF — if the
 --     customer uploaded multiple files, they were combined into this ONE object at
---     intake (src/lib/convert-to-pdf.ts mergePdfs()). There is no per-original-file
---     tracking on documents/jobs/document_analysis/translations.
---   - The only place individual pre-merge uploads are ever recorded (filename, content
---     hash, per-file page count) is order_drafts.file_keys[0]/analysis_snapshot, and
---     ONLY for orders that went through the public /start draft flow (not the dashboard
---     upload-card flow), and only since the 2026-07-29 dedup fix. This data is NOT
---     copied forward into the real documents/jobs/document_analysis rows once the draft
---     converts — Section 4 below queries order_drafts directly for this reason.
---   - There is no separate "final artifact" or "notary scan" table/column. The one
---     translations row (translated_pdf_key/translated_docx_key) is the SAME digital
---     object throughout the whole lifecycle for a given job — Official/Notary's human
---     signature/stamp/notarization steps are tracked purely via jobs.workflow_status
---     (and Google Drive subfolders 04_SIGNATURE_AND_STAMP/05_NOTARY/06_FINAL, which are
---     manual staff working folders with no corresponding DB row of their own).
+--     intake (src/lib/convert-to-pdf.ts mergePdfs()). documents/document_analysis/
+--     translations remain whole-merged-document only — they never gained per-source
+--     tracking.
+--   - Per-original-file tracking DOES now exist at the jobs level, added by migration
+--     0063 (2026-07-31): job_source_files (one row per original upload, stable sequence,
+--     r2_key, physical_page_count) and job_result_files (one row per produced artifact,
+--     mapping to one or more source sequences, status='ready' gating customer
+--     deliverability). See Section 4B and Section 6B — this is the CANONICAL post-
+--     conversion per-source record.
+--   - order_drafts.file_keys[0]/analysis_snapshot (Section 4) is the PRE-conversion
+--     record — only populated for orders that went through the public /start draft
+--     flow, and only since the 2026-07-29 dedup fix. job_source_files rows are
+--     populated FROM this data at convertDraftToOrder() time, but the draft row is not
+--     itself updated afterward — query both if reconciling upload-time vs. current state.
+--   - There is no separate "final artifact" or "notary scan" table/column outside of
+--     job_result_files. The single translations row (translated_pdf_key/
+--     translated_docx_key) remains the whole-merged-document Electronic/legacy path;
+--     Official/Notary's human signature/stamp/notarization steps are tracked via
+--     jobs.workflow_status plus job_result_files rows for stages
+--     translator_result/signature_stamp/notary/final (and Google Drive subfolders
+--     04_SIGNATURE_AND_STAMP/05_NOTARY/06_FINAL, manual staff folders with no other DB
+--     row of their own).
 -- ============================================================================
 
 
@@ -221,6 +229,53 @@ where od.converted_job_id = (select job_id from params);
 
 
 -- ============================================================================
+-- SECTION 4B: job_source_files (2026-07-31 pipeline, migration 0063) — one row per
+-- ORIGINAL uploaded file, post-conversion, in stable upload sequence order. This is
+-- the CANONICAL per-source record once a job exists (unlike Section 4's order_drafts
+-- snapshot, which is pre-conversion and draft-flow-only). Populated for every job
+-- created after 0063 shipped, regardless of draft vs. dashboard upload-card origin.
+--
+-- aggregate_physical_pages mirrors aggregateReliablePhysicalPageCount()
+-- (src/lib/document-analysis/physical-pages.ts) exactly: sum of physical_page_count
+-- across all sequences for the job, or NULL ("unreliable") if ANY row has a null
+-- count — never a partial/guessed sum. This is the figure that must equal the
+-- billable-pages input to calculateElectronicPrice() (2026-08-02 incident:
+-- job 29b5fa37-24ac-4269-b965-c024429560da had sourcePageCounts [2,1] -> this column
+-- must read 3, not 1).
+-- ============================================================================
+with params as (
+  select 'REPLACE_JOB_ID'::uuid as job_id
+)
+select
+  jsf.id                    as source_file_id,
+  jsf.sequence,
+  jsf.original_filename,
+  jsf.r2_key,
+  jsf.content_sha256,
+  jsf.mime_type,
+  jsf.physical_page_count,
+  jsf.converted_pdf_r2_key,
+  jsf.created_at
+from public.job_source_files jsf
+where jsf.job_id = (select job_id from params)
+order by jsf.sequence asc;
+
+with params as (
+  select 'REPLACE_JOB_ID'::uuid as job_id
+)
+select
+  count(*)                                                  as source_file_count,
+  array_agg(jsf.physical_page_count order by jsf.sequence)  as per_source_physical_page_counts,
+  case
+    when bool_or(jsf.physical_page_count is null) then null
+    else sum(jsf.physical_page_count)
+  end                                                        as aggregate_physical_pages,
+  bool_or(jsf.physical_page_count is null)                   as has_unreliable_source_count
+from public.job_source_files jsf
+where jsf.job_id = (select job_id from params);
+
+
+-- ============================================================================
 -- SECTION 5: Document analysis (all revisions)
 -- ============================================================================
 with params as (
@@ -285,6 +340,35 @@ select
   o.created_at
 from public.ocr_results o
 where o.job_id = (select job_id from params);
+
+
+-- ============================================================================
+-- SECTION 6B: job_result_files (2026-07-31 pipeline, migration 0063) — one row per
+-- PRODUCED artifact at any stage, covering one or more job_source_files.sequence
+-- values (many-to-one). status='ready' is the ONLY status the customer download
+-- route/job-completion logic may act on — 'pending'/'failed' rows are not yet (or
+-- never) deliverable. This is what makes a multi-source order's actual delivered
+-- file(s) visible — without this section, a multi-file order's result state is
+-- invisible to this tool (2026-08-02 user note: "без этого новый pipeline неудобно
+-- проверять командой").
+-- ============================================================================
+with params as (
+  select 'REPLACE_JOB_ID'::uuid as job_id
+)
+select
+  jrf.id                  as result_file_id,
+  jrf.stage,
+  jrf.source_sequences,
+  jrf.filename,
+  jrf.status               as result_status,
+  jrf.drive_file_id,
+  jrf.r2_key,
+  jrf.last_error,
+  jrf.created_at,
+  jrf.updated_at
+from public.job_result_files jrf
+where jrf.job_id = (select job_id from params)
+order by jrf.stage, jrf.source_sequences;
 
 
 -- ============================================================================

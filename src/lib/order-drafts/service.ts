@@ -13,6 +13,7 @@ import { attachReferralToOrder } from '@/lib/referral/server';
 import { calculatePartnerDiscount } from '@/lib/partners/discount';
 import { capDiscountForElectronicMinimum } from '@/lib/pricing/config';
 import { insertJobSourceFiles, type JobSourceFileInput } from '@/lib/jobs/source-files';
+import { aggregateReliablePhysicalPageCount } from '@/lib/document-analysis/physical-pages';
 // 2026-07-24: deliberately NOT a top-level import — @/lib/document-analysis/analyze
 // transitively pulls in pdf-parse/pdfjs-dist for PDF text-layer extraction, which crashed at
 // module-init time ("ReferenceError: DOMMatrix is not defined") in some bundling contexts. This
@@ -179,9 +180,16 @@ function buildPricingInput(
     targetLanguage: draft.target_language!,
     serviceLevel: (draft.service_level ?? 'electronic') as ServiceLevel,
     documentType: draft.document_type ?? undefined,
-    // Electronic: unchanged conservative default (matches upload-card, no analysis call at all).
     // Non-electronic: real analysis-derived counts, wired via resolveDraftAnalysis() (2026-07-22).
-    physicalPageCount: extra?.analysis ? (extra.analysis.physicalPageCount ?? undefined) : 1,
+    // Electronic: never runs document analysis on the merged bundle, but per-source physical
+    // page counts ARE already available from upload time (getPhysicalPageCount() per
+    // deduplicated source, before merging) — sum them rather than hardcoding 1 (2026-08-02
+    // incident fix: 2 sources with real page counts [2,1] were priced as physicalPageCount=1).
+    // Falls back to 1 only when no reliable per-source counts exist (pre-0063 draft, or a
+    // source is missing a count) — never guesses a partial sum.
+    physicalPageCount: extra?.analysis
+      ? (extra.analysis.physicalPageCount ?? undefined)
+      : Math.max(1, aggregateReliablePhysicalPageCount(draft.file_keys?.[0]?.sources) ?? 1),
     sourceCharacterCountWithSpaces: extra?.analysis ? extra.analysis.characterCount : undefined,
     urgencyLevel: 'standard',
     scanQuality: 'normal',

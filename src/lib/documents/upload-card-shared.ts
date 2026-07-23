@@ -39,6 +39,7 @@ import { attachReferralToOrder } from '@/lib/referral/server';
 import { calculatePartnerDiscount } from '@/lib/partners/discount';
 import { capDiscountForElectronicMinimum } from '@/lib/pricing/config';
 import { insertJobSourceFiles, type JobSourceFileInput } from '@/lib/jobs/source-files';
+import { aggregateReliablePhysicalPageCount } from '@/lib/document-analysis/physical-pages';
 import { ALLOWED_MIME_TYPES } from '@/lib/order-drafts/upload-constants';
 import type { Database } from '@/types';
 import type { ServiceLevel } from '@/lib/translation-prompts/types';
@@ -426,10 +427,13 @@ export async function createCardOrder(input: CardOrderInput): Promise<CardOrderR
 
   // Real document analysis (2026-07-22) is required for Official/Notary — the old
   // physicalPageCount=1 conservative default never reflected the actual document, so T (the
-  // translation component) came out as 0 for every non-electronic order. Electronic keeps its
-  // exact prior behavior (still physicalPageCount:1, still no analysis call) — untouched.
+  // translation component) came out as 0 for every non-electronic order. Electronic never runs
+  // document analysis, but per-source physical page counts ARE already available from upload
+  // time (input.sources, each populated via getPhysicalPageCount() before merging) — sum them
+  // rather than hardcoding 1 (2026-08-02 incident fix). Falls back to 1 only when a source is
+  // missing a reliable count — never guesses a partial sum.
   let analysisId: string | undefined;
-  let physicalPageCountForPricing: number | undefined = 1;
+  let physicalPageCountForPricing: number | undefined = Math.max(1, aggregateReliablePhysicalPageCount(input.sources) ?? 1);
   let sourceCharacterCountWithSpaces: number | undefined;
 
   if (input.serviceLevel !== 'electronic') {

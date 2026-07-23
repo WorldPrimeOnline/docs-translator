@@ -31,6 +31,7 @@ import {
   getCustomerOrderState,
   type CustomerOrderState,
 } from '../../src/lib/translation-workflow/customer-order-state';
+import { aggregateReliablePhysicalPageCount } from '../../src/lib/document-analysis/physical-pages';
 
 // ─── Env loading (existing project convention) ────────────────────────────────
 const ROOT = path.resolve(process.cwd());
@@ -131,6 +132,16 @@ interface TranslationRow {
 }
 interface OcrRow { id: string; page_count: number; detected_language: string | null; provider: string; created_at: string }
 interface AuditRow { actor: string; source: string; action: string; previous_status: string | null; new_status: string | null; created_at: string }
+// migration 0063 (2026-07-31) — canonical post-conversion per-source/per-artifact records.
+interface JobSourceFileRow {
+  id: string; sequence: number; original_filename: string; r2_key: string; content_sha256: string;
+  mime_type: string; physical_page_count: number | null; converted_pdf_r2_key: string | null; created_at: string;
+}
+interface JobResultFileRow {
+  id: string; stage: string; source_sequences: number[]; drive_file_id: string | null; filename: string;
+  r2_key: string | null; status: 'pending' | 'ready' | 'failed'; last_error: string | null;
+  created_at: string; updated_at: string;
+}
 
 async function main(): Promise<void> {
   // Progress/diagnostic output goes to stderr — stdout must be pure report content so
@@ -155,9 +166,20 @@ async function main(): Promise<void> {
   const { data: ocrResults } = await db.from('ocr_results').select('*').eq('job_id', jobId).order('created_at', { ascending: false });
   const { data: auditLog } = await db.from('job_audit_log').select('actor, source, action, previous_status, new_status, created_at').eq('job_id', jobId).order('created_at', { ascending: true });
   const { data: draft } = await db.from('order_drafts').select('id, status, file_keys, analysis_snapshot, converted_job_id').eq('converted_job_id', jobId).maybeSingle();
+  const { data: sourceFiles } = await db.from('job_source_files').select('*').eq('job_id', jobId).order('sequence', { ascending: true });
+  const { data: resultFiles } = await db.from('job_result_files').select('*').eq('job_id', jobId).order('stage', { ascending: true });
 
   const translation = (translations?.[0] as TranslationRow | undefined) ?? null;
   const draftRow = draft as DraftRow | null;
+  const jobSourceFiles = (sourceFiles ?? []) as JobSourceFileRow[];
+  const jobResultFiles = (resultFiles ?? []) as JobResultFileRow[];
+
+  // Mirrors aggregateReliablePhysicalPageCount() exactly — the canonical post-conversion
+  // per-source record (job_source_files), not the pre-conversion order_drafts snapshot.
+  // undefined ("unreliable") means at least one source row has a null physical_page_count.
+  const aggregatePhysicalPages = aggregateReliablePhysicalPageCount(
+    jobSourceFiles.map((s) => ({ physicalPageCount: s.physical_page_count })),
+  );
 
   // ─── R2 existence checks (HEAD only — never downloaded) ─────────────────────
   let r2: { sourceExists: boolean | 'unknown'; pdfExists: boolean | 'unknown'; docxExists: boolean | 'unknown' } = {
@@ -231,6 +253,9 @@ async function main(): Promise<void> {
     ocrResults: (ocrResults ?? []) as OcrRow[],
     auditLog: (auditLog ?? []) as AuditRow[],
     orderDraft: draftRow,
+    jobSourceFiles,
+    jobResultFiles,
+    aggregatePhysicalPages: aggregatePhysicalPages ?? null,
     r2Existence: r2,
     customerDashboardProjection: {
       customerStatus: state.customerStatus,
@@ -261,7 +286,9 @@ async function main(): Promise<void> {
 interface Report {
   jobId: string; job: JobRow; document: DocumentRow | null; quotes: QuoteRow[]; payments: PaymentRow[];
   documentAnalysis: AnalysisRow[]; translation: TranslationRow | null; ocrResults: OcrRow[]; auditLog: AuditRow[];
-  orderDraft: DraftRow | null; r2Existence: { sourceExists: boolean | 'unknown'; pdfExists: boolean | 'unknown'; docxExists: boolean | 'unknown' };
+  orderDraft: DraftRow | null;
+  jobSourceFiles: JobSourceFileRow[]; jobResultFiles: JobResultFileRow[]; aggregatePhysicalPages: number | null;
+  r2Existence: { sourceExists: boolean | 'unknown'; pdfExists: boolean | 'unknown'; docxExists: boolean | 'unknown' };
   customerDashboardProjection: {
     customerStatus: string; progressPercent: number; isActive: boolean; isTerminal: boolean;
     stages: Array<{ key: string; labelKey: string; done: boolean; current: boolean }>;
@@ -296,6 +323,25 @@ function renderText(r: Report): string {
     const fk = r.orderDraft.file_keys?.[0];
     lines.push(`  merged file: ${fk?.originalName ?? '(none)'}  sourceUploadCount=${fk?.sourceUploadCount ?? '(unset — pre-fix draft)'}`);
     lines.push(`  sourceUploadIds: ${JSON.stringify(fk?.sourceUploadIds ?? [])}`);
+  }
+  lines.push('');
+  lines.push('=== job_source_files (canonical post-conversion per-source record, migration 0063) ===');
+  if (r.jobSourceFiles.length === 0) {
+    lines.push('  (none — job created before migration 0063, or a legacy path that never populated this table)');
+  } else {
+    for (const s of r.jobSourceFiles) {
+      lines.push(`  seq ${s.sequence}: ${s.original_filename}  physicalPageCount=${s.physical_page_count ?? '(none/unreliable)'}  mimeType=${s.mime_type}`);
+    }
+    lines.push(`  aggregatePhysicalPages (sum across all sources, or 'unreliable' if any source is missing a count): ${r.aggregatePhysicalPages ?? '(unreliable — at least one source has no physical_page_count)'}`);
+  }
+  lines.push('');
+  lines.push('=== job_result_files (produced artifacts, migration 0063 — status=ready is the ONLY status the customer download route may act on) ===');
+  if (r.jobResultFiles.length === 0) {
+    lines.push('  (none)');
+  } else {
+    for (const f of r.jobResultFiles) {
+      lines.push(`  [${f.stage}] sources=${JSON.stringify(f.source_sequences)}  filename=${f.filename}  status=${f.status}${f.last_error ? `  last_error=${f.last_error}` : ''}  r2_key=${f.r2_key ?? '(not yet re-hosted)'}`);
+    }
   }
   lines.push('');
   lines.push('=== AI drafts / OCR (whole merged document, not per source file) ===');
@@ -344,6 +390,31 @@ function renderMarkdown(r: Report): string {
   lines.push(`| customer-visible status | **${p.customerStatus}** |`);
   lines.push(`| individual download available | ${p.individualDownloadAvailable} |`);
   lines.push(`| download-all available | ${p.downloadAllAvailable} (feature does not exist) |`);
+  lines.push(`| source file count (job_source_files) | ${r.jobSourceFiles.length} |`);
+  lines.push(`| aggregate physical pages | ${r.aggregatePhysicalPages ?? '(unreliable)'} |`);
+  lines.push(`| result files ready | ${r.jobResultFiles.filter((f) => f.status === 'ready').length} / ${r.jobResultFiles.length} |`);
+  lines.push('');
+  lines.push('## job_source_files');
+  if (r.jobSourceFiles.length === 0) {
+    lines.push('- (none)');
+  } else {
+    lines.push('| sequence | filename | physicalPageCount | mimeType |');
+    lines.push('|---|---|---|---|');
+    for (const s of r.jobSourceFiles) {
+      lines.push(`| ${s.sequence} | ${s.original_filename} | ${s.physical_page_count ?? '(none)'} | ${s.mime_type} |`);
+    }
+  }
+  lines.push('');
+  lines.push('## job_result_files');
+  if (r.jobResultFiles.length === 0) {
+    lines.push('- (none)');
+  } else {
+    lines.push('| stage | source_sequences | filename | status | r2_key |');
+    lines.push('|---|---|---|---|---|');
+    for (const f of r.jobResultFiles) {
+      lines.push(`| ${f.stage} | ${JSON.stringify(f.source_sequences)} | ${f.filename} | ${f.status} | ${f.r2_key ?? '(not yet re-hosted)'} |`);
+    }
+  }
   lines.push('');
   lines.push('## Missing expected artifacts');
   if (r.findings.missingExpectedArtifacts.length === 0) lines.push('- (none)');

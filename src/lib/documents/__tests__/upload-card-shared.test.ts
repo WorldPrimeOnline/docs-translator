@@ -413,6 +413,51 @@ describe('createCardOrder', () => {
       expect(mockComputeQuote).toHaveBeenCalledWith(expect.objectContaining({ physicalPageCount: 1 }));
     });
 
+    it('2026-08-02 incident fix: 2 sources with real page counts [2,1] -> physicalPageCount=3, never the hardcoded 1', async () => {
+      mockComputeQuote.mockResolvedValueOnce({ result: { amountKzt: 2200, currency: 'KZT', requiresOperatorReview: false, reviewReasons: [], context: {}, items: [] } });
+      mockSaveQuote.mockResolvedValueOnce({ quoteId: 'quote-1' });
+      mockFrom
+        .mockReturnValueOnce(chain({ data: null, error: null }))
+        .mockReturnValueOnce(chain({ data: null, error: null }))
+        .mockReturnValueOnce(chain({ data: { id: 'attempt-1' }, error: null }))
+        .mockReturnValueOnce(chain({ data: { id: 'job-1' }, error: null }))
+        .mockReturnValueOnce(chain({ error: null })) // job_source_files insert
+        .mockReturnValueOnce(chain({ error: null }));
+
+      await createCardOrder(baseInput({
+        serviceLevel: 'electronic',
+        sources: [
+          { sequence: 1, originalName: 'a.pdf', r2Key: 'k1', contentSha256: 'h1', mimeType: 'application/pdf', physicalPageCount: 2, convertedPdfR2Key: 'c1' },
+          { sequence: 2, originalName: 'b.pdf', r2Key: 'k2', contentSha256: 'h2', mimeType: 'application/pdf', physicalPageCount: 1, convertedPdfR2Key: 'c2' },
+        ],
+      }));
+
+      expect(mockResolveAnalysis).not.toHaveBeenCalled();
+      expect(mockComputeQuote).toHaveBeenCalledWith(expect.objectContaining({ physicalPageCount: 3 }));
+    });
+
+    it('a source missing a reliable page count falls back safely to 1', async () => {
+      mockComputeQuote.mockResolvedValueOnce({ result: { amountKzt: 1500, currency: 'KZT', requiresOperatorReview: false, reviewReasons: [], context: {}, items: [] } });
+      mockSaveQuote.mockResolvedValueOnce({ quoteId: 'quote-1' });
+      mockFrom
+        .mockReturnValueOnce(chain({ data: null, error: null }))
+        .mockReturnValueOnce(chain({ data: null, error: null }))
+        .mockReturnValueOnce(chain({ data: { id: 'attempt-1' }, error: null }))
+        .mockReturnValueOnce(chain({ data: { id: 'job-1' }, error: null }))
+        .mockReturnValueOnce(chain({ error: null })) // job_source_files insert
+        .mockReturnValueOnce(chain({ error: null }));
+
+      await createCardOrder(baseInput({
+        serviceLevel: 'electronic',
+        sources: [
+          { sequence: 1, originalName: 'a.pdf', r2Key: 'k1', contentSha256: 'h1', mimeType: 'application/pdf', physicalPageCount: 2, convertedPdfR2Key: 'c1' },
+          { sequence: 2, originalName: 'b.pdf', r2Key: 'k2', contentSha256: 'h2', mimeType: 'application/pdf', physicalPageCount: null, convertedPdfR2Key: 'c2' },
+        ],
+      }));
+
+      expect(mockComputeQuote).toHaveBeenCalledWith(expect.objectContaining({ physicalPageCount: 1 }));
+    });
+
     it('analysis in_progress: no job/quote created, 409 returned, computeQuoteForJob never called', async () => {
       mockResolveAnalysis.mockResolvedValueOnce({ kind: 'in_progress' });
       const usersUpsertChain = chain({ data: null, error: null });

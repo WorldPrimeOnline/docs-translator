@@ -17,6 +17,7 @@ import { DOCUMENT_TYPE_COEFFICIENT } from '@/lib/pricing/config';
 import { classifyPricingReviewReasons } from '@/lib/pricing/review-classification';
 import { reportInternalPricingFailure } from '@/lib/pricing/internal-failure';
 import { resolveDocumentAnalysisForPricing } from '@/lib/document-analysis/service';
+import { aggregateReliablePhysicalPageCount } from '@/lib/document-analysis/physical-pages';
 import { attachReferralToOrder } from '@/lib/referral/server';
 import { calculatePartnerDiscount } from '@/lib/partners/discount';
 import { capDiscountForElectronicMinimum } from '@/lib/pricing/config';
@@ -246,9 +247,12 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
   // Real document analysis (2026-07-22) is required for Official/Notary — see
   // src/lib/documents/upload-card-shared.ts's createCardOrder for the canonical version of
   // this same wiring (this legacy route keeps its own copy since it can't import a shared
-  // helper defined in a route.ts file). Electronic keeps its exact prior behavior untouched.
+  // helper defined in a route.ts file). Electronic never runs document analysis, but per-source
+  // physical page counts ARE already available from `sources` above (each populated via
+  // getPhysicalPageCount() before merging) — sum them rather than hardcoding 1 (2026-08-02
+  // incident fix). Falls back to 1 only when a source is missing a reliable count.
   let analysisId: string | undefined;
-  let physicalPageCountForPricing: number | undefined = 1;
+  let physicalPageCountForPricing: number | undefined = Math.max(1, aggregateReliablePhysicalPageCount(sources) ?? 1);
   let sourceCharacterCountWithSpaces: number | undefined;
 
   if (serviceLevel !== 'electronic') {

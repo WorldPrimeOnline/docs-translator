@@ -259,6 +259,138 @@ describe('calculateDraftPrice', () => {
     );
   });
 
+  describe('electronic — aggregate physical page count from sources (2026-08-02 incident fix)', () => {
+    it('2026-08-02 incident fix: 2 sources with real page counts [2,1] -> physicalPageCount=3 passed to computeQuoteForJob, never the hardcoded 1', async () => {
+      const draftWithSources = {
+        ...BASE_DRAFT,
+        file_keys: [{
+          key: 'draft-uploads/draft-1/original.pdf',
+          originalName: '2_files_doc.pdf',
+          mimeType: 'application/pdf',
+          sizeBytes: 1000,
+          sources: [
+            { sequence: 1, originalName: 'a.pdf', permanentKey: 'k1', contentSha256: 'h1', mimeType: 'application/pdf', physicalPageCount: 2, convertedPdfKey: 'c1' },
+            { sequence: 2, originalName: 'b.pdf', permanentKey: 'k2', contentSha256: 'h2', mimeType: 'application/pdf', physicalPageCount: 1, convertedPdfKey: 'c2' },
+          ],
+        }],
+      };
+      mockFrom
+        .mockReturnValueOnce(chain({ data: draftWithSources, error: null }))
+        .mockReturnValueOnce(chain({ data: { ...draftWithSources, status: 'price_calculated' }, error: null }));
+      mockComputeQuote.mockResolvedValueOnce({
+        result: { amountKzt: 2200, currency: 'KZT', requiresOperatorReview: false, reviewReasons: [], context: {} },
+        version: { id: 'v1' },
+      });
+
+      const result = await calculateDraftPrice('draft-1', { sessionToken: 'sess-token' });
+
+      expect(result.ok).toBe(true);
+      expect(mockComputeQuote).toHaveBeenCalledWith(expect.objectContaining({ physicalPageCount: 3 }));
+    });
+
+    it('single-file electronic draft (1 source) is unaffected — physicalPageCount is that source\'s own count, same as before this fix for the single-file case', async () => {
+      const draftWithOneSource = {
+        ...BASE_DRAFT,
+        file_keys: [{
+          key: 'draft-uploads/draft-1/original.pdf',
+          originalName: 'doc.pdf',
+          mimeType: 'application/pdf',
+          sizeBytes: 1000,
+          sources: [
+            { sequence: 1, originalName: 'doc.pdf', permanentKey: 'k1', contentSha256: 'h1', mimeType: 'application/pdf', physicalPageCount: 1, convertedPdfKey: 'c1' },
+          ],
+        }],
+      };
+      mockFrom
+        .mockReturnValueOnce(chain({ data: draftWithOneSource, error: null }))
+        .mockReturnValueOnce(chain({ data: { ...draftWithOneSource, status: 'price_calculated' }, error: null }));
+      mockComputeQuote.mockResolvedValueOnce({
+        result: { amountKzt: 1500, currency: 'KZT', requiresOperatorReview: false, reviewReasons: [], context: {} },
+        version: { id: 'v1' },
+      });
+
+      await calculateDraftPrice('draft-1', { sessionToken: 'sess-token' });
+      expect(mockComputeQuote).toHaveBeenCalledWith(expect.objectContaining({ physicalPageCount: 1 }));
+    });
+
+    it('a source missing a reliable page count falls back safely to 1 — never a partial/wrong sum', async () => {
+      const draftWithUnreliableSource = {
+        ...BASE_DRAFT,
+        file_keys: [{
+          key: 'draft-uploads/draft-1/original.pdf',
+          originalName: '2_files_doc.pdf',
+          mimeType: 'application/pdf',
+          sizeBytes: 1000,
+          sources: [
+            { sequence: 1, originalName: 'a.pdf', permanentKey: 'k1', contentSha256: 'h1', mimeType: 'application/pdf', physicalPageCount: 2, convertedPdfKey: 'c1' },
+            { sequence: 2, originalName: 'b.pdf', permanentKey: 'k2', contentSha256: 'h2', mimeType: 'application/pdf', physicalPageCount: null, convertedPdfKey: 'c2' },
+          ],
+        }],
+      };
+      mockFrom
+        .mockReturnValueOnce(chain({ data: draftWithUnreliableSource, error: null }))
+        .mockReturnValueOnce(chain({ data: { ...draftWithUnreliableSource, status: 'price_calculated' }, error: null }));
+      mockComputeQuote.mockResolvedValueOnce({
+        result: { amountKzt: 1500, currency: 'KZT', requiresOperatorReview: false, reviewReasons: [], context: {} },
+        version: { id: 'v1' },
+      });
+
+      await calculateDraftPrice('draft-1', { sessionToken: 'sess-token' });
+      expect(mockComputeQuote).toHaveBeenCalledWith(expect.objectContaining({ physicalPageCount: 1 }));
+    });
+
+    it('a legacy pre-0063 draft with no sources array at all falls back to physicalPageCount=1, unchanged prior behavior', async () => {
+      const legacyDraft = {
+        ...BASE_DRAFT,
+        file_keys: [{ key: 'draft-uploads/draft-1/original.pdf', originalName: 'doc.pdf', mimeType: 'application/pdf', sizeBytes: 1000 }],
+      };
+      mockFrom
+        .mockReturnValueOnce(chain({ data: legacyDraft, error: null }))
+        .mockReturnValueOnce(chain({ data: { ...legacyDraft, status: 'price_calculated' }, error: null }));
+      mockComputeQuote.mockResolvedValueOnce({
+        result: { amountKzt: 1500, currency: 'KZT', requiresOperatorReview: false, reviewReasons: [], context: {} },
+        version: { id: 'v1' },
+      });
+
+      await calculateDraftPrice('draft-1', { sessionToken: 'sess-token' });
+      expect(mockComputeQuote).toHaveBeenCalledWith(expect.objectContaining({ physicalPageCount: 1 }));
+    });
+
+    it('official/notarized: unaffected even with multi-source sources present — the real analysis-derived physicalPageCount is always used, never the per-source aggregate (Official/Notary pricing is completely untouched by this fix)', async () => {
+      const officialDraftWithSources = {
+        ...BASE_DRAFT,
+        service_level: 'official_with_translator_signature_and_provider_stamp',
+        file_keys: [{
+          key: 'draft-uploads/draft-1/original.pdf',
+          originalName: '2_files_doc.pdf',
+          mimeType: 'application/pdf',
+          sizeBytes: 1000,
+          sources: [
+            { sequence: 1, originalName: 'a.pdf', permanentKey: 'k1', contentSha256: 'h1', mimeType: 'application/pdf', physicalPageCount: 2, convertedPdfKey: 'c1' },
+            { sequence: 2, originalName: 'b.pdf', permanentKey: 'k2', contentSha256: 'h2', mimeType: 'application/pdf', physicalPageCount: 1, convertedPdfKey: 'c2' },
+          ],
+        }],
+        analysis_snapshot: {
+          fileKey: 'draft-uploads/draft-1/original.pdf', method: 'pdf_text_layer',
+          characterCount: 671, physicalPageCount: 9, // real analysis result — deliberately different from the sources sum (3)
+          requiresOperatorReview: false, reviewReasons: [],
+        },
+      };
+      const snapshotUpdateChain = chain({ data: { ...officialDraftWithSources, status: 'price_calculated' }, error: null });
+      mockFrom.mockReturnValueOnce(chain({ data: officialDraftWithSources, error: null })).mockReturnValueOnce(snapshotUpdateChain);
+      mockComputeQuote.mockResolvedValueOnce({
+        result: { amountKzt: 5000, currency: 'KZT', requiresOperatorReview: false, reviewReasons: [], context: {} },
+        version: { id: 'v1' },
+      });
+
+      await calculateDraftPrice('draft-1', { sessionToken: 'sess-token' });
+
+      // Uses the real analysis result (9), NOT the sources aggregate (3) and NOT 1.
+      expect(mockComputeQuote).toHaveBeenCalledWith(expect.objectContaining({ physicalPageCount: 9 }));
+      expect(mockAnalyzeDocument).not.toHaveBeenCalled(); // cached analysis_snapshot reused, not re-run
+    });
+  });
+
   describe('non-electronic — document analysis wiring (2026-07-22)', () => {
     const draftWithFile = {
       ...BASE_DRAFT,

@@ -132,6 +132,27 @@ describe('calculatePrice — electronic minimum payable floor (2026-08-01 incide
     return mockElectronicVersion({ ownerReserveRate: 0, marketingRateDirect: 0.05, targetProfitRate: 0.25, ...overrides });
   }
 
+  /**
+   * The REAL active staging pricing_versions row (id f5d6a080-01ad-46a0-abd8-704c809382c6,
+   * code 2026-Q3-KZ-NEWMODEL) used by the incident quote — every field copied verbatim
+   * (not just the 3 overrides incidentVersion() above uses), fetched directly from
+   * Supabase via a one-off read-only script for the corrected-quote verification below.
+   */
+  function realIncidentPricingVersion(): PricingVersion {
+    return {
+      id: 'f5d6a080-01ad-46a0-abd8-704c809382c6', code: '2026-Q3-KZ-NEWMODEL', status: 'active', currency: 'KZT',
+      internalFxRate: null, mrpValue: 4.325,
+      taxRate: 0.03, acquiringRate: 0.025, riskReserveRate: 0.05, ownerReserveRate: 0,
+      marketingRateDirect: 0.05, partnerCommissionRate: 0.1, targetProfitRate: 0.25,
+      aiItReservePerPageKzt: 100,
+      validFrom: '2026-07-21T13:30:37.078+00:00', validTo: null, metadata: { formula_version: 'new_2026_07_21' },
+      aiItRate: 0.1, channelReserveRate: 0.2, clientDiscountRate: 0.1, wpoCoordinationRate: 0.3,
+      translatorPayoutRate: 0.3, ocrRatePerPhysicalPageKzt: 100, courierFeeKzt: 5000,
+      printingFeeKzt: 0, extraPaperCopyFeeKzt: 0, roundingStepOfficialKzt: 100, roundingStepNotaryKzt: 500,
+      publicElectronicPriceKzt: null, publicOfficialMinPriceKzt: null, publicNotaryMinPriceKzt: null,
+    };
+  }
+
   function incidentInput(overrides: Partial<PricingInput> = {}): PricingInput {
     return {
       sourceLanguage: 'ru', targetLanguage: 'en', serviceLevel: 'electronic',
@@ -144,6 +165,11 @@ describe('calculatePrice — electronic minimum payable floor (2026-08-01 incide
     const result = calculatePrice(incidentInput(), incidentVersion());
     expect(result.amountKzt).toBe(1500);
     expect(result.amountKzt).toBeGreaterThanOrEqual(1500);
+  });
+
+  it('the same 1300-before-floor incident reproduces identically against the byte-exact real pricing_versions row (confirms incidentVersion()\'s 3-field override is an accurate stand-in)', () => {
+    const result = calculatePrice(incidentInput(), realIncidentPricingVersion());
+    expect(result.amountKzt).toBe(1500);
   });
 
   it('records an electronic_minimum_floor_adjustment line item with the pre-floor price', () => {
@@ -182,6 +208,25 @@ describe('calculatePrice — electronic minimum payable floor (2026-08-01 incide
   it('official/notarized pricing has no such floor and is completely unaffected', () => {
     const officialInput: PricingInput = baseOfficialInput({ sourceCharacterCountWithSpaces: 10 });
     const result = calculatePrice(officialInput, mockNewModelVersion());
+    expect(result.items.find((i) => i.itemType === 'electronic_minimum_floor_adjustment')).toBeUndefined();
+  });
+
+  // ─── 2026-08-02 follow-up: the aggregate physical page count fix (buildPricingInput
+  // in order-drafts/service.ts and upload-card-shared.ts's createCardOrder) means the
+  // incident job would actually have been quoted with physicalPageCount=3 (sourcePageCounts
+  // [2,1] summed), not 1 — verified against the real active pricing_versions row via a
+  // one-off script. This locks in that corrected end-to-end number and confirms the floor
+  // still holds (trivially, since the real page-based price already exceeds it). ───
+  it('the incident job, correctly quoted with the aggregate physical page count (3), prices at 2500 KZT — still >= the 1500 floor, verified against the real active pricing_versions row', () => {
+    // 1000 (minimum) + 1000 (2 extra pages x 500) = 2000 translation portion, x1.1 document
+    // coefficient = 2200 (rawPriceBeforeMarginFloor, no margin-floor adjustment needed) ->
+    // gross-up for the 10.5% payment-wide fee rate (tax 3% + acquiring 2.5% + risk 5%):
+    // 2200 / 0.895 = 2458.1, rounded up to the 100 KZT step = 2500.
+    const result = calculatePrice(incidentInput({ physicalPageCount: 3 }), realIncidentPricingVersion());
+    expect(result.context.additionalPages).toBe(2); // 3 aggregate - 1 included
+    expect(result.margin?.rawPriceBeforeMarginFloor).toBe(2200);
+    expect(result.amountKzt).toBe(2500);
+    expect(result.amountKzt).toBeGreaterThanOrEqual(1500);
     expect(result.items.find((i) => i.itemType === 'electronic_minimum_floor_adjustment')).toBeUndefined();
   });
 });
