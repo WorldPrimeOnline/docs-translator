@@ -5,12 +5,21 @@
  * R2, and upserts job_result_files — never exposing a raw Drive link or a partial/
  * inconsistent result set to the customer.
  *
- * Called from two places, neither of which is the sole mechanism (a Jira status can
- * arrive before the file has finished uploading in Drive):
- *   1. The Jira webhook route, best-effort, right after the relevant workflow_status
- *      transition (signature_stamp for Official, notary for Notarized).
- *   2. reconcileResultFileSyncs() (worker/src/index.ts periodic interval) — retries
- *      jobs whose result set for the relevant stage isn't yet fully 'ready'.
+ * 2026-08-23 correction: the sole current trigger is reconcileResultFileSyncs()
+ * (worker/src/index.ts periodic interval, every RESULT_SYNC_RECONCILE_INTERVAL_MS —
+ * currently 3 minutes — plus once at worker startup). An earlier version of this
+ * comment claimed the Jira webhook route (src/app/api/webhooks/jira/route.ts) also
+ * calls this best-effort right after the workflow_status transition; that was never
+ * actually wired up (the webhook route only calls syncNotaryDone()/syncSignatureStamp
+ * equivalents, which set workflow_status and notify staff — nothing in the web app
+ * has Drive/R2 access, and the worker exposes no HTTP endpoint for the web app to
+ * call). Worst-case latency from Jira event to a customer-visible ready file is
+ * therefore one reconciler cycle (≤3 minutes), not "immediate". This is still far
+ * faster than waiting for courier delivery or Jira ticket closure, so it satisfies
+ * the "no waiting on courier/Jira" requirement — see docs/ai-context/DECISIONS.md.
+ * If sub-3-minute latency is ever required, shorten
+ * RESULT_SYNC_RECONCILE_INTERVAL_MS rather than adding a new synchronous
+ * web→worker call.
  */
 import { supabase } from './supabase';
 import { listFilesInFolder, downloadFileFromDrive, getSubfolderId, DRIVE_SUBFOLDER_NAMES } from './google-drive';

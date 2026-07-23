@@ -433,6 +433,21 @@ describe('2026-08-01 multi-file fulfillment decision — hasReadyResultFiles', (
     expect(canCustomerDownload('notarized', NOTARY)).toBe(false);
   });
 
+  it('multi-source notary: once hasReadyResultFiles=true, download stays available through every subsequent workflow_status and is IDENTICAL across pickup/delivery/unset fulfillment — never regresses once ready', () => {
+    const downstreamStatuses = ['notarized', 'ready_for_delivery', 'ready_for_pickup', 'out_for_delivery', 'delivered', 'picked_up'];
+    const fulfillmentMethods: Array<'pickup' | 'delivery' | null | undefined> = ['pickup', 'delivery', null, undefined];
+
+    for (const ws of downstreamStatuses) {
+      for (const fm of fulfillmentMethods) {
+        const s = getCustomerOrderState({
+          jobStatus: 'completed', progressPercent: 100, workflowStatus: ws, serviceLevel: NOTARY,
+          fulfillmentMethod: fm, hasReadyResultFiles: true,
+        });
+        expect(s.canDownload).toBe(true);
+      }
+    }
+  });
+
   it('canCustomerDownload standalone: official requires both operatorConfirmed and hasReadyResultFiles when explicitly passed', () => {
     expect(canCustomerDownload('ready_for_delivery', OFFICIAL, true)).toBe(true);
     expect(canCustomerDownload('ready_for_delivery', OFFICIAL, false)).toBe(false);

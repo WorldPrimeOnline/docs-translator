@@ -326,11 +326,12 @@ async function main(): Promise<void> {
   // Reconcile pending/failed Drive→R2 result-file syncs (signature_stamp/notary,
   // 2026-08-01 multi-file fulfillment decision) every 3 minutes — deliberately much
   // shorter than the ops-repair reconcilers above, since this one gates a real
-  // customer-facing download: the Jira webhook already triggers a best-effort sync
-  // right after the relevant workflow_status transition, but the signed/notarized
-  // file can still be mid-upload in Drive when that webhook fires, or the attempt
-  // can fail transiently — this is the retry mechanism, not the only one. Startup
-  // run recovers anything left pending from a worker restart.
+  // customer-facing download. 2026-08-23 correction: this reconciler is the ONLY
+  // trigger today — the Jira webhook route does not call the sync (see the doc
+  // comment on syncResultFilesFromDrive in ./lib/result-file-sync.ts for the full
+  // explanation); an earlier version of this comment claimed otherwise. Worst-case
+  // latency from the Jira event to a synced, downloadable file is one cycle of this
+  // interval. Startup run recovers anything left pending from a worker restart.
   const RESULT_SYNC_RECONCILE_INTERVAL_MS = 3 * 60 * 1000;
   void reconcileResultFileSyncs().catch((err: unknown) => {
     console.error('[worker] result-file-sync reconciliation startup error:', (err as Error).message);

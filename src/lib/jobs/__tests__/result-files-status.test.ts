@@ -98,4 +98,37 @@ describe('getResultFilesStatus', () => {
     const result = await getResultFilesStatus('job-1', 'notarization_through_partners');
     expect(result).toEqual({ isMultiSource: true, hasReadyResultFiles: false, readyFiles: [] });
   });
+
+  it('stage separation, defense in depth: a job with only ready signature_stamp rows (no notary rows) must NOT satisfy notary\'s hasReadyResultFiles, even if a stray signature_stamp row were somehow returned alongside', async () => {
+    mockFrom
+      .mockReturnValueOnce(chain({ count: 1 }))
+      // In production the DB query already filters `.in('stage', ['notary'])` for a
+      // notary lookup, so this exact shape (a signature_stamp row present) could only
+      // reach this function if that filter were ever weakened — asserting the
+      // behavior here locks in that translator/signature results can never be
+      // mistaken for a notary result even if the stage filter regressed.
+      .mockReturnValueOnce(chain({
+        data: [
+          { stage: 'signature_stamp', source_sequences: [1], filename: '001_SIGNED.pdf', r2_key: 'k1' },
+        ],
+      }));
+
+    const result = await getResultFilesStatus('job-1', 'notarization_through_partners');
+    expect(result).toEqual({ isMultiSource: true, hasReadyResultFiles: false, readyFiles: [] });
+  });
+
+  it('a notary lookup only ever requests the notary stage — never signature_stamp/translator_result — confirming stage separation at the query level', async () => {
+    const inSpy = jest.fn().mockReturnThis();
+    mockFrom
+      .mockReturnValueOnce(chain({ count: 1 }))
+      .mockReturnValueOnce({
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        in: inSpy,
+        then: (resolve: (v: unknown) => unknown) => Promise.resolve({ data: [] }).then(resolve),
+      });
+
+    await getResultFilesStatus('job-1', 'notarization_through_partners');
+    expect(inSpy).toHaveBeenCalledWith('stage', ['notary']);
+  });
 });

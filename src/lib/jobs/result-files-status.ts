@@ -63,7 +63,12 @@ export async function getResultFilesStatus(jobId: string, serviceLevel: string |
     .in('stage', stages)
     .eq('status', 'ready');
 
-  const rows = (data ?? []) as ResultFileRow[];
+  // Defense in depth: never trust the `.in('stage', stages)` filter above alone to
+  // guarantee stage separation (e.g. a signature_stamp/translator_result row must
+  // never be mistaken for a notary result) — re-check every row's own `stage` field
+  // against the expected set before it can ever count towards readiness.
+  const expectedStages = new Set(stages);
+  const rows = ((data ?? []) as ResultFileRow[]).filter((r) => expectedStages.has(r.stage));
 
   const byStage = new Map<string, ResultFileRow[]>();
   for (const r of rows) {

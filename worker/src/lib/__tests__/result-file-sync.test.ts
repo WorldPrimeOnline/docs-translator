@@ -17,6 +17,8 @@ jest.mock('../supabase', () => ({ supabase: { from: jest.fn() } }));
 jest.mock('../google-drive', () => ({
   listFilesInFolder: jest.fn(),
   downloadFileFromDrive: jest.fn(),
+  getSubfolderId: jest.fn(),
+  DRIVE_SUBFOLDER_NAMES: { signatureStamp: '04_SIGNATURE_AND_STAMP', notary: '05_NOTARY' },
 }));
 jest.mock('../r2', () => ({ uploadFile: jest.fn() }));
 jest.mock('../job-result-files', () => ({
@@ -180,5 +182,174 @@ describe('syncResultFilesFromDrive', () => {
 
     expect(result).toEqual({ ok: false, reason: expect.stringContaining('Drive download timeout') });
     expect(mockUpsert).toHaveBeenCalledWith(expect.objectContaining({ status: 'failed', lastError: expect.stringContaining('Drive download timeout') }));
+  });
+
+  it('an R2 upload failure (Drive download succeeds) is caught by the same guarantee as a Drive-download failure: marks the group failed with the upload error preserved, distinct from a Drive error', async () => {
+    const { mockFrom, mockList, mockDownload, mockUpload, mockUpsert, mockGetForStage } = await setup();
+    mockJobLookups(mockFrom, 1);
+    mockList.mockResolvedValueOnce([{ id: 'drive-1', name: '001_NOTARY.pdf' }]);
+    mockGetForStage.mockResolvedValueOnce([]);
+    mockDownload.mockResolvedValueOnce(Buffer.from('pdf-bytes')); // Drive download succeeds
+    mockUpload.mockRejectedValueOnce(new Error('R2 bucket unreachable')); // R2 upload fails
+    mockUpsert.mockResolvedValue({ ok: true });
+
+    const { syncResultFilesFromDrive } = await import('../result-file-sync');
+    const result = await syncResultFilesFromDrive({ jobId: 'job-1', stage: 'notary', driveFolderId: 'folder-1' });
+
+    expect(result).toEqual({ ok: false, reason: expect.stringContaining('R2 bucket unreachable') });
+    expect(mockDownload).toHaveBeenCalledTimes(1); // Drive read-back did happen this time
+    expect(mockUpsert).toHaveBeenCalledWith(expect.objectContaining({ status: 'failed', lastError: expect.stringContaining('R2 bucket unreachable') }));
+    // No 'ready' row was ever upserted for this group — an R2 failure must never look
+    // like a successful sync just because the Drive half worked.
+    expect(mockUpsert).not.toHaveBeenCalledWith(expect.objectContaining({ status: 'ready' }));
+  });
+
+  it('single-source notary job (1 file, unprefixed filename) is NOT rejected by the zero-job_source_files guard — a real single-file notary order must sync normally', async () => {
+    const { mockFrom, mockList, mockDownload, mockUpload, mockUpsert, mockGetForStage } = await setup();
+    mockJobLookups(mockFrom, 1);
+    mockList.mockResolvedValueOnce([{ id: 'drive-1', name: 'NOTARY_RESULT.pdf' }]); // no NNN prefix — allowed for exactly 1 source
+    mockGetForStage.mockResolvedValueOnce([]);
+    mockDownload.mockResolvedValue(Buffer.from('pdf-bytes'));
+    mockUpsert.mockResolvedValue({ ok: true });
+
+    const { syncResultFilesFromDrive } = await import('../result-file-sync');
+    const result = await syncResultFilesFromDrive({ jobId: 'job-1', stage: 'notary', driveFolderId: 'folder-1' });
+
+    expect(result).toEqual({ ok: true, groupsSynced: 1, fullyCovered: true });
+    expect(mockUpload).toHaveBeenCalledTimes(1);
+    expect(mockUpsert).toHaveBeenCalledWith(expect.objectContaining({ stage: 'notary', sourceSequences: [1], status: 'ready' }));
+  });
+
+  it('mixed PDF + JPG files in one notary folder — each downloaded/uploaded with its own correct MIME type', async () => {
+    const { mockFrom, mockList, mockDownload, mockUpload, mockUpsert, mockGetForStage } = await setup();
+    mockJobLookups(mockFrom, 2);
+    mockList.mockResolvedValueOnce([
+      { id: 'drive-1', name: '001_NOTARY.pdf' },
+      { id: 'drive-2', name: '002_NOTARY.jpg' },
+    ]);
+    mockGetForStage.mockResolvedValueOnce([]);
+    mockDownload.mockResolvedValue(Buffer.from('bytes'));
+    mockUpsert.mockResolvedValue({ ok: true });
+
+    const { syncResultFilesFromDrive } = await import('../result-file-sync');
+    const result = await syncResultFilesFromDrive({ jobId: 'job-1', stage: 'notary', driveFolderId: 'folder-1' });
+
+    expect(result).toEqual({ ok: true, groupsSynced: 2, fullyCovered: true });
+    expect(mockUpload).toHaveBeenCalledWith(expect.stringContaining('.pdf'), expect.any(Buffer), 'application/pdf');
+    expect(mockUpload).toHaveBeenCalledWith(expect.stringContaining('.jpg'), expect.any(Buffer), 'image/jpeg');
+  });
+
+  it('a changed file (same sequence, new Drive file id — staff re-uploaded a revised scan) re-downloads and upserts in place, never leaving two rows for the same sequence', async () => {
+    const { mockFrom, mockList, mockDownload, mockUpload, mockUpsert, mockGetForStage, mockDeleteByIds } = await setup();
+    mockJobLookups(mockFrom, 1);
+    mockList.mockResolvedValueOnce([{ id: 'drive-2-revised', name: '001_NOTARY.pdf' }]);
+    mockGetForStage.mockResolvedValueOnce([
+      { id: 'row-1', source_sequences: [1], status: 'ready', drive_file_id: 'drive-1-original' },
+    ]);
+    mockDownload.mockResolvedValue(Buffer.from('revised-bytes'));
+    mockUpsert.mockResolvedValue({ ok: true });
+
+    const { syncResultFilesFromDrive } = await import('../result-file-sync');
+    const result = await syncResultFilesFromDrive({ jobId: 'job-1', stage: 'notary', driveFolderId: 'folder-1' });
+
+    expect(result).toEqual({ ok: true, groupsSynced: 1, fullyCovered: true });
+    expect(mockDownload).toHaveBeenCalledWith('drive-2-revised');
+    expect(mockUpload).toHaveBeenCalledTimes(1);
+    // Same sequence key still exists in the current Drive listing, so it's an in-place
+    // upsert (unique constraint on job_id/stage/source_sequences), never a delete.
+    expect(mockDeleteByIds).not.toHaveBeenCalled();
+    expect(mockUpsert).toHaveBeenCalledWith(expect.objectContaining({ sourceSequences: [1], driveFileId: 'drive-2-revised', status: 'ready' }));
+  });
+});
+
+describe('syncResultFilesAndApplyCompletion — Notary completion side-effect', () => {
+  async function setup() {
+    const { supabase } = await import('../supabase');
+    const { listFilesInFolder, downloadFileFromDrive } = await import('../google-drive');
+    const { uploadFile } = await import('../r2');
+    const { upsertJobResultFile, getResultFilesForStage } = await import('../job-result-files');
+    return {
+      mockFrom: supabase.from as jest.Mock,
+      mockList: listFilesInFolder as jest.Mock,
+      mockDownload: downloadFileFromDrive as jest.Mock,
+      mockUpload: uploadFile as jest.Mock,
+      mockUpsert: upsertJobResultFile as jest.Mock,
+      mockGetForStage: getResultFilesForStage as jest.Mock,
+    };
+  }
+
+  /** The 4 supabase.from() calls that always happen for a successful notary sync +
+   * completion check: job_source_files count, jobs (document_id), documents (user_id)
+   * — all inside syncResultFilesFromDrive — then jobs (document_id, fulfillment_method)
+   * for the completion check itself. A 5th call (documents.update) only happens when
+   * fulfillment_method === 'pickup' — callers append that mock themselves. */
+  function mockSyncAndFulfillmentLookup(mockFrom: jest.Mock, mockList: jest.Mock, mockGetForStage: jest.Mock, mockDownload: jest.Mock, mockUpsert: jest.Mock, fulfillmentMethod: 'pickup' | 'delivery' | null) {
+    mockFrom
+      .mockReturnValueOnce(supabaseChain({ count: 1, error: null })) // job_source_files count
+      .mockReturnValueOnce(supabaseChain({ data: { document_id: 'doc-1' }, error: null })) // jobs (for user_id resolution)
+      .mockReturnValueOnce(supabaseChain({ data: { user_id: 'user-1' }, error: null })) // documents
+      .mockReturnValueOnce(supabaseChain({ data: { document_id: 'doc-1', fulfillment_method: fulfillmentMethod }, error: null })); // jobs (post-sync fulfillment lookup)
+    mockList.mockResolvedValueOnce([{ id: 'drive-1', name: '001_NOTARY.pdf' }]);
+    mockGetForStage.mockResolvedValueOnce([]);
+    mockDownload.mockResolvedValue(Buffer.from('pdf-bytes'));
+    mockUpsert.mockResolvedValue({ ok: true });
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('pickup fulfillment: successful sync completes the document (status set to completed)', async () => {
+    const { mockFrom, mockList, mockDownload, mockUpsert, mockGetForStage } = await setup();
+    mockSyncAndFulfillmentLookup(mockFrom, mockList, mockGetForStage, mockDownload, mockUpsert, 'pickup');
+    const updateSpy = jest.fn(() => ({ eq: jest.fn().mockResolvedValue({ error: null }) }));
+    mockFrom.mockReturnValueOnce({ update: updateSpy }); // 5th call: documents.update({status:'completed'})
+
+    const { syncResultFilesAndApplyCompletion } = await import('../result-file-sync');
+    const result = await syncResultFilesAndApplyCompletion({ jobId: 'job-1', stage: 'notary', driveFolderId: 'folder-1' });
+
+    expect(result.ok).toBe(true);
+    expect(updateSpy).toHaveBeenCalledWith({ status: 'completed' });
+  });
+
+  it('delivery fulfillment: successful sync does NOT complete the document — digital access already works via job_result_files, order stays open until syncDelivered', async () => {
+    const { mockFrom, mockList, mockDownload, mockUpsert, mockGetForStage } = await setup();
+    mockSyncAndFulfillmentLookup(mockFrom, mockList, mockGetForStage, mockDownload, mockUpsert, 'delivery');
+    // No 5th mockReturnValueOnce provided — if the code called .from('documents').update()
+    // here, it would receive `undefined` and throw, failing this test loudly.
+
+    const { syncResultFilesAndApplyCompletion } = await import('../result-file-sync');
+    const result = await syncResultFilesAndApplyCompletion({ jobId: 'job-1', stage: 'notary', driveFolderId: 'folder-1' });
+
+    expect(result.ok).toBe(true);
+    expect(mockFrom).toHaveBeenCalledTimes(4); // no 5th (completion) call made
+  });
+
+  it('no fulfillment method set (null): successful sync does NOT complete the document (same as delivery — only pickup completes here)', async () => {
+    const { mockFrom, mockList, mockDownload, mockUpsert, mockGetForStage } = await setup();
+    mockSyncAndFulfillmentLookup(mockFrom, mockList, mockGetForStage, mockDownload, mockUpsert, null);
+
+    const { syncResultFilesAndApplyCompletion } = await import('../result-file-sync');
+    const result = await syncResultFilesAndApplyCompletion({ jobId: 'job-1', stage: 'notary', driveFolderId: 'folder-1' });
+
+    expect(result.ok).toBe(true);
+    expect(mockFrom).toHaveBeenCalledTimes(4); // no 5th (completion) call made
+  });
+
+  it('sync failure (e.g. empty Drive folder): the completion side-effect is never attempted, and workflow_status is never touched by this module', async () => {
+    const { mockFrom, mockList } = await setup();
+    mockFrom
+      .mockReturnValueOnce(supabaseChain({ count: 1, error: null }))
+      .mockReturnValueOnce(supabaseChain({ data: { document_id: 'doc-1' }, error: null }))
+      .mockReturnValueOnce(supabaseChain({ data: { user_id: 'user-1' }, error: null }));
+    mockList.mockResolvedValueOnce([]); // empty folder — refuses to sync
+
+    const { syncResultFilesAndApplyCompletion } = await import('../result-file-sync');
+    const result = await syncResultFilesAndApplyCompletion({ jobId: 'job-1', stage: 'notary', driveFolderId: 'folder-1' });
+
+    expect(result.ok).toBe(false);
+    // Only the 3 lookups above happened — no further supabase.from() call for a
+    // fulfillment_method lookup or a documents/jobs update was ever made.
+    expect(mockFrom).toHaveBeenCalledTimes(3);
   });
 });

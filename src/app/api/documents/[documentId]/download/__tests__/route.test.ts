@@ -214,6 +214,56 @@ describe('multi-source jobs (job_source_files rows exist)', () => {
     expect(res.headers.get('Content-Disposition')).toBe('attachment; filename="Output.pdf"');
   });
 
+  it('notary — pickup fulfillment, fully synced → downloadable, identical to the delivery case above (fulfillment method never affects digital availability)', async () => {
+    mockFrom
+      .mockReturnValueOnce(chain({ data: { user_id: USER.id, filename: 'x.pdf', document_type: 'x' }, error: null }))
+      .mockReturnValueOnce(chain({ data: { id: 'job-1', workflow_status: 'notarized', service_level: 'notarization_through_partners', fulfillment_method: 'pickup' }, error: null }))
+      .mockReturnValueOnce(chain({ count: 1 }));
+    mockGetResultFilesStatus.mockResolvedValueOnce({
+      isMultiSource: true, hasReadyResultFiles: true,
+      readyFiles: [{ sequenceMin: 1, sourceSequences: [1], filename: '001_NOTARY.pdf', r2Key: 'results/notary/001.pdf' }],
+    });
+    mockDownloadFile.mockResolvedValueOnce(Buffer.from('pdf-bytes'));
+
+    const res = await callGET();
+    expect(res.status).toBe(200);
+    expect(mockDownloadFile).toHaveBeenCalledWith('results/notary/001.pdf');
+  });
+
+  it('notary — no fulfillment_method set (null), fully synced → still downloadable (digital access never depends on fulfillment method)', async () => {
+    mockFrom
+      .mockReturnValueOnce(chain({ data: { user_id: USER.id, filename: 'x.pdf', document_type: 'x' }, error: null }))
+      .mockReturnValueOnce(chain({ data: { id: 'job-1', workflow_status: 'notarized', service_level: 'notarization_through_partners', fulfillment_method: null }, error: null }))
+      .mockReturnValueOnce(chain({ count: 1 }));
+    mockGetResultFilesStatus.mockResolvedValueOnce({
+      isMultiSource: true, hasReadyResultFiles: true,
+      readyFiles: [{ sequenceMin: 1, sourceSequences: [1], filename: '001_NOTARY.pdf', r2Key: 'results/notary/001.pdf' }],
+    });
+    mockDownloadFile.mockResolvedValueOnce(Buffer.from('pdf-bytes'));
+
+    const res = await callGET();
+    expect(res.status).toBe(200);
+  });
+
+  it('notary — download stays available past notarized, through ready_for_delivery/out_for_delivery/delivered, once synced (never regresses)', async () => {
+    for (const ws of ['ready_for_delivery', 'out_for_delivery', 'delivered']) {
+      jest.clearAllMocks();
+      setAuth(USER);
+      mockFrom
+        .mockReturnValueOnce(chain({ data: { user_id: USER.id, filename: 'x.pdf', document_type: 'x' }, error: null }))
+        .mockReturnValueOnce(chain({ data: { id: 'job-1', workflow_status: ws, service_level: 'notarization_through_partners', fulfillment_method: 'delivery' }, error: null }))
+        .mockReturnValueOnce(chain({ count: 1 }));
+      mockGetResultFilesStatus.mockResolvedValueOnce({
+        isMultiSource: true, hasReadyResultFiles: true,
+        readyFiles: [{ sequenceMin: 1, sourceSequences: [1], filename: '001_NOTARY.pdf', r2Key: 'results/notary/001.pdf' }],
+      });
+      mockDownloadFile.mockResolvedValueOnce(Buffer.from('pdf-bytes'));
+
+      const res = await callGET();
+      expect(res.status).toBe(200);
+    }
+  });
+
   it('notary: not yet synced → 403, never falls back to serving anything', async () => {
     mockFrom
       .mockReturnValueOnce(chain({ data: { user_id: USER.id, filename: 'x.pdf', document_type: 'x' }, error: null }))
@@ -252,5 +302,16 @@ describe('auth/ownership (unchanged)', () => {
     mockFrom.mockReturnValueOnce(chain({ data: { user_id: 'someone-else', filename: 'x.pdf', document_type: 'x' }, error: null }));
     const res = await callGET();
     expect(res.status).toBe(403);
+  });
+
+  it('403 for another user\'s fully-synced, ready-to-download multi-source notary result — ownership is checked before the job/service-level/stage branch is ever reached, so a ready notary result never leaks across users', async () => {
+    mockFrom.mockReturnValueOnce(chain({ data: { user_id: 'someone-else', filename: 'x.pdf', document_type: 'x' }, error: null }));
+    // Deliberately do NOT queue a jobs/job_source_files/getResultFilesStatus mock —
+    // if ownership weren't checked first, the route would throw or 404 instead of a
+    // clean 403, so this also proves the multi-source branch is never reached.
+    const res = await callGET();
+    expect(res.status).toBe(403);
+    expect(mockGetResultFilesStatus).not.toHaveBeenCalled();
+    expect(mockDownloadFile).not.toHaveBeenCalled();
   });
 });
