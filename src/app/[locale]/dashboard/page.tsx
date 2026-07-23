@@ -10,7 +10,7 @@ import { createClient } from '@/lib/supabase/client';
 import { bucketOrders, visibleOrders } from '@/lib/translation-workflow/order-buckets';
 import { sortByCreatedAtDesc } from '@/lib/translation-workflow/order-sort';
 import { applyPolledOrderUpdate, needsLivePolling, type PolledOrderData } from '@/lib/translation-workflow/dashboard-polling';
-import { computeRetentionExpiry, isRetentionExpired } from '@/lib/translation-workflow/order-retention';
+import { computeRetentionExpiry, isRetentionExpired, applyFilesPurgedOverride } from '@/lib/translation-workflow/order-retention';
 import { OrderForm } from '@/components/order/OrderForm';
 
 interface OrderEntry {
@@ -48,6 +48,11 @@ interface OrderEntry {
   quoteRequiresOperatorReview: boolean;
   fiscalUrl: string | null;
   fiscalReceiptStatus: string | null;
+  /** 2026-07-24 retention fix: authoritative "files purged" timestamp from
+   * documents.files_purged_at (null until the 30-day retention cleanup has actually
+   * run), NOT a client-side createdAt+30-day estimate. Server also already forces
+   * canDownload=false once this is set — see /api/jobs/route.ts. */
+  filesPurgedAt: string | null;
 }
 
 
@@ -456,10 +461,23 @@ function HistoryRow({ entry, locale }: { entry: OrderEntry; locale: string }) {
   // retention/expiry information at all. `entry.priceKzt` is the final (post-discount)
   // price stored on jobs at order creation (see src/lib/order-drafts/service.ts) — the
   // amount actually charged, distinct from quoteAmountKzt which only applies to a
-  // still-pending quote. Retention expiry is DISPLAY ONLY — see order-retention.ts's
-  // doc comment for the known conflict with cleanup/route.ts's full-row deletion.
+  // still-pending quote.
+  //
+  // 2026-07-24 retention fix: `entry.filesPurgedAt` (from documents.files_purged_at)
+  // is now the AUTHORITATIVE "expired" signal — set only once retention cleanup has
+  // actually deleted the R2 objects, never a guess. The client-side date estimate
+  // (computeRetentionExpiry/isRetentionExpired, from order-retention.ts) is used only
+  // to display "available until X" BEFORE that has happened — it is never used to
+  // decide whether a download is offered (the server already forces canDownload:false
+  // once filesPurgedAt is set — see /api/jobs/route.ts).
+  // Only shown for orders that actually produced a result at some point (same status
+  // set StatusBadge treats as "successful") — a canceled/refunded/failed order never
+  // had a file to expire, so it never shows the retention message, purged or not.
+  const hadResult = entry.customerStatus === 'completed' || entry.customerStatus === 'delivered'
+    || entry.customerStatus === 'picked_up' || entry.customerStatus === 'ready_for_delivery';
+  const purged = hadResult && entry.filesPurgedAt != null;
   const expiry = computeRetentionExpiry(entry.createdAt);
-  const expired = isRetentionExpired(entry.createdAt);
+  const estimatedExpiredSoon = isRetentionExpired(entry.createdAt);
   const formattedExpiry = expiry.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
 
   return (
@@ -473,25 +491,23 @@ function HistoryRow({ entry, locale }: { entry: OrderEntry; locale: string }) {
           {new Date(entry.createdAt).toLocaleDateString(locale)}
           {entry.priceKzt != null && <> · {entry.priceKzt.toLocaleString(locale)} ₸</>}
         </span>
-        {entry.canDownload && !expired && (
+        {entry.canDownload && !purged && !estimatedExpiredSoon && (
           <span className="text-xs text-muted-foreground/60">{t('historyAvailableUntil', { date: formattedExpiry })}</span>
         )}
       </div>
       <div className="ml-4 flex shrink-0 flex-wrap items-center gap-2">
         <StatusBadge customerStatus={entry.customerStatus} />
-        {entry.canDownload && (
-          expired ? (
-            <span className="text-xs text-muted-foreground/60">{t('historyRetentionExpired')}</span>
-          ) : (
-            <a
-              href={`/api/documents/${entry.documentId}/download`}
-              className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-foreground transition-colors hover:border-white/20 hover:bg-white/10"
-            >
-              <Download className="h-3 w-3" />
-              {t('download')}
-            </a>
-          )
-        )}
+        {purged ? (
+          <span className="text-xs text-muted-foreground/60">{t('historyRetentionExpired')}</span>
+        ) : entry.canDownload ? (
+          <a
+            href={`/api/documents/${entry.documentId}/download`}
+            className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-foreground transition-colors hover:border-white/20 hover:bg-white/10"
+          >
+            <Download className="h-3 w-3" />
+            {t('download')}
+          </a>
+        ) : null}
         <FiscalReceiptLink fiscalUrl={entry.fiscalUrl} fiscalReceiptStatus={entry.fiscalReceiptStatus} />
       </div>
     </div>
@@ -526,8 +542,13 @@ export default function DashboardPage() {
   // src/lib/translation-workflow/order-buckets.ts and its __tests__.
   // visibleOrders() (active+ready, sorted by created_at DESC — 2026-08-03 fix) is
   // what's actually rendered; historyOrders keeps its own separate section/order.
-  const visible = visibleOrders(orders);
-  const { historyOrders } = bucketOrders(orders);
+  //
+  // 2026-07-24 retention fix: once a purged order's files are gone, it must migrate
+  // out of the active/ready section into history — see applyFilesPurgedOverride's
+  // doc comment (src/lib/translation-workflow/order-retention.ts).
+  const bucketableOrders = applyFilesPurgedOverride(orders);
+  const visible = visibleOrders(bucketableOrders);
+  const { historyOrders } = bucketOrders(bucketableOrders);
 
   // ─── Load all orders from API (source of truth) ──────────────────────────────
 

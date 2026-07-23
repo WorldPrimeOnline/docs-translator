@@ -7,7 +7,7 @@ import { processPendingFiscalReceipts } from './lib/fiscal-processor';
 import { diagnoseWebkassaConnectivity } from './lib/webkassa-client';
 import { logDriveAuthModeWithHealthCheck } from './lib/google-drive';
 import { reconcilePendingPriceBreakdownIssues, reconcileMissingJiraIssues, reconcileMissingPartnerIds } from './lib/integrations';
-import { reconcileResultFileSyncs } from './lib/result-file-sync';
+import { reconcileResultFileSyncs, reconcileNotaryResultFileSync } from './lib/result-file-sync';
 
 // ── State ──────────────────────────────────────────────────────────────────
 let running = false;   // true while we are processing a job
@@ -326,12 +326,11 @@ async function main(): Promise<void> {
   // Reconcile pending/failed Drive→R2 result-file syncs (signature_stamp/notary,
   // 2026-08-01 multi-file fulfillment decision) every 3 minutes — deliberately much
   // shorter than the ops-repair reconcilers above, since this one gates a real
-  // customer-facing download. 2026-08-23 correction: this reconciler is the ONLY
-  // trigger today — the Jira webhook route does not call the sync (see the doc
-  // comment on syncResultFilesFromDrive in ./lib/result-file-sync.ts for the full
-  // explanation); an earlier version of this comment claimed otherwise. Worst-case
-  // latency from the Jira event to a synced, downloadable file is one cycle of this
-  // interval. Startup run recovers anything left pending from a worker restart.
+  // customer-facing download. This reconciler (plus the notary-only fast sweep right
+  // below it) is the ONLY trigger — the Jira webhook route never calls the sync
+  // itself (see the doc comment on syncResultFilesFromDrive in
+  // ./lib/result-file-sync.ts). Startup run recovers anything left pending from a
+  // worker restart.
   const RESULT_SYNC_RECONCILE_INTERVAL_MS = 3 * 60 * 1000;
   void reconcileResultFileSyncs().catch((err: unknown) => {
     console.error('[worker] result-file-sync reconciliation startup error:', (err as Error).message);
@@ -341,6 +340,20 @@ async function main(): Promise<void> {
       console.error('[worker] result-file-sync reconciliation error:', (err as Error).message);
     });
   }, RESULT_SYNC_RECONCILE_INTERVAL_MS);
+
+  // 2026-07-24 SLA fix: notary specifically must go from "file lands in 05_NOTARY"
+  // to "visible in the customer's account" within ≤60s. Every 30s leaves a full 30s
+  // margin under that target even accounting for the sync itself — see
+  // reconcileNotaryResultFileSync()'s doc comment (./lib/result-file-sync.ts) for why
+  // this is scoped to notary only (no SLA was requested for signature_stamp/Official)
+  // and why running notary through both this and the general 3-minute sweep above is
+  // safe (same idempotent sync function, redundant passes are a no-op).
+  const NOTARY_RESULT_SYNC_INTERVAL_MS = 30 * 1000;
+  setInterval(() => {
+    void reconcileNotaryResultFileSync().catch((err: unknown) => {
+      console.error('[worker] notary result-sync reconciliation error:', (err as Error).message);
+    });
+  }, NOTARY_RESULT_SYNC_INTERVAL_MS);
 }
 
 void main();

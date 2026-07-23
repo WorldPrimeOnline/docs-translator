@@ -109,3 +109,60 @@ describe('createOrderFolder — idempotency', () => {
     expect(result).toBeNull();
   });
 });
+
+describe('trashOrderFolder (2026-07-24 retention cleanup)', () => {
+  it('PATCHes the folder with trashed:true and returns true on success', async () => {
+    const fetchMock = global.fetch as jest.Mock;
+    fetchMock.mockResolvedValueOnce(makeTokenResponse());
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ id: FOLDER_ID, trashed: true }) });
+
+    const { trashOrderFolder } = await import('../client');
+    const result = await trashOrderFolder(FOLDER_ID);
+
+    expect(result).toBe(true);
+    const [url, opts] = fetchMock.mock.calls[1] as [string, RequestInit];
+    expect(String(url)).toContain(`/files/${FOLDER_ID}`);
+    expect(opts.method).toBe('PATCH');
+    expect(JSON.parse(opts.body as string)).toEqual({ trashed: true });
+  });
+
+  it('never enumerates individual files — exactly one PATCH call to the folder itself, regardless of what it contains', async () => {
+    const fetchMock = global.fetch as jest.Mock;
+    fetchMock.mockResolvedValueOnce(makeTokenResponse());
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ id: FOLDER_ID }) });
+
+    const { trashOrderFolder } = await import('../client');
+    await trashOrderFolder(FOLDER_ID);
+
+    // Token request + exactly one folder PATCH — no /files list/search call.
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('returns false (never throws) on an API error response', async () => {
+    const fetchMock = global.fetch as jest.Mock;
+    fetchMock.mockResolvedValueOnce(makeTokenResponse());
+    fetchMock.mockResolvedValueOnce({ ok: false, status: 404, text: async () => 'Not Found' });
+
+    const { trashOrderFolder } = await import('../client');
+    await expect(trashOrderFolder(FOLDER_ID)).resolves.toBe(false);
+  });
+
+  it('returns false (never throws) on a network failure', async () => {
+    const fetchMock = global.fetch as jest.Mock;
+    fetchMock.mockRejectedValueOnce(new Error('network down'));
+
+    const { trashOrderFolder } = await import('../client');
+    await expect(trashOrderFolder(FOLDER_ID)).resolves.toBe(false);
+  });
+
+  it('returns false without any network call when Drive is not configured', async () => {
+    delete process.env.GOOGLE_CLIENT_ID;
+    const fetchMock = global.fetch as jest.Mock;
+
+    const { trashOrderFolder } = await import('../client');
+    const result = await trashOrderFolder(FOLDER_ID);
+
+    expect(result).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});

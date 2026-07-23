@@ -5,21 +5,25 @@
  * R2, and upserts job_result_files — never exposing a raw Drive link or a partial/
  * inconsistent result set to the customer.
  *
- * 2026-08-23 correction: the sole current trigger is reconcileResultFileSyncs()
- * (worker/src/index.ts periodic interval, every RESULT_SYNC_RECONCILE_INTERVAL_MS —
- * currently 3 minutes — plus once at worker startup). An earlier version of this
- * comment claimed the Jira webhook route (src/app/api/webhooks/jira/route.ts) also
- * calls this best-effort right after the workflow_status transition; that was never
- * actually wired up (the webhook route only calls syncNotaryDone()/syncSignatureStamp
- * equivalents, which set workflow_status and notify staff — nothing in the web app
- * has Drive/R2 access, and the worker exposes no HTTP endpoint for the web app to
- * call). Worst-case latency from Jira event to a customer-visible ready file is
- * therefore one reconciler cycle (≤3 minutes), not "immediate". This is still far
- * faster than waiting for courier delivery or Jira ticket closure, so it satisfies
- * the "no waiting on courier/Jira" requirement — see docs/ai-context/DECISIONS.md.
- * If sub-3-minute latency is ever required, shorten
- * RESULT_SYNC_RECONCILE_INTERVAL_MS rather than adding a new synchronous
- * web→worker call.
+ * Trigger mechanism: the Jira webhook route (src/app/api/webhooks/jira/route.ts)
+ * only calls syncNotaryDone()/syncSignatureStamp equivalents, which set
+ * workflow_status and notify staff — nothing in the web app has Drive/R2 access, and
+ * the worker exposes no HTTP endpoint for the web app to call. The actual Drive
+ * read-back always runs from this module's own periodic sweeps in
+ * worker/src/index.ts, never synchronously from the webhook (explicit requirement —
+ * a Jira Automation webhook must never block on Drive/R2 round-trips).
+ *
+ * 2026-07-24 SLA fix: signature_stamp (Official) keeps the general
+ * reconcileResultFileSyncs() sweep at RESULT_SYNC_RECONCILE_INTERVAL_MS (3 minutes,
+ * unchanged — no SLA was requested for it). Notary now ALSO gets
+ * reconcileNotaryResultFileSync(), a notary-only sweep run every
+ * NOTARY_RESULT_SYNC_INTERVAL_MS (30s) to satisfy a ≤60s "file ready in Drive →
+ * visible in the customer's account" target: worst case is one 30s tick plus the
+ * sync itself (typically well under a second for a handful of files), comfortably
+ * under 60s. Both sweeps call the exact same idempotent syncResultFilesAndApplyCompletion()
+ * — running notary through both on overlapping schedules is harmless by
+ * construction (isStageAlreadySynced()/the upsert-by-(job,stage,source_sequences)
+ * skip-when-unchanged logic already make a redundant pass a no-op).
  */
 import { supabase } from './supabase';
 import { listFilesInFolder, downloadFileFromDrive, getSubfolderId, DRIVE_SUBFOLDER_NAMES } from './google-drive';
@@ -260,46 +264,82 @@ async function findCandidates(stage: ResultSyncStage, serviceLevel: string, stat
   return (data ?? []) as ResultSyncCandidate[];
 }
 
+interface StageSweepConfig {
+  stage: ResultSyncStage;
+  serviceLevel: string;
+  statuses: string[];
+  subfolder: string;
+}
+
+const SIGNATURE_STAMP_SWEEP: StageSweepConfig = {
+  stage: 'signature_stamp',
+  serviceLevel: 'official_with_translator_signature_and_provider_stamp',
+  statuses: OFFICIAL_TRIGGER_STATUSES,
+  subfolder: DRIVE_SUBFOLDER_NAMES.signatureStamp,
+};
+
+const NOTARY_SWEEP: StageSweepConfig = {
+  stage: 'notary',
+  serviceLevel: 'notarization_through_partners',
+  statuses: NOTARY_TRIGGER_STATUSES,
+  subfolder: DRIVE_SUBFOLDER_NAMES.notary,
+};
+
 /**
- * Periodic sweep — the Jira webhook triggers a best-effort sync attempt right after
- * the relevant transition, but a Jira status can arrive before the file has finished
- * uploading in Drive (or the webhook attempt can simply fail transiently). This
- * reconciler retries every candidate whose stage isn't yet fully covered by 'ready'
- * job_result_files rows, matching the existing reconcileMissingJiraIssues()/
- * reconcilePendingPriceBreakdownIssues() pattern in worker/src/index.ts.
+ * One reconciler pass for a single stage — retries every candidate whose stage isn't
+ * yet fully covered by 'ready' job_result_files rows. Shared by both
+ * reconcileResultFileSyncs() (all stages, 3-minute cadence) and
+ * reconcileNotaryResultFileSync() (notary only, 30s cadence) — see this file's top
+ * doc comment for why notary gets its own faster sweep.
+ */
+async function reconcileStage({ stage, serviceLevel, statuses, subfolder }: StageSweepConfig, maxItemsPerCycle: number): Promise<void> {
+  const candidates = await findCandidates(stage, serviceLevel, statuses, maxItemsPerCycle);
+  if (candidates.length === 0) return;
+
+  for (const job of candidates) {
+    try {
+      if (await isStageAlreadySynced(job.id, stage)) continue;
+      if (!job.google_drive_folder_id) continue;
+
+      const folderId = await getSubfolderId(job.google_drive_folder_id, subfolder);
+      if (!folderId) {
+        console.error(`[result-sync-reconcile] job ${job.id.slice(0, 8)}: ${subfolder} subfolder not found`);
+        continue;
+      }
+
+      const result = await syncResultFilesAndApplyCompletion({ jobId: job.id, stage, driveFolderId: folderId });
+      if (result.ok) {
+        console.log(`[result-sync-reconcile] ✓ job ${job.id.slice(0, 8)} [${stage}] synced (${result.groupsSynced} group(s))`);
+      } else {
+        console.warn(`[result-sync-reconcile] job ${job.id.slice(0, 8)} [${stage}] still not ready: ${result.reason}`);
+      }
+    } catch (err) {
+      console.error(`[result-sync-reconcile] job ${job.id.slice(0, 8)} [${stage}] unexpected error (non-fatal):`, err instanceof Error ? err.message : String(err));
+    }
+  }
+}
+
+/**
+ * Periodic sweep, all stages — matches the existing reconcileMissingJiraIssues()/
+ * reconcilePendingPriceBreakdownIssues() pattern in worker/src/index.ts. Run every
+ * RESULT_SYNC_RECONCILE_INTERVAL_MS (3 minutes) plus once at worker startup.
  */
 export async function reconcileResultFileSyncs(): Promise<void> {
   const maxItemsPerCycle = getResultSyncMaxItemsPerCycle();
+  await reconcileStage(SIGNATURE_STAMP_SWEEP, maxItemsPerCycle);
+  await reconcileStage(NOTARY_SWEEP, maxItemsPerCycle);
+}
 
-  const jobsToCheck = [
-    { stage: 'signature_stamp' as const, serviceLevel: 'official_with_translator_signature_and_provider_stamp', statuses: OFFICIAL_TRIGGER_STATUSES, subfolder: DRIVE_SUBFOLDER_NAMES.signatureStamp },
-    { stage: 'notary' as const, serviceLevel: 'notarization_through_partners', statuses: NOTARY_TRIGGER_STATUSES, subfolder: DRIVE_SUBFOLDER_NAMES.notary },
-  ];
-
-  for (const { stage, serviceLevel, statuses, subfolder } of jobsToCheck) {
-    const candidates = await findCandidates(stage, serviceLevel, statuses, maxItemsPerCycle);
-    if (candidates.length === 0) continue;
-
-    for (const job of candidates) {
-      try {
-        if (await isStageAlreadySynced(job.id, stage)) continue;
-        if (!job.google_drive_folder_id) continue;
-
-        const folderId = await getSubfolderId(job.google_drive_folder_id, subfolder);
-        if (!folderId) {
-          console.error(`[result-sync-reconcile] job ${job.id.slice(0, 8)}: ${subfolder} subfolder not found`);
-          continue;
-        }
-
-        const result = await syncResultFilesAndApplyCompletion({ jobId: job.id, stage, driveFolderId: folderId });
-        if (result.ok) {
-          console.log(`[result-sync-reconcile] ✓ job ${job.id.slice(0, 8)} [${stage}] synced (${result.groupsSynced} group(s))`);
-        } else {
-          console.warn(`[result-sync-reconcile] job ${job.id.slice(0, 8)} [${stage}] still not ready: ${result.reason}`);
-        }
-      } catch (err) {
-        console.error(`[result-sync-reconcile] job ${job.id.slice(0, 8)} [${stage}] unexpected error (non-fatal):`, err instanceof Error ? err.message : String(err));
-      }
-    }
-  }
+/**
+ * 2026-07-24 SLA fix: notary-only sweep, run every NOTARY_RESULT_SYNC_INTERVAL_MS
+ * (30s, see worker/src/index.ts) so a file that lands in 05_NOTARY after
+ * NOTARY_COMPLETED becomes visible to the customer within ≤60s worst case, instead
+ * of waiting for the general 3-minute sweep. Deliberately does not touch
+ * signature_stamp — no faster SLA was requested for Official, and reusing the same
+ * reconcileStage() means notary gets identical idempotency/error-handling guarantees
+ * on both the fast and slow sweep.
+ */
+export async function reconcileNotaryResultFileSync(): Promise<void> {
+  const maxItemsPerCycle = getResultSyncMaxItemsPerCycle();
+  await reconcileStage(NOTARY_SWEEP, maxItemsPerCycle);
 }

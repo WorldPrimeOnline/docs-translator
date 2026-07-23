@@ -1,11 +1,11 @@
 /**
  * 2026-07-23 dashboard task: history rows previously showed no retention/expiry
  * information at all. These are pure unit tests for the display-only retention
- * helpers — see order-retention.ts's doc comment for the known conflict with
- * cleanup/route.ts's full-`documents`-row deletion (not resolved here, flagged
- * in the task report as a product/eng decision).
+ * helpers. 2026-07-24: the metadata-preserving cleanup fix (migration 0066) resolved
+ * the previously-flagged documents-row-deletion conflict — see order-retention.ts's
+ * updated doc comment — and added applyFilesPurgedOverride(), tested below.
  */
-import { HISTORY_RETENTION_DAYS, computeRetentionExpiry, isRetentionExpired } from '../order-retention';
+import { HISTORY_RETENTION_DAYS, computeRetentionExpiry, isRetentionExpired, applyFilesPurgedOverride } from '../order-retention';
 
 describe('computeRetentionExpiry', () => {
   it('adds HISTORY_RETENTION_DAYS (30) days to createdAt by default', () => {
@@ -56,5 +56,34 @@ describe('isRetentionExpired', () => {
     expect(isRetentionExpired(longAgo)).toBe(true);
     const justNow = new Date().toISOString();
     expect(isRetentionExpired(justNow)).toBe(false);
+  });
+});
+
+describe('applyFilesPurgedOverride (2026-07-24)', () => {
+  function order(overrides: { isActive: boolean; filesPurgedAt: string | null; id: string }) {
+    return { documentId: overrides.id, isActive: overrides.isActive, filesPurgedAt: overrides.filesPurgedAt };
+  }
+
+  it('forces isActive:false for a purged order, regardless of its original isActive value', () => {
+    const results = applyFilesPurgedOverride([order({ id: 'a', isActive: true, filesPurgedAt: '2026-07-01T00:00:00Z' })]);
+    expect(results[0]!.isActive).toBe(false);
+  });
+
+  it('leaves a non-purged order completely unchanged', () => {
+    const input = order({ id: 'a', isActive: true, filesPurgedAt: null });
+    const [result] = applyFilesPurgedOverride([input]);
+    expect(result).toEqual(input);
+  });
+
+  it('a mixed list: only the purged order flips to isActive:false, others are untouched', () => {
+    const active = order({ id: 'active', isActive: true, filesPurgedAt: null });
+    const purgedButWasActive = order({ id: 'purged', isActive: true, filesPurgedAt: '2026-06-01T00:00:00Z' });
+    const alreadyInactive = order({ id: 'inactive', isActive: false, filesPurgedAt: null });
+
+    const result = applyFilesPurgedOverride([active, purgedButWasActive, alreadyInactive]);
+
+    expect(result.find((o) => o.documentId === 'active')!.isActive).toBe(true);
+    expect(result.find((o) => o.documentId === 'purged')!.isActive).toBe(false);
+    expect(result.find((o) => o.documentId === 'inactive')!.isActive).toBe(false);
   });
 });

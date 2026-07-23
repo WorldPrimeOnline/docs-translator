@@ -315,3 +315,44 @@ describe('auth/ownership (unchanged)', () => {
     expect(mockDownloadFile).not.toHaveBeenCalled();
   });
 });
+
+describe('retention expiry (2026-07-24) — documents.files_purged_at', () => {
+  it('a purged document returns 410 RETENTION_EXPIRED immediately after ownership, before the job/service-level/multi-source branch', async () => {
+    mockFrom.mockReturnValueOnce(chain({
+      data: { user_id: USER.id, filename: 'x.pdf', document_type: 'x', files_purged_at: '2026-06-01T00:00:00.000Z' },
+      error: null,
+    }));
+
+    const res = await callGET();
+    const body = await res.json();
+
+    expect(res.status).toBe(410);
+    expect(body).toEqual({ error: 'RETENTION_EXPIRED', filesPurgedAt: '2026-06-01T00:00:00.000Z' });
+    expect(mockGetResultFilesStatus).not.toHaveBeenCalled();
+    expect(mockDownloadFile).not.toHaveBeenCalled();
+  });
+
+  it('a non-purged document (files_purged_at null) is unaffected — falls through to the normal path', async () => {
+    mockFrom
+      .mockReturnValueOnce(chain({ data: { user_id: USER.id, filename: 'passport.pdf', document_type: 'passport_id', files_purged_at: null }, error: null }))
+      .mockReturnValueOnce(chain({ data: { id: 'job-1', workflow_status: null, service_level: 'electronic', fulfillment_method: null }, error: null }))
+      .mockReturnValueOnce(chain({ count: 0 }))
+      .mockReturnValueOnce(chain({ data: { translated_pdf_key: 'k' }, error: null }));
+    mockDownloadFile.mockResolvedValueOnce(Buffer.from('bytes'));
+
+    const res = await callGET();
+    expect(res.status).toBe(200);
+  });
+
+  it('a purged notary result — even if job_result_files rows were somehow left behind — never leaks a download: retention check runs before the multi-source branch', async () => {
+    mockFrom.mockReturnValueOnce(chain({
+      data: { user_id: USER.id, filename: 'x.pdf', document_type: 'x', files_purged_at: '2026-06-01T00:00:00.000Z' },
+      error: null,
+    }));
+
+    const res = await callGET();
+    expect(res.status).toBe(410);
+    // job_source_files count / getResultFilesStatus never reached.
+    expect(mockGetResultFilesStatus).not.toHaveBeenCalled();
+  });
+});

@@ -28,12 +28,26 @@ export async function GET(): Promise<NextResponse> {
   const user = await getAuthUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  interface DocRow {
+    id: string;
+    filename: string;
+    source_language: string;
+    target_language: string;
+    document_type: string;
+    status: string;
+    created_at: string;
+    updated_at: string;
+    /** 2026-07-24 retention fix — see supabase/migrations/0066. Not yet in generated types. */
+    files_purged_at: string | null;
+  }
+
   // Fetch all documents for this user (source of truth for ownership)
-  const { data: docs } = await supabaseServer
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: docs } = await (supabaseServer as any)
     .from('documents')
-    .select('id, filename, source_language, target_language, document_type, status, created_at, updated_at')
+    .select('id, filename, source_language, target_language, document_type, status, created_at, updated_at, files_purged_at')
     .eq('user_id', user.id)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false }) as { data: DocRow[] | null };
 
   if (!docs || docs.length === 0) {
     return NextResponse.json({ jobs: [] });
@@ -192,7 +206,14 @@ export async function GET(): Promise<NextResponse> {
       // see src/lib/translation-workflow/order-sort.ts.
       sortCreatedAt: job?.created_at ?? doc.created_at,
       customerStatus: state?.customerStatus ?? null,
-      canDownload: state?.canDownload ?? false,
+      // 2026-07-24 retention fix: once retention cleanup has purged this document's
+      // R2 objects, download must never be offered — regardless of what the
+      // customer-order-state gate would otherwise say (it has no knowledge of R2
+      // object existence, only DB-derived readiness signals). filesPurgedAt is the
+      // sole authoritative "expired" signal for the dashboard, distinct from any
+      // client-side createdAt+30-day estimate.
+      canDownload: doc.files_purged_at ? false : (state?.canDownload ?? false),
+      filesPurgedAt: doc.files_purged_at ?? null,
       isActive: state?.isActive ?? false,
       isTerminal: state?.isTerminal ?? true,
       stages: state?.stages ?? [],

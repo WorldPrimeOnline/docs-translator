@@ -72,14 +72,24 @@ export async function GET(
 
   const { documentId } = await params;
 
-  const { data: doc, error: docError } = await supabaseServer
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: doc, error: docError } = await (supabaseServer as any)
     .from('documents')
-    .select('user_id, filename, document_type')
+    .select('user_id, filename, document_type, files_purged_at')
     .eq('id', documentId)
     .single();
 
   if (docError || !doc) return NextResponse.json({ error: 'Document not found' }, { status: 404 });
   if (doc.user_id !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
+  // 2026-07-24 retention fix: once retention cleanup has purged this document's R2
+  // objects (documents.files_purged_at), the underlying files are gone regardless of
+  // service level or single-vs-multi-source path — check this FIRST, before any other
+  // branch below, so the customer gets a clean "retention period expired" response
+  // instead of a broken/502 download attempt against a deleted R2 object.
+  if (doc.files_purged_at) {
+    return NextResponse.json({ error: 'RETENTION_EXPIRED', filesPurgedAt: doc.files_purged_at }, { status: 410 });
+  }
 
   const { data: job } = await supabaseServer
     .from('jobs')

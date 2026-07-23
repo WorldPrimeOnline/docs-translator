@@ -29,7 +29,7 @@ jest.mock('../job-result-files', () => ({
 
 function supabaseChain(result: { data?: unknown; error?: unknown; count?: number }) {
   const c: Record<string, unknown> = {};
-  const methods = ['select', 'eq', 'in'];
+  const methods = ['select', 'eq', 'in', 'not', 'limit'];
   for (const m of methods) c[m] = jest.fn(() => c);
   c.single = jest.fn(() => Promise.resolve(result));
   c.then = (resolve: (v: unknown) => unknown) => Promise.resolve(result).then(resolve);
@@ -351,5 +351,100 @@ describe('syncResultFilesAndApplyCompletion — Notary completion side-effect', 
     // Only the 3 lookups above happened — no further supabase.from() call for a
     // fulfillment_method lookup or a documents/jobs update was ever made.
     expect(mockFrom).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe('reconcileNotaryResultFileSync — 2026-07-24 SLA fix (notary-only fast sweep)', () => {
+  async function setup() {
+    const { supabase } = await import('../supabase');
+    const { listFilesInFolder, downloadFileFromDrive, getSubfolderId } = await import('../google-drive');
+    const { uploadFile } = await import('../r2');
+    const { upsertJobResultFile, getResultFilesForStage } = await import('../job-result-files');
+    return {
+      mockFrom: supabase.from as jest.Mock,
+      mockList: listFilesInFolder as jest.Mock,
+      mockDownload: downloadFileFromDrive as jest.Mock,
+      mockUpload: uploadFile as jest.Mock,
+      mockGetSubfolderId: getSubfolderId as jest.Mock,
+      mockUpsert: upsertJobResultFile as jest.Mock,
+      mockGetForStage: getResultFilesForStage as jest.Mock,
+    };
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('queries jobs scoped to notary only (service_level=notarization_through_partners) — never signature_stamp/Official', async () => {
+    const { mockFrom } = await setup();
+    const candidatesChain = supabaseChain({ data: [], error: null });
+    mockFrom.mockReturnValueOnce(candidatesChain);
+
+    const { reconcileNotaryResultFileSync } = await import('../result-file-sync');
+    await reconcileNotaryResultFileSync();
+
+    expect(candidatesChain.eq).toHaveBeenCalledWith('service_level', 'notarization_through_partners');
+    expect(candidatesChain.eq).not.toHaveBeenCalledWith('service_level', 'official_with_translator_signature_and_provider_stamp');
+    // Exactly one supabase call — no candidates, nothing further attempted.
+    expect(mockFrom).toHaveBeenCalledTimes(1);
+  });
+
+  it('no candidates: a cheap no-op, no Drive/R2 calls at all', async () => {
+    const { mockFrom, mockList, mockDownload } = await setup();
+    mockFrom.mockReturnValueOnce(supabaseChain({ data: [], error: null }));
+
+    const { reconcileNotaryResultFileSync } = await import('../result-file-sync');
+    await reconcileNotaryResultFileSync();
+
+    expect(mockList).not.toHaveBeenCalled();
+    expect(mockDownload).not.toHaveBeenCalled();
+  });
+
+  it('a candidate already fully synced is skipped — no duplicate Drive read-back, no duplicate job_result_files write', async () => {
+    const { mockFrom, mockList, mockGetForStage } = await setup();
+    mockFrom
+      .mockReturnValueOnce(supabaseChain({ data: [{ id: 'job-1', google_drive_folder_id: 'folder-1' }], error: null })) // findCandidates
+      .mockReturnValueOnce(supabaseChain({ count: 1, error: null })); // isStageAlreadySynced: job_source_files count
+    mockGetForStage.mockResolvedValueOnce([{ id: 'row-1', source_sequences: [1], status: 'ready' }]); // fully covered already
+
+    const { reconcileNotaryResultFileSync } = await import('../result-file-sync');
+    await reconcileNotaryResultFileSync();
+
+    expect(mockList).not.toHaveBeenCalled();
+    // Only the 2 lookups above — never reached getSubfolderId/syncResultFilesAndApplyCompletion.
+    expect(mockFrom).toHaveBeenCalledTimes(2);
+  });
+
+  it('end-to-end: NOTARY_COMPLETED-equivalent candidate (workflow_status=notarized, not yet synced) → Drive read-back → R2 upload → job_result_files ready — the exact chain the customer download route depends on', async () => {
+    const { mockFrom, mockList, mockDownload, mockUpload, mockGetSubfolderId, mockUpsert, mockGetForStage } = await setup();
+
+    mockFrom
+      .mockReturnValueOnce(supabaseChain({ data: [{ id: 'job-1', google_drive_folder_id: 'drive-folder-root' }], error: null })) // findCandidates
+      .mockReturnValueOnce(supabaseChain({ count: 1, error: null })) // isStageAlreadySynced: job_source_files count
+      .mockReturnValueOnce(supabaseChain({ count: 1, error: null })) // syncResultFilesFromDrive's own job_source_files count
+      .mockReturnValueOnce(supabaseChain({ data: { document_id: 'doc-1' }, error: null })) // jobs (document_id)
+      .mockReturnValueOnce(supabaseChain({ data: { user_id: 'user-1' }, error: null })) // documents (user_id)
+      .mockReturnValueOnce(supabaseChain({ data: { document_id: 'doc-1', fulfillment_method: 'delivery' }, error: null })); // completion check
+
+    mockGetForStage
+      .mockResolvedValueOnce([]) // isStageAlreadySynced sees nothing yet -> not synced
+      .mockResolvedValueOnce([]); // syncResultFilesFromDrive's own existing-rows lookup
+
+    mockGetSubfolderId.mockResolvedValueOnce('notary-subfolder-id');
+    mockList.mockResolvedValueOnce([{ id: 'drive-file-1', name: '001_NOTARY.pdf' }]);
+    mockDownload.mockResolvedValueOnce(Buffer.from('notarized-pdf-bytes'));
+    mockUpsert.mockResolvedValueOnce({ ok: true });
+
+    const { reconcileNotaryResultFileSync } = await import('../result-file-sync');
+    await reconcileNotaryResultFileSync();
+
+    expect(mockGetSubfolderId).toHaveBeenCalledWith('drive-folder-root', '05_NOTARY');
+    expect(mockDownload).toHaveBeenCalledWith('drive-file-1');
+    expect(mockUpload).toHaveBeenCalledTimes(1);
+    // This is the row getResultFilesStatus()/canCustomerDownload() reads to grant a
+    // ready-to-download notary result — the whole point of the fast reconciler.
+    expect(mockUpsert).toHaveBeenCalledWith(expect.objectContaining({
+      jobId: 'job-1', stage: 'notary', sourceSequences: [1], status: 'ready', driveFileId: 'drive-file-1',
+    }));
   });
 });
