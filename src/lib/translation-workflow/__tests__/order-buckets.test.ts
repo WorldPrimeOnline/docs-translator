@@ -211,3 +211,59 @@ describe('6. visibleOrders — created_at DESC ordering (2026-08-03 dashboard-or
     expect(visible.map((o) => o.documentId).indexOf('newer-completed')).toBeLessThan(visible.map((o) => o.documentId).indexOf('older'));
   });
 });
+
+describe('7. closed/terminal-non-downloadable orders land in historyOrders only (2026-07-23 dashboard task)', () => {
+  // A closed order (canceled/refunded/declined) must always be reachable in historyOrders,
+  // never silently dropped, and must never leak into activeOrders (the section rendered as
+  // "in progress") or readyOrders (which implies a download button is shown).
+  const closedCases: Array<{
+    name: string;
+    input: Parameters<typeof getCustomerOrderState>[0];
+  }> = [
+    { name: 'canceled electronic order', input: { jobStatus: 'canceled', progressPercent: 0, workflowStatus: null, serviceLevel: 'electronic' } },
+    { name: 'refunded electronic order', input: { jobStatus: 'refunded', progressPercent: 0, workflowStatus: null, serviceLevel: 'electronic' } },
+    { name: 'failed electronic order', input: { jobStatus: 'failed', progressPercent: 0, workflowStatus: null, serviceLevel: 'electronic' } },
+    { name: 'translator-declined certified order', input: { jobStatus: 'completed', progressPercent: 100, workflowStatus: 'translator_declined', serviceLevel: 'official_with_translator_signature_and_provider_stamp' } },
+    { name: 'notary-declined notarized order', input: { jobStatus: 'completed', progressPercent: 100, workflowStatus: 'notary_declined', serviceLevel: 'notarization_through_partners' } },
+    { name: 'delivered notarized order (no result-file sync passed — legacy single-file behavior)', input: { jobStatus: 'completed', progressPercent: 100, workflowStatus: 'delivered', serviceLevel: 'notarization_through_partners' } },
+  ];
+
+  for (const { name, input } of closedCases) {
+    it(`${name}: appears in historyOrders, never in activeOrders or readyOrders`, () => {
+      const state = getCustomerOrderState(input);
+      expect(state.isTerminal).toBe(true);
+      const order = orderFromState(`closed-${name}`, state);
+      const { activeOrders, readyOrders, historyOrders } = bucketOrders([order]);
+      expect(historyOrders).toContainEqual(order);
+      expect(activeOrders).not.toContainEqual(order);
+      expect(readyOrders).not.toContainEqual(order);
+      // Also never present in the rendered "active" section.
+      expect(visibleOrders([order])).not.toContainEqual(order);
+    });
+  }
+
+  it('a mixed list of active, ready, and closed orders keeps each in exactly its own bucket — no cross-leakage', () => {
+    const active = orderFromState(
+      'still-active',
+      getCustomerOrderState({ jobStatus: 'translation_in_progress', progressPercent: 40, workflowStatus: null, serviceLevel: 'electronic' }),
+    );
+    const ready = orderFromState(
+      'ready-to-download',
+      getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'completed', serviceLevel: 'electronic' }),
+    );
+    const closed = orderFromState(
+      'closed-canceled',
+      getCustomerOrderState({ jobStatus: 'canceled', progressPercent: 0, workflowStatus: null, serviceLevel: 'electronic' }),
+    );
+
+    const { activeOrders, readyOrders, historyOrders } = bucketOrders([active, ready, closed]);
+    expect(activeOrders.map((o) => o.documentId)).toEqual(['still-active']);
+    expect(readyOrders.map((o) => o.documentId)).toEqual(['ready-to-download']);
+    expect(historyOrders.map((o) => o.documentId)).toEqual(['closed-canceled']);
+
+    // The rendered "active" section (activeOrders + readyOrders) must never include the closed order.
+    const rendered = visibleOrders([active, ready, closed]).map((o) => o.documentId);
+    expect(rendered).not.toContain('closed-canceled');
+    expect(rendered.sort()).toEqual(['ready-to-download', 'still-active'].sort());
+  });
+});

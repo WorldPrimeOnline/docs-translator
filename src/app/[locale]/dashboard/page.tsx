@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/client';
 import { bucketOrders, visibleOrders } from '@/lib/translation-workflow/order-buckets';
 import { sortByCreatedAtDesc } from '@/lib/translation-workflow/order-sort';
 import { applyPolledOrderUpdate, needsLivePolling, type PolledOrderData } from '@/lib/translation-workflow/dashboard-polling';
+import { computeRetentionExpiry, isRetentionExpired } from '@/lib/translation-workflow/order-retention';
 import { OrderForm } from '@/components/order/OrderForm';
 
 interface OrderEntry {
@@ -448,8 +449,18 @@ function FiscalReceiptLink({ fiscalUrl, fiscalReceiptStatus }: { fiscalUrl: stri
 
 // ─── History row ───────────────────────────────────────────────────────────────
 
-function HistoryRow({ entry }: { entry: OrderEntry }) {
+function HistoryRow({ entry, locale }: { entry: OrderEntry; locale: string }) {
   const t = useTranslations('dashboard');
+
+  // 2026-07-23 dashboard task: history rows previously showed no amount and no
+  // retention/expiry information at all. `entry.priceKzt` is the final (post-discount)
+  // price stored on jobs at order creation (see src/lib/order-drafts/service.ts) — the
+  // amount actually charged, distinct from quoteAmountKzt which only applies to a
+  // still-pending quote. Retention expiry is DISPLAY ONLY — see order-retention.ts's
+  // doc comment for the known conflict with cleanup/route.ts's full-row deletion.
+  const expiry = computeRetentionExpiry(entry.createdAt);
+  const expired = isRetentionExpired(entry.createdAt);
+  const formattedExpiry = expiry.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
 
   return (
     <div className="flex items-center justify-between px-6 py-4 transition-colors hover:bg-white/[0.03]">
@@ -459,19 +470,27 @@ function HistoryRow({ entry }: { entry: OrderEntry }) {
         </span>
         <span className="text-xs text-muted-foreground">
           {entry.sourceLanguage} → {entry.targetLanguage} · {(entry.documentType ?? '').split('|')[0]} ·{' '}
-          {new Date(entry.createdAt).toLocaleDateString()}
+          {new Date(entry.createdAt).toLocaleDateString(locale)}
+          {entry.priceKzt != null && <> · {entry.priceKzt.toLocaleString(locale)} ₸</>}
         </span>
+        {entry.canDownload && !expired && (
+          <span className="text-xs text-muted-foreground/60">{t('historyAvailableUntil', { date: formattedExpiry })}</span>
+        )}
       </div>
       <div className="ml-4 flex shrink-0 flex-wrap items-center gap-2">
         <StatusBadge customerStatus={entry.customerStatus} />
         {entry.canDownload && (
-          <a
-            href={`/api/documents/${entry.documentId}/download`}
-            className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-foreground transition-colors hover:border-white/20 hover:bg-white/10"
-          >
-            <Download className="h-3 w-3" />
-            {t('download')}
-          </a>
+          expired ? (
+            <span className="text-xs text-muted-foreground/60">{t('historyRetentionExpired')}</span>
+          ) : (
+            <a
+              href={`/api/documents/${entry.documentId}/download`}
+              className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-foreground transition-colors hover:border-white/20 hover:bg-white/10"
+            >
+              <Download className="h-3 w-3" />
+              {t('download')}
+            </a>
+          )
         )}
         <FiscalReceiptLink fiscalUrl={entry.fiscalUrl} fiscalReceiptStatus={entry.fiscalReceiptStatus} />
       </div>
@@ -739,7 +758,7 @@ export default function DashboardPage() {
           </div>
         ) : (
           <div className="divide-y divide-white/5">
-            {historyOrders.map((o) => <HistoryRow key={o.documentId} entry={o} />)}
+            {historyOrders.map((o) => <HistoryRow key={o.documentId} entry={o} locale={locale} />)}
           </div>
         )}
       </div>

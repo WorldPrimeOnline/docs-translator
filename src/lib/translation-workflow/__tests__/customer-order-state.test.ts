@@ -217,6 +217,61 @@ describe('getCustomerOrderState — notarized delivery', () => {
     expect(cur1).toBe(cur2);
     expect(cur1).toBe(3);
   });
+
+  // 2026-07-23 dashboard task, Part A/E: the progress timeline must show the 'notarized'
+  // stage as complete (done) exactly once workflow_status==='notarized', and must only
+  // advance to a delivery-specific stage next when fulfillmentMethod==='delivery' —
+  // never for pickup, and never skipping ahead before the notary step actually finishes.
+  describe('notary-completed timeline transitions (2026-07-23 dashboard task)', () => {
+    it('workflowStatus=notarized, fulfillmentMethod=delivery: "notarized" stage is current, next (out_for_delivery) stage is not yet reached', () => {
+      const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'notarized', serviceLevel: SL, fulfillmentMethod: 'delivery' });
+      const notarizedStage = s.stages.find((x) => x.key === 'notarized');
+      const outForDeliveryStage = s.stages.find((x) => x.key === 'out_for_delivery');
+      expect(notarizedStage?.current).toBe(true);
+      expect(notarizedStage?.done).toBe(false);
+      expect(outForDeliveryStage?.current).toBe(false);
+      expect(outForDeliveryStage?.done).toBe(false);
+      expect(s.customerStatus).toBe('notarized');
+      expect(s.isTerminal).toBe(false);
+    });
+
+    it('workflowStatus advances past notarized to ready_for_delivery (delivery): "notarized" stage flips to done, delivery stage becomes current', () => {
+      const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'ready_for_delivery', serviceLevel: SL, fulfillmentMethod: 'delivery' });
+      const notarizedStage = s.stages.find((x) => x.key === 'notarized');
+      const readyStage = s.stages.find((x) => x.key === 'ready');
+      expect(notarizedStage?.done).toBe(true);
+      expect(notarizedStage?.current).toBe(false);
+      expect(readyStage?.current).toBe(true);
+      expect(s.customerStatus).toBe('ready_for_delivery');
+    });
+
+    it('workflowStatus=notarized, fulfillmentMethod=pickup ("no delivery"): "notarized" stage is current, the pickup-specific ready stage (readyForPickup label) comes next — no out_for_delivery stage exists at all', () => {
+      const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'notarized', serviceLevel: SL, fulfillmentMethod: 'pickup' });
+      const keys = s.stages.map((x) => x.key);
+      expect(keys).not.toContain('out_for_delivery');
+      const notarizedStage = s.stages.find((x) => x.key === 'notarized');
+      expect(notarizedStage?.current).toBe(true);
+      const readyStage = s.stages.find((x) => x.key === 'ready');
+      expect(readyStage?.labelKey).toBe('stages.readyForPickup');
+    });
+
+    it('pickup fulfillment reaches a terminal, appropriately-gated customer state at picked_up — no download regardless (legacy, hasReadyResultFiles omitted)', () => {
+      const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'picked_up', serviceLevel: SL, fulfillmentMethod: 'pickup' });
+      expect(s.customerStatus).toBe('picked_up');
+      expect(s.isTerminal).toBe(true);
+      expect(s.canDownload).toBe(false);
+      const pickedUpStage = s.stages.find((x) => x.key === 'picked_up');
+      expect(pickedUpStage?.current).toBe(true);
+      expect(pickedUpStage?.done).toBe(false);
+    });
+
+    it('multi-source: workflowStatus=notarized with hasReadyResultFiles=true is downloadable immediately, independent of pickup/delivery physical progress', () => {
+      const delivery = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'notarized', serviceLevel: SL, fulfillmentMethod: 'delivery', hasReadyResultFiles: true });
+      const pickup = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'notarized', serviceLevel: SL, fulfillmentMethod: 'pickup', hasReadyResultFiles: true });
+      expect(delivery.canDownload).toBe(true);
+      expect(pickup.canDownload).toBe(true);
+    });
+  });
 });
 
 describe('Regression: backward transition does not affect customer state', () => {

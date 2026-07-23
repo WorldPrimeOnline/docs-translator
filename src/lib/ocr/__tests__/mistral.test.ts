@@ -143,7 +143,7 @@ describe('extractTextFromPdf — per-attempt timeout (2026-07-23 incident: unbou
       });
     }) as unknown as typeof fetch;
 
-    // Simulate an already-timed-out signal so the test doesn't need to wait 90s in real time.
+    // Simulate an already-timed-out signal so the test doesn't need to wait in real time.
     const originalTimeout = AbortSignal.timeout;
     AbortSignal.timeout = jest.fn().mockImplementation(() => {
       const controller = new AbortController();
@@ -157,6 +157,78 @@ describe('extractTextFromPdf — per-attempt timeout (2026-07-23 incident: unbou
     } finally {
       AbortSignal.timeout = originalTimeout;
     }
+  }, 15_000);
+});
+
+describe('extractTextFromPdf — timeout is NOT retried, network/HTTP errors still are (2026-07-23 follow-up: retries were stacking the incident\'s 4m42s latency)', () => {
+  afterEach(() => {
+    process.env = { ...originalEnv };
+    global.fetch = originalFetch;
+    jest.resetModules();
+  });
+
+  it('a timeout on the first attempt fails fast — fetch is called exactly ONCE, never retried', async () => {
+    global.fetch = jest.fn().mockImplementation((_url: string, init: RequestInit) => {
+      return new Promise((_resolve, reject) => {
+        const abort = () => {
+          const err = new Error('The operation was aborted');
+          err.name = 'TimeoutError';
+          reject(err);
+        };
+        if (init.signal?.aborted) abort();
+        else init.signal?.addEventListener('abort', abort);
+      });
+    }) as unknown as typeof fetch;
+
+    const originalTimeout = AbortSignal.timeout;
+    AbortSignal.timeout = jest.fn().mockImplementation(() => {
+      const controller = new AbortController();
+      controller.abort();
+      return controller.signal;
+    }) as unknown as typeof AbortSignal.timeout;
+
+    try {
+      const { extractTextFromPdf } = await import('../mistral');
+      await expect(extractTextFromPdf(Buffer.from('fake-pdf'), { mistralApiKey: 'k' })).rejects.toThrow(/timed out/i);
+      // The whole point of this fix: no retry loop for a timeout specifically.
+      expect((global.fetch as jest.Mock).mock.calls.length).toBe(1);
+    } finally {
+      AbortSignal.timeout = originalTimeout;
+    }
+  }, 15_000);
+
+  it('a 500 HTTP error on every attempt still retries up to MAX_RETRIES (3 calls) — only timeouts skip the retry loop', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      text: async () => 'Internal Server Error',
+    }) as unknown as typeof fetch;
+
+    const { extractTextFromPdf } = await import('../mistral');
+    await expect(extractTextFromPdf(Buffer.from('fake-pdf'), { mistralApiKey: 'k' })).rejects.toThrow(/Mistral OCR error 500/);
+    expect((global.fetch as jest.Mock).mock.calls.length).toBe(3);
+  }, 15_000);
+
+  it('a network error (not a timeout) on every attempt still retries up to MAX_RETRIES (3 calls)', async () => {
+    global.fetch = jest.fn().mockRejectedValue(new Error('fetch failed: ECONNRESET')) as unknown as typeof fetch;
+
+    const { extractTextFromPdf } = await import('../mistral');
+    await expect(extractTextFromPdf(Buffer.from('fake-pdf'), { mistralApiKey: 'k' })).rejects.toThrow(/ECONNRESET/);
+    expect((global.fetch as jest.Mock).mock.calls.length).toBe(3);
+  }, 15_000);
+
+  it('a network error that succeeds on the second attempt still returns a result (retries are genuinely useful for transient errors)', async () => {
+    let call = 0;
+    global.fetch = jest.fn().mockImplementation(() => {
+      call += 1;
+      if (call === 1) return Promise.reject(new Error('fetch failed: ECONNRESET'));
+      return Promise.resolve({ ok: true, json: async () => ({ pages: [{ markdown: 'Recovered text.' }] }) });
+    }) as unknown as typeof fetch;
+
+    const { extractTextFromPdf } = await import('../mistral');
+    const result = await extractTextFromPdf(Buffer.from('fake-pdf'), { mistralApiKey: 'k' });
+    expect(result.markdown).toContain('Recovered text.');
+    expect((global.fetch as jest.Mock).mock.calls.length).toBe(2);
   }, 15_000);
 });
 

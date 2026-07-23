@@ -1062,4 +1062,14 @@ describe('conversion never reaches Jira/Drive/translation', () => {
     expect(src).not.toMatch(/from ['"]@\/lib\/google-drive\//);
     expect(src).not.toMatch(/from ['"]@\/lib\/integrations\/workflow['"]/);
   });
+
+  // 2026-07-23 dashboard/latency task: same structural guarantee upload-card-shared.test.ts
+  // already locks in for createCardOrder() — calculateDraftPrice() (the draft-stage pricing
+  // path) must never be coupled to AI-draft/translation generation either. Pricing only ever
+  // waits on resolveDraftAnalysis() (text-layer/OCR + physical page count) and computeQuoteForJob()
+  // — never on generating an actual translation draft for the customer to preview.
+  it('service.ts has no AI-draft/translation-generation call anywhere in the draft pricing path', () => {
+    const src = fs.readFileSync(path.join(__dirname, '..', 'service.ts'), 'utf8');
+    expect(src).not.toMatch(/generateDraft|aiDraft|generateTranslation|translationDraft/i);
+  });
 });
