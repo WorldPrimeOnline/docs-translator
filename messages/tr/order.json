@@ -204,6 +204,7 @@
       "invalidFileSignature": "\"{file}\" dosyası belirtilen türle eşleşmiyor."
     },
     "uploadDocument": "Belge yükle",
+    "pricingSlowMessage": "Bu, her zamankinden daha uzun sürüyor — lütfen bekleyin",
     "uploadedQuoteReady": "Belge yüklendi — fiyat: {price} ₸. Aşağıdan ödemeyi onaylayın.",
     "uploadedRequiresReview": "Belge yüklendi. Fiyat operatör tarafından onaylanacak.",
     "quoteReady": "Fiyat hesaplandı",

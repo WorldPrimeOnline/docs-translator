@@ -2,6 +2,8 @@
  * Tests for src/lib/documents/upload-card-shared.ts — shared logic behind both the
  * legacy upload-card endpoint and the new direct-to-R2 init/complete endpoints.
  */
+import fs from 'fs';
+import path from 'path';
 jest.mock('@/lib/supabase/server', () => ({
   supabaseServer: { from: jest.fn() },
 }));
@@ -525,6 +527,56 @@ describe('createCardOrder', () => {
         expect.stringContaining('PRICING_VERSION_MISMATCH'),
         expect.objectContaining({ tags: expect.objectContaining({ reason: 'PRICING_VERSION_MISMATCH' }) }),
       );
+    });
+
+    it('2026-07-23 incident follow-up: a 10-file order triggers exactly ONE resolveDocumentAnalysisForPricing call, not one per source — the merged-PDF analysis is already O(1) provider calls regardless of file count, never N sequential OCR round-trips', async () => {
+      mockResolveAnalysis.mockResolvedValueOnce({
+        kind: 'completed',
+        row: { id: 'analysis-1', documentId: 'attempt-1', revision: 1, status: 'completed', method: 'ocr', sourceCharacterCountWithSpaces: 12_000, physicalPageCount: 10 },
+      });
+      mockComputeQuote.mockResolvedValueOnce({
+        result: { amountKzt: 20000, currency: 'KZT', requiresOperatorReview: false, reviewReasons: [], context: {}, items: [] },
+        version: { code: '2026-Q3-KZ-NEWMODEL', metadata: { formula_version: 'new_2026_07_21' } },
+      });
+      mockSaveQuote.mockResolvedValueOnce({ quoteId: 'quote-1' });
+
+      mockFrom
+        .mockReturnValueOnce(chain({ data: null, error: null })) // users upsert
+        .mockReturnValueOnce(chain({ data: null, error: null })) // existing-document lookup — none
+        .mockReturnValueOnce(chain({ data: { id: 'attempt-1' }, error: null })) // documents insert
+        .mockReturnValueOnce(chain({ data: { id: 'job-1' }, error: null })) // jobs insert
+        .mockReturnValueOnce(chain({ error: null })) // job_source_files insert
+        .mockReturnValueOnce(chain({ error: null })); // job_audit_log
+
+      const tenSources = Array.from({ length: 10 }, (_, i) => ({
+        sequence: i + 1,
+        originalName: `page-${i + 1}.pdf`,
+        r2Key: `k${i + 1}`,
+        contentSha256: `hash-${i + 1}`,
+        mimeType: 'application/pdf',
+        physicalPageCount: 1,
+        convertedPdfR2Key: `c${i + 1}`,
+      }));
+
+      const result = await createCardOrder(baseInput({
+        serviceLevel: 'official_with_translator_signature_and_provider_stamp',
+        sources: tenSources,
+      }));
+
+      expect(result.ok).toBe(true);
+      // The whole point: one merged-PDF analysis call, independent of source count.
+      expect(mockResolveAnalysis).toHaveBeenCalledTimes(1);
+      expect(mockComputeQuote).toHaveBeenCalledTimes(1);
+      // computeQuoteForJob only runs after resolveDocumentAnalysisForPricing resolves — proven
+      // by the mocked resolution order above, not by call count alone.
+      expect(mockComputeQuote).toHaveBeenCalledWith(
+        expect.objectContaining({ analysisId: 'analysis-1', sourceCharacterCountWithSpaces: 12_000 }),
+      );
+    });
+
+    it('no AI-draft/translation-generation call exists anywhere in this checkout path — pricing is never coupled to draft generation', () => {
+      const src = fs.readFileSync(path.join(__dirname, '..', 'upload-card-shared.ts'), 'utf8');
+      expect(src).not.toMatch(/generateDraft|aiDraft|generateTranslation|translationDraft/i);
     });
   });
 

@@ -9,7 +9,7 @@ import { HalykPayButton } from '@/components/payment/HalykPayButton';
 import { createClient } from '@/lib/supabase/client';
 import { bucketOrders, visibleOrders } from '@/lib/translation-workflow/order-buckets';
 import { sortByCreatedAtDesc } from '@/lib/translation-workflow/order-sort';
-import { applyPolledOrderUpdate, type PolledOrderData } from '@/lib/translation-workflow/dashboard-polling';
+import { applyPolledOrderUpdate, needsLivePolling, type PolledOrderData } from '@/lib/translation-workflow/dashboard-polling';
 import { OrderForm } from '@/components/order/OrderForm';
 
 interface OrderEntry {
@@ -496,6 +496,11 @@ export default function DashboardPage() {
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const ordersRef = useRef<OrderEntry[]>([]);
   const seenTerminalIds = useRef<Set<string>>(new Set());
+  // 2026-08-06 dashboard-polling incident fix: at most one polling cycle in flight at
+  // a time (a slow cycle must never overlap with the next interval tick), and the
+  // previous cycle's requests are aborted if a new one somehow starts anyway.
+  const pollInFlightRef = useRef(false);
+  const pollAbortControllerRef = useRef<AbortController | null>(null);
 
   // ready_for_delivery is "active" but also showable in history — put it in active for now.
   // Bucketing itself lives in a shared, unit-tested pure function — see
@@ -545,13 +550,31 @@ export default function DashboardPage() {
   // Keep ordersRef in sync so pollActiveJobs can read current orders without closing over state
   useEffect(() => { ordersRef.current = orders; }, [orders]);
 
-  // ─── Polling: poll all active (non-terminal) jobs ─────────────────────────────
+  // ─── Polling: poll only jobs where analysis/quote calculation is actually in
+  // progress — never a payment_pending order sitting idle (2026-08-06 fix; see
+  // needsLivePolling()'s doc comment for why). ───────────────────────────────────
 
   const pollActiveJobs = useCallback(async (): Promise<void> => {
+    // Tab hidden: skip this tick entirely rather than burning requests the user
+    // isn't looking at. The interval keeps ticking (cheap) — resumes on its own
+    // the moment the tab becomes visible again, no separate resume wiring needed.
+    if (typeof document !== 'undefined' && document.hidden) return;
+
+    // At most one polling cycle in flight — a slow cycle (or a tab that was
+    // backgrounded mid-request) must never overlap with the next interval tick.
+    if (pollInFlightRef.current) return;
+    pollInFlightRef.current = true;
+
+    // Abort whatever the previous cycle's requests were doing, defensively — in
+    // practice pollInFlightRef already prevents overlap, this is a second guard.
+    pollAbortControllerRef.current?.abort();
+    const controller = new AbortController();
+    pollAbortControllerRef.current = controller;
+
     // Read via ref — no dependency on orders state; callback is stable across renders
     const current = ordersRef.current;
-    const polling = current.filter((o) => !o.isTerminal);
-    if (!polling.length) return;
+    const polling = current.filter((o) => needsLivePolling(o.customerStatus, o.isTerminal));
+    if (!polling.length) { pollInFlightRef.current = false; return; }
 
     let needFullReload = false;
 
@@ -559,7 +582,7 @@ export default function DashboardPage() {
       const results = await Promise.allSettled(
         polling.map(async (o) => {
           if (!o.jobId) return null;
-          const res = await fetch(`/api/jobs/${o.jobId}`);
+          const res = await fetch(`/api/jobs/${o.jobId}`, { signal: controller.signal });
           if (res.status === 404) return { gone: true } as const;
           if (!res.ok) return null;
           return (await res.json()) as PolledOrderData & {
@@ -595,7 +618,13 @@ export default function DashboardPage() {
         return sortByCreatedAtDesc(next);
       });
     } catch (e) {
-      console.error('[dashboard] poll error:', e);
+      // AbortError is expected whenever this cycle's requests were superseded —
+      // not a real error, never logged as one.
+      if (!(e instanceof DOMException && e.name === 'AbortError')) {
+        console.error('[dashboard] poll error:', e);
+      }
+    } finally {
+      pollInFlightRef.current = false;
     }
 
     // A 404 means the job ID is stale; reload the full list to get authoritative server state
@@ -603,13 +632,15 @@ export default function DashboardPage() {
   }, [loadOrders]);
 
   // Derive stable boolean signals for the interval effect so it only restarts when the
-  // boolean VALUE changes (true↔false), not on every setOrders call.
-  const hasActive = orders.some((o) => !o.isTerminal);
+  // boolean VALUE changes (true↔false), not on every setOrders call. Uses
+  // needsLivePolling() — NOT just !isTerminal — so the interval doesn't even exist
+  // when every non-terminal order is payment_pending (2026-08-06 fix).
+  const hasActive = orders.some((o) => needsLivePolling(o.customerStatus, o.isTerminal));
   // Poll at 20s for any non-terminal order waiting on a human (translator/notary/courier).
   // Poll at 3s for active AI processing stages to show progress quickly.
   const AI_POLLING_STATUSES = new Set(['queued', 'ocr_in_progress', 'translation_in_progress', 'pdf_rendering']);
   const hasHumanStage = orders.some(
-    (o) => !o.isTerminal && !AI_POLLING_STATUSES.has(o.customerStatus ?? ''),
+    (o) => needsLivePolling(o.customerStatus, o.isTerminal) && !AI_POLLING_STATUSES.has(o.customerStatus ?? ''),
   );
 
   // Start/stop polling — restarts ONLY when active status or stage type changes, not every poll

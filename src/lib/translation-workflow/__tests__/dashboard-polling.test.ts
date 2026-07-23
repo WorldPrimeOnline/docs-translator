@@ -8,7 +8,28 @@
  * never remove an order from the list, regardless of translations/job_result_files
  * state, only ever rewrite the matching entry in place.
  */
-import { applyPolledOrderUpdate, type PolledOrderData, type PollableOrderEntry } from '../dashboard-polling';
+import { applyPolledOrderUpdate, needsLivePolling, type PolledOrderData, type PollableOrderEntry } from '../dashboard-polling';
+
+describe('needsLivePolling — 2026-08-06 incident: payment_pending polled forever', () => {
+  it('a terminal order is never polled, regardless of status', () => {
+    expect(needsLivePolling('completed', true)).toBe(false);
+    expect(needsLivePolling('payment_pending', true)).toBe(false);
+  });
+
+  it('an abandoned payment_pending order (non-terminal) is NOT polled — the actual root cause of the incident', () => {
+    expect(needsLivePolling('payment_pending', false)).toBe(false);
+  });
+
+  it('a genuinely in-progress order (e.g. translation_in_progress) is still polled', () => {
+    expect(needsLivePolling('translation_in_progress', false)).toBe(true);
+    expect(needsLivePolling('ocr_in_progress', false)).toBe(true);
+    expect(needsLivePolling('translator_review_in_progress', false)).toBe(true);
+  });
+
+  it('null customerStatus (not yet resolved) is still polled while non-terminal', () => {
+    expect(needsLivePolling(null, false)).toBe(true);
+  });
+});
 
 function makeEntry(overrides: Partial<PollableOrderEntry> = {}): PollableOrderEntry {
   return {

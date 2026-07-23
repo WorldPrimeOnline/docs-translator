@@ -11,6 +11,7 @@
     "uploadPay": "Upload & Pay",
     "uploadAndPay": "Upload & Pay by card",
     "uploadDocument": "Upload document",
+    "pricingSlowMessage": "This is taking longer than usual — please wait",
     "uploadedPaymentPending": "File uploaded — pay {price} to start translation",
     "uploadedQuoteReady": "Document uploaded — price: {price} KZT. Confirm payment below.",
     "uploadedRequiresReview": "Document uploaded. The price will be confirmed by our operator.",

@@ -174,6 +174,15 @@ export function OrderForm({ mode, onSubmitSuccess, draftId, onDraftIdChange, onD
   const [deliveryPhone, setDeliveryPhone] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [uploading, setUploading] = useState(false);
+  // 2026-08-06 incident: OCR/analysis can genuinely take a few minutes for a real
+  // document (provider-side latency, not a bug) — after 30s of no response, tell the
+  // customer explicitly rather than leaving a silent spinner. The request itself is
+  // already idempotent (createCardOrder's uploadAttemptId replay / document_analysis's
+  // one-in-flight-revision guard) — no separate "retry" action is needed here since the
+  // customer can't double-submit while `uploading` is true, and the same submit is safe
+  // to attempt again after any failure.
+  const [pricingIsSlow, setPricingIsSlow] = useState(false);
+  const slowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [termsAccepted, setTermsAccepted] = useState<boolean | null>(null);
   const [hasSession, setHasSession] = useState(false);
   const [consentChecked, setConsentChecked] = useState(false);
@@ -182,6 +191,21 @@ export function OrderForm({ mode, onSubmitSuccess, draftId, onDraftIdChange, onD
   const [promoCode, setPromoCode] = useState('');
   const [promoState, setPromoState] = useState<'idle' | 'checking' | 'valid' | 'invalid'>('idle');
   const [promoDiscount, setPromoDiscount] = useState<PromoDiscountInfo | null>(null);
+
+  // Shows a "this is taking longer than usual" message 30s into an upload/pricing
+  // request — never touches any of the existing setUploading() call sites; just reacts
+  // to the boolean's value. Cleared immediately once uploading finishes (success or
+  // failure) or on unmount.
+  useEffect(() => {
+    if (uploading) {
+      slowTimerRef.current = setTimeout(() => setPricingIsSlow(true), 30_000);
+    } else {
+      setPricingIsSlow(false);
+    }
+    return () => {
+      if (slowTimerRef.current) { clearTimeout(slowTimerRef.current); slowTimerRef.current = null; }
+    };
+  }, [uploading]);
 
   // Auto-reset targetLang if it matches a newly selected sourceLang
   useEffect(() => {
@@ -943,6 +967,9 @@ export function OrderForm({ mode, onSubmitSuccess, draftId, onDraftIdChange, onD
             <><Upload className="h-4 w-4" />{t('uploadDocument')}</>
           )}
         </button>
+        {pricingIsSlow && (
+          <p className="text-xs text-muted-foreground">{t('pricingSlowMessage')}</p>
+        )}
       </form>
     </div>
   );

@@ -200,6 +200,7 @@
       "invalidFileSignature": "The file \"{file}\" does not match its file type."
     },
     "uploadDocument": "Upload document",
+    "pricingSlowMessage": "계산이 평소보다 오래 걸리고 있습니다 — 잠시만 기다려 주세요",
     "uploadedQuoteReady": "Document uploaded — price: {price} KZT. Confirm payment below.",
     "uploadedRequiresReview": "Document uploaded. The price will be confirmed by our operator.",
     "quoteReady": "Price confirmed",

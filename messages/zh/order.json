@@ -204,6 +204,7 @@
       "invalidFileSignature": "文件“{file}”与其文件类型不符。"
     },
     "uploadDocument": "上传文件",
+    "pricingSlowMessage": "计算时间比平时长 — 请稍候",
     "uploadedQuoteReady": "文件已上传——价格：{price} ₸。请在下方确认付款。",
     "uploadedRequiresReview": "文件已上传，价格将由操作员确认。",
     "quoteReady": "价格已确认",

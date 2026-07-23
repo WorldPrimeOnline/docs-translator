@@ -204,6 +204,7 @@
       "invalidFileSignature": "Die Datei „{file}“ entspricht nicht dem angegebenen Dateityp."
     },
     "uploadDocument": "Dokument hochladen",
+    "pricingSlowMessage": "Die Berechnung dauert länger als gewöhnlich — bitte warten Sie",
     "uploadedQuoteReady": "Dokument hochgeladen — Preis: {price} ₸. Bestätigen Sie die Zahlung unten.",
     "uploadedRequiresReview": "Dokument hochgeladen. Der Preis wird vom Operator bestätigt.",
     "quoteReady": "Preis berechnet",

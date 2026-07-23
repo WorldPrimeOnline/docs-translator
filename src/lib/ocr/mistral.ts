@@ -28,6 +28,10 @@ export interface ExtractTextFromPdfOptions {
 
 const MISTRAL_OCR_URL = 'https://api.mistral.ai/v1/ocr';
 const MAX_RETRIES = 3;
+// 2026-07-23 incident: a real staging OCR call took ~4m42s with no per-attempt cap, so a
+// single slow/hung provider response could stall pricing indefinitely. This bounds any one
+// attempt; a timeout is treated exactly like any other failed attempt (retried, then thrown).
+const OCR_ATTEMPT_TIMEOUT_MS = 90_000;
 
 async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -56,27 +60,53 @@ export async function extractTextFromPdf(pdfBuffer: Buffer, options?: ExtractTex
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     if (attempt > 0) await sleep(1000 * 2 ** attempt);
 
-    const response = await fetch(MISTRAL_OCR_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify(body),
-    });
+    const attemptStartedAt = Date.now();
+    try {
+      const response = await fetch(MISTRAL_OCR_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(OCR_ATTEMPT_TIMEOUT_MS),
+      });
 
-    if (!response.ok) {
-      const text = await response.text();
-      lastError = new Error(`Mistral OCR error ${response.status}: ${text}`);
-      continue;
+      const durationMs = Date.now() - attemptStartedAt;
+
+      if (!response.ok) {
+        const text = await response.text();
+        lastError = new Error(`Mistral OCR error ${response.status}: ${text}`);
+        console.log(JSON.stringify({
+          scope: 'mistral_ocr', attempt: attempt + 1, maxAttempts: MAX_RETRIES,
+          outcome: 'http_error', status: response.status, durationMs,
+        }));
+        continue;
+      }
+
+      const data = (await response.json()) as MistralOcrResponse;
+      const pages = data.pages ?? [];
+      const pageMarkdowns = pages.map((p) => stripImageRefs(p.markdown));
+      const markdown = pageMarkdowns.join('\n\n');
+
+      console.log(JSON.stringify({
+        scope: 'mistral_ocr', attempt: attempt + 1, maxAttempts: MAX_RETRIES,
+        outcome: 'success', durationMs, pageCount: pages.length,
+      }));
+
+      return { markdown, pageMarkdowns, pageCount: pages.length };
+    } catch (err) {
+      const durationMs = Date.now() - attemptStartedAt;
+      const timedOut = err instanceof Error && err.name === 'TimeoutError';
+      lastError = timedOut
+        ? new Error(`Mistral OCR timed out after ${OCR_ATTEMPT_TIMEOUT_MS}ms`)
+        : err instanceof Error ? err : new Error(String(err));
+      console.log(JSON.stringify({
+        scope: 'mistral_ocr', attempt: attempt + 1, maxAttempts: MAX_RETRIES,
+        outcome: timedOut ? 'timeout' : 'network_error', durationMs,
+        message: lastError.message,
+      }));
     }
-
-    const data = (await response.json()) as MistralOcrResponse;
-    const pages = data.pages ?? [];
-    const pageMarkdowns = pages.map((p) => stripImageRefs(p.markdown));
-    const markdown = pageMarkdowns.join('\n\n');
-
-    return { markdown, pageMarkdowns, pageCount: pages.length };
   }
 
   throw lastError;

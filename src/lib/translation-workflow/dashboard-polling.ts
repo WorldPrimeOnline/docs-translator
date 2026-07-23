@@ -6,6 +6,28 @@
  */
 import { getCustomerOrderState } from './customer-order-state';
 
+/**
+ * 2026-08-06 dashboard-polling incident: `payment_pending` was previously
+ * included in `!isTerminal` polling (isTerminal is false for it), so an order
+ * abandoned before payment got polled forever, every 3-20s, indefinitely — no
+ * cutoff, no expiry check. This is what the incident's Network tab showed: many
+ * repeated GET /api/jobs/{jobId} for old job UUIDs the customer never paid for.
+ *
+ * Nothing server-side progresses a payment_pending order while it waits for the
+ * customer to actually pay — Halyk's own redirect/callback is what changes it,
+ * not dashboard polling — so continuous re-polling buys nothing. A completed
+ * payment is picked up on the next full loadOrders() (page focus/navigation),
+ * exactly like any other externally-driven transition already is.
+ *
+ * isTerminal is still checked first and takes priority — this only carves out
+ * one additional non-terminal status that also shouldn't be polled.
+ */
+export function needsLivePolling(customerStatus: string | null, isTerminal: boolean): boolean {
+  if (isTerminal) return false;
+  if (customerStatus === 'payment_pending') return false;
+  return true;
+}
+
 export interface PolledOrderData {
   status: string;
   progress: number;

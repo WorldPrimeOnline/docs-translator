@@ -200,6 +200,7 @@
       "invalidFileSignature": "«{file}» файлы көрсетілген түрге сәйкес келмейді."
     },
     "uploadDocument": "Upload document",
+    "pricingSlowMessage": "Есептеу әдеттегіден көбірек уақыт алып жатыр — күте тұрыңыз",
     "uploadedQuoteReady": "Document uploaded — price: {price} KZT. Confirm payment below.",
     "uploadedRequiresReview": "Document uploaded. The price will be confirmed by our operator.",
     "quoteReady": "Price confirmed",

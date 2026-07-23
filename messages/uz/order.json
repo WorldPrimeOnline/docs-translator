@@ -200,6 +200,7 @@
       "invalidFileSignature": "\"{file}\" fayli e'lon qilingan turga mos kelmaydi."
     },
     "uploadDocument": "Hujjat yuklash",
+    "pricingSlowMessage": "Hisoblash odatdagidan ko'proq vaqt olmoqda — iltimos kuting",
     "uploadedQuoteReady": "Hujjat yuklandi — narx: {price} ₸. Quyida to'lovni tasdiqlang.",
     "uploadedRequiresReview": "Hujjat yuklandi. Narx operatorimiz tomonidan tasdiqlanadi.",
     "quoteReady": "Narx tasdiqlandi",

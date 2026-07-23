@@ -110,6 +110,56 @@ describe('extractTextFromPdf — mistralApiKey dependency injection', () => {
   });
 });
 
+describe('extractTextFromPdf — per-attempt timeout (2026-07-23 incident: unbounded hang)', () => {
+  afterEach(() => {
+    process.env = { ...originalEnv };
+    global.fetch = originalFetch;
+    jest.resetModules();
+  });
+
+  it('passes an AbortSignal to fetch so a hung provider response cannot stall indefinitely', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ pages: [{ markdown: 'ok' }] }),
+    }) as unknown as typeof fetch;
+
+    const { extractTextFromPdf } = await import('../mistral');
+    await extractTextFromPdf(Buffer.from('fake-pdf'), { mistralApiKey: 'k' });
+
+    const [, requestInit] = (global.fetch as jest.Mock).mock.calls[0];
+    expect(requestInit.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it('a timeout on every attempt surfaces as a real error, not an unhandled hang', async () => {
+    global.fetch = jest.fn().mockImplementation((_url: string, init: RequestInit) => {
+      return new Promise((_resolve, reject) => {
+        const abort = () => {
+          const err = new Error('The operation was aborted');
+          err.name = 'TimeoutError';
+          reject(err);
+        };
+        if (init.signal?.aborted) abort();
+        else init.signal?.addEventListener('abort', abort);
+      });
+    }) as unknown as typeof fetch;
+
+    // Simulate an already-timed-out signal so the test doesn't need to wait 90s in real time.
+    const originalTimeout = AbortSignal.timeout;
+    AbortSignal.timeout = jest.fn().mockImplementation(() => {
+      const controller = new AbortController();
+      controller.abort();
+      return controller.signal;
+    }) as unknown as typeof AbortSignal.timeout;
+
+    try {
+      const { extractTextFromPdf } = await import('../mistral');
+      await expect(extractTextFromPdf(Buffer.from('fake-pdf'), { mistralApiKey: 'k' })).rejects.toThrow(/timed out/i);
+    } finally {
+      AbortSignal.timeout = originalTimeout;
+    }
+  }, 15_000);
+});
+
 describe('worker OCR is untouched (separate module, own env)', () => {
   it('worker/src/lib/ocr.ts does not reference mistralApiKey / ExtractTextFromPdfOptions — it keeps its own independent implementation', () => {
     const workerOcrPath = path.join(__dirname, '..', '..', '..', '..', 'worker', 'src', 'lib', 'ocr.ts');
