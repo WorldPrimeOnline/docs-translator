@@ -11,6 +11,7 @@ import { bucketOrders, visibleOrders } from '@/lib/translation-workflow/order-bu
 import { sortByCreatedAtDesc } from '@/lib/translation-workflow/order-sort';
 import { applyPolledOrderUpdate, needsLivePolling, type PolledOrderData } from '@/lib/translation-workflow/dashboard-polling';
 import { computeRetentionExpiry, isRetentionExpired, applyFilesPurgedOverride } from '@/lib/translation-workflow/order-retention';
+import { OrderProgressBar, shouldShowOrderProgressBar } from '@/components/dashboard/OrderProgressBar';
 import { OrderForm } from '@/components/order/OrderForm';
 
 interface OrderEntry {
@@ -144,11 +145,12 @@ function StatusBadge({ customerStatus }: { customerStatus: string | null }) {
 
 // ─── Stage progress bar ────────────────────────────────────────────────────────
 //
-// 2026-07-26 architectural fix: stages are rendered EXACTLY from
-// resolveCustomerProgressFlow()'s output (server-computed, never recomputed here)
-// — markers are positioned at their own `percent` (never evenly spaced, per-flow
-// stage count varies), and the filled portion of the bar is `progressPercent`
-// exactly, never a value derived independently from stage position.
+// 2026-07-24 visual fix: the milestone-dot track and the duplicate status+percent
+// text that used to render below it are gone — see OrderProgressBar
+// (src/components/dashboard/OrderProgressBar.tsx) for the single status/percent
+// line + single continuous bar that replaced them. `percent` still comes straight
+// from resolveCustomerProgressFlow() via entry.progressPercent — never recomputed
+// here.
 
 function safeLabel(t: ReturnType<typeof useTranslations>, labelKey: string): string {
   try {
@@ -156,45 +158,6 @@ function safeLabel(t: ReturnType<typeof useTranslations>, labelKey: string): str
   } catch {
     return labelKey.split('.').pop() ?? labelKey;
   }
-}
-
-function StageProgressBar({ entry }: { entry: OrderEntry }) {
-  const t = useTranslations('dashboard');
-
-  if (!entry.showFulfillmentProgress || entry.progressPercent == null) return null;
-
-  return (
-    <div className="flex flex-col gap-2">
-      <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-white/10">
-        <div
-          className="h-full rounded-full bg-primary transition-all duration-500"
-          style={{ width: `${entry.progressPercent}%` }}
-        />
-      </div>
-      {/* Markers positioned by their own percent — never evenly spaced. */}
-      <div className="relative h-2 w-full">
-        {entry.stages.map((stage) => (
-          <div
-            key={stage.key}
-            className={`absolute top-0 h-2 w-2 -translate-x-1/2 rounded-full transition-colors ${
-              stage.done
-                ? 'bg-primary'
-                : stage.current
-                ? 'bg-primary ring-2 ring-primary/30'
-                : 'bg-white/20'
-            }`}
-            style={{ left: `${stage.percent}%` }}
-            title={safeLabel(t, stage.labelKey)}
-          />
-        ))}
-      </div>
-      <p className="text-xs text-muted-foreground">
-        {safeLabel(t, entry.labelKey)}
-        {' · '}
-        {entry.progressPercent}%
-      </p>
-    </div>
-  );
 }
 
 // ─── Customer status label ─────────────────────────────────────────────────────
@@ -217,6 +180,13 @@ function ActiveOrderCard({ entry, locale, onRecalculate }: { entry: OrderEntry; 
 
   const AI_STAGES = new Set(['queued', 'ocr_in_progress', 'translation_in_progress', 'pdf_rendering', 'completed', 'failed']);
   const isHumanStage = !AI_STAGES.has(entry.customerStatus ?? '');
+
+  // 2026-07-24 visual fix: same gate resolveCustomerProgressFlow's
+  // showFulfillmentProgress/progressPercent have always used (pre-payment this is
+  // false/null and nothing here changes) — only decides which of the two mutually
+  // exclusive renders below is used, so the status text is never shown twice. See
+  // shouldShowOrderProgressBar (OrderProgressBar.tsx) for the unit-tested predicate.
+  const showProgressBar = shouldShowOrderProgressBar(entry.showFulfillmentProgress, entry.progressPercent);
 
   const serviceLevelLabel =
     entry.serviceLevel === 'notarization_through_partners'
@@ -243,14 +213,18 @@ function ActiveOrderCard({ entry, locale, onRecalculate }: { entry: OrderEntry; 
             <span>·</span>
             <span>{t('order.created')} {createdDate}</span>
           </div>
-          <p className="mt-1.5 text-xs text-foreground/70">
-            {statusLabel(entry)}
-          </p>
+          {!showProgressBar && (
+            <p className="mt-1.5 text-xs text-foreground/70">
+              {statusLabel(entry)}
+            </p>
+          )}
         </div>
         <StatusBadge customerStatus={entry.customerStatus} />
       </div>
 
-      <StageProgressBar entry={entry} />
+      {showProgressBar && (
+        <OrderProgressBar statusLabel={statusLabel(entry)} percent={entry.progressPercent!} />
+      )}
 
       {isHumanStage && (
         <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground/70">
