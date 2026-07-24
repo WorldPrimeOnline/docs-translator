@@ -271,7 +271,43 @@
     "uploadedQuoteReadyWithDiscount": "Resminama ýüklendi — bahasy: {price} ₸ (hyzmatdaş kody bilen {saved} ₸ tygşytlandy). Tölegi tassyklaň.",
     "priceBeforeDiscount": "Arzanlaşykdan öňki baha",
     "discountByCode": "Hyzmatdaş arzanlaşygy",
-    "finalPrice": "Töleg möçberi"
+    "finalPrice": "Töleg möçberi",
+    "progressFlow": {
+      "prePayment": {
+        "quoteReady": "Baha hasaplandy",
+        "paymentPending": "Töleg garaşylýar",
+        "paymentChecking": "Töleg barlanýar",
+        "paymentFailed": "Töleg amala aşmady"
+      },
+      "electronic": {
+        "paid": "Töleg tassyklandy",
+        "processing": "Resminama işlenýär",
+        "ready": "Terjime taýyn"
+      },
+      "official": {
+        "paid": "Töleg tassyklandy",
+        "processing": "Resminama taýýarlanýar",
+        "awaitingTranslatorReview": "Terjimeçä iberildi — barlaga garaşylýar",
+        "translatorReviewInProgress": "Terjimäni terjimeçi barlaýar",
+        "signatureStage": "Terjime gol çekmäge we tassyklamaga taýyn",
+        "ready": "Resmi terjime taýyn"
+      },
+      "notary": {
+        "paid": "Töleg tassyklandy",
+        "processing": "Resminama taýýarlanýar",
+        "awaitingTranslatorReview": "Terjimeçä iberildi — barlaga garaşylýar",
+        "translatorReviewInProgress": "Terjimäni terjimeçi barlaýar",
+        "approvedForNotary": "Terjime notarial tassyklama üçin taýyn",
+        "notarizationInProgress": "Resminama notariusda",
+        "notarized": "Resminama notarial taýdan tassyklandy",
+        "notarizedFinal": "Resminama notarial taýdan tassyklandy",
+        "readyForPickup": "Özi almaga taýyn",
+        "pickedUp": "Sargyt berildi",
+        "readyForDelivery": "Resminama kurýere bermäge taýyn",
+        "outForDelivery": "Resminama kurýere berildi",
+        "delivered": "Resminama gowşuryldy"
+      }
+    }
   },
   "electronicOutput": {
     "formats": {

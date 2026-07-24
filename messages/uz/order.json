@@ -271,7 +271,43 @@
     "uploadedQuoteReadyWithDiscount": "Hujjat yuklandi — narx: {price} ₸ (sherik kodi bilan {saved} ₸ tejaldi). To'lovni tasdiqlang.",
     "priceBeforeDiscount": "Chegirmadan oldingi narx",
     "discountByCode": "Hamkor chegirmasi",
-    "finalPrice": "To'lov summasi"
+    "finalPrice": "To'lov summasi",
+    "progressFlow": {
+      "prePayment": {
+        "quoteReady": "Narx hisoblandi",
+        "paymentPending": "To'lov kutilmoqda",
+        "paymentChecking": "To'lov tekshirilmoqda",
+        "paymentFailed": "To'lov amalga oshmadi"
+      },
+      "electronic": {
+        "paid": "To'lov tasdiqlandi",
+        "processing": "Hujjat qayta ishlanmoqda",
+        "ready": "Tarjima tayyor"
+      },
+      "official": {
+        "paid": "To'lov tasdiqlandi",
+        "processing": "Hujjat tayyorlanmoqda",
+        "awaitingTranslatorReview": "Tarjimonga yuborildi — tekshiruv kutilmoqda",
+        "translatorReviewInProgress": "Tarjimani tarjimon tekshirmoqda",
+        "signatureStage": "Tarjima imzolash va tasdiqlashga tayyor",
+        "ready": "Rasmiy tarjima tayyor"
+      },
+      "notary": {
+        "paid": "To'lov tasdiqlandi",
+        "processing": "Hujjat tayyorlanmoqda",
+        "awaitingTranslatorReview": "Tarjimonga yuborildi — tekshiruv kutilmoqda",
+        "translatorReviewInProgress": "Tarjimani tarjimon tekshirmoqda",
+        "approvedForNotary": "Tarjima notarial tasdiqqa tayyor",
+        "notarizationInProgress": "Hujjat notarius huzurida",
+        "notarized": "Hujjat notarial tasdiqlandi",
+        "notarizedFinal": "Hujjat notarial tasdiqlandi",
+        "readyForPickup": "Olib ketishga tayyor",
+        "pickedUp": "Buyurtma topshirildi",
+        "readyForDelivery": "Hujjat kuryerga topshirishga tayyor",
+        "outForDelivery": "Hujjat kuryerga topshirildi",
+        "delivered": "Hujjat yetkazildi"
+      }
+    }
   },
   "electronicOutput": {
     "formats": {

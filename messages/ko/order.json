@@ -271,7 +271,43 @@
     "uploadedQuoteReadyWithDiscount": "문서가 업로드되었습니다 — 가격: {price} ₸ (파트너 코드로 {saved} ₸ 절약). 아래에서 결제를 확인하세요.",
     "priceBeforeDiscount": "할인 전 가격",
     "discountByCode": "파트너 할인",
-    "finalPrice": "결제 금액"
+    "finalPrice": "결제 금액",
+    "progressFlow": {
+      "prePayment": {
+        "quoteReady": "견적 계산 완료",
+        "paymentPending": "결제 대기 중",
+        "paymentChecking": "결제 확인 중",
+        "paymentFailed": "결제 실패"
+      },
+      "electronic": {
+        "paid": "결제 확인됨",
+        "processing": "문서 처리 중",
+        "ready": "번역 완료"
+      },
+      "official": {
+        "paid": "결제 확인됨",
+        "processing": "문서 준비 중",
+        "awaitingTranslatorReview": "번역가에게 전달됨 — 검토 대기 중",
+        "translatorReviewInProgress": "번역가가 번역을 검토 중",
+        "signatureStage": "서명 및 인증 준비 완료",
+        "ready": "공식 번역 완료"
+      },
+      "notary": {
+        "paid": "결제 확인됨",
+        "processing": "문서 준비 중",
+        "awaitingTranslatorReview": "번역가에게 전달됨 — 검토 대기 중",
+        "translatorReviewInProgress": "번역가가 번역을 검토 중",
+        "approvedForNotary": "공증 준비 완료",
+        "notarizationInProgress": "공증인에게 전달됨",
+        "notarized": "문서 공증 완료",
+        "notarizedFinal": "문서 공증 완료",
+        "readyForPickup": "수령 준비 완료",
+        "pickedUp": "수령 완료",
+        "readyForDelivery": "택배 전달 준비 완료",
+        "outForDelivery": "택배사에 전달됨",
+        "delivered": "배송 완료"
+      }
+    }
   },
   "electronicOutput": {
     "formats": {

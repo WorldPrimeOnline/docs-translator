@@ -271,7 +271,43 @@
     "uploadedQuoteReadyWithDiscount": "Ҳуҷҷат бор карда шуд — нарх: {price} ₸ ({saved} ₸ бо рамзи шарик сарфа шуд). Пардохтро тасдиқ кунед.",
     "priceBeforeDiscount": "Нархи аввала",
     "discountByCode": "Тахфифи шарик",
-    "finalPrice": "Ба пардохт"
+    "finalPrice": "Ба пардохт",
+    "progressFlow": {
+      "prePayment": {
+        "quoteReady": "Нарх ҳисоб карда шуд",
+        "paymentPending": "Дар интизори пардохт",
+        "paymentChecking": "Пардохт тафтиш карда мешавад",
+        "paymentFailed": "Пардохт иҷро нашуд"
+      },
+      "electronic": {
+        "paid": "Пардохт тасдиқ карда шуд",
+        "processing": "Ҳуҷҷат коркард карда мешавад",
+        "ready": "Тарҷума тайёр аст"
+      },
+      "official": {
+        "paid": "Пардохт тасдиқ карда шуд",
+        "processing": "Ҳуҷҷат омода карда мешавад",
+        "awaitingTranslatorReview": "Ба тарҷумон фиристода шуд — дар интизори баррасӣ",
+        "translatorReviewInProgress": "Тарҷумаро тарҷумон баррасӣ мекунад",
+        "signatureStage": "Тарҷума барои имзо ва тасдиқ омода аст",
+        "ready": "Тарҷумаи расмӣ тайёр аст"
+      },
+      "notary": {
+        "paid": "Пардохт тасдиқ карда шуд",
+        "processing": "Ҳуҷҷат омода карда мешавад",
+        "awaitingTranslatorReview": "Ба тарҷумон фиристода шуд — дар интизори баррасӣ",
+        "translatorReviewInProgress": "Тарҷумаро тарҷумон баррасӣ мекунад",
+        "approvedForNotary": "Тарҷума барои тасдиқи нотариалӣ омода аст",
+        "notarizationInProgress": "Ҳуҷҷат назди нотариус аст",
+        "notarized": "Ҳуҷҷат нотариалӣ тасдиқ карда шуд",
+        "notarizedFinal": "Ҳуҷҷат нотариалӣ тасдиқ карда шуд",
+        "readyForPickup": "Барои гирифтан омода аст",
+        "pickedUp": "Фармоиш дода шуд",
+        "readyForDelivery": "Ҳуҷҷат барои супоридан ба курер омода аст",
+        "outForDelivery": "Ҳуҷҷат ба курер супорида шуд",
+        "delivered": "Ҳуҷҷат расонида шуд"
+      }
+    }
   },
   "electronicOutput": {
     "formats": {

@@ -271,7 +271,43 @@
       "discountMinOrderHint": "For orders from {min} ₸",
       "remove": "Remove"
     },
-    "uploadedQuoteReadyWithDiscount": "Document uploaded — price: {price} ₸ (saved {saved} ₸ with partner code). Confirm payment below."
+    "uploadedQuoteReadyWithDiscount": "Document uploaded — price: {price} ₸ (saved {saved} ₸ with partner code). Confirm payment below.",
+    "progressFlow": {
+      "prePayment": {
+        "quoteReady": "Price calculated",
+        "paymentPending": "Awaiting payment",
+        "paymentChecking": "Payment is being verified",
+        "paymentFailed": "Payment failed"
+      },
+      "electronic": {
+        "paid": "Payment confirmed",
+        "processing": "Document is being processed",
+        "ready": "Translation ready"
+      },
+      "official": {
+        "paid": "Payment confirmed",
+        "processing": "Document is being prepared",
+        "awaitingTranslatorReview": "Sent to translator — awaiting review",
+        "translatorReviewInProgress": "Translation is being reviewed by the translator",
+        "signatureStage": "Translation is ready for signature and certification",
+        "ready": "Official translation ready"
+      },
+      "notary": {
+        "paid": "Payment confirmed",
+        "processing": "Document is being prepared",
+        "awaitingTranslatorReview": "Sent to translator — awaiting review",
+        "translatorReviewInProgress": "Translation is being reviewed by the translator",
+        "approvedForNotary": "Translation is ready for notarization",
+        "notarizationInProgress": "Document is with the notary",
+        "notarized": "Document notarized",
+        "notarizedFinal": "Document notarized",
+        "readyForPickup": "Ready for pickup",
+        "pickedUp": "Order picked up",
+        "readyForDelivery": "Document ready for courier handoff",
+        "outForDelivery": "Document handed to courier",
+        "delivered": "Document delivered"
+      }
+    }
   },
   "electronicOutput": {
     "formats": {

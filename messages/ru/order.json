@@ -271,7 +271,43 @@
       "discountMinOrderHint": "При заказе от {min} ₸",
       "remove": "Убрать"
     },
-    "uploadedQuoteReadyWithDiscount": "Документ загружен — стоимость: {price} ₸ (экономия {saved} ₸ по коду партнёра). Подтвердите оплату ниже."
+    "uploadedQuoteReadyWithDiscount": "Документ загружен — стоимость: {price} ₸ (экономия {saved} ₸ по коду партнёра). Подтвердите оплату ниже.",
+    "progressFlow": {
+      "prePayment": {
+        "quoteReady": "Стоимость рассчитана",
+        "paymentPending": "Ожидает оплаты",
+        "paymentChecking": "Платёж проверяется",
+        "paymentFailed": "Не удалось выполнить оплату"
+      },
+      "electronic": {
+        "paid": "Оплата подтверждена",
+        "processing": "Документ обрабатывается",
+        "ready": "Перевод готов"
+      },
+      "official": {
+        "paid": "Оплата подтверждена",
+        "processing": "Документ подготавливается",
+        "awaitingTranslatorReview": "Передано переводчику — ожидает проверки",
+        "translatorReviewInProgress": "Перевод проверяется переводчиком",
+        "signatureStage": "Перевод подготовлен к подписанию и заверению",
+        "ready": "Официальный перевод готов"
+      },
+      "notary": {
+        "paid": "Оплата подтверждена",
+        "processing": "Документ подготавливается",
+        "awaitingTranslatorReview": "Передано переводчику — ожидает проверки",
+        "translatorReviewInProgress": "Перевод проверяется переводчиком",
+        "approvedForNotary": "Перевод подготовлен к нотариальному заверению",
+        "notarizationInProgress": "Документ находится у нотариуса",
+        "notarized": "Документ нотариально заверен",
+        "notarizedFinal": "Документ нотариально заверен",
+        "readyForPickup": "Готово к самовывозу",
+        "pickedUp": "Заказ выдан",
+        "readyForDelivery": "Документ готов к передаче курьеру",
+        "outForDelivery": "Документ передан курьеру",
+        "delivered": "Документ доставлен"
+      }
+    }
   },
   "electronicOutput": {
     "formats": {

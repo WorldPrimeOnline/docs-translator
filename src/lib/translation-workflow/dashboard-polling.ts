@@ -50,7 +50,8 @@ export interface PollableOrderEntry {
   jobStatus: string | null;
   workflowStatus: string | null;
   fulfillmentMethod: 'pickup' | 'delivery' | null;
-  progressPercent: number;
+  /** null before payment is confirmed — see progress-flow.ts's Rule 1 (2026-07-26). */
+  progressPercent: number | null;
   errorMessage: string | null;
   customerStatus: string | null;
   canDownload: boolean;
@@ -62,7 +63,9 @@ export interface PollableOrderEntry {
   quoteCurrency: string | null;
   quoteExpiresAt: string | null;
   quoteRequiresOperatorReview: boolean;
-  stages: { key: string; labelKey: string; done: boolean; current: boolean }[];
+  stages: { key: string; labelKey: string; percent: number; done: boolean; current: boolean }[];
+  labelKey: string;
+  showFulfillmentProgress: boolean;
 }
 
 /**
@@ -86,6 +89,12 @@ export function applyPolledOrderUpdate<T extends PollableOrderEntry>(
   const idx = orders.findIndex((x) => x.documentId === documentId);
   if (idx < 0) return orders;
 
+  const prevEntry = orders[idx]!;
+  // 2026-07-26: quoteStatus is what distinguishes the pre-payment sub-states (quote
+  // ready / awaiting payment / payment being checked) — falls back to the
+  // previous entry's quoteStatus when this poll response doesn't carry a fresher
+  // one, same pattern as latestQuoteId/quoteAmountKzt below.
+  const quoteStatus = data.quoteStatus ?? prevEntry.quoteStatus;
   const state = getCustomerOrderState({
     jobStatus: data.status,
     progressPercent: data.progress,
@@ -93,23 +102,25 @@ export function applyPolledOrderUpdate<T extends PollableOrderEntry>(
     serviceLevel: data.serviceLevel,
     fulfillmentMethod: data.fulfillmentMethod ?? null,
     hasReadyResultFiles: data.hasReadyResultFiles ?? undefined,
+    quoteStatus,
   });
 
   const next = [...orders];
-  const prevEntry = next[idx]!;
   next[idx] = {
     ...prevEntry,
     jobStatus: data.status,
     workflowStatus: data.workflowStatus,
     fulfillmentMethod: data.fulfillmentMethod ?? null,
     progressPercent: state.progressPercent,
+    labelKey: state.labelKey,
+    showFulfillmentProgress: state.showFulfillmentProgress,
     errorMessage: data.errorMessage,
     customerStatus: state.customerStatus,
     canDownload: state.canDownload,
     isActive: state.isActive,
     isTerminal: state.isTerminal,
     latestQuoteId: data.latestQuoteId ?? prevEntry.latestQuoteId,
-    quoteStatus: data.quoteStatus ?? prevEntry.quoteStatus,
+    quoteStatus,
     quoteAmountKzt: data.quoteAmountKzt ?? prevEntry.quoteAmountKzt,
     quoteCurrency: data.quoteCurrency ?? prevEntry.quoteCurrency,
     quoteExpiresAt: data.quoteExpiresAt ?? prevEntry.quoteExpiresAt,

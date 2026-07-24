@@ -3,7 +3,16 @@
  *
  * Used by dashboard, download gating, and email notifications.
  * Never duplicate this logic in components — import from here.
+ *
+ * 2026-07-26: the progress percentage/stage-timeline computation was moved out of
+ * this file entirely into progress-flow.ts's resolveCustomerProgressFlow() — a
+ * dedicated, per-service-level resolver (Electronic/Official/Notary-without-
+ * courier/Notary-with-courier each have their own stage list, percentages, and
+ * marker count; nothing is shared or evenly spaced). This file's own
+ * responsibility stays exactly what it always was: customerStatus/canDownload/
+ * isActive/isTerminal — the business-state derivation, untouched by that fix.
  */
+import { resolveCustomerProgressFlow, derivePaymentStatus, type ProgressFlowStage } from './progress-flow';
 
 export type ServiceLevel =
   | 'electronic'
@@ -26,6 +35,15 @@ export interface OrderStateInput {
    * exact pre-2026-08-01 behavior (see canCustomerDownload).
    */
   hasReadyResultFiles?: boolean;
+  /**
+   * 2026-07-26 progress-UI fix — price_quotes.status ('quoted' | 'payment_pending' |
+   * 'paid' | ...) for this job's latest quote. Only used to distinguish the
+   * pre-payment sub-states (quote ready / awaiting payment / payment being
+   * checked) — see progress-flow.ts's derivePaymentStatus(). Omit for a legacy
+   * caller with no quote row on hand; falls back to the safe generic
+   * "awaiting payment" state whenever jobStatus is still 'payment_pending'.
+   */
+  quoteStatus?: string | null;
 }
 
 export type CustomerStatus =
@@ -56,197 +74,27 @@ export type CustomerStatus =
 
 export interface OrderStage {
   key: string;
-  /** i18n key within dashboard.stages.* */
+  /** i18n key — see progress-flow.ts's per-flow stage tables (dashboard.progressFlow.*). */
   labelKey: string;
+  /** Where this stage's marker is positioned on the progress bar (0-100) — markers
+   * are placed according to this percent, never evenly spaced. */
+  percent: number;
   done: boolean;
   current: boolean;
 }
 
 export interface CustomerOrderState {
   customerStatus: CustomerStatus;
-  progressPercent: number;
+  /** null before payment is confirmed — no fulfillment percent exists yet (Rule 1). */
+  progressPercent: number | null;
+  labelKey: string;
   canDownload: boolean;
   isActive: boolean;
   isTerminal: boolean;
   stages: OrderStage[];
-}
-
-// ─── Stage lists ──────────────────────────────────────────────────────────────
-
-const ELECTRONIC_STAGES = [
-  { key: 'uploaded',    labelKey: 'stages.uploaded' },
-  { key: 'ocr',        labelKey: 'stages.ocr' },
-  { key: 'translating', labelKey: 'stages.translating' },
-  { key: 'rendering',  labelKey: 'stages.rendering' },
-  { key: 'done',       labelKey: 'stages.done' },
-];
-
-// Certified: 7 stages
-const CERTIFIED_STAGES = [
-  { key: 'uploaded',           labelKey: 'stages.uploaded' },
-  { key: 'ai_processing',      labelKey: 'stages.aiProcessing' },
-  { key: 'translator_review',  labelKey: 'stages.translatorReview' },
-  { key: 'translator_approved', labelKey: 'stages.translatorApproved' },
-  { key: 'signature_stamp',    labelKey: 'stages.signatureStamp' },
-  { key: 'ready',              labelKey: 'stages.readyForDelivery' },
-  { key: 'delivered',          labelKey: 'stages.delivered' },
-];
-
-// Notarized — delivery variant (9 stages)
-// Stage 4 (index 3): "Перевод проверен" — covers both translator_approved and assigned_to_notary
-const NOTARIZED_STAGES_DELIVERY = [
-  { key: 'uploaded',                labelKey: 'stages.uploaded' },
-  { key: 'ai_processing',           labelKey: 'stages.aiProcessing' },
-  { key: 'translator_review',       labelKey: 'stages.translatorReview' },
-  { key: 'translator_approved',     labelKey: 'stages.translatorApproved' },
-  { key: 'notarization_in_progress', labelKey: 'stages.notarizationInProgress' },
-  { key: 'notarized',               labelKey: 'stages.notarized' },
-  { key: 'ready',                   labelKey: 'stages.readyForDelivery' },
-  { key: 'out_for_delivery',        labelKey: 'stages.outForDelivery' },
-  { key: 'delivered',               labelKey: 'stages.delivered' },
-];
-
-// Notarized — pickup variant (8 stages, no courier step)
-const NOTARIZED_STAGES_PICKUP = [
-  { key: 'uploaded',                labelKey: 'stages.uploaded' },
-  { key: 'ai_processing',           labelKey: 'stages.aiProcessing' },
-  { key: 'translator_review',       labelKey: 'stages.translatorReview' },
-  { key: 'translator_approved',     labelKey: 'stages.translatorApproved' },
-  { key: 'notarization_in_progress', labelKey: 'stages.notarizationInProgress' },
-  { key: 'notarized',               labelKey: 'stages.notarized' },
-  { key: 'ready',                   labelKey: 'stages.readyForPickup' },
-  { key: 'picked_up',               labelKey: 'stages.pickedUp' },
-];
-
-// ─── Current-stage index helpers ─────────────────────────────────────────────
-
-function electronicCurrentStage(jobStatus: string): number {
-  switch (jobStatus) {
-    case 'payment_pending': return 0;
-    case 'queued': return 0;
-    case 'ocr_in_progress':
-    case 'ocr_completed': return 1;
-    case 'translation_in_progress': return 2;
-    case 'pdf_rendering': return 3;
-    case 'completed': return 4;
-    default: return 0;
-  }
-}
-
-function certifiedCurrentStage(jobStatus: string, workflowStatus: string | null): number {
-  if (jobStatus === 'payment_pending') return 0;
-  if (jobStatus === 'queued') return 0;
-  if (
-    jobStatus === 'ocr_in_progress' || jobStatus === 'ocr_completed' ||
-    jobStatus === 'translation_in_progress' || jobStatus === 'pdf_rendering'
-  ) return 1;
-  if (!workflowStatus || workflowStatus === 'awaiting_translator_review' || workflowStatus === 'translator_review_in_progress') return 2;
-  if (workflowStatus === 'translator_approved') return 3;
-  if (workflowStatus === 'awaiting_signature_stamp') return 4;
-  if (workflowStatus === 'ready_for_delivery') return 5;
-  if (workflowStatus === 'delivered') return 6;
-  return 2;
-}
-
-function notarizedCurrentStage(jobStatus: string, workflowStatus: string | null): number {
-  if (jobStatus === 'payment_pending') return 0;
-  if (jobStatus === 'queued') return 0;
-  if (
-    jobStatus === 'ocr_in_progress' || jobStatus === 'ocr_completed' ||
-    jobStatus === 'translation_in_progress' || jobStatus === 'pdf_rendering'
-  ) return 1;
-  if (!workflowStatus || workflowStatus === 'awaiting_translator_review' || workflowStatus === 'translator_review_in_progress') return 2;
-  // translator_approved and assigned_to_notary both map to stage 4 (index 3)
-  if (workflowStatus === 'translator_approved' || workflowStatus === 'assigned_to_notary') return 3;
-  if (workflowStatus === 'notarization_in_progress') return 4;
-  if (workflowStatus === 'notarized') return 5;
-  if (workflowStatus === 'ready_for_delivery' || workflowStatus === 'ready_for_pickup') return 6;
-  if (workflowStatus === 'out_for_delivery') return 7;
-  if (workflowStatus === 'delivered' || workflowStatus === 'picked_up') return 8;
-  return 2;
-}
-
-function buildStages(
-  stageList: { key: string; labelKey: string }[],
-  currentIdx: number,
-): OrderStage[] {
-  return stageList.map((s, i) => ({
-    key: s.key,
-    labelKey: s.labelKey,
-    done: i < currentIdx,
-    current: i === currentIdx,
-  }));
-}
-
-// ─── Canonical customer-facing progress percentage (2026-07-25) ─────────────────
-//
-// Replaces the old per-service-level `Math.round((stageIdx / totalStages) * 100)`
-// computation, which produced uneven, inconsistent percentages across service
-// levels and — worse — showed the WORKER's raw internal progress_percent verbatim
-// for jobStatus='ocr_in_progress'/'pdf_rendering' (e.g. "Извлечение текста (13%)",
-// "Создание PDF (13%)"), then showed no percentage at all once workflow_status
-// took over (awaiting_translator_review and beyond never interpolated {pct}).
-//
-// This table's ordering is intentionally identical to WORKFLOW_RANK
-// (src/lib/integrations/workflow.ts) — the DB-enforced forward-only transition
-// order for workflow_status. Since a job's real (jobStatus, workflowStatus)
-// history can only move forward through that rank order (safeUpdateWorkflowStatus
-// rejects backward transitions), and every value in this table is >= the value for
-// every rank that can precede it, progress is guaranteed to never decrease across
-// any real observed transition — without this stateless, pure function needing to
-// track "the highest percent ever shown" itself. See
-// __tests__/customer-order-state.test.ts's monotonicity tests, which walk the full
-// realistic transition sequence for all three service levels.
-const FIXED_PROGRESS_BY_STATUS: Partial<Record<CustomerStatus, number>> = {
-  payment_pending: 25,
-  awaiting_translator_review: 49,
-  translator_review_in_progress: 50,
-  translator_approved: 65,
-  assigned_to_notary: 65,
-  awaiting_signature_stamp: 80,
-  notarization_in_progress: 80,
-  notarized: 90,
-  ready_for_delivery: 93,
-  ready_for_pickup: 93,
-  out_for_delivery: 96,
-};
-
-// jobStatus values covering the worker's own OCR/translation/PDF-render pipeline —
-// the same underlying pipeline for every service level, run once per job right
-// after payment, before any human workflow_status exists yet. Collapsed into ONE
-// customer-facing stage ("Подготовка документа к обработке" — never "Извлечение
-// текста" or "Создание PDF" individually) whose percentage scales within a fixed
-// sub-range using the worker's raw 0-100 progress_percent — the ONLY place raw
-// worker progress is allowed to influence the customer-facing number at all.
-const PIPELINE_STATUSES: ReadonlySet<CustomerStatus> = new Set([
-  'queued', 'ocr_in_progress', 'translation_in_progress', 'pdf_rendering',
-]);
-const PIPELINE_RANGE_LOW = 35;
-const PIPELINE_RANGE_HIGH = 48;
-
-/** The floor for any real job row that exists but doesn't match a more specific
- * rule below — covers `payment_pending` before this table's explicit 25 entry
- * would apply in a future refactor, and any genuinely unrecognized customerStatus
- * (operator_processing, etc.) — never lower than this, per "uploaded / initial
- * processing" being the very first thing a customer ever sees for a real order. */
-const INITIAL_PROGRESS_FLOOR = 5;
-
-function resolveCustomerProgress(
-  customerStatus: CustomerStatus,
-  rawProgressPercent: number,
-  isTerminal: boolean,
-): number {
-  // Terminal is always 100 — delivered/picked_up/completed, but also failed/
-  // canceled/refunded/declined (an order that will never progress further shows
-  // a full/closed bar, never a stuck partial one).
-  if (isTerminal) return 100;
-
-  if (PIPELINE_STATUSES.has(customerStatus)) {
-    const clamped = Math.max(0, Math.min(100, rawProgressPercent));
-    return Math.round(PIPELINE_RANGE_LOW + (clamped / 100) * (PIPELINE_RANGE_HIGH - PIPELINE_RANGE_LOW));
-  }
-
-  return FIXED_PROGRESS_BY_STATUS[customerStatus] ?? INITIAL_PROGRESS_FLOOR;
+  /** false before payment (and for the pre-payment pseudo-stages) — the dashboard
+   * must not render a fulfillment progress bar/timeline at all while this is false. */
+  showFulfillmentProgress: boolean;
 }
 
 // ─── Status derivation ────────────────────────────────────────────────────────
@@ -358,10 +206,27 @@ export function isCustomerOrderTerminal(customerStatus: CustomerStatus): boolean
   );
 }
 
+// ─── Stage mapping (ProgressFlowStage[] -> OrderStage[]) ─────────────────────────
+
+/** Adds the `done`/`current` booleans a stage-dot-track UI needs, derived from each
+ * stage's own percent relative to the currently active one — never assumed from
+ * array position (2026-07-26: array order and percent order are the same for every
+ * table today, but deriving from percent is the correct invariant to hold, not
+ * "index < currentIndex"). */
+function toOrderStages(stages: ProgressFlowStage[], currentStageId: string, currentPercent: number | null): OrderStage[] {
+  return stages.map((s) => ({
+    key: s.id,
+    labelKey: s.labelKey,
+    percent: s.percent,
+    current: s.id === currentStageId,
+    done: currentPercent != null && s.percent < currentPercent,
+  }));
+}
+
 // ─── Main export ──────────────────────────────────────────────────────────────
 
 export function getCustomerOrderState(input: OrderStateInput): CustomerOrderState {
-  const { jobStatus, progressPercent, workflowStatus, serviceLevel, fulfillmentMethod, hasReadyResultFiles } = input;
+  const { jobStatus, progressPercent, workflowStatus, serviceLevel, fulfillmentMethod, hasReadyResultFiles, quoteStatus } = input;
 
   const customerStatus = deriveCustomerStatus(jobStatus, workflowStatus, serviceLevel);
 
@@ -374,41 +239,24 @@ export function getCustomerOrderState(input: OrderStateInput): CustomerOrderStat
   // All other terminal orders go to history.
   const isActive = !isTerminal || canDownload;
 
-  const resolvedServiceLevel = serviceLevel as ServiceLevel | null;
-
-  let stages: OrderStage[];
-
-  if (resolvedServiceLevel === 'notarization_through_partners') {
-    // Choose stage list based on fulfillment method.
-    // Infer from workflowStatus when fulfillmentMethod not provided.
-    const isPickup =
-      fulfillmentMethod === 'pickup' ||
-      (fulfillmentMethod == null && workflowStatus === 'ready_for_pickup');
-    const stageList = isPickup ? NOTARIZED_STAGES_PICKUP : NOTARIZED_STAGES_DELIVERY;
-    const total = stageList.length - 1;
-    const rawIdx = notarizedCurrentStage(jobStatus, workflowStatus);
-    const idx = isPickup ? Math.min(rawIdx, total) : rawIdx;
-    stages = buildStages(stageList, idx);
-  } else if (resolvedServiceLevel === 'official_with_translator_signature_and_provider_stamp') {
-    const idx = certifiedCurrentStage(jobStatus, workflowStatus);
-    stages = buildStages(CERTIFIED_STAGES, idx);
-  } else {
-    const idx = electronicCurrentStage(jobStatus);
-    stages = buildStages(ELECTRONIC_STAGES, idx);
-  }
-
-  // 2026-07-25: canonical percentage, identical logic across all three service
-  // levels — see resolveCustomerProgress's doc comment. Deliberately independent
-  // of the `stages` timeline computed above (a separate UI element); this is what
-  // src/app/[locale]/dashboard/page.tsx's useStatusLabel() interpolates as {pct}.
-  const effectiveProgress = resolveCustomerProgress(customerStatus, progressPercent, isTerminal);
+  const paymentStatus = derivePaymentStatus(jobStatus, quoteStatus);
+  const flow = resolveCustomerProgressFlow({
+    serviceLevel,
+    fulfillmentMethod: fulfillmentMethod ?? null,
+    paymentStatus,
+    workflowStatus,
+    workerStatus: jobStatus,
+    rawProgress: progressPercent,
+  });
 
   return {
     customerStatus,
-    progressPercent: effectiveProgress,
+    progressPercent: flow.percent,
+    labelKey: flow.labelKey,
     canDownload,
     isActive,
     isTerminal,
-    stages,
+    stages: toOrderStages(flow.stages, flow.currentStageId, flow.percent),
+    showFulfillmentProgress: flow.showFulfillmentProgress,
   };
 }

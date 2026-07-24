@@ -271,7 +271,43 @@
     "uploadedQuoteReadyWithDiscount": "Belge yüklendi — fiyat: {price} ₸ (ortak koduyla {saved} ₸ tasarruf edildi). Aşağıdan ödemeyi onaylayın.",
     "priceBeforeDiscount": "İndirim öncesi fiyat",
     "discountByCode": "Ortak indirimi",
-    "finalPrice": "Ödenecek tutar"
+    "finalPrice": "Ödenecek tutar",
+    "progressFlow": {
+      "prePayment": {
+        "quoteReady": "Fiyat hesaplandı",
+        "paymentPending": "Ödeme bekleniyor",
+        "paymentChecking": "Ödeme kontrol ediliyor",
+        "paymentFailed": "Ödeme başarısız oldu"
+      },
+      "electronic": {
+        "paid": "Ödeme onaylandı",
+        "processing": "Belge işleniyor",
+        "ready": "Çeviri hazır"
+      },
+      "official": {
+        "paid": "Ödeme onaylandı",
+        "processing": "Belge hazırlanıyor",
+        "awaitingTranslatorReview": "Çevirmene gönderildi — inceleme bekleniyor",
+        "translatorReviewInProgress": "Çeviri, çevirmen tarafından inceleniyor",
+        "signatureStage": "Çeviri imza ve onaya hazır",
+        "ready": "Resmi çeviri hazır"
+      },
+      "notary": {
+        "paid": "Ödeme onaylandı",
+        "processing": "Belge hazırlanıyor",
+        "awaitingTranslatorReview": "Çevirmene gönderildi — inceleme bekleniyor",
+        "translatorReviewInProgress": "Çeviri, çevirmen tarafından inceleniyor",
+        "approvedForNotary": "Çeviri noter onayına hazır",
+        "notarizationInProgress": "Belge noterde",
+        "notarized": "Belge noterce onaylandı",
+        "notarizedFinal": "Belge noterce onaylandı",
+        "readyForPickup": "Teslim almaya hazır",
+        "pickedUp": "Sipariş teslim alındı",
+        "readyForDelivery": "Belge kuryeye teslim edilmeye hazır",
+        "outForDelivery": "Belge kuryeye teslim edildi",
+        "delivered": "Belge teslim edildi"
+      }
+    }
   },
   "electronicOutput": {
     "formats": {

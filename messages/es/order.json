@@ -271,7 +271,43 @@
     "uploadedQuoteReadyWithDiscount": "Documento cargado — precio: {price} ₸ (ahorro de {saved} ₸ con código de socio). Confirme el pago abajo.",
     "priceBeforeDiscount": "Precio antes del descuento",
     "discountByCode": "Descuento de socio",
-    "finalPrice": "Total a pagar"
+    "finalPrice": "Total a pagar",
+    "progressFlow": {
+      "prePayment": {
+        "quoteReady": "Precio calculado",
+        "paymentPending": "Pago pendiente",
+        "paymentChecking": "Verificando el pago",
+        "paymentFailed": "El pago falló"
+      },
+      "electronic": {
+        "paid": "Pago confirmado",
+        "processing": "El documento se está procesando",
+        "ready": "Traducción lista"
+      },
+      "official": {
+        "paid": "Pago confirmado",
+        "processing": "El documento se está preparando",
+        "awaitingTranslatorReview": "Enviado al traductor — esperando revisión",
+        "translatorReviewInProgress": "El traductor está revisando la traducción",
+        "signatureStage": "Traducción lista para firma y certificación",
+        "ready": "Traducción oficial lista"
+      },
+      "notary": {
+        "paid": "Pago confirmado",
+        "processing": "El documento se está preparando",
+        "awaitingTranslatorReview": "Enviado al traductor — esperando revisión",
+        "translatorReviewInProgress": "El traductor está revisando la traducción",
+        "approvedForNotary": "Traducción lista para notarización",
+        "notarizationInProgress": "El documento está con el notario",
+        "notarized": "Documento notariado",
+        "notarizedFinal": "Documento notariado",
+        "readyForPickup": "Listo para recoger",
+        "pickedUp": "Pedido recogido",
+        "readyForDelivery": "Documento listo para entregar al mensajero",
+        "outForDelivery": "Documento entregado al mensajero",
+        "delivered": "Documento entregado"
+      }
+    }
   },
   "electronicOutput": {
     "formats": {

@@ -271,7 +271,43 @@
     "uploadedQuoteReadyWithDiscount": "Баримт бичиг байршуулагдлаа — үнэ: {price} ₸ (түншийн кодоор {saved} ₸ хэмнэгдлээ). Доороос төлбөрийг баталгаажуулна уу.",
     "priceBeforeDiscount": "Хөнгөлөлтийн өмнөх үнэ",
     "discountByCode": "Түншийн хөнгөлөлт",
-    "finalPrice": "Нийт төлбөр"
+    "finalPrice": "Нийт төлбөр",
+    "progressFlow": {
+      "prePayment": {
+        "quoteReady": "Үнэ тооцоологдсон",
+        "paymentPending": "Төлбөр хүлээгдэж байна",
+        "paymentChecking": "Төлбөр шалгагдаж байна",
+        "paymentFailed": "Төлбөр амжилтгүй боллоо"
+      },
+      "electronic": {
+        "paid": "Төлбөр баталгаажсан",
+        "processing": "Баримт бичиг боловсруулагдаж байна",
+        "ready": "Орчуулга бэлэн"
+      },
+      "official": {
+        "paid": "Төлбөр баталгаажсан",
+        "processing": "Баримт бичиг бэлтгэгдэж байна",
+        "awaitingTranslatorReview": "Орчуулагчид илгээгдсэн — шалгалт хүлээж байна",
+        "translatorReviewInProgress": "Орчуулгыг орчуулагч шалгаж байна",
+        "signatureStage": "Орчуулга гарын үсэг, баталгаажуулалтад бэлэн",
+        "ready": "Албан ёсны орчуулга бэлэн"
+      },
+      "notary": {
+        "paid": "Төлбөр баталгаажсан",
+        "processing": "Баримт бичиг бэлтгэгдэж байна",
+        "awaitingTranslatorReview": "Орчуулагчид илгээгдсэн — шалгалт хүлээж байна",
+        "translatorReviewInProgress": "Орчуулгыг орчуулагч шалгаж байна",
+        "approvedForNotary": "Орчуулга нотариатаар баталгаажуулахад бэлэн",
+        "notarizationInProgress": "Баримт бичиг нотариатад байна",
+        "notarized": "Баримт бичиг нотариатаар баталгаажсан",
+        "notarizedFinal": "Баримт бичиг нотариатаар баталгаажсан",
+        "readyForPickup": "Очиж авахад бэлэн",
+        "pickedUp": "Захиалга гардуулагдсан",
+        "readyForDelivery": "Баримт бичиг хүргэлтийн ажилтанд өгөхөд бэлэн",
+        "outForDelivery": "Баримт бичиг хүргэлтийн ажилтанд өгөгдсөн",
+        "delivered": "Баримт бичиг хүргэгдсэн"
+      }
+    }
   },
   "electronicOutput": {
     "formats": {

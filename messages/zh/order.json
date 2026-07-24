@@ -271,7 +271,43 @@
     "uploadedQuoteReadyWithDiscount": "文档已上传 — 价格：{price} ₸（通过合作伙伴码节省了 {saved} ₸）。请在下方确认付款。",
     "priceBeforeDiscount": "折扣前价格",
     "discountByCode": "合作伙伴折扣",
-    "finalPrice": "应付金额"
+    "finalPrice": "应付金额",
+    "progressFlow": {
+      "prePayment": {
+        "quoteReady": "价格已计算",
+        "paymentPending": "等待付款",
+        "paymentChecking": "正在核实付款",
+        "paymentFailed": "付款失败"
+      },
+      "electronic": {
+        "paid": "付款已确认",
+        "processing": "文件处理中",
+        "ready": "翻译已完成"
+      },
+      "official": {
+        "paid": "付款已确认",
+        "processing": "文件准备中",
+        "awaitingTranslatorReview": "已发送给译员 — 等待审核",
+        "translatorReviewInProgress": "译员正在审核翻译",
+        "signatureStage": "翻译已准备好签字盖章",
+        "ready": "正式翻译已完成"
+      },
+      "notary": {
+        "paid": "付款已确认",
+        "processing": "文件准备中",
+        "awaitingTranslatorReview": "已发送给译员 — 等待审核",
+        "translatorReviewInProgress": "译员正在审核翻译",
+        "approvedForNotary": "翻译已准备好公证",
+        "notarizationInProgress": "文件在公证处",
+        "notarized": "文件已公证",
+        "notarizedFinal": "文件已公证",
+        "readyForPickup": "可自取",
+        "pickedUp": "订单已取走",
+        "readyForDelivery": "文件已准备好交给快递员",
+        "outForDelivery": "文件已交给快递员",
+        "delivered": "文件已送达"
+      }
+    }
   },
   "electronicOutput": {
     "formats": {

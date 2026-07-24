@@ -271,7 +271,43 @@
     "uploadedQuoteReadyWithDiscount": "Документ жүктөлдү — баасы: {price} ₸ ({saved} ₸ өнөктөш коду менен үнөмдөлдү). Төлөмдү ырастаңыз.",
     "priceBeforeDiscount": "Арзандатуудан мурунку баа",
     "discountByCode": "Өнөктөш арзандатуусу",
-    "finalPrice": "Төлөм суммасы"
+    "finalPrice": "Төлөм суммасы",
+    "progressFlow": {
+      "prePayment": {
+        "quoteReady": "Наркы эсептелди",
+        "paymentPending": "Төлөм күтүлүүдө",
+        "paymentChecking": "Төлөм текшерилүүдө",
+        "paymentFailed": "Төлөм ишке ашкан жок"
+      },
+      "electronic": {
+        "paid": "Төлөм ырасталды",
+        "processing": "Документ иштетилүүдө",
+        "ready": "Котормо даяр"
+      },
+      "official": {
+        "paid": "Төлөм ырасталды",
+        "processing": "Документ даярдалууда",
+        "awaitingTranslatorReview": "Котормочуга жөнөтүлдү — текшерүүнү күтүүдө",
+        "translatorReviewInProgress": "Котормону котормочу текшерүүдө",
+        "signatureStage": "Котормо кол коюуга жана күбөлөндүрүүгө даяр",
+        "ready": "Расмий котормо даяр"
+      },
+      "notary": {
+        "paid": "Төлөм ырасталды",
+        "processing": "Документ даярдалууда",
+        "awaitingTranslatorReview": "Котормочуга жөнөтүлдү — текшерүүнү күтүүдө",
+        "translatorReviewInProgress": "Котормону котормочу текшерүүдө",
+        "approvedForNotary": "Котормо нотариалдык күбөлөндүрүүгө даяр",
+        "notarizationInProgress": "Документ нотариуста",
+        "notarized": "Документ нотариалдык түрдө күбөлөндүрүлдү",
+        "notarizedFinal": "Документ нотариалдык түрдө күбөлөндүрүлдү",
+        "readyForPickup": "Өзү алып кетүүгө даяр",
+        "pickedUp": "Буйрутма берилди",
+        "readyForDelivery": "Документ курьерге берүүгө даяр",
+        "outForDelivery": "Документ курьерге берилди",
+        "delivered": "Документ жеткирилди"
+      }
+    }
   },
   "electronicOutput": {
     "formats": {

@@ -271,7 +271,43 @@
     "uploadedQuoteReadyWithDiscount": "Құжат жүктелді — құны: {price} ₸ (серіктес коды бойынша {saved} ₸ үнемделді). Төлемді растаңыз.",
     "priceBeforeDiscount": "Жеңілдікке дейінгі баға",
     "discountByCode": "Серіктес жеңілдігі",
-    "finalPrice": "Төлем сомасы"
+    "finalPrice": "Төлем сомасы",
+    "progressFlow": {
+      "prePayment": {
+        "quoteReady": "Құны есептелді",
+        "paymentPending": "Төлем күтілуде",
+        "paymentChecking": "Төлем тексерілуде",
+        "paymentFailed": "Төлем өтпеді"
+      },
+      "electronic": {
+        "paid": "Төлем расталды",
+        "processing": "Құжат өңделуде",
+        "ready": "Аударма дайын"
+      },
+      "official": {
+        "paid": "Төлем расталды",
+        "processing": "Құжат дайындалуда",
+        "awaitingTranslatorReview": "Аудармашыға жіберілді — тексеруді күтуде",
+        "translatorReviewInProgress": "Аударманы аудармашы тексеруде",
+        "signatureStage": "Аударма қол қою мен куәландыруға дайын",
+        "ready": "Ресми аударма дайын"
+      },
+      "notary": {
+        "paid": "Төлем расталды",
+        "processing": "Құжат дайындалуда",
+        "awaitingTranslatorReview": "Аудармашыға жіберілді — тексеруді күтуде",
+        "translatorReviewInProgress": "Аударманы аудармашы тексеруде",
+        "approvedForNotary": "Аударма нотариалды куәландыруға дайын",
+        "notarizationInProgress": "Құжат нотариуста",
+        "notarized": "Құжат нотариалды түрде куәландырылды",
+        "notarizedFinal": "Құжат нотариалды түрде куәландырылды",
+        "readyForPickup": "Өзі алып кетуге дайын",
+        "pickedUp": "Тапсырыс берілді",
+        "readyForDelivery": "Құжат курьерге тапсыруға дайын",
+        "outForDelivery": "Құжат курьерге тапсырылды",
+        "delivered": "Құжат жеткізілді"
+      }
+    }
   },
   "electronicOutput": {
     "formats": {

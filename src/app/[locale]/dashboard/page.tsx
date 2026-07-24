@@ -11,7 +11,6 @@ import { bucketOrders, visibleOrders } from '@/lib/translation-workflow/order-bu
 import { sortByCreatedAtDesc } from '@/lib/translation-workflow/order-sort';
 import { applyPolledOrderUpdate, needsLivePolling, type PolledOrderData } from '@/lib/translation-workflow/dashboard-polling';
 import { computeRetentionExpiry, isRetentionExpired, applyFilesPurgedOverride } from '@/lib/translation-workflow/order-retention';
-import { isPipelineCustomerStatus, formatStatusLabelWithProgress } from '@/lib/translation-workflow/status-label';
 import { OrderForm } from '@/components/order/OrderForm';
 
 interface OrderEntry {
@@ -26,7 +25,15 @@ interface OrderEntry {
   fulfillmentMethod: 'pickup' | 'delivery' | null;
   jobStatus: string | null;
   workflowStatus: string | null;
-  progressPercent: number;
+  /** null before payment is confirmed — see progress-flow.ts's Rule 1 (2026-07-26). */
+  progressPercent: number | null;
+  /** i18n key for the current status text — resolveCustomerProgressFlow()'s own
+   * label, computed server-side. Never recompute/guess this client-side. */
+  labelKey: string;
+  /** false before payment (and while payment is being checked/failed) — the
+   * fulfillment progress bar/stage track must not render at all while this is
+   * false, per Rule 1. */
+  showFulfillmentProgress: boolean;
   errorMessage: string | null;
   createdAt: string;
   updatedAt: string;
@@ -36,7 +43,8 @@ interface OrderEntry {
   canDownload: boolean;
   isActive: boolean;
   isTerminal: boolean;
-  stages: { key: string; labelKey: string; done: boolean; current: boolean }[];
+  /** Positioned by `percent` (0-100), never evenly spaced — see progress-flow.ts. */
+  stages: { key: string; labelKey: string; percent: number; done: boolean; current: boolean }[];
   priceKzt: number | null;
   priceBeforeDiscountKzt: number | null;
   discountAppliedKzt: number | null;
@@ -135,103 +143,69 @@ function StatusBadge({ customerStatus }: { customerStatus: string | null }) {
 }
 
 // ─── Stage progress bar ────────────────────────────────────────────────────────
+//
+// 2026-07-26 architectural fix: stages are rendered EXACTLY from
+// resolveCustomerProgressFlow()'s output (server-computed, never recomputed here)
+// — markers are positioned at their own `percent` (never evenly spaced, per-flow
+// stage count varies), and the filled portion of the bar is `progressPercent`
+// exactly, never a value derived independently from stage position.
 
-function StageProgressBar({
-  stages,
-  progressPercent,
-}: {
-  stages: OrderEntry['stages'];
-  progressPercent: number;
-}) {
+function safeLabel(t: ReturnType<typeof useTranslations>, labelKey: string): string {
+  try {
+    return t(labelKey as Parameters<typeof t>[0]);
+  } catch {
+    return labelKey.split('.').pop() ?? labelKey;
+  }
+}
+
+function StageProgressBar({ entry }: { entry: OrderEntry }) {
   const t = useTranslations('dashboard');
 
-  if (!stages.length) {
-    return (
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
-        <div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${progressPercent}%` }} />
-      </div>
-    );
-  }
-
-  const currentIdx = stages.findIndex((s) => s.current);
-  const currentStage = currentIdx >= 0 ? stages[currentIdx] : null;
+  if (!entry.showFulfillmentProgress || entry.progressPercent == null) return null;
 
   return (
     <div className="flex flex-col gap-2">
-      {/* Dot track */}
-      <div className="flex items-center gap-0">
-        {stages.map((stage, i) => (
-          <div key={stage.key} className="flex flex-1 items-center">
-            <div
-              className={`h-2 w-2 shrink-0 rounded-full transition-colors ${
-                stage.done
-                  ? 'bg-primary'
-                  : stage.current
-                  ? 'bg-primary ring-2 ring-primary/30'
-                  : 'bg-white/20'
-              }`}
-            />
-            {i < stages.length - 1 && (
-              <div className="flex-1 h-px mx-0.5 transition-colors" style={{ background: stage.done ? 'rgb(201 168 76)' : 'rgb(255 255 255 / 0.15)' }} />
-            )}
-          </div>
+      <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+        <div
+          className="h-full rounded-full bg-primary transition-all duration-500"
+          style={{ width: `${entry.progressPercent}%` }}
+        />
+      </div>
+      {/* Markers positioned by their own percent — never evenly spaced. */}
+      <div className="relative h-2 w-full">
+        {entry.stages.map((stage) => (
+          <div
+            key={stage.key}
+            className={`absolute top-0 h-2 w-2 -translate-x-1/2 rounded-full transition-colors ${
+              stage.done
+                ? 'bg-primary'
+                : stage.current
+                ? 'bg-primary ring-2 ring-primary/30'
+                : 'bg-white/20'
+            }`}
+            style={{ left: `${stage.percent}%` }}
+            title={safeLabel(t, stage.labelKey)}
+          />
         ))}
       </div>
-      {/* Current stage label */}
-      {currentStage && (
-        <p className="text-xs text-muted-foreground">
-          {(() => {
-            try {
-              return t(currentStage.labelKey as Parameters<typeof t>[0]);
-            } catch {
-              return currentStage.labelKey.split('.').pop() ?? '';
-            }
-          })()}
-        </p>
-      )}
+      <p className="text-xs text-muted-foreground">
+        {safeLabel(t, entry.labelKey)}
+        {' · '}
+        {entry.progressPercent}%
+      </p>
     </div>
   );
 }
 
 // ─── Customer status label ─────────────────────────────────────────────────────
+//
+// 2026-07-26: labelKey now comes straight from resolveCustomerProgressFlow() —
+// computed once, server-side, for the whole customer journey (pre-payment
+// messages included). Never recompute or guess a label from customerStatus here.
 
 function useStatusLabel() {
   const t = useTranslations('dashboard');
-
-  return (entry: OrderEntry): string => {
-    const status = entry.customerStatus;
-
-    const label = (() => {
-      if (isPipelineCustomerStatus(status)) return t('status.preparingDocument');
-      switch (status) {
-        case 'payment_pending':      return t('status.paymentPending');
-        case 'awaiting_translator_review': return t('status.awaitingTranslatorReview');
-        case 'translator_review_in_progress': return t('status.translatorReviewInProgress');
-        case 'awaiting_signature_stamp':   return t('status.awaitingSignatureStamp');
-        case 'awaiting_notary_review':     return t('status.awaitingNotaryReview');
-        case 'awaiting_final_qa':          return t('status.awaitingFinalQa');
-        case 'translator_approved':        return t('status.translatorApproved');
-        case 'assigned_to_notary':         return t('status.assignedToNotary');
-        case 'notarization_in_progress':   return t('status.notarizationInProgress');
-        case 'notarized':                  return t('status.notarized');
-        case 'ready_for_delivery':         return t('status.readyForDelivery');
-        case 'ready_for_pickup':           return t('status.readyForPickup');
-        case 'out_for_delivery':           return t('status.outForDelivery');
-        case 'delivered':                  return t('status.delivered');
-        case 'picked_up':                  return t('status.pickedUp');
-        case 'operator_processing':        return t('status.operatorProcessing');
-        case 'translator_declined':        return t('status.translatorDeclined');
-        case 'notary_declined':            return t('status.notaryDeclined');
-        case 'completed':            return t('status.completed');
-        case 'failed':               return t('status.failed');
-        case 'refunded':             return t('status.refunded');
-        case 'canceled':             return t('status.canceled');
-        default:                     return t('processing');
-      }
-    })();
-
-    return formatStatusLabelWithProgress(label, entry.isTerminal, entry.progressPercent);
-  };
+  return (entry: OrderEntry): string => safeLabel(t, entry.labelKey);
 }
 
 // ─── Active order card ────────────────────────────────────────────────────────
@@ -276,7 +250,7 @@ function ActiveOrderCard({ entry, locale, onRecalculate }: { entry: OrderEntry; 
         <StatusBadge customerStatus={entry.customerStatus} />
       </div>
 
-      <StageProgressBar stages={entry.stages} progressPercent={entry.progressPercent} />
+      <StageProgressBar entry={entry} />
 
       {isHumanStage && (
         <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground/70">

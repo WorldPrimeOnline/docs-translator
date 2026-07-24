@@ -17,7 +17,13 @@ import { LOCALE_CODES } from '../../i18n/locales';
 
 const MESSAGES_DIR = path.resolve(__dirname, '../../../messages');
 
-function loadOrderMessages(locale: string): { dashboard: { status: Record<string, string>; stages: Record<string, string> } } {
+function loadOrderMessages(locale: string): {
+  dashboard: {
+    status: Record<string, string>;
+    stages: Record<string, string>;
+    progressFlow: { notary: Record<string, string> };
+  };
+} {
   const filePath = path.join(MESSAGES_DIR, locale, 'order.json');
   const raw = fs.readFileSync(filePath, 'utf-8');
   return JSON.parse(raw);
@@ -70,13 +76,37 @@ describe('dashboard.status.notarized / dashboard.stages.notarized — exact RU w
 });
 
 describe('dashboard.status.notarized / dashboard.stages.notarized — never raw enum values in code', () => {
-  it('dashboard/page.tsx renders the notarized status only via t(\'status.notarized\')/t(\'stages.notarized\'), never a raw enum literal', () => {
+  // 2026-07-26 architectural fix: the dashboard no longer chooses a label via a
+  // per-customerStatus switch statement in page.tsx — every label now comes from
+  // resolveCustomerProgressFlow()'s own `labelKey` (progress-flow.ts), rendered
+  // generically via `t(entry.labelKey)`. dashboard.status.notarized/
+  // dashboard.stages.notarized (tested above for content) are no longer read by
+  // page.tsx at all for the notary progress display; this test now asserts the
+  // NEW mechanism's safety property instead: no raw enum-like literal ever reaches
+  // the rendered text, and the resolver's own notary labelKeys resolve to real,
+  // non-empty, distinct-from-code-value translations in every locale.
+  it('dashboard/page.tsx never renders a raw enum literal (e.g. "NOTARY_COMPLETED") directly in JSX text content', () => {
     const dashboardSrc = fs.readFileSync(
       path.resolve(__dirname, '../../app/[locale]/dashboard/page.tsx'),
       'utf-8',
     );
-    expect(dashboardSrc).toContain("t('status.notarized')");
-    // No raw enum-like string is ever interpolated directly into JSX text content.
     expect(dashboardSrc).not.toMatch(/>\s*\{?\s*['"`]NOTARY_COMPLETED['"`]/);
+    // The label is rendered generically via the resolver's own labelKey — never a
+    // hardcoded per-status switch/case in the component itself anymore.
+    expect(dashboardSrc).toMatch(/t\(entry\.labelKey\)|safeLabel\(t, entry\.labelKey\)/);
+  });
+
+  it('progress-flow.ts\'s notary labelKeys (progressFlow.notary.notarized/notarizedFinal) resolve to real, non-empty text in every locale, never a raw enum value', () => {
+    for (const locale of LOCALE_CODES) {
+      const messages = loadOrderMessages(locale);
+      const notarized = messages.dashboard.progressFlow.notary.notarized!;
+      const notarizedFinal = messages.dashboard.progressFlow.notary.notarizedFinal!;
+      expect(typeof notarized).toBe('string');
+      expect(notarized.length).toBeGreaterThan(0);
+      expect(typeof notarizedFinal).toBe('string');
+      expect(notarizedFinal.length).toBeGreaterThan(0);
+      expect(notarized).not.toMatch(RAW_ENUM_PATTERN);
+      expect(notarizedFinal).not.toMatch(RAW_ENUM_PATTERN);
+    }
   });
 });

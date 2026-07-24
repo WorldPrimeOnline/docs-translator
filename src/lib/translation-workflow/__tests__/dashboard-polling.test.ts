@@ -50,6 +50,8 @@ function makeEntry(overrides: Partial<PollableOrderEntry> = {}): PollableOrderEn
     quoteExpiresAt: null,
     quoteRequiresOperatorReview: false,
     stages: [],
+    labelKey: 'progressFlow.electronic.processing',
+    showFulfillmentProgress: true,
     ...overrides,
   };
 }

@@ -200,6 +200,9 @@ export async function GET(): Promise<NextResponse> {
           serviceLevel: job.service_level ?? 'electronic',
           fulfillmentMethod: (job.fulfillment_method as 'pickup' | 'delivery' | null) ?? null,
           hasReadyResultFiles: resultFilesStatus?.isMultiSource ? resultFilesStatus.hasReadyResultFiles : undefined,
+          // 2026-07-26 progress-UI fix — distinguishes the pre-payment sub-states
+          // (quote ready / awaiting payment / payment being checked).
+          quoteStatus: quote?.status ?? null,
         })
       : null;
 
@@ -215,7 +218,9 @@ export async function GET(): Promise<NextResponse> {
       fulfillmentMethod: (job?.fulfillment_method as 'pickup' | 'delivery' | null) ?? null,
       jobStatus: job?.status ?? null,
       workflowStatus: job?.workflow_status ?? null,
-      progressPercent: state?.progressPercent ?? 0,
+      progressPercent: state?.progressPercent ?? null,
+      labelKey: state?.labelKey ?? 'progressFlow.prePayment.paymentPending',
+      showFulfillmentProgress: state?.showFulfillmentProgress ?? false,
       errorMessage: job?.error_message ?? null,
       createdAt: doc.created_at,
       updatedAt: job?.created_at ?? doc.created_at,

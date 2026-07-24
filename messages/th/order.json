@@ -271,7 +271,43 @@
       "discountMinOrderHint": "สำหรับคำสั่งซื้อตั้งแต่ {min} ₸",
       "remove": "ลบ"
     },
-    "uploadedQuoteReadyWithDiscount": "อัปโหลดเอกสารแล้ว — ราคา: {price} ₸ (ประหยัด {saved} ₸ ด้วยรหัสพาร์ทเนอร์) ยืนยันการชำระเงินด้านล่าง"
+    "uploadedQuoteReadyWithDiscount": "อัปโหลดเอกสารแล้ว — ราคา: {price} ₸ (ประหยัด {saved} ₸ ด้วยรหัสพาร์ทเนอร์) ยืนยันการชำระเงินด้านล่าง",
+    "progressFlow": {
+      "prePayment": {
+        "quoteReady": "คำนวณราคาแล้ว",
+        "paymentPending": "รอการชำระเงิน",
+        "paymentChecking": "กำลังตรวจสอบการชำระเงิน",
+        "paymentFailed": "การชำระเงินล้มเหลว"
+      },
+      "electronic": {
+        "paid": "ยืนยันการชำระเงินแล้ว",
+        "processing": "กำลังประมวลผลเอกสาร",
+        "ready": "แปลเสร็จแล้ว"
+      },
+      "official": {
+        "paid": "ยืนยันการชำระเงินแล้ว",
+        "processing": "กำลังเตรียมเอกสาร",
+        "awaitingTranslatorReview": "ส่งให้นักแปลแล้ว — รอการตรวจสอบ",
+        "translatorReviewInProgress": "นักแปลกำลังตรวจสอบคำแปล",
+        "signatureStage": "คำแปลพร้อมสำหรับการลงนามและรับรอง",
+        "ready": "คำแปลทางการเสร็จแล้ว"
+      },
+      "notary": {
+        "paid": "ยืนยันการชำระเงินแล้ว",
+        "processing": "กำลังเตรียมเอกสาร",
+        "awaitingTranslatorReview": "ส่งให้นักแปลแล้ว — รอการตรวจสอบ",
+        "translatorReviewInProgress": "นักแปลกำลังตรวจสอบคำแปล",
+        "approvedForNotary": "คำแปลพร้อมสำหรับการรับรองเอกสาร",
+        "notarizationInProgress": "เอกสารอยู่ที่โนตารี",
+        "notarized": "เอกสารได้รับการรับรองแล้ว",
+        "notarizedFinal": "เอกสารได้รับการรับรองแล้ว",
+        "readyForPickup": "พร้อมให้มารับ",
+        "pickedUp": "รับเอกสารแล้ว",
+        "readyForDelivery": "เอกสารพร้อมส่งมอบให้พนักงานส่งของ",
+        "outForDelivery": "ส่งมอบเอกสารให้พนักงานส่งของแล้ว",
+        "delivered": "จัดส่งเอกสารแล้ว"
+      }
+    }
   },
   "electronicOutput": {
     "formats": {
