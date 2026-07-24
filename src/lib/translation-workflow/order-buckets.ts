@@ -32,12 +32,30 @@ export interface OrderBuckets<T> {
   historyOrders: T[];
 }
 
+/**
+ * 2026-07-25 regression: the original version filtered each bucket independently
+ * (`isActive && !isTerminal` / `isActive && isTerminal` / `isTerminal && !isActive`),
+ * which left the isActive=false/isTerminal=false combination matching NONE of the
+ * three predicates — an order in that state would silently vanish from every
+ * section. That combination should never arise from getCustomerOrderState() itself
+ * (isActive is derived as `!isTerminal || canDownload`, so isActive=false requires
+ * isTerminal=true) — but it WAS reachable in practice: the retention fix's
+ * applyFilesPurgedOverride() forced isActive:false whenever a document was purged,
+ * without checking isTerminal first, so a genuinely abandoned (never paid,
+ * non-terminal) order older than 30 days could get its files purged and then
+ * disappear from all three buckets (fixed separately in order-retention.ts, but this
+ * function is hardened here too — defense in depth, not reliant on every caller
+ * getting isActive/isTerminal combinations exactly right). readyOrders/historyOrders
+ * are defined precisely and are mutually exclusive by construction; activeOrders is
+ * everything else — the safe catch-all, so an unrecognized/malformed combination
+ * lands in Active (visible, actionable) rather than disappearing.
+ */
 export function bucketOrders<T extends Bucketable>(orders: T[]): OrderBuckets<T> {
-  return {
-    activeOrders: orders.filter((o) => o.isActive && !o.isTerminal),
-    readyOrders: orders.filter((o) => o.isActive && o.isTerminal),
-    historyOrders: orders.filter((o) => o.isTerminal && !o.isActive),
-  };
+  const readyOrders = orders.filter((o) => o.isActive && o.isTerminal);
+  const historyOrders = orders.filter((o) => o.isTerminal && !o.isActive);
+  const classified = new Set([...readyOrders, ...historyOrders]);
+  const activeOrders = orders.filter((o) => !classified.has(o));
+  return { activeOrders, readyOrders, historyOrders };
 }
 
 /**

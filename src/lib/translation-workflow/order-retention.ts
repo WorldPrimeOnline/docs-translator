@@ -49,7 +49,20 @@ export function isRetentionExpired(
  * `isActive: false` here — applied to the bucketing INPUT, never to the order data
  * itself — is the smallest change that achieves that without touching the pure
  * bucketing/state-derivation utilities.
+ *
+ * 2026-07-25 fix: this MUST only apply to orders that are already terminal.
+ * Retention cleanup purges by `documents.created_at` alone (see
+ * src/app/api/cron/cleanup/route.ts) — it has no idea whether the order's business
+ * workflow ever finished, so a genuinely abandoned order (uploaded, quoted, never
+ * paid — payment_pending, non-terminal) sitting for 30+ days gets its temp files
+ * purged too. The original version of this function forced isActive:false
+ * unconditionally whenever filesPurgedAt was set, which would push that still-active,
+ * still-payable order into the isActive:false/isTerminal:false gap — invisible in
+ * every bucket (see the 2026-07-25 staging incident and
+ * order-buckets.test.ts's invariant test). Retention purging its files must never
+ * change its business state — only a terminal (already-finished) order migrates to
+ * history because of a purge.
  */
-export function applyFilesPurgedOverride<T extends { isActive: boolean; filesPurgedAt: string | null }>(orders: T[]): T[] {
-  return orders.map((o) => (o.filesPurgedAt ? { ...o, isActive: false } : o));
+export function applyFilesPurgedOverride<T extends { isActive: boolean; isTerminal: boolean; filesPurgedAt: string | null }>(orders: T[]): T[] {
+  return orders.map((o) => (o.filesPurgedAt && o.isTerminal ? { ...o, isActive: false } : o));
 }

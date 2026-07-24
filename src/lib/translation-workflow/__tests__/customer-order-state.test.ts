@@ -365,6 +365,35 @@ describe('Unknown workflow_status does not reset to translator stage', () => {
     expect(s.customerStatus).toBe('operator_processing');
     expect(s.customerStatus).not.toBe('awaiting_translator_review');
   });
+
+  it('2026-07-25 regression requirement: an unrecognized status combination must safely stay ACTIVE, never silently disappear', () => {
+    const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'some_future_status', serviceLevel: 'notarization_through_partners' });
+    expect(s.isTerminal).toBe(false);
+    expect(s.isActive).toBe(true);
+  });
+});
+
+describe('2026-07-25 staging regression — payment_pending must always be active, regardless of workflow_status', () => {
+  it('a brand-new order (payment_pending, quote just calculated, workflow_status=null) is active, not terminal', () => {
+    const s = getCustomerOrderState({ jobStatus: 'payment_pending', progressPercent: 0, workflowStatus: null, serviceLevel: 'official_with_translator_signature_and_provider_stamp' });
+    expect(s.customerStatus).toBe('payment_pending');
+    expect(s.isActive).toBe(true);
+    expect(s.isTerminal).toBe(false);
+  });
+
+  it('payment_pending with a legacy/default workflow_status="completed" is STILL active — jobStatus is checked before any workflow_status branch', () => {
+    const s = getCustomerOrderState({ jobStatus: 'payment_pending', progressPercent: 0, workflowStatus: 'completed', serviceLevel: 'notarization_through_partners' });
+    expect(s.customerStatus).toBe('payment_pending');
+    expect(s.isActive).toBe(true);
+    expect(s.isTerminal).toBe(false);
+  });
+
+  it('payment_pending with ANY workflow_status value (even a terminal-looking one like "delivered") is still active — jobStatus=payment_pending always wins', () => {
+    const s = getCustomerOrderState({ jobStatus: 'payment_pending', progressPercent: 0, workflowStatus: 'delivered', serviceLevel: 'notarization_through_partners' });
+    expect(s.customerStatus).toBe('payment_pending');
+    expect(s.isActive).toBe(true);
+    expect(s.isTerminal).toBe(false);
+  });
 });
 
 describe('Legacy workflow_status="completed" on non-electronic jobs', () => {

@@ -43,11 +43,22 @@ export async function GET(): Promise<NextResponse> {
 
   // Fetch all documents for this user (source of truth for ownership)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: docs } = await (supabaseServer as any)
+  const { data: docs, error: docsError } = await (supabaseServer as any)
     .from('documents')
     .select('id, filename, source_language, target_language, document_type, status, created_at, updated_at, files_purged_at')
     .eq('user_id', user.id)
-    .order('created_at', { ascending: false }) as { data: DocRow[] | null };
+    .order('created_at', { ascending: false }) as { data: DocRow[] | null; error: { message: string; code?: string } | null };
+
+  // 2026-07-25 regression: a query error here was previously indistinguishable from
+  // "this user genuinely has zero orders" — both fell through to `{ jobs: [] }`,
+  // silently emptying every user's dashboard (both Active and History) whenever the
+  // query itself failed (e.g. a column referenced in code before its migration was
+  // applied — see docs/ai-context/DECISIONS.md). A DB error must never look like an
+  // empty account.
+  if (docsError) {
+    console.error('[api/jobs] documents query failed:', docsError.code, docsError.message);
+    return NextResponse.json({ error: 'Failed to load orders' }, { status: 500 });
+  }
 
   if (!docs || docs.length === 0) {
     return NextResponse.json({ jobs: [] });
@@ -56,13 +67,22 @@ export async function GET(): Promise<NextResponse> {
   const docIds = docs.map((d) => d.id);
 
   // Fetch latest job per document
-  const { data: jobs } = await supabaseServer
+  const { data: jobs, error: jobsError } = await supabaseServer
     .from('jobs')
     .select(
       'id, document_id, status, progress_percent, error_message, workflow_status, service_level, fulfillment_method, price_kzt, price_before_discount_kzt, discount_applied_kzt, discount_code, created_at',
     )
     .in('document_id', docIds)
     .order('created_at', { ascending: false });
+
+  // Same guarantee as the documents query above — without job rows an order can't
+  // be classified as payment_pending/active at all, so a query failure here must
+  // never silently degrade into "this order has no job" (which would misclassify it
+  // into history with a blank status instead of failing loudly).
+  if (jobsError) {
+    console.error('[api/jobs] jobs query failed:', jobsError.code, jobsError.message);
+    return NextResponse.json({ error: 'Failed to load orders' }, { status: 500 });
+  }
 
   type JobRow = NonNullable<typeof jobs>[number];
 

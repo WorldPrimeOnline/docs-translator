@@ -59,31 +59,40 @@ describe('isRetentionExpired', () => {
   });
 });
 
-describe('applyFilesPurgedOverride (2026-07-24)', () => {
-  function order(overrides: { isActive: boolean; filesPurgedAt: string | null; id: string }) {
-    return { documentId: overrides.id, isActive: overrides.isActive, filesPurgedAt: overrides.filesPurgedAt };
+describe('applyFilesPurgedOverride (2026-07-24, fixed 2026-07-25)', () => {
+  function order(overrides: { isActive: boolean; isTerminal: boolean; filesPurgedAt: string | null; id: string }) {
+    return { documentId: overrides.id, isActive: overrides.isActive, isTerminal: overrides.isTerminal, filesPurgedAt: overrides.filesPurgedAt };
   }
 
-  it('forces isActive:false for a purged order, regardless of its original isActive value', () => {
-    const results = applyFilesPurgedOverride([order({ id: 'a', isActive: true, filesPurgedAt: '2026-07-01T00:00:00Z' })]);
+  it('forces isActive:false for a purged, TERMINAL order (e.g. completed/delivered) — migrates it to history', () => {
+    const results = applyFilesPurgedOverride([order({ id: 'a', isActive: true, isTerminal: true, filesPurgedAt: '2026-07-01T00:00:00Z' })]);
     expect(results[0]!.isActive).toBe(false);
   });
 
+  it('2026-07-25 regression fix: a purged but NON-TERMINAL order (e.g. an abandoned payment_pending upload older than 30 days) is left completely untouched — retention purging its temp files must never change its business state or make it vanish', () => {
+    const input = order({ id: 'a', isActive: true, isTerminal: false, filesPurgedAt: '2026-06-01T00:00:00Z' });
+    const results = applyFilesPurgedOverride([input]);
+    expect(results[0]).toEqual(input);
+    expect(results[0]!.isActive).toBe(true);
+  });
+
   it('leaves a non-purged order completely unchanged', () => {
-    const input = order({ id: 'a', isActive: true, filesPurgedAt: null });
+    const input = order({ id: 'a', isActive: true, isTerminal: true, filesPurgedAt: null });
     const [result] = applyFilesPurgedOverride([input]);
     expect(result).toEqual(input);
   });
 
-  it('a mixed list: only the purged order flips to isActive:false, others are untouched', () => {
-    const active = order({ id: 'active', isActive: true, filesPurgedAt: null });
-    const purgedButWasActive = order({ id: 'purged', isActive: true, filesPurgedAt: '2026-06-01T00:00:00Z' });
-    const alreadyInactive = order({ id: 'inactive', isActive: false, filesPurgedAt: null });
+  it('a mixed list: only the purged+terminal order flips to isActive:false, others (including purged-but-active) are untouched', () => {
+    const active = order({ id: 'active', isActive: true, isTerminal: false, filesPurgedAt: null });
+    const purgedTerminal = order({ id: 'purged-terminal', isActive: true, isTerminal: true, filesPurgedAt: '2026-06-01T00:00:00Z' });
+    const purgedButAbandonedActive = order({ id: 'purged-active', isActive: true, isTerminal: false, filesPurgedAt: '2026-06-01T00:00:00Z' });
+    const alreadyInactive = order({ id: 'inactive', isActive: false, isTerminal: true, filesPurgedAt: null });
 
-    const result = applyFilesPurgedOverride([active, purgedButWasActive, alreadyInactive]);
+    const result = applyFilesPurgedOverride([active, purgedTerminal, purgedButAbandonedActive, alreadyInactive]);
 
     expect(result.find((o) => o.documentId === 'active')!.isActive).toBe(true);
-    expect(result.find((o) => o.documentId === 'purged')!.isActive).toBe(false);
+    expect(result.find((o) => o.documentId === 'purged-terminal')!.isActive).toBe(false);
+    expect(result.find((o) => o.documentId === 'purged-active')!.isActive).toBe(true);
     expect(result.find((o) => o.documentId === 'inactive')!.isActive).toBe(false);
   });
 });

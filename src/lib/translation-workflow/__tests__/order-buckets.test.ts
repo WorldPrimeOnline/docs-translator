@@ -267,3 +267,21 @@ describe('7. closed/terminal-non-downloadable orders land in historyOrders only 
     expect(rendered.sort()).toEqual(['ready-to-download', 'still-active'].sort());
   });
 });
+
+describe('8. Invariant: every order lands in EXACTLY one bucket — never zero, never both (2026-07-25 regression)', () => {
+  const combinations: Array<{ isActive: boolean; isTerminal: boolean }> = [
+    { isActive: true, isTerminal: false },  // active
+    { isActive: true, isTerminal: true },   // ready
+    { isActive: false, isTerminal: true },  // history
+    { isActive: false, isTerminal: false }, // the one combination none of the three bucket predicates name explicitly
+  ];
+
+  for (const combo of combinations) {
+    it(`isActive=${combo.isActive}, isTerminal=${combo.isTerminal} lands in exactly one bucket`, () => {
+      const order = { documentId: 'x', ...combo };
+      const { activeOrders, readyOrders, historyOrders } = bucketOrders([order]);
+      const memberships = [activeOrders, readyOrders, historyOrders].filter((bucket) => bucket.includes(order));
+      expect(memberships).toHaveLength(1);
+    });
+  }
+});
