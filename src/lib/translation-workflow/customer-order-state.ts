@@ -178,6 +178,77 @@ function buildStages(
   }));
 }
 
+// ─── Canonical customer-facing progress percentage (2026-07-25) ─────────────────
+//
+// Replaces the old per-service-level `Math.round((stageIdx / totalStages) * 100)`
+// computation, which produced uneven, inconsistent percentages across service
+// levels and — worse — showed the WORKER's raw internal progress_percent verbatim
+// for jobStatus='ocr_in_progress'/'pdf_rendering' (e.g. "Извлечение текста (13%)",
+// "Создание PDF (13%)"), then showed no percentage at all once workflow_status
+// took over (awaiting_translator_review and beyond never interpolated {pct}).
+//
+// This table's ordering is intentionally identical to WORKFLOW_RANK
+// (src/lib/integrations/workflow.ts) — the DB-enforced forward-only transition
+// order for workflow_status. Since a job's real (jobStatus, workflowStatus)
+// history can only move forward through that rank order (safeUpdateWorkflowStatus
+// rejects backward transitions), and every value in this table is >= the value for
+// every rank that can precede it, progress is guaranteed to never decrease across
+// any real observed transition — without this stateless, pure function needing to
+// track "the highest percent ever shown" itself. See
+// __tests__/customer-order-state.test.ts's monotonicity tests, which walk the full
+// realistic transition sequence for all three service levels.
+const FIXED_PROGRESS_BY_STATUS: Partial<Record<CustomerStatus, number>> = {
+  payment_pending: 25,
+  awaiting_translator_review: 49,
+  translator_review_in_progress: 50,
+  translator_approved: 65,
+  assigned_to_notary: 65,
+  awaiting_signature_stamp: 80,
+  notarization_in_progress: 80,
+  notarized: 90,
+  ready_for_delivery: 93,
+  ready_for_pickup: 93,
+  out_for_delivery: 96,
+};
+
+// jobStatus values covering the worker's own OCR/translation/PDF-render pipeline —
+// the same underlying pipeline for every service level, run once per job right
+// after payment, before any human workflow_status exists yet. Collapsed into ONE
+// customer-facing stage ("Подготовка документа к обработке" — never "Извлечение
+// текста" or "Создание PDF" individually) whose percentage scales within a fixed
+// sub-range using the worker's raw 0-100 progress_percent — the ONLY place raw
+// worker progress is allowed to influence the customer-facing number at all.
+const PIPELINE_STATUSES: ReadonlySet<CustomerStatus> = new Set([
+  'queued', 'ocr_in_progress', 'translation_in_progress', 'pdf_rendering',
+]);
+const PIPELINE_RANGE_LOW = 35;
+const PIPELINE_RANGE_HIGH = 48;
+
+/** The floor for any real job row that exists but doesn't match a more specific
+ * rule below — covers `payment_pending` before this table's explicit 25 entry
+ * would apply in a future refactor, and any genuinely unrecognized customerStatus
+ * (operator_processing, etc.) — never lower than this, per "uploaded / initial
+ * processing" being the very first thing a customer ever sees for a real order. */
+const INITIAL_PROGRESS_FLOOR = 5;
+
+function resolveCustomerProgress(
+  customerStatus: CustomerStatus,
+  rawProgressPercent: number,
+  isTerminal: boolean,
+): number {
+  // Terminal is always 100 — delivered/picked_up/completed, but also failed/
+  // canceled/refunded/declined (an order that will never progress further shows
+  // a full/closed bar, never a stuck partial one).
+  if (isTerminal) return 100;
+
+  if (PIPELINE_STATUSES.has(customerStatus)) {
+    const clamped = Math.max(0, Math.min(100, rawProgressPercent));
+    return Math.round(PIPELINE_RANGE_LOW + (clamped / 100) * (PIPELINE_RANGE_HIGH - PIPELINE_RANGE_LOW));
+  }
+
+  return FIXED_PROGRESS_BY_STATUS[customerStatus] ?? INITIAL_PROGRESS_FLOOR;
+}
+
 // ─── Status derivation ────────────────────────────────────────────────────────
 
 function deriveCustomerStatus(
@@ -306,7 +377,6 @@ export function getCustomerOrderState(input: OrderStateInput): CustomerOrderStat
   const resolvedServiceLevel = serviceLevel as ServiceLevel | null;
 
   let stages: OrderStage[];
-  let effectiveProgress = progressPercent;
 
   if (resolvedServiceLevel === 'notarization_through_partners') {
     // Choose stage list based on fulfillment method.
@@ -319,25 +389,19 @@ export function getCustomerOrderState(input: OrderStateInput): CustomerOrderStat
     const rawIdx = notarizedCurrentStage(jobStatus, workflowStatus);
     const idx = isPickup ? Math.min(rawIdx, total) : rawIdx;
     stages = buildStages(stageList, idx);
-    effectiveProgress = Math.round((idx / total) * 100);
-    if (isTerminal) effectiveProgress = 100;
   } else if (resolvedServiceLevel === 'official_with_translator_signature_and_provider_stamp') {
     const idx = certifiedCurrentStage(jobStatus, workflowStatus);
-    const total = CERTIFIED_STAGES.length - 1;
     stages = buildStages(CERTIFIED_STAGES, idx);
-    effectiveProgress = Math.round((idx / total) * 100);
-    if (isTerminal || canDownload) effectiveProgress = 100;
   } else {
     const idx = electronicCurrentStage(jobStatus);
     stages = buildStages(ELECTRONIC_STAGES, idx);
-    effectiveProgress = progressPercent;
-    if (customerStatus === 'completed') effectiveProgress = 100;
   }
 
-  // Never show 100% unless truly done or downloadable
-  if (effectiveProgress >= 100 && !canDownload && !isTerminal) {
-    effectiveProgress = 95;
-  }
+  // 2026-07-25: canonical percentage, identical logic across all three service
+  // levels — see resolveCustomerProgress's doc comment. Deliberately independent
+  // of the `stages` timeline computed above (a separate UI element); this is what
+  // src/app/[locale]/dashboard/page.tsx's useStatusLabel() interpolates as {pct}.
+  const effectiveProgress = resolveCustomerProgress(customerStatus, progressPercent, isTerminal);
 
   return {
     customerStatus,

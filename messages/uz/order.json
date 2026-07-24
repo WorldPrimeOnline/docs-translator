@@ -40,6 +40,7 @@
     "usingPlanSub": "{plan} rejangizdan foydalanilmoqda · {remaining} ta hujjat qoldi — to'lov talab qilinmaydi",
     "status": {
       "paymentPending": "To'lov kutilmoqda",
+      "preparingDocument": "Hujjatni qayta ishlashga tayyorlash",
       "queued": "Navbatda — boshlanishini kutmoqda…",
       "ocr": "Matn ajratilmoqda… ({pct}%)",
       "ocrDone": "OCR tugadi, tarjima boshlanmoqda… ({pct}%)",

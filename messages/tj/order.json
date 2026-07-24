@@ -40,6 +40,7 @@
     "usingPlanSub": "Нақшаи {plan} · {remaining} ҳуҷҷат боқӣ монда",
     "status": {
       "paymentPending": "Awaiting payment",
+      "preparingDocument": "Омодасозии ҳуҷҷат барои коркард",
       "queued": "Навбат — интизори оғоз…",
       "ocr": "Матн гирифта мешавад… ({pct}%)",
       "ocrDone": "OCR анҷом ёфт, тарҷума оғоз мешавад… ({pct}%)",

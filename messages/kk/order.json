@@ -40,6 +40,7 @@
     "usingPlanSub": "{plan} жоспарыңыз · {remaining} құжат қалды — төлем қажет емес",
     "status": {
       "paymentPending": "Awaiting payment",
+      "preparingDocument": "Құжатты өңдеуге дайындау",
       "queued": "Кезекте — басталуды күтуде…",
       "ocr": "Мәтін шығарылуда… ({pct}%)",
       "ocrDone": "OCR аяқталды, аударма басталуда… ({pct}%)",

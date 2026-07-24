@@ -143,6 +143,7 @@
     },
     "status": {
       "paymentPending": "Awaiting payment",
+      "preparingDocument": "Preparing document",
       "queued": "Queued — waiting to start…",
       "ocr": "Extracting text… ({pct}%)",
       "ocrDone": "OCR complete, starting translation… ({pct}%)",

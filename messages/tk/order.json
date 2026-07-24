@@ -40,6 +40,7 @@
     "usingPlanSub": "{plan} meýilnamaňyzy ulanylýar · {remaining} resminama galdy — töleg talap edilmeýär",
     "status": {
       "paymentPending": "Awaiting payment",
+      "preparingDocument": "Resminamany işlemäge taýýarlamak",
       "queued": "Nobatda — başlamaga garaşylýar…",
       "ocr": "Tekst çykarylýar… ({pct}%)",
       "ocrDone": "OCR tamamlandy, terjime başlanýar… ({pct}%)",

@@ -11,6 +11,7 @@ import { bucketOrders, visibleOrders } from '@/lib/translation-workflow/order-bu
 import { sortByCreatedAtDesc } from '@/lib/translation-workflow/order-sort';
 import { applyPolledOrderUpdate, needsLivePolling, type PolledOrderData } from '@/lib/translation-workflow/dashboard-polling';
 import { computeRetentionExpiry, isRetentionExpired, applyFilesPurgedOverride } from '@/lib/translation-workflow/order-retention';
+import { isPipelineCustomerStatus, formatStatusLabelWithProgress } from '@/lib/translation-workflow/status-label';
 import { OrderForm } from '@/components/order/OrderForm';
 
 interface OrderEntry {
@@ -199,37 +200,37 @@ function useStatusLabel() {
 
   return (entry: OrderEntry): string => {
     const status = entry.customerStatus;
-    const pct = entry.progressPercent;
 
-    switch (status) {
-      case 'payment_pending':      return t('status.paymentPending');
-      case 'queued':               return t('status.queued');
-      case 'ocr_in_progress':      return t('status.ocr', { pct });
-      case 'translation_in_progress': return t('status.translating', { pct });
-      case 'pdf_rendering':        return t('status.rendering', { pct });
-      case 'awaiting_translator_review': return t('status.awaitingTranslatorReview');
-      case 'translator_review_in_progress': return t('status.translatorReviewInProgress');
-      case 'awaiting_signature_stamp':   return t('status.awaitingSignatureStamp');
-      case 'awaiting_notary_review':     return t('status.awaitingNotaryReview');
-      case 'awaiting_final_qa':          return t('status.awaitingFinalQa');
-      case 'translator_approved':        return t('status.translatorApproved');
-      case 'assigned_to_notary':         return t('status.assignedToNotary');
-      case 'notarization_in_progress':   return t('status.notarizationInProgress');
-      case 'notarized':                  return t('status.notarized');
-      case 'ready_for_delivery':         return t('status.readyForDelivery');
-      case 'ready_for_pickup':           return t('status.readyForPickup');
-      case 'out_for_delivery':           return t('status.outForDelivery');
-      case 'delivered':                  return t('status.delivered');
-      case 'picked_up':                  return t('status.pickedUp');
-      case 'operator_processing':        return t('status.operatorProcessing');
-      case 'translator_declined':        return t('status.translatorDeclined');
-      case 'notary_declined':            return t('status.notaryDeclined');
-      case 'completed':            return t('status.completed');
-      case 'failed':               return t('status.failed');
-      case 'refunded':             return t('status.refunded');
-      case 'canceled':             return t('status.canceled');
-      default:                     return t('processing');
-    }
+    const label = (() => {
+      if (isPipelineCustomerStatus(status)) return t('status.preparingDocument');
+      switch (status) {
+        case 'payment_pending':      return t('status.paymentPending');
+        case 'awaiting_translator_review': return t('status.awaitingTranslatorReview');
+        case 'translator_review_in_progress': return t('status.translatorReviewInProgress');
+        case 'awaiting_signature_stamp':   return t('status.awaitingSignatureStamp');
+        case 'awaiting_notary_review':     return t('status.awaitingNotaryReview');
+        case 'awaiting_final_qa':          return t('status.awaitingFinalQa');
+        case 'translator_approved':        return t('status.translatorApproved');
+        case 'assigned_to_notary':         return t('status.assignedToNotary');
+        case 'notarization_in_progress':   return t('status.notarizationInProgress');
+        case 'notarized':                  return t('status.notarized');
+        case 'ready_for_delivery':         return t('status.readyForDelivery');
+        case 'ready_for_pickup':           return t('status.readyForPickup');
+        case 'out_for_delivery':           return t('status.outForDelivery');
+        case 'delivered':                  return t('status.delivered');
+        case 'picked_up':                  return t('status.pickedUp');
+        case 'operator_processing':        return t('status.operatorProcessing');
+        case 'translator_declined':        return t('status.translatorDeclined');
+        case 'notary_declined':            return t('status.notaryDeclined');
+        case 'completed':            return t('status.completed');
+        case 'failed':               return t('status.failed');
+        case 'refunded':             return t('status.refunded');
+        case 'canceled':             return t('status.canceled');
+        default:                     return t('processing');
+      }
+    })();
+
+    return formatStatusLabelWithProgress(label, entry.isTerminal, entry.progressPercent);
   };
 }
 

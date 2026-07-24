@@ -40,6 +40,7 @@
     "usingPlanSub": "使用 {plan} 计划 · 剩余 {remaining} 份文件 — 无需付款",
     "status": {
       "paymentPending": "等待支付",
+      "preparingDocument": "正在准备文件处理",
       "queued": "排队中——等待开始…",
       "ocr": "正在提取文字… ({pct}%)",
       "ocrDone": "OCR 完成，正在开始翻译… ({pct}%)",

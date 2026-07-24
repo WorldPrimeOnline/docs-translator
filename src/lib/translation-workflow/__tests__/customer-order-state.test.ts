@@ -1,12 +1,12 @@
 import { getCustomerOrderState, canCustomerDownload, isCustomerOrderTerminal } from '../customer-order-state';
 
 describe('getCustomerOrderState — electronic', () => {
-  it('queued → 0%, not downloadable, not terminal', () => {
+  it('queued → not downloadable, not terminal (2026-07-25: percentage now comes from the canonical resolver, not raw worker progress_percent — see resolveCustomerProgress)', () => {
     const s = getCustomerOrderState({ jobStatus: 'queued', progressPercent: 0, workflowStatus: null, serviceLevel: 'electronic' });
     expect(s.customerStatus).toBe('queued');
     expect(s.canDownload).toBe(false);
     expect(s.isTerminal).toBe(false);
-    expect(s.progressPercent).toBe(0);
+    expect(s.progressPercent).toBe(35);
   });
 
   it('ocr_in_progress → processing, not terminal', () => {
@@ -81,11 +81,11 @@ describe('getCustomerOrderState — certified', () => {
     expect(s.canDownload).toBe(false);
   });
 
-  it('ready_for_delivery → downloadable for certified', () => {
+  it('ready_for_delivery → downloadable for certified (2026-07-25: 93%, not terminal — only "delivered" is terminal, canDownload no longer forces an early 100%)', () => {
     const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'ready_for_delivery', serviceLevel: SL });
     expect(s.customerStatus).toBe('ready_for_delivery');
     expect(s.canDownload).toBe(true);
-    expect(s.progressPercent).toBe(100);
+    expect(s.progressPercent).toBe(93);
   });
 
   it('delivered (certified) → terminal, downloadable', () => {
@@ -626,5 +626,152 @@ describe('getCustomerOrderState — progress never premature 100%', () => {
   it('certified awaiting translator is NOT 100%', () => {
     const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'awaiting_translator_review', serviceLevel: 'official_with_translator_signature_and_provider_stamp' });
     expect(s.progressPercent).toBeLessThan(100);
+  });
+});
+
+describe('2026-07-25 canonical progress resolver — monotonicity across every service level', () => {
+  // A real transition sequence for each service level, in the exact forward-only
+  // order WORKFLOW_RANK (src/lib/integrations/workflow.ts) enforces at the DB
+  // level. If a job could ever be observed at each of these states in order, the
+  // customer-facing percentage must never decrease, and per the requirement
+  // ("при смене статуса процент обязательно увеличивается") must strictly
+  // increase at every one of these real status changes.
+  // Real raw progress_percent values the worker actually reports at each pipeline
+  // jobStatus (see worker/src/processor.ts: updateJob(jobId, 'ocr_in_progress', 10),
+  // 'translation_in_progress', 50), 'pdf_rendering', 70)) — a uniform 0 for all of
+  // them would collapse the whole pipeline sub-range to a single value and falsely
+  // fail this monotonicity check on a test artifact, not a real regression.
+  const RAW_PROGRESS_BY_JOB_STATUS: Record<string, number> = {
+    queued: 0, ocr_in_progress: 10, translation_in_progress: 50, pdf_rendering: 70,
+  };
+
+  function progressAt(jobStatus: string, workflowStatus: string | null, serviceLevel: string, fulfillmentMethod?: 'pickup' | 'delivery' | null): number {
+    const rawProgress = RAW_PROGRESS_BY_JOB_STATUS[jobStatus] ?? 0;
+    return getCustomerOrderState({ jobStatus, progressPercent: rawProgress, workflowStatus, serviceLevel, fulfillmentMethod: fulfillmentMethod ?? null }).progressPercent;
+  }
+
+  function assertStrictlyIncreasing(percentages: number[], labels: string[]) {
+    for (let i = 1; i < percentages.length; i++) {
+      expect(percentages[i]).toBeGreaterThan(percentages[i - 1]!);
+    }
+    // Sanity: every percentage is a valid 0-100 value.
+    for (const p of percentages) {
+      expect(p).toBeGreaterThanOrEqual(0);
+      expect(p).toBeLessThanOrEqual(100);
+    }
+    void labels; // kept for readable failure context when debugging by hand
+  }
+
+  it('electronic: payment_pending -> pipeline -> completed strictly increases', () => {
+    const sequence: Array<[string, string | null]> = [
+      ['payment_pending', null],
+      ['queued', null],
+      ['ocr_in_progress', null],
+      ['translation_in_progress', null],
+      ['pdf_rendering', null],
+      ['completed', null],
+    ];
+    const percentages = sequence.map(([js, ws]) => progressAt(js, ws, 'electronic'));
+    assertStrictlyIncreasing(percentages, sequence.map((s) => s.join('/')));
+    expect(percentages[percentages.length - 1]).toBe(100);
+  });
+
+  it('official/certified (delivery): full realistic transition sequence strictly increases', () => {
+    const SL = 'official_with_translator_signature_and_provider_stamp';
+    const sequence: Array<[string, string | null]> = [
+      ['payment_pending', null],
+      ['queued', null],
+      ['ocr_in_progress', null],
+      ['translation_in_progress', null],
+      ['pdf_rendering', null],
+      ['completed', 'awaiting_translator_review'],
+      ['completed', 'translator_review_in_progress'],
+      ['completed', 'translator_approved'],
+      ['completed', 'awaiting_signature_stamp'],
+      ['completed', 'ready_for_delivery'],
+      ['completed', 'delivered'],
+    ];
+    const percentages = sequence.map(([js, ws]) => progressAt(js, ws, SL, 'delivery'));
+    assertStrictlyIncreasing(percentages, sequence.map((s) => s.join('/')));
+    expect(percentages[percentages.length - 1]).toBe(100);
+  });
+
+  it('notarization_through_partners (delivery): full realistic transition sequence strictly increases', () => {
+    const SL = 'notarization_through_partners';
+    const sequence: Array<[string, string | null]> = [
+      ['payment_pending', null],
+      ['queued', null],
+      ['ocr_in_progress', null],
+      ['translation_in_progress', null],
+      ['pdf_rendering', null],
+      ['completed', 'awaiting_translator_review'],
+      ['completed', 'translator_review_in_progress'],
+      ['completed', 'assigned_to_notary'],
+      ['completed', 'notarization_in_progress'],
+      ['completed', 'notarized'],
+      ['completed', 'ready_for_delivery'],
+      ['completed', 'out_for_delivery'],
+      ['completed', 'delivered'],
+    ];
+    const percentages = sequence.map(([js, ws]) => progressAt(js, ws, SL, 'delivery'));
+    assertStrictlyIncreasing(percentages, sequence.map((s) => s.join('/')));
+    expect(percentages[percentages.length - 1]).toBe(100);
+  });
+
+  it('notarization_through_partners (pickup): full realistic transition sequence strictly increases, no out_for_delivery step', () => {
+    const SL = 'notarization_through_partners';
+    const sequence: Array<[string, string | null]> = [
+      ['payment_pending', null],
+      ['queued', null],
+      ['ocr_in_progress', null],
+      ['translation_in_progress', null],
+      ['pdf_rendering', null],
+      ['completed', 'awaiting_translator_review'],
+      ['completed', 'translator_review_in_progress'],
+      ['completed', 'assigned_to_notary'],
+      ['completed', 'notarization_in_progress'],
+      ['completed', 'notarized'],
+      ['completed', 'ready_for_pickup'],
+      ['completed', 'picked_up'],
+    ];
+    const percentages = sequence.map(([js, ws]) => progressAt(js, ws, SL, 'pickup'));
+    assertStrictlyIncreasing(percentages, sequence.map((s) => s.join('/')));
+    expect(percentages[percentages.length - 1]).toBe(100);
+  });
+
+  it('the OCR/translation/PDF-rendering pipeline sub-range itself increases monotonically with raw worker progress_percent', () => {
+    const p10 = getCustomerOrderState({ jobStatus: 'ocr_in_progress', progressPercent: 10, workflowStatus: null, serviceLevel: 'electronic' }).progressPercent;
+    const p50 = getCustomerOrderState({ jobStatus: 'translation_in_progress', progressPercent: 50, workflowStatus: null, serviceLevel: 'electronic' }).progressPercent;
+    const p70 = getCustomerOrderState({ jobStatus: 'pdf_rendering', progressPercent: 70, workflowStatus: null, serviceLevel: 'electronic' }).progressPercent;
+    expect(p10).toBeLessThan(p50);
+    expect(p50).toBeLessThan(p70);
+    // Never leaves its allotted customer-facing sub-range (35-48), regardless of
+    // how the underlying jobStatus/label is presented.
+    for (const p of [p10, p50, p70]) {
+      expect(p).toBeGreaterThanOrEqual(35);
+      expect(p).toBeLessThanOrEqual(48);
+    }
+  });
+
+  it('payment_pending with a ready quote is always exactly 25%, regardless of service level', () => {
+    for (const sl of ['electronic', 'official_with_translator_signature_and_provider_stamp', 'notarization_through_partners']) {
+      expect(getCustomerOrderState({ jobStatus: 'payment_pending', progressPercent: 0, workflowStatus: null, serviceLevel: sl }).progressPercent).toBe(25);
+    }
+  });
+
+  it('every terminal status (including failed/canceled/refunded/declined) shows 100%, never a stuck partial number', () => {
+    const terminalCases: Array<{ jobStatus: string; workflowStatus: string | null; serviceLevel: string }> = [
+      { jobStatus: 'completed', workflowStatus: null, serviceLevel: 'electronic' },
+      { jobStatus: 'failed', workflowStatus: null, serviceLevel: 'electronic' },
+      { jobStatus: 'refunded', workflowStatus: null, serviceLevel: 'electronic' },
+      { jobStatus: 'canceled', workflowStatus: null, serviceLevel: 'electronic' },
+      { jobStatus: 'completed', workflowStatus: 'translator_declined', serviceLevel: 'official_with_translator_signature_and_provider_stamp' },
+      { jobStatus: 'completed', workflowStatus: 'notary_declined', serviceLevel: 'notarization_through_partners' },
+      { jobStatus: 'completed', workflowStatus: 'delivered', serviceLevel: 'notarization_through_partners' },
+      { jobStatus: 'completed', workflowStatus: 'picked_up', serviceLevel: 'notarization_through_partners' },
+    ];
+    for (const c of terminalCases) {
+      expect(getCustomerOrderState({ ...c, progressPercent: 0 }).progressPercent).toBe(100);
+    }
   });
 });

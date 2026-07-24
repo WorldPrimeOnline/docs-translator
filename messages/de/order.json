@@ -42,6 +42,7 @@
     "usingPlanSub": "Tarif {plan} · noch {remaining} Dokumente verfügbar — keine Zahlung erforderlich",
     "status": {
       "paymentPending": "Wartet auf Zahlung",
+      "preparingDocument": "Dokument wird vorbereitet",
       "queued": "In der Warteschlange — wartet auf Start…",
       "ocr": "Textextraktion… ({pct}%)",
       "ocrDone": "OCR abgeschlossen, Übersetzung beginnt… ({pct}%)",

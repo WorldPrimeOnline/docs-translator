@@ -42,6 +42,7 @@
     "usingPlanSub": "{plan} planı · {remaining} belge kaldı — ödeme gerekmez",
     "status": {
       "paymentPending": "Ödeme bekleniyor",
+      "preparingDocument": "Belge işleme hazırlanıyor",
       "queued": "Sırada — başlatılmayı bekliyor…",
       "ocr": "Metin çıkarılıyor… ({pct}%)",
       "ocrDone": "OCR tamamlandı, çeviri başlıyor… ({pct}%)",

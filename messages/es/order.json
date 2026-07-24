@@ -40,6 +40,7 @@
     "usingPlanSub": "Plan {plan} · {remaining} documento{s} restante{s} — sin pago necesario",
     "status": {
       "paymentPending": "Awaiting payment",
+      "preparingDocument": "Preparando el documento",
       "queued": "En cola — esperando inicio…",
       "ocr": "Extrayendo texto… ({pct}%)",
       "ocrDone": "OCR completado, iniciando traducción… ({pct}%)",

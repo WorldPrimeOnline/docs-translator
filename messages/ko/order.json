@@ -40,6 +40,7 @@
     "usingPlanSub": "{plan} 플랜 사용 중 · 남은 문서 {remaining}개 — 결제 불필요",
     "status": {
       "paymentPending": "Awaiting payment",
+      "preparingDocument": "문서 처리 준비 중",
       "queued": "대기 중 — 시작 대기…",
       "ocr": "텍스트 추출 중… ({pct}%)",
       "ocrDone": "OCR 완료, 번역 시작 중… ({pct}%)",
