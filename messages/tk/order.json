@@ -193,6 +193,7 @@
     "errors": {
       "serverError": "Serwer ýalňyşlygy. Gaýtadan synanyşyň.",
       "uploadFailed": "Ýüklemek şowsuz boldy",
+      "pricingVersionChanged": "Bahalar täzelendi. Gaýtadan hasaplaň.",
       "logoutFailed": "Çykmak başartmady",
       "unsupportedFileType": "Goldanmaýan faýl görnüşi: {files}",
       "pleaseSelectFile": "Iň az bir faýl saýlaň",

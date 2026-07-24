@@ -85,6 +85,13 @@ function uploadErrorMessage(
       return tStart('errors.fileCountExceeded', { max: max ?? MAX_UPLOAD_FILE_COUNT });
     case 'INVALID_FILE_SIGNATURE':
       return tStart('errors.invalidFileSignature', { file: file ?? '' });
+    case 'PRICING_VERSION_CHANGED':
+      // 2026-07-25: a pricing version was activated while this specific upload's OCR/analysis
+      // was already in flight (rare — activation is a manual, deliberate ops action). The
+      // existing document_analysis for this document is reused on resubmit (never re-run), and
+      // resubmitting is exactly "повторите расчёт" — no separate retry button needed, the
+      // existing submit flow already re-enables after any error via setUploading(false).
+      return tStart('errors.pricingVersionChanged');
     default:
       return tStart('errors.uploadFailed');
   }

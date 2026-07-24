@@ -21,8 +21,19 @@ function normalizeLanguageCode(language: string): string {
   return language.trim().toLowerCase();
 }
 
-/** The only pricing_versions row the new-model flags are allowed to consider "correct". */
-const NEW_MODEL_VERSION_CODE = '2026-Q3-KZ-NEWMODEL';
+/**
+ * The approved new-model formula's version marker. Any active pricing_versions row
+ * carrying this in metadata.formula_version is "correct" for the Official/Notary
+ * gate below — the row's `code` itself is NOT part of the check (2026-07-25 fix,
+ * see the incident this closes: the gate used to also require
+ * `code === '2026-Q3-KZ-NEWMODEL'` literally, so activating
+ * '2026-Q3-KZ-NEWMODEL-COORD-TIERS' — a deliberate, planned upgrade that keeps the
+ * exact same approved formula, just with progressive coordination tiers layered on
+ * top — made every single quote attempt fail with PRICING_VERSION_MISMATCH,
+ * permanently, not intermittently. formula_version is the actual semantic
+ * guarantee this gate exists to enforce; the exact row `code` was always an
+ * implementation detail that will change again as new approved versions ship).
+ */
 const NEW_MODEL_FORMULA_VERSION = 'new_2026_07_21';
 
 // ─── Raw DB row shapes (new tables not yet in generated supabase.ts) ───────────
@@ -312,9 +323,20 @@ export function extractNotaryUrgencySnapshot(result: PricingResult): NotaryUrgen
   };
 }
 
+export interface PricingVersionMismatchDetail {
+  error: 'PRICING_VERSION_MISMATCH';
+  /** So a caller (e.g. createCardOrder) can distinguish "the active version changed
+   * DURING this attempt" (retriable — see PRICING_VERSION_CHANGED in
+   * upload-card-shared.ts) from "the active version has been wrong for a while"
+   * (a real config problem, not fixed by retrying). Never the full version config. */
+  activeVersionId: string;
+  activeVersionCode: string;
+  activeVersionValidFrom: string;
+}
+
 export async function computeQuoteForJob(
   input: PricingInput,
-): Promise<{ result: PricingResult; version: PricingVersion } | { error: string }> {
+): Promise<{ result: PricingResult; version: PricingVersion } | { error: string } | PricingVersionMismatchDetail> {
   const version = await getActivePricingVersion();
   if (!version) return { error: 'PRICING_NOT_CONFIGURED' };
 
@@ -335,11 +357,27 @@ export async function computeQuoteForJob(
 
     if (!flagForServiceLevel) return { error: 'SERVICE_LEVEL_PRICING_DISABLED' };
 
-    // The flag being on is only meaningful against the corrected new-model version — never
+    // The flag being on is only meaningful against the corrected new-model formula — never
     // silently price a gated service level against a version that doesn't carry the approved
-    // 2026-07-21 rates (e.g. the MVP row's stale marketing/owner-reserve/mrp defaults).
-    if (version.code !== NEW_MODEL_VERSION_CODE || version.metadata?.formula_version !== NEW_MODEL_FORMULA_VERSION) {
-      return { error: 'PRICING_VERSION_MISMATCH' };
+    // 2026-07-21 rates (e.g. the MVP row's stale marketing/owner-reserve/mrp defaults). Checks
+    // formula_version only, deliberately NOT a hardcoded exact `code` — see
+    // NEW_MODEL_FORMULA_VERSION's doc comment for the 2026-07-25 incident this fixes.
+    if (version.metadata?.formula_version !== NEW_MODEL_FORMULA_VERSION) {
+      console.error(JSON.stringify({
+        scope: 'pricing_version_mismatch',
+        expectedFormulaVersion: NEW_MODEL_FORMULA_VERSION,
+        actualVersionId: version.id,
+        actualVersionCode: version.code,
+        actualFormulaVersion: version.metadata?.formula_version ?? null,
+        documentId: input.documentId ?? null,
+        analysisId: input.analysisId ?? null,
+      }));
+      return {
+        error: 'PRICING_VERSION_MISMATCH',
+        activeVersionId: version.id,
+        activeVersionCode: version.code,
+        activeVersionValidFrom: version.validFrom,
+      };
     }
 
     // Config-load-time invariant check — scoped to non-electronic quotes, the only ones that

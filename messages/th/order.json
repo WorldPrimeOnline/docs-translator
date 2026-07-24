@@ -197,6 +197,7 @@
     "errors": {
       "serverError": "เกิดข้อผิดพลาดของเซิร์ฟเวอร์ กรุณาลองอีกครั้ง",
       "uploadFailed": "การอัปโหลดล้มเหลว",
+      "pricingVersionChanged": "อัตราค่าบริการได้รับการอัปเดต กรุณาคำนวณใหม่",
       "logoutFailed": "ไม่สามารถออกจากระบบได้",
       "unsupportedFileType": "ประเภทไฟล์ที่ไม่รองรับ: {files}",
       "pleaseSelectFile": "กรุณาเลือกอย่างน้อยหนึ่งไฟล์",

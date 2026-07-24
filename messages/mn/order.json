@@ -193,6 +193,7 @@
     "errors": {
       "serverError": "Серверийн алдаа. Дахин оролдоно уу.",
       "uploadFailed": "Байршуулалт амжилтгүй боллоо",
+      "pricingVersionChanged": "Тарифууд шинэчлэгдсэн. Дахин тооцоолно уу.",
       "logoutFailed": "Гарах амжилтгүй боллоо",
       "unsupportedFileType": "Дэмжигдээгүй файлын төрөл: {files}",
       "pleaseSelectFile": "Дор хаяж нэг файл сонгоно уу",

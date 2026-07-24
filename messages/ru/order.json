@@ -197,6 +197,7 @@
     "errors": {
       "serverError": "Ошибка сервера. Попробуйте ещё раз.",
       "uploadFailed": "Ошибка загрузки",
+      "pricingVersionChanged": "Тарифы обновились. Повторите расчёт.",
       "logoutFailed": "Не удалось выйти",
       "unsupportedFileType": "Неподдерживаемый тип файла: {files}",
       "pleaseSelectFile": "Пожалуйста, выберите хотя бы один файл",

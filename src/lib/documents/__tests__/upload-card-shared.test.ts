@@ -529,6 +529,120 @@ describe('createCardOrder', () => {
       );
     });
 
+    describe('2026-07-25 incident: PRICING_VERSION_MISMATCH during this exact attempt -> controlled 409, not a bare 503', () => {
+      it('the active pricing version became active AFTER this request started (activation happened mid-attempt) -> 409 PRICING_VERSION_CHANGED, never the generic PRICING_UNAVAILABLE', async () => {
+        mockResolveAnalysis.mockResolvedValueOnce({
+          kind: 'completed',
+          row: { id: 'analysis-1', sourceCharacterCountWithSpaces: 17497, physicalPageCount: 5 },
+        });
+        // valid_from far in the future relative to "now" (when createCardOrder captures
+        // requestStartedAt) simulates "this version was activated after this attempt began".
+        mockComputeQuote.mockResolvedValueOnce({
+          error: 'PRICING_VERSION_MISMATCH',
+          activeVersionId: 'v-coord-tiers',
+          activeVersionCode: '2026-Q3-KZ-NEWMODEL-COORD-TIERS',
+          activeVersionValidFrom: '2099-01-01T00:00:00.000Z',
+        });
+        mockFrom
+          .mockReturnValueOnce(chain({ data: null, error: null }))
+          .mockReturnValueOnce(chain({ data: null, error: null }))
+          .mockReturnValueOnce(chain({ data: { id: 'attempt-1' }, error: null }))
+          .mockReturnValueOnce(chain({ data: null, error: null })); // document marked failed
+
+        const result = await createCardOrder(baseInput({ serviceLevel: 'official_with_translator_signature_and_provider_stamp' }));
+
+        expect(result).toEqual({ ok: false, status: 409, error: 'PRICING_VERSION_CHANGED' });
+        // Never the generic internal-failure Sentry report for this specific, honestly-retriable case.
+        expect(mockCaptureMessage).not.toHaveBeenCalled();
+      });
+
+      it('the active version has been mismatched since BEFORE this request started (a longstanding config problem, not a mid-attempt change) -> stays the generic 503 PRICING_UNAVAILABLE', async () => {
+        mockResolveAnalysis.mockResolvedValueOnce({
+          kind: 'completed',
+          row: { id: 'analysis-1', sourceCharacterCountWithSpaces: 1800, physicalPageCount: 1 },
+        });
+        mockComputeQuote.mockResolvedValueOnce({
+          error: 'PRICING_VERSION_MISMATCH',
+          activeVersionId: 'v-mvp',
+          activeVersionCode: '2026-Q3-KZ-MVP',
+          activeVersionValidFrom: '2020-01-01T00:00:00.000Z', // long before this request started
+        });
+        mockFrom
+          .mockReturnValueOnce(chain({ data: null, error: null }))
+          .mockReturnValueOnce(chain({ data: null, error: null }))
+          .mockReturnValueOnce(chain({ data: { id: 'attempt-1' }, error: null }))
+          .mockReturnValueOnce(chain({ data: null, error: null }));
+
+        const result = await createCardOrder(baseInput({ serviceLevel: 'official_with_translator_signature_and_provider_stamp' }));
+
+        expect(result).toEqual({ ok: false, status: 503, error: 'PRICING_UNAVAILABLE' });
+        expect(mockCaptureMessage).toHaveBeenCalledWith(
+          expect.stringContaining('PRICING_VERSION_MISMATCH'),
+          expect.objectContaining({ tags: expect.objectContaining({ reason: 'PRICING_VERSION_MISMATCH' }) }),
+        );
+      });
+
+      it('PRICING_NOT_CONFIGURED and SERVICE_LEVEL_PRICING_DISABLED are unaffected by this change — still the generic 503', async () => {
+        mockResolveAnalysis.mockResolvedValueOnce({
+          kind: 'completed',
+          row: { id: 'analysis-1', sourceCharacterCountWithSpaces: 1800, physicalPageCount: 1 },
+        });
+        mockComputeQuote.mockResolvedValueOnce({ error: 'SERVICE_LEVEL_PRICING_DISABLED' });
+        mockFrom
+          .mockReturnValueOnce(chain({ data: null, error: null }))
+          .mockReturnValueOnce(chain({ data: null, error: null }))
+          .mockReturnValueOnce(chain({ data: { id: 'attempt-1' }, error: null }))
+          .mockReturnValueOnce(chain({ data: null, error: null }));
+
+        const result = await createCardOrder(baseInput({ serviceLevel: 'official_with_translator_signature_and_provider_stamp' }));
+
+        expect(result).toEqual({ ok: false, status: 503, error: 'PRICING_UNAVAILABLE' });
+      });
+
+      it('retry after 409 (same uploadAttemptId): reuses the existing (failed) document row via UPDATE not a second INSERT, reuses the completed analysis (no second OCR call), and creates exactly one job + one quote on success — never a duplicate', async () => {
+        // The existing-document lookup now finds the row from the first (409'd) attempt,
+        // with no job yet — exactly upload-card-shared.ts's documented recovery path.
+        const docUpdateChain = chain({ data: { id: 'attempt-1' }, error: null });
+        const jobInsertChain = chain({ data: { id: 'job-1' }, error: null });
+        mockFrom
+          .mockReturnValueOnce(chain({ data: null, error: null })) // users upsert
+          .mockReturnValueOnce(chain({ data: { id: 'attempt-1' }, error: null })) // existing-document lookup — FOUND (from the 409'd attempt)
+          .mockReturnValueOnce(chain({ data: null, error: null })) // existing-job lookup — none yet
+          .mockReturnValueOnce(docUpdateChain) // documents UPDATE, not INSERT
+          .mockReturnValueOnce(jobInsertChain)
+          .mockReturnValueOnce(chain({ error: null })) // job_source_files insert
+          .mockReturnValueOnce(chain({ error: null })); // job_audit_log
+
+        // resolveDocumentAnalysisForPricing is mocked at this test file's boundary (the real
+        // idempotent-reuse mechanism — "a completed analysis is reused, never re-run" — is
+        // covered directly in document-analysis/service.test.ts); here we only need to confirm
+        // it's called exactly once for this one retry attempt.
+        mockResolveAnalysis.mockResolvedValueOnce({
+          kind: 'completed',
+          row: { id: 'analysis-1', documentId: 'attempt-1', revision: 1, status: 'completed', method: 'ocr', sourceCharacterCountWithSpaces: 17497, physicalPageCount: 5 },
+        });
+        // Now using the newly-active coord-tiers version — the root-cause fix means this
+        // succeeds instead of returning PRICING_VERSION_MISMATCH again.
+        mockComputeQuote.mockResolvedValueOnce({
+          result: { amountKzt: 87000, currency: 'KZT', requiresOperatorReview: false, reviewReasons: [], context: {}, items: [] },
+          version: { code: '2026-Q3-KZ-NEWMODEL-COORD-TIERS', metadata: { formula_version: 'new_2026_07_21' } },
+        });
+        mockSaveQuote.mockResolvedValueOnce({ quoteId: 'quote-retry-1' });
+
+        const result = await createCardOrder(baseInput({ serviceLevel: 'notarization_through_partners' }));
+
+        expect(result).toEqual({
+          ok: true,
+          value: expect.objectContaining({ jobId: 'job-1', documentId: 'attempt-1', priceKzt: 87000, quoteId: 'quote-retry-1' }),
+        });
+        expect(mockResolveAnalysis).toHaveBeenCalledTimes(1);
+        expect(jobInsertChain.insert).toHaveBeenCalledTimes(1);
+        expect(mockSaveQuote).toHaveBeenCalledTimes(1);
+        expect(docUpdateChain.update).toHaveBeenCalled();
+        expect(docUpdateChain.insert).not.toHaveBeenCalled();
+      });
+    });
+
     it('2026-07-23 incident follow-up: a 10-file order triggers exactly ONE resolveDocumentAnalysisForPricing call, not one per source — the merged-PDF analysis is already O(1) provider calls regardless of file count, never N sequential OCR round-trips', async () => {
       mockResolveAnalysis.mockResolvedValueOnce({
         kind: 'completed',

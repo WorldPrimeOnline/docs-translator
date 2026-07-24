@@ -193,6 +193,7 @@
     "errors": {
       "serverError": "Error del servidor. Por favor, inténtelo de nuevo.",
       "uploadFailed": "Error al subir el archivo",
+      "pricingVersionChanged": "Las tarifas se han actualizado. Vuelva a calcular.",
       "logoutFailed": "Error al cerrar sesión",
       "unsupportedFileType": "Tipo de archivo no compatible: {files}",
       "pleaseSelectFile": "Por favor, seleccione al menos un archivo",

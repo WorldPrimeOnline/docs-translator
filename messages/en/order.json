@@ -245,6 +245,7 @@
     "errors": {
       "serverError": "Server error. Please try again.",
       "uploadFailed": "Upload failed",
+      "pricingVersionChanged": "Pricing has been updated. Please recalculate.",
       "logoutFailed": "Failed to log out",
       "unsupportedFileType": "Unsupported file type: {files}",
       "pleaseSelectFile": "Please select at least one file",

@@ -193,6 +193,7 @@
     "errors": {
       "serverError": "Сервер қатесі. Қайтадан көріңіз.",
       "uploadFailed": "Жүктеу қатесі",
+      "pricingVersionChanged": "Тарифтер жаңартылды. Қайта есептеңіз.",
       "logoutFailed": "Шығу сәтсіз аяқталды",
       "unsupportedFileType": "Қолдау көрсетілмейтін файл түрі: {files}",
       "pleaseSelectFile": "Кем дегенде бір файл таңдаңыз",

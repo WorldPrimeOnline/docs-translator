@@ -197,6 +197,7 @@
     "errors": {
       "serverError": "Sunucu hatası. Tekrar deneyin.",
       "uploadFailed": "Yükleme hatası",
+      "pricingVersionChanged": "Fiyatlar güncellendi. Lütfen tekrar hesaplayın.",
       "logoutFailed": "Çıkış yapılamadı",
       "unsupportedFileType": "Desteklenmeyen dosya türü: {files}",
       "pleaseSelectFile": "Lütfen en az bir dosya seçin",

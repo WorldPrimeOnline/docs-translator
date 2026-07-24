@@ -197,6 +197,7 @@
     "errors": {
       "serverError": "服务器错误，请重试。",
       "uploadFailed": "上传失败",
+      "pricingVersionChanged": "价格已更新。请重新计算。",
       "logoutFailed": "退出登录失败",
       "unsupportedFileType": "不支持的文件类型：{files}",
       "pleaseSelectFile": "请至少选择一个文件",

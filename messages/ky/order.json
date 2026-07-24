@@ -193,6 +193,7 @@
     "errors": {
       "serverError": "Сервер катасы. Кайра аракет кылыңыз.",
       "uploadFailed": "Жүктөө катасы",
+      "pricingVersionChanged": "Тарифтер жаңыртылды. Кайра эсептеңиз.",
       "logoutFailed": "Чыгуу ийгиликсиз аяктады",
       "unsupportedFileType": "Колдоо көрсөтүлбөгөн файл түрү: {files}",
       "pleaseSelectFile": "Жок дегенде бир файл тандаңыз",

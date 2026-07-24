@@ -197,6 +197,7 @@
     "errors": {
       "serverError": "Serverfehler. Bitte versuchen Sie es erneut.",
       "uploadFailed": "Upload fehlgeschlagen",
+      "pricingVersionChanged": "Die Preise wurden aktualisiert. Bitte berechnen Sie erneut.",
       "logoutFailed": "Abmelden fehlgeschlagen",
       "unsupportedFileType": "Nicht unterstützter Dateityp: {files}",
       "pleaseSelectFile": "Bitte wählen Sie mindestens eine Datei aus",

@@ -193,6 +193,7 @@
     "errors": {
       "serverError": "Хатои сервер. Лутфан бори дигар кӯшиш кунед.",
       "uploadFailed": "Хатои боркунӣ",
+      "pricingVersionChanged": "Тарифҳо навсозӣ шуданд. Бори дигар ҳисоб кунед.",
       "logoutFailed": "Баромадан муваффақ нашуд",
       "unsupportedFileType": "Навъи файли дастгирӣнашаванда: {files}",
       "pleaseSelectFile": "Лутфан ҳадди аққал як файл интихоб кунед",
