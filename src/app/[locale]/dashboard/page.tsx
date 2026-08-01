@@ -8,6 +8,7 @@ import { FileText, Download, AlertCircle, Loader2, Clock, RefreshCw, Receipt } f
 import { HalykPayButton } from '@/components/payment/HalykPayButton';
 import { createClient } from '@/lib/supabase/client';
 import { bucketOrders, visibleOrders } from '@/lib/translation-workflow/order-buckets';
+import { resolveDownloadAction } from '@/lib/translation-workflow/download-action';
 import { sortByCreatedAtDesc } from '@/lib/translation-workflow/order-sort';
 import { applyPolledOrderUpdate, needsLivePolling, type PolledOrderData } from '@/lib/translation-workflow/dashboard-polling';
 import { computeRetentionExpiry, isRetentionExpired, applyFilesPurgedOverride } from '@/lib/translation-workflow/order-retention';
@@ -344,27 +345,31 @@ function ActiveOrderCard({ entry, locale, onRecalculate }: { entry: OrderEntry; 
         );
       })()}
 
-      {entry.canDownload && (
-        <>
-          <a
-            href={`/api/documents/${entry.documentId}/download`}
-            className="mt-4 inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-gold-dark"
-          >
-            <Download className="h-4 w-4" />
-            {t('downloadTranslation')}
-          </a>
-          {entry.serviceLevel === 'electronic' && (
-            <p className="mt-2 text-xs text-muted-foreground">
-              <span className="font-medium">{tElectronic('formats.title')}</span>
-              {': '}
-              {tElectronic('formats.body')}
-            </p>
-          )}
-        </>
-      )}
+      {(() => {
+        const download = resolveDownloadAction(entry);
+        if (!download.visible) return null;
+        return (
+          <>
+            <a
+              href={download.href!}
+              className="mt-4 inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-gold-dark"
+            >
+              <Download className="h-4 w-4" />
+              {t('downloadTranslation')}
+            </a>
+            {entry.serviceLevel === 'electronic' && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                <span className="font-medium">{tElectronic('formats.title')}</span>
+                {': '}
+                {tElectronic('formats.body')}
+              </p>
+            )}
+          </>
+        );
+      })()}
       {entry.isTerminal && (
         <div className="mt-3">
-          <FiscalReceiptLink fiscalUrl={entry.fiscalUrl} fiscalReceiptStatus={entry.fiscalReceiptStatus} />
+          <FiscalReceiptLink fiscalUrl={entry.fiscalUrl} />
         </div>
       )}
     </div>
@@ -372,33 +377,30 @@ function ActiveOrderCard({ entry, locale, onRecalculate }: { entry: OrderEntry; 
 }
 
 // ─── Fiscal receipt link ───────────────────────────────────────────────────────
+//
+// 2026-08-01 WO-106 fix: dropped the "Чек формируется" pending-state text entirely
+// (both Active and History previously rendered it via this shared component whenever
+// fiscalReceiptStatus was pending/pending_manual/retry_required and no URL existed
+// yet) — it told the customer nothing actionable and was reported as clutter next to
+// a stuck order. Fiscalization/Webkassa/OFD backend processing is untouched; a real
+// receipt link, once issued, still renders exactly as before.
 
-const FISCAL_PENDING_STATUSES = new Set(['pending', 'pending_manual', 'retry_required']);
-
-function FiscalReceiptLink({ fiscalUrl, fiscalReceiptStatus }: { fiscalUrl: string | null; fiscalReceiptStatus: string | null }) {
+function FiscalReceiptLink({ fiscalUrl }: { fiscalUrl: string | null }) {
   const t = useTranslations('dashboard');
 
-  if (fiscalUrl) {
-    return (
-      <a
-        href={fiscalUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-white/20 hover:text-foreground"
-      >
-        <Receipt className="h-3 w-3" />
-        {t('fiscalReceipt')}
-      </a>
-    );
-  }
+  if (!fiscalUrl) return null;
 
-  if (fiscalReceiptStatus && FISCAL_PENDING_STATUSES.has(fiscalReceiptStatus)) {
-    return (
-      <span className="text-xs text-muted-foreground/60">{t('fiscalReceiptPending')}</span>
-    );
-  }
-
-  return null;
+  return (
+    <a
+      href={fiscalUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-white/20 hover:text-foreground"
+    >
+      <Receipt className="h-3 w-3" />
+      {t('fiscalReceipt')}
+    </a>
+  );
 }
 
 // ─── History row ───────────────────────────────────────────────────────────────
@@ -428,6 +430,9 @@ function HistoryRow({ entry, locale }: { entry: OrderEntry; locale: string }) {
   const expiry = computeRetentionExpiry(entry.createdAt);
   const estimatedExpiredSoon = isRetentionExpired(entry.createdAt);
   const formattedExpiry = expiry.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
+  // 2026-08-01 WO-106 fix: same resolver ActiveOrderCard uses — a downloadable order
+  // can never show a button in one surface and not the other (see download-action.ts).
+  const download = resolveDownloadAction(entry);
 
   return (
     <div className="flex items-center justify-between px-6 py-4 transition-colors hover:bg-white/[0.03]">
@@ -448,16 +453,16 @@ function HistoryRow({ entry, locale }: { entry: OrderEntry; locale: string }) {
         <StatusBadge customerStatus={entry.customerStatus} />
         {purged ? (
           <span className="text-xs text-muted-foreground/60">{t('historyRetentionExpired')}</span>
-        ) : entry.canDownload ? (
+        ) : download.visible ? (
           <a
-            href={`/api/documents/${entry.documentId}/download`}
+            href={download.href!}
             className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-foreground transition-colors hover:border-white/20 hover:bg-white/10"
           >
             <Download className="h-3 w-3" />
             {t('download')}
           </a>
         ) : null}
-        <FiscalReceiptLink fiscalUrl={entry.fiscalUrl} fiscalReceiptStatus={entry.fiscalReceiptStatus} />
+        <FiscalReceiptLink fiscalUrl={entry.fiscalUrl} />
       </div>
     </div>
   );

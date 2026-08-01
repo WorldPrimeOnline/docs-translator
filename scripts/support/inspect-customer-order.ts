@@ -131,7 +131,7 @@ interface TranslationRow {
   qa_report: Record<string, unknown> | null; created_at: string;
 }
 interface OcrRow { id: string; page_count: number; detected_language: string | null; provider: string; created_at: string }
-interface AuditRow { actor: string; source: string; action: string; previous_status: string | null; new_status: string | null; created_at: string }
+interface AuditRow { actor: string; source: string; action: string; previous_status: string | null; new_status: string | null; metadata: Record<string, unknown> | null; created_at: string }
 // migration 0063 (2026-07-31) — canonical post-conversion per-source/per-artifact records.
 interface JobSourceFileRow {
   id: string; sequence: number; original_filename: string; r2_key: string; content_sha256: string;
@@ -164,7 +164,7 @@ async function main(): Promise<void> {
     : { data: [] };
   const { data: translations } = await db.from('translations').select('*').eq('job_id', jobId).order('created_at', { ascending: false });
   const { data: ocrResults } = await db.from('ocr_results').select('*').eq('job_id', jobId).order('created_at', { ascending: false });
-  const { data: auditLog } = await db.from('job_audit_log').select('actor, source, action, previous_status, new_status, created_at').eq('job_id', jobId).order('created_at', { ascending: true });
+  const { data: auditLog } = await db.from('job_audit_log').select('actor, source, action, previous_status, new_status, metadata, created_at').eq('job_id', jobId).order('created_at', { ascending: true });
   const { data: draft } = await db.from('order_drafts').select('id, status, file_keys, analysis_snapshot, converted_job_id').eq('converted_job_id', jobId).maybeSingle();
   const { data: sourceFiles } = await db.from('job_source_files').select('*').eq('job_id', jobId).order('sequence', { ascending: true });
   const { data: resultFiles } = await db.from('job_result_files').select('*').eq('job_id', jobId).order('stage', { ascending: true });
@@ -196,6 +196,20 @@ async function main(): Promise<void> {
     console.error('[inspect-customer-order] R2 existence check unavailable (credentials/connectivity):', err instanceof Error ? err.message : String(err));
   }
 
+  // ─── Result-files readiness (2026-08-01 multi-file fulfillment decision) — dynamic
+  // import, same reason as the R2 check above: result-files-status.ts pulls in
+  // supabaseServer, which builds its client from env vars at import time, so it must
+  // load AFTER loadEnvFile() has already run, not via a top-level static import.
+  let resultFilesStatus: { isMultiSource: boolean; hasReadyResultFiles: boolean; readyFiles: unknown[] } = {
+    isMultiSource: false, hasReadyResultFiles: false, readyFiles: [],
+  };
+  try {
+    const { getResultFilesStatus } = await import('@/lib/jobs/result-files-status');
+    resultFilesStatus = await getResultFilesStatus(jobId, j.service_level);
+  } catch (err) {
+    console.error('[inspect-customer-order] result-files-status lookup failed:', err instanceof Error ? err.message : String(err));
+  }
+
   // ─── Customer dashboard projection — REUSES the real selector, never re-derives it ───
   const state: CustomerOrderState = getCustomerOrderState({
     jobStatus: j.status,
@@ -203,6 +217,15 @@ async function main(): Promise<void> {
     workflowStatus: j.workflow_status,
     serviceLevel: j.service_level,
     fulfillmentMethod: (j.fulfillment_method as 'pickup' | 'delivery' | null) ?? null,
+    // 2026-08-01 WO-106 audit fix: this tool used to omit hasReadyResultFiles
+    // entirely, which made "individual download available" silently WRONG for every
+    // multi-source job — always false for notarized (canCustomerDownload's notarized
+    // branch requires an explicit `true`, never falls back to operator confirmation
+    // the way Official does) regardless of actual job_result_files state, and
+    // potentially misreported true for a multi-source Official job whose
+    // signature_stamp sync had not actually finished. Mirrors /api/jobs/route.ts's
+    // own wiring exactly — never re-derive this differently in two places.
+    hasReadyResultFiles: resultFilesStatus.isMultiSource ? resultFilesStatus.hasReadyResultFiles : undefined,
   });
 
   // "Individual download" and "download-all" are the SAME single boolean in this system —
@@ -231,6 +254,25 @@ async function main(): Promise<void> {
   if (document && r2.sourceExists === false) {
     missingExpectedArtifacts.push(`documents.file_key (${document.file_key}) is set but the R2 object does not exist`);
   }
+  // WO-106 (2026-08-01): the specific gap this order exposed — job_result_files had
+  // rows for other stages but never got a fully-covered 'ready' set for the stage the
+  // customer's service level actually needs, so canDownload stayed false forever with
+  // no visible signal anywhere in the dashboard. Surface it explicitly here instead of
+  // making an operator infer it from raw job_result_files rows.
+  if (resultFilesStatus.isMultiSource && !resultFilesStatus.hasReadyResultFiles) {
+    const expectedStage: Record<string, { label: string; driveSubfolder: string | null }> = {
+      electronic: { label: 'electronic_final_pdf/docx/html', driveSubfolder: null },
+      official_with_translator_signature_and_provider_stamp: { label: 'signature_stamp', driveSubfolder: '04_SIGNATURE_AND_STAMP' },
+      notarization_through_partners: { label: 'notary', driveSubfolder: '05_NOTARY' },
+    };
+    const expected = expectedStage[j.service_level ?? ''] ?? { label: '(unknown service level)', driveSubfolder: null };
+    const driveHint = expected.driveSubfolder
+      ? `Check job_result_files above for partial/failed rows, and check the Drive ${expected.driveSubfolder} subfolder for a missing or misnamed staff upload`
+      : 'Check job_result_files above for partial/failed rows — electronic output is worker-generated, not staff-uploaded to Drive';
+    missingExpectedArtifacts.push(
+      `Multi-source job has no fully-covered 'ready' job_result_files rows for stage="${expected.label}" — individual download stays blocked regardless of workflow_status. ${driveHint} — see "Recent audit log" below for any result_sync_stuck_* entries.`,
+    );
+  }
 
   const orphanArtifactFindings: string[] = [];
   if (!draftRow) {
@@ -257,6 +299,7 @@ async function main(): Promise<void> {
     jobResultFiles,
     aggregatePhysicalPages: aggregatePhysicalPages ?? null,
     r2Existence: r2,
+    resultFilesStatus,
     customerDashboardProjection: {
       customerStatus: state.customerStatus,
       progressPercent: state.progressPercent,
@@ -289,6 +332,7 @@ interface Report {
   orderDraft: DraftRow | null;
   jobSourceFiles: JobSourceFileRow[]; jobResultFiles: JobResultFileRow[]; aggregatePhysicalPages: number | null;
   r2Existence: { sourceExists: boolean | 'unknown'; pdfExists: boolean | 'unknown'; docxExists: boolean | 'unknown' };
+  resultFilesStatus: { isMultiSource: boolean; hasReadyResultFiles: boolean; readyFiles: unknown[] };
   customerDashboardProjection: {
     customerStatus: string; progressPercent: number; isActive: boolean; isTerminal: boolean;
     stages: Array<{ key: string; labelKey: string; done: boolean; current: boolean }>;
@@ -341,6 +385,17 @@ function renderText(r: Report): string {
   } else {
     for (const f of r.jobResultFiles) {
       lines.push(`  [${f.stage}] sources=${JSON.stringify(f.source_sequences)}  filename=${f.filename}  status=${f.status}${f.last_error ? `  last_error=${f.last_error}` : ''}  r2_key=${f.r2_key ?? '(not yet re-hosted)'}`);
+    }
+  }
+  lines.push(`  resultFilesStatus: isMultiSource=${r.resultFilesStatus.isMultiSource}  hasReadyResultFiles=${r.resultFilesStatus.hasReadyResultFiles}  readyFiles=${r.resultFilesStatus.readyFiles.length}`);
+  lines.push('');
+  lines.push('=== Recent audit log (job_audit_log — includes result_sync_stuck_* entries from the worker reconciler) ===');
+  if (r.auditLog.length === 0) {
+    lines.push('  (none)');
+  } else {
+    for (const a of r.auditLog.slice(-15)) {
+      const reason = (a.metadata as { reason?: string } | null)?.reason;
+      lines.push(`  ${a.created_at}  actor=${a.actor}  source=${a.source}  action=${a.action}${a.previous_status || a.new_status ? `  ${a.previous_status ?? '?'} -> ${a.new_status ?? '?'}` : ''}${reason ? `  reason=${reason}` : ''}`);
     }
   }
   lines.push('');

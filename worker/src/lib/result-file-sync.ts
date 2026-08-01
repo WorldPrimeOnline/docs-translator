@@ -286,6 +286,42 @@ const NOTARY_SWEEP: StageSweepConfig = {
 };
 
 /**
+ * WO-106 incident (2026-08-01): a notarized delivered order lost customer-facing
+ * download access because job_result_files never got a 'notary' row — the only
+ * trace of every failed retry was a console.warn/error line on the worker process,
+ * invisible to support staff and to scripts/support/inspect-customer-order.ts.
+ * This makes a stuck sync durably visible (job_audit_log, same table the inspector
+ * already reads) without changing any sync/validation/gating behavior — purely
+ * additive instrumentation. Throttled in-memory per (job, stage, reason) so a 30s-
+ * cadence notary sweep retrying the exact same failure for hours doesn't flood the
+ * append-only audit log; resets on worker restart, which is an acceptable natural
+ * checkpoint (same tradeoff reconcileStuckFiscalReceipts makes with its 5-minute
+ * cooldown — see fiscal-reconciliation.ts).
+ */
+const stuckSyncLoggedAt = new Map<string, number>();
+const STUCK_SYNC_LOG_COOLDOWN_MS = 30 * 60 * 1000;
+
+async function logSyncStuckIfNeeded(jobId: string, stage: ResultSyncStage, reason: string): Promise<void> {
+  const key = `${jobId}:${stage}:${reason}`;
+  const last = stuckSyncLoggedAt.get(key);
+  if (last !== undefined && Date.now() - last < STUCK_SYNC_LOG_COOLDOWN_MS) return;
+  stuckSyncLoggedAt.set(key, Date.now());
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any).from('job_audit_log').insert({
+      job_id: jobId,
+      actor: 'system',
+      source: 'worker',
+      action: `result_sync_stuck_${stage}`,
+      metadata: { reason },
+    });
+  } catch (err) {
+    console.error('[result-sync-reconcile] job_audit_log insert failed (non-fatal):', err instanceof Error ? err.message : String(err));
+  }
+}
+
+/**
  * One reconciler pass for a single stage — retries every candidate whose stage isn't
  * yet fully covered by 'ready' job_result_files rows. Shared by both
  * reconcileResultFileSyncs() (all stages, 3-minute cadence) and
@@ -304,6 +340,7 @@ async function reconcileStage({ stage, serviceLevel, statuses, subfolder }: Stag
       const folderId = await getSubfolderId(job.google_drive_folder_id, subfolder);
       if (!folderId) {
         console.error(`[result-sync-reconcile] job ${job.id.slice(0, 8)}: ${subfolder} subfolder not found`);
+        void logSyncStuckIfNeeded(job.id, stage, `${subfolder} subfolder not found`);
         continue;
       }
 
@@ -312,6 +349,7 @@ async function reconcileStage({ stage, serviceLevel, statuses, subfolder }: Stag
         console.log(`[result-sync-reconcile] ✓ job ${job.id.slice(0, 8)} [${stage}] synced (${result.groupsSynced} group(s))`);
       } else {
         console.warn(`[result-sync-reconcile] job ${job.id.slice(0, 8)} [${stage}] still not ready: ${result.reason}`);
+        void logSyncStuckIfNeeded(job.id, stage, result.reason);
       }
     } catch (err) {
       console.error(`[result-sync-reconcile] job ${job.id.slice(0, 8)} [${stage}] unexpected error (non-fatal):`, err instanceof Error ? err.message : String(err));

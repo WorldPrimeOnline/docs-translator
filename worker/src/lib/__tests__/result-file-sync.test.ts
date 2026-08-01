@@ -448,3 +448,102 @@ describe('reconcileNotaryResultFileSync — 2026-07-24 SLA fix (notary-only fast
     }));
   });
 });
+
+describe('reconcileStage — stuck-sync observability (WO-106 fix)', () => {
+  // Job IDs unique to this describe block — logSyncStuckIfNeeded's in-memory
+  // throttle map is module-scoped and persists across every test in this file.
+  async function setup() {
+    const { supabase } = await import('../supabase');
+    const { listFilesInFolder, getSubfolderId } = await import('../google-drive');
+    const { getResultFilesForStage } = await import('../job-result-files');
+    return {
+      mockFrom: supabase.from as jest.Mock,
+      mockList: listFilesInFolder as jest.Mock,
+      mockGetSubfolderId: getSubfolderId as jest.Mock,
+      mockGetForStage: getResultFilesForStage as jest.Mock,
+    };
+  }
+
+  function mockAuditInsertChain() {
+    const insert = jest.fn().mockResolvedValue({ error: null });
+    return { insert };
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('a sync stuck on an empty Drive folder writes one job_audit_log row recording the reason', async () => {
+    const { mockFrom, mockList, mockGetSubfolderId, mockGetForStage } = await setup();
+    const auditChain = mockAuditInsertChain();
+
+    mockFrom
+      .mockReturnValueOnce(supabaseChain({ data: [{ id: 'job-audit-empty', google_drive_folder_id: 'folder-root' }], error: null })) // findCandidates
+      .mockReturnValueOnce(supabaseChain({ count: 1, error: null })) // isStageAlreadySynced
+      .mockReturnValueOnce(supabaseChain({ count: 1, error: null })) // syncResultFilesFromDrive's own job_source_files count
+      .mockReturnValueOnce(supabaseChain({ data: { document_id: 'doc-1' }, error: null })) // jobs (document_id)
+      .mockReturnValueOnce(supabaseChain({ data: { user_id: 'user-1' }, error: null })) // documents (user_id)
+      .mockReturnValueOnce(auditChain); // job_audit_log.insert
+    mockGetForStage.mockResolvedValueOnce([]); // not yet synced
+    mockGetSubfolderId.mockResolvedValueOnce('notary-subfolder-id');
+    mockList.mockResolvedValueOnce([]); // empty folder — sync refuses
+
+    const { reconcileNotaryResultFileSync } = await import('../result-file-sync');
+    await reconcileNotaryResultFileSync();
+
+    expect(auditChain.insert).toHaveBeenCalledWith(expect.objectContaining({
+      job_id: 'job-audit-empty',
+      action: 'result_sync_stuck_notary',
+      metadata: expect.objectContaining({ reason: expect.stringContaining('no files found') }),
+    }));
+  });
+
+  it('missing Drive subfolder also writes a job_audit_log row (never silently swallowed)', async () => {
+    const { mockFrom, mockGetSubfolderId } = await setup();
+    const auditChain = mockAuditInsertChain();
+
+    mockFrom
+      .mockReturnValueOnce(supabaseChain({ data: [{ id: 'job-audit-nofolder', google_drive_folder_id: 'folder-root' }], error: null })) // findCandidates
+      .mockReturnValueOnce(supabaseChain({ count: 0, error: null })) // isStageAlreadySynced: no source files -> not synced
+      .mockReturnValueOnce(auditChain); // job_audit_log.insert
+    mockGetSubfolderId.mockResolvedValueOnce(null); // subfolder not found
+
+    const { reconcileNotaryResultFileSync } = await import('../result-file-sync');
+    await reconcileNotaryResultFileSync();
+
+    expect(auditChain.insert).toHaveBeenCalledWith(expect.objectContaining({
+      job_id: 'job-audit-nofolder',
+      action: 'result_sync_stuck_notary',
+      metadata: expect.objectContaining({ reason: expect.stringContaining('subfolder not found') }),
+    }));
+  });
+
+  it('the exact same stuck reason on a retry within the cooldown window is not logged twice', async () => {
+    const { mockFrom, mockList, mockGetSubfolderId, mockGetForStage } = await setup();
+    const auditChain = mockAuditInsertChain();
+
+    function mockOneStuckPass() {
+      mockFrom
+        .mockReturnValueOnce(supabaseChain({ data: [{ id: 'job-audit-repeat', google_drive_folder_id: 'folder-root' }], error: null }))
+        .mockReturnValueOnce(supabaseChain({ count: 1, error: null }))
+        .mockReturnValueOnce(supabaseChain({ count: 1, error: null }))
+        .mockReturnValueOnce(supabaseChain({ data: { document_id: 'doc-1' }, error: null }))
+        .mockReturnValueOnce(supabaseChain({ data: { user_id: 'user-1' }, error: null }));
+      mockGetForStage.mockResolvedValueOnce([]);
+      mockGetSubfolderId.mockResolvedValueOnce('notary-subfolder-id');
+      mockList.mockResolvedValueOnce([]);
+    }
+
+    // First pass: logs.
+    mockOneStuckPass();
+    mockFrom.mockReturnValueOnce(auditChain);
+    const { reconcileNotaryResultFileSync } = await import('../result-file-sync');
+    await reconcileNotaryResultFileSync();
+    expect(auditChain.insert).toHaveBeenCalledTimes(1);
+
+    // Second pass, same job/stage/reason, immediately after: throttled, no new insert.
+    mockOneStuckPass();
+    await reconcileNotaryResultFileSync();
+    expect(auditChain.insert).toHaveBeenCalledTimes(1);
+  });
+});
