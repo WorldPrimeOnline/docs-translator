@@ -105,6 +105,28 @@ describe('legacy jobs (no job_source_files) — exact pre-existing behavior', ()
     const res2 = await callGET();
     expect(res2.status).toBe(200);
   });
+
+  it('official: WO-108 fix — 200 at translator_approved too (no separate operator step required; was 403 before the fix)', async () => {
+    mockFrom
+      .mockReturnValueOnce(chain({ data: { user_id: USER.id, filename: 'x.pdf', document_type: 'x' }, error: null }))
+      .mockReturnValueOnce(chain({ data: { id: 'job-1', workflow_status: 'translator_approved', service_level: 'official_with_translator_signature_and_provider_stamp', fulfillment_method: null }, error: null }))
+      .mockReturnValueOnce(chain({ count: 0 }))
+      .mockReturnValueOnce(chain({ data: { translated_pdf_key: 'documents/user-1/doc-1/translator_draft.docx' }, error: null }));
+    mockDownloadFile.mockResolvedValueOnce(Buffer.from('docx-bytes'));
+
+    const res = await callGET();
+    expect(res.status).toBe(200);
+  });
+
+  it('official: awaiting_signature_stamp stays 403 — distinct reserved/legacy state, never conflated with translator_approved', async () => {
+    mockFrom
+      .mockReturnValueOnce(chain({ data: { user_id: USER.id, filename: 'x.pdf', document_type: 'x' }, error: null }))
+      .mockReturnValueOnce(chain({ data: { id: 'job-1', workflow_status: 'awaiting_signature_stamp', service_level: 'official_with_translator_signature_and_provider_stamp', fulfillment_method: null }, error: null }))
+      .mockReturnValueOnce(chain({ count: 0 }));
+
+    const res = await callGET();
+    expect(res.status).toBe(403);
+  });
 });
 
 describe('multi-source jobs (job_source_files rows exist)', () => {
@@ -195,6 +217,34 @@ describe('multi-source jobs (job_source_files rows exist)', () => {
     expect(res.status).toBe(200);
     expect(mockDownloadFile).toHaveBeenCalledWith('results/signature_stamp/001.pdf');
     expect(res.headers.get('Content-Disposition')).toBe('attachment; filename="Output.pdf"');
+  });
+
+  it('official: WO-108 fix — translator_approved + synced 04_SIGNATURE_AND_STAMP result (job_result_files stage=signature_stamp) → downloadable, no ready_for_delivery needed', async () => {
+    mockFrom
+      .mockReturnValueOnce(chain({ data: { user_id: USER.id, filename: 'contract.pdf', document_type: 'contract' }, error: null }))
+      .mockReturnValueOnce(chain({ data: { id: 'job-1', workflow_status: 'translator_approved', service_level: 'official_with_translator_signature_and_provider_stamp', fulfillment_method: null }, error: null }))
+      .mockReturnValueOnce(chain({ count: 1 }));
+    mockGetResultFilesStatus.mockResolvedValueOnce({
+      isMultiSource: true, hasReadyResultFiles: true,
+      readyFiles: [{ sequenceMin: 1, sourceSequences: [1], filename: '001_SIGNED.pdf', r2Key: 'results/signature_stamp/001.pdf' }],
+    });
+    mockDownloadFile.mockResolvedValueOnce(Buffer.from('pdf-bytes'));
+
+    const res = await callGET();
+    expect(res.status).toBe(200);
+    expect(mockDownloadFile).toHaveBeenCalledWith('results/signature_stamp/001.pdf');
+  });
+
+  it('official: WO-108 fix — translator_approved but 04_SIGNATURE_AND_STAMP not yet synced → 403, never a false download', async () => {
+    mockFrom
+      .mockReturnValueOnce(chain({ data: { user_id: USER.id, filename: 'contract.pdf', document_type: 'contract' }, error: null }))
+      .mockReturnValueOnce(chain({ data: { id: 'job-1', workflow_status: 'translator_approved', service_level: 'official_with_translator_signature_and_provider_stamp', fulfillment_method: null }, error: null }))
+      .mockReturnValueOnce(chain({ count: 1 }));
+    mockGetResultFilesStatus.mockResolvedValueOnce({ isMultiSource: true, hasReadyResultFiles: false, readyFiles: [] });
+
+    const res = await callGET();
+    expect(res.status).toBe(403);
+    expect(mockDownloadFile).not.toHaveBeenCalled();
   });
 
   it('notary — THE key behavior change: fully synced → downloadable (legacy notary was always blocked)', async () => {

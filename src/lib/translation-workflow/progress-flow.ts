@@ -132,24 +132,41 @@ function resolveElectronic(input: ProgressFlowInput): ProgressFlowResult {
 }
 
 // ─── Flow 2 — Official (signature + stamp) ─────────────────────────────────────
-
+//
+// 2026-08-01 WO-108 fix: Official has no notarial stages — the translator's own
+// signature + stamp (04_SIGNATURE_AND_STAMP) IS the final deliverable, not a
+// hand-off to a separate human. The old table inserted an intermediate
+// "signature_stage" (80%) between the translator finishing and 100%, implying a
+// further operator confirmation step that the live Jira mapping never actually
+// performs (TRANSLATOR_COMPLETED → workflow_status='translator_approved' is the
+// only transition certified orders ever receive — see syncTranslatorDoneCertified,
+// src/lib/integrations/workflow.ts) — so real orders got stuck showing 80% forever.
+// 'translator_approved' now finalizes at 100%, same as ready_for_delivery/delivered
+// (kept for the currently-unused physical-courier case — never removed, per the
+// "don't touch delivery statuses" constraint). canCustomerDownload
+// (customer-order-state.ts) was updated in lockstep: Official's operator-confirmed
+// gate now includes this same terminal state.
 const OFFICIAL_STAGES: ProgressFlowStage[] = [
   { id: 'paid', percent: 10, labelKey: 'progressFlow.official.paid' },
   { id: 'processing', percent: 25, labelKey: 'progressFlow.official.processing' },
-  { id: 'awaiting_translator_review', percent: 40, labelKey: 'progressFlow.official.awaitingTranslatorReview' },
+  { id: 'awaiting_translator_review', percent: 35, labelKey: 'progressFlow.official.awaitingTranslatorReview' },
   { id: 'translator_review_in_progress', percent: 60, labelKey: 'progressFlow.official.translatorReviewInProgress' },
-  { id: 'signature_stage', percent: 80, labelKey: 'progressFlow.official.signatureStage' },
   { id: 'ready', percent: 100, labelKey: 'progressFlow.official.ready' },
 ];
 
 function resolveOfficial(input: ProgressFlowInput): ProgressFlowResult {
   const { workflowStatus, workerStatus } = input;
 
-  if (workflowStatus === 'ready_for_delivery' || workflowStatus === 'delivered') {
+  if (workflowStatus === 'ready_for_delivery' || workflowStatus === 'delivered' || workflowStatus === 'translator_approved') {
     return finalize(OFFICIAL_STAGES, 'ready', 100);
   }
-  if (workflowStatus === 'translator_approved' || workflowStatus === 'awaiting_signature_stamp') {
-    return finalize(OFFICIAL_STAGES, 'signature_stage', 80);
+  // 'awaiting_signature_stamp' is a distinct, still-in-progress reserved value — no
+  // live Jira mapping sets it (only 'translator_approved' does, via
+  // syncTranslatorDoneCertified), unlike translator_approved above it must never
+  // read as done. Kept non-terminal, at the same percent as the stage right before
+  // it, purely as a safe fallback if a future workflow step ever starts using it.
+  if (workflowStatus === 'awaiting_signature_stamp') {
+    return finalize(OFFICIAL_STAGES, 'translator_review_in_progress', 60);
   }
   if (workflowStatus === 'translator_review_in_progress') {
     return finalize(OFFICIAL_STAGES, 'translator_review_in_progress', 60);
@@ -158,7 +175,7 @@ function resolveOfficial(input: ProgressFlowInput): ProgressFlowResult {
   // workflow_status==='completed' case (old worker code, treated the same way
   // customer-order-state.ts's deriveCustomerStatus already treats it).
   if (workflowStatus === 'awaiting_translator_review' || workflowStatus === 'completed' || (workerStatus === 'completed' && !workflowStatus)) {
-    return finalize(OFFICIAL_STAGES, 'awaiting_translator_review', 40);
+    return finalize(OFFICIAL_STAGES, 'awaiting_translator_review', 35);
   }
   if (isPipelineWorkerStatus(workerStatus) && workerStatus !== 'queued') {
     return finalize(OFFICIAL_STAGES, 'processing', 25);

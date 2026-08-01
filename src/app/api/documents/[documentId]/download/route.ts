@@ -127,13 +127,18 @@ export async function GET(
     );
   }
 
-  // Certified orders: allow download only once operator has approved (ready_for_delivery or delivered).
+  // Certified orders: allow download once the translator's own signature+stamp is
+  // done. 2026-08-01 WO-108 fix: 'translator_approved' IS that final step for
+  // Official — no separate operator confirmation follows it (unlike Notary, which
+  // hands off to an actual notary) — so it's allowed here too, matching
+  // canCustomerDownload's operatorConfirmed set (customer-order-state.ts).
+  // ready_for_delivery/delivered stay included for the currently-unused physical-
+  // courier case.
   if (job.service_level === 'official_with_translator_signature_and_provider_stamp') {
-    const certifiedAllowed = new Set(['ready_for_delivery', 'delivered']);
+    const certifiedAllowed = new Set(['translator_approved', 'ready_for_delivery', 'delivered']);
     if (!certifiedAllowed.has(job.workflow_status ?? '')) {
       const statusMessages: Record<string, string> = {
         awaiting_translator_review: 'Document is being reviewed by a certified translator.',
-        translator_approved: 'Translation verified — awaiting operator stamp.',
         awaiting_signature_stamp: 'Document is awaiting translator signature and provider stamp.',
         translator_declined: 'Translator assignment was declined. Please contact support.',
       };

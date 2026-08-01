@@ -54,15 +54,15 @@ describe('getCustomerOrderState — electronic', () => {
 describe('getCustomerOrderState — certified (Official)', () => {
   const SL = 'official_with_translator_signature_and_provider_stamp';
 
-  it('awaiting_translator_review → NOT downloadable, NOT terminal', () => {
+  it('awaiting_translator_review → NOT downloadable, NOT terminal, 35% (WO-108 fix: was 40%)', () => {
     const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'awaiting_translator_review', serviceLevel: SL });
     expect(s.customerStatus).toBe('awaiting_translator_review');
     expect(s.canDownload).toBe(false);
     expect(s.isTerminal).toBe(false);
-    expect(s.progressPercent).toBe(40);
+    expect(s.progressPercent).toBe(35);
   });
 
-  it('translator_review_in_progress (Official) → NOT downloadable, NOT terminal, active', () => {
+  it('translator_review_in_progress (Official) → NOT downloadable, NOT terminal, active, 60%', () => {
     const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'translator_review_in_progress', serviceLevel: SL });
     expect(s.customerStatus).toBe('translator_review_in_progress');
     expect(s.canDownload).toBe(false);
@@ -71,17 +71,30 @@ describe('getCustomerOrderState — certified (Official)', () => {
     expect(s.progressPercent).toBe(60);
   });
 
-  it('translator_approved → NOT downloadable, 80% (same "signature stage" as awaiting_signature_stamp)', () => {
-    const s1 = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'translator_approved', serviceLevel: SL });
-    const s2 = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'awaiting_signature_stamp', serviceLevel: SL });
-    expect(s1.customerStatus).toBe('translator_approved');
-    expect(s1.canDownload).toBe(false);
-    expect(s1.progressPercent).toBe(80);
-    expect(s2.progressPercent).toBe(80);
-    expect(s1.stages.findIndex((x) => x.current)).toBe(s2.stages.findIndex((x) => x.current));
+  it('WO-108 fix: translator_approved → downloadable, 100%, customerStatus stays "translator_approved" (deliberately NOT "completed" — that value is also reached via an unrelated workflowStatus===null edge case that must stay non-downloadable). Not terminal — stays visible in the active section until the ready result appears, same pattern as Notary\'s "notarized" (see requirement 4).', () => {
+    const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'translator_approved', serviceLevel: SL });
+    expect(s.customerStatus).toBe('translator_approved');
+    expect(s.canDownload).toBe(true);
+    expect(s.isTerminal).toBe(false);
+    expect(s.isActive).toBe(true);
+    expect(s.progressPercent).toBe(100);
   });
 
-  it('ready_for_delivery → downloadable for certified, 100% (no early-100% forcing needed anymore — the flow table itself puts "ready" at 100)', () => {
+  it('WO-108 fix regression guard: workflowStatus=null on a completed Official job (unrelated legacy edge case, customerStatus="completed") stays NOT downloadable — must never be swept in by the translator_approved fix', () => {
+    const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: null, serviceLevel: SL });
+    expect(s.customerStatus).toBe('completed');
+    expect(s.canDownload).toBe(false);
+  });
+
+  it('awaiting_signature_stamp stays its own non-terminal, non-downloadable status — reserved/legacy, distinct from translator_approved (no live Jira mapping ever sets it)', () => {
+    const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'awaiting_signature_stamp', serviceLevel: SL });
+    expect(s.customerStatus).toBe('awaiting_signature_stamp');
+    expect(s.canDownload).toBe(false);
+    expect(s.isTerminal).toBe(false);
+    expect(s.progressPercent).toBe(60);
+  });
+
+  it('ready_for_delivery → downloadable for certified, 100% (kept for the currently-unused physical-courier case)', () => {
     const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'ready_for_delivery', serviceLevel: SL });
     expect(s.customerStatus).toBe('ready_for_delivery');
     expect(s.canDownload).toBe(true);
@@ -103,10 +116,10 @@ describe('getCustomerOrderState — certified (Official)', () => {
     expect(s.isTerminal).toBe(true);
   });
 
-  it('Official stages: exactly 6 (paid/processing/awaiting_translator_review/translator_review_in_progress/signature_stage/ready) — never a notary/courier marker', () => {
+  it('Official stages: exactly 5 (paid/processing/awaiting_translator_review/translator_review_in_progress/ready) — WO-108 fix removed the 80% signature_stage intermediate; never a notary/courier marker', () => {
     const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'awaiting_translator_review', serviceLevel: SL });
-    expect(s.stages.map((x) => x.key)).toEqual(['paid', 'processing', 'awaiting_translator_review', 'translator_review_in_progress', 'signature_stage', 'ready']);
-    for (const forbidden of ['notarization_in_progress', 'notarized', 'out_for_delivery', 'approved_for_notary']) {
+    expect(s.stages.map((x) => x.key)).toEqual(['paid', 'processing', 'awaiting_translator_review', 'translator_review_in_progress', 'ready']);
+    for (const forbidden of ['signature_stage', 'notarization_in_progress', 'notarized', 'out_for_delivery', 'approved_for_notary']) {
       expect(s.stages.some((x) => x.key === forbidden)).toBe(false);
     }
   });
@@ -447,11 +460,12 @@ describe('Standalone helpers', () => {
       expect(canCustomerDownload(s, 'notarization_through_partners')).toBe(false);
     }
   });
-  it('canCustomerDownload: certified → true at ready_for_delivery and delivered', () => {
+  it('canCustomerDownload: certified → true at ready_for_delivery, delivered, and translator_approved (WO-108 fix); "completed" deliberately stays false — that value is shared with an unrelated workflowStatus===null edge case', () => {
     const SL = 'official_with_translator_signature_and_provider_stamp';
     expect(canCustomerDownload('ready_for_delivery', SL)).toBe(true);
     expect(canCustomerDownload('delivered', SL)).toBe(true);
-    expect(canCustomerDownload('translator_approved', SL)).toBe(false);
+    expect(canCustomerDownload('translator_approved', SL)).toBe(true);
+    expect(canCustomerDownload('completed', SL)).toBe(false);
   });
   it('canCustomerDownload: electronic → only at completed', () => {
     expect(canCustomerDownload('completed', 'electronic')).toBe(true);
@@ -470,11 +484,12 @@ describe('2026-08-01 multi-file fulfillment decision — hasReadyResultFiles', (
     }
   });
 
-  it('legacy (hasReadyResultFiles omitted): official keeps the exact old operator-confirmation-only gate', () => {
+  it('legacy (hasReadyResultFiles omitted): official is downloadable at ready_for_delivery AND at translator_approved (WO-108 fix — no separate operator step required)', () => {
     const s1 = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'ready_for_delivery', serviceLevel: OFFICIAL });
     expect(s1.canDownload).toBe(true);
     const s2 = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'translator_approved', serviceLevel: OFFICIAL });
-    expect(s2.canDownload).toBe(false);
+    expect(s2.canDownload).toBe(true);
+    expect(s2.customerStatus).toBe('translator_approved');
   });
 
   it('multi-source notary: hasReadyResultFiles=true opens download even mid-delivery (not terminal, no operator ready_for_delivery status needed)', () => {
@@ -510,10 +525,19 @@ describe('2026-08-01 multi-file fulfillment decision — hasReadyResultFiles', (
     expect(s.canDownload).toBe(true);
   });
 
-  it('multi-source official: hasReadyResultFiles=true alone (before operator confirms) does NOT bypass the human approval gate', () => {
+  it('multi-source official: translator_approved + hasReadyResultFiles=true is downloadable (WO-108 fix) — translator_approved IS the operator-equivalent confirmation for Official, unlike Notary', () => {
     const s = getCustomerOrderState({
       jobStatus: 'completed', progressPercent: 100, workflowStatus: 'translator_approved', serviceLevel: OFFICIAL,
       hasReadyResultFiles: true,
+    });
+    expect(s.canDownload).toBe(true);
+    expect(s.customerStatus).toBe('translator_approved');
+  });
+
+  it('multi-source official: translator_approved + hasReadyResultFiles=false stays NOT downloadable — the 04_SIGNATURE_AND_STAMP sync is still a necessary condition, never bypassed', () => {
+    const s = getCustomerOrderState({
+      jobStatus: 'completed', progressPercent: 100, workflowStatus: 'translator_approved', serviceLevel: OFFICIAL,
+      hasReadyResultFiles: false,
     });
     expect(s.canDownload).toBe(false);
   });

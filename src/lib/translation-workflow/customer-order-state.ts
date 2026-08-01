@@ -125,7 +125,15 @@ function deriveCustomerStatus(
   if (workflowStatus === 'notarization_in_progress') return 'notarization_in_progress';
   if (workflowStatus === 'assigned_to_notary') return 'assigned_to_notary';
 
-  // Translator statuses
+  // Translator statuses — 'translator_approved' stays ONE customerStatus value for
+  // every service level (Notary keeps this as legacy-only; the live
+  // syncTranslatorDoneNotarized path always sets 'assigned_to_notary' instead). What
+  // it MEANS — downloadable or not — is decided per service level in
+  // canCustomerDownload below (2026-08-01 WO-108 fix), never here: this function's own
+  // contract is jobStatus/workflowStatus → customerStatus only, and 'completed' is
+  // already a shared, overloaded value (also reached via the workflowStatus===null
+  // fallback a few lines down, for ANY service level) — reusing it here would have
+  // silently made that unrelated null-workflow-status edge case downloadable too.
   if (workflowStatus === 'translator_approved') return 'translator_approved';
   if (workflowStatus === 'awaiting_signature_stamp') return 'awaiting_signature_stamp';
 
@@ -161,17 +169,27 @@ function deriveCustomerStatus(
  *
  * Legacy (single-file, `hasReadyResultFiles` omitted): behavior is EXACTLY what it
  * was before the 2026-08-01 multi-file fulfillment decision — physical notarized
- * orders never allow electronic download; certified/official allows it once the
- * operator confirms ready_for_delivery/delivered; electronic only once completed.
+ * orders never allow electronic download; electronic only once completed.
+ *
+ * 2026-08-01 WO-108 fix: Official's "operator confirmation" gate now also opens at
+ * customerStatus 'translator_approved' — Official has no separate human step after
+ * the translator's own signature+stamp (unlike Notary, which hands off to an actual
+ * notary); requiring a further manual ready_for_delivery click was the WO-108 bug,
+ * not a real approval gate. Deliberately checks 'translator_approved' itself, never
+ * 'completed' — 'completed' is a shared, overloaded customerStatus value also
+ * reachable via an unrelated workflowStatus===null edge case for ANY service level
+ * (see deriveCustomerStatus) that must stay non-downloadable. ready_for_delivery/
+ * delivered stay included for the currently-unused physical-courier case — never
+ * removed.
  *
  * Multi-source (`hasReadyResultFiles` explicitly passed, computed by the caller from
  * job_result_files coverage — see src/lib/translation-workflow/result-file-coverage.ts):
  * - Notarized: digital download opens once the notary result is FULLY synced from
  *   Drive (job_result_files stage='notary'), regardless of pickup/delivery fulfillment
  *   or physical delivery status — a deliberate change from "never downloadable".
- * - Official: still requires the existing operator confirmation (ready_for_delivery/
- *   delivered) AND a fully-synced signature_stamp result — the sync is an additional
- *   necessary condition, never a bypass of the human approval step.
+ * - Official: requires operatorConfirmed (now including 'translator_approved') AND a
+ *   fully-synced signature_stamp result — the sync is an additional necessary
+ *   condition, never a bypass.
  * - Electronic: unaffected either way (gate is purely customerStatus === 'completed').
  */
 export function canCustomerDownload(
@@ -183,7 +201,7 @@ export function canCustomerDownload(
     return hasReadyResultFiles === true;
   }
   if (serviceLevel === 'official_with_translator_signature_and_provider_stamp') {
-    const operatorConfirmed = customerStatus === 'ready_for_delivery' || customerStatus === 'delivered';
+    const operatorConfirmed = customerStatus === 'translator_approved' || customerStatus === 'ready_for_delivery' || customerStatus === 'delivered';
     if (hasReadyResultFiles === undefined) return operatorConfirmed;
     return operatorConfirmed && hasReadyResultFiles;
   }

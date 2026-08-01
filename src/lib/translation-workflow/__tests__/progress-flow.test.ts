@@ -99,7 +99,7 @@ describe('FLOW 1 — Electronic', () => {
   });
 });
 
-describe('FLOW 2 — Official (signature + stamp)', () => {
+describe('FLOW 2 — Official (signature + stamp) — WO-108 fix: no notarial stages, translator_approved is terminal', () => {
   const SL = 'official_with_translator_signature_and_provider_stamp';
 
   it('paid -> 10%', () => {
@@ -108,32 +108,36 @@ describe('FLOW 2 — Official (signature + stamp)', () => {
   it('processing -> 25%', () => {
     expect(resolveCustomerProgressFlow(baseInput({ serviceLevel: SL, workerStatus: 'ocr_in_progress' })).percent).toBe(25);
   });
-  it('awaiting_translator_review -> 40%', () => {
+  it('awaiting_translator_review -> 35% (was 40% before the WO-108 fix)', () => {
     const r = resolveCustomerProgressFlow(baseInput({ serviceLevel: SL, workerStatus: 'completed', workflowStatus: 'awaiting_translator_review' }));
-    expect(r.percent).toBe(40);
+    expect(r.percent).toBe(35);
   });
   it('translator_review_in_progress -> 60%', () => {
     const r = resolveCustomerProgressFlow(baseInput({ serviceLevel: SL, workerStatus: 'completed', workflowStatus: 'translator_review_in_progress' }));
     expect(r.percent).toBe(60);
   });
-  it('translator_approved / awaiting_signature_stamp -> 80% (same "signature stage")', () => {
-    const a = resolveCustomerProgressFlow(baseInput({ serviceLevel: SL, workerStatus: 'completed', workflowStatus: 'translator_approved' }));
-    const b = resolveCustomerProgressFlow(baseInput({ serviceLevel: SL, workerStatus: 'completed', workflowStatus: 'awaiting_signature_stamp' }));
-    expect(a.percent).toBe(80);
-    expect(b.percent).toBe(80);
-    expect(a.currentStageId).toBe(b.currentStageId);
+  it('translator_approved -> 100% ("Официальный перевод готов") — the 2026-08-01 WO-108 fix: this IS the final step for Official, no separate operator confirmation follows it', () => {
+    const r = resolveCustomerProgressFlow(baseInput({ serviceLevel: SL, workerStatus: 'completed', workflowStatus: 'translator_approved' }));
+    expect(r.percent).toBe(100);
+    expect(r.currentStageId).toBe('ready');
+    expect(r.labelKey).toBe('progressFlow.official.ready');
   });
-  it('ready_for_delivery / delivered -> 100%', () => {
+  it('awaiting_signature_stamp stays a distinct, non-terminal 60% — reserved/legacy, no live Jira mapping ever sets it, must never be conflated with translator_approved', () => {
+    const r = resolveCustomerProgressFlow(baseInput({ serviceLevel: SL, workerStatus: 'completed', workflowStatus: 'awaiting_signature_stamp' }));
+    expect(r.percent).toBe(60);
+    expect(r.currentStageId).toBe('translator_review_in_progress');
+  });
+  it('ready_for_delivery / delivered -> 100% (kept for the currently-unused physical-courier case)', () => {
     const a = resolveCustomerProgressFlow(baseInput({ serviceLevel: SL, workerStatus: 'completed', workflowStatus: 'ready_for_delivery' }));
     const b = resolveCustomerProgressFlow(baseInput({ serviceLevel: SL, workerStatus: 'completed', workflowStatus: 'delivered' }));
     expect(a.percent).toBe(100);
     expect(b.percent).toBe(100);
   });
 
-  it('the stage table has exactly 6 stages — no notary/courier markers at all', () => {
+  it('the stage table has exactly 5 stages — no 80% signature_stage intermediate, no notary/courier markers at all', () => {
     const r = resolveCustomerProgressFlow(baseInput({ serviceLevel: SL, workerStatus: 'completed', workflowStatus: 'delivered' }));
-    expect(r.stages.map((s) => s.id)).toEqual(['paid', 'processing', 'awaiting_translator_review', 'translator_review_in_progress', 'signature_stage', 'ready']);
-    for (const id of ['notarization_in_progress', 'notarized', 'out_for_delivery', 'approved_for_notary']) {
+    expect(r.stages.map((s) => s.id)).toEqual(['paid', 'processing', 'awaiting_translator_review', 'translator_review_in_progress', 'ready']);
+    for (const id of ['signature_stage', 'notarization_in_progress', 'notarized', 'out_for_delivery', 'approved_for_notary']) {
       expect(r.stages.some((s) => s.id === id)).toBe(false);
     }
   });
@@ -230,10 +234,13 @@ describe('FLOW 4 — Notary with courier', () => {
 
 describe('General invariants', () => {
   it('monotonicity: the full realistic sequence for each flow is strictly increasing', () => {
+    // translator_approved is now the terminal (100%) step for Official — WO-108 fix —
+    // so it is intentionally last here; ready_for_delivery is a separate, equally-100%
+    // terminal alias (kept for the currently-unused physical-courier case), never a
+    // step reached AFTER translator_approved in a real Official order.
     const officialSeq: Array<[string | null, string]> = [
       [null, 'queued'], [null, 'ocr_in_progress'], ['awaiting_translator_review', 'completed'],
       ['translator_review_in_progress', 'completed'], ['translator_approved', 'completed'],
-      ['ready_for_delivery', 'completed'],
     ];
     const percentages = officialSeq.map(([ws, js]) =>
       resolveCustomerProgressFlow(baseInput({ serviceLevel: 'official_with_translator_signature_and_provider_stamp', workflowStatus: ws, workerStatus: js })).percent!,
@@ -289,11 +296,11 @@ describe('General invariants', () => {
     }
   });
 
-  it('no flow ever produces 49% — the old architecture\'s awkward "one point below translator_review_in_progress" value created only to preserve a technical ordering, replaced by real per-flow values (40% Official / 35% Notary for awaiting_translator_review)', () => {
+  it('no flow ever produces 49% — the old architecture\'s awkward "one point below translator_review_in_progress" value created only to preserve a technical ordering, replaced by real per-flow values (35% Official / 35% Notary for awaiting_translator_review — WO-108 fix aligned Official to the same 35%)', () => {
     const officialAwaiting = resolveCustomerProgressFlow(baseInput({ serviceLevel: 'official_with_translator_signature_and_provider_stamp', workerStatus: 'completed', workflowStatus: 'awaiting_translator_review' }));
     const notaryAwaiting = resolveCustomerProgressFlow(baseInput({ serviceLevel: 'notarization_through_partners', workerStatus: 'completed', workflowStatus: 'awaiting_translator_review' }));
     expect(officialAwaiting.percent).not.toBe(49);
-    expect(officialAwaiting.percent).toBe(40);
+    expect(officialAwaiting.percent).toBe(35);
     expect(notaryAwaiting.percent).not.toBe(49);
     expect(notaryAwaiting.percent).toBe(35);
 
