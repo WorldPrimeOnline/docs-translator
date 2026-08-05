@@ -43,4 +43,12 @@ describe('isCompletedBadge', () => {
     expect(isCompletedBadge('translator_approved', undefined)).toBe(false);
     expect(isCompletedBadge('translator_approved', null)).toBe(false);
   });
+
+  it('WO-112 fix: "closed" (Jira "Закрыто") is "Готово" for every service level, no serviceLevel check needed', () => {
+    expect(isCompletedBadge('closed', NOTARY)).toBe(true);
+    expect(isCompletedBadge('closed', OFFICIAL)).toBe(true);
+    expect(isCompletedBadge('closed', 'electronic')).toBe(true);
+    expect(isCompletedBadge('closed', undefined)).toBe(true);
+    expect(isCompletedBadge('closed', null)).toBe(true);
+  });
 });

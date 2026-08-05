@@ -44,11 +44,21 @@ export async function GET(
 
   const { jobId } = await params;
 
-  const { data: job, error } = await supabaseServer
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: job, error } = await (supabaseServer as any)
     .from('jobs')
-    .select('status, progress_percent, error_message, document_id, workflow_status, service_level, fulfillment_method, price_before_discount_kzt, discount_applied_kzt, discount_code')
+    // jira_closed_at (migration 0067) — not yet in generated Database types.
+    .select('status, progress_percent, error_message, document_id, workflow_status, service_level, fulfillment_method, price_before_discount_kzt, discount_applied_kzt, discount_code, jira_closed_at')
     .eq('id', jobId)
-    .single();
+    .single() as {
+      data: {
+        status: string; progress_percent: number; error_message: string | null; document_id: string;
+        workflow_status: string | null; service_level: string | null; fulfillment_method: 'pickup' | 'delivery' | null;
+        price_before_discount_kzt: number | null; discount_applied_kzt: number | null; discount_code: string | null;
+        jira_closed_at: string | null;
+      } | null;
+      error: { code?: string; message: string } | null;
+    };
 
   if (error) {
     // PGRST116 = "JSON object requested, multiple (or no) rows returned" — genuinely not found
@@ -96,6 +106,8 @@ export async function GET(
     serviceLevel: job.service_level ?? 'electronic',
     fulfillmentMethod: (job.fulfillment_method as 'pickup' | 'delivery' | null) ?? null,
     hasReadyResultFiles: resultFilesStatus.isMultiSource ? resultFilesStatus.hasReadyResultFiles : null,
+    // 2026-08-05 WO-112 fix — see /api/jobs/route.ts for the matching batch version.
+    isClosed: job.jira_closed_at != null,
     priceBeforeDiscountKzt: job.price_before_discount_kzt ?? null,
     discountAppliedKzt: job.discount_applied_kzt ?? null,
     discountCode: job.discount_code ?? null,

@@ -641,3 +641,78 @@ describe('getCustomerOrderState — refunded / canceled (P0 production fix)', ()
     expect(s.customerStatus).toBe('refunded');
   });
 });
+
+describe('WO-112 fix — Jira "Закрыто" (isClosed) is terminal for every service level, workflow_status untouched', () => {
+  const OFFICIAL = 'official_with_translator_signature_and_provider_stamp';
+  const NOTARY = 'notarization_through_partners';
+
+  it('notarized (WO-112 exact scenario, pickup): isClosed=true → customerStatus="closed", terminal, 100%, in history (isActive=false) even though the ready file makes it downloadable', () => {
+    const s = getCustomerOrderState({
+      jobStatus: 'completed', progressPercent: 100, workflowStatus: 'notarized', serviceLevel: NOTARY,
+      fulfillmentMethod: 'pickup', hasReadyResultFiles: true, isClosed: true,
+    });
+    expect(s.customerStatus).toBe('closed');
+    expect(s.isTerminal).toBe(true);
+    expect(s.progressPercent).toBe(100);
+    expect(s.canDownload).toBe(true);
+    expect(s.isActive).toBe(false);
+  });
+
+  it('Official translator_approved → ORDER_CLOSED: still "closed", still downloadable once ready, 100%', () => {
+    const s = getCustomerOrderState({
+      jobStatus: 'completed', progressPercent: 100, workflowStatus: 'translator_approved', serviceLevel: OFFICIAL,
+      hasReadyResultFiles: true, isClosed: true,
+    });
+    expect(s.customerStatus).toBe('closed');
+    expect(s.isTerminal).toBe(true);
+    expect(s.progressPercent).toBe(100);
+    expect(s.canDownload).toBe(true);
+  });
+
+  it('Electronic ready → ORDER_CLOSED: "closed", downloadable, 100%', () => {
+    const s = getCustomerOrderState({
+      jobStatus: 'completed', progressPercent: 100, workflowStatus: null, serviceLevel: 'electronic', isClosed: true,
+    });
+    expect(s.customerStatus).toBe('closed');
+    expect(s.canDownload).toBe(true);
+    expect(s.progressPercent).toBe(100);
+  });
+
+  it('a closed order without a ready result file is still terminal/100%/in-history, but NOT downloadable — closing never fabricates a file that does not exist', () => {
+    const s = getCustomerOrderState({
+      jobStatus: 'completed', progressPercent: 100, workflowStatus: 'notarized', serviceLevel: NOTARY,
+      fulfillmentMethod: 'pickup', hasReadyResultFiles: false, isClosed: true,
+    });
+    expect(s.customerStatus).toBe('closed');
+    expect(s.isTerminal).toBe(true);
+    expect(s.isActive).toBe(false);
+    expect(s.canDownload).toBe(false);
+    expect(s.progressPercent).toBe(100);
+  });
+
+  it('a genuinely failed/refunded/canceled order is never masked as "closed", even if isClosed were somehow also true', () => {
+    expect(getCustomerOrderState({ jobStatus: 'failed', progressPercent: 0, workflowStatus: null, serviceLevel: 'electronic', isClosed: true }).customerStatus).toBe('failed');
+    expect(getCustomerOrderState({ jobStatus: 'refunded', progressPercent: 0, workflowStatus: null, serviceLevel: 'electronic', isClosed: true }).customerStatus).toBe('refunded');
+    expect(getCustomerOrderState({ jobStatus: 'canceled', progressPercent: 0, workflowStatus: null, serviceLevel: 'electronic', isClosed: true }).customerStatus).toBe('canceled');
+  });
+
+  it('isClosed omitted (legacy caller / not yet closed) — behavior is byte-for-byte the pre-WO-112 result', () => {
+    const s = getCustomerOrderState({
+      jobStatus: 'completed', progressPercent: 100, workflowStatus: 'notarized', serviceLevel: NOTARY, fulfillmentMethod: 'pickup',
+    });
+    expect(s.customerStatus).toBe('notarized');
+    expect(s.progressPercent).toBe(90);
+  });
+
+  it('canCustomerDownload standalone: "closed" grants download for Official/Electronic when confirmed, notarized still requires hasReadyResultFiles explicitly', () => {
+    expect(canCustomerDownload('closed', OFFICIAL)).toBe(true);
+    expect(canCustomerDownload('closed', 'electronic')).toBe(true);
+    expect(canCustomerDownload('closed', NOTARY)).toBe(false); // hasReadyResultFiles omitted -> false
+    expect(canCustomerDownload('closed', NOTARY, true)).toBe(true);
+    expect(canCustomerDownload('closed', NOTARY, false)).toBe(false);
+  });
+
+  it('isCustomerOrderTerminal: closed is terminal', () => {
+    expect(isCustomerOrderTerminal('closed')).toBe(true);
+  });
+});

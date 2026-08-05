@@ -116,4 +116,20 @@ describe('TRANSLATOR_COMPLETED mapping depends on service level', () => {
     // Never reaches the jobs UPDATE — only the select + backward_transition_rejected audit.
     expect(mockFrom).toHaveBeenCalledTimes(2);
   });
+
+  it('WO-112 exact scenario, unaffected by the WO-112 fix: a Notary job already at notarized (rank 5) still rejects a TRANSLATOR_COMPLETED retry trying to set assigned_to_notary (rank 3) — the guard was correct all along, ORDER_CLOSED is the real fix, not a guard change', async () => {
+    const selectChain = chain({ data: { workflow_status: 'notarized' }, error: null });
+    const rejectionAuditChain = chain({ error: null });
+    mockFrom.mockReturnValueOnce(selectChain).mockReturnValueOnce(rejectionAuditChain);
+
+    const result = await syncTranslatorDoneNotarized({
+      jobId: 'job-wo112', jiraIssueKey: 'WO-112', sourceLang: 'ru', targetLang: 'en',
+    });
+
+    expect(result.applied).toBe(false);
+    expect(mockFrom).toHaveBeenCalledTimes(2);
+    const rejectionArg = (rejectionAuditChain.insert as jest.Mock).mock.calls[0]![0];
+    expect(rejectionArg.action).toBe('backward_transition_rejected');
+    expect(rejectionArg.previous_status).toBe('notarized');
+  });
 });

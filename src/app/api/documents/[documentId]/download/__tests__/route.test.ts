@@ -127,6 +127,18 @@ describe('legacy jobs (no job_source_files) — exact pre-existing behavior', ()
     const res = await callGET();
     expect(res.status).toBe(403);
   });
+
+  it('official: WO-112 fix — jira_closed_at set bypasses the workflow_status check entirely, even stuck at awaiting_translator_review', async () => {
+    mockFrom
+      .mockReturnValueOnce(chain({ data: { user_id: USER.id, filename: 'x.pdf', document_type: 'x' }, error: null }))
+      .mockReturnValueOnce(chain({ data: { id: 'job-1', workflow_status: 'awaiting_translator_review', service_level: 'official_with_translator_signature_and_provider_stamp', fulfillment_method: null, jira_closed_at: '2026-08-05T18:00:00.000Z' }, error: null }))
+      .mockReturnValueOnce(chain({ count: 0 }))
+      .mockReturnValueOnce(chain({ data: { translated_pdf_key: 'documents/user-1/doc-1/translator_draft.docx' }, error: null }));
+    mockDownloadFile.mockResolvedValueOnce(Buffer.from('docx-bytes'));
+
+    const res = await callGET();
+    expect(res.status).toBe(200);
+  });
 });
 
 describe('multi-source jobs (job_source_files rows exist)', () => {
@@ -312,6 +324,22 @@ describe('multi-source jobs (job_source_files rows exist)', () => {
       const res = await callGET();
       expect(res.status).toBe(200);
     }
+  });
+
+  it('notary: WO-112 exact scenario — pickup, stuck at notarized (no ready_for_pickup/picked_up ever arrives), ready result file, jira_closed_at set → 200', async () => {
+    mockFrom
+      .mockReturnValueOnce(chain({ data: { user_id: USER.id, filename: 'x.pdf', document_type: 'x' }, error: null }))
+      .mockReturnValueOnce(chain({ data: { id: 'job-wo112', workflow_status: 'notarized', service_level: 'notarization_through_partners', fulfillment_method: 'pickup', jira_closed_at: '2026-08-05T18:00:00.000Z' }, error: null }))
+      .mockReturnValueOnce(chain({ count: 3 }));
+    mockGetResultFilesStatus.mockResolvedValueOnce({
+      isMultiSource: true, hasReadyResultFiles: true,
+      readyFiles: [{ sequenceMin: 1, sourceSequences: [1, 2, 3], filename: 'notarized.pdf', r2Key: 'results/notary/001-003.pdf' }],
+    });
+    mockDownloadFile.mockResolvedValueOnce(Buffer.from('pdf-bytes'));
+
+    const res = await callGET();
+    expect(res.status).toBe(200);
+    expect(mockDownloadFile).toHaveBeenCalledWith('results/notary/001-003.pdf');
   });
 
   it('notary: not yet synced → 403, never falls back to serving anything', async () => {

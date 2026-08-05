@@ -65,6 +65,7 @@ function makePolledData(overrides: Partial<PolledOrderData> = {}): PolledOrderDa
     serviceLevel: 'electronic',
     fulfillmentMethod: null,
     hasReadyResultFiles: true,
+    isClosed: false,
     latestQuoteId: 'quote-1',
     quoteStatus: 'paid',
     quoteAmountKzt: 1500,

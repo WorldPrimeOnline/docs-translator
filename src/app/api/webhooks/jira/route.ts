@@ -29,6 +29,7 @@ import {
   syncDelivered,
   syncPickedUp,
   syncJobTerminated,
+  syncOrderClosed,
   syncInformational,
 } from '@/lib/integrations/workflow';
 import { handleAssigneeChanged } from '@/lib/notifications/assignee';
@@ -60,6 +61,12 @@ const JiraWebhookSchema = z.object({
     // Order terminal events
     'JOB_FAILED',
     'JOB_CANCELED',
+    // 2026-08-05 WO-112 fix — Jira status "Закрыто". Terminal for every service
+    // level regardless of workflow_status/fulfillment progress: sets jobs.status=
+    // 'completed' + jobs.jira_closed_at, NEVER workflow_status (see syncOrderClosed).
+    // Not routed through the monotonic rank guard — this is an explicit terminal
+    // command, not a normal forward transition.
+    'ORDER_CLOSED',
   ]),
   /** Jira issue key, e.g. "WO-42" */
   issueKey: z.string().min(1),
@@ -297,6 +304,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
       case 'JOB_CANCELED':
         await syncJobTerminated({ jobId, jiraIssueKey: issueKey, reason: 'canceled' });
+        break;
+
+      case 'ORDER_CLOSED':
+        result = await syncOrderClosed({ jobId, jiraIssueKey: issueKey });
         break;
     }
 

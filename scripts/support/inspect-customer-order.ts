@@ -99,6 +99,8 @@ interface JobRow {
   drive_sync_status: string | null; last_integration_error: string | null; last_synced_at: string | null;
   price_jira_sync_status: string | null; price_jira_last_error: string | null;
   finance_jira_sync_status: string | null; finance_jira_last_error: string | null;
+  /** 2026-08-05 WO-112 fix — migration 0067. */
+  jira_closed_at: string | null;
 }
 interface DocumentRow {
   id: string; user_id: string; filename: string; original_file_size: number; file_key: string;
@@ -226,6 +228,8 @@ async function main(): Promise<void> {
     // signature_stamp sync had not actually finished. Mirrors /api/jobs/route.ts's
     // own wiring exactly — never re-derive this differently in two places.
     hasReadyResultFiles: resultFilesStatus.isMultiSource ? resultFilesStatus.hasReadyResultFiles : undefined,
+    // 2026-08-05 WO-112 fix — mirrors /api/jobs/route.ts's own wiring.
+    isClosed: j.jira_closed_at != null,
   });
 
   // "Individual download" and "download-all" are the SAME single boolean in this system —
@@ -412,6 +416,7 @@ function renderText(r: Report): string {
   lines.push('=== Google Drive / integrations ===');
   lines.push(`  google_drive_folder_url: ${r.job.google_drive_folder_url ?? '(none)'}  drive_sync_status: ${r.job.drive_sync_status ?? '(none)'}`);
   lines.push(`  jira_issue_key: ${r.job.jira_issue_key ?? '(none)'}  jira_sync_status: ${r.job.jira_sync_status ?? '(none)'}`);
+  lines.push(`  jira_closed_at: ${r.job.jira_closed_at ?? '(not closed)'}`);
   lines.push(`  last_integration_error: ${r.job.last_integration_error ?? '(none)'}`);
   lines.push(`  price_jira_last_error: ${r.job.price_jira_last_error ?? '(none)'}  finance_jira_last_error: ${r.job.finance_jira_last_error ?? '(none)'}`);
   lines.push('');

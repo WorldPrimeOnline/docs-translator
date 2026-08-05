@@ -603,6 +603,48 @@ export async function syncReadyForDelivery(params: {
   }
 }
 
+/**
+ * Jira status "Закрыто" (ORDER_CLOSED) — 2026-08-05 WO-112 fix. Terminal for EVERY
+ * service level regardless of physical delivery/pickup progress. This is a distinct
+ * terminal COMMAND, never routed through safeUpdateWorkflowStatus's monotonic rank
+ * guard — the whole point is to mark the order done from WHATEVER workflow_status it
+ * is currently at (notarized, translator_approved, anything) WITHOUT changing that
+ * value; the guard exists to reject a normal event arriving out of order, not to
+ * gate an explicit staff "this order is closed" command. Sets jobs.status='completed'
+ * (idempotent — usually already true from the AI pipeline finishing long before this)
+ * and jobs.jira_closed_at (migration 0067) — the sole signal
+ * getCustomerOrderState() reads to force 100%/"Готово"/history placement, never
+ * workflow_status itself (see customer-order-state.ts). Idempotent: a repeat
+ * ORDER_CLOSED is a harmless re-write of the same terminal fields.
+ */
+export async function syncOrderClosed(params: {
+  jobId: string;
+  jiraIssueKey: string;
+}): Promise<{ applied: boolean }> {
+  const tag = `[integration:${params.jobId.slice(0, 8)}]`;
+  try {
+    await updateJobIntegration(params.jobId, {
+      jira_sync_status: 'closed',
+      status: 'completed',
+      jira_closed_at: new Date().toISOString(),
+    });
+    await audit({
+      jobId: params.jobId,
+      actor: 'operator',
+      source: 'jira_webhook',
+      action: 'order_closed',
+      newStatus: 'closed',
+      jiraIssueKey: params.jiraIssueKey,
+    });
+    console.log(`${tag} ✓ order closed: Supabase synced (workflow_status preserved)`);
+    return { applied: true };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`${tag} syncOrderClosed failed: ${msg}`);
+    return { applied: false };
+  }
+}
+
 export async function syncJobTerminated(params: {
   jobId: string;
   jiraIssueKey: string;

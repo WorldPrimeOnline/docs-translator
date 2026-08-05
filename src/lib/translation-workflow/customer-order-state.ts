@@ -44,6 +44,17 @@ export interface OrderStateInput {
    * "awaiting payment" state whenever jobStatus is still 'payment_pending'.
    */
   quoteStatus?: string | null;
+  /**
+   * 2026-08-05 WO-112 fix — whether Jira sent eventType=ORDER_CLOSED (jobs.jira_closed_at
+   * is set; migration 0067). The sole authoritative "order fully closed" signal,
+   * independent of jobStatus (already 'completed' from the AI pipeline finishing, long
+   * before any human/physical step) and workflowStatus (never overwritten by
+   * ORDER_CLOSED — see syncOrderClosed, src/lib/integrations/workflow.ts). Terminal for
+   * every service level regardless of physical delivery/pickup progress. Omit for a
+   * caller with no jira_closed_at column on hand yet — defaults to not-closed, the exact
+   * pre-fix behavior.
+   */
+  isClosed?: boolean;
 }
 
 export type CustomerStatus =
@@ -70,7 +81,8 @@ export type CustomerStatus =
   | 'failed'
   | 'refunded'
   | 'canceled'
-  | 'operator_processing';
+  | 'operator_processing'
+  | 'closed';
 
 export interface OrderStage {
   key: string;
@@ -103,6 +115,7 @@ function deriveCustomerStatus(
   jobStatus: string,
   workflowStatus: string | null,
   serviceLevel: string | null,
+  isClosed?: boolean,
 ): CustomerStatus {
   if (jobStatus === 'payment_pending') return 'payment_pending';
   if (jobStatus === 'failed') return 'failed';
@@ -110,6 +123,16 @@ function deriveCustomerStatus(
   if (jobStatus === 'canceled') return 'canceled';
   if (workflowStatus === 'translator_declined') return 'translator_declined';
   if (workflowStatus === 'notary_declined') return 'notary_declined';
+
+  // 2026-08-05 WO-112 fix: Jira "Закрыто" overrides every workflow-progress status
+  // below (delivered/picked_up/notarized/translator_approved/...) — it means the
+  // order is fully done for every service level, regardless of physical delivery/
+  // pickup progress, WITHOUT changing what workflowStatus itself reports (that stays
+  // the true historical record — see deriveCustomerStatus's caller). Checked after
+  // payment/failure/decline outcomes only: a genuinely failed/refunded/canceled/
+  // declined order must never be silently reported as "done" just because Jira also
+  // sent a close event for it.
+  if (isClosed) return 'closed';
 
   // Terminal delivery statuses — checked before anything else
   if (workflowStatus === 'delivered') return 'delivered';
@@ -191,6 +214,14 @@ function deriveCustomerStatus(
  *   fully-synced signature_stamp result — the sync is an additional necessary
  *   condition, never a bypass.
  * - Electronic: unaffected either way (gate is purely customerStatus === 'completed').
+ *
+ * 2026-08-05 WO-112 fix: customerStatus 'closed' (Jira "Закрыто") ALSO grants
+ * download wherever the service level would otherwise require operator confirmation
+ * — an explicit close command implies the order is done, delivery/pickup notwith-
+ * standing. Notarized is unaffected (its gate was already purely
+ * hasReadyResultFiles, no customerStatus check at all — 'closed' doesn't need to be
+ * added there). The result file itself still has to actually be ready; closing the
+ * order in Jira never fabricates a download that doesn't exist.
  */
 export function canCustomerDownload(
   customerStatus: CustomerStatus,
@@ -201,12 +232,12 @@ export function canCustomerDownload(
     return hasReadyResultFiles === true;
   }
   if (serviceLevel === 'official_with_translator_signature_and_provider_stamp') {
-    const operatorConfirmed = customerStatus === 'translator_approved' || customerStatus === 'ready_for_delivery' || customerStatus === 'delivered';
+    const operatorConfirmed = customerStatus === 'translator_approved' || customerStatus === 'ready_for_delivery' || customerStatus === 'delivered' || customerStatus === 'closed';
     if (hasReadyResultFiles === undefined) return operatorConfirmed;
     return operatorConfirmed && hasReadyResultFiles;
   }
   // Electronic
-  return customerStatus === 'completed';
+  return customerStatus === 'completed' || customerStatus === 'closed';
 }
 
 // ─── Terminal status check ────────────────────────────────────────────────────
@@ -220,7 +251,8 @@ export function isCustomerOrderTerminal(customerStatus: CustomerStatus): boolean
     customerStatus === 'translator_declined' ||
     customerStatus === 'notary_declined' ||
     customerStatus === 'refunded' ||
-    customerStatus === 'canceled'
+    customerStatus === 'canceled' ||
+    customerStatus === 'closed'
   );
 }
 
@@ -244,9 +276,9 @@ function toOrderStages(stages: ProgressFlowStage[], currentStageId: string, curr
 // ─── Main export ──────────────────────────────────────────────────────────────
 
 export function getCustomerOrderState(input: OrderStateInput): CustomerOrderState {
-  const { jobStatus, progressPercent, workflowStatus, serviceLevel, fulfillmentMethod, hasReadyResultFiles, quoteStatus } = input;
+  const { jobStatus, progressPercent, workflowStatus, serviceLevel, fulfillmentMethod, hasReadyResultFiles, quoteStatus, isClosed } = input;
 
-  const customerStatus = deriveCustomerStatus(jobStatus, workflowStatus, serviceLevel);
+  const customerStatus = deriveCustomerStatus(jobStatus, workflowStatus, serviceLevel, isClosed);
 
   const isTerminal = isCustomerOrderTerminal(customerStatus);
   const canDownload = canCustomerDownload(customerStatus, serviceLevel, hasReadyResultFiles);
@@ -255,12 +287,20 @@ export function getCustomerOrderState(input: OrderStateInput): CustomerOrderStat
   // Terminal orders with canDownload=true (electronic completed, certified delivered)
   // stay in the active section so the download button is prominent.
   // All other terminal orders go to history.
-  const isActive = !isTerminal || canDownload;
+  //
+  // 2026-08-05 WO-112 fix: an explicitly Jira-closed order ALWAYS goes to history,
+  // even when canDownload is true — closing the order is a deliberate "this is done,
+  // it's a historical record now" signal from staff, distinct from the generic
+  // terminal+downloadable case above (which stays prominent because nothing yet
+  // confirmed the order is truly finished). HistoryRow already renders a working
+  // download button when canDownload is true (see download-action.ts).
+  const isActive = customerStatus === 'closed' ? false : (!isTerminal || canDownload);
 
   const paymentStatus = derivePaymentStatus(jobStatus, quoteStatus);
   const flow = resolveCustomerProgressFlow({
     serviceLevel,
     fulfillmentMethod: fulfillmentMethod ?? null,
+    isClosed,
     paymentStatus,
     workflowStatus,
     workerStatus: jobStatus,

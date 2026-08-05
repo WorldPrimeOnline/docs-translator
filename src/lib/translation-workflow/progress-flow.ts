@@ -49,6 +49,10 @@ export interface ProgressFlowInput {
   /** Raw 0-100 worker progress_percent — only ever used to scale Electronic's
    * "processing" stage within its fixed sub-range (see PIPELINE_SCALE_RANGE). */
   rawProgress: number;
+  /** 2026-08-05 WO-112 fix — jobs.jira_closed_at is set (Jira "Закрыто"). Forces the
+   * flow straight to its own terminal 100% stage, regardless of workflowStatus/
+   * fulfillmentMethod — see each resolver's own isClosed check. */
+  isClosed?: boolean;
 }
 
 export interface ProgressFlowStage {
@@ -115,8 +119,10 @@ const ELECTRONIC_STAGES: ProgressFlowStage[] = [
 const ELECTRONIC_PROCESSING_SCALE = [10, 90] as const;
 
 function resolveElectronic(input: ProgressFlowInput): ProgressFlowResult {
-  const { workerStatus, rawProgress } = input;
+  const { workerStatus, rawProgress, isClosed } = input;
 
+  // WO-112 fix: Jira "Закрыто" is terminal regardless of anything else.
+  if (isClosed) return finalize(ELECTRONIC_STAGES, 'ready', 100);
   if (workerStatus === 'completed') {
     return finalize(ELECTRONIC_STAGES, 'ready', 100);
   }
@@ -155,8 +161,10 @@ const OFFICIAL_STAGES: ProgressFlowStage[] = [
 ];
 
 function resolveOfficial(input: ProgressFlowInput): ProgressFlowResult {
-  const { workflowStatus, workerStatus } = input;
+  const { workflowStatus, workerStatus, isClosed } = input;
 
+  // WO-112 fix: Jira "Закрыто" is terminal regardless of workflowStatus.
+  if (isClosed) return finalize(OFFICIAL_STAGES, 'ready', 100);
   if (workflowStatus === 'ready_for_delivery' || workflowStatus === 'delivered' || workflowStatus === 'translator_approved') {
     return finalize(OFFICIAL_STAGES, 'ready', 100);
   }
@@ -211,7 +219,18 @@ const NOTARY_DELIVERY_STAGES: ProgressFlowStage[] = [
 ];
 
 function resolveNotary(input: ProgressFlowInput): ProgressFlowResult {
-  const { workflowStatus, workerStatus, fulfillmentMethod } = input;
+  const { workflowStatus, workerStatus, fulfillmentMethod, isClosed } = input;
+
+  // WO-112 fix: Jira "Закрыто" is terminal regardless of workflowStatus — e.g. a
+  // pickup order stuck at 'notarized' (90%) with no further Jira transition ever
+  // coming (WO-112's exact scenario). Picks each fulfillment variant's OWN terminal
+  // stage id so stages/percent/labelKey stay self-consistent with everything else
+  // that variant's table defines.
+  if (isClosed) {
+    if (fulfillmentMethod === 'delivery') return finalize(NOTARY_DELIVERY_STAGES, 'delivered', 100);
+    if (fulfillmentMethod === 'pickup') return finalize(NOTARY_PICKUP_STAGES, 'picked_up', 100);
+    return finalize(NOTARY_NO_DELIVERY_STAGES, 'notarized', 100);
+  }
 
   if (fulfillmentMethod === 'delivery') {
     if (workflowStatus === 'delivered') return finalize(NOTARY_DELIVERY_STAGES, 'delivered', 100);

@@ -67,13 +67,23 @@ export async function GET(): Promise<NextResponse> {
   const docIds = docs.map((d) => d.id);
 
   // Fetch latest job per document
-  const { data: jobs, error: jobsError } = await supabaseServer
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: jobs, error: jobsError } = await (supabaseServer as any)
     .from('jobs')
     .select(
-      'id, document_id, status, progress_percent, error_message, workflow_status, service_level, fulfillment_method, price_kzt, price_before_discount_kzt, discount_applied_kzt, discount_code, created_at',
+      // jira_closed_at (migration 0067) — not yet in generated Database types.
+      'id, document_id, status, progress_percent, error_message, workflow_status, service_level, fulfillment_method, price_kzt, price_before_discount_kzt, discount_applied_kzt, discount_code, created_at, jira_closed_at',
     )
     .in('document_id', docIds)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false }) as {
+      data: Array<{
+        id: string; document_id: string; status: string; progress_percent: number; error_message: string | null;
+        workflow_status: string | null; service_level: string | null; fulfillment_method: 'pickup' | 'delivery' | null;
+        price_kzt: number | null; price_before_discount_kzt: number | null; discount_applied_kzt: number | null;
+        discount_code: string | null; created_at: string; jira_closed_at: string | null;
+      }> | null;
+      error: { message: string; code?: string } | null;
+    };
 
   // Same guarantee as the documents query above — without job rows an order can't
   // be classified as payment_pending/active at all, so a query failure here must
@@ -203,6 +213,9 @@ export async function GET(): Promise<NextResponse> {
           // 2026-07-26 progress-UI fix — distinguishes the pre-payment sub-states
           // (quote ready / awaiting payment / payment being checked).
           quoteStatus: quote?.status ?? null,
+          // 2026-08-05 WO-112 fix — Jira "Закрыто" (ORDER_CLOSED) is terminal for
+          // every service level regardless of workflow_status/fulfillment progress.
+          isClosed: job.jira_closed_at != null,
         })
       : null;
 

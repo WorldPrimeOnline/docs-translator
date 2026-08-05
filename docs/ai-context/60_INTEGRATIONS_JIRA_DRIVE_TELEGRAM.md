@@ -15,6 +15,8 @@ Both are linked to the main issue via `relates to`. Never put internal cost fiel
 
 Jira Automation sends callbacks to `/api/webhooks/jira` when statuses change; that route only updates Supabase and fires Telegram/email notifications — it does NOT create Jira issues or call Jira API.
 
+**`ORDER_CLOSED`** (2026-08-05 WO-112 fix) — Jira Automation must send this, not `TRANSLATOR_COMPLETED`, when an issue moves to the terminal Jira status **"Закрыто"**. It means the order is fully done for every service level regardless of physical delivery/pickup progress. Handled by `syncOrderClosed()` (`src/lib/integrations/workflow.ts`): sets `jobs.status='completed'` + `jobs.jira_closed_at` (migration `0067`) — **never** `workflow_status`, and **never** routed through the monotonic rank guard (`safeUpdateWorkflowStatus`/`WORKFLOW_RANK`), since the whole point is to close the order from whatever `workflow_status` it is currently at without disturbing that historical record. `getCustomerOrderState()` treats `jira_closed_at` as the sole "closed" signal: 100% progress, "Готово" badge, moves to history, download stays available if the result file is ready. Required Jira Automation rule: on transition to "Закрыто", POST `{ eventId, eventType: "ORDER_CLOSED", issueKey, orderId, jiraStatus: "Закрыто", occurredAt }` to `/api/webhooks/jira`.
+
 ## Web app integration (`src/lib/integrations/workflow.ts`)
 
 `initializeOrderIntegrations(job)`:

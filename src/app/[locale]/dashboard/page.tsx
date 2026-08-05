@@ -423,10 +423,13 @@ function HistoryRow({ entry, locale }: { entry: OrderEntry; locale: string }) {
   // decide whether a download is offered (the server already forces canDownload:false
   // once filesPurgedAt is set — see /api/jobs/route.ts).
   // Only shown for orders that actually produced a result at some point (same status
-  // set StatusBadge treats as "successful") — a canceled/refunded/failed order never
-  // had a file to expire, so it never shows the retention message, purged or not.
+  // set StatusBadge/isCompletedBadge treats as "successful") — a canceled/refunded/
+  // failed order never had a file to expire, so it never shows the retention
+  // message, purged or not. 'closed' (2026-08-05 WO-112 fix) included for the same
+  // reason — a Jira-closed order is a successful, finished order too.
   const hadResult = entry.customerStatus === 'completed' || entry.customerStatus === 'delivered'
-    || entry.customerStatus === 'picked_up' || entry.customerStatus === 'ready_for_delivery';
+    || entry.customerStatus === 'picked_up' || entry.customerStatus === 'ready_for_delivery'
+    || entry.customerStatus === 'closed';
   const purged = hadResult && entry.filesPurgedAt != null;
   const expiry = computeRetentionExpiry(entry.createdAt);
   const estimatedExpiredSoon = isRetentionExpired(entry.createdAt);

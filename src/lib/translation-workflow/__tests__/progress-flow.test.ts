@@ -315,3 +315,62 @@ describe('General invariants', () => {
     expect(allStages.some((s) => s.percent === 49)).toBe(false);
   });
 });
+
+describe('WO-112 fix: isClosed forces every flow to its own terminal 100% stage', () => {
+  it('Electronic: isClosed=true is 100% regardless of workerStatus', () => {
+    const r = resolveCustomerProgressFlow(baseInput({ workerStatus: 'translation_in_progress', rawProgress: 40, isClosed: true }));
+    expect(r.percent).toBe(100);
+    expect(r.currentStageId).toBe('ready');
+  });
+
+  it('Official: isClosed=true is 100% even at awaiting_translator_review (nowhere near translator_approved)', () => {
+    const r = resolveCustomerProgressFlow(baseInput({
+      serviceLevel: 'official_with_translator_signature_and_provider_stamp',
+      workerStatus: 'completed', workflowStatus: 'awaiting_translator_review', isClosed: true,
+    }));
+    expect(r.percent).toBe(100);
+    expect(r.currentStageId).toBe('ready');
+  });
+
+  it('Notary WO-112 exact scenario: pickup, stuck at notarized (90%) — isClosed=true jumps straight to picked_up (100%)', () => {
+    const r = resolveCustomerProgressFlow(baseInput({
+      serviceLevel: 'notarization_through_partners', fulfillmentMethod: 'pickup',
+      workerStatus: 'completed', workflowStatus: 'notarized', isClosed: true,
+    }));
+    expect(r.percent).toBe(100);
+    expect(r.currentStageId).toBe('picked_up');
+  });
+
+  it('Notary delivery: isClosed=true jumps to delivered (100%), not just notarized (90%)', () => {
+    const r = resolveCustomerProgressFlow(baseInput({
+      serviceLevel: 'notarization_through_partners', fulfillmentMethod: 'delivery',
+      workerStatus: 'completed', workflowStatus: 'notarized', isClosed: true,
+    }));
+    expect(r.percent).toBe(100);
+    expect(r.currentStageId).toBe('delivered');
+  });
+
+  it('Notary with no fulfillment method: isClosed=true resolves to notarized (100%) — matches the no-courier flow\'s own terminal id', () => {
+    const r = resolveCustomerProgressFlow(baseInput({
+      serviceLevel: 'notarization_through_partners', fulfillmentMethod: null,
+      workerStatus: 'completed', workflowStatus: 'assigned_to_notary', isClosed: true,
+    }));
+    expect(r.percent).toBe(100);
+    expect(r.currentStageId).toBe('notarized');
+  });
+
+  it('the current stage always exists in the flow\'s own stage table with a matching percent — isClosed never produces a stage/percent mismatch', () => {
+    const cases: ProgressFlowInput[] = [
+      baseInput({ isClosed: true }),
+      baseInput({ serviceLevel: 'official_with_translator_signature_and_provider_stamp', workflowStatus: 'translator_review_in_progress', isClosed: true }),
+      baseInput({ serviceLevel: 'notarization_through_partners', fulfillmentMethod: 'pickup', workflowStatus: 'notarization_in_progress', isClosed: true }),
+      baseInput({ serviceLevel: 'notarization_through_partners', fulfillmentMethod: 'delivery', workflowStatus: 'notarization_in_progress', isClosed: true }),
+    ];
+    for (const input of cases) {
+      const result = resolveCustomerProgressFlow(input);
+      const currentStage = result.stages.find((s) => s.id === result.currentStageId);
+      expect(currentStage?.percent).toBe(result.percent);
+      expect(result.percent).toBe(100);
+    }
+  });
+});

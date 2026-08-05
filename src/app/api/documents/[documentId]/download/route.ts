@@ -91,14 +91,21 @@ export async function GET(
     return NextResponse.json({ error: 'RETENTION_EXPIRED', filesPurgedAt: doc.files_purged_at }, { status: 410 });
   }
 
-  const { data: job } = await supabaseServer
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: job } = await (supabaseServer as any)
     .from('jobs')
-    .select('id, workflow_status, service_level, fulfillment_method')
+    // jira_closed_at (migration 0067) — not yet in generated Database types.
+    .select('id, workflow_status, service_level, fulfillment_method, jira_closed_at')
     .eq('document_id', documentId)
     .eq('status', 'completed')
     .order('created_at', { ascending: false })
     .limit(1)
-    .single();
+    .single() as {
+      data: {
+        id: string; workflow_status: string | null; service_level: string | null;
+        fulfillment_method: string | null; jira_closed_at: string | null;
+      } | null;
+    };
 
   if (!job) return NextResponse.json({ error: 'No completed translation found' }, { status: 404 });
 
@@ -133,10 +140,12 @@ export async function GET(
   // hands off to an actual notary) — so it's allowed here too, matching
   // canCustomerDownload's operatorConfirmed set (customer-order-state.ts).
   // ready_for_delivery/delivered stay included for the currently-unused physical-
-  // courier case.
+  // courier case. 2026-08-05 WO-112 fix: a Jira "Закрыто" close (jira_closed_at set)
+  // also grants download regardless of workflow_status — an explicit close command
+  // implies the order is done.
   if (job.service_level === 'official_with_translator_signature_and_provider_stamp') {
     const certifiedAllowed = new Set(['translator_approved', 'ready_for_delivery', 'delivered']);
-    if (!certifiedAllowed.has(job.workflow_status ?? '')) {
+    if (!certifiedAllowed.has(job.workflow_status ?? '') && job.jira_closed_at == null) {
       const statusMessages: Record<string, string> = {
         awaiting_translator_review: 'Document is being reviewed by a certified translator.',
         awaiting_signature_stamp: 'Document is awaiting translator signature and provider stamp.',
@@ -201,6 +210,7 @@ interface MultiSourceJob {
   workflow_status: string | null;
   service_level: string | null;
   fulfillment_method: string | null;
+  jira_closed_at: string | null;
 }
 
 /**
@@ -225,6 +235,8 @@ async function serveMultiSourceDownload(
     serviceLevel: job.service_level,
     fulfillmentMethod: (job.fulfillment_method as 'pickup' | 'delivery' | null) ?? null,
     hasReadyResultFiles: resultStatus.hasReadyResultFiles,
+    // 2026-08-05 WO-112 fix — see /api/jobs/route.ts for the matching dashboard-list version.
+    isClosed: job.jira_closed_at != null,
   });
 
   if (!state.canDownload) {

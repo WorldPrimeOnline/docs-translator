@@ -19,6 +19,10 @@ export function isCompletedBadge(customerStatus: string | null, serviceLevel: st
     status === 'delivered' ||
     status === 'picked_up' ||
     status === 'ready_for_delivery' ||
+    // 2026-08-05 WO-112 fix: Jira "Закрыто" (customerStatus='closed') is done for
+    // EVERY service level — unlike officialDone above, this one needs no
+    // serviceLevel check at all.
+    status === 'closed' ||
     officialDone
   );
 }

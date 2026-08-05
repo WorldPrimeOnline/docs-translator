@@ -37,6 +37,8 @@ export interface PolledOrderData {
   fulfillmentMethod: 'pickup' | 'delivery' | null;
   /** 2026-08-01 multi-file fulfillment decision — see customer-order-state.ts. */
   hasReadyResultFiles: boolean | null;
+  /** 2026-08-05 WO-112 fix — jobs.jira_closed_at is set. See customer-order-state.ts. */
+  isClosed: boolean;
   latestQuoteId: string | null;
   quoteStatus: string | null;
   quoteAmountKzt: number | null;
@@ -103,6 +105,7 @@ export function applyPolledOrderUpdate<T extends PollableOrderEntry>(
     fulfillmentMethod: data.fulfillmentMethod ?? null,
     hasReadyResultFiles: data.hasReadyResultFiles ?? undefined,
     quoteStatus,
+    isClosed: data.isClosed,
   });
 
   const next = [...orders];
