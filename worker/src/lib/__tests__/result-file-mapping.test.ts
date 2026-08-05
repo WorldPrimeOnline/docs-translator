@@ -2,9 +2,11 @@
  * @jest-environment node
  *
  * Tests for validateResultFileMapping()/parseSequenceRangeFromFilename() — 2026-08-01
- * multi-file fulfillment decision. Covers the exact scenarios the user specified:
- * 1:1 per-source files, a single grouped range file, several grouped files, gaps,
- * overlaps, out-of-range sequences, and the N=1 unprefixed-filename exception.
+ * multi-file fulfillment decision, widened 2026-08-05 for WO-110. Covers the exact
+ * scenarios the user specified: 1:1 per-source files, a single grouped range file,
+ * several grouped files, gaps, overlaps, out-of-range sequences, and an unprefixed
+ * filename — which now means "the result for the whole order" at ANY source count,
+ * not just N=1.
  */
 import { parseSequenceRangeFromFilename, validateResultFileMapping, isFullyCovered } from '../result-file-mapping';
 
@@ -66,15 +68,38 @@ describe('validateResultFileMapping', () => {
     }
   });
 
-  it('1 source, unprefixed filename: allowed exactly because N=1', () => {
+  it('1 source, unprefixed filename: covers the single source', () => {
     const result = validateResultFileMapping(1, [{ filename: 'signed_document.pdf' }]);
     expect(result).toEqual({ ok: true, groups: [{ filename: 'signed_document.pdf', sourceSequences: [1] }] });
   });
 
-  it('2 sources, unprefixed filename: blocked — ambiguous, must disambiguate', () => {
-    const result = validateResultFileMapping(2, [{ filename: 'signed_document.pdf' }]);
+  it('WO-110 fix: 5 sources, unprefixed filename (e.g. staff dropped "signed.pdf" with no rename) — now the result for the WHOLE order, not blocked', () => {
+    const result = validateResultFileMapping(5, [{ filename: 'signed.pdf' }]);
+    expect(result).toEqual({ ok: true, groups: [{ filename: 'signed.pdf', sourceSequences: [1, 2, 3, 4, 5] }] });
+  });
+
+  it('WO-110 fix: an unprefixed filename with spaces and Cyrillic characters is accepted the same way — the filename itself is never inspected beyond the optional NNN/NNN-MMM prefix', () => {
+    const result = validateResultFileMapping(5, [{ filename: 'подписанный документ (копия).pdf' }]);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.groups[0]!.sourceSequences).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it('WO-110 fix: two unprefixed files for a multi-source job are still ambiguous and blocked — each independently claims the whole order, so they overlap on every sequence', () => {
+    const result = validateResultFileMapping(3, [
+      { filename: 'signed.pdf' },
+      { filename: 'signed_v2.pdf' },
+    ]);
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.errors[0]).toMatch(/no NNN\/NNN-MMM sequence prefix/);
+    if (!result.ok) expect(result.errors.some((e) => e.includes('is covered by multiple files'))).toBe(true);
+  });
+
+  it('WO-110 fix: an unprefixed whole-order file alongside a prefixed range still overlaps and is blocked — precise mapping is never silently overridden by a same-cycle "whole order" file', () => {
+    const result = validateResultFileMapping(3, [
+      { filename: 'signed.pdf' },
+      { filename: '001-002_Part1.pdf' },
+    ]);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.errors.some((e) => e.includes('is covered by multiple files'))).toBe(true);
   });
 
   it('gap blocks publication: 3 sources but only sequences 1 and 3 covered', () => {

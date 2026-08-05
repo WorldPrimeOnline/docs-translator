@@ -399,14 +399,22 @@ export interface DriveFileListing {
 }
 
 /**
- * Lists all non-trashed, non-folder files directly in `folderId` — used by the
- * Drive read-back sync (2026-08-01 multi-file fulfillment decision) to read staff
- * uploads from 04_SIGNATURE_AND_STAMP/05_NOTARY. Paginates through the full result
- * set (Drive caps a single page at 1000) so a folder with many files is never
- * silently truncated, which would make the sync's mapping-validation see a false gap.
+ * Lists all non-trashed, non-folder, non-native-Google-format files directly in
+ * `folderId` — used by the Drive read-back sync (2026-08-01 multi-file fulfillment
+ * decision, hardened 2026-08-05 for WO-110) to read staff uploads from
+ * 04_SIGNATURE_AND_STAMP/05_NOTARY. `not mimeType contains 'application/vnd.google-apps'`
+ * excludes folders AND native Google Docs/Sheets/Slides/Forms/Drawings — those can't
+ * be fetched as raw bytes via downloadFileFromDrive() (Drive requires an /export
+ * call for them, not a plain download) and would otherwise abort the whole sync
+ * pass with a download failure the moment a staff member drops one in by mistake.
+ * A real uploaded file (PDF/DOCX/JPG/PNG/...) always has a normal, non-google-apps
+ * mimeType, so this never excludes anything an operator would actually place here.
+ * Paginates through the full result set (Drive caps a single page at 1000) so a
+ * folder with many files is never silently truncated, which would make the sync's
+ * mapping-validation see a false gap.
  */
 export async function listFilesInFolder(folderId: string): Promise<DriveFileListing[]> {
-  const q = encodeURIComponent(`'${folderId}' in parents and trashed=false and mimeType!='application/vnd.google-apps.folder'`);
+  const q = encodeURIComponent(`'${folderId}' in parents and trashed=false and not mimeType contains 'application/vnd.google-apps'`);
   const files: DriveFileListing[] = [];
   let pageToken: string | undefined;
 

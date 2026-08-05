@@ -1,17 +1,27 @@
 /**
  * Pure validation for mapping Drive-synced result files (translator_result,
  * signature_stamp, notary) back onto job_source_files.sequence — 2026-08-01 multi-file
- * fulfillment decision. No Drive/R2/DB calls here; the (not-yet-built) Drive read-back
- * sync calls this on the filenames it finds in a folder before writing/upserting any
- * job_result_files row, and must refuse to publish anything to the customer if
- * validation fails — see job_result_files.status: only 'ready' rows are ever served.
+ * fulfillment decision. No Drive/R2/DB calls here; the Drive read-back sync
+ * (result-file-sync.ts) calls this on the filenames it finds in a folder before
+ * writing/upserting any job_result_files row, and must refuse to publish anything to
+ * the customer if validation fails — see job_result_files.status: only 'ready' rows
+ * are ever served.
  *
  * Filename convention (from the user's exact examples):
  *   "001_TRANSLATOR_RESULT.pdf"        -> covers source sequence 1
  *   "001-010_Contract_TRANSLATOR_RESULT.pdf" -> covers source sequences 1..10
  *   "001-003_Part1.pdf" + "004-010_Part2.pdf" -> two groups, no overlap
- * An unprefixed filename (no leading NNN or NNN-MMM) is only valid when the job has
- * exactly one source file — otherwise WPO staff must always disambiguate explicitly.
+ *
+ * 2026-08-05 WO-110 fix: an unprefixed filename (no leading NNN or NNN-MMM) is the
+ * final result for the WHOLE order — covers every source sequence 1..totalSources —
+ * regardless of how many source files the job has. The prefix is an OPTIONAL hint
+ * for precise per-source mapping, never a requirement: the business rule is "any
+ * normal file an operator drops in the folder becomes the customer's result," and a
+ * single merged/scanned/signed PDF covering every page is the overwhelmingly common
+ * real case for Official/Notary results. The existing overlap check below still
+ * catches the genuinely ambiguous cases this widening could introduce (two
+ * unprefixed files, or an unprefixed file alongside prefixed ranges that cover the
+ * same sequences) — those still refuse to publish, exactly as before.
  */
 
 const PREFIX_RE = /^(\d{3})(?:-(\d{3}))?_/;
@@ -62,11 +72,11 @@ export function validateResultFileMapping(
 
     let sequences: number[];
     if (range === null) {
-      if (totalSources !== 1) {
-        errors.push(`"${candidate.filename}": no NNN/NNN-MMM sequence prefix, but this job has ${totalSources} source files (an unprefixed filename is only allowed when there is exactly one source file)`);
-        continue;
-      }
-      sequences = [1];
+      // WO-110 fix: no prefix means "this is the result for the whole order" —
+      // covers every source sequence, not just sequence 1. For a single-source job
+      // this is identical to the old sequences=[1] behavior.
+      sequences = [];
+      for (let s = 1; s <= totalSources; s++) sequences.push(s);
     } else {
       if (range.start < 1 || range.end < range.start) {
         errors.push(`"${candidate.filename}": invalid sequence range ${range.start}-${range.end}`);

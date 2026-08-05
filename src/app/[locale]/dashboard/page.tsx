@@ -9,6 +9,7 @@ import { HalykPayButton } from '@/components/payment/HalykPayButton';
 import { createClient } from '@/lib/supabase/client';
 import { bucketOrders, visibleOrders } from '@/lib/translation-workflow/order-buckets';
 import { resolveDownloadAction } from '@/lib/translation-workflow/download-action';
+import { isCompletedBadge } from '@/lib/translation-workflow/status-badge';
 import { sortByCreatedAtDesc } from '@/lib/translation-workflow/order-sort';
 import { applyPolledOrderUpdate, needsLivePolling, type PolledOrderData } from '@/lib/translation-workflow/dashboard-polling';
 import { computeRetentionExpiry, isRetentionExpired, applyFilesPurgedOverride } from '@/lib/translation-workflow/order-retention';
@@ -69,19 +70,11 @@ interface OrderEntry {
 
 // ─── Status badge ──────────────────────────────────────────────────────────────
 
-function StatusBadge({ customerStatus, canDownload }: { customerStatus: string | null; canDownload?: boolean }) {
+function StatusBadge({ customerStatus, serviceLevel }: { customerStatus: string | null; serviceLevel?: string | null }) {
   const t = useTranslations('dashboard');
   const status = customerStatus ?? 'queued';
 
-  // 2026-08-01 WO-108 fix: 'translator_approved' is now the terminal, downloadable
-  // state for Official (see customer-order-state.ts) but stays a non-terminal,
-  // in-progress "approved for notary" status for legacy Notary jobs — this component
-  // has no serviceLevel to key off, so it uses `canDownload` (already computed
-  // service-level-aware server-side) instead: only an ACTUALLY downloadable
-  // translator_approved order shows the green "completed" badge, never a stuck
-  // legacy Notary one (canDownload is false there in practice, since Notary requires
-  // hasReadyResultFiles===true explicitly — see canCustomerDownload).
-  if (status === 'completed' || status === 'delivered' || status === 'picked_up' || status === 'ready_for_delivery' || (status === 'translator_approved' && canDownload)) {
+  if (isCompletedBadge(customerStatus, serviceLevel)) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-400">
         <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
@@ -228,7 +221,7 @@ function ActiveOrderCard({ entry, locale, onRecalculate }: { entry: OrderEntry; 
             </p>
           )}
         </div>
-        <StatusBadge customerStatus={entry.customerStatus} canDownload={entry.canDownload} />
+        <StatusBadge customerStatus={entry.customerStatus} serviceLevel={entry.serviceLevel} />
       </div>
 
       {showProgressBar && (
@@ -458,7 +451,7 @@ function HistoryRow({ entry, locale }: { entry: OrderEntry; locale: string }) {
         )}
       </div>
       <div className="ml-4 flex shrink-0 flex-wrap items-center gap-2">
-        <StatusBadge customerStatus={entry.customerStatus} canDownload={entry.canDownload} />
+        <StatusBadge customerStatus={entry.customerStatus} serviceLevel={entry.serviceLevel} />
         {purged ? (
           <span className="text-xs text-muted-foreground/60">{t('historyRetentionExpired')}</span>
         ) : download.visible ? (
