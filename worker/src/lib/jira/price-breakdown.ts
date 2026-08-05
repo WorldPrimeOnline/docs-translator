@@ -27,6 +27,7 @@
 
 import { resolveNotaryUrgencySnapshot } from '../notary-urgency';
 import { buildFinancialReportModel, renderPricingReportForJira, type NewModelBreakdownLike, type ServiceLevel } from './financial-report';
+import { stagingSecurityField } from './order-fields';
 
 // ─── DB-mapped interfaces (Supabase returns snake_case → mapped to camelCase) ─
 
@@ -552,6 +553,7 @@ export function buildPriceBreakdownPayload(params: PriceBreakdownFullParams): Re
       issuetype: { name: config.issueType },
       labels: config.labels,
       description: buildPriceBreakdownDescription(params),
+      ...stagingSecurityField(),
     },
   };
 }

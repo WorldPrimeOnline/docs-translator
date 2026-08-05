@@ -4,7 +4,7 @@
  * Jira pricing breakdown description (worker/src/lib/jira/price-breakdown.ts, via its synced
  * copy worker/src/lib/jira/financial-report.ts).
  */
-import { buildFinancialReportModel, renderPricingReportMarkdown, renderPricingReportForJira } from '../financial-report';
+import { buildFinancialReportModel, renderPricingReportMarkdown, renderPricingReportForJira, fmtKzt } from '../financial-report';
 import { calculatePrice } from '../calculator';
 import type { PricingInput, PricingLanguageRate, PricingVersion } from '../types';
 
@@ -84,6 +84,46 @@ describe('FinancialReportModel — Russian markdown renderer', () => {
     expect(report).toContain('Множитель срочности: ×1,5');
     expect(report).toContain('Срочная надбавка:');
     expect(report).toContain('Retail со срочностью:');
+  });
+
+  it('WO-98: progressive coordination renders the full tier breakdown (2026-08-04)', () => {
+    const version = mockNewModelVersion({
+      coordinationVolumeTiers: [
+        { fromPage: 0, upToPage: 5, rate: 0.30 },
+        { fromPage: 5, upToPage: 10, rate: 0.25 },
+        { fromPage: 10, upToPage: null, rate: 0.20 },
+      ],
+      notaryCoordinationRate: 0.30,
+      courierCoordinationRate: 0.30,
+    });
+    const result = calculatePrice(notaryInput({ sourceCharacterCountWithSpaces: 36142, physicalPageCount: 10 }), version);
+    const model = buildFinancialReportModel({
+      nm: result.newModel!, legacyAmountKzt: result.amountKzt,
+      sourceLanguage: 'ru', targetLanguage: 'en', serviceLevel: 'notarization_through_partners',
+      applicantType: 'individual', deliveryRequired: true, salesChannel: 'direct',
+    });
+
+    const report = renderPricingReportMarkdown(model);
+    expect(report).toContain('Комиссия WPO:');
+    expect(report).toContain(`перевод, первые 5 стр. × 30%: ${fmtKzt(4500.00)}`);
+    expect(report).toContain(`перевод, страницы 5–10 × 25%: ${fmtKzt(3750.00)}`);
+    expect(report).toContain(`перевод, страницы свыше 10 × 20%: ${fmtKzt(6047.33)}`);
+    expect(report).toContain(`нотариус × 30%: ${fmtKzt(687.68)}`);
+    expect(report).toContain(`курьер × 30%: ${fmtKzt(1500.00)}`);
+    expect(report).toContain(`итого: ${fmtKzt(16485.01)}`);
+  });
+
+  it('a version with NO coordinationVolumeTiers still renders the single pre-2026-08-04 line (backward compatible)', () => {
+    const result = calculatePrice(notaryInput(), mockNewModelVersion());
+    const model = buildFinancialReportModel({
+      nm: result.newModel!, legacyAmountKzt: result.amountKzt,
+      sourceLanguage: 'ru', targetLanguage: 'en', serviceLevel: 'notarization_through_partners',
+      applicantType: 'individual', deliveryRequired: true, salesChannel: 'direct',
+    });
+    const report = renderPricingReportMarkdown(model);
+    expect(report).toMatch(/Комиссия WPO: [\d\s,]+ ₸/);
+    expect(report).not.toContain('перевод, первые');
+    expect(report).not.toContain('- итого:');
   });
 
   it('electronic (nm undefined) renders only the legacy-amount fallback, no NewModelBreakdown sections', () => {

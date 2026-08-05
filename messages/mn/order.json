@@ -15,6 +15,8 @@
     "queued": "Дараалалд",
     "failed": "Амжилтгүй",
     "download": "Татаж авах",
+    "historyAvailableUntil": "{date} хүртэл боломжтой",
+    "historyRetentionExpired": "Хадгалах хугацаа дууссан",
     "fiscalReceipt": "Цахим баримт",
     "fiscalReceiptPending": "Баримт бэлтгэгдэж байна",
     "signedIn": "Нэвтэрсэн:",
@@ -38,6 +40,7 @@
     "usingPlanSub": "{plan} төлөвлөгөөгөөрөө ашиглаж байна · {remaining} баримт бичиг үлдсэн — төлбөр шаардлагагүй",
     "status": {
       "paymentPending": "Awaiting payment",
+      "preparingDocument": "Баримт бичгийг боловсруулахад бэлтгэж байна",
       "queued": "Дараалалд — эхлэхийг хүлээж байна…",
       "ocr": "Текст гарган авж байна… ({pct}%)",
       "ocrDone": "OCR дууссан, орчуулга эхэлж байна… ({pct}%)",
@@ -46,6 +49,7 @@
       "completed": "Дууссан",
       "failed": "Амжилтгүй",
       "awaitingTranslatorReview": "Орчуулагчид илгээгдсэн — хянуулж байна",
+      "translatorReviewInProgress": "Баримт бичгийг орчуулагч боловсруулж байна",
       "awaitingSignatureStamp": "Орчуулагчийн гарын үсэг, тамгыг хүлээж байна",
       "awaitingNotaryReview": "Нотариуст илгээгдсэн — баталгаажуулалтыг хүлээж байна",
       "awaitingFinalQa": "Эцсийн чанарын шалгалтыг хүлээж байна",
@@ -55,7 +59,7 @@
       "translatorApproved": "Орчуулга шалгагдсан — оператор хүлээж байна",
       "assignedToNotary": "Орчуулга шалгагдсан — нотариуст илгээж байна",
       "notarizationInProgress": "Нотариуст хийгдэж байна",
-      "notarized": "Нотариалын баталгаажуулалт дууссан",
+      "notarized": "Баримт бичиг нотариатаар баталгаажсан",
       "readyForPickup": "Өөрөө авахад бэлэн",
       "outForDelivery": "Курьерт хүлээлгэн өгсөн",
       "delivered": "Захиалга хүргэгдсэн",
@@ -171,7 +175,7 @@
       "translatorApproved": "Орчуулга шалгасан",
       "assignedToNotary": "Нотариусд шилжүүлсэн",
       "notarizationInProgress": "Нотариусд байна",
-      "notarized": "Нотариус дуусгасан",
+      "notarized": "Нотариалын баталгаажуулалт дууссан",
       "readyForPickup": "Авахад бэлэн",
       "outForDelivery": "Курьерт шилжүүлсэн",
       "delivered": "Авсан",
@@ -189,6 +193,7 @@
     "errors": {
       "serverError": "Серверийн алдаа. Дахин оролдоно уу.",
       "uploadFailed": "Байршуулалт амжилтгүй боллоо",
+      "pricingVersionChanged": "Тарифууд шинэчлэгдсэн. Дахин тооцоолно уу.",
       "logoutFailed": "Гарах амжилтгүй боллоо",
       "unsupportedFileType": "Дэмжигдээгүй файлын төрөл: {files}",
       "pleaseSelectFile": "Дор хаяж нэг файл сонгоно уу",
@@ -199,6 +204,7 @@
       "invalidFileSignature": "The file \"{file}\" does not match its file type."
     },
     "uploadDocument": "Upload document",
+    "pricingSlowMessage": "Тооцоолол ердийнхөөс удаж байна — түр хүлээнэ үү",
     "uploadedQuoteReady": "Document uploaded — price: {price} KZT. Confirm payment below.",
     "uploadedRequiresReview": "Document uploaded. The price will be confirmed by our operator.",
     "quoteReady": "Price confirmed",
@@ -265,7 +271,42 @@
     "uploadedQuoteReadyWithDiscount": "Баримт бичиг байршуулагдлаа — үнэ: {price} ₸ (түншийн кодоор {saved} ₸ хэмнэгдлээ). Доороос төлбөрийг баталгаажуулна уу.",
     "priceBeforeDiscount": "Хөнгөлөлтийн өмнөх үнэ",
     "discountByCode": "Түншийн хөнгөлөлт",
-    "finalPrice": "Нийт төлбөр"
+    "finalPrice": "Нийт төлбөр",
+    "progressFlow": {
+      "prePayment": {
+        "quoteReady": "Үнэ тооцоологдсон",
+        "paymentPending": "Төлбөр хүлээгдэж байна",
+        "paymentChecking": "Төлбөр шалгагдаж байна",
+        "paymentFailed": "Төлбөр амжилтгүй боллоо"
+      },
+      "electronic": {
+        "paid": "Төлбөр баталгаажсан",
+        "processing": "Баримт бичиг боловсруулагдаж байна",
+        "ready": "Орчуулга бэлэн"
+      },
+      "official": {
+        "paid": "Төлбөр баталгаажсан",
+        "processing": "Баримт бичиг боловсруулагдаж байна",
+        "awaitingTranslatorReview": "Орчуулагчид илгээгдсэн — боловсруулалт хүлээж байна",
+        "translatorReviewInProgress": "Баримт бичгийг орчуулагч боловсруулж байна",
+        "ready": "Албан ёсны орчуулга бэлэн"
+      },
+      "notary": {
+        "paid": "Төлбөр баталгаажсан",
+        "processing": "Баримт бичиг бэлтгэгдэж байна",
+        "awaitingTranslatorReview": "Орчуулагчид илгээгдсэн — шалгалт хүлээж байна",
+        "translatorReviewInProgress": "Баримт бичгийг орчуулагч боловсруулж байна",
+        "approvedForNotary": "Орчуулга нотариатаар баталгаажуулахад бэлэн",
+        "notarizationInProgress": "Баримт бичиг нотариатад байна",
+        "notarized": "Баримт бичиг нотариатаар баталгаажсан",
+        "notarizedFinal": "Баримт бичиг нотариатаар баталгаажсан",
+        "readyForPickup": "Очиж авахад бэлэн",
+        "pickedUp": "Захиалга гардуулагдсан",
+        "readyForDelivery": "Баримт бичиг хүргэлтийн ажилтанд өгөхөд бэлэн",
+        "outForDelivery": "Баримт бичиг хүргэлтийн ажилтанд өгөгдсөн",
+        "delivered": "Баримт бичиг хүргэгдсэн"
+      }
+    }
   },
   "electronicOutput": {
     "formats": {

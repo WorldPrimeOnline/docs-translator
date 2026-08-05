@@ -259,6 +259,138 @@ describe('calculateDraftPrice', () => {
     );
   });
 
+  describe('electronic — aggregate physical page count from sources (2026-08-02 incident fix)', () => {
+    it('2026-08-02 incident fix: 2 sources with real page counts [2,1] -> physicalPageCount=3 passed to computeQuoteForJob, never the hardcoded 1', async () => {
+      const draftWithSources = {
+        ...BASE_DRAFT,
+        file_keys: [{
+          key: 'draft-uploads/draft-1/original.pdf',
+          originalName: '2_files_doc.pdf',
+          mimeType: 'application/pdf',
+          sizeBytes: 1000,
+          sources: [
+            { sequence: 1, originalName: 'a.pdf', permanentKey: 'k1', contentSha256: 'h1', mimeType: 'application/pdf', physicalPageCount: 2, convertedPdfKey: 'c1' },
+            { sequence: 2, originalName: 'b.pdf', permanentKey: 'k2', contentSha256: 'h2', mimeType: 'application/pdf', physicalPageCount: 1, convertedPdfKey: 'c2' },
+          ],
+        }],
+      };
+      mockFrom
+        .mockReturnValueOnce(chain({ data: draftWithSources, error: null }))
+        .mockReturnValueOnce(chain({ data: { ...draftWithSources, status: 'price_calculated' }, error: null }));
+      mockComputeQuote.mockResolvedValueOnce({
+        result: { amountKzt: 2200, currency: 'KZT', requiresOperatorReview: false, reviewReasons: [], context: {} },
+        version: { id: 'v1' },
+      });
+
+      const result = await calculateDraftPrice('draft-1', { sessionToken: 'sess-token' });
+
+      expect(result.ok).toBe(true);
+      expect(mockComputeQuote).toHaveBeenCalledWith(expect.objectContaining({ physicalPageCount: 3 }));
+    });
+
+    it('single-file electronic draft (1 source) is unaffected — physicalPageCount is that source\'s own count, same as before this fix for the single-file case', async () => {
+      const draftWithOneSource = {
+        ...BASE_DRAFT,
+        file_keys: [{
+          key: 'draft-uploads/draft-1/original.pdf',
+          originalName: 'doc.pdf',
+          mimeType: 'application/pdf',
+          sizeBytes: 1000,
+          sources: [
+            { sequence: 1, originalName: 'doc.pdf', permanentKey: 'k1', contentSha256: 'h1', mimeType: 'application/pdf', physicalPageCount: 1, convertedPdfKey: 'c1' },
+          ],
+        }],
+      };
+      mockFrom
+        .mockReturnValueOnce(chain({ data: draftWithOneSource, error: null }))
+        .mockReturnValueOnce(chain({ data: { ...draftWithOneSource, status: 'price_calculated' }, error: null }));
+      mockComputeQuote.mockResolvedValueOnce({
+        result: { amountKzt: 1500, currency: 'KZT', requiresOperatorReview: false, reviewReasons: [], context: {} },
+        version: { id: 'v1' },
+      });
+
+      await calculateDraftPrice('draft-1', { sessionToken: 'sess-token' });
+      expect(mockComputeQuote).toHaveBeenCalledWith(expect.objectContaining({ physicalPageCount: 1 }));
+    });
+
+    it('a source missing a reliable page count falls back safely to 1 — never a partial/wrong sum', async () => {
+      const draftWithUnreliableSource = {
+        ...BASE_DRAFT,
+        file_keys: [{
+          key: 'draft-uploads/draft-1/original.pdf',
+          originalName: '2_files_doc.pdf',
+          mimeType: 'application/pdf',
+          sizeBytes: 1000,
+          sources: [
+            { sequence: 1, originalName: 'a.pdf', permanentKey: 'k1', contentSha256: 'h1', mimeType: 'application/pdf', physicalPageCount: 2, convertedPdfKey: 'c1' },
+            { sequence: 2, originalName: 'b.pdf', permanentKey: 'k2', contentSha256: 'h2', mimeType: 'application/pdf', physicalPageCount: null, convertedPdfKey: 'c2' },
+          ],
+        }],
+      };
+      mockFrom
+        .mockReturnValueOnce(chain({ data: draftWithUnreliableSource, error: null }))
+        .mockReturnValueOnce(chain({ data: { ...draftWithUnreliableSource, status: 'price_calculated' }, error: null }));
+      mockComputeQuote.mockResolvedValueOnce({
+        result: { amountKzt: 1500, currency: 'KZT', requiresOperatorReview: false, reviewReasons: [], context: {} },
+        version: { id: 'v1' },
+      });
+
+      await calculateDraftPrice('draft-1', { sessionToken: 'sess-token' });
+      expect(mockComputeQuote).toHaveBeenCalledWith(expect.objectContaining({ physicalPageCount: 1 }));
+    });
+
+    it('a legacy pre-0063 draft with no sources array at all falls back to physicalPageCount=1, unchanged prior behavior', async () => {
+      const legacyDraft = {
+        ...BASE_DRAFT,
+        file_keys: [{ key: 'draft-uploads/draft-1/original.pdf', originalName: 'doc.pdf', mimeType: 'application/pdf', sizeBytes: 1000 }],
+      };
+      mockFrom
+        .mockReturnValueOnce(chain({ data: legacyDraft, error: null }))
+        .mockReturnValueOnce(chain({ data: { ...legacyDraft, status: 'price_calculated' }, error: null }));
+      mockComputeQuote.mockResolvedValueOnce({
+        result: { amountKzt: 1500, currency: 'KZT', requiresOperatorReview: false, reviewReasons: [], context: {} },
+        version: { id: 'v1' },
+      });
+
+      await calculateDraftPrice('draft-1', { sessionToken: 'sess-token' });
+      expect(mockComputeQuote).toHaveBeenCalledWith(expect.objectContaining({ physicalPageCount: 1 }));
+    });
+
+    it('official/notarized: unaffected even with multi-source sources present — the real analysis-derived physicalPageCount is always used, never the per-source aggregate (Official/Notary pricing is completely untouched by this fix)', async () => {
+      const officialDraftWithSources = {
+        ...BASE_DRAFT,
+        service_level: 'official_with_translator_signature_and_provider_stamp',
+        file_keys: [{
+          key: 'draft-uploads/draft-1/original.pdf',
+          originalName: '2_files_doc.pdf',
+          mimeType: 'application/pdf',
+          sizeBytes: 1000,
+          sources: [
+            { sequence: 1, originalName: 'a.pdf', permanentKey: 'k1', contentSha256: 'h1', mimeType: 'application/pdf', physicalPageCount: 2, convertedPdfKey: 'c1' },
+            { sequence: 2, originalName: 'b.pdf', permanentKey: 'k2', contentSha256: 'h2', mimeType: 'application/pdf', physicalPageCount: 1, convertedPdfKey: 'c2' },
+          ],
+        }],
+        analysis_snapshot: {
+          fileKey: 'draft-uploads/draft-1/original.pdf', method: 'pdf_text_layer',
+          characterCount: 671, physicalPageCount: 9, // real analysis result — deliberately different from the sources sum (3)
+          requiresOperatorReview: false, reviewReasons: [],
+        },
+      };
+      const snapshotUpdateChain = chain({ data: { ...officialDraftWithSources, status: 'price_calculated' }, error: null });
+      mockFrom.mockReturnValueOnce(chain({ data: officialDraftWithSources, error: null })).mockReturnValueOnce(snapshotUpdateChain);
+      mockComputeQuote.mockResolvedValueOnce({
+        result: { amountKzt: 5000, currency: 'KZT', requiresOperatorReview: false, reviewReasons: [], context: {} },
+        version: { id: 'v1' },
+      });
+
+      await calculateDraftPrice('draft-1', { sessionToken: 'sess-token' });
+
+      // Uses the real analysis result (9), NOT the sources aggregate (3) and NOT 1.
+      expect(mockComputeQuote).toHaveBeenCalledWith(expect.objectContaining({ physicalPageCount: 9 }));
+      expect(mockAnalyzeDocument).not.toHaveBeenCalled(); // cached analysis_snapshot reused, not re-run
+    });
+  });
+
   describe('non-electronic — document analysis wiring (2026-07-22)', () => {
     const draftWithFile = {
       ...BASE_DRAFT,
@@ -395,6 +527,42 @@ describe('calculateDraftPrice', () => {
           result: expect.objectContaining({ amountKzt: 13500 }),
           priceBeforeDiscountKzt: 15000,
           discountAppliedKzt: 1500,
+          discountCode: 'PARTNER1',
+        }),
+      }),
+    );
+  });
+
+  it('2026-08-01 incident fix: a referral discount on an electronic order is capped so the final payable amount never drops below 1500 KZT', async () => {
+    // base 1600 with a nominal 300 KZT discount would leave 1300 — below the floor.
+    const pricingResult = { amountKzt: 1600, currency: 'KZT', requiresOperatorReview: false, reviewReasons: [], context: {} };
+    const partnerChain = chain({
+      data: {
+        is_active: true,
+        client_discount_enabled: true,
+        client_discount_type: 'fixed',
+        client_discount_value: 300,
+        client_discount_min_order_amount: 0,
+        client_discount_max_amount: null,
+      },
+      error: null,
+    });
+    const updateChain = chain({ data: { ...BASE_DRAFT, ref_code: 'partner1', status: 'price_calculated' }, error: null });
+    mockFrom
+      .mockReturnValueOnce(chain({ data: { ...BASE_DRAFT, ref_code: 'partner1', service_level: 'electronic' }, error: null }))
+      .mockReturnValueOnce(partnerChain)
+      .mockReturnValueOnce(updateChain);
+    mockComputeQuote.mockResolvedValueOnce({ result: pricingResult, version: { id: 'v1' } });
+
+    const result = await calculateDraftPrice('draft-1', { sessionToken: 'sess-token' });
+
+    expect(result.ok).toBe(true);
+    expect(updateChain.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pricing_snapshot: expect.objectContaining({
+          result: expect.objectContaining({ amountKzt: 1500 }), // floored, not 1300
+          priceBeforeDiscountKzt: 1600,
+          discountAppliedKzt: 100, // capped from the nominal 300
           discountCode: 'PARTNER1',
         }),
       }),
@@ -612,6 +780,7 @@ describe('convertDraftToOrder', () => {
       .mockReturnValueOnce(usersUpsertChain)                     // users upsert
       .mockReturnValueOnce(docInsertChain)                       // documents insert
       .mockReturnValueOnce(jobInsertChain)                       // jobs insert
+      .mockReturnValueOnce(chain({ error: null }))                // job_source_files insert
       .mockReturnValueOnce(auditInsertChain)                     // job_audit_log insert
       .mockReturnValueOnce(finalMarkChain);                      // final order_drafts update
 
@@ -638,6 +807,106 @@ describe('convertDraftToOrder', () => {
     );
   });
 
+  it('creates one job_source_files row per original upload, sequence taken from draft.file_keys[0].sources — never re-derives order from filenames', async () => {
+    const priced = pricedDraftWithFile({
+      file_keys: [{
+        key: 'draft-uploads/draft-1/original.pdf',
+        originalName: '2_files_passport.pdf',
+        mimeType: 'application/pdf',
+        sizeBytes: 2000,
+        sources: [
+          { sequence: 1, originalName: 'passport.pdf', permanentKey: 'draft-uploads/draft-1/sources/001.pdf', contentSha256: 'hash-a', mimeType: 'application/pdf', physicalPageCount: 1, convertedPdfKey: 'draft-uploads/draft-1/sources/001.converted.pdf' },
+          { sequence: 2, originalName: 'visa.jpg', permanentKey: 'draft-uploads/draft-1/sources/002.jpg', contentSha256: 'hash-b', mimeType: 'image/jpeg', physicalPageCount: 1, convertedPdfKey: 'draft-uploads/draft-1/sources/002.converted.pdf' },
+        ],
+      }],
+    });
+
+    mockDownloadFile.mockResolvedValueOnce(Buffer.from('pdf-bytes'));
+    mockUploadFile.mockResolvedValueOnce(undefined);
+    mockSaveQuote.mockResolvedValueOnce({ quoteId: 'quote-99' });
+
+    const jobInsertChain = chain({ data: { id: 'job-99' }, error: null });
+    const sourceFilesInsertChain = chain({ error: null });
+    mockFrom
+      .mockReturnValueOnce(chain({ data: priced, error: null })) // existing check
+      .mockReturnValueOnce(chain({ data: priced, error: null })) // atomic claim succeeds
+      .mockReturnValueOnce(chain({ data: null, error: null }))   // users upsert
+      .mockReturnValueOnce(chain({ data: { id: 'doc-99' }, error: null })) // documents insert
+      .mockReturnValueOnce(jobInsertChain)                       // jobs insert
+      .mockReturnValueOnce(sourceFilesInsertChain)                // job_source_files insert
+      .mockReturnValueOnce(chain({ error: null }))                // job_audit_log insert
+      .mockReturnValueOnce(chain({ data: null, error: null }));   // final order_drafts update
+
+    const result = await convertDraftToOrder('draft-1', 'user-1');
+
+    expect(result.ok).toBe(true);
+    expect(sourceFilesInsertChain.insert).toHaveBeenCalledWith([
+      expect.objectContaining({ job_id: 'job-99', sequence: 1, original_filename: 'passport.pdf', r2_key: 'draft-uploads/draft-1/sources/001.pdf', content_sha256: 'hash-a', mime_type: 'application/pdf', physical_page_count: 1 }),
+      expect.objectContaining({ job_id: 'job-99', sequence: 2, original_filename: 'visa.jpg', r2_key: 'draft-uploads/draft-1/sources/002.jpg', content_sha256: 'hash-b', mime_type: 'image/jpeg', physical_page_count: 1 }),
+    ]);
+  });
+
+  it('legacy pre-0063 draft (no file_keys[0].sources at all): a job_source_files insert failure is non-fatal — the order still converts', async () => {
+    // pricedDraftWithFile() default file_keys has no `sources` field — this is exactly
+    // the "draft created before migration 0063 shipped" case, the ONLY one allowed to
+    // fall back to a synthesized single row and tolerate an insert failure.
+    const priced = pricedDraftWithFile();
+    mockDownloadFile.mockResolvedValueOnce(Buffer.from('pdf-bytes'));
+    mockUploadFile.mockResolvedValueOnce(undefined);
+    mockSaveQuote.mockResolvedValueOnce({ quoteId: 'quote-99' });
+
+    mockFrom
+      .mockReturnValueOnce(chain({ data: priced, error: null }))
+      .mockReturnValueOnce(chain({ data: priced, error: null }))
+      .mockReturnValueOnce(chain({ data: null, error: null }))
+      .mockReturnValueOnce(chain({ data: { id: 'doc-99' }, error: null }))
+      .mockReturnValueOnce(chain({ data: { id: 'job-99' }, error: null }))
+      .mockReturnValueOnce(chain({ error: { message: 'insert failed' } })) // job_source_files insert fails
+      .mockReturnValueOnce(chain({ error: null }))
+      .mockReturnValueOnce(chain({ data: null, error: null }));
+
+    const result = await convertDraftToOrder('draft-1', 'user-1');
+    expect(result.ok).toBe(true);
+  });
+
+  it('new-style draft WITH real file_keys[0].sources: a job_source_files insert failure is FATAL — job/document/draft are rolled back, no silent gap', async () => {
+    const priced = pricedDraftWithFile({
+      file_keys: [{
+        key: 'draft-uploads/draft-1/original.pdf',
+        originalName: 'passport.pdf',
+        mimeType: 'application/pdf',
+        sizeBytes: 1000,
+        sources: [
+          { sequence: 1, originalName: 'passport.pdf', permanentKey: 'draft-uploads/draft-1/sources/001.pdf', contentSha256: 'hash-a', mimeType: 'application/pdf', physicalPageCount: 1, convertedPdfKey: 'draft-uploads/draft-1/sources/001.converted.pdf' },
+        ],
+      }],
+    });
+    mockDownloadFile.mockResolvedValueOnce(Buffer.from('pdf-bytes'));
+    mockUploadFile.mockResolvedValueOnce(undefined);
+
+    const jobFailChain = chain({ error: null });
+    const docFailChain = chain({ error: null });
+    const draftRevertChain = chain({ error: null });
+    mockFrom
+      .mockReturnValueOnce(chain({ data: priced, error: null })) // existing check
+      .mockReturnValueOnce(chain({ data: priced, error: null })) // atomic claim succeeds
+      .mockReturnValueOnce(chain({ data: null, error: null }))   // users upsert
+      .mockReturnValueOnce(chain({ data: { id: 'doc-99' }, error: null })) // documents insert
+      .mockReturnValueOnce(chain({ data: { id: 'job-99' }, error: null })) // jobs insert
+      .mockReturnValueOnce(chain({ error: { message: 'insert failed' } })) // job_source_files insert fails
+      .mockReturnValueOnce(jobFailChain)     // jobs -> status: failed
+      .mockReturnValueOnce(docFailChain)     // documents -> status: failed
+      .mockReturnValueOnce(draftRevertChain); // order_drafts -> status: price_calculated
+
+    const result = await convertDraftToOrder('draft-1', 'user-1');
+
+    expect(result).toEqual({ ok: false, error: 'SOURCE_FILES_INSERT_FAILED' });
+    expect(mockSaveQuote).not.toHaveBeenCalled();
+    expect(jobFailChain.update).toHaveBeenCalledWith(expect.objectContaining({ status: 'failed' }));
+    expect(docFailChain.update).toHaveBeenCalledWith(expect.objectContaining({ status: 'failed' }));
+    expect(draftRevertChain.update).toHaveBeenCalledWith(expect.objectContaining({ status: 'price_calculated' }));
+  });
+
   it('non-electronic with a cached analysis_snapshot: materializes exactly one document_analysis row (never re-analyzes), analysisId flows into saveQuote', async () => {
     const priced = pricedDraftWithFile({
       service_level: 'official_with_translator_signature_and_provider_stamp',
@@ -659,6 +928,7 @@ describe('convertDraftToOrder', () => {
       .mockReturnValueOnce(docInsertChain)                       // documents insert
       .mockReturnValueOnce(analysisInsertChain)                  // document_analysis insert
       .mockReturnValueOnce(jobInsertChain)                       // jobs insert
+      .mockReturnValueOnce(chain({ error: null }))               // job_source_files insert
       .mockReturnValueOnce(chain({ error: null }))               // job_audit_log insert
       .mockReturnValueOnce(chain({ data: null, error: null }));  // final order_drafts update
 
@@ -714,6 +984,7 @@ describe('convertDraftToOrder', () => {
       .mockReturnValueOnce(chain({ data: null, error: null }))   // users upsert
       .mockReturnValueOnce(chain({ data: { id: 'doc-99' }, error: null })) // documents insert
       .mockReturnValueOnce(jobInsertChain)                       // jobs insert
+      .mockReturnValueOnce(chain({ error: null }))                // job_source_files insert
       .mockReturnValueOnce(chain({ error: null }))                // job_audit_log insert
       .mockReturnValueOnce(chain({ data: null, error: null }));   // final order_drafts update
 
@@ -765,6 +1036,7 @@ describe('convertDraftToOrder', () => {
       .mockReturnValueOnce(chain({ data: null, error: null }))
       .mockReturnValueOnce(chain({ data: { id: 'doc-99' }, error: null }))
       .mockReturnValueOnce(jobInsertChain)
+      .mockReturnValueOnce(chain({ error: null })) // job_source_files insert
       .mockReturnValueOnce(chain({ error: null }))
       .mockReturnValueOnce(chain({ data: null, error: null }));
 
@@ -789,5 +1061,15 @@ describe('conversion never reaches Jira/Drive/translation', () => {
     expect(src).not.toMatch(/from ['"]@\/lib\/jira\//);
     expect(src).not.toMatch(/from ['"]@\/lib\/google-drive\//);
     expect(src).not.toMatch(/from ['"]@\/lib\/integrations\/workflow['"]/);
+  });
+
+  // 2026-07-23 dashboard/latency task: same structural guarantee upload-card-shared.test.ts
+  // already locks in for createCardOrder() — calculateDraftPrice() (the draft-stage pricing
+  // path) must never be coupled to AI-draft/translation generation either. Pricing only ever
+  // waits on resolveDraftAnalysis() (text-layer/OCR + physical page count) and computeQuoteForJob()
+  // — never on generating an actual translation draft for the customer to preview.
+  it('service.ts has no AI-draft/translation-generation call anywhere in the draft pricing path', () => {
+    const src = fs.readFileSync(path.join(__dirname, '..', 'service.ts'), 'utf8');
+    expect(src).not.toMatch(/generateDraft|aiDraft|generateTranslation|translationDraft/i);
   });
 });

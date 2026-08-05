@@ -1,22 +1,34 @@
+/**
+ * Tests for customer-order-state.ts's business-state derivation (customerStatus/
+ * canDownload/isActive/isTerminal) — unchanged by the 2026-07-26 progress-UI
+ * architectural fix. The progress percentage/stage-timeline computation itself
+ * (previously tested here) now lives in progress-flow.ts and is comprehensively
+ * tested in __tests__/progress-flow.test.ts instead — this file only asserts that
+ * getCustomerOrderState() wires the two together correctly (delegates to the
+ * resolver, doesn't recompute anything itself).
+ */
 import { getCustomerOrderState, canCustomerDownload, isCustomerOrderTerminal } from '../customer-order-state';
 
 describe('getCustomerOrderState — electronic', () => {
-  it('queued → 0%, not downloadable, not terminal', () => {
+  it('queued (paid, not yet processing) → not downloadable, not terminal, progress starts', () => {
     const s = getCustomerOrderState({ jobStatus: 'queued', progressPercent: 0, workflowStatus: null, serviceLevel: 'electronic' });
     expect(s.customerStatus).toBe('queued');
     expect(s.canDownload).toBe(false);
     expect(s.isTerminal).toBe(false);
-    expect(s.progressPercent).toBe(0);
+    expect(s.progressPercent).toBe(10);
+    expect(s.showFulfillmentProgress).toBe(true);
   });
 
-  it('ocr_in_progress → processing, not terminal', () => {
+  it('ocr_in_progress → processing, not terminal, percent within the electronic processing sub-range', () => {
     const s = getCustomerOrderState({ jobStatus: 'ocr_in_progress', progressPercent: 20, workflowStatus: null, serviceLevel: 'electronic' });
     expect(s.customerStatus).toBe('ocr_in_progress');
     expect(s.isTerminal).toBe(false);
     expect(s.canDownload).toBe(false);
+    expect(s.progressPercent).toBeGreaterThanOrEqual(10);
+    expect(s.progressPercent).toBeLessThanOrEqual(90);
   });
 
-  it('completed + no workflowStatus → downloadable, terminal', () => {
+  it('completed + no workflowStatus → downloadable, terminal, 100%', () => {
     const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: null, serviceLevel: 'electronic' });
     expect(s.customerStatus).toBe('completed');
     expect(s.canDownload).toBe(true);
@@ -24,56 +36,77 @@ describe('getCustomerOrderState — electronic', () => {
     expect(s.progressPercent).toBe(100);
   });
 
-  it('failed → not downloadable, terminal', () => {
+  it('failed → not downloadable, terminal, no fulfillment progress (payment_failed pre-payment bucket)', () => {
     const s = getCustomerOrderState({ jobStatus: 'failed', progressPercent: 0, workflowStatus: null, serviceLevel: 'electronic' });
     expect(s.customerStatus).toBe('failed');
     expect(s.canDownload).toBe(false);
     expect(s.isTerminal).toBe(true);
   });
 
-  it('electronic stages in correct order', () => {
+  it('electronic stages: exactly 3 (paid/processing/ready), current correctly reflects translation_in_progress', () => {
     const s = getCustomerOrderState({ jobStatus: 'translation_in_progress', progressPercent: 50, workflowStatus: null, serviceLevel: 'electronic' });
-    expect(s.stages.map((x) => x.key)).toEqual(['uploaded', 'ocr', 'translating', 'rendering', 'done']);
+    expect(s.stages.map((x) => x.key)).toEqual(['paid', 'processing', 'ready']);
     const current = s.stages.find((x) => x.current);
-    expect(current?.key).toBe('translating');
+    expect(current?.key).toBe('processing');
   });
 });
 
-describe('getCustomerOrderState — certified', () => {
+describe('getCustomerOrderState — certified (Official)', () => {
   const SL = 'official_with_translator_signature_and_provider_stamp';
 
-  it('awaiting_translator_review → NOT downloadable, NOT terminal', () => {
+  it('awaiting_translator_review → NOT downloadable, NOT terminal, 35% (WO-108 fix: was 40%)', () => {
     const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'awaiting_translator_review', serviceLevel: SL });
     expect(s.customerStatus).toBe('awaiting_translator_review');
     expect(s.canDownload).toBe(false);
     expect(s.isTerminal).toBe(false);
-    expect(s.progressPercent).toBeLessThan(100);
+    expect(s.progressPercent).toBe(35);
   });
 
-  it('translator_approved → NOT downloadable', () => {
+  it('translator_review_in_progress (Official) → NOT downloadable, NOT terminal, active, 60%', () => {
+    const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'translator_review_in_progress', serviceLevel: SL });
+    expect(s.customerStatus).toBe('translator_review_in_progress');
+    expect(s.canDownload).toBe(false);
+    expect(s.isTerminal).toBe(false);
+    expect(s.isActive).toBe(true);
+    expect(s.progressPercent).toBe(60);
+  });
+
+  it('WO-108 fix: translator_approved → downloadable, 100%, customerStatus stays "translator_approved" (deliberately NOT "completed" — that value is also reached via an unrelated workflowStatus===null edge case that must stay non-downloadable). Not terminal — stays visible in the active section until the ready result appears, same pattern as Notary\'s "notarized" (see requirement 4).', () => {
     const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'translator_approved', serviceLevel: SL });
     expect(s.customerStatus).toBe('translator_approved');
+    expect(s.canDownload).toBe(true);
+    expect(s.isTerminal).toBe(false);
+    expect(s.isActive).toBe(true);
+    expect(s.progressPercent).toBe(100);
+  });
+
+  it('WO-108 fix regression guard: workflowStatus=null on a completed Official job (unrelated legacy edge case, customerStatus="completed") stays NOT downloadable — must never be swept in by the translator_approved fix', () => {
+    const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: null, serviceLevel: SL });
+    expect(s.customerStatus).toBe('completed');
     expect(s.canDownload).toBe(false);
   });
 
-  it('awaiting_signature_stamp → NOT downloadable', () => {
+  it('awaiting_signature_stamp stays its own non-terminal, non-downloadable status — reserved/legacy, distinct from translator_approved (no live Jira mapping ever sets it)', () => {
     const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'awaiting_signature_stamp', serviceLevel: SL });
     expect(s.customerStatus).toBe('awaiting_signature_stamp');
     expect(s.canDownload).toBe(false);
+    expect(s.isTerminal).toBe(false);
+    expect(s.progressPercent).toBe(60);
   });
 
-  it('ready_for_delivery → downloadable for certified', () => {
+  it('ready_for_delivery → downloadable for certified, 100% (kept for the currently-unused physical-courier case)', () => {
     const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'ready_for_delivery', serviceLevel: SL });
     expect(s.customerStatus).toBe('ready_for_delivery');
     expect(s.canDownload).toBe(true);
     expect(s.progressPercent).toBe(100);
   });
 
-  it('delivered (certified) → terminal, downloadable', () => {
+  it('delivered (certified) → terminal, downloadable, 100%', () => {
     const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'delivered', serviceLevel: SL });
     expect(s.customerStatus).toBe('delivered');
     expect(s.isTerminal).toBe(true);
     expect(s.canDownload).toBe(true);
+    expect(s.progressPercent).toBe(100);
   });
 
   it('translator_declined → not downloadable, terminal', () => {
@@ -83,91 +116,109 @@ describe('getCustomerOrderState — certified', () => {
     expect(s.isTerminal).toBe(true);
   });
 
-  it('certified stages in correct order (7 stages)', () => {
+  it('Official stages: exactly 5 (paid/processing/awaiting_translator_review/translator_review_in_progress/ready) — WO-108 fix removed the 80% signature_stage intermediate; never a notary/courier marker', () => {
     const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'awaiting_translator_review', serviceLevel: SL });
-    expect(s.stages.map((x) => x.key)).toEqual([
-      'uploaded', 'ai_processing', 'translator_review', 'translator_approved', 'signature_stamp', 'ready', 'delivered',
-    ]);
+    expect(s.stages.map((x) => x.key)).toEqual(['paid', 'processing', 'awaiting_translator_review', 'translator_review_in_progress', 'ready']);
+    for (const forbidden of ['signature_stage', 'notarization_in_progress', 'notarized', 'out_for_delivery', 'approved_for_notary']) {
+      expect(s.stages.some((x) => x.key === forbidden)).toBe(false);
+    }
   });
 });
 
 describe('getCustomerOrderState — notarized delivery', () => {
   const SL = 'notarization_through_partners';
 
-  it('OUT_FOR_DELIVERY → workflow = out_for_delivery, NOT terminal, canDownload = false', () => {
+  it('OUT_FOR_DELIVERY → workflow = out_for_delivery, NOT terminal, canDownload = false, 96%', () => {
     const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'out_for_delivery', serviceLevel: SL, fulfillmentMethod: 'delivery' });
     expect(s.customerStatus).toBe('out_for_delivery');
     expect(s.isTerminal).toBe(false);
     expect(s.canDownload).toBe(false);
     expect(s.isActive).toBe(true);
+    expect(s.progressPercent).toBe(96);
   });
 
-  it('DELIVERED → workflow = delivered, terminal, canDownload = false, goes to history', () => {
+  it('DELIVERED → workflow = delivered, terminal, canDownload = false (legacy, hasReadyResultFiles omitted), goes to history, 100%', () => {
     const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'delivered', serviceLevel: SL, fulfillmentMethod: 'delivery' });
     expect(s.customerStatus).toBe('delivered');
     expect(s.isTerminal).toBe(true);
     expect(s.canDownload).toBe(false);
     expect(s.isActive).toBe(false);
+    expect(s.progressPercent).toBe(100);
   });
 
-  it('PICKED_UP → workflow = picked_up, terminal, canDownload = false', () => {
+  it('PICKED_UP → workflow = picked_up, terminal, canDownload = false, 100%', () => {
     const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'picked_up', serviceLevel: SL, fulfillmentMethod: 'pickup' });
     expect(s.customerStatus).toBe('picked_up');
     expect(s.isTerminal).toBe(true);
     expect(s.canDownload).toBe(false);
     expect(s.isActive).toBe(false);
+    expect(s.progressPercent).toBe(100);
   });
 
-  it('assigned_to_notary → NOT downloadable, NOT terminal', () => {
+  it('assigned_to_notary → NOT downloadable, NOT terminal, 65%', () => {
     const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'assigned_to_notary', serviceLevel: SL });
     expect(s.customerStatus).toBe('assigned_to_notary');
     expect(s.canDownload).toBe(false);
     expect(s.isTerminal).toBe(false);
+    expect(s.progressPercent).toBe(65);
   });
 
-  it('notarization_in_progress → NOT downloadable', () => {
+  it('translator_review_in_progress (Notary) → NOT downloadable, NOT terminal, active, unaffected by hasReadyResultFiles', () => {
+    const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'translator_review_in_progress', serviceLevel: SL, hasReadyResultFiles: false });
+    expect(s.customerStatus).toBe('translator_review_in_progress');
+    expect(s.canDownload).toBe(false);
+    expect(s.isTerminal).toBe(false);
+    expect(s.isActive).toBe(true);
+    expect(s.progressPercent).toBe(50);
+  });
+
+  it('notarization_in_progress → NOT downloadable, 80%', () => {
     const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'notarization_in_progress', serviceLevel: SL });
     expect(s.customerStatus).toBe('notarization_in_progress');
     expect(s.canDownload).toBe(false);
+    expect(s.progressPercent).toBe(80);
   });
 
-  it('notarized → NOT downloadable (still with notary)', () => {
-    const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'notarized', serviceLevel: SL });
+  it('notarized (legacy, hasReadyResultFiles omitted) → NOT downloadable, but progress reaches 90% (delivery) even before the physical/legacy download gate opens', () => {
+    const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'notarized', serviceLevel: SL, fulfillmentMethod: 'delivery' });
     expect(s.customerStatus).toBe('notarized');
     expect(s.canDownload).toBe(false);
+    expect(s.progressPercent).toBe(90);
   });
 
-  it('ready_for_delivery (notarized physical) → canDownload = false', () => {
+  it('notarized with NO fulfillment method at all (pure electronic scan, no physical component) → 100%, terminal-percent reached even though customerStatus/isTerminal business logic is unaffected by this fix', () => {
+    const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'notarized', serviceLevel: SL, fulfillmentMethod: null });
+    expect(s.progressPercent).toBe(100);
+  });
+
+  it('ready_for_delivery (notarized physical) → canDownload = false (legacy), 92%', () => {
     const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'ready_for_delivery', serviceLevel: SL, fulfillmentMethod: 'delivery' });
     expect(s.customerStatus).toBe('ready_for_delivery');
     expect(s.canDownload).toBe(false);
     expect(s.isTerminal).toBe(false);
+    expect(s.progressPercent).toBe(92);
   });
 
-  it('ready_for_pickup (notarized physical) → canDownload = false', () => {
+  it('ready_for_pickup (notarized physical) → canDownload = false (legacy), 95%', () => {
     const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'ready_for_pickup', serviceLevel: SL, fulfillmentMethod: 'pickup' });
     expect(s.customerStatus).toBe('ready_for_pickup');
     expect(s.canDownload).toBe(false);
     expect(s.isTerminal).toBe(false);
+    expect(s.progressPercent).toBe(95);
   });
 
-  it('notarized delivery stages include all 9 steps', () => {
+  it('notarized delivery stages: exactly 10 steps, includes out_for_delivery/delivered', () => {
     const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'assigned_to_notary', serviceLevel: SL, fulfillmentMethod: 'delivery' });
     const keys = s.stages.map((x) => x.key);
-    expect(keys).toContain('translator_approved');
-    expect(keys).toContain('notarization_in_progress');
-    expect(keys).toContain('notarized');
-    expect(keys).toContain('out_for_delivery');
-    expect(keys).toContain('delivered');
-    expect(keys.length).toBe(9);
+    expect(keys).toEqual(['paid', 'processing', 'awaiting_translator_review', 'translator_review_in_progress', 'approved_for_notary', 'notarization_in_progress', 'notarized', 'ready_for_delivery', 'out_for_delivery', 'delivered']);
   });
 
-  it('notarized pickup stages exclude out_for_delivery — 8 stages with picked_up', () => {
+  it('notarized pickup stages: exactly 9 steps, excludes out_for_delivery, includes picked_up', () => {
     const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'assigned_to_notary', serviceLevel: SL, fulfillmentMethod: 'pickup' });
     const keys = s.stages.map((x) => x.key);
     expect(keys).not.toContain('out_for_delivery');
     expect(keys).toContain('picked_up');
-    expect(keys.length).toBe(8);
+    expect(keys.length).toBe(9);
   });
 
   it('notary_declined → terminal, not downloadable', () => {
@@ -176,19 +227,64 @@ describe('getCustomerOrderState — notarized delivery', () => {
     expect(s.canDownload).toBe(false);
   });
 
-  it('stage 4 label is translatorApproved not assignedToNotary', () => {
-    const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'assigned_to_notary', serviceLevel: SL, fulfillmentMethod: 'delivery' });
-    const stage4 = s.stages[3];
-    expect(stage4?.labelKey).toBe('stages.translatorApproved');
-  });
-
-  it('translator_approved maps to same stage as assigned_to_notary (stage 4)', () => {
+  it('translator_approved maps to the same stage ("approved_for_notary") as assigned_to_notary', () => {
     const s1 = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'translator_approved', serviceLevel: SL, fulfillmentMethod: 'delivery' });
     const s2 = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'assigned_to_notary', serviceLevel: SL, fulfillmentMethod: 'delivery' });
     const cur1 = s1.stages.findIndex((x) => x.current);
     const cur2 = s2.stages.findIndex((x) => x.current);
     expect(cur1).toBe(cur2);
-    expect(cur1).toBe(3);
+    expect(s1.stages[cur1]?.key).toBe('approved_for_notary');
+    expect(s1.progressPercent).toBe(s2.progressPercent);
+  });
+
+  describe('notary-completed timeline transitions', () => {
+    it('workflowStatus=notarized, fulfillmentMethod=delivery: "notarized" stage is current, next (out_for_delivery) not yet reached', () => {
+      const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'notarized', serviceLevel: SL, fulfillmentMethod: 'delivery' });
+      const notarizedStage = s.stages.find((x) => x.key === 'notarized');
+      const outForDeliveryStage = s.stages.find((x) => x.key === 'out_for_delivery');
+      expect(notarizedStage?.current).toBe(true);
+      expect(notarizedStage?.done).toBe(false);
+      expect(outForDeliveryStage?.current).toBe(false);
+      expect(outForDeliveryStage?.done).toBe(false);
+      expect(s.customerStatus).toBe('notarized');
+      expect(s.isTerminal).toBe(false);
+    });
+
+    it('workflowStatus advances past notarized to ready_for_delivery: "notarized" flips to done, delivery stage becomes current', () => {
+      const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'ready_for_delivery', serviceLevel: SL, fulfillmentMethod: 'delivery' });
+      const notarizedStage = s.stages.find((x) => x.key === 'notarized');
+      const readyStage = s.stages.find((x) => x.key === 'ready_for_delivery');
+      expect(notarizedStage?.done).toBe(true);
+      expect(notarizedStage?.current).toBe(false);
+      expect(readyStage?.current).toBe(true);
+      expect(s.customerStatus).toBe('ready_for_delivery');
+    });
+
+    it('workflowStatus=notarized, fulfillmentMethod=pickup: "notarized" current, ready_for_pickup stage exists distinctly, no out_for_delivery at all', () => {
+      const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'notarized', serviceLevel: SL, fulfillmentMethod: 'pickup' });
+      const keys = s.stages.map((x) => x.key);
+      expect(keys).not.toContain('out_for_delivery');
+      expect(keys).toContain('ready_for_pickup');
+      const notarizedStage = s.stages.find((x) => x.key === 'notarized');
+      expect(notarizedStage?.current).toBe(true);
+    });
+
+    it('pickup fulfillment reaches a terminal, appropriately-gated customer state at picked_up — no download regardless (legacy, hasReadyResultFiles omitted)', () => {
+      const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'picked_up', serviceLevel: SL, fulfillmentMethod: 'pickup' });
+      expect(s.customerStatus).toBe('picked_up');
+      expect(s.isTerminal).toBe(true);
+      expect(s.canDownload).toBe(false);
+      const pickedUpStage = s.stages.find((x) => x.key === 'picked_up');
+      expect(pickedUpStage?.current).toBe(true);
+      expect(pickedUpStage?.done).toBe(false);
+    });
+
+    it('multi-source: workflowStatus=notarized with hasReadyResultFiles=true is downloadable immediately, independent of pickup/delivery physical progress', () => {
+      const delivery = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'notarized', serviceLevel: SL, fulfillmentMethod: 'delivery', hasReadyResultFiles: true });
+      const pickup = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'notarized', serviceLevel: SL, fulfillmentMethod: 'pickup', hasReadyResultFiles: true });
+      expect(delivery.canDownload).toBe(true);
+      expect(pickup.canDownload).toBe(true);
+    });
   });
 });
 
@@ -196,13 +292,6 @@ describe('Regression: backward transition does not affect customer state', () =>
   const SL = 'notarization_through_partners';
 
   it('delivered order stays delivered after late TRANSLATOR_COMPLETED (assigned_to_notary)', () => {
-    // Simulate: DB has workflow_status = 'delivered' (correct final state)
-    const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'delivered', serviceLevel: SL, fulfillmentMethod: 'delivery' });
-    expect(s.customerStatus).toBe('delivered');
-    expect(s.isTerminal).toBe(true);
-  });
-
-  it('delivered order stays delivered after late NOTARY_COMPLETED', () => {
     const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'delivered', serviceLevel: SL, fulfillmentMethod: 'delivery' });
     expect(s.customerStatus).toBe('delivered');
     expect(s.isTerminal).toBe(true);
@@ -219,7 +308,7 @@ describe('Regression: backward transition does not affect customer state', () =>
     expect(s.isTerminal).toBe(false);
   });
 
-  it('notarized physical order NEVER gets download button', () => {
+  it('notarized physical order (legacy, hasReadyResultFiles omitted) NEVER gets a download button', () => {
     const statuses = ['awaiting_translator_review', 'assigned_to_notary', 'notarization_in_progress', 'notarized', 'ready_for_delivery', 'ready_for_pickup', 'out_for_delivery', 'delivered', 'picked_up'];
     for (const ws of statuses) {
       const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: ws, serviceLevel: SL, fulfillmentMethod: 'delivery' });
@@ -272,22 +361,64 @@ describe('Active/history grouping', () => {
 
   it('electronic completed is active (stays in active section for download prominence)', () => {
     const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: null, serviceLevel: 'electronic' });
-    expect(s.isActive).toBe(true); // isTerminal=true but canDownload=true → isActive=true
+    expect(s.isActive).toBe(true);
     expect(s.isTerminal).toBe(true);
   });
 });
 
-describe('Unknown workflow_status does not reset to translator stage', () => {
+describe('Unknown workflow_status does not reset to translator stage, never crashes', () => {
   it('unknown workflow_status on completed job → operator_processing (not awaiting_translator_review)', () => {
     const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'some_future_status', serviceLevel: 'notarization_through_partners' });
     expect(s.customerStatus).toBe('operator_processing');
     expect(s.customerStatus).not.toBe('awaiting_translator_review');
   });
+
+  it('an unrecognized status combination must safely stay ACTIVE, never silently disappear, and still returns a valid percent/labelKey', () => {
+    const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'some_future_status', serviceLevel: 'notarization_through_partners' });
+    expect(s.isTerminal).toBe(false);
+    expect(s.isActive).toBe(true);
+    expect(typeof s.progressPercent).toBe('number');
+    expect(typeof s.labelKey).toBe('string');
+  });
+});
+
+describe('payment_pending must always be active, regardless of workflow_status — and shows no fulfillment progress at all', () => {
+  it('a brand-new order (payment_pending, quote just calculated, workflow_status=null) is active, not terminal, percent=null', () => {
+    const s = getCustomerOrderState({ jobStatus: 'payment_pending', progressPercent: 0, workflowStatus: null, serviceLevel: 'official_with_translator_signature_and_provider_stamp' });
+    expect(s.customerStatus).toBe('payment_pending');
+    expect(s.isActive).toBe(true);
+    expect(s.isTerminal).toBe(false);
+    expect(s.progressPercent).toBeNull();
+    expect(s.showFulfillmentProgress).toBe(false);
+  });
+
+  it('payment_pending with a legacy/default workflow_status="completed" is STILL active — jobStatus is checked before any workflow_status branch', () => {
+    const s = getCustomerOrderState({ jobStatus: 'payment_pending', progressPercent: 0, workflowStatus: 'completed', serviceLevel: 'notarization_through_partners' });
+    expect(s.customerStatus).toBe('payment_pending');
+    expect(s.isActive).toBe(true);
+    expect(s.isTerminal).toBe(false);
+    expect(s.progressPercent).toBeNull();
+  });
+
+  it('payment_pending with ANY workflow_status value (even a terminal-looking one like "delivered") is still active — jobStatus=payment_pending always wins', () => {
+    const s = getCustomerOrderState({ jobStatus: 'payment_pending', progressPercent: 0, workflowStatus: 'delivered', serviceLevel: 'notarization_through_partners' });
+    expect(s.customerStatus).toBe('payment_pending');
+    expect(s.isActive).toBe(true);
+    expect(s.isTerminal).toBe(false);
+    expect(s.progressPercent).toBeNull();
+  });
+
+  it('quoteStatus distinguishes quote_ready / payment_pending / payment_checking sub-states, all with percent=null', () => {
+    const quoteReady = getCustomerOrderState({ jobStatus: 'payment_pending', progressPercent: 0, workflowStatus: null, serviceLevel: 'electronic', quoteStatus: 'quoted' });
+    const checking = getCustomerOrderState({ jobStatus: 'payment_pending', progressPercent: 0, workflowStatus: null, serviceLevel: 'electronic', quoteStatus: 'payment_pending' });
+    expect(quoteReady.progressPercent).toBeNull();
+    expect(checking.progressPercent).toBeNull();
+    expect(quoteReady.labelKey).not.toBe(checking.labelKey);
+  });
 });
 
 describe('Legacy workflow_status="completed" on non-electronic jobs', () => {
   it('notarized job with workflow_status=completed → awaiting_translator_review (not operator_processing)', () => {
-    // Old worker code set workflow_status='completed' instead of 'awaiting_translator_review'
     const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'completed', serviceLevel: 'notarization_through_partners' });
     expect(s.customerStatus).toBe('awaiting_translator_review');
     expect(s.canDownload).toBe(false);
@@ -324,20 +455,118 @@ describe('Standalone helpers', () => {
     expect(isCustomerOrderTerminal('ready_for_delivery')).toBe(false);
   });
 
-  it('canCustomerDownload: notarized → always false', () => {
+  it('canCustomerDownload: notarized → always false without hasReadyResultFiles', () => {
     for (const s of ['assigned_to_notary', 'notarized', 'ready_for_delivery', 'out_for_delivery', 'delivered', 'picked_up'] as const) {
       expect(canCustomerDownload(s, 'notarization_through_partners')).toBe(false);
     }
   });
-  it('canCustomerDownload: certified → true at ready_for_delivery and delivered', () => {
+  it('canCustomerDownload: certified → true at ready_for_delivery, delivered, and translator_approved (WO-108 fix); "completed" deliberately stays false — that value is shared with an unrelated workflowStatus===null edge case', () => {
     const SL = 'official_with_translator_signature_and_provider_stamp';
     expect(canCustomerDownload('ready_for_delivery', SL)).toBe(true);
     expect(canCustomerDownload('delivered', SL)).toBe(true);
-    expect(canCustomerDownload('translator_approved', SL)).toBe(false);
+    expect(canCustomerDownload('translator_approved', SL)).toBe(true);
+    expect(canCustomerDownload('completed', SL)).toBe(false);
   });
   it('canCustomerDownload: electronic → only at completed', () => {
     expect(canCustomerDownload('completed', 'electronic')).toBe(true);
     expect(canCustomerDownload('ready_for_delivery', 'electronic')).toBe(false);
+  });
+});
+
+describe('2026-08-01 multi-file fulfillment decision — hasReadyResultFiles', () => {
+  const OFFICIAL = 'official_with_translator_signature_and_provider_stamp';
+  const NOTARY = 'notarization_through_partners';
+
+  it('legacy (hasReadyResultFiles omitted): notarized stays never-downloadable at any status', () => {
+    for (const ws of ['notarized', 'ready_for_delivery', 'ready_for_pickup', 'delivered', 'picked_up']) {
+      const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: ws, serviceLevel: NOTARY });
+      expect(s.canDownload).toBe(false);
+    }
+  });
+
+  it('legacy (hasReadyResultFiles omitted): official is downloadable at ready_for_delivery AND at translator_approved (WO-108 fix — no separate operator step required)', () => {
+    const s1 = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'ready_for_delivery', serviceLevel: OFFICIAL });
+    expect(s1.canDownload).toBe(true);
+    const s2 = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'translator_approved', serviceLevel: OFFICIAL });
+    expect(s2.canDownload).toBe(true);
+    expect(s2.customerStatus).toBe('translator_approved');
+  });
+
+  it('multi-source notary: hasReadyResultFiles=true opens download even mid-delivery (not terminal, no operator ready_for_delivery status needed)', () => {
+    const s = getCustomerOrderState({
+      jobStatus: 'completed', progressPercent: 100, workflowStatus: 'out_for_delivery', serviceLevel: NOTARY,
+      fulfillmentMethod: 'delivery', hasReadyResultFiles: true,
+    });
+    expect(s.canDownload).toBe(true);
+    expect(s.isTerminal).toBe(false);
+  });
+
+  it('multi-source notary: hasReadyResultFiles=false keeps download closed even at notarized/ready_for_delivery', () => {
+    const s = getCustomerOrderState({
+      jobStatus: 'completed', progressPercent: 100, workflowStatus: 'notarized', serviceLevel: NOTARY,
+      hasReadyResultFiles: false,
+    });
+    expect(s.canDownload).toBe(false);
+  });
+
+  it('multi-source official: hasReadyResultFiles=false blocks download even after operator marks ready_for_delivery (sync must also be complete)', () => {
+    const s = getCustomerOrderState({
+      jobStatus: 'completed', progressPercent: 100, workflowStatus: 'ready_for_delivery', serviceLevel: OFFICIAL,
+      hasReadyResultFiles: false,
+    });
+    expect(s.canDownload).toBe(false);
+  });
+
+  it('multi-source official: hasReadyResultFiles=true + ready_for_delivery → downloadable (both conditions met)', () => {
+    const s = getCustomerOrderState({
+      jobStatus: 'completed', progressPercent: 100, workflowStatus: 'ready_for_delivery', serviceLevel: OFFICIAL,
+      hasReadyResultFiles: true,
+    });
+    expect(s.canDownload).toBe(true);
+  });
+
+  it('multi-source official: translator_approved + hasReadyResultFiles=true is downloadable (WO-108 fix) — translator_approved IS the operator-equivalent confirmation for Official, unlike Notary', () => {
+    const s = getCustomerOrderState({
+      jobStatus: 'completed', progressPercent: 100, workflowStatus: 'translator_approved', serviceLevel: OFFICIAL,
+      hasReadyResultFiles: true,
+    });
+    expect(s.canDownload).toBe(true);
+    expect(s.customerStatus).toBe('translator_approved');
+  });
+
+  it('multi-source official: translator_approved + hasReadyResultFiles=false stays NOT downloadable — the 04_SIGNATURE_AND_STAMP sync is still a necessary condition, never bypassed', () => {
+    const s = getCustomerOrderState({
+      jobStatus: 'completed', progressPercent: 100, workflowStatus: 'translator_approved', serviceLevel: OFFICIAL,
+      hasReadyResultFiles: false,
+    });
+    expect(s.canDownload).toBe(false);
+  });
+
+  it('canCustomerDownload standalone: notary explicit hasReadyResultFiles=true/false', () => {
+    expect(canCustomerDownload('notarized', NOTARY, true)).toBe(true);
+    expect(canCustomerDownload('notarized', NOTARY, false)).toBe(false);
+    expect(canCustomerDownload('notarized', NOTARY)).toBe(false);
+  });
+
+  it('multi-source notary: once hasReadyResultFiles=true, download stays available through every subsequent workflow_status and is IDENTICAL across pickup/delivery/unset fulfillment — never regresses once ready', () => {
+    const downstreamStatuses = ['notarized', 'ready_for_delivery', 'ready_for_pickup', 'out_for_delivery', 'delivered', 'picked_up'];
+    const fulfillmentMethods: Array<'pickup' | 'delivery' | null | undefined> = ['pickup', 'delivery', null, undefined];
+
+    for (const ws of downstreamStatuses) {
+      for (const fm of fulfillmentMethods) {
+        const s = getCustomerOrderState({
+          jobStatus: 'completed', progressPercent: 100, workflowStatus: ws, serviceLevel: NOTARY,
+          fulfillmentMethod: fm, hasReadyResultFiles: true,
+        });
+        expect(s.canDownload).toBe(true);
+      }
+    }
+  });
+
+  it('canCustomerDownload standalone: official requires both operatorConfirmed and hasReadyResultFiles when explicitly passed', () => {
+    expect(canCustomerDownload('ready_for_delivery', OFFICIAL, true)).toBe(true);
+    expect(canCustomerDownload('ready_for_delivery', OFFICIAL, false)).toBe(false);
+    expect(canCustomerDownload('ready_for_delivery', OFFICIAL)).toBe(true); // legacy omitted
   });
 });
 
@@ -386,9 +615,7 @@ describe('getCustomerOrderState — refunded / canceled (P0 production fix)', ()
 
   it('refunded on certified service level → terminal, never downloadable', () => {
     const s = getCustomerOrderState({
-      jobStatus: 'refunded',
-      progressPercent: 0,
-      workflowStatus: null,
+      jobStatus: 'refunded', progressPercent: 0, workflowStatus: null,
       serviceLevel: 'official_with_translator_signature_and_provider_stamp',
     });
     expect(s.customerStatus).toBe('refunded');
@@ -398,9 +625,7 @@ describe('getCustomerOrderState — refunded / canceled (P0 production fix)', ()
 
   it('refunded on notarized service level → terminal, never downloadable', () => {
     const s = getCustomerOrderState({
-      jobStatus: 'refunded',
-      progressPercent: 0,
-      workflowStatus: null,
+      jobStatus: 'refunded', progressPercent: 0, workflowStatus: null,
       serviceLevel: 'notarization_through_partners',
     });
     expect(s.customerStatus).toBe('refunded');
@@ -410,23 +635,84 @@ describe('getCustomerOrderState — refunded / canceled (P0 production fix)', ()
 
   it('refunded takes priority over workflowStatus (no accidental terminal bypass)', () => {
     const s = getCustomerOrderState({
-      jobStatus: 'refunded',
-      progressPercent: 0,
-      workflowStatus: 'awaiting_translator_review',
+      jobStatus: 'refunded', progressPercent: 0, workflowStatus: 'awaiting_translator_review',
       serviceLevel: 'official_with_translator_signature_and_provider_stamp',
     });
     expect(s.customerStatus).toBe('refunded');
   });
 });
 
-describe('getCustomerOrderState — progress never premature 100%', () => {
-  it('electronic pdf_rendering at 80% is NOT 100%', () => {
-    const s = getCustomerOrderState({ jobStatus: 'pdf_rendering', progressPercent: 80, workflowStatus: null, serviceLevel: 'electronic' });
-    expect(s.progressPercent).toBeLessThan(100);
+describe('WO-112 fix — Jira "Закрыто" (isClosed) is terminal for every service level, workflow_status untouched', () => {
+  const OFFICIAL = 'official_with_translator_signature_and_provider_stamp';
+  const NOTARY = 'notarization_through_partners';
+
+  it('notarized (WO-112 exact scenario, pickup): isClosed=true → customerStatus="closed", terminal, 100%, in history (isActive=false) even though the ready file makes it downloadable', () => {
+    const s = getCustomerOrderState({
+      jobStatus: 'completed', progressPercent: 100, workflowStatus: 'notarized', serviceLevel: NOTARY,
+      fulfillmentMethod: 'pickup', hasReadyResultFiles: true, isClosed: true,
+    });
+    expect(s.customerStatus).toBe('closed');
+    expect(s.isTerminal).toBe(true);
+    expect(s.progressPercent).toBe(100);
+    expect(s.canDownload).toBe(true);
+    expect(s.isActive).toBe(false);
   });
 
-  it('certified awaiting translator is NOT 100%', () => {
-    const s = getCustomerOrderState({ jobStatus: 'completed', progressPercent: 100, workflowStatus: 'awaiting_translator_review', serviceLevel: 'official_with_translator_signature_and_provider_stamp' });
-    expect(s.progressPercent).toBeLessThan(100);
+  it('Official translator_approved → ORDER_CLOSED: still "closed", still downloadable once ready, 100%', () => {
+    const s = getCustomerOrderState({
+      jobStatus: 'completed', progressPercent: 100, workflowStatus: 'translator_approved', serviceLevel: OFFICIAL,
+      hasReadyResultFiles: true, isClosed: true,
+    });
+    expect(s.customerStatus).toBe('closed');
+    expect(s.isTerminal).toBe(true);
+    expect(s.progressPercent).toBe(100);
+    expect(s.canDownload).toBe(true);
+  });
+
+  it('Electronic ready → ORDER_CLOSED: "closed", downloadable, 100%', () => {
+    const s = getCustomerOrderState({
+      jobStatus: 'completed', progressPercent: 100, workflowStatus: null, serviceLevel: 'electronic', isClosed: true,
+    });
+    expect(s.customerStatus).toBe('closed');
+    expect(s.canDownload).toBe(true);
+    expect(s.progressPercent).toBe(100);
+  });
+
+  it('a closed order without a ready result file is still terminal/100%/in-history, but NOT downloadable — closing never fabricates a file that does not exist', () => {
+    const s = getCustomerOrderState({
+      jobStatus: 'completed', progressPercent: 100, workflowStatus: 'notarized', serviceLevel: NOTARY,
+      fulfillmentMethod: 'pickup', hasReadyResultFiles: false, isClosed: true,
+    });
+    expect(s.customerStatus).toBe('closed');
+    expect(s.isTerminal).toBe(true);
+    expect(s.isActive).toBe(false);
+    expect(s.canDownload).toBe(false);
+    expect(s.progressPercent).toBe(100);
+  });
+
+  it('a genuinely failed/refunded/canceled order is never masked as "closed", even if isClosed were somehow also true', () => {
+    expect(getCustomerOrderState({ jobStatus: 'failed', progressPercent: 0, workflowStatus: null, serviceLevel: 'electronic', isClosed: true }).customerStatus).toBe('failed');
+    expect(getCustomerOrderState({ jobStatus: 'refunded', progressPercent: 0, workflowStatus: null, serviceLevel: 'electronic', isClosed: true }).customerStatus).toBe('refunded');
+    expect(getCustomerOrderState({ jobStatus: 'canceled', progressPercent: 0, workflowStatus: null, serviceLevel: 'electronic', isClosed: true }).customerStatus).toBe('canceled');
+  });
+
+  it('isClosed omitted (legacy caller / not yet closed) — behavior is byte-for-byte the pre-WO-112 result', () => {
+    const s = getCustomerOrderState({
+      jobStatus: 'completed', progressPercent: 100, workflowStatus: 'notarized', serviceLevel: NOTARY, fulfillmentMethod: 'pickup',
+    });
+    expect(s.customerStatus).toBe('notarized');
+    expect(s.progressPercent).toBe(90);
+  });
+
+  it('canCustomerDownload standalone: "closed" grants download for Official/Electronic when confirmed, notarized still requires hasReadyResultFiles explicitly', () => {
+    expect(canCustomerDownload('closed', OFFICIAL)).toBe(true);
+    expect(canCustomerDownload('closed', 'electronic')).toBe(true);
+    expect(canCustomerDownload('closed', NOTARY)).toBe(false); // hasReadyResultFiles omitted -> false
+    expect(canCustomerDownload('closed', NOTARY, true)).toBe(true);
+    expect(canCustomerDownload('closed', NOTARY, false)).toBe(false);
+  });
+
+  it('isCustomerOrderTerminal: closed is terminal', () => {
+    expect(isCustomerOrderTerminal('closed')).toBe(true);
   });
 });

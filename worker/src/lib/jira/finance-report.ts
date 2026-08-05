@@ -11,7 +11,13 @@
  *
  * Production recommendation: configure Jira Issue Security Scheme and set
  * JIRA_FINANCE_SECURITY_LEVEL_ID before granting translators broad project access.
+ *
+ * 2026-08-01: on staging, the hardcoded Admin security level (see order-fields.ts's
+ * stagingSecurityField()) is applied unconditionally regardless of
+ * JIRA_FINANCE_SECURITY_LEVEL_ID — staging safety always wins. Production behavior
+ * (the optional env-var level above, or none) is completely unchanged.
  */
+import { stagingSecurityField, isStagingJiraEnvironment } from './order-fields';
 
 // Local type copies kept in sync with src/lib/pricing/types.ts
 interface InternalCostBreakdown {
@@ -210,8 +216,12 @@ export function buildFinanceIssuePayload(params: FinanceReportParams): Record<st
     description: buildFinanceReportDescription(params),
   };
 
-  // Security level is OPTIONAL — MVP may run without it
-  if (config.securityLevelId) {
+  // Staging always gets the hardcoded Admin security level, regardless of the
+  // optional finance-specific env var below — staging safety takes priority.
+  if (isStagingJiraEnvironment()) {
+    Object.assign(fields, stagingSecurityField());
+  } else if (config.securityLevelId) {
+    // Security level is OPTIONAL on production — MVP may run without it
     fields.security = { id: config.securityLevelId };
   }
 

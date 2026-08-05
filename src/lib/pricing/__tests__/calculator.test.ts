@@ -116,6 +116,121 @@ describe('calculatePrice — electronic (unchanged legacy formula)', () => {
   });
 });
 
+// ─── 2026-08-01 staging incident: Electronic minimum payable floor ────────────────
+// job 29b5fa37-24ac-4269-b965-c024429560da, ru→en, documentType='other', 2 source
+// files (physical page counts [2,1], but electronic never runs document analysis so
+// physicalPageCount defaults to 1 regardless of source count) — priced at 1300 KZT
+// (minimum 1000 × document coefficient 1.1 = 1100, then payment-wide fee gross-up to
+// 1300), below the 1500 KZT minimum WPO is willing to charge for Electronic.
+describe('calculatePrice — electronic minimum payable floor (2026-08-01 incident fix)', () => {
+  // Matches the REAL active staging pricing_versions row's rates as reconstructed from
+  // the incident order's own internal_cost_json/margin_json (ownerReserveRate=0,
+  // marketingRateDirect=0.05, targetProfitRate=0.25 — NOT the generic
+  // mockElectronicVersion() fixture's 0.07/0.10, which produces a different,
+  // already-above-1500 result and would not actually exercise the floor).
+  function incidentVersion(overrides: Partial<PricingVersion> = {}): PricingVersion {
+    return mockElectronicVersion({ ownerReserveRate: 0, marketingRateDirect: 0.05, targetProfitRate: 0.25, ...overrides });
+  }
+
+  /**
+   * The REAL active staging pricing_versions row (id f5d6a080-01ad-46a0-abd8-704c809382c6,
+   * code 2026-Q3-KZ-NEWMODEL) used by the incident quote — every field copied verbatim
+   * (not just the 3 overrides incidentVersion() above uses), fetched directly from
+   * Supabase via a one-off read-only script for the corrected-quote verification below.
+   */
+  function realIncidentPricingVersion(): PricingVersion {
+    return {
+      id: 'f5d6a080-01ad-46a0-abd8-704c809382c6', code: '2026-Q3-KZ-NEWMODEL', status: 'active', currency: 'KZT',
+      internalFxRate: null, mrpValue: 4.325,
+      taxRate: 0.03, acquiringRate: 0.025, riskReserveRate: 0.05, ownerReserveRate: 0,
+      marketingRateDirect: 0.05, partnerCommissionRate: 0.1, targetProfitRate: 0.25,
+      aiItReservePerPageKzt: 100,
+      validFrom: '2026-07-21T13:30:37.078+00:00', validTo: null, metadata: { formula_version: 'new_2026_07_21' },
+      aiItRate: 0.1, channelReserveRate: 0.2, clientDiscountRate: 0.1, wpoCoordinationRate: 0.3,
+      translatorPayoutRate: 0.3, ocrRatePerPhysicalPageKzt: 100, courierFeeKzt: 5000,
+      printingFeeKzt: 0, extraPaperCopyFeeKzt: 0, roundingStepOfficialKzt: 100, roundingStepNotaryKzt: 500,
+      publicElectronicPriceKzt: null, publicOfficialMinPriceKzt: null, publicNotaryMinPriceKzt: null,
+    };
+  }
+
+  function incidentInput(overrides: Partial<PricingInput> = {}): PricingInput {
+    return {
+      sourceLanguage: 'ru', targetLanguage: 'en', serviceLevel: 'electronic',
+      documentType: 'other', physicalPageCount: 1, salesChannel: 'direct',
+      ...overrides,
+    };
+  }
+
+  it('reproduces the exact incident: without the floor this would price at 1300 KZT — with it, floors to exactly 1500', () => {
+    const result = calculatePrice(incidentInput(), incidentVersion());
+    expect(result.amountKzt).toBe(1500);
+    expect(result.amountKzt).toBeGreaterThanOrEqual(1500);
+  });
+
+  it('the same 1300-before-floor incident reproduces identically against the byte-exact real pricing_versions row (confirms incidentVersion()\'s 3-field override is an accurate stand-in)', () => {
+    const result = calculatePrice(incidentInput(), realIncidentPricingVersion());
+    expect(result.amountKzt).toBe(1500);
+  });
+
+  it('records an electronic_minimum_floor_adjustment line item with the pre-floor price', () => {
+    const result = calculatePrice(incidentInput(), incidentVersion());
+    const floorItem = result.items.find((i) => i.itemType === 'electronic_minimum_floor_adjustment');
+    expect(floorItem).toBeDefined();
+    expect(floorItem?.metadataJson?.priceBeforeFloor).toBe(1300);
+    expect(floorItem?.metadataJson?.floorKzt).toBe(1500);
+  });
+
+  it('direct sale, no discount: final payable is always >= 1500 for electronic', () => {
+    const result = calculatePrice(incidentInput({ salesChannel: 'direct' }), incidentVersion());
+    expect(result.amountKzt).toBeGreaterThanOrEqual(1500);
+  });
+
+  it('a genuinely larger order (well above 1500 on its own formula) is NOT affected by the floor — no adjustment line item', () => {
+    const result = calculatePrice(
+      incidentInput({ documentType: 'contract', sourceWordCount: 5000 }),
+      incidentVersion(),
+    );
+    expect(result.amountKzt).toBeGreaterThan(1500);
+    expect(result.items.find((i) => i.itemType === 'electronic_minimum_floor_adjustment')).toBeUndefined();
+  });
+
+  it('2 source files does not double the minimum — physicalPageCount stays whatever the caller passed (electronic never multiplies by source/file count), and the floor still applies correctly to the single-document price', () => {
+    // Multiple uploaded files can be photographs of pages of ONE document — pricing must
+    // never multiply the base minimum by job_source_files count. This reproduces the
+    // incident's actual physicalPageCount=1 (electronic's conservative default,
+    // independent of how many files were uploaded) and confirms the result is the
+    // correctly-floored SINGLE-document price, not e.g. 2 × 1500 = 3000.
+    const result = calculatePrice(incidentInput({ physicalPageCount: 1 }), incidentVersion());
+    expect(result.amountKzt).toBe(1500);
+    expect(result.amountKzt).not.toBe(3000);
+  });
+
+  it('official/notarized pricing has no such floor and is completely unaffected', () => {
+    const officialInput: PricingInput = baseOfficialInput({ sourceCharacterCountWithSpaces: 10 });
+    const result = calculatePrice(officialInput, mockNewModelVersion());
+    expect(result.items.find((i) => i.itemType === 'electronic_minimum_floor_adjustment')).toBeUndefined();
+  });
+
+  // ─── 2026-08-02 follow-up: the aggregate physical page count fix (buildPricingInput
+  // in order-drafts/service.ts and upload-card-shared.ts's createCardOrder) means the
+  // incident job would actually have been quoted with physicalPageCount=3 (sourcePageCounts
+  // [2,1] summed), not 1 — verified against the real active pricing_versions row via a
+  // one-off script. This locks in that corrected end-to-end number and confirms the floor
+  // still holds (trivially, since the real page-based price already exceeds it). ───
+  it('the incident job, correctly quoted with the aggregate physical page count (3), prices at 2500 KZT — still >= the 1500 floor, verified against the real active pricing_versions row', () => {
+    // 1000 (minimum) + 1000 (2 extra pages x 500) = 2000 translation portion, x1.1 document
+    // coefficient = 2200 (rawPriceBeforeMarginFloor, no margin-floor adjustment needed) ->
+    // gross-up for the 10.5% payment-wide fee rate (tax 3% + acquiring 2.5% + risk 5%):
+    // 2200 / 0.895 = 2458.1, rounded up to the 100 KZT step = 2500.
+    const result = calculatePrice(incidentInput({ physicalPageCount: 3 }), realIncidentPricingVersion());
+    expect(result.context.additionalPages).toBe(2); // 3 aggregate - 1 included
+    expect(result.margin?.rawPriceBeforeMarginFloor).toBe(2200);
+    expect(result.amountKzt).toBe(2500);
+    expect(result.amountKzt).toBeGreaterThanOrEqual(1500);
+    expect(result.items.find((i) => i.itemType === 'electronic_minimum_floor_adjustment')).toBeUndefined();
+  });
+});
+
 // ─── New formula: WPO-approved fixtures ────────────────────────────────────────────
 
 describe('calculatePrice — official/notary new formula: approved fixtures', () => {
@@ -210,6 +325,238 @@ describe('calculatePrice — official/notary new formula: approved fixtures', ()
     expect(nm.unusedChannelReserveKzt).toBe(74); // 1480 - 740 - 666
     expect(nm.taxReserveKzt).toBe(199.8); // 6660 * 0.03, against actualPayment
     expect(nm.acquiringFeeKzt).toBe(166.5); // 6660 * 0.025
+  });
+});
+
+// ─── 2026-08-04 progressive WPO coordination (WO-98) ──────────────────────────────
+// Only the WPO coordination fee (W)'s translation portion is tiered by
+// billableTranslationPages when the pricing version configures coordinationVolumeTiers.
+// T, O, N, C, P, payouts, gross-up, reserves, urgency, discount, and commission are all
+// completely untouched — every other describe block in this file (unmodified, still
+// using mockNewModelVersion() with no tiers configured) already proves the flat-rate
+// fallback is byte-identical to before this feature.
+describe('calculatePrice — progressive WPO coordination (WO-98)', () => {
+  const WO98_TIERS = [
+    { fromPage: 0, upToPage: 5, rate: 0.30 },
+    { fromPage: 5, upToPage: 10, rate: 0.25 },
+    { fromPage: 10, upToPage: null, rate: 0.20 },
+  ];
+
+  function wo98Version(overrides: Partial<PricingVersion> = {}): PricingVersion {
+    return mockNewModelVersion({
+      coordinationVolumeTiers: WO98_TIERS,
+      notaryCoordinationRate: 0.30,
+      courierCoordinationRate: 0.30,
+      ...overrides,
+    });
+  }
+
+  // 36142 chars / 1800 = 20.078888888... pages, matching the approved WO-98 spec's
+  // billableTranslationPages=20.0788888889 exactly.
+  function wo98Input(overrides: Partial<PricingInput> = {}): PricingInput {
+    return baseNotaryInput({
+      sourceCharacterCountWithSpaces: 36142,
+      physicalPageCount: 10, // -> O = 1000; character_count (20.08) still wins the page-basis max()
+      fulfillmentMethod: 'delivery',
+      deliveryRequired: true,
+      salesChannel: 'direct',
+      ...overrides,
+    });
+  }
+
+  it('WO-98 control: exact tier breakdown and every downstream figure from the approved spec', () => {
+    const result = calculatePrice(wo98Input(), wo98Version());
+    const nm = result.newModel!;
+
+    // Inputs, reproduced exactly as given.
+    expect(nm.billableTranslationPages).toBeCloseTo(20.0788888889, 9);
+    expect(nm.translationAmountKzt).toBe(60236.67);
+    expect(nm.ocrAmountKzt).toBe(1000);
+    expect(nm.notaryAmountKzt).toBe(2292.25);
+    expect(nm.courierAmountKzt).toBe(5000);
+    expect(nm.grossUpRate).toBeCloseTo(0.455, 10);
+
+    // Tier breakdown.
+    expect(nm.translationTiers).toEqual([
+      expect.objectContaining({ fromPage: 0, upToPage: 5, pages: 5, rate: 0.30, coordinationAmountKzt: 4500.00 }),
+      expect.objectContaining({ fromPage: 5, upToPage: 10, pages: 5, rate: 0.25, coordinationAmountKzt: 3750.00 }),
+      expect.objectContaining({ fromPage: 10, upToPage: null, rate: 0.20, coordinationAmountKzt: 6047.33 }),
+    ]);
+    expect(nm.translationTiers![2]!.pages).toBeCloseTo(10.0788888889, 9);
+    expect(nm.translationCoordinationKzt).toBe(14297.33);
+    expect(nm.notaryCoordinationKzt).toBe(687.68);
+    expect(nm.courierCoordinationKzt).toBe(1500.00);
+    expect(nm.coordinationBaseAmountKzt).toBe(16485.01); // W = total WPO coordination
+
+    // Component subtotal / gross-up / rounding.
+    expect(nm.componentSubtotalKzt).toBeCloseTo(85013.93, 2);
+    expect(nm.retailBeforeRoundingKzt).toBeCloseTo(155988.86, 1);
+    expect(nm.standardRetailKzt).toBe(156000);
+    expect(nm.retailKzt).toBe(156000); // direct, no urgency -> same as standard retail
+    expect(nm.actualPaymentKzt).toBe(156000); // direct, no discount
+
+    // Protected/unchanged values.
+    expect(nm.translatorPayoutKzt).toBe(18071.00); // T * 30%, unaffected by tiering
+    expect(nm.notaryPayoutKzt).toBe(2292.25); // = N exactly, never touched by coordination
+    expect(nm.courierPayoutKzt).toBe(5000.00); // = C exactly, never touched by coordination
+    expect(nm.channelBudgetKzt).toBe(31200); // 20% of retail
+    expect(nm.reconciliationDifferenceKzt).toBe(0);
+  });
+
+  it('WO-98 referral: real actualPayment-based commission (not retail-based) — channel reserve covers both with no negative remainder', () => {
+    const result = calculatePrice(wo98Input({ salesChannel: 'referral', partnerCommissionRateOverride: 0.10 }), wo98Version());
+    const nm = result.newModel!;
+    expect(nm.standardRetailKzt).toBe(156000);
+    expect(nm.retailKzt).toBe(156000);
+    expect(nm.clientDiscountKzt).toBe(15600); // 156000 * 10%
+    expect(nm.actualPaymentKzt).toBe(140400); // 156000 - 15600
+    // Per the existing, unchanged formula (step 16: "Computed against actualPayment, not
+    // retail" — see Fixture 4 above), partner commission is 140400 * 10% = 14040, NOT
+    // 15600. This is the real, correct figure under the protected existing formula.
+    expect(nm.partnerCommissionKzt).toBe(14040);
+    expect(nm.channelBudgetKzt).toBe(31200);
+    expect(nm.unusedChannelReserveKzt).toBe(1560); // 31200 - 15600 - 14040, still positive
+    expect(nm.unusedChannelReserveKzt).toBeGreaterThanOrEqual(0);
+  });
+
+  it('at or below 5 billable pages, price is IDENTICAL to the flat-rate (no-tiers) formula, including rounding', () => {
+    const flatVersion = mockNewModelVersion(); // no coordinationVolumeTiers at all
+    const tieredVersion = wo98Version();
+    const input = baseOfficialInput({ sourceCharacterCountWithSpaces: 1000 }); // 1 page, well under 5
+
+    const flatResult = calculatePrice(input, flatVersion);
+    const tieredResult = calculatePrice(input, tieredVersion);
+
+    expect(tieredResult.amountKzt).toBe(flatResult.amountKzt);
+    expect(tieredResult.newModel!.coordinationBaseAmountKzt).toBe(flatResult.newModel!.coordinationBaseAmountKzt);
+    expect(tieredResult.newModel!.retailKzt).toBe(flatResult.newModel!.retailKzt);
+  });
+
+  it('Fixture 1 (Official, 1 page) reproduced byte-for-byte with tiers configured — 1-page presets unaffected', () => {
+    const result = calculatePrice(baseOfficialInput(), wo98Version());
+    const nm = result.newModel!;
+    expect(nm.translationAmountKzt).toBe(3000);
+    expect(nm.componentSubtotalKzt).toBe(4000);
+    expect(nm.standardRetailKzt).toBe(7400);
+    expect(result.amountKzt).toBe(7400);
+    expect(nm.translationTiers).toEqual([
+      expect.objectContaining({ fromPage: 0, upToPage: 5, pages: 1, rate: 0.30 }),
+    ]);
+  });
+
+  it('Fixture 2 (Notary standard, 1 page) reproduced byte-for-byte with tiers configured', () => {
+    const result = calculatePrice(baseNotaryInput(), wo98Version());
+    const nm = result.newModel!;
+    expect(nm.notaryAmountKzt).toBe(2292.25);
+    expect(nm.standardRetailKzt).toBe(13000);
+    expect(result.amountKzt).toBe(13000);
+  });
+
+  it('a pricing version with no coordinationVolumeTiers configured falls back to the exact flat formula (old versions unaffected)', () => {
+    const result = calculatePrice(wo98Input(), mockNewModelVersion()); // no tiers
+    const nm = result.newModel!;
+    // Flat formula: W = (T+N+C) * 30%, no per-tier breakdown.
+    expect(nm.translationTiers).toEqual([]);
+    const expectedW = (60236.67 + 2292.25 + 5000) * 0.30;
+    expect(nm.coordinationBaseAmountKzt).toBeCloseTo(expectedW, 2);
+  });
+
+  it('a pricing version with an empty coordinationVolumeTiers array also falls back to the flat formula, never throws', () => {
+    // Malformed-metadata rejection (non-contiguous, doesn't start at 0, last tier not
+    // open-ended, etc.) is validated once at the DB-row boundary — see
+    // parseCoordinationConfig()'s own tests in coordination-tiers.test.ts, which cover
+    // every malformed shape exhaustively. By the time a PricingVersion reaches the
+    // calculator, coordinationVolumeTiers is already either null or a validated array —
+    // this only checks the calculator's own empty-array edge case.
+    const badVersion = mockNewModelVersion({ coordinationVolumeTiers: [] });
+    expect(() => calculatePrice(wo98Input(), badVersion)).not.toThrow();
+    const result = calculatePrice(wo98Input(), badVersion);
+    expect(result.newModel!.translationTiers).toEqual([]);
+    expect(result.newModel!.coordinationBaseAmountKzt).toBeCloseTo((60236.67 + 2292.25 + 5000) * 0.30, 2);
+  });
+
+  it('Electronic is completely unaffected by coordinationVolumeTiers being present on the version', () => {
+    const version = wo98Version();
+    const input: PricingInput = { sourceLanguage: 'ru', targetLanguage: 'en', serviceLevel: 'electronic', sourceWordCount: 500, physicalPageCount: 1 };
+    const result = calculatePrice(input, version);
+    expect(result.newModel).toBeUndefined();
+  });
+
+  it('boundary/monotonicity spot check through the full calculator: 1, 4.99, 5, 5.01, 9.99, 10, 10.01, 20.0788888889 pages never produce a lower price than a smaller page count', () => {
+    const pageCounts = [1, 4.99, 5, 5.01, 9.99, 10, 10.01, 20.0788888889];
+    let prevAmount = 0;
+    for (const pages of pageCounts) {
+      const chars = Math.round(pages * 1800);
+      const result = calculatePrice(wo98Input({ sourceCharacterCountWithSpaces: chars, physicalPageCount: 1 }), wo98Version());
+      expect(result.amountKzt).toBeGreaterThanOrEqual(prevAmount);
+      prevAmount = result.amountKzt;
+    }
+  });
+
+  // 2026-08-05 corrective fix: the original test suite only proved the NEW tiered total
+  // in isolation. This directly compares the OLD flat-rate total against the NEW tiered
+  // total for the exact same WO-98 input, and asserts the full retail difference
+  // (163000 -> 156000), closing the gap the follow-up review flagged.
+  it('old (flat 30%) vs new (tiered) total WPO coordination and retail — full side-by-side comparison', () => {
+    const flatVersion = mockNewModelVersion(); // no coordinationVolumeTiers -> flat-rate fallback
+    const tieredVersion = wo98Version();
+    const input = wo98Input();
+
+    const oldResult = calculatePrice(input, flatVersion);
+    const newResult = calculatePrice(input, tieredVersion);
+    const oldNm = oldResult.newModel!;
+    const newNm = newResult.newModel!;
+
+    // Components feeding coordination are IDENTICAL between old and new — only the
+    // coordination rate application differs.
+    expect(oldNm.translationAmountKzt).toBe(newNm.translationAmountKzt); // 60236.67
+    expect(oldNm.notaryAmountKzt).toBe(newNm.notaryAmountKzt); // 2292.25
+    expect(oldNm.courierAmountKzt).toBe(newNm.courierAmountKzt); // 5000
+
+    // OLD: single unrounded multiplication of (T+N+C) * 30% for the ACTUAL W value; the
+    // per-component decomposition (informational only, never fed back into money math)
+    // is ALSO unrounded per-piece — confirmed against the real WO-98 job's own old-flat
+    // numbers (notary coordination = 687.675, not 687.68).
+    expect(oldNm.translationCoordinationKzt).toBeCloseTo(18071.001, 3); // 60236.67 * 30%
+    expect(oldNm.notaryCoordinationKzt).toBeCloseTo(687.675, 3); // 2292.25 * 30%
+    expect(oldNm.courierCoordinationKzt).toBe(1500.00); // 5000 * 30%
+    // Full OLD total (T+N+C combined, single multiplication — the actual value used
+    // downstream, and equal to the sum of the three unrounded informational pieces above).
+    expect(oldNm.coordinationBaseAmountKzt).toBeCloseTo(20258.676, 3);
+
+    // NEW: tiered translation portion, flat notary/courier.
+    expect(newNm.translationCoordinationKzt).toBe(14297.33);
+    expect(newNm.notaryCoordinationKzt).toBe(687.68);
+    expect(newNm.courierCoordinationKzt).toBe(1500.00);
+    expect(newNm.coordinationBaseAmountKzt).toBe(16485.01);
+
+    // The two totals are genuinely different (tiering saves real money on this order).
+    expect(newNm.coordinationBaseAmountKzt).toBeLessThan(oldNm.coordinationBaseAmountKzt);
+
+    // Full retail difference: 163000 (old, matches the REAL WO-98 job's persisted
+    // price_kzt) -> 156000 (new).
+    expect(oldNm.standardRetailKzt).toBe(163000);
+    expect(newNm.standardRetailKzt).toBe(156000);
+    expect(oldResult.amountKzt).toBe(163000);
+    expect(newResult.amountKzt).toBe(156000);
+  });
+
+  it('the "итого"/total coordination figure (coordinationBaseAmountKzt) always includes notary + courier coordination, never translation-only — checked on both the calculator result AND what would be persisted to wpo_financial_breakdown_json', () => {
+    const result = calculatePrice(wo98Input(), wo98Version());
+    const nm = result.newModel!;
+    const translationOnly = nm.translationCoordinationKzt!;
+    // The persisted/rendered total must be strictly greater than the translation-only
+    // portion whenever notary/courier coordination is non-zero — proving "итого" is not
+    // silently dropping them.
+    expect(nm.coordinationBaseAmountKzt).toBeGreaterThan(translationOnly);
+    expect(nm.coordinationBaseAmountKzt).toBeCloseTo(
+      translationOnly + nm.notaryCoordinationKzt! + nm.courierCoordinationKzt!, 2,
+    );
+    // wpo_financial_breakdown_json is exactly `nm` (see quote-row-mapper.ts's
+    // buildPriceQuoteInsertRow: wpo_financial_breakdown_json: nm ?? {}) — no separate
+    // persistence path exists, so asserting on `nm` here IS asserting on what gets
+    // persisted and what the Jira/CLI renderer reads.
+    expect(nm.coordinationBaseAmountKzt).toBe(16485.01);
   });
 });
 

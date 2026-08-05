@@ -29,8 +29,11 @@ import {
   resolveMimeType,
   buildCombinedOriginalName,
   finalUploadKey,
+  permanentSourceKey,
+  permanentConvertedPdfKey,
   isValidRawUploadKey,
 } from '@/lib/order-drafts/upload-shared';
+import type { DraftSourceFile } from '@/lib/order-drafts/types';
 import {
   MAX_FILE_SIZE_EACH,
   ANONYMOUS_MAX_TOTAL_SIZE,
@@ -167,64 +170,98 @@ export async function POST(
       }
     }
 
-    // ─── Convert + dedupe + merge. Do NOT delete raw objects on failure here — these
-    // can be transient/fixable, so keep them around for a retry. ───
+    // ─── Dedupe (by RAW content hash — deterministic regardless of convertToPdf's own
+    // determinism, e.g. pdf-lib embedding a fresh timestamp per save()) + convert + merge.
+    // Do NOT delete raw objects on failure here — these can be transient/fixable, so keep
+    // them around for a retry. ───
     //
     // 2026-07-29 incident fix: a stale/retried client submission (e.g. upload succeeded,
     // pricing failed, the customer re-added the same file before retrying) previously had
     // no server-side guard against merging genuine byte-identical duplicates into one PDF —
     // mergePdfs() faithfully merges whatever it's given, doubling the real page/character
-    // count for a document that is actually one page. Deduplicate by content hash of the
-    // CONVERTED PDF part (not the raw upload) so this holds regardless of original
-    // mimetype/whether convertToPdf changed the bytes — before mergePdfs() ever sees the
-    // list, never inside it (mergePdfs itself is untouched).
+    // count for a document that is actually one page.
+    //
+    // 2026-07-31 multi-file fulfillment decision: each DEDUPED source additionally gets a
+    // stable 1-based sequence (assigned strictly by upload order — never filename/Drive
+    // createdTime/API order) and a PERMANENT per-source R2 key holding its ORIGINAL bytes
+    // (not the PDF-converted copy) — this is what convertDraftToOrder() later turns into
+    // job_source_files rows. The merged PDF (finalKey, below) remains ONLY the internal
+    // pricing/analysis bundle — never the source of truth for individual files.
     let pdfBuffer: Buffer;
-    let dedupedKeys: string[];
-    let dedupedHashes: string[];
+    let dedupedIndices: number[];
+    let sourceHashes: string[];
     let sourcePageCounts: number[];
+    let sourcePdfParts: Buffer[];
+    let droppedKeys: string[];
     try {
-      const pdfParts = await Promise.all(buffers.map((buf, i) => convertToPdf(buf, resolvedMimes[i]!)));
-      const hashes = pdfParts.map((part) => crypto.createHash('sha256').update(part).digest('hex'));
+      const hashes = buffers.map((buf) => crypto.createHash('sha256').update(buf).digest('hex'));
 
       const seenHashes = new Set<string>();
-      const dedupedParts: Buffer[] = [];
-      dedupedKeys = [];
-      dedupedHashes = [];
-      const droppedKeys: string[] = [];
-      for (let i = 0; i < pdfParts.length; i++) {
+      dedupedIndices = [];
+      droppedKeys = [];
+      for (let i = 0; i < buffers.length; i++) {
         const hash = hashes[i]!;
         if (seenHashes.has(hash)) {
           droppedKeys.push(keys[i]!);
           continue;
         }
         seenHashes.add(hash);
-        dedupedParts.push(pdfParts[i]!);
-        dedupedKeys.push(keys[i]!);
-        dedupedHashes.push(hash);
+        dedupedIndices.push(i);
       }
+      sourceHashes = dedupedIndices.map((i) => hashes[i]!);
 
-      sourcePageCounts = await Promise.all(dedupedParts.map((part) => getPhysicalPageCount(part)));
+      sourcePdfParts = await Promise.all(dedupedIndices.map((i) => convertToPdf(buffers[i]!, resolvedMimes[i]!)));
+      sourcePageCounts = await Promise.all(sourcePdfParts.map((part) => getPhysicalPageCount(part)));
 
       // Structured log BEFORE merge/analysis — draft id, upload count, upload ids,
-      // filenames, hashes, individual page counts (2026-07-29 requirement).
+      // filenames, hashes, individual page counts (2026-07-29/07-31 requirement).
       console.log('[order-drafts] upload/complete: pre-merge diagnostic', {
         draftId,
         rawUploadCount: uploads.length,
-        dedupedUploadCount: dedupedParts.length,
+        dedupedUploadCount: dedupedIndices.length,
         uploadIds: keys,
         droppedDuplicateKeys: droppedKeys,
         filenames: uploads.map((u) => u.originalName),
-        contentHashes: dedupedHashes,
+        contentHashes: sourceHashes,
         sourcePageCounts,
       });
       if (droppedKeys.length > 0) {
         console.warn('[order-drafts] upload/complete: dropped duplicate upload(s) before merge (retry appended stale content)', { draftId, droppedKeys });
       }
 
-      pdfBuffer = await mergePdfs(dedupedParts);
+      pdfBuffer = await mergePdfs(sourcePdfParts);
     } catch (err) {
       console.error('[order-drafts] upload/complete: conversion failed:', draftId, err);
       return NextResponse.json({ error: 'FILE_PROCESSING_FAILED' }, { status: 500 });
+    }
+
+    // ─── Upload each deduped source's ORIGINAL bytes to its permanent, sequence-numbered
+    // key (2026-07-31) — separate from the merged-PDF upload below so a failure here is
+    // distinguishable (SOURCE_UPLOAD_FAILED) from the merged-bundle upload failing
+    // (DIRECT_UPLOAD_FAILED). Neither ever calls setDraftFile — retry-safe, raw objects kept. ───
+    let sources: DraftSourceFile[];
+    try {
+      sources = await Promise.all(dedupedIndices.map(async (origIdx, dedupedIdx) => {
+        const sequence = dedupedIdx + 1; // contiguous among survivors, in original relative order
+        const permKey = permanentSourceKey(draftId, sequence, resolvedMimes[origIdx]!);
+        const convertedKey = permanentConvertedPdfKey(draftId, sequence);
+        await Promise.all([
+          uploadFile(permKey, buffers[origIdx]!, resolvedMimes[origIdx]!),
+          uploadFile(convertedKey, sourcePdfParts[dedupedIdx]!, 'application/pdf'),
+        ]);
+        return {
+          sequence,
+          originalName: uploads[origIdx]!.originalName,
+          permanentKey: permKey,
+          contentSha256: sourceHashes[dedupedIdx]!,
+          mimeType: resolvedMimes[origIdx]!,
+          physicalPageCount: sourcePageCounts[dedupedIdx]!,
+          convertedPdfKey: convertedKey,
+        } satisfies DraftSourceFile;
+      }));
+    } catch (err) {
+      console.error('[order-drafts] upload/complete: permanent source upload failed:', draftId, err);
+      return NextResponse.json({ error: 'SOURCE_UPLOAD_FAILED' }, { status: 500 });
     }
 
     try {
@@ -236,10 +273,7 @@ export async function POST(
 
     // Combined display name reflects the DEDUPED set — a dropped duplicate must never show
     // up as an extra "file" in the customer-facing name.
-    const dedupedKeySet = new Set(dedupedKeys);
-    const combinedName = buildCombinedOriginalName(
-      uploads.filter((u) => dedupedKeySet.has(u.key)).map((u) => u.originalName),
-    );
+    const combinedName = buildCombinedOriginalName(sources.map((s) => s.originalName));
     const result = await setDraftFile(
       draftId,
       {
@@ -247,9 +281,7 @@ export async function POST(
         originalName: combinedName,
         mimeType: 'application/pdf',
         sizeBytes: pdfBuffer.length,
-        sourceUploadCount: dedupedKeys.length,
-        sourceUploadIds: dedupedKeys,
-        sourceContentHashes: dedupedHashes,
+        sources,
       },
       owner,
     );
@@ -259,7 +291,8 @@ export async function POST(
       return NextResponse.json({ error: result.error }, { status });
     }
 
-    // Only delete raw objects once the final PDF + DB row are both confirmed durable.
+    // Only delete raw (temporary) objects once the final PDF + permanent per-source
+    // objects + DB row are all confirmed durable.
     await deleteRawObjects(keys);
 
     return NextResponse.json({ ok: true, sizeBytes: pdfBuffer.length });

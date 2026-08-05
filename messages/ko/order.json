@@ -15,6 +15,8 @@
     "queued": "대기 중",
     "failed": "실패",
     "download": "다운로드",
+    "historyAvailableUntil": "{date}까지 다운로드 가능",
+    "historyRetentionExpired": "보관 기간이 만료되었습니다",
     "fiscalReceipt": "전자 영수증",
     "fiscalReceiptPending": "영수증 생성 중",
     "signedIn": "로그인된 계정",
@@ -38,6 +40,7 @@
     "usingPlanSub": "{plan} 플랜 사용 중 · 남은 문서 {remaining}개 — 결제 불필요",
     "status": {
       "paymentPending": "Awaiting payment",
+      "preparingDocument": "문서 처리 준비 중",
       "queued": "대기 중 — 시작 대기…",
       "ocr": "텍스트 추출 중… ({pct}%)",
       "ocrDone": "OCR 완료, 번역 시작 중… ({pct}%)",
@@ -46,6 +49,7 @@
       "completed": "완료됨",
       "failed": "실패",
       "awaitingTranslatorReview": "번역가에게 전송됨 — 검토 대기 중",
+      "translatorReviewInProgress": "번역가가 문서를 처리하고 있습니다",
       "awaitingSignatureStamp": "번역가 서명 및 도장 대기 중",
       "awaitingNotaryReview": "공증인에게 전송됨 — 공증 대기 중",
       "awaitingFinalQa": "최종 품질 검사 대기 중",
@@ -55,7 +59,7 @@
       "translatorApproved": "번역 확인 완료 — 담당자 대기 중",
       "assignedToNotary": "번역 확인 완료 — 공증인에게 전달 중",
       "notarizationInProgress": "공증 진행 중",
-      "notarized": "공증 완료",
+      "notarized": "문서 공증 완료",
       "readyForPickup": "픽업 준비 완료",
       "outForDelivery": "배달원에게 전달됨",
       "delivered": "주문 배달 완료",
@@ -189,6 +193,7 @@
     "errors": {
       "serverError": "서버 오류가 발생했습니다. 다시 시도해 주세요.",
       "uploadFailed": "업로드 실패",
+      "pricingVersionChanged": "요금이 업데이트되었습니다. 다시 계산해 주세요.",
       "logoutFailed": "로그아웃에 실패했습니다",
       "unsupportedFileType": "지원되지 않는 파일 형식: {files}",
       "pleaseSelectFile": "파일을 하나 이상 선택해 주세요",
@@ -199,6 +204,7 @@
       "invalidFileSignature": "The file \"{file}\" does not match its file type."
     },
     "uploadDocument": "Upload document",
+    "pricingSlowMessage": "계산이 평소보다 오래 걸리고 있습니다 — 잠시만 기다려 주세요",
     "uploadedQuoteReady": "Document uploaded — price: {price} KZT. Confirm payment below.",
     "uploadedRequiresReview": "Document uploaded. The price will be confirmed by our operator.",
     "quoteReady": "Price confirmed",
@@ -265,7 +271,42 @@
     "uploadedQuoteReadyWithDiscount": "문서가 업로드되었습니다 — 가격: {price} ₸ (파트너 코드로 {saved} ₸ 절약). 아래에서 결제를 확인하세요.",
     "priceBeforeDiscount": "할인 전 가격",
     "discountByCode": "파트너 할인",
-    "finalPrice": "결제 금액"
+    "finalPrice": "결제 금액",
+    "progressFlow": {
+      "prePayment": {
+        "quoteReady": "견적 계산 완료",
+        "paymentPending": "결제 대기 중",
+        "paymentChecking": "결제 확인 중",
+        "paymentFailed": "결제 실패"
+      },
+      "electronic": {
+        "paid": "결제 확인됨",
+        "processing": "문서 처리 중",
+        "ready": "번역 완료"
+      },
+      "official": {
+        "paid": "결제 확인됨",
+        "processing": "문서 처리 중",
+        "awaitingTranslatorReview": "번역가에게 전달됨 — 처리 대기 중",
+        "translatorReviewInProgress": "번역가가 문서를 처리하고 있습니다",
+        "ready": "공식 번역 완료"
+      },
+      "notary": {
+        "paid": "결제 확인됨",
+        "processing": "문서 준비 중",
+        "awaitingTranslatorReview": "번역가에게 전달됨 — 검토 대기 중",
+        "translatorReviewInProgress": "번역가가 문서를 처리하고 있습니다",
+        "approvedForNotary": "공증 준비 완료",
+        "notarizationInProgress": "공증인에게 전달됨",
+        "notarized": "문서 공증 완료",
+        "notarizedFinal": "문서 공증 완료",
+        "readyForPickup": "수령 준비 완료",
+        "pickedUp": "수령 완료",
+        "readyForDelivery": "택배 전달 준비 완료",
+        "outForDelivery": "택배사에 전달됨",
+        "delivered": "배송 완료"
+      }
+    }
   },
   "electronicOutput": {
     "formats": {

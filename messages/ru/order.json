@@ -17,6 +17,8 @@
     "queued": "В очереди",
     "failed": "Ошибка",
     "download": "Скачать",
+    "historyAvailableUntil": "Доступно до {date}",
+    "historyRetentionExpired": "Срок хранения истёк",
     "fiscalReceipt": "Электронный чек",
     "fiscalReceiptPending": "Чек формируется",
     "signedIn": "Вы вошли как",
@@ -40,6 +42,7 @@
     "usingPlanSub": "Тариф {plan} · осталось {remaining} документов — оплата не требуется",
     "status": {
       "paymentPending": "Ожидает оплаты",
+      "preparingDocument": "Подготовка документа к обработке",
       "queued": "В очереди — ожидает запуска…",
       "ocr": "Извлечение текста… ({pct}%)",
       "ocrDone": "OCR завершён, начинается перевод… ({pct}%)",
@@ -48,6 +51,7 @@
       "completed": "Завершено",
       "failed": "Ошибка",
       "awaitingTranslatorReview": "Передано переводчику — ожидает проверки",
+      "translatorReviewInProgress": "Документ обрабатывается переводчиком",
       "awaitingSignatureStamp": "Ожидает подписи и печати переводчика",
       "awaitingNotaryReview": "Передано нотариусу — ожидает нотариального заверения",
       "awaitingFinalQa": "Ожидает финальной проверки качества",
@@ -57,7 +61,7 @@
       "translatorApproved": "Перевод проверен — ожидает оператора",
       "assignedToNotary": "Перевод проверен — передаём нотариусу",
       "notarizationInProgress": "В работе у нотариуса",
-      "notarized": "Нотариальное заверение завершено",
+      "notarized": "Документ нотариально заверен",
       "readyForPickup": "Готово к самовывозу",
       "outForDelivery": "Заказ передан курьеру",
       "delivered": "Заказ доставлен",
@@ -177,7 +181,7 @@
       "translatorApproved": "Перевод проверен",
       "assignedToNotary": "Передаём нотариусу",
       "notarizationInProgress": "У нотариуса",
-      "notarized": "Нотариус завершил",
+      "notarized": "Нотариальное заверение завершено",
       "readyForPickup": "Готово к самовывозу",
       "outForDelivery": "Передано курьеру",
       "delivered": "Получено",
@@ -193,6 +197,7 @@
     "errors": {
       "serverError": "Ошибка сервера. Попробуйте ещё раз.",
       "uploadFailed": "Ошибка загрузки",
+      "pricingVersionChanged": "Тарифы обновились. Повторите расчёт.",
       "logoutFailed": "Не удалось выйти",
       "unsupportedFileType": "Неподдерживаемый тип файла: {files}",
       "pleaseSelectFile": "Пожалуйста, выберите хотя бы один файл",
@@ -203,6 +208,7 @@
       "invalidFileSignature": "Файл «{file}» не соответствует заявленному типу."
     },
     "uploadDocument": "Загрузить документ",
+    "pricingSlowMessage": "Расчёт стоимости занимает больше времени, чем обычно — пожалуйста, подождите",
     "uploadedQuoteReady": "Документ загружен — стоимость: {price} ₸. Подтвердите оплату ниже.",
     "uploadedRequiresReview": "Документ загружен. Стоимость будет подтверждена оператором.",
     "quoteReady": "Стоимость рассчитана",
@@ -265,7 +271,42 @@
       "discountMinOrderHint": "При заказе от {min} ₸",
       "remove": "Убрать"
     },
-    "uploadedQuoteReadyWithDiscount": "Документ загружен — стоимость: {price} ₸ (экономия {saved} ₸ по коду партнёра). Подтвердите оплату ниже."
+    "uploadedQuoteReadyWithDiscount": "Документ загружен — стоимость: {price} ₸ (экономия {saved} ₸ по коду партнёра). Подтвердите оплату ниже.",
+    "progressFlow": {
+      "prePayment": {
+        "quoteReady": "Стоимость рассчитана",
+        "paymentPending": "Ожидает оплаты",
+        "paymentChecking": "Платёж проверяется",
+        "paymentFailed": "Не удалось выполнить оплату"
+      },
+      "electronic": {
+        "paid": "Оплата подтверждена",
+        "processing": "Документ обрабатывается",
+        "ready": "Перевод готов"
+      },
+      "official": {
+        "paid": "Оплата подтверждена",
+        "processing": "Документ обрабатывается",
+        "awaitingTranslatorReview": "Передано переводчику — ожидает обработки",
+        "translatorReviewInProgress": "Документ обрабатывается переводчиком",
+        "ready": "Официальный перевод готов"
+      },
+      "notary": {
+        "paid": "Оплата подтверждена",
+        "processing": "Документ подготавливается",
+        "awaitingTranslatorReview": "Передано переводчику — ожидает проверки",
+        "translatorReviewInProgress": "Документ обрабатывается переводчиком",
+        "approvedForNotary": "Перевод подготовлен к нотариальному заверению",
+        "notarizationInProgress": "Документ находится у нотариуса",
+        "notarized": "Документ нотариально заверен",
+        "notarizedFinal": "Документ нотариально заверен",
+        "readyForPickup": "Готово к самовывозу",
+        "pickedUp": "Заказ выдан",
+        "readyForDelivery": "Документ готов к передаче курьеру",
+        "outForDelivery": "Документ передан курьеру",
+        "delivered": "Документ доставлен"
+      }
+    }
   },
   "electronicOutput": {
     "formats": {

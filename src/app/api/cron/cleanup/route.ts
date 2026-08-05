@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
 import { deleteFile, listObjectsByPrefix } from '@/lib/r2/client';
+import { trashOrderFolder } from '@/lib/google-drive/client';
 import { RAW_UPLOAD_PREFIX } from '@/lib/order-drafts/upload-constants';
 
 const RETENTION_DAYS = 30;
 const RAW_UPLOAD_RETENTION_HOURS = 24;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabaseServer as any;
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const cronSecret = process.env.CRON_SECRET;
@@ -16,78 +20,200 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   const cutoff = new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString();
 
-  const { data: docs, error } = await supabaseServer
-    .from('documents')
-    .select('id, file_key')
-    .lt('created_at', cutoff)
-    .limit(100);
-
-  if (error) {
-    console.error('[cleanup] failed to fetch old documents:', error);
-    return NextResponse.json({ error: 'Failed to fetch documents' }, { status: 500 });
-  }
-
-  // NOTE: previously this returned early here when there were no expired documents,
-  // which meant cleanupExpiredOrderDrafts() and cleanupOrphanedRawUploads() below
-  // never ran on any day with zero 30-day-old documents — a pre-existing bug (not
-  // introduced by the raw-upload sweep) that would have silently starved both sweeps.
-  // Fixed by only skipping the per-document deletion loop, not the rest of the route.
-  let deleted = 0;
-  const errors: string[] = [];
-
-  if (docs && docs.length > 0) {
-    for (const doc of docs) {
-      try {
-        // Get all translated file keys for this document
-        const { data: jobs } = await supabaseServer
-          .from('jobs')
-          .select('id')
-          .eq('document_id', doc.id);
-
-        const jobIds = (jobs ?? []).map((j) => j.id);
-
-        if (jobIds.length > 0) {
-          const { data: translations } = await supabaseServer
-            .from('translations')
-            .select('translated_pdf_key')
-            .in('job_id', jobIds);
-
-          for (const t of translations ?? []) {
-            await deleteFile(t.translated_pdf_key).catch((e: unknown) => {
-              console.error('[cleanup] R2 delete translated failed:', t.translated_pdf_key, e);
-            });
-          }
-        }
-
-        // Delete original file from R2
-        await deleteFile(doc.file_key).catch((e: unknown) => {
-          console.error('[cleanup] R2 delete original failed:', doc.file_key, e);
-        });
-
-        // Delete DB record (cascades to jobs, translations, ocr_results)
-        const { error: delError } = await supabaseServer
-          .from('documents')
-          .delete()
-          .eq('id', doc.id);
-
-        if (delError) {
-          errors.push(`doc ${doc.id}: ${delError.message}`);
-        } else {
-          deleted++;
-        }
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        errors.push(`doc ${doc.id}: ${msg}`);
-      }
-    }
-
-    console.log(`[cleanup] deleted ${deleted}/${docs.length} documents`);
-  }
-
+  const { filesPurged, errors } = await purgeExpiredDocumentFiles(cutoff);
+  const drivePurged = await purgeExpiredDriveFolders();
   const draftsDeleted = await cleanupExpiredOrderDrafts();
   const rawUploadsDeleted = await cleanupOrphanedRawUploads();
 
-  return NextResponse.json({ deleted, errors: errors.length > 0 ? errors : undefined, draftsDeleted, rawUploadsDeleted });
+  return NextResponse.json({
+    filesPurged,
+    drivePurged,
+    errors: errors.length > 0 ? errors : undefined,
+    draftsDeleted,
+    rawUploadsDeleted,
+  });
+}
+
+/**
+ * 2026-07-24 retention fix (metadata-preserving cleanup).
+ *
+ * The previous version of this function deleted the ENTIRE `documents` row past
+ * RETENTION_DAYS, intending a CASCADE through jobs -> translations/ocr_results. That
+ * already silently failed for any order with a fiscal_receipts or refund_transactions
+ * row: those tables reference jobs/documents/payment_transactions with NO `ON DELETE`
+ * clause (default NO ACTION/RESTRICT in Postgres — confirmed by reading every
+ * migration that touches them; nothing ever added an explicit ON DELETE), so
+ * cascading the documents delete through jobs into a fiscalized job's row was always
+ * rejected by the FK constraint. Worse: the R2 object deletes below ran BEFORE that
+ * failing row-delete was even attempted, and are not transactional with it — so for
+ * every paid/fiscalized order past 30 days, the R2 files were already being deleted
+ * while documents/jobs/translations silently survived with dead R2 keys (broken
+ * downloads, no expiry messaging, never surfaced anywhere).
+ *
+ * New model: never delete documents/jobs/price_quotes/price_quote_items/
+ * payment_transactions/fiscal_receipts/refund_transactions/cost_reservations rows.
+ * Only ever delete the R2 objects themselves and the job_source_files/
+ * job_result_files rows that reference them (removing the customer/staff-supplied
+ * original filenames along with the now-dead references — job_source_files/
+ * job_result_files must no longer be able to grant a download once purged). Legacy
+ * single-file jobs' `translations`/`ocr_results` text columns (NOT NULL — cannot be
+ * set to NULL) are replaced with a short placeholder rather than left holding the
+ * full source/translated document text indefinitely past the stated retention
+ * window. `documents.files_purged_at` is the sole authoritative "purged" marker,
+ * selected on (`created_at < cutoff AND files_purged_at IS NULL`) so a second run is
+ * a pure no-op for anything already purged — idempotent by construction.
+ */
+async function purgeExpiredDocumentFiles(cutoff: string): Promise<{ filesPurged: number; errors: string[] }> {
+  const { data: docs, error } = await db
+    .from('documents')
+    .select('id, file_key')
+    .lt('created_at', cutoff)
+    .is('files_purged_at', null)
+    .limit(100);
+
+  if (error) {
+    console.error('[cleanup] failed to fetch documents due for retention purge:', error.message);
+    return { filesPurged: 0, errors: [error.message] };
+  }
+  if (!docs || docs.length === 0) return { filesPurged: 0, errors: [] };
+
+  let filesPurged = 0;
+  const errors: string[] = [];
+
+  for (const doc of docs as Array<{ id: string; file_key: string }>) {
+    try {
+      const { data: jobs } = await db.from('jobs').select('id').eq('document_id', doc.id);
+      const jobIds = (jobs ?? []).map((j: { id: string }) => j.id);
+
+      if (jobIds.length > 0) {
+        // Legacy single-file path: delete the translated PDF from R2, then replace the
+        // text columns (NOT NULL) with a placeholder — never leave full source/
+        // translated document text sitting in the DB past the retention window.
+        const { data: translations } = await db
+          .from('translations')
+          .select('id, translated_pdf_key')
+          .in('job_id', jobIds);
+        for (const t of (translations ?? []) as Array<{ id: string; translated_pdf_key: string }>) {
+          await deleteFile(t.translated_pdf_key).catch((e: unknown) => {
+            console.error('[cleanup] R2 delete translated failed:', t.translated_pdf_key, e);
+          });
+        }
+        if (translations && translations.length > 0) {
+          await db.from('translations').update({ translated_markdown: '[purged: retention period expired]' }).in('job_id', jobIds);
+        }
+        await db.from('ocr_results').update({ markdown: '[purged: retention period expired]' }).in('job_id', jobIds);
+
+        // Multi-source path (2026-08-01 model): delete every source/result R2 object,
+        // then delete the rows themselves — this is what makes hasReadyResultFiles
+        // (and therefore canCustomerDownload) naturally and permanently false again,
+        // and removes the customer/staff-supplied original filenames.
+        const { data: sourceFiles } = await db
+          .from('job_source_files')
+          .select('r2_key, converted_pdf_r2_key')
+          .in('job_id', jobIds);
+        for (const sf of (sourceFiles ?? []) as Array<{ r2_key: string; converted_pdf_r2_key: string | null }>) {
+          await deleteFile(sf.r2_key).catch((e: unknown) => console.error('[cleanup] R2 delete job_source_files.r2_key failed:', sf.r2_key, e));
+          if (sf.converted_pdf_r2_key) {
+            await deleteFile(sf.converted_pdf_r2_key).catch((e: unknown) => console.error('[cleanup] R2 delete job_source_files.converted_pdf_r2_key failed:', sf.converted_pdf_r2_key, e));
+          }
+        }
+
+        const { data: resultFiles } = await db
+          .from('job_result_files')
+          .select('r2_key')
+          .in('job_id', jobIds);
+        for (const rf of (resultFiles ?? []) as Array<{ r2_key: string | null }>) {
+          if (rf.r2_key) {
+            await deleteFile(rf.r2_key).catch((e: unknown) => console.error('[cleanup] R2 delete job_result_files.r2_key failed:', rf.r2_key, e));
+          }
+        }
+
+        await db.from('job_source_files').delete().in('job_id', jobIds);
+        await db.from('job_result_files').delete().in('job_id', jobIds);
+      }
+
+      // Original uploaded file.
+      await deleteFile(doc.file_key).catch((e: unknown) => {
+        console.error('[cleanup] R2 delete original failed:', doc.file_key, e);
+      });
+
+      const { error: markError } = await db
+        .from('documents')
+        .update({ files_purged_at: new Date().toISOString() })
+        .eq('id', doc.id);
+
+      if (markError) {
+        errors.push(`doc ${doc.id}: ${markError.message}`);
+      } else {
+        filesPurged++;
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      errors.push(`doc ${doc.id}: ${msg}`);
+    }
+  }
+
+  console.log(`[cleanup] purged files for ${filesPurged}/${docs.length} documents (rows preserved)`);
+  return { filesPurged, errors };
+}
+
+/**
+ * Independent, best-effort Drive-folder cleanup sweep. Deliberately decoupled from
+ * purgeExpiredDocumentFiles(): a Drive failure must never block or be blocked by the
+ * R2/DB purge (documents.files_purged_at). Only ever considers documents whose files
+ * have ALREADY been purged (files_purged_at IS NOT NULL) and whose drive_purged_at is
+ * still NULL — a second run only retries the jobs that failed or were never attempted,
+ * never re-processes an already-trashed folder.
+ */
+async function purgeExpiredDriveFolders(): Promise<number> {
+  const { data: docs, error } = await db
+    .from('documents')
+    .select('id')
+    .not('files_purged_at', 'is', null)
+    .is('drive_purged_at', null)
+    .limit(100);
+
+  if (error) {
+    console.error('[cleanup] failed to fetch documents due for Drive purge:', error.message);
+    return 0;
+  }
+  if (!docs || docs.length === 0) return 0;
+
+  let purged = 0;
+
+  for (const doc of docs as Array<{ id: string }>) {
+    try {
+      const { data: jobs } = await db
+        .from('jobs')
+        .select('google_drive_folder_id')
+        .eq('document_id', doc.id)
+        .not('google_drive_folder_id', 'is', null)
+        .limit(1);
+
+      const folderId = (jobs ?? [])[0]?.google_drive_folder_id as string | undefined;
+
+      // No Drive folder for this order (e.g. Electronic — never creates one) —
+      // trivially "done", mark it so this sweep never re-considers it.
+      if (!folderId) {
+        await db.from('documents').update({ drive_purged_at: new Date().toISOString() }).eq('id', doc.id);
+        purged++;
+        continue;
+      }
+
+      const ok = await trashOrderFolder(folderId);
+      if (ok) {
+        await db.from('documents').update({ drive_purged_at: new Date().toISOString() }).eq('id', doc.id);
+        purged++;
+      } else {
+        console.warn(`[cleanup] Drive folder trash failed for document ${doc.id} — will retry on next run`);
+      }
+    } catch (err) {
+      console.error(`[cleanup] Drive purge error for document ${doc.id} (non-fatal, retried next run):`, err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  console.log(`[cleanup] trashed Drive folders for ${purged}/${docs.length} documents`);
+  return purged;
 }
 
 /**
@@ -96,8 +222,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
  * Vercel cron entry (Hobby plan only allows one; see docs/ai-context/50_PAYMENTS_FINANCE_FISCALIZATION.md).
  */
 async function cleanupExpiredOrderDrafts(): Promise<number> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = supabaseServer as any;
   const nowIso = new Date().toISOString();
 
   const { data: drafts, error } = await db

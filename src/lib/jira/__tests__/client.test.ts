@@ -23,6 +23,11 @@ jest.mock('../config', () => ({
 jest.mock('../project-config', () => ({
   JIRA_PROJECT_CONFIG: { projectKey: 'WO' },
   JIRA_ISSUE_TYPE: 'Заказ',
+  JIRA_ADMIN_SECURITY_LEVEL_ID: '10000',
+  // Mirrors the real implementation's env-driven behavior (not hardcoded true/false)
+  // so tests #11/#12's NEXT_PUBLIC_APP_ENV manipulation is honored here too.
+  stagingSecurityField: () =>
+    (process.env.NEXT_PUBLIC_APP_ENV ?? 'production') === 'staging' ? { security: { id: '10000' } } : {},
 }));
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -133,7 +138,7 @@ it('5: returns {issueId, issueKey, issueUrl} from Jira response', async () => {
 });
 
 // ── Test 6 ────────────────────────────────────────────────────────────────────
-it('6: issue body has no assignee or security fields', async () => {
+it('6: issue body has no assignee field, and no security field on production (default)', async () => {
   mockFetchOk();
   await createJiraIssue(BASE_PARAMS);
 
@@ -222,5 +227,47 @@ it('12: adds wpo-production label when NEXT_PUBLIC_APP_ENV=production (default)'
 
   const fields = parsedBody().fields as Record<string, unknown>;
   expect(fields.labels).toEqual(['wpo-production']);
+  delete process.env.NEXT_PUBLIC_APP_ENV;
+});
+
+// ── Test 13 (2026-08-01 staging Jira Admin security level) ────────────────────
+it('13: staging → fields.security is the hardcoded Admin level', async () => {
+  process.env.NEXT_PUBLIC_APP_ENV = 'staging';
+  mockFetchOk();
+  await createJiraIssue(BASE_PARAMS);
+
+  const fields = parsedBody().fields as Record<string, unknown>;
+  expect(fields.security).toEqual({ id: '10000' });
+  delete process.env.NEXT_PUBLIC_APP_ENV;
+});
+
+// ── Test 14 ───────────────────────────────────────────────────────────────────
+it('14: production → security field completely absent, not null/undefined key', async () => {
+  process.env.NEXT_PUBLIC_APP_ENV = 'production';
+  mockFetchOk();
+  await createJiraIssue(BASE_PARAMS);
+
+  const fields = parsedBody().fields as Record<string, unknown>;
+  expect('security' in fields).toBe(false);
+  delete process.env.NEXT_PUBLIC_APP_ENV;
+});
+
+// ── Test 15 ───────────────────────────────────────────────────────────────────
+it('15: the rest of the payload is unchanged by the environment (only security/labels differ)', async () => {
+  process.env.NEXT_PUBLIC_APP_ENV = 'staging';
+  mockFetchOk();
+  await createJiraIssue(BASE_PARAMS);
+  const stagingFields = parsedBody().fields as Record<string, unknown>;
+
+  jest.clearAllMocks();
+  mockGetCreds.mockReturnValue(MOCK_CREDS);
+  process.env.NEXT_PUBLIC_APP_ENV = 'production';
+  mockFetchOk();
+  await createJiraIssue(BASE_PARAMS);
+  const prodFields = parsedBody().fields as Record<string, unknown>;
+
+  const { security: _s, labels: _l1, ...stagingRest } = stagingFields;
+  const { security: _p, labels: _l2, ...prodRest } = prodFields;
+  expect(stagingRest).toEqual(prodRest);
   delete process.env.NEXT_PUBLIC_APP_ENV;
 });

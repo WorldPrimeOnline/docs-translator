@@ -604,3 +604,19 @@ src/lib/pricing/service.ts, src/lib/pricing/feature-flags.ts, src/lib/pricing/fi
 
 **Risks / caveats:**  
 Migrations 0059/0060/0061 are PREPARED, not applied — the user applies them manually on staging first, then production. Do not activate the 2026-Q3-KZ-NEWMODEL pricing version or set either ENABLE_NEW_*_PRICING flag to true on production until staging E2E (one Official, one Notary delivery+urgency+Referral order, real Halyk sandbox payment) has been verified. Refund/reserve-release logic, Jira attachments, and Google Drive reporting were explicitly deferred out of this pass.
+
+---
+
+### 2026-08-05 — Jira status "Закрыто" (ORDER_CLOSED) is a terminal command, independent of workflow_status
+
+**Decision:**  
+Added eventType=ORDER_CLOSED to the Jira webhook contract. It sets jobs.status='completed' and a new jobs.jira_closed_at (migration 0067) column, and NEVER touches workflow_status and NEVER goes through the monotonic rank guard (safeUpdateWorkflowStatus). getCustomerOrderState() treats jira_closed_at as the sole authoritative 'order fully closed' signal for every service level: 100% progress, 'Готово' badge, moves to history, download stays available if the result file is ready. Jira Automation must send ORDER_CLOSED (not TRANSLATOR_COMPLETED) on transition to 'Закрыто'.
+
+**Rationale:**  
+WO-112: a notarized/pickup order stuck at workflow_status='notarized' (no further courier/pickup event ever arriving from Jira) had no way to be marked done. Jira Automation had nothing to send except TRANSLATOR_COMPLETED, which the monotonic guard correctly rejected as backward_transition_rejected once workflow_status had already advanced past translator-stage rank. The guard was not the bug — the missing terminal signal was. jobs.status could not be reused for this either: it already reaches 'completed' as soon as the AI OCR/translation pipeline finishes, long before any human/notary/delivery step starts.
+
+**Impacted files/docs:**  
+src/lib/integrations/workflow.ts, src/app/api/webhooks/jira/route.ts, src/lib/translation-workflow/customer-order-state.ts, src/lib/translation-workflow/progress-flow.ts, src/lib/translation-workflow/status-badge.ts, src/app/api/jobs/route.ts, src/app/api/jobs/[jobId]/route.ts, src/app/api/documents/[documentId]/download/route.ts, supabase/migrations/0067_jobs_jira_closed_at.sql
+
+**Risks / caveats:**  
+Migration 0067 must be applied to staging Supabase before ORDER_CLOSED works end-to-end (not yet applied — no Supabase CLI auth / DB password available in this environment). Jira Automation itself needs a new rule configured (external system, outside this repo) to send ORDER_CLOSED on the 'Закрыто' transition.

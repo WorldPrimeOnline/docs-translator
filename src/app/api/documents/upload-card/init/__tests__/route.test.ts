@@ -79,9 +79,15 @@ describe('regression (2026-07-24): module load never pulls in document-analysis/
     expect((globalThis as { DOMMatrix?: unknown }).DOMMatrix).toBeUndefined();
   });
 
-  it('require.cache contains no pdfjs-dist, pdf-parse, or document-analysis module after loading the init route', () => {
+  it('require.cache contains no pdfjs-dist, pdf-parse, or the heavy document-analysis/service|analyze module after loading the init route', () => {
+    // 2026-08-02: document-analysis/physical-pages.ts (pdf-lib only, no pdfjs-dist/pdf-parse/
+    // @napi-rs/canvas in its own dependency chain) is now also statically imported by
+    // upload-card-shared.ts, for aggregateReliablePhysicalPageCount() — safe and expected to
+    // load here. Only the ACTUAL heavy chain (document-analysis/service.ts ->
+    // document-analysis/analyze.ts -> pdf-text-layer.ts -> pdf-parse -> pdfjs-dist) is forbidden;
+    // a bare directory-name substring match would false-positive on this new lightweight file.
     const loadedPaths = Object.keys(require.cache);
-    const forbidden = ['pdfjs-dist', 'pdf-parse', 'document-analysis', '@napi-rs/canvas', 'pdf-text-layer'];
+    const forbidden = ['pdfjs-dist', 'pdf-parse', 'document-analysis/service', 'document-analysis/analyze', '@napi-rs/canvas', 'pdf-text-layer'];
     const offenders = loadedPaths.filter((p) => forbidden.some((f) => p.includes(f)));
     expect(offenders).toEqual([]);
   });

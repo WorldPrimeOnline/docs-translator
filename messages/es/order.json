@@ -15,6 +15,8 @@
     "queued": "En cola",
     "failed": "Error",
     "download": "Descargar",
+    "historyAvailableUntil": "Disponible hasta {date}",
+    "historyRetentionExpired": "Periodo de conservación caducado",
     "fiscalReceipt": "Recibo fiscal",
     "fiscalReceiptPending": "El recibo se está generando",
     "signedIn": "Sesión iniciada como",
@@ -38,6 +40,7 @@
     "usingPlanSub": "Plan {plan} · {remaining} documento{s} restante{s} — sin pago necesario",
     "status": {
       "paymentPending": "Awaiting payment",
+      "preparingDocument": "Preparando el documento",
       "queued": "En cola — esperando inicio…",
       "ocr": "Extrayendo texto… ({pct}%)",
       "ocrDone": "OCR completado, iniciando traducción… ({pct}%)",
@@ -46,6 +49,7 @@
       "completed": "Completado",
       "failed": "Error",
       "awaitingTranslatorReview": "Enviado al traductor — esperando revisión",
+      "translatorReviewInProgress": "El documento está siendo procesado por el traductor",
       "awaitingSignatureStamp": "Esperando firma y sello del traductor",
       "awaitingNotaryReview": "Enviado al notario — esperando certificación",
       "awaitingFinalQa": "Esperando verificación final de calidad",
@@ -55,7 +59,7 @@
       "translatorApproved": "Traducción verificada — esperando al operador",
       "assignedToNotary": "Traducción verificada — enviando al notario",
       "notarizationInProgress": "En proceso en la notaría",
-      "notarized": "Notarización completada",
+      "notarized": "Documento notariado",
       "readyForPickup": "Listo para recoger",
       "outForDelivery": "Enviado al mensajero",
       "delivered": "Pedido entregado",
@@ -189,6 +193,7 @@
     "errors": {
       "serverError": "Error del servidor. Por favor, inténtelo de nuevo.",
       "uploadFailed": "Error al subir el archivo",
+      "pricingVersionChanged": "Las tarifas se han actualizado. Vuelva a calcular.",
       "logoutFailed": "Error al cerrar sesión",
       "unsupportedFileType": "Tipo de archivo no compatible: {files}",
       "pleaseSelectFile": "Por favor, seleccione al menos un archivo",
@@ -199,6 +204,7 @@
       "invalidFileSignature": "The file \"{file}\" does not match its file type."
     },
     "uploadDocument": "Upload document",
+    "pricingSlowMessage": "El cálculo está tardando más de lo habitual — espere un momento",
     "uploadedQuoteReady": "Document uploaded — price: {price} KZT. Confirm payment below.",
     "uploadedRequiresReview": "Document uploaded. The price will be confirmed by our operator.",
     "quoteReady": "Price confirmed",
@@ -265,7 +271,42 @@
     "uploadedQuoteReadyWithDiscount": "Documento cargado — precio: {price} ₸ (ahorro de {saved} ₸ con código de socio). Confirme el pago abajo.",
     "priceBeforeDiscount": "Precio antes del descuento",
     "discountByCode": "Descuento de socio",
-    "finalPrice": "Total a pagar"
+    "finalPrice": "Total a pagar",
+    "progressFlow": {
+      "prePayment": {
+        "quoteReady": "Precio calculado",
+        "paymentPending": "Pago pendiente",
+        "paymentChecking": "Verificando el pago",
+        "paymentFailed": "El pago falló"
+      },
+      "electronic": {
+        "paid": "Pago confirmado",
+        "processing": "El documento se está procesando",
+        "ready": "Traducción lista"
+      },
+      "official": {
+        "paid": "Pago confirmado",
+        "processing": "El documento se está procesando",
+        "awaitingTranslatorReview": "Enviado al traductor — esperando procesamiento",
+        "translatorReviewInProgress": "El documento está siendo procesado por el traductor",
+        "ready": "Traducción oficial lista"
+      },
+      "notary": {
+        "paid": "Pago confirmado",
+        "processing": "El documento se está preparando",
+        "awaitingTranslatorReview": "Enviado al traductor — esperando revisión",
+        "translatorReviewInProgress": "El documento está siendo procesado por el traductor",
+        "approvedForNotary": "Traducción lista para notarización",
+        "notarizationInProgress": "El documento está con el notario",
+        "notarized": "Documento notariado",
+        "notarizedFinal": "Documento notariado",
+        "readyForPickup": "Listo para recoger",
+        "pickedUp": "Pedido recogido",
+        "readyForDelivery": "Documento listo para entregar al mensajero",
+        "outForDelivery": "Documento entregado al mensajero",
+        "delivered": "Documento entregado"
+      }
+    }
   },
   "electronicOutput": {
     "formats": {

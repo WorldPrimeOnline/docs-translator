@@ -4,6 +4,25 @@ import type { PartnerType } from '../partners/schema';
 const PARTNER_JIRA_PROJECT_KEY = 'WPO';
 const PARTNER_JIRA_ISSUE_TYPE = 'Partnership';
 
+// ─── No staging Admin security level here — verified, not assumed ────────────
+// 2026-08-01, re-verified 2026-08-01 with the exact Jira user/token this app uses
+// (getJiraCredentials() in ./config.ts): unlike project WO (see
+// project-config.ts's JIRA_ADMIN_SECURITY_LEVEL_ID), project WPO (id 10066, this
+// file's PARTNER_JIRA_PROJECT_KEY) has NO issue security scheme at all — confirmed
+// on THREE independent Jira REST API checks, never concluded from a single
+// endpoint returning an empty list (see scripts/staging/find-jira-security-levels.ts):
+//   1. GET /project/WPO/securitylevel                  -> [] (empty)
+//   2. GET /project/10066/issuesecuritylevelscheme      -> HTTP 404,
+//      "Уровень безопасности для проекта 10066 не существует" — Jira's own
+//      explicit statement that no scheme is attached, not a permissions artifact
+//   3. GET /issue/createmeta?issuetypeNames=Partnership -> no `security` field
+//      offered at all among the available fields for this issue type
+// Setting fields.security on a partner-application issue would make every
+// staging creation fail with a 400 (the field isn't valid for this project/issue
+// type) — so createPartnerApplicationIssue() below never spreads
+// stagingSecurityField(), on any environment. If WPO's Jira configuration is ever
+// changed to add a security scheme, re-run the verification script before adding it.
+
 const PARTNER_TYPE_LABELS: Record<PartnerType, string> = {
   translator:            'Переводчик',
   notary:                'Нотариус',

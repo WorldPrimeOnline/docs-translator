@@ -15,6 +15,8 @@
     "queued": "Навбат",
     "failed": "Хато",
     "download": "Зеркашӣ",
+    "historyAvailableUntil": "То {date} дастрас аст",
+    "historyRetentionExpired": "Мӯҳлати нигоҳдорӣ ба анҷом расид",
     "fiscalReceipt": "Чеки электронӣ",
     "fiscalReceiptPending": "Чек тайёр мешавад",
     "signedIn": "Ворид шудед ба сифати",
@@ -38,6 +40,7 @@
     "usingPlanSub": "Нақшаи {plan} · {remaining} ҳуҷҷат боқӣ монда",
     "status": {
       "paymentPending": "Awaiting payment",
+      "preparingDocument": "Омодасозии ҳуҷҷат барои коркард",
       "queued": "Навбат — интизори оғоз…",
       "ocr": "Матн гирифта мешавад… ({pct}%)",
       "ocrDone": "OCR анҷом ёфт, тарҷума оғоз мешавад… ({pct}%)",
@@ -46,6 +49,7 @@
       "completed": "Анҷом ёфт",
       "failed": "Хато",
       "awaitingTranslatorReview": "Ба тарҷумон фиристода шуд — интизори баррасӣ",
+      "translatorReviewInProgress": "Ҳуҷҷатро тарҷумон коркард карда истодааст",
       "awaitingSignatureStamp": "Интизори имзо ва мӯҳри тарҷумон",
       "awaitingNotaryReview": "Ба нотариус фиристода шуд — интизори тасдиқ",
       "awaitingFinalQa": "Интизори санҷиши ниҳоии сифат",
@@ -55,7 +59,7 @@
       "translatorApproved": "Тарҷума тасдиқ шуд — операторро интизор аст",
       "assignedToNotary": "Тарҷума тасдиқ шуд — ба нотариус мефиристем",
       "notarizationInProgress": "Дар нотариус дар кор аст",
-      "notarized": "Тасдиқи нотариалӣ анҷом ёфт",
+      "notarized": "Ҳуҷҷат нотариалӣ тасдиқ карда шуд",
       "readyForPickup": "Барои гирифтан тайёр аст",
       "outForDelivery": "Ба курьер дода шуд",
       "delivered": "Фармоиш расонида шуд",
@@ -171,7 +175,7 @@
       "translatorApproved": "Тарҷума тафтиш шуд",
       "assignedToNotary": "Ба нотариус фиристода шуд",
       "notarizationInProgress": "Назди нотариус",
-      "notarized": "Нотариус анҷом дод",
+      "notarized": "Тасдиқи нотариалӣ анҷом ёфт",
       "readyForPickup": "Барои гирифтан омода аст",
       "outForDelivery": "Ба курер дода шуд",
       "delivered": "Гирифта шуд",
@@ -189,6 +193,7 @@
     "errors": {
       "serverError": "Хатои сервер. Лутфан бори дигар кӯшиш кунед.",
       "uploadFailed": "Хатои боркунӣ",
+      "pricingVersionChanged": "Тарифҳо навсозӣ шуданд. Бори дигар ҳисоб кунед.",
       "logoutFailed": "Баромадан муваффақ нашуд",
       "unsupportedFileType": "Навъи файли дастгирӣнашаванда: {files}",
       "pleaseSelectFile": "Лутфан ҳадди аққал як файл интихоб кунед",
@@ -199,6 +204,7 @@
       "invalidFileSignature": "The file \"{file}\" does not match its file type."
     },
     "uploadDocument": "Upload document",
+    "pricingSlowMessage": "Ҳисобкунӣ аз маъмулӣ бештар вақт мегирад — лутфан интизор шавед",
     "uploadedQuoteReady": "Document uploaded — price: {price} KZT. Confirm payment below.",
     "uploadedRequiresReview": "Document uploaded. The price will be confirmed by our operator.",
     "quoteReady": "Price confirmed",
@@ -265,7 +271,42 @@
     "uploadedQuoteReadyWithDiscount": "Ҳуҷҷат бор карда шуд — нарх: {price} ₸ ({saved} ₸ бо рамзи шарик сарфа шуд). Пардохтро тасдиқ кунед.",
     "priceBeforeDiscount": "Нархи аввала",
     "discountByCode": "Тахфифи шарик",
-    "finalPrice": "Ба пардохт"
+    "finalPrice": "Ба пардохт",
+    "progressFlow": {
+      "prePayment": {
+        "quoteReady": "Нарх ҳисоб карда шуд",
+        "paymentPending": "Дар интизори пардохт",
+        "paymentChecking": "Пардохт тафтиш карда мешавад",
+        "paymentFailed": "Пардохт иҷро нашуд"
+      },
+      "electronic": {
+        "paid": "Пардохт тасдиқ карда шуд",
+        "processing": "Ҳуҷҷат коркард карда мешавад",
+        "ready": "Тарҷума тайёр аст"
+      },
+      "official": {
+        "paid": "Пардохт тасдиқ карда шуд",
+        "processing": "Ҳуҷҷат коркард карда мешавад",
+        "awaitingTranslatorReview": "Ба тарҷумон фиристода шуд — дар интизори коркард",
+        "translatorReviewInProgress": "Ҳуҷҷатро тарҷумон коркард карда истодааст",
+        "ready": "Тарҷумаи расмӣ тайёр аст"
+      },
+      "notary": {
+        "paid": "Пардохт тасдиқ карда шуд",
+        "processing": "Ҳуҷҷат омода карда мешавад",
+        "awaitingTranslatorReview": "Ба тарҷумон фиристода шуд — дар интизори баррасӣ",
+        "translatorReviewInProgress": "Ҳуҷҷатро тарҷумон коркард карда истодааст",
+        "approvedForNotary": "Тарҷума барои тасдиқи нотариалӣ омода аст",
+        "notarizationInProgress": "Ҳуҷҷат назди нотариус аст",
+        "notarized": "Ҳуҷҷат нотариалӣ тасдиқ карда шуд",
+        "notarizedFinal": "Ҳуҷҷат нотариалӣ тасдиқ карда шуд",
+        "readyForPickup": "Барои гирифтан омода аст",
+        "pickedUp": "Фармоиш дода шуд",
+        "readyForDelivery": "Ҳуҷҷат барои супоридан ба курер омода аст",
+        "outForDelivery": "Ҳуҷҷат ба курер супорида шуд",
+        "delivered": "Ҳуҷҷат расонида шуд"
+      }
+    }
   },
   "electronicOutput": {
     "formats": {

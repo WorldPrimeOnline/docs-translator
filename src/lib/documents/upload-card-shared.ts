@@ -37,8 +37,14 @@ import { reportInternalPricingFailure } from '@/lib/pricing/internal-failure';
 import { downloadFile } from '@/lib/r2/client';
 import { attachReferralToOrder } from '@/lib/referral/server';
 import { calculatePartnerDiscount } from '@/lib/partners/discount';
+import { capDiscountForElectronicMinimum } from '@/lib/pricing/config';
+import { insertJobSourceFiles, type JobSourceFileInput } from '@/lib/jobs/source-files';
+import { aggregateReliablePhysicalPageCount } from '@/lib/document-analysis/physical-pages';
+import { ALLOWED_MIME_TYPES } from '@/lib/order-drafts/upload-constants';
 import type { Database } from '@/types';
 import type { ServiceLevel } from '@/lib/translation-prompts/types';
+
+export type { JobSourceFileInput };
 
 // Same values the legacy endpoint has always enforced — moved here (not duplicated)
 // so the legacy route and the new init/complete endpoints share one source.
@@ -185,6 +191,27 @@ export function cardFinalUploadKey(userId: string, uploadAttemptId: string): str
   return `documents/${userId}/${uploadAttemptId}/original.pdf`;
 }
 
+/**
+ * Permanent per-source-file key (2026-08-01 multi-file fulfillment decision) — the
+ * ORIGINAL bytes (not the PDF-converted copy used for merging/pricing) of one raw
+ * card-payment upload, in stable client-upload order. `sequence` is 1-based.
+ * Mirrors order-drafts/upload-shared.ts's permanentSourceKey, same R2 layout
+ * convention as cardFinalUploadKey above.
+ */
+export function cardSourceKey(userId: string, uploadAttemptId: string, sequence: number, mimeType: string): string {
+  const ext = ALLOWED_MIME_TYPES[mimeType] ?? 'bin';
+  return `documents/${userId}/${uploadAttemptId}/sources/${String(sequence).padStart(3, '0')}.${ext}`;
+}
+
+/**
+ * Permanent per-source CONVERTED PDF key — distinct from cardSourceKey's original bytes.
+ * The worker's OCR step reads this key (extractTextFromPdf requires PDF input);
+ * cardSourceKey stays the true original for Drive display/dedup.
+ */
+export function cardConvertedPdfKey(userId: string, uploadAttemptId: string, sequence: number): string {
+  return `documents/${userId}/${uploadAttemptId}/sources/${String(sequence).padStart(3, '0')}.converted.pdf`;
+}
+
 /** Same 10-uploads/hour-per-user limit the legacy endpoint has always enforced. */
 export async function checkCardUploadRateLimit(userId: string): Promise<boolean> {
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
@@ -268,6 +295,14 @@ export interface CardOrderInput {
   utmCampaign?: string | null;
   utmContent?: string | null;
   utmTerm?: string | null;
+  /**
+   * One entry per original client upload, sequence taken strictly from upload order
+   * (2026-08-01 multi-file fulfillment decision, migration 0063). Required — every
+   * call site creates a brand-new job in this function (the idempotency check above
+   * returns early before this is ever needed for a replay), so there is no legacy
+   * gap here the way convertDraftToOrder has for pre-migration order_drafts.
+   */
+  sources: JobSourceFileInput[];
 }
 
 export interface CardOrderSuccess {
@@ -317,6 +352,11 @@ function logStage(
 }
 
 export async function createCardOrder(input: CardOrderInput): Promise<CardOrderResult> {
+  // 2026-07-25: captured before any async work, so a PRICING_VERSION_MISMATCH below
+  // can be told apart from a genuine, longstanding config problem — see its handling
+  // further down for why this distinction matters (409 PRICING_VERSION_CHANGED vs.
+  // the generic 503 PRICING_UNAVAILABLE).
+  const requestStartedAt = new Date().toISOString();
   const correlationId = crypto.randomUUID();
   const { notarized } = deriveBackcompatBooleans(input.serviceLevel);
   const pricingDocumentType = input.documentType.includes('|') ? input.documentType.split('|')[0]! : input.documentType;
@@ -392,10 +432,13 @@ export async function createCardOrder(input: CardOrderInput): Promise<CardOrderR
 
   // Real document analysis (2026-07-22) is required for Official/Notary — the old
   // physicalPageCount=1 conservative default never reflected the actual document, so T (the
-  // translation component) came out as 0 for every non-electronic order. Electronic keeps its
-  // exact prior behavior (still physicalPageCount:1, still no analysis call) — untouched.
+  // translation component) came out as 0 for every non-electronic order. Electronic never runs
+  // document analysis, but per-source physical page counts ARE already available from upload
+  // time (input.sources, each populated via getPhysicalPageCount() before merging) — sum them
+  // rather than hardcoding 1 (2026-08-02 incident fix). Falls back to 1 only when a source is
+  // missing a reliable count — never guesses a partial sum.
   let analysisId: string | undefined;
-  let physicalPageCountForPricing: number | undefined = 1;
+  let physicalPageCountForPricing: number | undefined = Math.max(1, aggregateReliablePhysicalPageCount(input.sources) ?? 1);
   let sourceCharacterCountWithSpaces: number | undefined;
 
   if (input.serviceLevel !== 'electronic') {
@@ -466,11 +509,33 @@ export async function createCardOrder(input: CardOrderInput): Promise<CardOrderR
   const quoteResult = await computeQuoteForJob(pricingInput);
 
   if ('error' in quoteResult) {
-    // PRICING_NOT_CONFIGURED (no active version), SERVICE_LEVEL_PRICING_DISABLED (flag off for
-    // this service level), and PRICING_VERSION_MISMATCH (flag on but active version isn't the
-    // corrected new-model row) are all internal config problems — never surfaced to the
-    // customer by name (2026-07-28), only the real reason logged to Sentry for ops to fix.
+    // 2026-07-25: PRICING_VERSION_MISMATCH specifically can mean two different things, and they
+    // must not get the same response. If the pricing version that's now active only became
+    // active AFTER this very request started (activeVersionValidFrom > requestStartedAt), the
+    // world genuinely changed out from under this one attempt (an operator activated a new
+    // pricing version while this request's OCR was running) — a real but narrow, honestly
+    // retriable condition, not a config problem. That gets a distinct, controlled 409 (never a
+    // bare 503) so the customer sees "tariffs updated, please recalculate" and can safely
+    // resubmit; the existing document_analysis row is reused on that resubmit (idempotent — see
+    // resolveDocumentAnalysisForPricing), never re-run. Any OTHER PRICING_VERSION_MISMATCH (the
+    // active version has been wrong for longer than this request's lifetime — e.g. a genuinely
+    // misconfigured version), plus PRICING_NOT_CONFIGURED/SERVICE_LEVEL_PRICING_DISABLED, stay
+    // exactly as before: internal config problems never surfaced to the customer by name
+    // (2026-07-28), only the real reason logged to Sentry for ops to fix.
     logStage(correlationId, 'compute_quote', 'error', { reason: quoteResult.error });
+
+    if (quoteResult.error === 'PRICING_VERSION_MISMATCH' && 'activeVersionValidFrom' in quoteResult && quoteResult.activeVersionValidFrom > requestStartedAt) {
+      await supabaseServer.from('documents').update({ status: 'failed' }).eq('id', doc.id);
+      logStage(correlationId, 'compute_quote', 'error', {
+        reason: 'stale_pricing_version',
+        activeVersionId: quoteResult.activeVersionId,
+        activeVersionCode: quoteResult.activeVersionCode,
+        activeVersionValidFrom: quoteResult.activeVersionValidFrom,
+        requestStartedAt,
+      });
+      return { ok: false, status: 409, error: 'PRICING_VERSION_CHANGED' };
+    }
+
     await supabaseServer.from('documents').update({ status: 'failed' }).eq('id', doc.id);
     const failure = reportInternalPricingFailure(quoteResult.error, { correlationId, documentId: doc.id, serviceLevel: input.serviceLevel });
     return { ok: false, status: failure.status, error: failure.error };
@@ -515,6 +580,7 @@ export async function createCardOrder(input: CardOrderInput): Promise<CardOrderR
       .maybeSingle();
 
     discountKzt = calculatePartnerDiscount(basePreDiscountKzt, discountPartner);
+    discountKzt = capDiscountForElectronicMinimum(basePreDiscountKzt, discountKzt, input.serviceLevel);
   }
 
   const finalPriceKzt = basePreDiscountKzt - discountKzt;
@@ -563,6 +629,20 @@ export async function createCardOrder(input: CardOrderInput): Promise<CardOrderR
     return { ok: false, status: 500, error: 'Failed to create job' };
   }
   logStage(correlationId, 'job_insert', 'ok', { jobId: job.id });
+
+  // job_source_files: always strict here — this function only ever creates a brand-new
+  // job (idempotency check above replays instead of re-running this), so real
+  // per-source metadata is always available; a failure here must not leave a job in a
+  // payable state with an incomplete/missing source-file record.
+  logStage(correlationId, 'job_source_files_insert', 'start', { jobId: job.id, count: input.sources.length });
+  const sourceFilesResult = await insertJobSourceFiles(job.id, input.sources, { strict: true });
+  if (!sourceFilesResult.ok) {
+    logStage(correlationId, 'job_source_files_insert', 'error', { reason: sourceFilesResult.error });
+    await supabaseServer.from('jobs').update({ status: 'failed', error_message: 'job_source_files insert failed' }).eq('id', job.id);
+    await supabaseServer.from('documents').update({ status: 'failed' }).eq('id', doc.id);
+    return { ok: false, status: 500, error: 'SOURCE_FILES_INSERT_FAILED' };
+  }
+  logStage(correlationId, 'job_source_files_insert', 'ok', { jobId: job.id });
 
   const notaryCutoffExpiry = pricingResult.context.notaryCutoff?.quoteExpiresAt;
   const cutoffExpiresAt = notaryCutoffExpiry && notaryCutoffExpiry.length > 0 ? notaryCutoffExpiry : undefined;

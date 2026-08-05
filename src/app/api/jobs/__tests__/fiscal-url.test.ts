@@ -38,6 +38,13 @@ jest.mock('@/lib/translation-workflow/customer-order-state', () => ({
   })),
 }));
 
+// This test file doesn't exercise the 2026-08-01 multi-file fulfillment decision —
+// every job here is a legacy single-file job, so isMultiSource=false is the correct
+// (and only relevant) mock here.
+jest.mock('@/lib/jobs/result-files-status', () => ({
+  getResultFilesStatus: jest.fn(() => Promise.resolve({ isMultiSource: false, hasReadyResultFiles: false, readyFiles: [] })),
+}));
+
 import { createServerClient } from '@supabase/ssr';
 import { supabaseServer } from '@/lib/supabase/server';
 

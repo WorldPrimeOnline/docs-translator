@@ -137,6 +137,40 @@ function jiraUrl(issueKey: string): string | null {
   return `${creds.baseUrl}/browse/${issueKey}`;
 }
 
+/**
+ * 2026-08-01 multi-file fulfillment decision: marks the document completed for a
+ * multi-source (job_source_files rows exist) notarized order once physical delivery
+ * is confirmed. No-op for legacy single-file jobs (job_source_files empty) — their
+ * documents.status handling is completely unchanged. Non-fatal: a failure here must
+ * never fail the DELIVERED webhook itself, since workflow_status has already been
+ * durably updated by the time this runs.
+ */
+async function completeDocumentIfMultiSourceNotarized(jobId: string, tag: string): Promise<void> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { count: totalSources } = await (supabaseServer as any)
+      .from('job_source_files')
+      .select('id', { count: 'exact', head: true })
+      .eq('job_id', jobId);
+    if (!totalSources || totalSources === 0) return;
+
+    const { data: jobRow } = await supabaseServer
+      .from('jobs')
+      .select('document_id, service_level')
+      .eq('id', jobId)
+      .single();
+    if (jobRow?.service_level !== 'notarization_through_partners' || !jobRow.document_id) return;
+
+    const { error } = await supabaseServer
+      .from('documents')
+      .update({ status: 'completed' })
+      .eq('id', jobRow.document_id);
+    if (error) console.error(`${tag} multi-source notarized document completion failed:`, error.message);
+  } catch (err) {
+    console.error(`${tag} multi-source notarized document completion error (non-fatal):`, err instanceof Error ? err.message : String(err));
+  }
+}
+
 // ─── 1. Post-upload: create Drive folder + upload source + create Jira issue ──
 
 export async function initializeOrderIntegrations(params: {
@@ -569,6 +603,48 @@ export async function syncReadyForDelivery(params: {
   }
 }
 
+/**
+ * Jira status "Закрыто" (ORDER_CLOSED) — 2026-08-05 WO-112 fix. Terminal for EVERY
+ * service level regardless of physical delivery/pickup progress. This is a distinct
+ * terminal COMMAND, never routed through safeUpdateWorkflowStatus's monotonic rank
+ * guard — the whole point is to mark the order done from WHATEVER workflow_status it
+ * is currently at (notarized, translator_approved, anything) WITHOUT changing that
+ * value; the guard exists to reject a normal event arriving out of order, not to
+ * gate an explicit staff "this order is closed" command. Sets jobs.status='completed'
+ * (idempotent — usually already true from the AI pipeline finishing long before this)
+ * and jobs.jira_closed_at (migration 0067) — the sole signal
+ * getCustomerOrderState() reads to force 100%/"Готово"/history placement, never
+ * workflow_status itself (see customer-order-state.ts). Idempotent: a repeat
+ * ORDER_CLOSED is a harmless re-write of the same terminal fields.
+ */
+export async function syncOrderClosed(params: {
+  jobId: string;
+  jiraIssueKey: string;
+}): Promise<{ applied: boolean }> {
+  const tag = `[integration:${params.jobId.slice(0, 8)}]`;
+  try {
+    await updateJobIntegration(params.jobId, {
+      jira_sync_status: 'closed',
+      status: 'completed',
+      jira_closed_at: new Date().toISOString(),
+    });
+    await audit({
+      jobId: params.jobId,
+      actor: 'operator',
+      source: 'jira_webhook',
+      action: 'order_closed',
+      newStatus: 'closed',
+      jiraIssueKey: params.jiraIssueKey,
+    });
+    console.log(`${tag} ✓ order closed: Supabase synced (workflow_status preserved)`);
+    return { applied: true };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`${tag} syncOrderClosed failed: ${msg}`);
+    return { applied: false };
+  }
+}
+
 export async function syncJobTerminated(params: {
   jobId: string;
   jiraIssueKey: string;
@@ -618,6 +694,47 @@ export async function syncInformational(params: {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`${tag} syncInformational(${params.event}) failed: ${msg}`);
+  }
+}
+
+/**
+ * Jira status "В работе у переводчика" (2026-08-04) — the translator has started
+ * actively reviewing the AI draft, distinct from merely being assigned. Same shape as
+ * syncNotaryInProgress: forward-only via safeUpdateWorkflowStatus (rank 2, between
+ * awaiting_translator_review=1 and translator_approved=3 — see WORKFLOW_RANK above),
+ * idempotent (the webhook route's eventId guard handles exact-duplicate retries;
+ * safeUpdateWorkflowStatus's rank check makes a same-status repeat a harmless no-op
+ * re-write). Never publishes 03_TRANSLATOR_RESULT and never triggers Drive read-back —
+ * those remain gated on TRANSLATOR_COMPLETED only.
+ */
+export async function syncTranslatorInProgress(params: {
+  jobId: string;
+  jiraIssueKey: string;
+}): Promise<{ applied: boolean }> {
+  const tag = `[integration:${params.jobId.slice(0, 8)}]`;
+  try {
+    const { applied } = await safeUpdateWorkflowStatus({
+      jobId: params.jobId,
+      newStatus: 'translator_review_in_progress',
+      fields: { jira_sync_status: 'translator_review_in_progress', workflow_status: 'translator_review_in_progress' },
+      jiraIssueKey: params.jiraIssueKey,
+      eventType: 'TRANSLATOR_IN_PROGRESS',
+    });
+    if (!applied) return { applied: false };
+    await audit({
+      jobId: params.jobId,
+      actor: 'translator',
+      source: 'jira_webhook',
+      action: 'translator_review_in_progress',
+      newStatus: 'translator_review_in_progress',
+      jiraIssueKey: params.jiraIssueKey,
+    });
+    console.log(`${tag} ✓ translator review in progress: Supabase synced`);
+    return { applied: true };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`${tag} syncTranslatorInProgress failed: ${msg}`);
+    return { applied: false };
   }
 }
 
@@ -754,6 +871,16 @@ export async function syncDelivered(params: {
       eventType: 'DELIVERED',
     });
     if (!applied) return { applied: false };
+
+    // 2026-08-01 multi-file fulfillment decision: for a multi-source notarized order
+    // with delivery fulfillment, digital access already opened as soon as the notary
+    // result finished syncing (see canCustomerDownload's hasReadyResultFiles input) —
+    // but the order itself only completes now, once physical delivery is confirmed
+    // ("не завершать заказ до доставки"). Scoped to multi-source jobs only — legacy
+    // single-file notarized jobs never get digital access regardless, so their
+    // documents.status is intentionally left untouched here, unchanged from before.
+    await completeDocumentIfMultiSourceNotarized(params.jobId, tag);
+
     await audit({
       jobId: params.jobId,
       actor: 'operator',

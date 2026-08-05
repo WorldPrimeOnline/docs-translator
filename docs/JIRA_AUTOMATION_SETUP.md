@@ -127,19 +127,32 @@ Create each rule in **two copies** — one for staging (condition: `labels = wpo
 
 ### 2. TRANSLATOR_IN_PROGRESS
 
-**Trigger**: Issue transitioned to status `Translation In Progress`  
-**eventType**: `TRANSLATOR_IN_PROGRESS`  
-**Effect in WPO**: audit log only
+**Trigger**: Issue transitioned to status `Translation In Progress` (RU: «В работе у переводчика»)
+**eventType**: `TRANSLATOR_IN_PROGRESS`
+**Effect in WPO** (2026-08-04 — no longer audit-log-only):
+`workflow_status → translator_review_in_progress` (forward-only — a job already at
+`translator_approved`/`assigned_to_notary` or later is never moved backward; see
+`WORKFLOW_RANK` in `src/lib/integrations/workflow.ts`). Order stays active on the
+customer dashboard (`«Перевод проверяется переводчиком»` / localized equivalent via
+`dashboard.status.translatorReviewInProgress`), download stays unavailable, Drive
+read-back is not triggered by this event (it only ever runs for
+`signature_stamp`/`notary` result stages, unrelated to this status). Idempotent via
+the existing `eventId` guard — a retried delivery never re-applies or duplicates.
 
 ---
 
 ### 3. TRANSLATOR_COMPLETED
 
-**Trigger**: Issue transitioned to status `Translation Done`  
+**Trigger**: Issue transitioned to status `Translation Done` (RU: «Перевод завершен»)
 **eventType**: `TRANSLATOR_COMPLETED`  
 **Effect in WPO**:
 - Certified jobs (`service_level = official_with_translator_signature_and_provider_stamp`): `workflow_status → translator_approved`
 - Notarized jobs (`service_level = notarization_through_partners`): `workflow_status → assigned_to_notary`
+
+Audited 2026-08-04 alongside the new `TRANSLATOR_IN_PROGRESS` mapping (rule 2 above):
+mapping confirmed correct, resulting customer-facing statuses
+(`dashboard.status.translatorApproved` / `assignedToNotary`) confirmed correct, no bug
+found — logic left unchanged.
 
 ---
 

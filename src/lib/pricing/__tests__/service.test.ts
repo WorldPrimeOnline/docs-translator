@@ -46,6 +46,20 @@ const NEW_MODEL_VERSION_ROW = {
 
 const MVP_VERSION_ROW = { ...NEW_MODEL_VERSION_ROW, id: 'v-mvp', code: '2026-Q3-KZ-MVP', metadata: { note: 'old' } };
 
+// 2026-07-25 incident: the WO-98 progressive-coordination version — same approved formula
+// (formula_version: new_2026_07_21), different `code`, different coordination metadata layered
+// on top. Activating this as the new active version must NOT break quoting.
+const COORD_TIERS_VERSION_ROW = {
+  ...NEW_MODEL_VERSION_ROW, id: 'v-coord-tiers', code: '2026-Q3-KZ-NEWMODEL-COORD-TIERS',
+  valid_from: '2026-07-25T09:00:00.000Z',
+  metadata: {
+    formula_version: 'new_2026_07_21',
+    coordinationVolumeTiers: [{ rate: 0.3, fromPage: 0, upToPage: 5 }, { rate: 0.25, fromPage: 5, upToPage: 10 }, { rate: 0.2, fromPage: 10, upToPage: null }],
+    notaryCoordinationRate: 0.3,
+    courierCoordinationRate: 0.3,
+  },
+};
+
 function baseInput(overrides: Partial<PricingInput> = {}): PricingInput {
   return { sourceLanguage: 'ru', targetLanguage: 'en', serviceLevel: 'official_with_translator_signature_and_provider_stamp', ...overrides };
 }
@@ -80,12 +94,84 @@ describe('computeQuoteForJob', () => {
     expect(mockCalculatePrice).not.toHaveBeenCalled();
   });
 
-  it('official + flag ON but active version is NOT the corrected new-model row -> PRICING_VERSION_MISMATCH, never silently prices against the wrong version', async () => {
+  it('official + flag ON but active version is NOT the corrected new-model row -> PRICING_VERSION_MISMATCH (with detail, never silently prices against the wrong version)', async () => {
     process.env.ENABLE_NEW_OFFICIAL_PRICING = 'true';
     mockFrom.mockReturnValueOnce(chain({ data: MVP_VERSION_ROW, error: null }));
     const result = await computeQuoteForJob(baseInput());
-    expect(result).toEqual({ error: 'PRICING_VERSION_MISMATCH' });
+    expect(result).toEqual({
+      error: 'PRICING_VERSION_MISMATCH',
+      activeVersionId: 'v-mvp',
+      activeVersionCode: '2026-Q3-KZ-MVP',
+      activeVersionValidFrom: '2026-07-17',
+    });
     expect(mockCalculatePrice).not.toHaveBeenCalled();
+  });
+
+  it('2026-07-25 incident regression: the gate checks formula_version only, NOT a hardcoded exact code — activating 2026-Q3-KZ-NEWMODEL-COORD-TIERS (same approved formula, different code) must NOT return PRICING_VERSION_MISMATCH', async () => {
+    process.env.ENABLE_NEW_OFFICIAL_PRICING = 'true';
+    mockFrom
+      .mockReturnValueOnce(chain({ data: COORD_TIERS_VERSION_ROW, error: null }))
+      .mockReturnValueOnce(chain({ data: null, error: null }))
+      .mockReturnValueOnce(chain({ data: null, error: null }));
+
+    const result = await computeQuoteForJob(baseInput());
+
+    expect('error' in result).toBe(false);
+    expect(mockCalculatePrice).toHaveBeenCalledTimes(1);
+  });
+
+  it('notarization also succeeds against the coord-tiers version', async () => {
+    process.env.ENABLE_NEW_NOTARY_PRICING = 'true';
+    mockFrom
+      .mockReturnValueOnce(chain({ data: COORD_TIERS_VERSION_ROW, error: null }))
+      .mockReturnValueOnce(chain({ data: null, error: null }))
+      .mockReturnValueOnce(chain({ data: null, error: null }));
+
+    const result = await computeQuoteForJob(baseInput({ serviceLevel: 'notarization_through_partners' }));
+
+    expect('error' in result).toBe(false);
+    expect(mockCalculatePrice).toHaveBeenCalledTimes(1);
+  });
+
+  it('a genuinely wrong formula_version still returns PRICING_VERSION_MISMATCH — the gate is not simply disabled', async () => {
+    process.env.ENABLE_NEW_OFFICIAL_PRICING = 'true';
+    const wrongFormula = { ...NEW_MODEL_VERSION_ROW, id: 'v-wrong', code: 'SOME-OTHER-CODE', metadata: { formula_version: 'old_formula' } };
+    mockFrom.mockReturnValueOnce(chain({ data: wrongFormula, error: null }));
+
+    const result = await computeQuoteForJob(baseInput());
+
+    expect(result).toEqual({
+      error: 'PRICING_VERSION_MISMATCH',
+      activeVersionId: 'v-wrong',
+      activeVersionCode: 'SOME-OTHER-CODE',
+      activeVersionValidFrom: '2026-07-17',
+    });
+    expect(mockCalculatePrice).not.toHaveBeenCalled();
+  });
+
+  it('logs a structured, safe diagnostic on mismatch — expected/actual version identifiers and documentId, never the full config payload', async () => {
+    process.env.ENABLE_NEW_OFFICIAL_PRICING = 'true';
+    mockFrom.mockReturnValueOnce(chain({ data: MVP_VERSION_ROW, error: null }));
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    await computeQuoteForJob(baseInput({ documentId: 'doc-123', analysisId: 'analysis-456' }));
+
+    const logged = consoleSpy.mock.calls.map((c) => String(c[0])).find((s) => s.includes('pricing_version_mismatch'));
+    expect(logged).toBeDefined();
+    const parsed = JSON.parse(logged!);
+    expect(parsed).toEqual({
+      scope: 'pricing_version_mismatch',
+      expectedFormulaVersion: 'new_2026_07_21',
+      actualVersionId: 'v-mvp',
+      actualVersionCode: '2026-Q3-KZ-MVP',
+      actualFormulaVersion: null,
+      documentId: 'doc-123',
+      analysisId: 'analysis-456',
+    });
+    // Never the full metadata/config payload — only identifiers.
+    expect(logged).not.toContain('coordinationVolumeTiers');
+    expect(logged).not.toContain('rate_kzt_per_translation_page');
+    consoleSpy.mockRestore();
   });
 
   it('official + flag ON + active version IS the corrected new-model row -> proceeds to calculatePrice as normal', async () => {

@@ -308,9 +308,24 @@ describe('successful conversion and merge', () => {
     expect(mergedArg.map((b) => b.toString())).toEqual(['AAA', 'BBB']);
   });
 
-  it('never calls setDraftFile before the final PDF is durably uploaded', async () => {
+  it('never calls setDraftFile when the permanent per-source upload fails', async () => {
     mockHeadFile.mockResolvedValueOnce({ contentLength: 100, contentType: 'application/pdf' });
-    mockUploadFile.mockRejectedValueOnce(new Error('R2 down'));
+    mockUploadFile.mockRejectedValueOnce(new Error('R2 down')); // first uploadFile call = permanent source key
+    const { request, params } = makeRequest('draft-1', { uploads: oneUpload });
+    const res = await POST(request, { params });
+
+    expect(res.status).toBe(500);
+    expect((await res.json() as { error?: string }).error).toBe('SOURCE_UPLOAD_FAILED');
+    expect(mockSetDraftFile).not.toHaveBeenCalled();
+    expect(mockDeleteFile).not.toHaveBeenCalled(); // retry-safe: raw objects kept
+  });
+
+  it('never calls setDraftFile when the merged-bundle upload fails', async () => {
+    mockHeadFile.mockResolvedValueOnce({ contentLength: 100, contentType: 'application/pdf' });
+    mockUploadFile
+      .mockResolvedValueOnce(undefined) // permanent source ORIGINAL key upload succeeds
+      .mockResolvedValueOnce(undefined) // permanent source CONVERTED-PDF key upload succeeds
+      .mockRejectedValueOnce(new Error('R2 down')); // merged-bundle (finalKey) upload fails
     const { request, params } = makeRequest('draft-1', { uploads: oneUpload });
     const res = await POST(request, { params });
 
@@ -432,7 +447,7 @@ describe('content-hash dedup before mergePdfs (2026-07-29 incident regression)',
   // accumulation) under a reprocessing path (e.g. the final object briefly unavailable).
   // mergePdfs() must never see both copies — physicalPageCount/characterCount must not
   // double for what is actually a one-page document.
-  it('collapses two byte-identical uploads to one before merging — draft ends up with sourceUploadCount=1, not 2', async () => {
+  it('collapses two byte-identical uploads to one before merging — draft ends up with one source (sequence 1), not 2', async () => {
     mockHeadFile
       .mockResolvedValueOnce({ contentLength: 3, contentType: 'application/pdf' })
       .mockResolvedValueOnce({ contentLength: 3, contentType: 'application/pdf' });
@@ -457,8 +472,7 @@ describe('content-hash dedup before mergePdfs (2026-07-29 incident regression)',
     expect(mockSetDraftFile).toHaveBeenCalledWith(
       'draft-1',
       expect.objectContaining({
-        sourceUploadCount: 1,
-        sourceUploadIds: [RAW_KEY_1],
+        sources: [expect.objectContaining({ sequence: 1, originalName: 'passport.pdf', physicalPageCount: 1 })],
       }),
       expect.anything(),
     );
@@ -468,7 +482,7 @@ describe('content-hash dedup before mergePdfs (2026-07-29 incident regression)',
     expect(mockDeleteFile).toHaveBeenCalledWith(RAW_KEY_2);
   });
 
-  it('two genuinely different files are NOT deduped — sourceUploadCount reflects both', async () => {
+  it('two genuinely different files are NOT deduped — sources reflects both, in sequence order', async () => {
     mockHeadFile
       .mockResolvedValueOnce({ contentLength: 3, contentType: 'application/pdf' })
       .mockResolvedValueOnce({ contentLength: 3, contentType: 'application/pdf' });
@@ -487,7 +501,12 @@ describe('content-hash dedup before mergePdfs (2026-07-29 incident regression)',
     expect(mergedArg).toHaveLength(2);
     expect(mockSetDraftFile).toHaveBeenCalledWith(
       'draft-1',
-      expect.objectContaining({ sourceUploadCount: 2, sourceUploadIds: [RAW_KEY_1, RAW_KEY_2] }),
+      expect.objectContaining({
+        sources: [
+          expect.objectContaining({ sequence: 1, originalName: 'front.pdf', physicalPageCount: 1 }),
+          expect.objectContaining({ sequence: 2, originalName: 'back.pdf', physicalPageCount: 2 }),
+        ],
+      }),
       expect.anything(),
     );
   });
@@ -502,7 +521,7 @@ describe('content-hash dedup before mergePdfs (2026-07-29 incident regression)',
     expect(res1.status).toBe(200);
     expect(mockSetDraftFile).toHaveBeenLastCalledWith(
       'draft-1',
-      expect.objectContaining({ sourceUploadCount: 1, sourceUploadIds: [RAW_KEY_1] }),
+      expect.objectContaining({ sources: [expect.objectContaining({ sequence: 1 })] }),
       expect.anything(),
     );
 
@@ -513,7 +532,10 @@ describe('content-hash dedup before mergePdfs (2026-07-29 incident regression)',
     // reprocessing — with the client's (stale, duplicated) uploads list.
     mockGetDraftRow.mockResolvedValueOnce({
       ...BASE_DRAFT,
-      file_keys: [{ key: FINAL_KEY, originalName: 'passport.pdf', mimeType: 'application/pdf', sizeBytes: 3, sourceUploadCount: 1, sourceUploadIds: [RAW_KEY_1] }],
+      file_keys: [{
+        key: FINAL_KEY, originalName: 'passport.pdf', mimeType: 'application/pdf', sizeBytes: 3,
+        sources: [{ sequence: 1, originalName: 'passport.pdf', permanentKey: 'draft-uploads/draft-1/sources/001.pdf', contentSha256: 'abc', mimeType: 'application/pdf', physicalPageCount: 1 }],
+      }],
     });
     mockHeadFile
       .mockResolvedValueOnce(null) // final-key probe fails -> reprocess
@@ -530,11 +552,78 @@ describe('content-hash dedup before mergePdfs (2026-07-29 incident regression)',
     // Draft still ends up with exactly ONE source upload — never doubled by the retry.
     expect(mockSetDraftFile).toHaveBeenLastCalledWith(
       'draft-1',
-      expect.objectContaining({ sourceUploadCount: 1 }),
+      expect.objectContaining({ sources: [expect.objectContaining({ sequence: 1 })] }),
       expect.anything(),
     );
     const mergedArg = mockMergePdfs.mock.calls[mockMergePdfs.mock.calls.length - 1]![0] as Buffer[];
     expect(mergedArg).toHaveLength(1);
+  });
+});
+
+describe('sequence assignment is by request order, never by completion timing (WO-98 multi-file order-preservation audit, 2026-08-04)', () => {
+  it('10 files whose downloads/conversions resolve in an artificially REVERSED order still persist as sequence 1..10, in original request order', async () => {
+    const N = 10;
+    const rawKeys = Array.from({ length: N }, (_, i) => `draft-upload-raw/draft-1/${String(i).padStart(8, '0')}-0000-0000-0000-000000000000`);
+    const uploads = rawKeys.map((key, i) => ({ key, originalName: `${i + 1}.jpg`, mimeType: 'image/jpeg', sizeBytes: 3 }));
+
+    mockHeadFile.mockImplementation(() => Promise.resolve({ contentLength: 3, contentType: 'image/jpeg' }));
+
+    // downloadFile: the LAST key requested resolves FIRST in wall-clock time —
+    // real setTimeout-based races, not just mock queue order.
+    mockDownloadFile.mockImplementation((key: string) => {
+      const idx = rawKeys.indexOf(key);
+      const delayMs = (N - idx) * 3;
+      return new Promise((resolve) => setTimeout(() => resolve(Buffer.from(`FILE-${idx}`)), delayMs));
+    });
+    // convertToPdf: reversed again, independently, relative to the download stagger.
+    mockConvertToPdf.mockImplementation((buf: Buffer) => {
+      const idx = Number(buf.toString().split('-')[1]);
+      const delayMs = idx * 3;
+      return new Promise((resolve) => setTimeout(() => resolve(Buffer.from(buf.toString())), delayMs));
+    });
+    mockGetPhysicalPageCount.mockImplementation(() => Promise.resolve(1));
+
+    const { request, params } = makeRequest('draft-1', { uploads });
+    const res = await POST(request, { params });
+
+    expect(res.status).toBe(200);
+    const sourcesArg = (mockSetDraftFile.mock.calls[0]![1] as { sources: Array<{ sequence: number; originalName: string }> }).sources;
+    expect(sourcesArg.map((s) => s.sequence)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    expect(sourcesArg.map((s) => s.originalName)).toEqual(uploads.map((u) => u.originalName));
+
+    const mergedArg = mockMergePdfs.mock.calls[0]![0] as Buffer[];
+    expect(mergedArg.map((b) => b.toString())).toEqual(Array.from({ length: N }, (_, i) => `FILE-${i}`));
+  });
+
+  it('identical filenames with DIFFERENT content hash are never deduped — both survive, in sequence order', async () => {
+    mockHeadFile
+      .mockResolvedValueOnce({ contentLength: 3, contentType: 'application/pdf' })
+      .mockResolvedValueOnce({ contentLength: 3, contentType: 'application/pdf' });
+    // Same claimed originalName, genuinely different bytes (e.g. two different pages
+    // the customer happened to name identically on their own device).
+    mockDownloadFile.mockResolvedValueOnce(Buffer.from('PAGE-A')).mockResolvedValueOnce(Buffer.from('PAGE-B'));
+    mockGetPhysicalPageCount.mockResolvedValueOnce(1).mockResolvedValueOnce(1);
+
+    const uploads = [
+      { key: RAW_KEY_1, originalName: 'scan.jpg', mimeType: 'application/pdf', sizeBytes: 3 },
+      { key: RAW_KEY_2, originalName: 'scan.jpg', mimeType: 'application/pdf', sizeBytes: 3 },
+    ];
+    const { request, params } = makeRequest('draft-1', { uploads });
+    const res = await POST(request, { params });
+
+    expect(res.status).toBe(200);
+    const mergedArg = mockMergePdfs.mock.calls[0]![0] as Buffer[];
+    expect(mergedArg).toHaveLength(2);
+    expect(mockSetDraftFile).toHaveBeenCalledWith(
+      'draft-1',
+      expect.objectContaining({
+        sources: [
+          expect.objectContaining({ sequence: 1, originalName: 'scan.jpg' }),
+          expect.objectContaining({ sequence: 2, originalName: 'scan.jpg' }),
+        ],
+      }),
+      expect.anything(),
+    );
   });
 });
 

@@ -15,6 +15,8 @@
     "queued": "Navbatda",
     "failed": "Xato",
     "download": "Yuklab olish",
+    "historyAvailableUntil": "{date} gacha mavjud",
+    "historyRetentionExpired": "Saqlash muddati tugadi",
     "fiscalReceipt": "Elektron chek",
     "fiscalReceiptPending": "Chek tayyorlanmoqda",
     "signedIn": "Tizimga kirgan:",
@@ -38,6 +40,7 @@
     "usingPlanSub": "{plan} rejangizdan foydalanilmoqda · {remaining} ta hujjat qoldi — to'lov talab qilinmaydi",
     "status": {
       "paymentPending": "To'lov kutilmoqda",
+      "preparingDocument": "Hujjatni qayta ishlashga tayyorlash",
       "queued": "Navbatda — boshlanishini kutmoqda…",
       "ocr": "Matn ajratilmoqda… ({pct}%)",
       "ocrDone": "OCR tugadi, tarjima boshlanmoqda… ({pct}%)",
@@ -46,6 +49,7 @@
       "completed": "Bajarildi",
       "failed": "Xato",
       "awaitingTranslatorReview": "Tarjimonga yuborildi — ko'rib chiqish kutilmoqda",
+      "translatorReviewInProgress": "Hujjatni tarjimon qayta ishlamoqda",
       "awaitingSignatureStamp": "Tarjimon imzosi va muhrini kutmoqda",
       "awaitingNotaryReview": "Notariusga yuborildi — tasdiqlash kutilmoqda",
       "awaitingFinalQa": "Yakuniy sifat tekshiruvi kutilmoqda",
@@ -55,7 +59,7 @@
       "translatorApproved": "Tarjima tasdiqlandi — operator kutmoqda",
       "assignedToNotary": "Tarjima tasdiqlandi — notariusga yuborilmoqda",
       "notarizationInProgress": "Notariusda bajarilmoqda",
-      "notarized": "Notarial tasdiq yakunlandi",
+      "notarized": "Hujjat notarial tasdiqlandi",
       "readyForPickup": "O'z-o'ziga olishga tayyor",
       "outForDelivery": "Kuryerga topshirildi",
       "delivered": "Buyurtma yetkazildi",
@@ -171,7 +175,7 @@
       "translatorApproved": "Tarjima tasdiqlandi",
       "assignedToNotary": "Notariusga yuborildi",
       "notarizationInProgress": "Notariusda",
-      "notarized": "Notarius yakunladi",
+      "notarized": "Notarial tasdiq yakunlandi",
       "readyForPickup": "Olib ketishga tayyor",
       "outForDelivery": "Kurierga topshirildi",
       "delivered": "Qabul qilindi",
@@ -189,6 +193,7 @@
     "errors": {
       "serverError": "Server xatosi. Iltimos, qayta urinib ko'ring.",
       "uploadFailed": "Yuklash xatosi",
+      "pricingVersionChanged": "Tariflar yangilandi. Qayta hisoblang.",
       "logoutFailed": "Chiqish muvaffaqiyatsiz tugadi",
       "unsupportedFileType": "Qo'llab-quvvatlanmaydigan fayl turi: {files}",
       "pleaseSelectFile": "Kamida bitta fayl tanlang",
@@ -199,6 +204,7 @@
       "invalidFileSignature": "\"{file}\" fayli e'lon qilingan turga mos kelmaydi."
     },
     "uploadDocument": "Hujjat yuklash",
+    "pricingSlowMessage": "Hisoblash odatdagidan ko'proq vaqt olmoqda — iltimos kuting",
     "uploadedQuoteReady": "Hujjat yuklandi — narx: {price} ₸. Quyida to'lovni tasdiqlang.",
     "uploadedRequiresReview": "Hujjat yuklandi. Narx operatorimiz tomonidan tasdiqlanadi.",
     "quoteReady": "Narx tasdiqlandi",
@@ -265,7 +271,42 @@
     "uploadedQuoteReadyWithDiscount": "Hujjat yuklandi — narx: {price} ₸ (sherik kodi bilan {saved} ₸ tejaldi). To'lovni tasdiqlang.",
     "priceBeforeDiscount": "Chegirmadan oldingi narx",
     "discountByCode": "Hamkor chegirmasi",
-    "finalPrice": "To'lov summasi"
+    "finalPrice": "To'lov summasi",
+    "progressFlow": {
+      "prePayment": {
+        "quoteReady": "Narx hisoblandi",
+        "paymentPending": "To'lov kutilmoqda",
+        "paymentChecking": "To'lov tekshirilmoqda",
+        "paymentFailed": "To'lov amalga oshmadi"
+      },
+      "electronic": {
+        "paid": "To'lov tasdiqlandi",
+        "processing": "Hujjat qayta ishlanmoqda",
+        "ready": "Tarjima tayyor"
+      },
+      "official": {
+        "paid": "To'lov tasdiqlandi",
+        "processing": "Hujjat qayta ishlanmoqda",
+        "awaitingTranslatorReview": "Tarjimonga yuborildi — qayta ishlanishi kutilmoqda",
+        "translatorReviewInProgress": "Hujjatni tarjimon qayta ishlamoqda",
+        "ready": "Rasmiy tarjima tayyor"
+      },
+      "notary": {
+        "paid": "To'lov tasdiqlandi",
+        "processing": "Hujjat tayyorlanmoqda",
+        "awaitingTranslatorReview": "Tarjimonga yuborildi — tekshiruv kutilmoqda",
+        "translatorReviewInProgress": "Hujjatni tarjimon qayta ishlamoqda",
+        "approvedForNotary": "Tarjima notarial tasdiqqa tayyor",
+        "notarizationInProgress": "Hujjat notarius huzurida",
+        "notarized": "Hujjat notarial tasdiqlandi",
+        "notarizedFinal": "Hujjat notarial tasdiqlandi",
+        "readyForPickup": "Olib ketishga tayyor",
+        "pickedUp": "Buyurtma topshirildi",
+        "readyForDelivery": "Hujjat kuryerga topshirishga tayyor",
+        "outForDelivery": "Hujjat kuryerga topshirildi",
+        "delivered": "Hujjat yetkazildi"
+      }
+    }
   },
   "electronicOutput": {
     "formats": {

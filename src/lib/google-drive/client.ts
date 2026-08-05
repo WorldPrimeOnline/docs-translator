@@ -200,3 +200,26 @@ export async function uploadFileToDrive(
 export function isDriveEnabled(): boolean {
   return isDriveConfigured();
 }
+
+/**
+ * 2026-07-24 retention fix: trashes the order's Drive folder (moves to Drive Trash,
+ * NOT a permanent delete — Drive keeps trashed items for its own separate retention
+ * window, an extra safety net against a bug here) as part of the 30-day retention
+ * cleanup. Trashing the top-level order folder cascades to every subfolder/file inside
+ * it in a single call — never enumerates and deletes individual files. Returns false
+ * (never throws) when Drive isn't configured or the request fails — retention cleanup
+ * treats this as a best-effort, independently-retryable step, never blocking or
+ * blocked by the R2/DB purge (see documents.drive_purged_at).
+ */
+export async function trashOrderFolder(folderId: string): Promise<boolean> {
+  if (!isDriveConfigured()) return false;
+  try {
+    const res = await driveApiFetch(`/files/${encodeURIComponent(folderId)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ trashed: true }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}

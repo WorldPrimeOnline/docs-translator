@@ -24,6 +24,7 @@ import { NOTARY_CITIES } from '@/lib/notary/cities';
 import { isNotaryDeliveryValid, isDeliverySelected } from '@/lib/translation-workflow/notary-delivery-validation';
 import { loadReferralParams } from '@/lib/referral/capture';
 import { MAX_UPLOAD_FILE_COUNT } from '@/lib/order-drafts/upload-constants';
+import { mergeFileSelection, removeFileAt } from '@/lib/order-drafts/file-selection';
 import type { ServiceLevel } from '@/lib/translation-prompts/types';
 
 interface PromoDiscountInfo {
@@ -84,6 +85,13 @@ function uploadErrorMessage(
       return tStart('errors.fileCountExceeded', { max: max ?? MAX_UPLOAD_FILE_COUNT });
     case 'INVALID_FILE_SIGNATURE':
       return tStart('errors.invalidFileSignature', { file: file ?? '' });
+    case 'PRICING_VERSION_CHANGED':
+      // 2026-07-25: a pricing version was activated while this specific upload's OCR/analysis
+      // was already in flight (rare — activation is a manual, deliberate ops action). The
+      // existing document_analysis for this document is reused on resubmit (never re-run), and
+      // resubmitting is exactly "повторите расчёт" — no separate retry button needed, the
+      // existing submit flow already re-enables after any error via setUploading(false).
+      return tStart('errors.pricingVersionChanged');
     default:
       return tStart('errors.uploadFailed');
   }
@@ -173,6 +181,15 @@ export function OrderForm({ mode, onSubmitSuccess, draftId, onDraftIdChange, onD
   const [deliveryPhone, setDeliveryPhone] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [uploading, setUploading] = useState(false);
+  // 2026-08-06 incident: OCR/analysis can genuinely take a few minutes for a real
+  // document (provider-side latency, not a bug) — after 30s of no response, tell the
+  // customer explicitly rather than leaving a silent spinner. The request itself is
+  // already idempotent (createCardOrder's uploadAttemptId replay / document_analysis's
+  // one-in-flight-revision guard) — no separate "retry" action is needed here since the
+  // customer can't double-submit while `uploading` is true, and the same submit is safe
+  // to attempt again after any failure.
+  const [pricingIsSlow, setPricingIsSlow] = useState(false);
+  const slowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [termsAccepted, setTermsAccepted] = useState<boolean | null>(null);
   const [hasSession, setHasSession] = useState(false);
   const [consentChecked, setConsentChecked] = useState(false);
@@ -181,6 +198,21 @@ export function OrderForm({ mode, onSubmitSuccess, draftId, onDraftIdChange, onD
   const [promoCode, setPromoCode] = useState('');
   const [promoState, setPromoState] = useState<'idle' | 'checking' | 'valid' | 'invalid'>('idle');
   const [promoDiscount, setPromoDiscount] = useState<PromoDiscountInfo | null>(null);
+
+  // Shows a "this is taking longer than usual" message 30s into an upload/pricing
+  // request — never touches any of the existing setUploading() call sites; just reacts
+  // to the boolean's value. Cleared immediately once uploading finishes (success or
+  // failure) or on unmount.
+  useEffect(() => {
+    if (uploading) {
+      slowTimerRef.current = setTimeout(() => setPricingIsSlow(true), 30_000);
+    } else {
+      setPricingIsSlow(false);
+    }
+    return () => {
+      if (slowTimerRef.current) { clearTimeout(slowTimerRef.current); slowTimerRef.current = null; }
+    };
+  }, [uploading]);
 
   // Auto-reset targetLang if it matches a newly selected sourceLang
   useEffect(() => {
@@ -237,12 +269,9 @@ export function OrderForm({ mode, onSubmitSuccess, draftId, onDraftIdChange, onD
     const rejected = incoming.filter((f) => !isAccepted(f));
     if (rejected.length > 0) toast.error(t('errors.unsupportedFileType', { files: rejected.map((f) => f.name).join(', ') }));
     if (accepted.length === 0) return;
-    if (uploadedBatchRef.current) {
-      setFiles(accepted);
-      uploadedBatchRef.current = false;
-    } else {
-      setFiles((prev) => [...prev, ...accepted]);
-    }
+    const wasUploadedBatch = uploadedBatchRef.current;
+    if (wasUploadedBatch) uploadedBatchRef.current = false;
+    setFiles((prev) => mergeFileSelection(prev, accepted, wasUploadedBatch));
   }
 
   function formatBytes(bytes: number): string {
@@ -602,7 +631,7 @@ export function OrderForm({ mode, onSubmitSuccess, draftId, onDraftIdChange, onD
                 {fileIcon(f)}
                 <span className="flex-1 truncate text-xs text-foreground">{f.name}</span>
                 <span className="shrink-0 text-xs text-muted-foreground">{formatBytes(f.size)}</span>
-                <button type="button" onClick={(e) => { e.stopPropagation(); uploadedBatchRef.current = false; setFiles((p) => p.filter((_, j) => j !== i)); }}
+                <button type="button" onClick={(e) => { e.stopPropagation(); uploadedBatchRef.current = false; setFiles((p) => removeFileAt(p, i)); }}
                   className="shrink-0 rounded p-0.5 text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors">
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -945,6 +974,9 @@ export function OrderForm({ mode, onSubmitSuccess, draftId, onDraftIdChange, onD
             <><Upload className="h-4 w-4" />{t('uploadDocument')}</>
           )}
         </button>
+        {pricingIsSlow && (
+          <p className="text-xs text-muted-foreground">{t('pricingSlowMessage')}</p>
+        )}
       </form>
     </div>
   );

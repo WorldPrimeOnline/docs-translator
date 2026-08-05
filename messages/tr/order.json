@@ -17,6 +17,8 @@
     "queued": "Sırada",
     "failed": "Hata",
     "download": "İndir",
+    "historyAvailableUntil": "{date} tarihine kadar kullanılabilir",
+    "historyRetentionExpired": "Saklama süresi doldu",
     "fiscalReceipt": "Elektronik makbuz",
     "fiscalReceiptPending": "Makbuz oluşturuluyor",
     "signedIn": "Giriş yapıldı:",
@@ -40,6 +42,7 @@
     "usingPlanSub": "{plan} planı · {remaining} belge kaldı — ödeme gerekmez",
     "status": {
       "paymentPending": "Ödeme bekleniyor",
+      "preparingDocument": "Belge işleme hazırlanıyor",
       "queued": "Sırada — başlatılmayı bekliyor…",
       "ocr": "Metin çıkarılıyor… ({pct}%)",
       "ocrDone": "OCR tamamlandı, çeviri başlıyor… ({pct}%)",
@@ -48,6 +51,7 @@
       "completed": "Tamamlandı",
       "failed": "Hata",
       "awaitingTranslatorReview": "Çevirmene iletildi — inceleme bekleniyor",
+      "translatorReviewInProgress": "Belge, çevirmen tarafından işleniyor",
       "awaitingSignatureStamp": "Çevirmen imzası ve kaşesi bekleniyor",
       "awaitingNotaryReview": "Notere iletildi — onay bekleniyor",
       "awaitingFinalQa": "Son kalite kontrolü bekleniyor",
@@ -57,7 +61,7 @@
       "translatorApproved": "Çeviri incelendi — operatör bekleniyor",
       "assignedToNotary": "Çeviri incelendi — notere iletiliyor",
       "notarizationInProgress": "Noterde işlemde",
-      "notarized": "Noter onayı tamamlandı",
+      "notarized": "Belge noterce onaylandı",
       "readyForPickup": "Teslim almaya hazır",
       "outForDelivery": "Sipariş kurye teslim edildi",
       "delivered": "Sipariş teslim edildi",
@@ -177,7 +181,7 @@
       "translatorApproved": "Çeviri incelendi",
       "assignedToNotary": "Notere iletiliyor",
       "notarizationInProgress": "Noterde",
-      "notarized": "Noter tamamladı",
+      "notarized": "Noter onayı tamamlandı",
       "readyForPickup": "Teslim almaya hazır",
       "outForDelivery": "Kurye teslim edildi",
       "delivered": "Teslim alındı",
@@ -193,6 +197,7 @@
     "errors": {
       "serverError": "Sunucu hatası. Tekrar deneyin.",
       "uploadFailed": "Yükleme hatası",
+      "pricingVersionChanged": "Fiyatlar güncellendi. Lütfen tekrar hesaplayın.",
       "logoutFailed": "Çıkış yapılamadı",
       "unsupportedFileType": "Desteklenmeyen dosya türü: {files}",
       "pleaseSelectFile": "Lütfen en az bir dosya seçin",
@@ -203,6 +208,7 @@
       "invalidFileSignature": "\"{file}\" dosyası belirtilen türle eşleşmiyor."
     },
     "uploadDocument": "Belge yükle",
+    "pricingSlowMessage": "Bu, her zamankinden daha uzun sürüyor — lütfen bekleyin",
     "uploadedQuoteReady": "Belge yüklendi — fiyat: {price} ₸. Aşağıdan ödemeyi onaylayın.",
     "uploadedRequiresReview": "Belge yüklendi. Fiyat operatör tarafından onaylanacak.",
     "quoteReady": "Fiyat hesaplandı",
@@ -265,7 +271,42 @@
     "uploadedQuoteReadyWithDiscount": "Belge yüklendi — fiyat: {price} ₸ (ortak koduyla {saved} ₸ tasarruf edildi). Aşağıdan ödemeyi onaylayın.",
     "priceBeforeDiscount": "İndirim öncesi fiyat",
     "discountByCode": "Ortak indirimi",
-    "finalPrice": "Ödenecek tutar"
+    "finalPrice": "Ödenecek tutar",
+    "progressFlow": {
+      "prePayment": {
+        "quoteReady": "Fiyat hesaplandı",
+        "paymentPending": "Ödeme bekleniyor",
+        "paymentChecking": "Ödeme kontrol ediliyor",
+        "paymentFailed": "Ödeme başarısız oldu"
+      },
+      "electronic": {
+        "paid": "Ödeme onaylandı",
+        "processing": "Belge işleniyor",
+        "ready": "Çeviri hazır"
+      },
+      "official": {
+        "paid": "Ödeme onaylandı",
+        "processing": "Belge işleniyor",
+        "awaitingTranslatorReview": "Çevirmene gönderildi — işleme bekleniyor",
+        "translatorReviewInProgress": "Belge, çevirmen tarafından işleniyor",
+        "ready": "Resmi çeviri hazır"
+      },
+      "notary": {
+        "paid": "Ödeme onaylandı",
+        "processing": "Belge hazırlanıyor",
+        "awaitingTranslatorReview": "Çevirmene gönderildi — inceleme bekleniyor",
+        "translatorReviewInProgress": "Belge, çevirmen tarafından işleniyor",
+        "approvedForNotary": "Çeviri noter onayına hazır",
+        "notarizationInProgress": "Belge noterde",
+        "notarized": "Belge noterce onaylandı",
+        "notarizedFinal": "Belge noterce onaylandı",
+        "readyForPickup": "Teslim almaya hazır",
+        "pickedUp": "Sipariş teslim alındı",
+        "readyForDelivery": "Belge kuryeye teslim edilmeye hazır",
+        "outForDelivery": "Belge kuryeye teslim edildi",
+        "delivered": "Belge teslim edildi"
+      }
+    }
   },
   "electronicOutput": {
     "formats": {

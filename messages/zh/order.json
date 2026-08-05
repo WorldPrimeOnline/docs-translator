@@ -15,6 +15,8 @@
     "queued": "排队中",
     "failed": "失败",
     "download": "下载",
+    "historyAvailableUntil": "可下载至 {date}",
+    "historyRetentionExpired": "保留期已过",
     "fiscalReceipt": "电子收据",
     "fiscalReceiptPending": "收据生成中",
     "signedIn": "当前登录账号",
@@ -38,6 +40,7 @@
     "usingPlanSub": "使用 {plan} 计划 · 剩余 {remaining} 份文件 — 无需付款",
     "status": {
       "paymentPending": "等待支付",
+      "preparingDocument": "正在准备文件处理",
       "queued": "排队中——等待开始…",
       "ocr": "正在提取文字… ({pct}%)",
       "ocrDone": "OCR 完成，正在开始翻译… ({pct}%)",
@@ -46,6 +49,7 @@
       "completed": "已完成",
       "failed": "失败",
       "awaitingTranslatorReview": "已发送给译者——等待审核",
+      "translatorReviewInProgress": "文件正在由译员处理",
       "awaitingSignatureStamp": "等待译者签名和盖章",
       "awaitingNotaryReview": "已发送给公证人——等待公证",
       "awaitingFinalQa": "等待最终质量检查",
@@ -55,7 +59,7 @@
       "translatorApproved": "翻译已核实 — 等待操作员",
       "assignedToNotary": "翻译已核实 — 转交公证人",
       "notarizationInProgress": "公证进行中",
-      "notarized": "公证已完成",
+      "notarized": "文件已公证",
       "readyForPickup": "准备自提",
       "outForDelivery": "已转交快递员",
       "delivered": "订单已送达",
@@ -175,7 +179,7 @@
       "translatorApproved": "翻译已审核",
       "assignedToNotary": "转交公证人",
       "notarizationInProgress": "公证中",
-      "notarized": "公证完成",
+      "notarized": "公证已完成",
       "readyForPickup": "准备自取",
       "outForDelivery": "快递中",
       "delivered": "已收到",
@@ -193,6 +197,7 @@
     "errors": {
       "serverError": "服务器错误，请重试。",
       "uploadFailed": "上传失败",
+      "pricingVersionChanged": "价格已更新。请重新计算。",
       "logoutFailed": "退出登录失败",
       "unsupportedFileType": "不支持的文件类型：{files}",
       "pleaseSelectFile": "请至少选择一个文件",
@@ -203,6 +208,7 @@
       "invalidFileSignature": "文件“{file}”与其文件类型不符。"
     },
     "uploadDocument": "上传文件",
+    "pricingSlowMessage": "计算时间比平时长 — 请稍候",
     "uploadedQuoteReady": "文件已上传——价格：{price} ₸。请在下方确认付款。",
     "uploadedRequiresReview": "文件已上传，价格将由操作员确认。",
     "quoteReady": "价格已确认",
@@ -265,7 +271,42 @@
     "uploadedQuoteReadyWithDiscount": "文档已上传 — 价格：{price} ₸（通过合作伙伴码节省了 {saved} ₸）。请在下方确认付款。",
     "priceBeforeDiscount": "折扣前价格",
     "discountByCode": "合作伙伴折扣",
-    "finalPrice": "应付金额"
+    "finalPrice": "应付金额",
+    "progressFlow": {
+      "prePayment": {
+        "quoteReady": "价格已计算",
+        "paymentPending": "等待付款",
+        "paymentChecking": "正在核实付款",
+        "paymentFailed": "付款失败"
+      },
+      "electronic": {
+        "paid": "付款已确认",
+        "processing": "文件处理中",
+        "ready": "翻译已完成"
+      },
+      "official": {
+        "paid": "付款已确认",
+        "processing": "文件处理中",
+        "awaitingTranslatorReview": "已发送给译员 — 等待处理",
+        "translatorReviewInProgress": "文件正在由译员处理",
+        "ready": "正式翻译已完成"
+      },
+      "notary": {
+        "paid": "付款已确认",
+        "processing": "文件准备中",
+        "awaitingTranslatorReview": "已发送给译员 — 等待审核",
+        "translatorReviewInProgress": "文件正在由译员处理",
+        "approvedForNotary": "翻译已准备好公证",
+        "notarizationInProgress": "文件在公证处",
+        "notarized": "文件已公证",
+        "notarizedFinal": "文件已公证",
+        "readyForPickup": "可自取",
+        "pickedUp": "订单已取走",
+        "readyForDelivery": "文件已准备好交给快递员",
+        "outForDelivery": "文件已交给快递员",
+        "delivered": "文件已送达"
+      }
+    }
   },
   "electronicOutput": {
     "formats": {

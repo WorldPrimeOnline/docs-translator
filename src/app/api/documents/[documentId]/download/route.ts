@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import JSZip from 'jszip';
 import { supabaseServer } from '@/lib/supabase/server';
 import { downloadFile } from '@/lib/r2/client';
+import { getResultFilesStatus, type ReadyResultFile } from '@/lib/jobs/result-files-status';
+import { getCustomerOrderState } from '@/lib/translation-workflow/customer-order-state';
 import type { Database } from '@/types';
 
 async function getAuthUser() {
@@ -29,6 +32,37 @@ const MIME: Record<string, string> = {
   '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 };
 
+function extOf(filename: string): string {
+  return filename.match(/\.(pdf|html|docx)$/i)?.[0]?.toLowerCase() ?? '.pdf';
+}
+
+/** Safe, deterministic filename for a Content-Disposition header or ZIP entry —
+ * never trusts a Drive/staff-supplied filename directly. */
+function sanitizeDownloadFilename(name: string): string {
+  return name.replace(/[^a-zA-Z0-9._\- ]/g, '_').slice(0, 150);
+}
+
+/**
+ * 2026-08-01 incident fix: the customer-facing multi-source result filename is always
+ * a fixed, safe "Output" name — never the customer's original upload filename (which
+ * may contain personal/sensitive text) and never the internal `translated.docx`/
+ * per-stage R2 artifact name. A single ready result is `Output.ext`; with more than
+ * one, each is prefixed with its 1-based sequence (`001_Output.ext`, `002_Output.ext`,
+ * ...) so the customer can tell which result belongs to which uploaded source, in the
+ * same order they uploaded them. Internal R2 keys and 01_SOURCE Drive filenames
+ * (sequence + original filename) are completely unaffected — this only changes what
+ * the browser/ZIP shows.
+ */
+function outputFilename(sequence: number, ext: string, isSingleFile: boolean): string {
+  return isSingleFile ? `Output${ext}` : `${String(sequence).padStart(3, '0')}_Output${ext}`;
+}
+
+/** `WPO_<first 8 chars of job id>_Output.zip` — the customer-facing name for a
+ * multi-result ZIP download. */
+function outputZipFilename(jobId: string): string {
+  return `WPO_${jobId.slice(0, 8)}_Output.zip`;
+}
+
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ documentId: string }> },
@@ -38,25 +72,56 @@ export async function GET(
 
   const { documentId } = await params;
 
-  const { data: doc, error: docError } = await supabaseServer
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: doc, error: docError } = await (supabaseServer as any)
     .from('documents')
-    .select('user_id, filename, document_type')
+    .select('user_id, filename, document_type, files_purged_at')
     .eq('id', documentId)
     .single();
 
   if (docError || !doc) return NextResponse.json({ error: 'Document not found' }, { status: 404 });
   if (doc.user_id !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-  const { data: job } = await supabaseServer
+  // 2026-07-24 retention fix: once retention cleanup has purged this document's R2
+  // objects (documents.files_purged_at), the underlying files are gone regardless of
+  // service level or single-vs-multi-source path — check this FIRST, before any other
+  // branch below, so the customer gets a clean "retention period expired" response
+  // instead of a broken/502 download attempt against a deleted R2 object.
+  if (doc.files_purged_at) {
+    return NextResponse.json({ error: 'RETENTION_EXPIRED', filesPurgedAt: doc.files_purged_at }, { status: 410 });
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: job } = await (supabaseServer as any)
     .from('jobs')
-    .select('id, workflow_status, service_level, fulfillment_method')
+    // jira_closed_at (migration 0067) — not yet in generated Database types.
+    .select('id, workflow_status, service_level, fulfillment_method, jira_closed_at')
     .eq('document_id', documentId)
     .eq('status', 'completed')
     .order('created_at', { ascending: false })
     .limit(1)
-    .single();
+    .single() as {
+      data: {
+        id: string; workflow_status: string | null; service_level: string | null;
+        fulfillment_method: string | null; jira_closed_at: string | null;
+      } | null;
+    };
 
   if (!job) return NextResponse.json({ error: 'No completed translation found' }, { status: 404 });
+
+  // ── 2026-08-01 multi-file fulfillment decision: jobs with job_source_files rows
+  // are served entirely from job_result_files (never translations/ai_draft) — a
+  // completely separate path from the legacy single-file logic below, which stays
+  // byte-for-byte unchanged for every job that predates this feature. ──
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { count: totalSources } = await (supabaseServer as any)
+    .from('job_source_files')
+    .select('id', { count: 'exact', head: true })
+    .eq('job_id', job.id);
+
+  if (totalSources && totalSources > 0) {
+    return serveMultiSourceDownload(job, totalSources);
+  }
 
   // ── Download gating by service level ──────────────────────────────────────
   //
@@ -69,13 +134,20 @@ export async function GET(
     );
   }
 
-  // Certified orders: allow download only once operator has approved (ready_for_delivery or delivered).
+  // Certified orders: allow download once the translator's own signature+stamp is
+  // done. 2026-08-01 WO-108 fix: 'translator_approved' IS that final step for
+  // Official — no separate operator confirmation follows it (unlike Notary, which
+  // hands off to an actual notary) — so it's allowed here too, matching
+  // canCustomerDownload's operatorConfirmed set (customer-order-state.ts).
+  // ready_for_delivery/delivered stay included for the currently-unused physical-
+  // courier case. 2026-08-05 WO-112 fix: a Jira "Закрыто" close (jira_closed_at set)
+  // also grants download regardless of workflow_status — an explicit close command
+  // implies the order is done.
   if (job.service_level === 'official_with_translator_signature_and_provider_stamp') {
-    const certifiedAllowed = new Set(['ready_for_delivery', 'delivered']);
-    if (!certifiedAllowed.has(job.workflow_status ?? '')) {
+    const certifiedAllowed = new Set(['translator_approved', 'ready_for_delivery', 'delivered']);
+    if (!certifiedAllowed.has(job.workflow_status ?? '') && job.jira_closed_at == null) {
       const statusMessages: Record<string, string> = {
         awaiting_translator_review: 'Document is being reviewed by a certified translator.',
-        translator_approved: 'Translation verified — awaiting operator stamp.',
         awaiting_signature_stamp: 'Document is awaiting translator signature and provider stamp.',
         translator_declined: 'Translator assignment was declined. Please contact support.',
       };
@@ -130,5 +202,112 @@ export async function GET(
     const msg = err instanceof Error ? err.message : String(err);
     console.error('[download] failed to retrieve file from R2:', msg, 'key:', storedKey);
     return NextResponse.json({ error: 'Failed to retrieve translation file' }, { status: 502 });
+  }
+}
+
+interface MultiSourceJob {
+  id: string;
+  workflow_status: string | null;
+  service_level: string | null;
+  fulfillment_method: string | null;
+  jira_closed_at: string | null;
+}
+
+/**
+ * 2026-08-01 multi-file fulfillment decision: serves Electronic → electronic_final_*,
+ * Official → signature_stamp, Notary → notary job_result_files — NEVER ai_draft or
+ * translations.translated_* for a job that has job_source_files rows. Uses the exact
+ * same getCustomerOrderState/canCustomerDownload gate the dashboard uses, so the
+ * download button's visibility and this route's actual enforcement can never drift.
+ * A missing/failed artifact (not fully covered) is refused outright — never a partial
+ * ZIP presented as if it were the complete, ready order.
+ */
+async function serveMultiSourceDownload(
+  job: MultiSourceJob,
+  totalSources: number,
+): Promise<NextResponse> {
+  const resultStatus = await getResultFilesStatus(job.id, job.service_level);
+
+  const state = getCustomerOrderState({
+    jobStatus: 'completed',
+    progressPercent: 100,
+    workflowStatus: job.workflow_status,
+    serviceLevel: job.service_level,
+    fulfillmentMethod: (job.fulfillment_method as 'pickup' | 'delivery' | null) ?? null,
+    hasReadyResultFiles: resultStatus.hasReadyResultFiles,
+    // 2026-08-05 WO-112 fix — see /api/jobs/route.ts for the matching dashboard-list version.
+    isClosed: job.jira_closed_at != null,
+  });
+
+  if (!state.canDownload) {
+    if (job.service_level === 'notarization_through_partners') {
+      return NextResponse.json(
+        { error: resultStatus.hasReadyResultFiles ? 'Not yet available for download.' : 'Notarized document is not yet available — the notary result has not finished syncing.' },
+        { status: 403 },
+      );
+    }
+    return NextResponse.json(
+      { error: 'Document is not yet approved for download — please check back later.' },
+      { status: 403 },
+    );
+  }
+
+  // Defense in depth: canDownload=true implies hasReadyResultFiles=true for both
+  // service levels this branch handles, but never trust that alone — an inconsistent
+  // or empty set must never be served as if it were the complete, ready order.
+  if (!resultStatus.hasReadyResultFiles || resultStatus.readyFiles.length === 0) {
+    return NextResponse.json({ error: 'Result files are not fully synced yet — please check back later.' }, { status: 404 });
+  }
+
+  const files: ReadyResultFile[] = resultStatus.readyFiles; // already sorted by minimum source sequence
+
+  try {
+    if (files.length === 1) {
+      const file = files[0]!;
+      const ext = extOf(file.filename);
+      const contentType = MIME[ext] ?? 'application/octet-stream';
+      const downloadFilename = outputFilename(file.sequenceMin, ext, true);
+      const buffer = await downloadFile(file.r2Key);
+      return new NextResponse(new Uint8Array(buffer), {
+        status: 200,
+        headers: {
+          'Content-Type': contentType,
+          'Content-Disposition': `attachment; filename="${downloadFilename}"`,
+          'Content-Length': String(buffer.length),
+          'Cache-Control': 'private, max-age=300',
+        },
+      });
+    }
+
+    const zip = new JSZip();
+    const usedNames = new Set<string>();
+    for (const file of files) {
+      const buffer = await downloadFile(file.r2Key);
+      const ext = extOf(file.filename);
+      let entryName = outputFilename(file.sequenceMin, ext, false);
+      if (usedNames.has(entryName)) {
+        // Two different result groups landed on the same minimum sequence — should
+        // never happen given job_result_files' own uniqueness, but never silently
+        // overwrite an entry in the ZIP (would drop one of the customer's files).
+        entryName = sanitizeDownloadFilename(`${entryName}_${file.filename}`);
+      }
+      usedNames.add(entryName);
+      zip.file(entryName, buffer);
+    }
+    const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
+
+    return new NextResponse(new Uint8Array(zipBuffer), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/zip',
+        'Content-Disposition': `attachment; filename="${outputZipFilename(job.id)}"`,
+        'Content-Length': String(zipBuffer.length),
+        'Cache-Control': 'private, max-age=300',
+      },
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[download] multi-source: failed to retrieve/package result files:', msg, 'jobId:', job.id, 'totalSources:', totalSources);
+    return NextResponse.json({ error: 'Failed to retrieve translation file(s)' }, { status: 502 });
   }
 }

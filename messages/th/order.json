@@ -17,6 +17,8 @@
     "queued": "อยู่ในคิว",
     "failed": "เกิดข้อผิดพลาด",
     "download": "ดาวน์โหลด",
+    "historyAvailableUntil": "ดาวน์โหลดได้ถึง {date}",
+    "historyRetentionExpired": "พ้นระยะเวลาจัดเก็บแล้ว",
     "fiscalReceipt": "ใบเสร็จรับเงิน",
     "fiscalReceiptPending": "กำลังสร้างใบเสร็จ",
     "signedIn": "เข้าสู่ระบบในฐานะ",
@@ -40,6 +42,7 @@
     "usingPlanSub": "แผน {plan} · เหลือ {remaining} เอกสาร — ไม่ต้องชำระเงิน",
     "status": {
       "paymentPending": "รอการชำระเงิน",
+      "preparingDocument": "กำลังเตรียมเอกสารเพื่อประมวลผล",
       "queued": "อยู่ในคิว — รอเริ่มดำเนินการ...",
       "ocr": "กำลังดึงข้อความ... ({pct}%)",
       "ocrDone": "OCR เสร็จสิ้น กำลังเริ่มการแปล... ({pct}%)",
@@ -48,6 +51,7 @@
       "completed": "เสร็จสมบูรณ์",
       "failed": "เกิดข้อผิดพลาด",
       "awaitingTranslatorReview": "ส่งให้นักแปลแล้ว — รอการตรวจสอบ",
+      "translatorReviewInProgress": "เอกสารกำลังถูกดำเนินการโดยนักแปล",
       "awaitingSignatureStamp": "รอลายเซ็นและตราของนักแปล",
       "awaitingNotaryReview": "ส่งให้โนตารีแล้ว — รอการรับรองเอกสาร",
       "awaitingFinalQa": "รอการตรวจสอบคุณภาพขั้นสุดท้าย",
@@ -57,7 +61,7 @@
       "translatorApproved": "การแปลได้รับการตรวจสอบแล้ว — รอผู้ดำเนินการ",
       "assignedToNotary": "การแปลได้รับการตรวจสอบแล้ว — กำลังส่งให้โนตารี",
       "notarizationInProgress": "อยู่ระหว่างดำเนินการกับโนตารี",
-      "notarized": "การรับรองเอกสารเสร็จสมบูรณ์",
+      "notarized": "เอกสารได้รับการรับรองแล้ว",
       "readyForPickup": "พร้อมสำหรับการรับด้วยตนเอง",
       "outForDelivery": "ส่งให้พนักงานจัดส่งแล้ว",
       "delivered": "ส่งมอบแล้ว",
@@ -177,7 +181,7 @@
       "translatorApproved": "การแปลได้รับการตรวจสอบแล้ว",
       "assignedToNotary": "กำลังส่งให้โนตารี",
       "notarizationInProgress": "กับโนตารี",
-      "notarized": "โนตารีเสร็จสิ้น",
+      "notarized": "การรับรองเอกสารเสร็จสมบูรณ์",
       "readyForPickup": "พร้อมสำหรับการรับด้วยตนเอง",
       "outForDelivery": "ส่งให้พนักงานจัดส่งแล้ว",
       "delivered": "ได้รับแล้ว",
@@ -193,6 +197,7 @@
     "errors": {
       "serverError": "เกิดข้อผิดพลาดของเซิร์ฟเวอร์ กรุณาลองอีกครั้ง",
       "uploadFailed": "การอัปโหลดล้มเหลว",
+      "pricingVersionChanged": "อัตราค่าบริการได้รับการอัปเดต กรุณาคำนวณใหม่",
       "logoutFailed": "ไม่สามารถออกจากระบบได้",
       "unsupportedFileType": "ประเภทไฟล์ที่ไม่รองรับ: {files}",
       "pleaseSelectFile": "กรุณาเลือกอย่างน้อยหนึ่งไฟล์",
@@ -203,6 +208,7 @@
       "invalidFileSignature": "ไฟล์ \"{file}\" ไม่ตรงกับประเภทไฟล์ที่ระบุ"
     },
     "uploadDocument": "อัปโหลดเอกสาร",
+    "pricingSlowMessage": "การคำนวณใช้เวลานานกว่าปกติ — กรุณารอสักครู่",
     "uploadedQuoteReady": "อัปโหลดเอกสารแล้ว — ราคา: {price} ₸ ยืนยันการชำระเงินด้านล่าง",
     "uploadedRequiresReview": "อัปโหลดเอกสารแล้ว ราคาจะได้รับการยืนยันโดยผู้ดำเนินการ",
     "quoteReady": "คำนวณราคาแล้ว",
@@ -265,7 +271,42 @@
       "discountMinOrderHint": "สำหรับคำสั่งซื้อตั้งแต่ {min} ₸",
       "remove": "ลบ"
     },
-    "uploadedQuoteReadyWithDiscount": "อัปโหลดเอกสารแล้ว — ราคา: {price} ₸ (ประหยัด {saved} ₸ ด้วยรหัสพาร์ทเนอร์) ยืนยันการชำระเงินด้านล่าง"
+    "uploadedQuoteReadyWithDiscount": "อัปโหลดเอกสารแล้ว — ราคา: {price} ₸ (ประหยัด {saved} ₸ ด้วยรหัสพาร์ทเนอร์) ยืนยันการชำระเงินด้านล่าง",
+    "progressFlow": {
+      "prePayment": {
+        "quoteReady": "คำนวณราคาแล้ว",
+        "paymentPending": "รอการชำระเงิน",
+        "paymentChecking": "กำลังตรวจสอบการชำระเงิน",
+        "paymentFailed": "การชำระเงินล้มเหลว"
+      },
+      "electronic": {
+        "paid": "ยืนยันการชำระเงินแล้ว",
+        "processing": "กำลังประมวลผลเอกสาร",
+        "ready": "แปลเสร็จแล้ว"
+      },
+      "official": {
+        "paid": "ยืนยันการชำระเงินแล้ว",
+        "processing": "กำลังประมวลผลเอกสาร",
+        "awaitingTranslatorReview": "ส่งให้นักแปลแล้ว — รอการดำเนินการ",
+        "translatorReviewInProgress": "เอกสารกำลังถูกดำเนินการโดยนักแปล",
+        "ready": "คำแปลทางการเสร็จแล้ว"
+      },
+      "notary": {
+        "paid": "ยืนยันการชำระเงินแล้ว",
+        "processing": "กำลังเตรียมเอกสาร",
+        "awaitingTranslatorReview": "ส่งให้นักแปลแล้ว — รอการตรวจสอบ",
+        "translatorReviewInProgress": "เอกสารกำลังถูกดำเนินการโดยนักแปล",
+        "approvedForNotary": "คำแปลพร้อมสำหรับการรับรองเอกสาร",
+        "notarizationInProgress": "เอกสารอยู่ที่โนตารี",
+        "notarized": "เอกสารได้รับการรับรองแล้ว",
+        "notarizedFinal": "เอกสารได้รับการรับรองแล้ว",
+        "readyForPickup": "พร้อมให้มารับ",
+        "pickedUp": "รับเอกสารแล้ว",
+        "readyForDelivery": "เอกสารพร้อมส่งมอบให้พนักงานส่งของ",
+        "outForDelivery": "ส่งมอบเอกสารให้พนักงานส่งของแล้ว",
+        "delivered": "จัดส่งเอกสารแล้ว"
+      }
+    }
   },
   "electronicOutput": {
     "formats": {

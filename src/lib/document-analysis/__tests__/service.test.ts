@@ -151,4 +151,60 @@ describe('resolveDocumentAnalysisForPricing', () => {
 
     expect(insertChain.insert).toHaveBeenCalledWith(expect.objectContaining({ revision: 2, supersedes_analysis_id: 'a-old' }));
   });
+
+  // 2026-07-23 dashboard/latency task, Part D item 6: a customer whose OCR call took a long
+  // time (or genuinely timed out) and then retried the same upload/checkout attempt must never
+  // trigger a second document_analysis row or a second OCR/analysis call for the same document.
+  // Per analyze.test.ts's "OCR throwing an error but a reliable physical page count exists ->
+  // prices by page, never operator_review", an OCR timeout does NOT propagate as a thrown
+  // error out of analyzeDocumentForPricing when a physical page count is available — it
+  // degrades gracefully to a page-based 'completed' analysis. That means the realistic
+  // "customer retries after a slow/timed-out OCR call" scenario is exactly the already-proven
+  // "reuses a completed revision" case above; this test names that scenario explicitly end to
+  // end (first call runs the page-based-fallback analysis once, second call for the SAME
+  // document reuses it, never calling analyzeDocumentForPricing again).
+  it('OCR timeout mid-flight, customer retries the same upload: first call completes once (page-count fallback), the retry reuses it — never a second document_analysis row or a second analysis call', async () => {
+    const fetchBuffer = jest.fn().mockResolvedValue(Buffer.from('pdf-bytes'));
+    // Simulates analyze.ts's graceful OCR-failure fallback: no character count, but a real
+    // physical page count, so the document still gets a real (page-based) price — see
+    // analyze.test.ts line ~133 for the underlying analyze.ts behavior this depends on.
+    mockAnalyze.mockResolvedValueOnce(analysisResult({
+      method: 'ocr',
+      characterCount: 0,
+      sourceCharacterCountWithSpaces: undefined,
+      qualitySignals: { method: 'ocr', rawCharacterCount: 0, emptyOrNearEmpty: true, charsPerPhysicalPage: 0, possiblyHandwrittenOrIllegible: false },
+    }));
+
+    const latestChainFirst = chain({ data: null, error: null }); // no existing row on first attempt
+    const insertChain = chain({ data: { id: 'a-1' }, error: null });
+    const processingChain = chain({ data: null, error: null });
+    const finalUpdateChain = chain({
+      data: { id: 'a-1', document_id: 'doc-1', revision: 1, status: 'completed', method: 'ocr', source_character_count_with_spaces: null, physical_page_count: 12 },
+      error: null,
+    });
+
+    mockFrom
+      .mockReturnValueOnce(latestChainFirst)
+      .mockReturnValueOnce(insertChain)
+      .mockReturnValueOnce(processingChain)
+      .mockReturnValueOnce(finalUpdateChain);
+
+    const firstResult = await resolveDocumentAnalysisForPricing('doc-1', 'application/pdf', fetchBuffer);
+    expect(firstResult.kind).toBe('completed');
+    expect(mockAnalyze).toHaveBeenCalledTimes(1);
+
+    // Customer retries the same checkout attempt for the same document — the retry must find
+    // the already-completed row and never re-run analysis (no second OCR call, no second row).
+    const latestChainRetry = chain({
+      data: { id: 'a-1', document_id: 'doc-1', revision: 1, status: 'completed', method: 'ocr', source_character_count_with_spaces: null, physical_page_count: 12 },
+      error: null,
+    });
+    mockFrom.mockReturnValueOnce(latestChainRetry);
+
+    const retryResult = await resolveDocumentAnalysisForPricing('doc-1', 'application/pdf', fetchBuffer);
+    expect(retryResult).toEqual({ kind: 'completed', row: expect.objectContaining({ id: 'a-1', physicalPageCount: 12 }) });
+    // Still exactly one call total across both attempts — the whole point of this test.
+    expect(mockAnalyze).toHaveBeenCalledTimes(1);
+    expect(insertChain.insert).toHaveBeenCalledTimes(1);
+  });
 });

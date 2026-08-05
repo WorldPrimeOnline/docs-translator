@@ -2,22 +2,43 @@ import type { PricingResult, PricingVersion } from '@/lib/pricing/types';
 
 export type DraftStatus = 'draft_created' | 'price_calculated' | 'checkout_started' | 'expired' | 'converted';
 
+/**
+ * One original, pre-merge customer upload, in stable client-upload order (2026-07-31
+ * multi-file fulfillment decision — see docs/ai-context/DECISIONS.md). `sequence` is
+ * 1-based, assigned strictly by upload order among the DEDUPED (byte-identical
+ * duplicates collapsed, 2026-07-29 incident fix) set — never by filename, Drive
+ * createdTime, or any API listing order. `permanentKey` is a durable per-source R2
+ * object (the ORIGINAL bytes, not the PDF-converted copy used for merging/pricing) —
+ * subject to the same 30-day retention policy as any other document, not indefinite.
+ * This array is the direct source for job_source_files rows at convertDraftToOrder()
+ * time (migration 0063).
+ */
+export interface DraftSourceFile {
+  sequence: number;
+  originalName: string;
+  permanentKey: string;
+  contentSha256: string;
+  mimeType: string;
+  physicalPageCount: number | null;
+  /**
+   * Permanent per-source PDF key — the ALREADY-converted PDF (via convertToPdf(),
+   * pre-merge) for this one source, not the original bytes at permanentKey. This is
+   * what the worker's OCR step reads (extractTextFromPdf requires a PDF buffer);
+   * permanentKey/mimeType stay the true original for Drive display and dedup.
+   */
+  convertedPdfKey: string;
+}
+
 export interface DraftFileKey {
   key: string;
   originalName: string;
   mimeType: string;
   sizeBytes: number;
   /**
-   * Provenance of the merged PDF at `key` (2026-07-29 incident fix — see
-   * src/app/api/order-drafts/[draftId]/upload/complete/route.ts). sourceUploadCount/
-   * sourceUploadIds reflect the DEDUPED source list actually merged (raw uploads with
-   * identical content hashes collapse to one before mergePdfs()) — a stale/duplicated
-   * client retry can never inflate these past the count of genuinely distinct files.
-   * Absent on drafts completed before this fix.
+   * Per-source provenance of the merged PDF at `key` — see DraftSourceFile's doc
+   * comment. Absent on drafts completed before the 2026-07-29/07-31 fixes.
    */
-  sourceUploadCount?: number;
-  sourceUploadIds?: string[];
-  sourceContentHashes?: string[];
+  sources?: DraftSourceFile[];
 }
 
 /**
@@ -35,9 +56,8 @@ export interface DraftAnalysisSnapshot {
   physicalPageCount: number | null;
   requiresOperatorReview: boolean;
   reviewReasons: string[];
-  /** Copied from file_keys[0] at analysis time — see DraftFileKey's doc comment. */
-  sourceUploadCount?: number;
-  sourceUploadIds?: string[];
+  /** Copied from file_keys[0].sources at analysis time — see DraftSourceFile's doc comment. */
+  sources?: DraftSourceFile[];
 }
 
 export interface DraftPricingSnapshot {
@@ -53,9 +73,8 @@ export interface DraftPricingSnapshot {
   discountAppliedKzt?: number;
   /** Normalized (uppercased) partner referral code the discount was validated against. */
   discountCode?: string | null;
-  /** Copied from the analysis snapshot at calculate time — see DraftFileKey's doc comment. */
-  sourceUploadCount?: number;
-  sourceUploadIds?: string[];
+  /** Copied from the analysis snapshot at calculate time — see DraftSourceFile's doc comment. */
+  sources?: DraftSourceFile[];
 }
 
 /** Raw `order_drafts` row shape — snake_case, matches the DB column names exactly. */

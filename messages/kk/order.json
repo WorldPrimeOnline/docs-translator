@@ -15,6 +15,8 @@
     "queued": "Кезекте",
     "failed": "Қате",
     "download": "Жүктеп алу",
+    "historyAvailableUntil": "{date} дейін қолжетімді",
+    "historyRetentionExpired": "Сақтау мерзімі аяқталды",
     "fiscalReceipt": "Электрондық чек",
     "fiscalReceiptPending": "Чек дайындалуда",
     "signedIn": "Кіргенсіз",
@@ -38,6 +40,7 @@
     "usingPlanSub": "{plan} жоспарыңыз · {remaining} құжат қалды — төлем қажет емес",
     "status": {
       "paymentPending": "Awaiting payment",
+      "preparingDocument": "Құжатты өңдеуге дайындау",
       "queued": "Кезекте — басталуды күтуде…",
       "ocr": "Мәтін шығарылуда… ({pct}%)",
       "ocrDone": "OCR аяқталды, аударма басталуда… ({pct}%)",
@@ -46,6 +49,7 @@
       "completed": "Аяқталды",
       "failed": "Қате",
       "awaitingTranslatorReview": "Аудармашыға жіберілді — тексеруді күтуде",
+      "translatorReviewInProgress": "Құжатты аудармашы өңдеп жатыр",
       "awaitingSignatureStamp": "Аудармашының қолы мен мөрін күтуде",
       "awaitingNotaryReview": "Нотариусқа жіберілді — куәландыруды күтуде",
       "awaitingFinalQa": "Түпкілікті сапа тексеруін күтуде",
@@ -55,7 +59,7 @@
       "translatorApproved": "Аударма тексерілді — оператор күтілуде",
       "assignedToNotary": "Аударма тексерілді — нотариусқа жіберіледі",
       "notarizationInProgress": "Нотариуста орындалуда",
-      "notarized": "Нотариалдық куәландыру аяқталды",
+      "notarized": "Құжат нотариалды түрде куәландырылды",
       "readyForPickup": "Өзі алуға дайын",
       "outForDelivery": "Курьерге берілді",
       "delivered": "Тапсырыс жеткізілді",
@@ -171,7 +175,7 @@
       "translatorApproved": "Аудармасы тексерілді",
       "assignedToNotary": "Нотариусқа жіберілді",
       "notarizationInProgress": "Нотариус жұмысында",
-      "notarized": "Нотариус аяқтады",
+      "notarized": "Нотариалдық куәландыру аяқталды",
       "readyForPickup": "Алуға дайын",
       "outForDelivery": "Курьерге берілді",
       "delivered": "Алынды",
@@ -189,6 +193,7 @@
     "errors": {
       "serverError": "Сервер қатесі. Қайтадан көріңіз.",
       "uploadFailed": "Жүктеу қатесі",
+      "pricingVersionChanged": "Тарифтер жаңартылды. Қайта есептеңіз.",
       "logoutFailed": "Шығу сәтсіз аяқталды",
       "unsupportedFileType": "Қолдау көрсетілмейтін файл түрі: {files}",
       "pleaseSelectFile": "Кем дегенде бір файл таңдаңыз",
@@ -199,6 +204,7 @@
       "invalidFileSignature": "«{file}» файлы көрсетілген түрге сәйкес келмейді."
     },
     "uploadDocument": "Upload document",
+    "pricingSlowMessage": "Есептеу әдеттегіден көбірек уақыт алып жатыр — күте тұрыңыз",
     "uploadedQuoteReady": "Document uploaded — price: {price} KZT. Confirm payment below.",
     "uploadedRequiresReview": "Document uploaded. The price will be confirmed by our operator.",
     "quoteReady": "Price confirmed",
@@ -265,7 +271,42 @@
     "uploadedQuoteReadyWithDiscount": "Құжат жүктелді — құны: {price} ₸ (серіктес коды бойынша {saved} ₸ үнемделді). Төлемді растаңыз.",
     "priceBeforeDiscount": "Жеңілдікке дейінгі баға",
     "discountByCode": "Серіктес жеңілдігі",
-    "finalPrice": "Төлем сомасы"
+    "finalPrice": "Төлем сомасы",
+    "progressFlow": {
+      "prePayment": {
+        "quoteReady": "Құны есептелді",
+        "paymentPending": "Төлем күтілуде",
+        "paymentChecking": "Төлем тексерілуде",
+        "paymentFailed": "Төлем өтпеді"
+      },
+      "electronic": {
+        "paid": "Төлем расталды",
+        "processing": "Құжат өңделуде",
+        "ready": "Аударма дайын"
+      },
+      "official": {
+        "paid": "Төлем расталды",
+        "processing": "Құжат өңделуде",
+        "awaitingTranslatorReview": "Аудармашыға жіберілді — өңдеуді күтуде",
+        "translatorReviewInProgress": "Құжатты аудармашы өңдеп жатыр",
+        "ready": "Ресми аударма дайын"
+      },
+      "notary": {
+        "paid": "Төлем расталды",
+        "processing": "Құжат дайындалуда",
+        "awaitingTranslatorReview": "Аудармашыға жіберілді — тексеруді күтуде",
+        "translatorReviewInProgress": "Құжатты аудармашы өңдеп жатыр",
+        "approvedForNotary": "Аударма нотариалды куәландыруға дайын",
+        "notarizationInProgress": "Құжат нотариуста",
+        "notarized": "Құжат нотариалды түрде куәландырылды",
+        "notarizedFinal": "Құжат нотариалды түрде куәландырылды",
+        "readyForPickup": "Өзі алып кетуге дайын",
+        "pickedUp": "Тапсырыс берілді",
+        "readyForDelivery": "Құжат курьерге тапсыруға дайын",
+        "outForDelivery": "Құжат курьерге тапсырылды",
+        "delivered": "Құжат жеткізілді"
+      }
+    }
   },
   "electronicOutput": {
     "formats": {

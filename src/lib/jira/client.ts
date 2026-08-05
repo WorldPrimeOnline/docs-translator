@@ -1,6 +1,6 @@
 import type { ServiceLevel } from '../translation-prompts/types';
 import { getJiraCredentials, makeAuthHeader } from './config';
-import { JIRA_PROJECT_CONFIG, JIRA_ISSUE_TYPE } from './project-config';
+import { JIRA_PROJECT_CONFIG, JIRA_ISSUE_TYPE, stagingSecurityField } from './project-config';
 
 // ─── Field IDs (kept here for web-app side; mirrored in worker/src/lib/jira/order-fields.ts) ──
 
@@ -166,6 +166,7 @@ export async function createJiraIssue(
       description: buildDescription(params),
       labels: [envLabel],
       ...buildCustomFields(params),
+      ...stagingSecurityField(),
     },
   };
 

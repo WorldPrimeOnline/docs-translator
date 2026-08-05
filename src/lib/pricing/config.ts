@@ -225,6 +225,37 @@ export const MARGIN_FLOOR_CONFIG = {
   } as Record<ServiceLevel, number>,
 };
 
+// ─── Electronic minimum payable floor (2026-08-01 incident fix) ────────────────────────────────
+// A staging order priced at 1300 KZT (minimum 1000 × document coefficient 1.1 = 1100, then
+// payment-wide fee gross-up to 1300) revealed the electronic formula had no floor on the actual
+// amount charged — Business rule: the final amount a customer pays for Electronic must never be
+// below this, INCLUDING after any partner/referral discount and after rounding. Applied in two
+// places: calculateElectronicPrice() floors its own finalClientPrice (covers the no-discount
+// case, e.g. this incident), and capDiscountForElectronicMinimum() below caps the discount
+// amount at each checkout call site so a discount can never push the post-discount price under
+// this floor either. Official/notarized pricing is entirely untouched by this constant.
+export const ELECTRONIC_MINIMUM_PAYABLE_KZT = 1500;
+
+/**
+ * Caps a computed partner/referral discount so `basePreDiscountKzt - cappedDiscount` never goes
+ * below ELECTRONIC_MINIMUM_PAYABLE_KZT for electronic orders. No-op for official/notarized —
+ * those have no such floor and their discount behavior must not change.
+ *
+ * Callers (order-drafts/service.ts's calculateDraftPrice, documents/upload-card-shared.ts's
+ * createCardOrder, and the legacy documents/upload-card/route.ts) must use THIS instead of
+ * passing calculatePartnerDiscount()'s raw result straight through, so all three checkout paths
+ * enforce the floor identically rather than each reimplementing it.
+ */
+export function capDiscountForElectronicMinimum(
+  basePreDiscountKzt: number,
+  discountKzt: number,
+  serviceLevel: string | null | undefined,
+): number {
+  if (serviceLevel !== 'electronic') return discountKzt;
+  const maxAllowedDiscount = Math.max(0, basePreDiscountKzt - ELECTRONIC_MINIMUM_PAYABLE_KZT);
+  return Math.min(discountKzt, maxAllowedDiscount);
+}
+
 export const NOTARY_URGENCY_CONFIG = {
   standard:             { multiplier: 1.0 },
   same_day_before_noon: { multiplier: 1.0, cutoffHour: 12 },

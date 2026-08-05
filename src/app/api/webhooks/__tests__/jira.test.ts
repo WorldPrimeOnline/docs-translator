@@ -8,6 +8,7 @@ import type { NextRequest } from 'next/server';
 jest.mock('@/lib/integrations/workflow', () => ({
   syncTranslatorDoneCertified: jest.fn().mockResolvedValue({ applied: true }),
   syncTranslatorDoneNotarized: jest.fn().mockResolvedValue({ applied: true }),
+  syncTranslatorInProgress: jest.fn().mockResolvedValue({ applied: true }),
   syncNotaryInProgress: jest.fn().mockResolvedValue({ applied: true }),
   syncNotaryDone: jest.fn().mockResolvedValue({ applied: true }),
   syncTranslatorDeclined: jest.fn().mockResolvedValue(undefined),
@@ -55,6 +56,7 @@ jest.mock('@/lib/supabase/server', () => ({
 const mocks = jest.requireMock('@/lib/integrations/workflow') as {
   syncTranslatorDoneCertified: jest.Mock;
   syncTranslatorDoneNotarized: jest.Mock;
+  syncTranslatorInProgress: jest.Mock;
   syncNotaryInProgress: jest.Mock;
   syncNotaryDone: jest.Mock;
   syncTranslatorDeclined: jest.Mock;
@@ -369,18 +371,46 @@ describe('POST /api/webhooks/jira', () => {
       expect(mocks.syncInformational).toHaveBeenCalled();
     });
 
-    it('TRANSLATOR_IN_PROGRESS calls syncInformational', async () => {
-      setupDb(false, makeJobRow('official_with_translator_signature_and_provider_stamp'));
-      const res = await POST(makeReq(payload('TRANSLATOR_IN_PROGRESS', 'e-inf-2'), WEBHOOK_SECRET));
-      expect(res.status).toBe(200);
-      expect(mocks.syncInformational).toHaveBeenCalled();
-    });
-
     it('NOTARY_ACCEPTED calls syncInformational (notarization job only)', async () => {
       setupDb(false, makeJobRow('notarization_through_partners'));
       const res = await POST(makeReq(payload('NOTARY_ACCEPTED', 'e-inf-3'), WEBHOOK_SECRET));
       expect(res.status).toBe(200);
       expect(mocks.syncInformational).toHaveBeenCalled();
+    });
+  });
+
+  // ── TRANSLATOR_IN_PROGRESS — "В работе у переводчика" (2026-08-04) ──────────
+  // No longer informational — sets workflow_status = translator_review_in_progress.
+
+  describe('TRANSLATOR_IN_PROGRESS', () => {
+    it('calls syncTranslatorInProgress and returns 200 for an Official job', async () => {
+      setupDb(false, makeJobRow('official_with_translator_signature_and_provider_stamp'));
+      const res = await POST(makeReq(payload('TRANSLATOR_IN_PROGRESS', 'e-tip-1'), WEBHOOK_SECRET));
+      expect(res.status).toBe(200);
+      expect(mocks.syncTranslatorInProgress).toHaveBeenCalledWith({ jobId: JOB_ID, jiraIssueKey: ISSUE_KEY });
+      expect(mocks.syncInformational).not.toHaveBeenCalled();
+    });
+
+    it('calls syncTranslatorInProgress and returns 200 for a Notary job', async () => {
+      setupDb(false, makeJobRow('notarization_through_partners'));
+      const res = await POST(makeReq(payload('TRANSLATOR_IN_PROGRESS', 'e-tip-2'), WEBHOOK_SECRET));
+      expect(res.status).toBe(200);
+      expect(mocks.syncTranslatorInProgress).toHaveBeenCalledWith({ jobId: JOB_ID, jiraIssueKey: ISSUE_KEY });
+    });
+
+    it('repeating the same eventId is idempotent — the existing in-memory guard short-circuits the retry, syncTranslatorInProgress is never called twice', async () => {
+      setupDb(false, makeJobRow('official_with_translator_signature_and_provider_stamp'));
+      const res1 = await POST(makeReq(payload('TRANSLATOR_IN_PROGRESS', 'e-tip-3'), WEBHOOK_SECRET));
+      expect(res1.status).toBe(200);
+      expect(mocks.syncTranslatorInProgress).toHaveBeenCalledTimes(1);
+
+      // Second delivery of the SAME eventId — caught by the existing in-process
+      // processedEventIds guard (route.ts step 3, before the DB is even queried again).
+      const res2 = await POST(makeReq(payload('TRANSLATOR_IN_PROGRESS', 'e-tip-3'), WEBHOOK_SECRET));
+      const body2 = await res2.json() as { ok: boolean; skipped?: string };
+      expect(res2.status).toBe(200);
+      expect(body2.skipped).toBe('duplicate');
+      expect(mocks.syncTranslatorInProgress).toHaveBeenCalledTimes(1); // still 1 — not called again
     });
   });
 });

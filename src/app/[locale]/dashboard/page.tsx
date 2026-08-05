@@ -7,8 +7,13 @@ import { toast } from 'sonner';
 import { FileText, Download, AlertCircle, Loader2, Clock, RefreshCw, Receipt } from 'lucide-react';
 import { HalykPayButton } from '@/components/payment/HalykPayButton';
 import { createClient } from '@/lib/supabase/client';
-import { getCustomerOrderState } from '@/lib/translation-workflow/customer-order-state';
-import { bucketOrders } from '@/lib/translation-workflow/order-buckets';
+import { bucketOrders, visibleOrders } from '@/lib/translation-workflow/order-buckets';
+import { resolveDownloadAction } from '@/lib/translation-workflow/download-action';
+import { isCompletedBadge } from '@/lib/translation-workflow/status-badge';
+import { sortByCreatedAtDesc } from '@/lib/translation-workflow/order-sort';
+import { applyPolledOrderUpdate, needsLivePolling, type PolledOrderData } from '@/lib/translation-workflow/dashboard-polling';
+import { computeRetentionExpiry, isRetentionExpired, applyFilesPurgedOverride } from '@/lib/translation-workflow/order-retention';
+import { OrderProgressBar, shouldShowOrderProgressBar } from '@/components/dashboard/OrderProgressBar';
 import { OrderForm } from '@/components/order/OrderForm';
 
 interface OrderEntry {
@@ -23,15 +28,26 @@ interface OrderEntry {
   fulfillmentMethod: 'pickup' | 'delivery' | null;
   jobStatus: string | null;
   workflowStatus: string | null;
-  progressPercent: number;
+  /** null before payment is confirmed — see progress-flow.ts's Rule 1 (2026-07-26). */
+  progressPercent: number | null;
+  /** i18n key for the current status text — resolveCustomerProgressFlow()'s own
+   * label, computed server-side. Never recompute/guess this client-side. */
+  labelKey: string;
+  /** false before payment (and while payment is being checked/failed) — the
+   * fulfillment progress bar/stage track must not render at all while this is
+   * false, per Rule 1. */
+  showFulfillmentProgress: boolean;
   errorMessage: string | null;
   createdAt: string;
   updatedAt: string;
+  /** Dashboard sort key ONLY (jobs.created_at) — see order-sort.ts. Never used for display. */
+  sortCreatedAt: string;
   customerStatus: string | null;
   canDownload: boolean;
   isActive: boolean;
   isTerminal: boolean;
-  stages: { key: string; labelKey: string; done: boolean; current: boolean }[];
+  /** Positioned by `percent` (0-100), never evenly spaced — see progress-flow.ts. */
+  stages: { key: string; labelKey: string; percent: number; done: boolean; current: boolean }[];
   priceKzt: number | null;
   priceBeforeDiscountKzt: number | null;
   discountAppliedKzt: number | null;
@@ -44,16 +60,21 @@ interface OrderEntry {
   quoteRequiresOperatorReview: boolean;
   fiscalUrl: string | null;
   fiscalReceiptStatus: string | null;
+  /** 2026-07-24 retention fix: authoritative "files purged" timestamp from
+   * documents.files_purged_at (null until the 30-day retention cleanup has actually
+   * run), NOT a client-side createdAt+30-day estimate. Server also already forces
+   * canDownload=false once this is set — see /api/jobs/route.ts. */
+  filesPurgedAt: string | null;
 }
 
 
 // ─── Status badge ──────────────────────────────────────────────────────────────
 
-function StatusBadge({ customerStatus }: { customerStatus: string | null }) {
+function StatusBadge({ customerStatus, serviceLevel }: { customerStatus: string | null; serviceLevel?: string | null }) {
   const t = useTranslations('dashboard');
   const status = customerStatus ?? 'queued';
 
-  if (status === 'completed' || status === 'delivered' || status === 'picked_up' || status === 'ready_for_delivery') {
+  if (isCompletedBadge(customerStatus, serviceLevel)) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-400">
         <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
@@ -96,6 +117,7 @@ function StatusBadge({ customerStatus }: { customerStatus: string | null }) {
   // Human review / physical delivery stages
   if (
     status === 'awaiting_translator_review' ||
+    status === 'translator_review_in_progress' ||
     status === 'awaiting_signature_stamp' ||
     status === 'awaiting_notary_review' ||
     status === 'awaiting_final_qa' ||
@@ -124,102 +146,31 @@ function StatusBadge({ customerStatus }: { customerStatus: string | null }) {
 }
 
 // ─── Stage progress bar ────────────────────────────────────────────────────────
+//
+// 2026-07-24 visual fix: the milestone-dot track and the duplicate status+percent
+// text that used to render below it are gone — see OrderProgressBar
+// (src/components/dashboard/OrderProgressBar.tsx) for the single status/percent
+// line + single continuous bar that replaced them. `percent` still comes straight
+// from resolveCustomerProgressFlow() via entry.progressPercent — never recomputed
+// here.
 
-function StageProgressBar({
-  stages,
-  progressPercent,
-}: {
-  stages: OrderEntry['stages'];
-  progressPercent: number;
-}) {
-  const t = useTranslations('dashboard');
-
-  if (!stages.length) {
-    return (
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
-        <div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${progressPercent}%` }} />
-      </div>
-    );
+function safeLabel(t: ReturnType<typeof useTranslations>, labelKey: string): string {
+  try {
+    return t(labelKey as Parameters<typeof t>[0]);
+  } catch {
+    return labelKey.split('.').pop() ?? labelKey;
   }
-
-  const currentIdx = stages.findIndex((s) => s.current);
-  const currentStage = currentIdx >= 0 ? stages[currentIdx] : null;
-
-  return (
-    <div className="flex flex-col gap-2">
-      {/* Dot track */}
-      <div className="flex items-center gap-0">
-        {stages.map((stage, i) => (
-          <div key={stage.key} className="flex flex-1 items-center">
-            <div
-              className={`h-2 w-2 shrink-0 rounded-full transition-colors ${
-                stage.done
-                  ? 'bg-primary'
-                  : stage.current
-                  ? 'bg-primary ring-2 ring-primary/30'
-                  : 'bg-white/20'
-              }`}
-            />
-            {i < stages.length - 1 && (
-              <div className="flex-1 h-px mx-0.5 transition-colors" style={{ background: stage.done ? 'rgb(201 168 76)' : 'rgb(255 255 255 / 0.15)' }} />
-            )}
-          </div>
-        ))}
-      </div>
-      {/* Current stage label */}
-      {currentStage && (
-        <p className="text-xs text-muted-foreground">
-          {(() => {
-            try {
-              return t(currentStage.labelKey as Parameters<typeof t>[0]);
-            } catch {
-              return currentStage.labelKey.split('.').pop() ?? '';
-            }
-          })()}
-        </p>
-      )}
-    </div>
-  );
 }
 
 // ─── Customer status label ─────────────────────────────────────────────────────
+//
+// 2026-07-26: labelKey now comes straight from resolveCustomerProgressFlow() —
+// computed once, server-side, for the whole customer journey (pre-payment
+// messages included). Never recompute or guess a label from customerStatus here.
 
 function useStatusLabel() {
   const t = useTranslations('dashboard');
-
-  return (entry: OrderEntry): string => {
-    const status = entry.customerStatus;
-    const pct = entry.progressPercent;
-
-    switch (status) {
-      case 'payment_pending':      return t('status.paymentPending');
-      case 'queued':               return t('status.queued');
-      case 'ocr_in_progress':      return t('status.ocr', { pct });
-      case 'translation_in_progress': return t('status.translating', { pct });
-      case 'pdf_rendering':        return t('status.rendering', { pct });
-      case 'awaiting_translator_review': return t('status.awaitingTranslatorReview');
-      case 'awaiting_signature_stamp':   return t('status.awaitingSignatureStamp');
-      case 'awaiting_notary_review':     return t('status.awaitingNotaryReview');
-      case 'awaiting_final_qa':          return t('status.awaitingFinalQa');
-      case 'translator_approved':        return t('status.translatorApproved');
-      case 'assigned_to_notary':         return t('status.assignedToNotary');
-      case 'notarization_in_progress':   return t('status.notarizationInProgress');
-      case 'notarized':                  return t('status.notarized');
-      case 'ready_for_delivery':         return t('status.readyForDelivery');
-      case 'ready_for_pickup':           return t('status.readyForPickup');
-      case 'out_for_delivery':           return t('status.outForDelivery');
-      case 'delivered':                  return t('status.delivered');
-      case 'picked_up':                  return t('status.pickedUp');
-      case 'operator_processing':        return t('status.operatorProcessing');
-      case 'translator_declined':        return t('status.translatorDeclined');
-      case 'notary_declined':            return t('status.notaryDeclined');
-      case 'completed':            return t('status.completed');
-      case 'failed':               return t('status.failed');
-      case 'refunded':             return t('status.refunded');
-      case 'canceled':             return t('status.canceled');
-      default:                     return t('processing');
-    }
-  };
+  return (entry: OrderEntry): string => safeLabel(t, entry.labelKey);
 }
 
 // ─── Active order card ────────────────────────────────────────────────────────
@@ -231,6 +182,13 @@ function ActiveOrderCard({ entry, locale, onRecalculate }: { entry: OrderEntry; 
 
   const AI_STAGES = new Set(['queued', 'ocr_in_progress', 'translation_in_progress', 'pdf_rendering', 'completed', 'failed']);
   const isHumanStage = !AI_STAGES.has(entry.customerStatus ?? '');
+
+  // 2026-07-24 visual fix: same gate resolveCustomerProgressFlow's
+  // showFulfillmentProgress/progressPercent have always used (pre-payment this is
+  // false/null and nothing here changes) — only decides which of the two mutually
+  // exclusive renders below is used, so the status text is never shown twice. See
+  // shouldShowOrderProgressBar (OrderProgressBar.tsx) for the unit-tested predicate.
+  const showProgressBar = shouldShowOrderProgressBar(entry.showFulfillmentProgress, entry.progressPercent);
 
   const serviceLevelLabel =
     entry.serviceLevel === 'notarization_through_partners'
@@ -257,14 +215,18 @@ function ActiveOrderCard({ entry, locale, onRecalculate }: { entry: OrderEntry; 
             <span>·</span>
             <span>{t('order.created')} {createdDate}</span>
           </div>
-          <p className="mt-1.5 text-xs text-foreground/70">
-            {statusLabel(entry)}
-          </p>
+          {!showProgressBar && (
+            <p className="mt-1.5 text-xs text-foreground/70">
+              {statusLabel(entry)}
+            </p>
+          )}
         </div>
-        <StatusBadge customerStatus={entry.customerStatus} />
+        <StatusBadge customerStatus={entry.customerStatus} serviceLevel={entry.serviceLevel} />
       </div>
 
-      <StageProgressBar stages={entry.stages} progressPercent={entry.progressPercent} />
+      {showProgressBar && (
+        <OrderProgressBar statusLabel={statusLabel(entry)} percent={entry.progressPercent!} />
+      )}
 
       {isHumanStage && (
         <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground/70">
@@ -384,27 +346,31 @@ function ActiveOrderCard({ entry, locale, onRecalculate }: { entry: OrderEntry; 
         );
       })()}
 
-      {entry.canDownload && (
-        <>
-          <a
-            href={`/api/documents/${entry.documentId}/download`}
-            className="mt-4 inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-gold-dark"
-          >
-            <Download className="h-4 w-4" />
-            {t('downloadTranslation')}
-          </a>
-          {entry.serviceLevel === 'electronic' && (
-            <p className="mt-2 text-xs text-muted-foreground">
-              <span className="font-medium">{tElectronic('formats.title')}</span>
-              {': '}
-              {tElectronic('formats.body')}
-            </p>
-          )}
-        </>
-      )}
+      {(() => {
+        const download = resolveDownloadAction(entry);
+        if (!download.visible) return null;
+        return (
+          <>
+            <a
+              href={download.href!}
+              className="mt-4 inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-gold-dark"
+            >
+              <Download className="h-4 w-4" />
+              {t('downloadTranslation')}
+            </a>
+            {entry.serviceLevel === 'electronic' && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                <span className="font-medium">{tElectronic('formats.title')}</span>
+                {': '}
+                {tElectronic('formats.body')}
+              </p>
+            )}
+          </>
+        );
+      })()}
       {entry.isTerminal && (
         <div className="mt-3">
-          <FiscalReceiptLink fiscalUrl={entry.fiscalUrl} fiscalReceiptStatus={entry.fiscalReceiptStatus} />
+          <FiscalReceiptLink fiscalUrl={entry.fiscalUrl} />
         </div>
       )}
     </div>
@@ -412,39 +378,65 @@ function ActiveOrderCard({ entry, locale, onRecalculate }: { entry: OrderEntry; 
 }
 
 // ─── Fiscal receipt link ───────────────────────────────────────────────────────
+//
+// 2026-08-01 WO-106 fix: dropped the "Чек формируется" pending-state text entirely
+// (both Active and History previously rendered it via this shared component whenever
+// fiscalReceiptStatus was pending/pending_manual/retry_required and no URL existed
+// yet) — it told the customer nothing actionable and was reported as clutter next to
+// a stuck order. Fiscalization/Webkassa/OFD backend processing is untouched; a real
+// receipt link, once issued, still renders exactly as before.
 
-const FISCAL_PENDING_STATUSES = new Set(['pending', 'pending_manual', 'retry_required']);
-
-function FiscalReceiptLink({ fiscalUrl, fiscalReceiptStatus }: { fiscalUrl: string | null; fiscalReceiptStatus: string | null }) {
+function FiscalReceiptLink({ fiscalUrl }: { fiscalUrl: string | null }) {
   const t = useTranslations('dashboard');
 
-  if (fiscalUrl) {
-    return (
-      <a
-        href={fiscalUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-white/20 hover:text-foreground"
-      >
-        <Receipt className="h-3 w-3" />
-        {t('fiscalReceipt')}
-      </a>
-    );
-  }
+  if (!fiscalUrl) return null;
 
-  if (fiscalReceiptStatus && FISCAL_PENDING_STATUSES.has(fiscalReceiptStatus)) {
-    return (
-      <span className="text-xs text-muted-foreground/60">{t('fiscalReceiptPending')}</span>
-    );
-  }
-
-  return null;
+  return (
+    <a
+      href={fiscalUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-white/20 hover:text-foreground"
+    >
+      <Receipt className="h-3 w-3" />
+      {t('fiscalReceipt')}
+    </a>
+  );
 }
 
 // ─── History row ───────────────────────────────────────────────────────────────
 
-function HistoryRow({ entry }: { entry: OrderEntry }) {
+function HistoryRow({ entry, locale }: { entry: OrderEntry; locale: string }) {
   const t = useTranslations('dashboard');
+
+  // 2026-07-23 dashboard task: history rows previously showed no amount and no
+  // retention/expiry information at all. `entry.priceKzt` is the final (post-discount)
+  // price stored on jobs at order creation (see src/lib/order-drafts/service.ts) — the
+  // amount actually charged, distinct from quoteAmountKzt which only applies to a
+  // still-pending quote.
+  //
+  // 2026-07-24 retention fix: `entry.filesPurgedAt` (from documents.files_purged_at)
+  // is now the AUTHORITATIVE "expired" signal — set only once retention cleanup has
+  // actually deleted the R2 objects, never a guess. The client-side date estimate
+  // (computeRetentionExpiry/isRetentionExpired, from order-retention.ts) is used only
+  // to display "available until X" BEFORE that has happened — it is never used to
+  // decide whether a download is offered (the server already forces canDownload:false
+  // once filesPurgedAt is set — see /api/jobs/route.ts).
+  // Only shown for orders that actually produced a result at some point (same status
+  // set StatusBadge/isCompletedBadge treats as "successful") — a canceled/refunded/
+  // failed order never had a file to expire, so it never shows the retention
+  // message, purged or not. 'closed' (2026-08-05 WO-112 fix) included for the same
+  // reason — a Jira-closed order is a successful, finished order too.
+  const hadResult = entry.customerStatus === 'completed' || entry.customerStatus === 'delivered'
+    || entry.customerStatus === 'picked_up' || entry.customerStatus === 'ready_for_delivery'
+    || entry.customerStatus === 'closed';
+  const purged = hadResult && entry.filesPurgedAt != null;
+  const expiry = computeRetentionExpiry(entry.createdAt);
+  const estimatedExpiredSoon = isRetentionExpired(entry.createdAt);
+  const formattedExpiry = expiry.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
+  // 2026-08-01 WO-106 fix: same resolver ActiveOrderCard uses — a downloadable order
+  // can never show a button in one surface and not the other (see download-action.ts).
+  const download = resolveDownloadAction(entry);
 
   return (
     <div className="flex items-center justify-between px-6 py-4 transition-colors hover:bg-white/[0.03]">
@@ -454,21 +446,27 @@ function HistoryRow({ entry }: { entry: OrderEntry }) {
         </span>
         <span className="text-xs text-muted-foreground">
           {entry.sourceLanguage} → {entry.targetLanguage} · {(entry.documentType ?? '').split('|')[0]} ·{' '}
-          {new Date(entry.createdAt).toLocaleDateString()}
+          {new Date(entry.createdAt).toLocaleDateString(locale)}
+          {entry.priceKzt != null && <> · {entry.priceKzt.toLocaleString(locale)} ₸</>}
         </span>
+        {entry.canDownload && !purged && !estimatedExpiredSoon && (
+          <span className="text-xs text-muted-foreground/60">{t('historyAvailableUntil', { date: formattedExpiry })}</span>
+        )}
       </div>
       <div className="ml-4 flex shrink-0 flex-wrap items-center gap-2">
-        <StatusBadge customerStatus={entry.customerStatus} />
-        {entry.canDownload && (
+        <StatusBadge customerStatus={entry.customerStatus} serviceLevel={entry.serviceLevel} />
+        {purged ? (
+          <span className="text-xs text-muted-foreground/60">{t('historyRetentionExpired')}</span>
+        ) : download.visible ? (
           <a
-            href={`/api/documents/${entry.documentId}/download`}
+            href={download.href!}
             className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-foreground transition-colors hover:border-white/20 hover:bg-white/10"
           >
             <Download className="h-3 w-3" />
             {t('download')}
           </a>
-        )}
-        <FiscalReceiptLink fiscalUrl={entry.fiscalUrl} fiscalReceiptStatus={entry.fiscalReceiptStatus} />
+        ) : null}
+        <FiscalReceiptLink fiscalUrl={entry.fiscalUrl} />
       </div>
     </div>
   );
@@ -491,11 +489,24 @@ export default function DashboardPage() {
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const ordersRef = useRef<OrderEntry[]>([]);
   const seenTerminalIds = useRef<Set<string>>(new Set());
+  // 2026-08-06 dashboard-polling incident fix: at most one polling cycle in flight at
+  // a time (a slow cycle must never overlap with the next interval tick), and the
+  // previous cycle's requests are aborted if a new one somehow starts anyway.
+  const pollInFlightRef = useRef(false);
+  const pollAbortControllerRef = useRef<AbortController | null>(null);
 
   // ready_for_delivery is "active" but also showable in history — put it in active for now.
   // Bucketing itself lives in a shared, unit-tested pure function — see
   // src/lib/translation-workflow/order-buckets.ts and its __tests__.
-  const { activeOrders, readyOrders, historyOrders } = bucketOrders(orders);
+  // visibleOrders() (active+ready, sorted by created_at DESC — 2026-08-03 fix) is
+  // what's actually rendered; historyOrders keeps its own separate section/order.
+  //
+  // 2026-07-24 retention fix: once a purged order's files are gone, it must migrate
+  // out of the active/ready section into history — see applyFilesPurgedOverride's
+  // doc comment (src/lib/translation-workflow/order-retention.ts).
+  const bucketableOrders = applyFilesPurgedOverride(orders);
+  const visible = visibleOrders(bucketableOrders);
+  const { historyOrders } = bucketOrders(bucketableOrders);
 
   // ─── Load all orders from API (source of truth) ──────────────────────────────
 
@@ -513,7 +524,10 @@ export default function DashboardPage() {
           break;
         }
         const data = (await res.json()) as { jobs: OrderEntry[] };
-        setOrders(data.jobs);
+        // Defensive re-sort — the API already returns created_at DESC, but the
+        // dashboard's own ordering guarantee must not depend on trusting that
+        // (2026-08-03 incident: never bucket/group by status either).
+        setOrders(sortByCreatedAtDesc(data.jobs));
         break;
       } catch (e) {
         console.error(`[dashboard] loadOrders failed (attempt ${attempt + 1}):`, e);
@@ -534,13 +548,31 @@ export default function DashboardPage() {
   // Keep ordersRef in sync so pollActiveJobs can read current orders without closing over state
   useEffect(() => { ordersRef.current = orders; }, [orders]);
 
-  // ─── Polling: poll all active (non-terminal) jobs ─────────────────────────────
+  // ─── Polling: poll only jobs where analysis/quote calculation is actually in
+  // progress — never a payment_pending order sitting idle (2026-08-06 fix; see
+  // needsLivePolling()'s doc comment for why). ───────────────────────────────────
 
   const pollActiveJobs = useCallback(async (): Promise<void> => {
+    // Tab hidden: skip this tick entirely rather than burning requests the user
+    // isn't looking at. The interval keeps ticking (cheap) — resumes on its own
+    // the moment the tab becomes visible again, no separate resume wiring needed.
+    if (typeof document !== 'undefined' && document.hidden) return;
+
+    // At most one polling cycle in flight — a slow cycle (or a tab that was
+    // backgrounded mid-request) must never overlap with the next interval tick.
+    if (pollInFlightRef.current) return;
+    pollInFlightRef.current = true;
+
+    // Abort whatever the previous cycle's requests were doing, defensively — in
+    // practice pollInFlightRef already prevents overlap, this is a second guard.
+    pollAbortControllerRef.current?.abort();
+    const controller = new AbortController();
+    pollAbortControllerRef.current = controller;
+
     // Read via ref — no dependency on orders state; callback is stable across renders
     const current = ordersRef.current;
-    const polling = current.filter((o) => !o.isTerminal);
-    if (!polling.length) return;
+    const polling = current.filter((o) => needsLivePolling(o.customerStatus, o.isTerminal));
+    if (!polling.length) { pollInFlightRef.current = false; return; }
 
     let needFullReload = false;
 
@@ -548,25 +580,13 @@ export default function DashboardPage() {
       const results = await Promise.allSettled(
         polling.map(async (o) => {
           if (!o.jobId) return null;
-          const res = await fetch(`/api/jobs/${o.jobId}`);
+          const res = await fetch(`/api/jobs/${o.jobId}`, { signal: controller.signal });
           if (res.status === 404) return { gone: true } as const;
           if (!res.ok) return null;
-          return (await res.json()) as {
-            status: string;
-            progress: number;
-            errorMessage: string | null;
-            workflowStatus: string | null;
-            serviceLevel: string;
-            fulfillmentMethod: 'pickup' | 'delivery' | null;
+          return (await res.json()) as PolledOrderData & {
             priceBeforeDiscountKzt: number | null;
             discountAppliedKzt: number | null;
             discountCode: string | null;
-            latestQuoteId: string | null;
-            quoteStatus: string | null;
-            quoteAmountKzt: number | null;
-            quoteCurrency: string | null;
-            quoteExpiresAt: string | null;
-            quoteRequiresOperatorReview: boolean;
           };
         }),
       );
@@ -579,45 +599,30 @@ export default function DashboardPage() {
       });
 
       setOrders((prev) => {
-        const next = [...prev];
+        let next = prev;
         polling.forEach((o, i) => {
           const r = results[i];
           if (r?.status !== 'fulfilled' || !r.value || 'gone' in r.value) return;
-          const data = r.value;
-          const idx = next.findIndex((x) => x.documentId === o.documentId);
-          if (idx < 0) return;
-          const state = getCustomerOrderState({
-            jobStatus: data.status,
-            progressPercent: data.progress,
-            workflowStatus: data.workflowStatus,
-            serviceLevel: data.serviceLevel,
-            fulfillmentMethod: data.fulfillmentMethod ?? null,
-          });
-          next[idx] = {
-            ...next[idx]!,
-            jobStatus: data.status,
-            workflowStatus: data.workflowStatus,
-            fulfillmentMethod: data.fulfillmentMethod ?? null,
-            progressPercent: state.progressPercent,
-            errorMessage: data.errorMessage,
-            customerStatus: state.customerStatus,
-            canDownload: state.canDownload,
-            isActive: state.isActive,
-            isTerminal: state.isTerminal,
-            latestQuoteId: data.latestQuoteId ?? next[idx]!.latestQuoteId,
-            quoteStatus: data.quoteStatus ?? next[idx]!.quoteStatus,
-            quoteAmountKzt: data.quoteAmountKzt ?? next[idx]!.quoteAmountKzt,
-            quoteCurrency: data.quoteCurrency ?? next[idx]!.quoteCurrency,
-            quoteExpiresAt: data.quoteExpiresAt ?? next[idx]!.quoteExpiresAt,
-            quoteRequiresOperatorReview: data.quoteRequiresOperatorReview ?? next[idx]!.quoteRequiresOperatorReview,
-            stages: state.stages,
-            // fiscalUrl and fiscalReceiptStatus are not polled per-job; they come from loadOrders()
-          };
+          // applyPolledOrderUpdate() always preserves array length — a polled
+          // update rewrites the matching entry in place, it never removes one
+          // (2026-08-01 incident: a multi-source Electronic order must stay in
+          // the list once completed, never disappear).
+          next = applyPolledOrderUpdate(next, o.documentId, r.value);
         });
-        return next;
+        // Re-sort after every merge (2026-08-03 incident) — a no-op for position
+        // in practice, since applyPolledOrderUpdate() never touches
+        // sortCreatedAt, but guarantees the invariant holds even if a future
+        // poll response ever arrives in a different order.
+        return sortByCreatedAtDesc(next);
       });
     } catch (e) {
-      console.error('[dashboard] poll error:', e);
+      // AbortError is expected whenever this cycle's requests were superseded —
+      // not a real error, never logged as one.
+      if (!(e instanceof DOMException && e.name === 'AbortError')) {
+        console.error('[dashboard] poll error:', e);
+      }
+    } finally {
+      pollInFlightRef.current = false;
     }
 
     // A 404 means the job ID is stale; reload the full list to get authoritative server state
@@ -625,13 +630,15 @@ export default function DashboardPage() {
   }, [loadOrders]);
 
   // Derive stable boolean signals for the interval effect so it only restarts when the
-  // boolean VALUE changes (true↔false), not on every setOrders call.
-  const hasActive = orders.some((o) => !o.isTerminal);
+  // boolean VALUE changes (true↔false), not on every setOrders call. Uses
+  // needsLivePolling() — NOT just !isTerminal — so the interval doesn't even exist
+  // when every non-terminal order is payment_pending (2026-08-06 fix).
+  const hasActive = orders.some((o) => needsLivePolling(o.customerStatus, o.isTerminal));
   // Poll at 20s for any non-terminal order waiting on a human (translator/notary/courier).
   // Poll at 3s for active AI processing stages to show progress quickly.
   const AI_POLLING_STATUSES = new Set(['queued', 'ocr_in_progress', 'translation_in_progress', 'pdf_rendering']);
   const hasHumanStage = orders.some(
-    (o) => !o.isTerminal && !AI_POLLING_STATUSES.has(o.customerStatus ?? ''),
+    (o) => needsLivePolling(o.customerStatus, o.isTerminal) && !AI_POLLING_STATUSES.has(o.customerStatus ?? ''),
   );
 
   // Start/stop polling — restarts ONLY when active status or stage type changes, not every poll
@@ -705,11 +712,11 @@ export default function DashboardPage() {
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
             Loading…
           </div>
-        ) : activeOrders.length === 0 && readyOrders.length === 0 ? (
+        ) : visible.length === 0 ? (
           <p className="text-xs text-muted-foreground">{t('noActiveOrders')}</p>
         ) : (
           <>
-            {[...activeOrders, ...readyOrders].map((o) => (
+            {visible.map((o) => (
               <ActiveOrderCard key={o.documentId} entry={o} locale={locale} onRecalculate={handleRecalculate} />
             ))}
           </>
@@ -730,7 +737,7 @@ export default function DashboardPage() {
           </div>
         ) : (
           <div className="divide-y divide-white/5">
-            {historyOrders.map((o) => <HistoryRow key={o.documentId} entry={o} />)}
+            {historyOrders.map((o) => <HistoryRow key={o.documentId} entry={o} locale={locale} />)}
           </div>
         )}
       </div>

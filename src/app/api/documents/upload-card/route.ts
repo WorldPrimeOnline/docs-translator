@@ -5,9 +5,11 @@
  * Returns job ID, quote ID, and price so the frontend can initiate Halyk ePay payment.
  */
 import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
 import { supabaseServer } from '@/lib/supabase/server';
 import { uploadFile } from '@/lib/r2/client';
 import { convertToPdf, mergePdfs } from '@/lib/convert-to-pdf';
+import { getPhysicalPageCount } from '@/lib/document-analysis/physical-pages';
 import { deriveBackcompatBooleans } from '@/lib/translation-workflow/output-plan';
 import { getHalykConfig } from '@/lib/payments/halyk/config';
 import { computeQuoteForJob, saveQuote } from '@/lib/pricing/service';
@@ -15,14 +17,19 @@ import { DOCUMENT_TYPE_COEFFICIENT } from '@/lib/pricing/config';
 import { classifyPricingReviewReasons } from '@/lib/pricing/review-classification';
 import { reportInternalPricingFailure } from '@/lib/pricing/internal-failure';
 import { resolveDocumentAnalysisForPricing } from '@/lib/document-analysis/service';
+import { aggregateReliablePhysicalPageCount } from '@/lib/document-analysis/physical-pages';
 import { attachReferralToOrder } from '@/lib/referral/server';
 import { calculatePartnerDiscount } from '@/lib/partners/discount';
+import { capDiscountForElectronicMinimum } from '@/lib/pricing/config';
+import { insertJobSourceFiles, type JobSourceFileInput } from '@/lib/jobs/source-files';
 import {
   MAX_FILE_SIZE_EACH,
   MAX_TOTAL_SIZE,
   UploadFormSchema,
   getClientIp,
   getAuthUser,
+  cardSourceKey,
+  cardConvertedPdfKey,
 } from '@/lib/documents/upload-card-shared';
 import type { ServiceLevel } from '@/lib/translation-prompts/types';
 
@@ -150,15 +157,16 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
   // but pricingInput.documentType must be just "presentation".
   const pricingDocumentType = documentType.includes('|') ? documentType.split('|')[0]! : documentType;
 
-  // Convert and merge files
+  // Convert and merge files. Also retains raw buffers/mimes/per-file page counts for the
+  // job_source_files persistence below (2026-08-01 multi-file fulfillment decision) — no
+  // dedup applied here (this route has never deduplicated; see upload-card/complete's
+  // matching comment), so sequence is a straight 1:1 map of rawFiles upload order.
   console.log('[upload-card] step: converting files', rawFiles.length, 'file(s)');
-  const pdfParts = await Promise.all(
-    rawFiles.map(async (f) => {
-      const mime = detectMimeType(f);
-      const buf = Buffer.from(await f.arrayBuffer());
-      return convertToPdf(buf, mime);
-    }),
-  );
+  const rawMimes = rawFiles.map((f) => detectMimeType(f));
+  const rawBuffers = await Promise.all(rawFiles.map((f) => f.arrayBuffer().then((b) => Buffer.from(b))));
+  const pdfParts = await Promise.all(rawBuffers.map((buf, i) => convertToPdf(buf, rawMimes[i]!)));
+  const sourceHashes = rawBuffers.map((buf) => crypto.createHash('sha256').update(buf).digest('hex'));
+  const sourcePageCounts = await Promise.all(pdfParts.map((part) => getPhysicalPageCount(part)));
   const pdfBuffer = await mergePdfs(pdfParts);
   console.log('[upload-card] step: pdf ready', pdfBuffer.length, 'bytes');
 
@@ -172,6 +180,25 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
   console.log('[upload-card] step: uploading to R2', fileKey);
   await uploadFile(fileKey, pdfBuffer, 'application/pdf');
   console.log('[upload-card] step: R2 upload done');
+
+  const sources: JobSourceFileInput[] = await Promise.all(rawBuffers.map(async (buf, i) => {
+    const sequence = i + 1;
+    const srcKey = cardSourceKey(user.id, docId, sequence, rawMimes[i]!);
+    const convertedKey = cardConvertedPdfKey(user.id, docId, sequence);
+    await Promise.all([
+      uploadFile(srcKey, buf, rawMimes[i]!),
+      uploadFile(convertedKey, pdfParts[i]!, 'application/pdf'),
+    ]);
+    return {
+      sequence,
+      originalName: rawFiles[i]!.name.replace(/[^a-zA-Z0-9._\- ]/g, '_').slice(0, 200),
+      r2Key: srcKey,
+      contentSha256: sourceHashes[i]!,
+      mimeType: rawMimes[i]!,
+      physicalPageCount: sourcePageCounts[i]!,
+      convertedPdfR2Key: convertedKey,
+    } satisfies JobSourceFileInput;
+  }));
 
   // Rate limit: same 10 uploads/hour per user
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
@@ -220,9 +247,12 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
   // Real document analysis (2026-07-22) is required for Official/Notary — see
   // src/lib/documents/upload-card-shared.ts's createCardOrder for the canonical version of
   // this same wiring (this legacy route keeps its own copy since it can't import a shared
-  // helper defined in a route.ts file). Electronic keeps its exact prior behavior untouched.
+  // helper defined in a route.ts file). Electronic never runs document analysis, but per-source
+  // physical page counts ARE already available from `sources` above (each populated via
+  // getPhysicalPageCount() before merging) — sum them rather than hardcoding 1 (2026-08-02
+  // incident fix). Falls back to 1 only when a source is missing a reliable count.
   let analysisId: string | undefined;
-  let physicalPageCountForPricing: number | undefined = 1;
+  let physicalPageCountForPricing: number | undefined = Math.max(1, aggregateReliablePhysicalPageCount(sources) ?? 1);
   let sourceCharacterCountWithSpaces: number | undefined;
 
   if (serviceLevel !== 'electronic') {
@@ -321,6 +351,7 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
       .maybeSingle();
 
     discountKzt = calculatePartnerDiscount(basePreDiscountKzt, discountPartner);
+    discountKzt = capDiscountForElectronicMinimum(basePreDiscountKzt, discountKzt, serviceLevel);
   }
 
   const finalPriceKzt = basePreDiscountKzt - discountKzt;
@@ -369,6 +400,16 @@ async function handlePost(request: NextRequest): Promise<NextResponse> {
     });
     await supabaseServer.from('documents').update({ status: 'failed' }).eq('id', docId);
     return NextResponse.json({ error: 'Failed to create job' }, { status: 500 });
+  }
+
+  // job_source_files: always strict — this route always creates a brand-new job with
+  // real, in-request per-source metadata (no legacy/pre-migration gap is possible here).
+  const sourceFilesResult = await insertJobSourceFiles(job.id, sources, { strict: true });
+  if (!sourceFilesResult.ok) {
+    console.error('[upload-card] job_source_files insert failed:', sourceFilesResult.error, { correlationId, jobId: job.id });
+    await supabaseServer.from('jobs').update({ status: 'failed', error_message: 'job_source_files insert failed' }).eq('id', job.id);
+    await supabaseServer.from('documents').update({ status: 'failed' }).eq('id', docId);
+    return NextResponse.json({ error: 'SOURCE_FILES_INSERT_FAILED' }, { status: 500 });
   }
 
   // Save quote with job_id now that job exists.

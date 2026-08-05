@@ -1,0 +1,767 @@
+/**
+ * @jest-environment node
+ *
+ * Tests for syncResultFilesFromDrive() — the Drive → R2 read-back reconciler for
+ * signature_stamp/notary results (2026-08-01 multi-file fulfillment decision).
+ *
+ * Covers the user's explicit point 5 concern: UNIQUE(job_id, stage, source_sequences)
+ * must never let two different files silently coexist covering an overlapping/stale
+ * range — a folder reconciliation must remove a superseded row, not just add new ones.
+ * Also covers: invalid mapping never touches existing (last-known-good) rows, and a
+ * download/upload failure marks that one group 'failed' without abandoning others'
+ * success.
+ */
+export {};
+
+jest.mock('../supabase', () => ({ supabase: { from: jest.fn() } }));
+jest.mock('../google-drive', () => ({
+  listFilesInFolder: jest.fn(),
+  downloadFileFromDrive: jest.fn(),
+  getSubfolderId: jest.fn(),
+  DRIVE_SUBFOLDER_NAMES: { signatureStamp: '04_SIGNATURE_AND_STAMP', notary: '05_NOTARY' },
+}));
+jest.mock('../r2', () => ({ uploadFile: jest.fn() }));
+jest.mock('../job-result-files', () => ({
+  upsertJobResultFile: jest.fn(),
+  getResultFilesForStage: jest.fn(),
+  deleteJobResultFilesByIds: jest.fn(),
+}));
+
+function supabaseChain(result: { data?: unknown; error?: unknown; count?: number }) {
+  const c: Record<string, unknown> = {};
+  const methods = ['select', 'eq', 'in', 'not', 'limit'];
+  for (const m of methods) c[m] = jest.fn(() => c);
+  c.single = jest.fn(() => Promise.resolve(result));
+  c.then = (resolve: (v: unknown) => unknown) => Promise.resolve(result).then(resolve);
+  return c;
+}
+
+describe('syncResultFilesFromDrive', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  async function setup() {
+    const { supabase } = await import('../supabase');
+    const { listFilesInFolder, downloadFileFromDrive } = await import('../google-drive');
+    const { uploadFile } = await import('../r2');
+    const { upsertJobResultFile, getResultFilesForStage, deleteJobResultFilesByIds } = await import('../job-result-files');
+    return {
+      mockFrom: supabase.from as jest.Mock,
+      mockList: listFilesInFolder as jest.Mock,
+      mockDownload: downloadFileFromDrive as jest.Mock,
+      mockUpload: uploadFile as jest.Mock,
+      mockUpsert: upsertJobResultFile as jest.Mock,
+      mockGetForStage: getResultFilesForStage as jest.Mock,
+      mockDeleteByIds: deleteJobResultFilesByIds as jest.Mock,
+    };
+  }
+
+  function mockJobLookups(mockFrom: jest.Mock, totalSources: number) {
+    mockFrom
+      .mockReturnValueOnce(supabaseChain({ count: totalSources, error: null })) // job_source_files count
+      .mockReturnValueOnce(supabaseChain({ data: { document_id: 'doc-1' }, error: null })) // jobs
+      .mockReturnValueOnce(supabaseChain({ data: { user_id: 'user-1' }, error: null })); // documents
+  }
+
+  it('refuses to sync a job with zero job_source_files rows (not a multi-source job)', async () => {
+    const { mockFrom, mockList } = await setup();
+    mockFrom.mockReturnValueOnce(supabaseChain({ count: 0, error: null }));
+
+    const { syncResultFilesFromDrive } = await import('../result-file-sync');
+    const result = await syncResultFilesFromDrive({ jobId: 'job-1', stage: 'signature_stamp', driveFolderId: 'folder-1' });
+
+    expect(result).toEqual({ ok: false, reason: expect.stringContaining('no job_source_files rows') });
+    expect(mockList).not.toHaveBeenCalled();
+  });
+
+  it('2 sources -> 2 individual files: downloads, uploads to R2, upserts both as ready', async () => {
+    const { mockFrom, mockList, mockDownload, mockUpload, mockUpsert, mockGetForStage } = await setup();
+    mockJobLookups(mockFrom, 2);
+    mockList.mockResolvedValueOnce([
+      { id: 'drive-1', name: '001_TRANSLATOR_RESULT.pdf' },
+      { id: 'drive-2', name: '002_TRANSLATOR_RESULT.pdf' },
+    ]);
+    mockGetForStage.mockResolvedValueOnce([]); // nothing synced yet
+    mockDownload.mockResolvedValue(Buffer.from('pdf-bytes'));
+    mockUpsert.mockResolvedValue({ ok: true });
+
+    const { syncResultFilesFromDrive } = await import('../result-file-sync');
+    const result = await syncResultFilesFromDrive({ jobId: 'job-1', stage: 'signature_stamp', driveFolderId: 'folder-1' });
+
+    expect(result).toEqual({ ok: true, groupsSynced: 2, fullyCovered: true });
+    expect(mockUpload).toHaveBeenCalledTimes(2);
+    expect(mockUpsert).toHaveBeenCalledWith(expect.objectContaining({ jobId: 'job-1', stage: 'signature_stamp', sourceSequences: [1], status: 'ready', driveFileId: 'drive-1' }));
+    expect(mockUpsert).toHaveBeenCalledWith(expect.objectContaining({ jobId: 'job-1', stage: 'signature_stamp', sourceSequences: [2], status: 'ready', driveFileId: 'drive-2' }));
+  });
+
+  it('point 5: staff replaces one grouped file [1-10] with two smaller files [1-5]+[6-10] — the stale [1..10] row is deleted, never left overlapping the new rows', async () => {
+    const { mockFrom, mockList, mockDownload, mockUpload, mockUpsert, mockGetForStage, mockDeleteByIds } = await setup();
+    mockJobLookups(mockFrom, 10);
+    mockList.mockResolvedValueOnce([
+      { id: 'drive-new-a', name: '001-005_Part1.pdf' },
+      { id: 'drive-new-b', name: '006-010_Part2.pdf' },
+    ]);
+    // Existing stale row from a prior sync covering the whole range as one file.
+    mockGetForStage.mockResolvedValueOnce([
+      { id: 'row-stale', source_sequences: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], status: 'ready', drive_file_id: 'drive-old' },
+    ]);
+    mockDownload.mockResolvedValue(Buffer.from('pdf-bytes'));
+    mockUpsert.mockResolvedValue({ ok: true });
+    mockDeleteByIds.mockResolvedValue({ ok: true });
+
+    const { syncResultFilesFromDrive } = await import('../result-file-sync');
+    const result = await syncResultFilesFromDrive({ jobId: 'job-1', stage: 'signature_stamp', driveFolderId: 'folder-1' });
+
+    expect(result).toEqual({ ok: true, groupsSynced: 2, fullyCovered: true });
+    // The stale whole-range row must be deleted — it is no longer represented by any
+    // current Drive file, and would otherwise sit alongside the two new rows claiming
+    // to cover the same sequences twice.
+    expect(mockDeleteByIds).toHaveBeenCalledWith(['row-stale']);
+    expect(mockUpsert).toHaveBeenCalledWith(expect.objectContaining({ sourceSequences: [1, 2, 3, 4, 5] }));
+    expect(mockUpsert).toHaveBeenCalledWith(expect.objectContaining({ sourceSequences: [6, 7, 8, 9, 10] }));
+  });
+
+  it('skips re-download/re-upload when a group is already synced with the same drive_file_id (idempotent retry)', async () => {
+    const { mockFrom, mockList, mockDownload, mockUpload, mockUpsert, mockGetForStage } = await setup();
+    mockJobLookups(mockFrom, 1);
+    mockList.mockResolvedValueOnce([{ id: 'drive-1', name: '001_TRANSLATOR_RESULT.pdf' }]);
+    mockGetForStage.mockResolvedValueOnce([
+      { id: 'row-1', source_sequences: [1], status: 'ready', drive_file_id: 'drive-1' },
+    ]);
+
+    const { syncResultFilesFromDrive } = await import('../result-file-sync');
+    const result = await syncResultFilesFromDrive({ jobId: 'job-1', stage: 'signature_stamp', driveFolderId: 'folder-1' });
+
+    expect(result).toEqual({ ok: true, groupsSynced: 1, fullyCovered: true });
+    expect(mockDownload).not.toHaveBeenCalled();
+    expect(mockUpload).not.toHaveBeenCalled();
+    expect(mockUpsert).not.toHaveBeenCalled();
+  });
+
+  it('invalid mapping (gap) refuses to sync and never touches existing rows', async () => {
+    const { mockFrom, mockList, mockDeleteByIds, mockUpsert, mockGetForStage } = await setup();
+    mockJobLookups(mockFrom, 3);
+    mockList.mockResolvedValueOnce([
+      { id: 'drive-1', name: '001_TRANSLATOR_RESULT.pdf' },
+      { id: 'drive-2', name: '003_TRANSLATOR_RESULT.pdf' },
+      // sequence 2 missing — a gap
+    ]);
+
+    const { syncResultFilesFromDrive } = await import('../result-file-sync');
+    const result = await syncResultFilesFromDrive({ jobId: 'job-1', stage: 'notary', driveFolderId: 'folder-1' });
+
+    expect(result.ok).toBe(false);
+    expect(mockGetForStage).not.toHaveBeenCalled();
+    expect(mockDeleteByIds).not.toHaveBeenCalled();
+    expect(mockUpsert).not.toHaveBeenCalled();
+  });
+
+  it('an empty Drive folder refuses to sync (no files uploaded yet — Jira status arrived first)', async () => {
+    const { mockFrom, mockList, mockUpsert } = await setup();
+    mockJobLookups(mockFrom, 2);
+    mockList.mockResolvedValueOnce([]);
+
+    const { syncResultFilesFromDrive } = await import('../result-file-sync');
+    const result = await syncResultFilesFromDrive({ jobId: 'job-1', stage: 'notary', driveFolderId: 'folder-1' });
+
+    expect(result).toEqual({ ok: false, reason: expect.stringContaining('no files found') });
+    expect(mockUpsert).not.toHaveBeenCalled();
+  });
+
+  it('a download failure for one group marks it failed with last_error, without crashing the whole sync', async () => {
+    const { mockFrom, mockList, mockDownload, mockUpsert, mockGetForStage } = await setup();
+    mockJobLookups(mockFrom, 1);
+    mockList.mockResolvedValueOnce([{ id: 'drive-1', name: '001_NOTARY.pdf' }]);
+    mockGetForStage.mockResolvedValueOnce([]);
+    mockDownload.mockRejectedValueOnce(new Error('Drive download timeout'));
+    mockUpsert.mockResolvedValue({ ok: true });
+
+    const { syncResultFilesFromDrive } = await import('../result-file-sync');
+    const result = await syncResultFilesFromDrive({ jobId: 'job-1', stage: 'notary', driveFolderId: 'folder-1' });
+
+    expect(result).toEqual({ ok: false, reason: expect.stringContaining('Drive download timeout') });
+    expect(mockUpsert).toHaveBeenCalledWith(expect.objectContaining({ status: 'failed', lastError: expect.stringContaining('Drive download timeout') }));
+  });
+
+  it('an R2 upload failure (Drive download succeeds) is caught by the same guarantee as a Drive-download failure: marks the group failed with the upload error preserved, distinct from a Drive error', async () => {
+    const { mockFrom, mockList, mockDownload, mockUpload, mockUpsert, mockGetForStage } = await setup();
+    mockJobLookups(mockFrom, 1);
+    mockList.mockResolvedValueOnce([{ id: 'drive-1', name: '001_NOTARY.pdf' }]);
+    mockGetForStage.mockResolvedValueOnce([]);
+    mockDownload.mockResolvedValueOnce(Buffer.from('pdf-bytes')); // Drive download succeeds
+    mockUpload.mockRejectedValueOnce(new Error('R2 bucket unreachable')); // R2 upload fails
+    mockUpsert.mockResolvedValue({ ok: true });
+
+    const { syncResultFilesFromDrive } = await import('../result-file-sync');
+    const result = await syncResultFilesFromDrive({ jobId: 'job-1', stage: 'notary', driveFolderId: 'folder-1' });
+
+    expect(result).toEqual({ ok: false, reason: expect.stringContaining('R2 bucket unreachable') });
+    expect(mockDownload).toHaveBeenCalledTimes(1); // Drive read-back did happen this time
+    expect(mockUpsert).toHaveBeenCalledWith(expect.objectContaining({ status: 'failed', lastError: expect.stringContaining('R2 bucket unreachable') }));
+    // No 'ready' row was ever upserted for this group — an R2 failure must never look
+    // like a successful sync just because the Drive half worked.
+    expect(mockUpsert).not.toHaveBeenCalledWith(expect.objectContaining({ status: 'ready' }));
+  });
+
+  it('single-source notary job (1 file, unprefixed filename) is NOT rejected by the zero-job_source_files guard — a real single-file notary order must sync normally', async () => {
+    const { mockFrom, mockList, mockDownload, mockUpload, mockUpsert, mockGetForStage } = await setup();
+    mockJobLookups(mockFrom, 1);
+    mockList.mockResolvedValueOnce([{ id: 'drive-1', name: 'NOTARY_RESULT.pdf' }]); // no NNN prefix — allowed for exactly 1 source
+    mockGetForStage.mockResolvedValueOnce([]);
+    mockDownload.mockResolvedValue(Buffer.from('pdf-bytes'));
+    mockUpsert.mockResolvedValue({ ok: true });
+
+    const { syncResultFilesFromDrive } = await import('../result-file-sync');
+    const result = await syncResultFilesFromDrive({ jobId: 'job-1', stage: 'notary', driveFolderId: 'folder-1' });
+
+    expect(result).toEqual({ ok: true, groupsSynced: 1, fullyCovered: true });
+    expect(mockUpload).toHaveBeenCalledTimes(1);
+    expect(mockUpsert).toHaveBeenCalledWith(expect.objectContaining({ stage: 'notary', sourceSequences: [1], status: 'ready' }));
+  });
+
+  it('mixed PDF + JPG files in one notary folder — each downloaded/uploaded with its own correct MIME type', async () => {
+    const { mockFrom, mockList, mockDownload, mockUpload, mockUpsert, mockGetForStage } = await setup();
+    mockJobLookups(mockFrom, 2);
+    mockList.mockResolvedValueOnce([
+      { id: 'drive-1', name: '001_NOTARY.pdf' },
+      { id: 'drive-2', name: '002_NOTARY.jpg' },
+    ]);
+    mockGetForStage.mockResolvedValueOnce([]);
+    mockDownload.mockResolvedValue(Buffer.from('bytes'));
+    mockUpsert.mockResolvedValue({ ok: true });
+
+    const { syncResultFilesFromDrive } = await import('../result-file-sync');
+    const result = await syncResultFilesFromDrive({ jobId: 'job-1', stage: 'notary', driveFolderId: 'folder-1' });
+
+    expect(result).toEqual({ ok: true, groupsSynced: 2, fullyCovered: true });
+    expect(mockUpload).toHaveBeenCalledWith(expect.stringContaining('.pdf'), expect.any(Buffer), 'application/pdf');
+    expect(mockUpload).toHaveBeenCalledWith(expect.stringContaining('.jpg'), expect.any(Buffer), 'image/jpeg');
+  });
+
+  it('a changed file (same sequence, new Drive file id — staff re-uploaded a revised scan) re-downloads and upserts in place, never leaving two rows for the same sequence', async () => {
+    const { mockFrom, mockList, mockDownload, mockUpload, mockUpsert, mockGetForStage, mockDeleteByIds } = await setup();
+    mockJobLookups(mockFrom, 1);
+    mockList.mockResolvedValueOnce([{ id: 'drive-2-revised', name: '001_NOTARY.pdf' }]);
+    mockGetForStage.mockResolvedValueOnce([
+      { id: 'row-1', source_sequences: [1], status: 'ready', drive_file_id: 'drive-1-original' },
+    ]);
+    mockDownload.mockResolvedValue(Buffer.from('revised-bytes'));
+    mockUpsert.mockResolvedValue({ ok: true });
+
+    const { syncResultFilesFromDrive } = await import('../result-file-sync');
+    const result = await syncResultFilesFromDrive({ jobId: 'job-1', stage: 'notary', driveFolderId: 'folder-1' });
+
+    expect(result).toEqual({ ok: true, groupsSynced: 1, fullyCovered: true });
+    expect(mockDownload).toHaveBeenCalledWith('drive-2-revised');
+    expect(mockUpload).toHaveBeenCalledTimes(1);
+    // Same sequence key still exists in the current Drive listing, so it's an in-place
+    // upsert (unique constraint on job_id/stage/source_sequences), never a delete.
+    expect(mockDeleteByIds).not.toHaveBeenCalled();
+    expect(mockUpsert).toHaveBeenCalledWith(expect.objectContaining({ sourceSequences: [1], driveFileId: 'drive-2-revised', status: 'ready' }));
+  });
+});
+
+describe('syncResultFilesAndApplyCompletion — Notary completion side-effect', () => {
+  async function setup() {
+    const { supabase } = await import('../supabase');
+    const { listFilesInFolder, downloadFileFromDrive } = await import('../google-drive');
+    const { uploadFile } = await import('../r2');
+    const { upsertJobResultFile, getResultFilesForStage } = await import('../job-result-files');
+    return {
+      mockFrom: supabase.from as jest.Mock,
+      mockList: listFilesInFolder as jest.Mock,
+      mockDownload: downloadFileFromDrive as jest.Mock,
+      mockUpload: uploadFile as jest.Mock,
+      mockUpsert: upsertJobResultFile as jest.Mock,
+      mockGetForStage: getResultFilesForStage as jest.Mock,
+    };
+  }
+
+  /** The 4 supabase.from() calls that always happen for a successful notary sync +
+   * completion check: job_source_files count, jobs (document_id), documents (user_id)
+   * — all inside syncResultFilesFromDrive — then jobs (document_id, fulfillment_method)
+   * for the completion check itself. A 5th call (documents.update) only happens when
+   * fulfillment_method === 'pickup' — callers append that mock themselves. */
+  function mockSyncAndFulfillmentLookup(mockFrom: jest.Mock, mockList: jest.Mock, mockGetForStage: jest.Mock, mockDownload: jest.Mock, mockUpsert: jest.Mock, fulfillmentMethod: 'pickup' | 'delivery' | null) {
+    mockFrom
+      .mockReturnValueOnce(supabaseChain({ count: 1, error: null })) // job_source_files count
+      .mockReturnValueOnce(supabaseChain({ data: { document_id: 'doc-1' }, error: null })) // jobs (for user_id resolution)
+      .mockReturnValueOnce(supabaseChain({ data: { user_id: 'user-1' }, error: null })) // documents
+      .mockReturnValueOnce(supabaseChain({ data: { document_id: 'doc-1', fulfillment_method: fulfillmentMethod }, error: null })); // jobs (post-sync fulfillment lookup)
+    mockList.mockResolvedValueOnce([{ id: 'drive-1', name: '001_NOTARY.pdf' }]);
+    mockGetForStage.mockResolvedValueOnce([]);
+    mockDownload.mockResolvedValue(Buffer.from('pdf-bytes'));
+    mockUpsert.mockResolvedValue({ ok: true });
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('pickup fulfillment: successful sync completes the document (status set to completed)', async () => {
+    const { mockFrom, mockList, mockDownload, mockUpsert, mockGetForStage } = await setup();
+    mockSyncAndFulfillmentLookup(mockFrom, mockList, mockGetForStage, mockDownload, mockUpsert, 'pickup');
+    const updateSpy = jest.fn(() => ({ eq: jest.fn().mockResolvedValue({ error: null }) }));
+    mockFrom.mockReturnValueOnce({ update: updateSpy }); // 5th call: documents.update({status:'completed'})
+
+    const { syncResultFilesAndApplyCompletion } = await import('../result-file-sync');
+    const result = await syncResultFilesAndApplyCompletion({ jobId: 'job-1', stage: 'notary', driveFolderId: 'folder-1' });
+
+    expect(result.ok).toBe(true);
+    expect(updateSpy).toHaveBeenCalledWith({ status: 'completed' });
+  });
+
+  it('delivery fulfillment: successful sync does NOT complete the document — digital access already works via job_result_files, order stays open until syncDelivered', async () => {
+    const { mockFrom, mockList, mockDownload, mockUpsert, mockGetForStage } = await setup();
+    mockSyncAndFulfillmentLookup(mockFrom, mockList, mockGetForStage, mockDownload, mockUpsert, 'delivery');
+    // No 5th mockReturnValueOnce provided — if the code called .from('documents').update()
+    // here, it would receive `undefined` and throw, failing this test loudly.
+
+    const { syncResultFilesAndApplyCompletion } = await import('../result-file-sync');
+    const result = await syncResultFilesAndApplyCompletion({ jobId: 'job-1', stage: 'notary', driveFolderId: 'folder-1' });
+
+    expect(result.ok).toBe(true);
+    expect(mockFrom).toHaveBeenCalledTimes(4); // no 5th (completion) call made
+  });
+
+  it('no fulfillment method set (null): successful sync does NOT complete the document (same as delivery — only pickup completes here)', async () => {
+    const { mockFrom, mockList, mockDownload, mockUpsert, mockGetForStage } = await setup();
+    mockSyncAndFulfillmentLookup(mockFrom, mockList, mockGetForStage, mockDownload, mockUpsert, null);
+
+    const { syncResultFilesAndApplyCompletion } = await import('../result-file-sync');
+    const result = await syncResultFilesAndApplyCompletion({ jobId: 'job-1', stage: 'notary', driveFolderId: 'folder-1' });
+
+    expect(result.ok).toBe(true);
+    expect(mockFrom).toHaveBeenCalledTimes(4); // no 5th (completion) call made
+  });
+
+  it('sync failure (e.g. empty Drive folder): the completion side-effect is never attempted, and workflow_status is never touched by this module', async () => {
+    const { mockFrom, mockList } = await setup();
+    mockFrom
+      .mockReturnValueOnce(supabaseChain({ count: 1, error: null }))
+      .mockReturnValueOnce(supabaseChain({ data: { document_id: 'doc-1' }, error: null }))
+      .mockReturnValueOnce(supabaseChain({ data: { user_id: 'user-1' }, error: null }));
+    mockList.mockResolvedValueOnce([]); // empty folder — refuses to sync
+
+    const { syncResultFilesAndApplyCompletion } = await import('../result-file-sync');
+    const result = await syncResultFilesAndApplyCompletion({ jobId: 'job-1', stage: 'notary', driveFolderId: 'folder-1' });
+
+    expect(result.ok).toBe(false);
+    // Only the 3 lookups above happened — no further supabase.from() call for a
+    // fulfillment_method lookup or a documents/jobs update was ever made.
+    expect(mockFrom).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe('reconcileNotaryResultFileSync — 2026-07-24 SLA fix (notary-only fast sweep)', () => {
+  async function setup() {
+    const { supabase } = await import('../supabase');
+    const { listFilesInFolder, downloadFileFromDrive, getSubfolderId } = await import('../google-drive');
+    const { uploadFile } = await import('../r2');
+    const { upsertJobResultFile, getResultFilesForStage } = await import('../job-result-files');
+    return {
+      mockFrom: supabase.from as jest.Mock,
+      mockList: listFilesInFolder as jest.Mock,
+      mockDownload: downloadFileFromDrive as jest.Mock,
+      mockUpload: uploadFile as jest.Mock,
+      mockGetSubfolderId: getSubfolderId as jest.Mock,
+      mockUpsert: upsertJobResultFile as jest.Mock,
+      mockGetForStage: getResultFilesForStage as jest.Mock,
+    };
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('queries jobs scoped to notary only (service_level=notarization_through_partners) — never signature_stamp/Official', async () => {
+    const { mockFrom } = await setup();
+    const candidatesChain = supabaseChain({ data: [], error: null });
+    mockFrom.mockReturnValueOnce(candidatesChain);
+
+    const { reconcileNotaryResultFileSync } = await import('../result-file-sync');
+    await reconcileNotaryResultFileSync();
+
+    expect(candidatesChain.eq).toHaveBeenCalledWith('service_level', 'notarization_through_partners');
+    expect(candidatesChain.eq).not.toHaveBeenCalledWith('service_level', 'official_with_translator_signature_and_provider_stamp');
+    // Exactly one supabase call — no candidates, nothing further attempted.
+    expect(mockFrom).toHaveBeenCalledTimes(1);
+  });
+
+  it('no candidates: a cheap no-op, no Drive/R2 calls at all', async () => {
+    const { mockFrom, mockList, mockDownload } = await setup();
+    mockFrom.mockReturnValueOnce(supabaseChain({ data: [], error: null }));
+
+    const { reconcileNotaryResultFileSync } = await import('../result-file-sync');
+    await reconcileNotaryResultFileSync();
+
+    expect(mockList).not.toHaveBeenCalled();
+    expect(mockDownload).not.toHaveBeenCalled();
+  });
+
+  it('a candidate already fully synced is skipped — no duplicate Drive read-back, no duplicate job_result_files write', async () => {
+    const { mockFrom, mockList, mockGetForStage } = await setup();
+    mockFrom
+      .mockReturnValueOnce(supabaseChain({ data: [{ id: 'job-1', google_drive_folder_id: 'folder-1' }], error: null })) // findCandidates
+      .mockReturnValueOnce(supabaseChain({ count: 1, error: null })); // isStageAlreadySynced: job_source_files count
+    mockGetForStage.mockResolvedValueOnce([{ id: 'row-1', source_sequences: [1], status: 'ready' }]); // fully covered already
+
+    const { reconcileNotaryResultFileSync } = await import('../result-file-sync');
+    await reconcileNotaryResultFileSync();
+
+    expect(mockList).not.toHaveBeenCalled();
+    // Only the 2 lookups above — never reached getSubfolderId/syncResultFilesAndApplyCompletion.
+    expect(mockFrom).toHaveBeenCalledTimes(2);
+  });
+
+  it('end-to-end: NOTARY_COMPLETED-equivalent candidate (workflow_status=notarized, not yet synced) → Drive read-back → R2 upload → job_result_files ready — the exact chain the customer download route depends on', async () => {
+    const { mockFrom, mockList, mockDownload, mockUpload, mockGetSubfolderId, mockUpsert, mockGetForStage } = await setup();
+
+    mockFrom
+      .mockReturnValueOnce(supabaseChain({ data: [{ id: 'job-1', google_drive_folder_id: 'drive-folder-root' }], error: null })) // findCandidates
+      .mockReturnValueOnce(supabaseChain({ count: 1, error: null })) // isStageAlreadySynced: job_source_files count
+      .mockReturnValueOnce(supabaseChain({ count: 1, error: null })) // syncResultFilesFromDrive's own job_source_files count
+      .mockReturnValueOnce(supabaseChain({ data: { document_id: 'doc-1' }, error: null })) // jobs (document_id)
+      .mockReturnValueOnce(supabaseChain({ data: { user_id: 'user-1' }, error: null })) // documents (user_id)
+      .mockReturnValueOnce(supabaseChain({ data: { document_id: 'doc-1', fulfillment_method: 'delivery' }, error: null })); // completion check
+
+    mockGetForStage
+      .mockResolvedValueOnce([]) // isStageAlreadySynced sees nothing yet -> not synced
+      .mockResolvedValueOnce([]); // syncResultFilesFromDrive's own existing-rows lookup
+
+    mockGetSubfolderId.mockResolvedValueOnce('notary-subfolder-id');
+    mockList.mockResolvedValueOnce([{ id: 'drive-file-1', name: '001_NOTARY.pdf' }]);
+    mockDownload.mockResolvedValueOnce(Buffer.from('notarized-pdf-bytes'));
+    mockUpsert.mockResolvedValueOnce({ ok: true });
+
+    const { reconcileNotaryResultFileSync } = await import('../result-file-sync');
+    await reconcileNotaryResultFileSync();
+
+    expect(mockGetSubfolderId).toHaveBeenCalledWith('drive-folder-root', '05_NOTARY');
+    expect(mockDownload).toHaveBeenCalledWith('drive-file-1');
+    expect(mockUpload).toHaveBeenCalledTimes(1);
+    // This is the row getResultFilesStatus()/canCustomerDownload() reads to grant a
+    // ready-to-download notary result — the whole point of the fast reconciler.
+    expect(mockUpsert).toHaveBeenCalledWith(expect.objectContaining({
+      jobId: 'job-1', stage: 'notary', sourceSequences: [1], status: 'ready', driveFileId: 'drive-file-1',
+    }));
+  });
+});
+
+describe('reconcileStage — stuck-sync observability (WO-106 fix)', () => {
+  // Job IDs unique to this describe block — logSyncStuckIfNeeded's in-memory
+  // throttle map is module-scoped and persists across every test in this file.
+  async function setup() {
+    const { supabase } = await import('../supabase');
+    const { listFilesInFolder, getSubfolderId } = await import('../google-drive');
+    const { getResultFilesForStage } = await import('../job-result-files');
+    return {
+      mockFrom: supabase.from as jest.Mock,
+      mockList: listFilesInFolder as jest.Mock,
+      mockGetSubfolderId: getSubfolderId as jest.Mock,
+      mockGetForStage: getResultFilesForStage as jest.Mock,
+    };
+  }
+
+  function mockAuditInsertChain() {
+    const insert = jest.fn().mockResolvedValue({ error: null });
+    return { insert };
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('a sync stuck on an empty Drive folder writes one job_audit_log row recording the reason', async () => {
+    const { mockFrom, mockList, mockGetSubfolderId, mockGetForStage } = await setup();
+    const auditChain = mockAuditInsertChain();
+
+    mockFrom
+      .mockReturnValueOnce(supabaseChain({ data: [{ id: 'job-audit-empty', google_drive_folder_id: 'folder-root' }], error: null })) // findCandidates
+      .mockReturnValueOnce(supabaseChain({ count: 1, error: null })) // isStageAlreadySynced
+      .mockReturnValueOnce(supabaseChain({ count: 1, error: null })) // syncResultFilesFromDrive's own job_source_files count
+      .mockReturnValueOnce(supabaseChain({ data: { document_id: 'doc-1' }, error: null })) // jobs (document_id)
+      .mockReturnValueOnce(supabaseChain({ data: { user_id: 'user-1' }, error: null })) // documents (user_id)
+      .mockReturnValueOnce(auditChain); // job_audit_log.insert
+    mockGetForStage.mockResolvedValueOnce([]); // not yet synced
+    mockGetSubfolderId.mockResolvedValueOnce('notary-subfolder-id');
+    mockList.mockResolvedValueOnce([]); // empty folder — sync refuses
+
+    const { reconcileNotaryResultFileSync } = await import('../result-file-sync');
+    await reconcileNotaryResultFileSync();
+
+    expect(auditChain.insert).toHaveBeenCalledWith(expect.objectContaining({
+      job_id: 'job-audit-empty',
+      action: 'result_sync_stuck_notary',
+      metadata: expect.objectContaining({ reason: expect.stringContaining('no files found') }),
+    }));
+  });
+
+  it('missing Drive subfolder also writes a job_audit_log row (never silently swallowed)', async () => {
+    const { mockFrom, mockGetSubfolderId } = await setup();
+    const auditChain = mockAuditInsertChain();
+
+    mockFrom
+      .mockReturnValueOnce(supabaseChain({ data: [{ id: 'job-audit-nofolder', google_drive_folder_id: 'folder-root' }], error: null })) // findCandidates
+      .mockReturnValueOnce(supabaseChain({ count: 0, error: null })) // isStageAlreadySynced: no source files -> not synced
+      .mockReturnValueOnce(auditChain); // job_audit_log.insert
+    mockGetSubfolderId.mockResolvedValueOnce(null); // subfolder not found
+
+    const { reconcileNotaryResultFileSync } = await import('../result-file-sync');
+    await reconcileNotaryResultFileSync();
+
+    expect(auditChain.insert).toHaveBeenCalledWith(expect.objectContaining({
+      job_id: 'job-audit-nofolder',
+      action: 'result_sync_stuck_notary',
+      metadata: expect.objectContaining({ reason: expect.stringContaining('subfolder not found') }),
+    }));
+  });
+
+  it('the exact same stuck reason on a retry within the cooldown window is not logged twice', async () => {
+    const { mockFrom, mockList, mockGetSubfolderId, mockGetForStage } = await setup();
+    const auditChain = mockAuditInsertChain();
+
+    function mockOneStuckPass() {
+      mockFrom
+        .mockReturnValueOnce(supabaseChain({ data: [{ id: 'job-audit-repeat', google_drive_folder_id: 'folder-root' }], error: null }))
+        .mockReturnValueOnce(supabaseChain({ count: 1, error: null }))
+        .mockReturnValueOnce(supabaseChain({ count: 1, error: null }))
+        .mockReturnValueOnce(supabaseChain({ data: { document_id: 'doc-1' }, error: null }))
+        .mockReturnValueOnce(supabaseChain({ data: { user_id: 'user-1' }, error: null }));
+      mockGetForStage.mockResolvedValueOnce([]);
+      mockGetSubfolderId.mockResolvedValueOnce('notary-subfolder-id');
+      mockList.mockResolvedValueOnce([]);
+    }
+
+    // First pass: logs.
+    mockOneStuckPass();
+    mockFrom.mockReturnValueOnce(auditChain);
+    const { reconcileNotaryResultFileSync } = await import('../result-file-sync');
+    await reconcileNotaryResultFileSync();
+    expect(auditChain.insert).toHaveBeenCalledTimes(1);
+
+    // Second pass, same job/stage/reason, immediately after: throttled, no new insert.
+    mockOneStuckPass();
+    await reconcileNotaryResultFileSync();
+    expect(auditChain.insert).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('syncResultFilesFromDrive — WO-110 fix: unprefixed whole-order files', () => {
+  async function setup() {
+    const { supabase } = await import('../supabase');
+    const { listFilesInFolder, downloadFileFromDrive } = await import('../google-drive');
+    const { uploadFile } = await import('../r2');
+    const { upsertJobResultFile, getResultFilesForStage } = await import('../job-result-files');
+    return {
+      mockFrom: supabase.from as jest.Mock,
+      mockList: listFilesInFolder as jest.Mock,
+      mockDownload: downloadFileFromDrive as jest.Mock,
+      mockUpload: uploadFile as jest.Mock,
+      mockUpsert: upsertJobResultFile as jest.Mock,
+      mockGetForStage: getResultFilesForStage as jest.Mock,
+    };
+  }
+
+  function mockJobLookups(mockFrom: jest.Mock, totalSources: number) {
+    mockFrom
+      .mockReturnValueOnce(supabaseChain({ count: totalSources, error: null })) // job_source_files count
+      .mockReturnValueOnce(supabaseChain({ data: { document_id: 'doc-1' }, error: null })) // jobs
+      .mockReturnValueOnce(supabaseChain({ data: { user_id: 'user-1' }, error: null })); // documents
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('WO-110: Official — unprefixed "signed.pdf" with 5 sources syncs as the whole-order result, covers all sequences, status=ready', async () => {
+    const { mockFrom, mockList, mockDownload, mockUpload, mockUpsert, mockGetForStage } = await setup();
+    mockJobLookups(mockFrom, 5);
+    mockList.mockResolvedValueOnce([{ id: 'drive-1', name: 'signed.pdf' }]);
+    mockGetForStage.mockResolvedValueOnce([]);
+    mockDownload.mockResolvedValue(Buffer.from('pdf-bytes'));
+    mockUpsert.mockResolvedValue({ ok: true });
+
+    const { syncResultFilesFromDrive } = await import('../result-file-sync');
+    const result = await syncResultFilesFromDrive({ jobId: 'job-1', stage: 'signature_stamp', driveFolderId: 'folder-1' });
+
+    expect(result).toEqual({ ok: true, groupsSynced: 1, fullyCovered: true });
+    expect(mockUpload).toHaveBeenCalledTimes(1);
+    expect(mockUpsert).toHaveBeenCalledWith(expect.objectContaining({
+      jobId: 'job-1', stage: 'signature_stamp', sourceSequences: [1, 2, 3, 4, 5],
+      status: 'ready', filename: 'signed.pdf', driveFileId: 'drive-1',
+    }));
+  });
+
+  it('WO-110: a filename with spaces and Cyrillic characters syncs the same way — filename content is never a rejection reason, only the optional NNN/NNN-MMM prefix is parsed', async () => {
+    const { mockFrom, mockList, mockDownload, mockUpsert, mockGetForStage } = await setup();
+    mockJobLookups(mockFrom, 5);
+    mockList.mockResolvedValueOnce([{ id: 'drive-1', name: 'подписанный документ (копия).pdf' }]);
+    mockGetForStage.mockResolvedValueOnce([]);
+    mockDownload.mockResolvedValue(Buffer.from('pdf-bytes'));
+    mockUpsert.mockResolvedValue({ ok: true });
+
+    const { syncResultFilesFromDrive } = await import('../result-file-sync');
+    const result = await syncResultFilesFromDrive({ jobId: 'job-1', stage: 'signature_stamp', driveFolderId: 'folder-1' });
+
+    expect(result).toEqual({ ok: true, groupsSynced: 1, fullyCovered: true });
+    expect(mockUpsert).toHaveBeenCalledWith(expect.objectContaining({
+      sourceSequences: [1, 2, 3, 4, 5], filename: 'подписанный документ (копия).pdf', status: 'ready',
+    }));
+  });
+
+  it('WO-110: Notary — unprefixed "notarized.pdf" with 3 sources syncs as the whole-order result', async () => {
+    const { mockFrom, mockList, mockDownload, mockUpsert, mockGetForStage } = await setup();
+    mockJobLookups(mockFrom, 3);
+    mockList.mockResolvedValueOnce([{ id: 'drive-1', name: 'notarized.pdf' }]);
+    mockGetForStage.mockResolvedValueOnce([]);
+    mockDownload.mockResolvedValue(Buffer.from('pdf-bytes'));
+    mockUpsert.mockResolvedValue({ ok: true });
+
+    const { syncResultFilesFromDrive } = await import('../result-file-sync');
+    const result = await syncResultFilesFromDrive({ jobId: 'job-1', stage: 'notary', driveFolderId: 'folder-1' });
+
+    expect(result).toEqual({ ok: true, groupsSynced: 1, fullyCovered: true });
+    expect(mockUpsert).toHaveBeenCalledWith(expect.objectContaining({
+      stage: 'notary', sourceSequences: [1, 2, 3], status: 'ready',
+    }));
+  });
+
+  it('a correctly-prefixed range file continues to map precisely — the WO-110 widening never affects prefixed filenames', async () => {
+    const { mockFrom, mockList, mockDownload, mockUpsert, mockGetForStage } = await setup();
+    mockJobLookups(mockFrom, 5);
+    mockList.mockResolvedValueOnce([
+      { id: 'drive-1', name: '001-003_Part1.pdf' },
+      { id: 'drive-2', name: '004-005_Part2.pdf' },
+    ]);
+    mockGetForStage.mockResolvedValueOnce([]);
+    mockDownload.mockResolvedValue(Buffer.from('pdf-bytes'));
+    mockUpsert.mockResolvedValue({ ok: true });
+
+    const { syncResultFilesFromDrive } = await import('../result-file-sync');
+    const result = await syncResultFilesFromDrive({ jobId: 'job-1', stage: 'signature_stamp', driveFolderId: 'folder-1' });
+
+    expect(result).toEqual({ ok: true, groupsSynced: 2, fullyCovered: true });
+    expect(mockUpsert).toHaveBeenCalledWith(expect.objectContaining({ sourceSequences: [1, 2, 3] }));
+    expect(mockUpsert).toHaveBeenCalledWith(expect.objectContaining({ sourceSequences: [4, 5] }));
+  });
+
+  it('WO-110: repeat sync of the same unprefixed whole-order file (unchanged drive_file_id) is a no-op — never re-downloads, never creates a duplicate row', async () => {
+    const { mockFrom, mockList, mockDownload, mockUpload, mockUpsert, mockGetForStage } = await setup();
+    mockJobLookups(mockFrom, 5);
+    mockList.mockResolvedValueOnce([{ id: 'drive-1', name: 'signed.pdf' }]);
+    mockGetForStage.mockResolvedValueOnce([
+      { id: 'row-1', source_sequences: [1, 2, 3, 4, 5], status: 'ready', drive_file_id: 'drive-1' },
+    ]);
+
+    const { syncResultFilesFromDrive } = await import('../result-file-sync');
+    const result = await syncResultFilesFromDrive({ jobId: 'job-1', stage: 'signature_stamp', driveFolderId: 'folder-1' });
+
+    expect(result).toEqual({ ok: true, groupsSynced: 1, fullyCovered: true });
+    expect(mockDownload).not.toHaveBeenCalled();
+    expect(mockUpload).not.toHaveBeenCalled();
+    expect(mockUpsert).not.toHaveBeenCalled();
+  });
+});
+
+describe('WO-110 fix — reconciler end-to-end: candidate discovery and retry', () => {
+  async function setup() {
+    const { supabase } = await import('../supabase');
+    const { listFilesInFolder, downloadFileFromDrive, getSubfolderId } = await import('../google-drive');
+    const { uploadFile } = await import('../r2');
+    const { upsertJobResultFile, getResultFilesForStage } = await import('../job-result-files');
+    return {
+      mockFrom: supabase.from as jest.Mock,
+      mockList: listFilesInFolder as jest.Mock,
+      mockDownload: downloadFileFromDrive as jest.Mock,
+      mockUpload: uploadFile as jest.Mock,
+      mockGetSubfolderId: getSubfolderId as jest.Mock,
+      mockUpsert: upsertJobResultFile as jest.Mock,
+      mockGetForStage: getResultFilesForStage as jest.Mock,
+    };
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('Official: a file uploaded after workflow_status is already translator_approved is still found as a candidate and synced — matches the real WO-110 timeline (file dropped minutes after the Jira task closed)', async () => {
+    const { mockFrom, mockList, mockDownload, mockUpload, mockGetSubfolderId, mockUpsert, mockGetForStage } = await setup();
+
+    mockFrom
+      .mockReturnValueOnce(supabaseChain({ data: [{ id: 'job-wo110', google_drive_folder_id: 'drive-folder-root' }], error: null })) // findCandidates (signature_stamp)
+      .mockReturnValueOnce(supabaseChain({ count: 5, error: null })) // isStageAlreadySynced: job_source_files count
+      .mockReturnValueOnce(supabaseChain({ count: 5, error: null })) // syncResultFilesFromDrive's own count
+      .mockReturnValueOnce(supabaseChain({ data: { document_id: 'doc-1' }, error: null }))
+      .mockReturnValueOnce(supabaseChain({ data: { user_id: 'user-1' }, error: null }))
+      .mockReturnValueOnce(supabaseChain({ data: [], error: null })); // findCandidates (notary) — reconcileResultFileSyncs sweeps both stages
+
+    mockGetForStage.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
+    mockGetSubfolderId.mockResolvedValueOnce('sig-stamp-folder-id');
+    mockList.mockResolvedValueOnce([{ id: 'drive-signed-1', name: 'signed.pdf' }]);
+    mockDownload.mockResolvedValueOnce(Buffer.from('signed-pdf-bytes'));
+    mockUpsert.mockResolvedValueOnce({ ok: true });
+
+    const { reconcileResultFileSyncs } = await import('../result-file-sync');
+    await reconcileResultFileSyncs();
+
+    expect(mockGetSubfolderId).toHaveBeenCalledWith('drive-folder-root', '04_SIGNATURE_AND_STAMP');
+    expect(mockDownload).toHaveBeenCalledWith('drive-signed-1');
+    expect(mockUpload).toHaveBeenCalledTimes(1);
+    expect(mockUpsert).toHaveBeenCalledWith(expect.objectContaining({
+      jobId: 'job-wo110', stage: 'signature_stamp', sourceSequences: [1, 2, 3, 4, 5],
+      status: 'ready', driveFileId: 'drive-signed-1',
+    }));
+  });
+
+  it('retry after a previous pass ended in empty-folder: the job is never permanently skipped — the next cron tick finds the same candidate again and succeeds once the file is present', async () => {
+    const { mockFrom, mockList, mockDownload, mockUpload, mockGetSubfolderId, mockUpsert, mockGetForStage } = await setup();
+
+    // Pass 1: empty Drive folder — refuses to sync, but does NOT mark anything
+    // permanently skipped. 5 .from() calls happen before listFilesInFolder is even
+    // reached: findCandidates, isStageAlreadySynced's job_source_files count, then
+    // inside syncResultFilesFromDrive itself: its own job_source_files count, jobs
+    // (document_id), documents (user_id).
+    mockFrom
+      .mockReturnValueOnce(supabaseChain({ data: [{ id: 'job-retry', google_drive_folder_id: 'drive-folder-root' }], error: null })) // findCandidates
+      .mockReturnValueOnce(supabaseChain({ count: 1, error: null })) // isStageAlreadySynced: job_source_files count
+      .mockReturnValueOnce(supabaseChain({ count: 1, error: null })) // syncResultFilesFromDrive's own job_source_files count
+      .mockReturnValueOnce(supabaseChain({ data: { document_id: 'doc-1' }, error: null })) // jobs (document_id)
+      .mockReturnValueOnce(supabaseChain({ data: { user_id: 'user-1' }, error: null })); // documents (user_id)
+    mockGetForStage.mockResolvedValueOnce([]); // isStageAlreadySynced sees nothing yet
+    mockGetSubfolderId.mockResolvedValueOnce('notary-folder-id');
+    mockList.mockResolvedValueOnce([]);
+
+    const { reconcileNotaryResultFileSync } = await import('../result-file-sync');
+    await reconcileNotaryResultFileSync();
+    expect(mockList).toHaveBeenCalledTimes(1);
+    expect(mockUpsert).not.toHaveBeenCalled();
+
+    // Pass 2 (next cron tick, 30s later): the exact same candidate query is re-run
+    // (workflow_status unchanged, still not fully synced) — this time the file
+    // exists, so a 6th call (existingRows lookup, via mockGetForStage) and a 7th
+    // (jobs, for the post-success pickup-completion check) also happen.
+    mockFrom
+      .mockReturnValueOnce(supabaseChain({ data: [{ id: 'job-retry', google_drive_folder_id: 'drive-folder-root' }], error: null })) // findCandidates
+      .mockReturnValueOnce(supabaseChain({ count: 1, error: null })) // isStageAlreadySynced: job_source_files count
+      .mockReturnValueOnce(supabaseChain({ count: 1, error: null })) // syncResultFilesFromDrive's own job_source_files count
+      .mockReturnValueOnce(supabaseChain({ data: { document_id: 'doc-1' }, error: null })) // jobs (document_id)
+      .mockReturnValueOnce(supabaseChain({ data: { user_id: 'user-1' }, error: null })) // documents (user_id)
+      .mockReturnValueOnce(supabaseChain({ data: { document_id: 'doc-1', fulfillment_method: 'delivery' }, error: null })); // completion check
+    mockGetForStage
+      .mockResolvedValueOnce([]) // isStageAlreadySynced
+      .mockResolvedValueOnce([]); // syncResultFilesFromDrive's own existing-rows lookup
+    mockGetSubfolderId.mockResolvedValueOnce('notary-folder-id');
+    mockList.mockResolvedValueOnce([{ id: 'drive-1', name: 'notarized.pdf' }]);
+    mockDownload.mockResolvedValueOnce(Buffer.from('bytes'));
+    mockUpsert.mockResolvedValueOnce({ ok: true });
+
+    await reconcileNotaryResultFileSync();
+
+    expect(mockUpload).toHaveBeenCalledTimes(1);
+    expect(mockUpsert).toHaveBeenCalledWith(expect.objectContaining({
+      jobId: 'job-retry', stage: 'notary', sourceSequences: [1], status: 'ready',
+    }));
+  });
+});

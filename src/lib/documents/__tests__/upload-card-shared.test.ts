@@ -2,6 +2,8 @@
  * Tests for src/lib/documents/upload-card-shared.ts — shared logic behind both the
  * legacy upload-card endpoint and the new direct-to-R2 init/complete endpoints.
  */
+import fs from 'fs';
+import path from 'path';
 jest.mock('@/lib/supabase/server', () => ({
   supabaseServer: { from: jest.fn() },
 }));
@@ -154,6 +156,7 @@ describe('createCardOrder', () => {
       documentType: 'passport_id|pdf',
       serviceLevel: 'electronic',
       notaryUrgencyLevel: 'standard',
+      sources: [{ sequence: 1, originalName: 'passport.pdf', r2Key: 'documents/user-1/attempt-1/sources/001.pdf', contentSha256: 'hash-a', mimeType: 'application/pdf', physicalPageCount: 1, convertedPdfR2Key: 'documents/user-1/attempt-1/sources/001.converted.pdf' }],
       ...overrides,
     };
   }
@@ -174,6 +177,7 @@ describe('createCardOrder', () => {
       .mockReturnValueOnce(chain({ data: null, error: null })) // existing-document lookup — none found
       .mockReturnValueOnce(docInsertChain)
       .mockReturnValueOnce(jobInsertChain)
+      .mockReturnValueOnce(chain({ error: null })) // job_source_files insert
       .mockReturnValueOnce(auditChain);
 
     const result = await createCardOrder(baseInput());
@@ -213,6 +217,7 @@ describe('createCardOrder', () => {
         .mockReturnValueOnce(chain({ data: null, error: null }))
         .mockReturnValueOnce(docInsertChain)
         .mockReturnValueOnce(jobInsertChain)
+        .mockReturnValueOnce(chain({ error: null })) // job_source_files insert
         .mockReturnValueOnce(auditChain);
 
       const result = await createCardOrder(baseInput({ serviceLevel: 'official_with_translator_signature_and_provider_stamp' }));
@@ -245,6 +250,7 @@ describe('createCardOrder', () => {
         .mockReturnValueOnce(chain({ data: null, error: null })) // existing-document lookup — none
         .mockReturnValueOnce(chain({ data: { id: 'attempt-1' }, error: null })) // documents insert
         .mockReturnValueOnce(jobInsertChain) // jobs insert
+        .mockReturnValueOnce(chain({ error: null })) // job_source_files insert
         .mockReturnValueOnce(chain({ error: null })); // job_audit_log
 
       const result = await createCardOrder(baseInput({ serviceLevel: 'official_with_translator_signature_and_provider_stamp' }));
@@ -378,6 +384,7 @@ describe('createCardOrder', () => {
         .mockReturnValueOnce(chain({ data: null, error: null })) // existing-document lookup — none
         .mockReturnValueOnce(chain({ data: { id: 'attempt-1' }, error: null })) // documents insert
         .mockReturnValueOnce(chain({ data: { id: 'job-1' }, error: null })) // jobs insert succeeds
+        .mockReturnValueOnce(chain({ error: null })) // job_source_files insert succeeds
         .mockReturnValueOnce(jobUpdateChain) // job UPDATEd (not deleted) out of payment_pending
         .mockReturnValueOnce(docUpdateChain); // document marked failed
 
@@ -399,11 +406,57 @@ describe('createCardOrder', () => {
         .mockReturnValueOnce(chain({ data: null, error: null }))
         .mockReturnValueOnce(chain({ data: { id: 'attempt-1' }, error: null }))
         .mockReturnValueOnce(chain({ data: { id: 'job-1' }, error: null }))
+        .mockReturnValueOnce(chain({ error: null })) // job_source_files insert
         .mockReturnValueOnce(chain({ error: null }));
 
       await createCardOrder(baseInput({ serviceLevel: 'electronic' }));
 
       expect(mockResolveAnalysis).not.toHaveBeenCalled();
+      expect(mockComputeQuote).toHaveBeenCalledWith(expect.objectContaining({ physicalPageCount: 1 }));
+    });
+
+    it('2026-08-02 incident fix: 2 sources with real page counts [2,1] -> physicalPageCount=3, never the hardcoded 1', async () => {
+      mockComputeQuote.mockResolvedValueOnce({ result: { amountKzt: 2200, currency: 'KZT', requiresOperatorReview: false, reviewReasons: [], context: {}, items: [] } });
+      mockSaveQuote.mockResolvedValueOnce({ quoteId: 'quote-1' });
+      mockFrom
+        .mockReturnValueOnce(chain({ data: null, error: null }))
+        .mockReturnValueOnce(chain({ data: null, error: null }))
+        .mockReturnValueOnce(chain({ data: { id: 'attempt-1' }, error: null }))
+        .mockReturnValueOnce(chain({ data: { id: 'job-1' }, error: null }))
+        .mockReturnValueOnce(chain({ error: null })) // job_source_files insert
+        .mockReturnValueOnce(chain({ error: null }));
+
+      await createCardOrder(baseInput({
+        serviceLevel: 'electronic',
+        sources: [
+          { sequence: 1, originalName: 'a.pdf', r2Key: 'k1', contentSha256: 'h1', mimeType: 'application/pdf', physicalPageCount: 2, convertedPdfR2Key: 'c1' },
+          { sequence: 2, originalName: 'b.pdf', r2Key: 'k2', contentSha256: 'h2', mimeType: 'application/pdf', physicalPageCount: 1, convertedPdfR2Key: 'c2' },
+        ],
+      }));
+
+      expect(mockResolveAnalysis).not.toHaveBeenCalled();
+      expect(mockComputeQuote).toHaveBeenCalledWith(expect.objectContaining({ physicalPageCount: 3 }));
+    });
+
+    it('a source missing a reliable page count falls back safely to 1', async () => {
+      mockComputeQuote.mockResolvedValueOnce({ result: { amountKzt: 1500, currency: 'KZT', requiresOperatorReview: false, reviewReasons: [], context: {}, items: [] } });
+      mockSaveQuote.mockResolvedValueOnce({ quoteId: 'quote-1' });
+      mockFrom
+        .mockReturnValueOnce(chain({ data: null, error: null }))
+        .mockReturnValueOnce(chain({ data: null, error: null }))
+        .mockReturnValueOnce(chain({ data: { id: 'attempt-1' }, error: null }))
+        .mockReturnValueOnce(chain({ data: { id: 'job-1' }, error: null }))
+        .mockReturnValueOnce(chain({ error: null })) // job_source_files insert
+        .mockReturnValueOnce(chain({ error: null }));
+
+      await createCardOrder(baseInput({
+        serviceLevel: 'electronic',
+        sources: [
+          { sequence: 1, originalName: 'a.pdf', r2Key: 'k1', contentSha256: 'h1', mimeType: 'application/pdf', physicalPageCount: 2, convertedPdfR2Key: 'c1' },
+          { sequence: 2, originalName: 'b.pdf', r2Key: 'k2', contentSha256: 'h2', mimeType: 'application/pdf', physicalPageCount: null, convertedPdfR2Key: 'c2' },
+        ],
+      }));
+
       expect(mockComputeQuote).toHaveBeenCalledWith(expect.objectContaining({ physicalPageCount: 1 }));
     });
 
@@ -475,6 +528,170 @@ describe('createCardOrder', () => {
         expect.objectContaining({ tags: expect.objectContaining({ reason: 'PRICING_VERSION_MISMATCH' }) }),
       );
     });
+
+    describe('2026-07-25 incident: PRICING_VERSION_MISMATCH during this exact attempt -> controlled 409, not a bare 503', () => {
+      it('the active pricing version became active AFTER this request started (activation happened mid-attempt) -> 409 PRICING_VERSION_CHANGED, never the generic PRICING_UNAVAILABLE', async () => {
+        mockResolveAnalysis.mockResolvedValueOnce({
+          kind: 'completed',
+          row: { id: 'analysis-1', sourceCharacterCountWithSpaces: 17497, physicalPageCount: 5 },
+        });
+        // valid_from far in the future relative to "now" (when createCardOrder captures
+        // requestStartedAt) simulates "this version was activated after this attempt began".
+        mockComputeQuote.mockResolvedValueOnce({
+          error: 'PRICING_VERSION_MISMATCH',
+          activeVersionId: 'v-coord-tiers',
+          activeVersionCode: '2026-Q3-KZ-NEWMODEL-COORD-TIERS',
+          activeVersionValidFrom: '2099-01-01T00:00:00.000Z',
+        });
+        mockFrom
+          .mockReturnValueOnce(chain({ data: null, error: null }))
+          .mockReturnValueOnce(chain({ data: null, error: null }))
+          .mockReturnValueOnce(chain({ data: { id: 'attempt-1' }, error: null }))
+          .mockReturnValueOnce(chain({ data: null, error: null })); // document marked failed
+
+        const result = await createCardOrder(baseInput({ serviceLevel: 'official_with_translator_signature_and_provider_stamp' }));
+
+        expect(result).toEqual({ ok: false, status: 409, error: 'PRICING_VERSION_CHANGED' });
+        // Never the generic internal-failure Sentry report for this specific, honestly-retriable case.
+        expect(mockCaptureMessage).not.toHaveBeenCalled();
+      });
+
+      it('the active version has been mismatched since BEFORE this request started (a longstanding config problem, not a mid-attempt change) -> stays the generic 503 PRICING_UNAVAILABLE', async () => {
+        mockResolveAnalysis.mockResolvedValueOnce({
+          kind: 'completed',
+          row: { id: 'analysis-1', sourceCharacterCountWithSpaces: 1800, physicalPageCount: 1 },
+        });
+        mockComputeQuote.mockResolvedValueOnce({
+          error: 'PRICING_VERSION_MISMATCH',
+          activeVersionId: 'v-mvp',
+          activeVersionCode: '2026-Q3-KZ-MVP',
+          activeVersionValidFrom: '2020-01-01T00:00:00.000Z', // long before this request started
+        });
+        mockFrom
+          .mockReturnValueOnce(chain({ data: null, error: null }))
+          .mockReturnValueOnce(chain({ data: null, error: null }))
+          .mockReturnValueOnce(chain({ data: { id: 'attempt-1' }, error: null }))
+          .mockReturnValueOnce(chain({ data: null, error: null }));
+
+        const result = await createCardOrder(baseInput({ serviceLevel: 'official_with_translator_signature_and_provider_stamp' }));
+
+        expect(result).toEqual({ ok: false, status: 503, error: 'PRICING_UNAVAILABLE' });
+        expect(mockCaptureMessage).toHaveBeenCalledWith(
+          expect.stringContaining('PRICING_VERSION_MISMATCH'),
+          expect.objectContaining({ tags: expect.objectContaining({ reason: 'PRICING_VERSION_MISMATCH' }) }),
+        );
+      });
+
+      it('PRICING_NOT_CONFIGURED and SERVICE_LEVEL_PRICING_DISABLED are unaffected by this change — still the generic 503', async () => {
+        mockResolveAnalysis.mockResolvedValueOnce({
+          kind: 'completed',
+          row: { id: 'analysis-1', sourceCharacterCountWithSpaces: 1800, physicalPageCount: 1 },
+        });
+        mockComputeQuote.mockResolvedValueOnce({ error: 'SERVICE_LEVEL_PRICING_DISABLED' });
+        mockFrom
+          .mockReturnValueOnce(chain({ data: null, error: null }))
+          .mockReturnValueOnce(chain({ data: null, error: null }))
+          .mockReturnValueOnce(chain({ data: { id: 'attempt-1' }, error: null }))
+          .mockReturnValueOnce(chain({ data: null, error: null }));
+
+        const result = await createCardOrder(baseInput({ serviceLevel: 'official_with_translator_signature_and_provider_stamp' }));
+
+        expect(result).toEqual({ ok: false, status: 503, error: 'PRICING_UNAVAILABLE' });
+      });
+
+      it('retry after 409 (same uploadAttemptId): reuses the existing (failed) document row via UPDATE not a second INSERT, reuses the completed analysis (no second OCR call), and creates exactly one job + one quote on success — never a duplicate', async () => {
+        // The existing-document lookup now finds the row from the first (409'd) attempt,
+        // with no job yet — exactly upload-card-shared.ts's documented recovery path.
+        const docUpdateChain = chain({ data: { id: 'attempt-1' }, error: null });
+        const jobInsertChain = chain({ data: { id: 'job-1' }, error: null });
+        mockFrom
+          .mockReturnValueOnce(chain({ data: null, error: null })) // users upsert
+          .mockReturnValueOnce(chain({ data: { id: 'attempt-1' }, error: null })) // existing-document lookup — FOUND (from the 409'd attempt)
+          .mockReturnValueOnce(chain({ data: null, error: null })) // existing-job lookup — none yet
+          .mockReturnValueOnce(docUpdateChain) // documents UPDATE, not INSERT
+          .mockReturnValueOnce(jobInsertChain)
+          .mockReturnValueOnce(chain({ error: null })) // job_source_files insert
+          .mockReturnValueOnce(chain({ error: null })); // job_audit_log
+
+        // resolveDocumentAnalysisForPricing is mocked at this test file's boundary (the real
+        // idempotent-reuse mechanism — "a completed analysis is reused, never re-run" — is
+        // covered directly in document-analysis/service.test.ts); here we only need to confirm
+        // it's called exactly once for this one retry attempt.
+        mockResolveAnalysis.mockResolvedValueOnce({
+          kind: 'completed',
+          row: { id: 'analysis-1', documentId: 'attempt-1', revision: 1, status: 'completed', method: 'ocr', sourceCharacterCountWithSpaces: 17497, physicalPageCount: 5 },
+        });
+        // Now using the newly-active coord-tiers version — the root-cause fix means this
+        // succeeds instead of returning PRICING_VERSION_MISMATCH again.
+        mockComputeQuote.mockResolvedValueOnce({
+          result: { amountKzt: 87000, currency: 'KZT', requiresOperatorReview: false, reviewReasons: [], context: {}, items: [] },
+          version: { code: '2026-Q3-KZ-NEWMODEL-COORD-TIERS', metadata: { formula_version: 'new_2026_07_21' } },
+        });
+        mockSaveQuote.mockResolvedValueOnce({ quoteId: 'quote-retry-1' });
+
+        const result = await createCardOrder(baseInput({ serviceLevel: 'notarization_through_partners' }));
+
+        expect(result).toEqual({
+          ok: true,
+          value: expect.objectContaining({ jobId: 'job-1', documentId: 'attempt-1', priceKzt: 87000, quoteId: 'quote-retry-1' }),
+        });
+        expect(mockResolveAnalysis).toHaveBeenCalledTimes(1);
+        expect(jobInsertChain.insert).toHaveBeenCalledTimes(1);
+        expect(mockSaveQuote).toHaveBeenCalledTimes(1);
+        expect(docUpdateChain.update).toHaveBeenCalled();
+        expect(docUpdateChain.insert).not.toHaveBeenCalled();
+      });
+    });
+
+    it('2026-07-23 incident follow-up: a 10-file order triggers exactly ONE resolveDocumentAnalysisForPricing call, not one per source — the merged-PDF analysis is already O(1) provider calls regardless of file count, never N sequential OCR round-trips', async () => {
+      mockResolveAnalysis.mockResolvedValueOnce({
+        kind: 'completed',
+        row: { id: 'analysis-1', documentId: 'attempt-1', revision: 1, status: 'completed', method: 'ocr', sourceCharacterCountWithSpaces: 12_000, physicalPageCount: 10 },
+      });
+      mockComputeQuote.mockResolvedValueOnce({
+        result: { amountKzt: 20000, currency: 'KZT', requiresOperatorReview: false, reviewReasons: [], context: {}, items: [] },
+        version: { code: '2026-Q3-KZ-NEWMODEL', metadata: { formula_version: 'new_2026_07_21' } },
+      });
+      mockSaveQuote.mockResolvedValueOnce({ quoteId: 'quote-1' });
+
+      mockFrom
+        .mockReturnValueOnce(chain({ data: null, error: null })) // users upsert
+        .mockReturnValueOnce(chain({ data: null, error: null })) // existing-document lookup — none
+        .mockReturnValueOnce(chain({ data: { id: 'attempt-1' }, error: null })) // documents insert
+        .mockReturnValueOnce(chain({ data: { id: 'job-1' }, error: null })) // jobs insert
+        .mockReturnValueOnce(chain({ error: null })) // job_source_files insert
+        .mockReturnValueOnce(chain({ error: null })); // job_audit_log
+
+      const tenSources = Array.from({ length: 10 }, (_, i) => ({
+        sequence: i + 1,
+        originalName: `page-${i + 1}.pdf`,
+        r2Key: `k${i + 1}`,
+        contentSha256: `hash-${i + 1}`,
+        mimeType: 'application/pdf',
+        physicalPageCount: 1,
+        convertedPdfR2Key: `c${i + 1}`,
+      }));
+
+      const result = await createCardOrder(baseInput({
+        serviceLevel: 'official_with_translator_signature_and_provider_stamp',
+        sources: tenSources,
+      }));
+
+      expect(result.ok).toBe(true);
+      // The whole point: one merged-PDF analysis call, independent of source count.
+      expect(mockResolveAnalysis).toHaveBeenCalledTimes(1);
+      expect(mockComputeQuote).toHaveBeenCalledTimes(1);
+      // computeQuoteForJob only runs after resolveDocumentAnalysisForPricing resolves — proven
+      // by the mocked resolution order above, not by call count alone.
+      expect(mockComputeQuote).toHaveBeenCalledWith(
+        expect.objectContaining({ analysisId: 'analysis-1', sourceCharacterCountWithSpaces: 12_000 }),
+      );
+    });
+
+    it('no AI-draft/translation-generation call exists anywhere in this checkout path — pricing is never coupled to draft generation', () => {
+      const src = fs.readFileSync(path.join(__dirname, '..', 'upload-card-shared.ts'), 'utf8');
+      expect(src).not.toMatch(/generateDraft|aiDraft|generateTranslation|translationDraft/i);
+    });
   });
 
   it('applies a partner discount and stores discount fields on the job', async () => {
@@ -502,6 +719,7 @@ describe('createCardOrder', () => {
       .mockReturnValueOnce(chain({ data: { id: 'attempt-1' }, error: null })) // documents insert
       .mockReturnValueOnce(partnerChain) // partners lookup
       .mockReturnValueOnce(jobInsertChain) // jobs insert
+      .mockReturnValueOnce(chain({ error: null })) // job_source_files insert
       .mockReturnValueOnce(chain({ error: null })); // job_audit_log
 
     const result = await createCardOrder(baseInput({ refCode: 'partner1' }));
@@ -511,6 +729,45 @@ describe('createCardOrder', () => {
     expect(result.value.priceKzt).toBe(13500);
     expect(jobInsertChain.insert).toHaveBeenCalledWith(
       expect.objectContaining({ price_kzt: 13500, price_before_discount_kzt: 15000, discount_applied_kzt: 1500, discount_code: 'PARTNER1' }),
+    );
+  });
+
+  it('2026-08-01 incident fix: a referral discount on an electronic order is capped so the final payable amount never drops below 1500 KZT', async () => {
+    // base 1600 with a nominal 300 KZT discount would leave 1300 — below the floor.
+    mockComputeQuote.mockResolvedValueOnce({
+      result: { amountKzt: 1600, currency: 'KZT', requiresOperatorReview: false, reviewReasons: [], context: {}, items: [] },
+    });
+    mockSaveQuote.mockResolvedValueOnce({ quoteId: 'quote-1' });
+
+    const partnerChain = chain({
+      data: {
+        is_active: true,
+        client_discount_enabled: true,
+        client_discount_type: 'fixed',
+        client_discount_value: 300,
+        client_discount_min_order_amount: 0,
+        client_discount_max_amount: null,
+      },
+      error: null,
+    });
+    const jobInsertChain = chain({ data: { id: 'job-1' }, error: null });
+
+    mockFrom
+      .mockReturnValueOnce(chain({ data: null, error: null }))
+      .mockReturnValueOnce(chain({ data: null, error: null }))
+      .mockReturnValueOnce(chain({ data: { id: 'attempt-1' }, error: null }))
+      .mockReturnValueOnce(partnerChain)
+      .mockReturnValueOnce(jobInsertChain)
+      .mockReturnValueOnce(chain({ error: null })) // job_source_files insert
+      .mockReturnValueOnce(chain({ error: null })); // job_audit_log
+
+    const result = await createCardOrder(baseInput({ refCode: 'partner1' }));
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.priceKzt).toBe(1500); // floored, not 1300
+    expect(jobInsertChain.insert).toHaveBeenCalledWith(
+      expect.objectContaining({ price_kzt: 1500, price_before_discount_kzt: 1600, discount_applied_kzt: 100, discount_code: 'PARTNER1' }),
     );
   });
 
@@ -607,6 +864,7 @@ describe('createCardOrder', () => {
       .mockReturnValueOnce(chain({ data: { id: 'attempt-1' }, error: null })) // documents insert
       .mockReturnValueOnce(chain({ data: null, error: null })) // partners lookup (no matching discount partner)
       .mockReturnValueOnce(chain({ data: { id: 'job-1' }, error: null })) // jobs insert
+      .mockReturnValueOnce(chain({ error: null })) // job_source_files insert
       .mockReturnValueOnce(chain({ error: null })); // job_audit_log
 
     const result = await createCardOrder(baseInput({ refCode: 'PARTNER1' }));
@@ -631,6 +889,7 @@ describe('createCardOrder', () => {
       .mockReturnValueOnce(chain({ data: null, error: null })) // existing-job lookup for that document — none (job insert never got that far)
       .mockReturnValueOnce(docUpdateChain) // document UPDATE (not insert) — reused
       .mockReturnValueOnce(jobInsertChain) // jobs insert succeeds this time
+      .mockReturnValueOnce(chain({ error: null })) // job_source_files insert
       .mockReturnValueOnce(chain({ error: null })); // job_audit_log
 
     const result = await createCardOrder(baseInput());
