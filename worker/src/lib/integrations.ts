@@ -20,8 +20,10 @@ import {
   getSubfolderId,
   isDriveConfigured,
   DRIVE_SUBFOLDER_NAMES,
+  listFilesInFolder,
 } from './google-drive';
 import { downloadFile } from './r2';
+import { sourceDriveFilename } from './drive-naming';
 import type { ServiceLevel } from './output-plan';
 import { buildJiraIssueFields, JIRA_FIELDS, buildApplicantTypeDescriptionLine, buildNotaryUrgencyDescriptionLines, stagingSecurityField, isStagingJiraEnvironment } from './jira/order-fields';
 import { resolveNotaryUrgencySnapshot, type ResolvedNotaryUrgencySnapshot, type JobUrgencyColumns } from './notary-urgency';
@@ -1139,6 +1141,62 @@ export async function initializeOrderIntegrations(params: {
   }
 
   return { jiraIssueKey, jiraIssueUrl, driveFolderId, driveUrl, aiDraftFolderId, sourceFolderId };
+}
+
+/**
+ * Uploads each multi-source job's REAL original file to Drive 01_SOURCE with
+ * NNN-prefixed naming (job_source_files.sequence) — extracted from the inline loop
+ * that used to live in processMultiSourceJob (worker/src/processor.ts) so the exact
+ * same upload logic can be reused by scripts/support/start-production-integration-test.ts
+ * without duplicating it. Non-fatal per-file errors, same as the original inline loop:
+ * one failed upload is logged and skipped, never aborts the remaining files.
+ *
+ * Idempotency guard (2026-08-08, added during extraction — the real worker never
+ * re-runs this for a given job so this branch was never reachable there before, and
+ * still isn't; it exists so a second invocation from the support script, e.g. a
+ * retried --apply run, never creates duplicate Drive files): lists the folder once
+ * up front and skips any filename that already exists.
+ */
+export async function uploadSourceFilesToDriveFolder(
+  sourceFolderId: string,
+  sourceRows: Array<{ sequence: number; original_filename: string; r2_key: string; mime_type: string }>,
+  tag: string,
+): Promise<void> {
+  const existingNames = new Set((await listFilesInFolder(sourceFolderId).catch(() => [])).map((f) => f.name));
+
+  for (const src of sourceRows) {
+    const filename = sourceDriveFilename(src.sequence, src.original_filename);
+    if (existingNames.has(filename)) {
+      console.log(`${tag}[src:${src.sequence}] "${filename}" already in Drive — skipping`);
+      continue;
+    }
+    try {
+      const buf = await downloadFile(src.r2_key);
+      await uploadFileToDrive(sourceFolderId, filename, buf, src.mime_type);
+    } catch (err) {
+      console.error(`${tag}[src:${src.sequence}] source Drive upload failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+}
+
+/**
+ * Adds a Jira label to an existing issue — thin wrapper around the module-local
+ * jiraFetch (same pattern as createJiraIssueLink above). Used by
+ * scripts/support/start-production-integration-test.ts to mark a freshly-created
+ * main issue as a test order, without touching any customer-facing field
+ * (description/customerComment) or any Supabase column. Non-fatal on failure —
+ * a label is a diagnostic convenience, never a correctness requirement.
+ */
+export async function addJiraIssueLabel(issueKey: string, label: string): Promise<void> {
+  const res = await jiraFetch(`/issue/${issueKey}`, {
+    method: 'PUT',
+    body: JSON.stringify({ fields: { labels: [label] } }),
+  });
+  if (!res) return; // Jira not configured — already logged by jiraFetch
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    console.warn('[worker-jira] addJiraIssueLabel failed', { issueKey, status: res.status, body: text.slice(0, 200) });
+  }
 }
 
 /**

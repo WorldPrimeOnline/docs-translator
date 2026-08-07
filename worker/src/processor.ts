@@ -12,10 +12,10 @@ import { mergeVisualElements, extractVisualElementsFromTranslated, filterPrinted
 import { analyzeDocumentVisuals } from './lib/page-vision';
 import { runQaChecks } from './lib/qa';
 import { env } from './lib/env';
-import { initializeOrderIntegrations, triggerTranslatorReview, createFinanceReportIssue } from './lib/integrations';
+import { initializeOrderIntegrations, uploadSourceFilesToDriveFolder, triggerTranslatorReview, createFinanceReportIssue } from './lib/integrations';
 import { uploadFileToDrive, isDriveConfigured } from './lib/google-drive';
 import { upsertJobResultFile, type JobResultFileStage } from './lib/job-result-files';
-import { sourceDriveFilename, aiDraftDriveFilename } from './lib/drive-naming';
+import { aiDraftDriveFilename } from './lib/drive-naming';
 
 type JobStatus = JobRow['status'];
 type OutputFormat = 'html' | 'pdf' | 'docx';
@@ -674,15 +674,11 @@ async function processMultiSourceJob(
 
   // Upload each REAL source to 01_SOURCE/NNN_<original> — replaces the single
   // hardcoded source.pdf upload that initializeOrderIntegrations skipped above.
+  // Extracted into uploadSourceFilesToDriveFolder (worker/src/lib/integrations.ts,
+  // 2026-08-08) so scripts/support/start-production-integration-test.ts can reuse the
+  // exact same upload logic — behavior here is unchanged.
   if (integrationResult.sourceFolderId && isDriveConfigured()) {
-    for (const src of sourceRows) {
-      try {
-        const buf = await downloadFile(src.r2_key);
-        await uploadFileToDrive(integrationResult.sourceFolderId, sourceDriveFilename(src.sequence, src.original_filename), buf, src.mime_type);
-      } catch (err) {
-        console.error(`${tag}[src:${src.sequence}] source Drive upload failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
-      }
-    }
+    await uploadSourceFilesToDriveFolder(integrationResult.sourceFolderId, sourceRows, tag);
   }
 
   await updateJob(jobId, 'ocr_in_progress', 10);
