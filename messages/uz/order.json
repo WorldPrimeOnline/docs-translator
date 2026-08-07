@@ -96,6 +96,7 @@
       "visa_documents": "Viza / Immigratsiya hujjatlari",
       "driver_license": "Haydovchilik guvohnomasi",
       "presentation": "Taqdimot / Pitch deck",
+      "power_of_attorney": "Ishonchnoma",
       "other": "Boshqa"
     },
     "outputFormat": "Fayl formati",
@@ -120,6 +121,11 @@
         "desc": "Tarjima tekshiriladi va imzolanadi, ijrochi muhri bilan tasdiqlanadi, keyin tarjimon imzosini notarial tasdiqlash uchun hamkor notariusga yuboriladi."
       }
     },
+    "contactPhone": {
+      "label": "TELEFON RAQAMI / WHATSAPP",
+      "placeholder": "+7 (___) ___-__-__",
+      "required": "Buyurtmangiz bo'yicha bog'lanish uchun telefon raqami / WhatsApp kiritilishi kerak"
+    },
     "notary": {
       "city": "SHAHAR",
       "cityPlaceholder": "Shaharni tanlang",
@@ -127,8 +133,6 @@
       "fulfillment": "OLIB KETISH YOKI YETKAZIB BERISH",
       "pickup": "Olib ketish",
       "delivery": "Yetkazib berish",
-      "phone": "TELEFON RAQAMI",
-      "phonePlaceholder": "+7 (___) ___-__-__",
       "address": "YETKAZIB BERISH MANZILI",
       "addressPlaceholder": "Ko'cha, bino, xonadon",
       "applicantType": "ARIZACHILAR TURI",
@@ -139,7 +143,6 @@
       "extraCopies": "QO'SHIMCHA QOG'OZ NUSXALAR",
       "cityRequired": "Iltimos, shaharni tanlang",
       "fulfillmentRequired": "Olib ketish yoki yetkazib berishni tanlang",
-      "phoneRequired": "Yetkazib berish uchun telefon raqami kerak",
       "addressRequired": "Yetkazib berish uchun manzil kerak",
       "urgencyLevel": "NOTARIAL TASDIQLASH MUDDATI",
       "urgency": {

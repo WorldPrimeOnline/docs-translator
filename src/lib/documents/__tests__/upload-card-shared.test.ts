@@ -37,6 +37,7 @@ import {
   cardFinalUploadKey,
   createCardOrder,
   OptionalUtmFieldsSchema,
+  UploadFormSchema,
   type CardOrderInput,
 } from '../upload-card-shared';
 
@@ -973,5 +974,100 @@ describe('OptionalUtmFieldsSchema — regression for the production 400 (explici
   it('still enforces the max-length constraint on non-empty values', () => {
     const result = OptionalUtmFieldsSchema.safeParse({ utmSource: 'x'.repeat(201) });
     expect(result.success).toBe(false);
+  });
+});
+
+describe('UploadFormSchema — contact phone requirements (2026-08-08)', () => {
+  function base(overrides: Record<string, unknown> = {}) {
+    return {
+      sourceLang: 'ru',
+      targetLang: 'en',
+      documentType: 'passport_id',
+      ...overrides,
+    };
+  }
+
+  function hasIssueOn(result: ReturnType<typeof UploadFormSchema.safeParse>, path: string): boolean {
+    if (result.success) return false;
+    return result.error.issues.some((issue) => issue.path.includes(path));
+  }
+
+  it('electronic: no phone required', () => {
+    const result = UploadFormSchema.safeParse(base({ serviceLevel: 'electronic' }));
+    expect(result.success).toBe(true);
+  });
+
+  it('official: rejected without a phone', () => {
+    const result = UploadFormSchema.safeParse(base({
+      serviceLevel: 'official_with_translator_signature_and_provider_stamp',
+    }));
+    expect(result.success).toBe(false);
+    expect(hasIssueOn(result, 'deliveryPhone')).toBe(true);
+  });
+
+  it('official: accepted with a phone', () => {
+    const result = UploadFormSchema.safeParse(base({
+      serviceLevel: 'official_with_translator_signature_and_provider_stamp',
+      deliveryPhone: '+7 707 123 45 67',
+    }));
+    expect(result.success).toBe(true);
+  });
+
+  it('notary pickup: rejected without a phone', () => {
+    const result = UploadFormSchema.safeParse(base({
+      serviceLevel: 'notarization_through_partners',
+      notaryCity: 'almaty',
+      fulfillmentMethod: 'pickup',
+      applicantType: 'individual',
+    }));
+    expect(result.success).toBe(false);
+    expect(hasIssueOn(result, 'deliveryPhone')).toBe(true);
+  });
+
+  it('notary pickup: accepted with a phone (no address required)', () => {
+    const result = UploadFormSchema.safeParse(base({
+      serviceLevel: 'notarization_through_partners',
+      notaryCity: 'almaty',
+      fulfillmentMethod: 'pickup',
+      applicantType: 'individual',
+      deliveryPhone: '+7 707 123 45 67',
+    }));
+    expect(result.success).toBe(true);
+  });
+
+  it('notary delivery: rejected without a phone', () => {
+    const result = UploadFormSchema.safeParse(base({
+      serviceLevel: 'notarization_through_partners',
+      notaryCity: 'almaty',
+      fulfillmentMethod: 'delivery',
+      applicantType: 'individual',
+      deliveryAddress: 'Казыбек Би 10, кв. 25',
+    }));
+    expect(result.success).toBe(false);
+    expect(hasIssueOn(result, 'deliveryPhone')).toBe(true);
+  });
+
+  it('notary delivery: rejected without an address even if phone is present', () => {
+    const result = UploadFormSchema.safeParse(base({
+      serviceLevel: 'notarization_through_partners',
+      notaryCity: 'almaty',
+      fulfillmentMethod: 'delivery',
+      applicantType: 'individual',
+      deliveryPhone: '+7 707 123 45 67',
+    }));
+    expect(result.success).toBe(false);
+    expect(hasIssueOn(result, 'deliveryAddress')).toBe(true);
+  });
+
+  it('notary delivery: accepted with phone + address', () => {
+    const result = UploadFormSchema.safeParse(base({
+      serviceLevel: 'notarization_through_partners',
+      notaryCity: 'almaty',
+      fulfillmentMethod: 'delivery',
+      applicantType: 'individual',
+      deliveryPhone: '+7 707 123 45 67',
+      deliveryAddress: 'Казыбек Би 10, кв. 25',
+    }));
+    expect(result.success).toBe(true);
   });
 });

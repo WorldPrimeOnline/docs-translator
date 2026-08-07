@@ -9,6 +9,7 @@ export const DOCUMENT_TYPE = {
   visa_documents: 'visa_documents',
   driver_license: 'driver_license',
   presentation: 'presentation',
+  power_of_attorney: 'power_of_attorney',
   other: 'other',
 } as const;
 

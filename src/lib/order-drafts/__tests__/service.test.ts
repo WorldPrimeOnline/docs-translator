@@ -734,6 +734,176 @@ describe('convertDraftToOrder', () => {
     };
   }
 
+  // 2026-08-08: server-side enforcement of the same contact-phone/notary
+  // requirements as UploadFormSchema — a draft may be saved incomplete (PATCH
+  // stays fully permissive), but conversion into a real, payable order must not
+  // skip these fields, even via a direct API call that bypasses the client UI.
+  describe('contact phone / notary requirements at finalization (2026-08-08)', () => {
+    it('rejects an Official draft with no phone (direct API bypass never creates a job)', async () => {
+      const priced = pricedDraftWithFile({
+        service_level: 'official_with_translator_signature_and_provider_stamp',
+        delivery_phone: null,
+      });
+      mockFrom.mockReturnValueOnce(chain({ data: priced, error: null }));
+
+      const result = await convertDraftToOrder('draft-1', 'user-1');
+
+      expect(result).toEqual({ ok: false, error: 'MISSING_CONTACT_PHONE' });
+      expect(mockDownloadFile).not.toHaveBeenCalled();
+    });
+
+    it('accepts an Official draft with a phone', async () => {
+      const priced = pricedDraftWithFile({
+        service_level: 'official_with_translator_signature_and_provider_stamp',
+        delivery_phone: '+7 707 123 45 67',
+      });
+      mockDownloadFile.mockResolvedValueOnce(Buffer.from('pdf-bytes'));
+      mockUploadFile.mockResolvedValueOnce(undefined);
+      mockSaveQuote.mockResolvedValueOnce({ quoteId: 'quote-99' });
+      mockAttachReferral.mockResolvedValueOnce(undefined);
+
+      mockFrom
+        .mockReturnValueOnce(chain({ data: priced, error: null })) // existing check
+        .mockReturnValueOnce(chain({ data: priced, error: null })) // atomic claim succeeds
+        .mockReturnValueOnce(chain({ data: null, error: null }))   // users upsert
+        .mockReturnValueOnce(chain({ data: { id: 'doc-99' }, error: null })) // documents insert
+        .mockReturnValueOnce(chain({ data: { id: 'job-99' }, error: null })) // jobs insert
+        .mockReturnValueOnce(chain({ error: null }))                // job_source_files insert
+        .mockReturnValueOnce(chain({ error: null }))                // job_audit_log insert
+        .mockReturnValueOnce(chain({ data: null, error: null }));   // final order_drafts update
+
+      const result = await convertDraftToOrder('draft-1', 'user-1');
+      expect(result.ok).toBe(true);
+    });
+
+    it('rejects a notary-pickup draft with no phone', async () => {
+      const priced = pricedDraftWithFile({
+        service_level: 'notarization_through_partners',
+        notary_city: 'almaty',
+        fulfillment_method: 'pickup',
+        applicant_type: 'individual',
+        delivery_phone: null,
+      });
+      mockFrom.mockReturnValueOnce(chain({ data: priced, error: null }));
+
+      const result = await convertDraftToOrder('draft-1', 'user-1');
+
+      expect(result).toEqual({ ok: false, error: 'MISSING_CONTACT_PHONE' });
+      expect(mockDownloadFile).not.toHaveBeenCalled();
+    });
+
+    it('accepts a notary-pickup draft with a phone (no address required)', async () => {
+      const priced = pricedDraftWithFile({
+        service_level: 'notarization_through_partners',
+        notary_city: 'almaty',
+        fulfillment_method: 'pickup',
+        applicant_type: 'individual',
+        delivery_phone: '+7 707 123 45 67',
+        delivery_address: null,
+      });
+      mockDownloadFile.mockResolvedValueOnce(Buffer.from('pdf-bytes'));
+      mockUploadFile.mockResolvedValueOnce(undefined);
+      mockSaveQuote.mockResolvedValueOnce({ quoteId: 'quote-99' });
+      mockAttachReferral.mockResolvedValueOnce(undefined);
+
+      mockFrom
+        .mockReturnValueOnce(chain({ data: priced, error: null }))
+        .mockReturnValueOnce(chain({ data: priced, error: null }))
+        .mockReturnValueOnce(chain({ data: null, error: null }))
+        .mockReturnValueOnce(chain({ data: { id: 'doc-99' }, error: null }))
+        .mockReturnValueOnce(chain({ data: { id: 'job-99' }, error: null }))
+        .mockReturnValueOnce(chain({ error: null }))
+        .mockReturnValueOnce(chain({ error: null }))
+        .mockReturnValueOnce(chain({ data: null, error: null }));
+
+      const result = await convertDraftToOrder('draft-1', 'user-1');
+      expect(result.ok).toBe(true);
+    });
+
+    it('rejects a notary-delivery draft with no phone', async () => {
+      const priced = pricedDraftWithFile({
+        service_level: 'notarization_through_partners',
+        notary_city: 'almaty',
+        fulfillment_method: 'delivery',
+        applicant_type: 'individual',
+        delivery_phone: null,
+        delivery_address: 'Казыбек Би 10, кв. 25',
+      });
+      mockFrom.mockReturnValueOnce(chain({ data: priced, error: null }));
+
+      const result = await convertDraftToOrder('draft-1', 'user-1');
+
+      expect(result).toEqual({ ok: false, error: 'MISSING_CONTACT_PHONE' });
+      expect(mockDownloadFile).not.toHaveBeenCalled();
+    });
+
+    it('rejects a notary-delivery draft with a phone but no address', async () => {
+      const priced = pricedDraftWithFile({
+        service_level: 'notarization_through_partners',
+        notary_city: 'almaty',
+        fulfillment_method: 'delivery',
+        applicant_type: 'individual',
+        delivery_phone: '+7 707 123 45 67',
+        delivery_address: null,
+      });
+      mockFrom.mockReturnValueOnce(chain({ data: priced, error: null }));
+
+      const result = await convertDraftToOrder('draft-1', 'user-1');
+
+      expect(result).toEqual({ ok: false, error: 'MISSING_DELIVERY_ADDRESS' });
+      expect(mockDownloadFile).not.toHaveBeenCalled();
+    });
+
+    it('accepts a notary-delivery draft with phone + address', async () => {
+      const priced = pricedDraftWithFile({
+        service_level: 'notarization_through_partners',
+        notary_city: 'almaty',
+        fulfillment_method: 'delivery',
+        applicant_type: 'individual',
+        delivery_phone: '+7 707 123 45 67',
+        delivery_address: 'Казыбек Би 10, кв. 25',
+      });
+      mockDownloadFile.mockResolvedValueOnce(Buffer.from('pdf-bytes'));
+      mockUploadFile.mockResolvedValueOnce(undefined);
+      mockSaveQuote.mockResolvedValueOnce({ quoteId: 'quote-99' });
+      mockAttachReferral.mockResolvedValueOnce(undefined);
+
+      mockFrom
+        .mockReturnValueOnce(chain({ data: priced, error: null }))
+        .mockReturnValueOnce(chain({ data: priced, error: null }))
+        .mockReturnValueOnce(chain({ data: null, error: null }))
+        .mockReturnValueOnce(chain({ data: { id: 'doc-99' }, error: null }))
+        .mockReturnValueOnce(chain({ data: { id: 'job-99' }, error: null }))
+        .mockReturnValueOnce(chain({ error: null }))
+        .mockReturnValueOnce(chain({ error: null }))
+        .mockReturnValueOnce(chain({ data: null, error: null }));
+
+      const result = await convertDraftToOrder('draft-1', 'user-1');
+      expect(result.ok).toBe(true);
+    });
+
+    it('electronic draft is unaffected (no phone required)', async () => {
+      const priced = pricedDraftWithFile({ service_level: 'electronic' });
+      mockDownloadFile.mockResolvedValueOnce(Buffer.from('pdf-bytes'));
+      mockUploadFile.mockResolvedValueOnce(undefined);
+      mockSaveQuote.mockResolvedValueOnce({ quoteId: 'quote-99' });
+      mockAttachReferral.mockResolvedValueOnce(undefined);
+
+      mockFrom
+        .mockReturnValueOnce(chain({ data: priced, error: null }))
+        .mockReturnValueOnce(chain({ data: priced, error: null }))
+        .mockReturnValueOnce(chain({ data: null, error: null }))
+        .mockReturnValueOnce(chain({ data: { id: 'doc-99' }, error: null }))
+        .mockReturnValueOnce(chain({ data: { id: 'job-99' }, error: null }))
+        .mockReturnValueOnce(chain({ error: null }))
+        .mockReturnValueOnce(chain({ error: null }))
+        .mockReturnValueOnce(chain({ data: null, error: null }));
+
+      const result = await convertDraftToOrder('draft-1', 'user-1');
+      expect(result.ok).toBe(true);
+    });
+  });
+
   it('returns CONVERSION_IN_PROGRESS when a concurrent claim is in flight and not yet done', async () => {
     const priced = pricedDraftWithFile();
     mockFrom
@@ -910,6 +1080,7 @@ describe('convertDraftToOrder', () => {
   it('non-electronic with a cached analysis_snapshot: materializes exactly one document_analysis row (never re-analyzes), analysisId flows into saveQuote', async () => {
     const priced = pricedDraftWithFile({
       service_level: 'official_with_translator_signature_and_provider_stamp',
+      delivery_phone: '+7 707 123 45 67',
       analysis_snapshot: { fileKey: 'draft-uploads/draft-1/original.pdf', method: 'pdf_text_layer', characterCount: 671, physicalPageCount: 2, requiresOperatorReview: false, reviewReasons: [] },
     });
 

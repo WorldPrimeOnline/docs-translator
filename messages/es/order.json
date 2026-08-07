@@ -96,6 +96,7 @@
       "visa_documents": "Visado / Documentos de inmigración",
       "driver_license": "Carné de conducir",
       "presentation": "Presentación / Pitch Deck",
+      "power_of_attorney": "Poder notarial",
       "other": "Otro"
     },
     "outputFormat": "Formato de salida",
@@ -120,6 +121,11 @@
         "desc": "Un traductor revisa y firma la traducción, se sella con el sello de WPO y luego se envía a un notario colaborador para certificar la firma del traductor."
       }
     },
+    "contactPhone": {
+      "label": "NÚMERO DE TELÉFONO / WHATSAPP",
+      "placeholder": "+7 (___) ___-__-__",
+      "required": "Se requiere un número de teléfono / WhatsApp para contactarle sobre su pedido"
+    },
     "notary": {
       "city": "CIUDAD",
       "cityPlaceholder": "Seleccionar ciudad",
@@ -127,8 +133,6 @@
       "fulfillment": "RECOGIDA O ENTREGA",
       "pickup": "Recogida",
       "delivery": "Entrega",
-      "phone": "NÚMERO DE TELÉFONO",
-      "phonePlaceholder": "+7 (___) ___-__-__",
       "address": "DIRECCIÓN DE ENTREGA",
       "addressPlaceholder": "Calle, número, piso",
       "applicantType": "TIPO DE SOLICITANTE",
@@ -139,7 +143,6 @@
       "extraCopies": "COPIAS ADICIONALES EN PAPEL",
       "cityRequired": "Seleccione una ciudad",
       "fulfillmentRequired": "Seleccione recogida o entrega",
-      "phoneRequired": "Se requiere teléfono para la entrega",
       "addressRequired": "Se requiere dirección para la entrega",
       "urgencyLevel": "VELOCIDAD DE NOTARIZACIÓN",
       "urgency": {

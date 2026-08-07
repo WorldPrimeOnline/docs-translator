@@ -420,6 +420,26 @@ export async function convertDraftToOrder(draftId: string, userId: string): Prom
   if (!existing.pricing_snapshot) return { ok: false, error: 'PRICE_NOT_CALCULATED' };
   if (!existing.file_keys || existing.file_keys.length === 0) return { ok: false, error: 'NO_FILE' };
 
+  // 2026-08-08: server-side enforcement of the same contact-phone/notary requirements
+  // as UploadFormSchema (src/lib/documents/upload-card-shared.ts). A draft is allowed
+  // to be saved incomplete via PATCH (see UpdateDraftSchema, which stays fully
+  // optional), but conversion into a real, payable order must not skip
+  // business-required fields just because this is the anonymous /start path instead
+  // of the dashboard — otherwise a direct API call to this endpoint could create an
+  // Official or notarized order with no way to contact the client.
+  if (existing.service_level === 'official_with_translator_signature_and_provider_stamp') {
+    if (!existing.delivery_phone) return { ok: false, error: 'MISSING_CONTACT_PHONE' };
+  }
+  if (existing.service_level === 'notarization_through_partners') {
+    if (!existing.notary_city) return { ok: false, error: 'MISSING_NOTARY_CITY' };
+    if (!existing.fulfillment_method) return { ok: false, error: 'MISSING_FULFILLMENT_METHOD' };
+    if (!existing.applicant_type) return { ok: false, error: 'MISSING_APPLICANT_TYPE' };
+    if (!existing.delivery_phone) return { ok: false, error: 'MISSING_CONTACT_PHONE' };
+    if (existing.fulfillment_method === 'delivery' && !existing.delivery_address) {
+      return { ok: false, error: 'MISSING_DELIVERY_ADDRESS' };
+    }
+  }
+
   // Atomic claim — mirrors the worker's `UPDATE ... WHERE status='queued'` pattern.
   const { data: claimed } = await db
     .from('order_drafts')

@@ -34,6 +34,7 @@ const DOC_TYPE_LABELS: Record<string, string> = {
   bank_statement: 'Банковская выписка', medical_document: 'Медицинский документ',
   police_clearance: 'Справка о несудимости', visa_documents: 'Визовый документ',
   driver_license: 'Водительское удостоверение', presentation: 'Презентация',
+  power_of_attorney: 'Доверенность',
   employment_document: 'Другое', other: 'Другое',
 };
 
@@ -114,9 +115,12 @@ function buildCustomFields(params: CreateIssueParams): Record<string, unknown> {
   if (params.customerId) fields[f.customerId] = params.customerId;
   fields[f.orderId] = params.jobId;
 
-  if (params.fulfillmentMethod === 'delivery') {
-    if (params.deliveryPhone) fields[f.deliveryPhone] = params.deliveryPhone;
-    if (params.deliveryAddress) fields[f.deliveryAddress] = params.deliveryAddress;
+  // Contact phone — required for Official and both notary fulfillment methods
+  // (2026-08-08), so it's included whenever present, not gated on delivery. Address
+  // remains delivery-only PII.
+  if (params.deliveryPhone) fields[f.deliveryPhone] = params.deliveryPhone;
+  if (params.fulfillmentMethod === 'delivery' && params.deliveryAddress) {
+    fields[f.deliveryAddress] = params.deliveryAddress;
   }
 
   if (params.amountKzt != null && params.amountKzt > 0) fields[f.totalCost] = params.amountKzt;

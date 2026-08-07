@@ -67,16 +67,22 @@ describe('buildJiraIssueFields', () => {
     expect(fields[JIRA_FIELDS.documentType]).toEqual({ value: 'Другое' });
   });
 
-  // ── 4. Delivery PII — only for delivery fulfillment ───────────────────────
+  it('maps power_of_attorney to "Доверенность" single-select', () => {
+    const fields = buildJiraIssueFields({ ...BASE_INPUT, documentType: 'power_of_attorney' });
+    expect(fields[JIRA_FIELDS.documentType]).toEqual({ value: 'Доверенность' });
+  });
 
-  it('omits delivery phone and address for pickup fulfillment', () => {
+  // ── 4. Contact phone (Official + both notary fulfillment methods) / delivery
+  //      address (delivery only) — 2026-08-08 business change ─────────────────
+
+  it('includes phone but omits address for pickup fulfillment', () => {
     const fields = buildJiraIssueFields({
       ...BASE_INPUT,
       fulfillmentMethod: 'pickup',
       deliveryPhone: '+77001234567',
       deliveryAddress: 'ул. Абая 1',
     });
-    expect(fields[JIRA_FIELDS.deliveryPhone]).toBeUndefined();
+    expect(fields[JIRA_FIELDS.deliveryPhone]).toBe('+77001234567');
     expect(fields[JIRA_FIELDS.deliveryAddress]).toBeUndefined();
   });
 
@@ -91,12 +97,23 @@ describe('buildJiraIssueFields', () => {
     expect(fields[JIRA_FIELDS.deliveryAddress]).toBe('ул. Абая 1');
   });
 
-  it('omits delivery phone and address when fulfillmentMethod is null', () => {
+  it('includes phone for Official orders (fulfillmentMethod is null — no pickup/delivery concept)', () => {
     const fields = buildJiraIssueFields({
       ...BASE_INPUT,
       fulfillmentMethod: null,
       deliveryPhone: '+77001234567',
-      deliveryAddress: 'ул. Абая 1',
+      deliveryAddress: null,
+    });
+    expect(fields[JIRA_FIELDS.deliveryPhone]).toBe('+77001234567');
+    expect(fields[JIRA_FIELDS.deliveryAddress]).toBeUndefined();
+  });
+
+  it('omits both fields when neither is present', () => {
+    const fields = buildJiraIssueFields({
+      ...BASE_INPUT,
+      fulfillmentMethod: null,
+      deliveryPhone: null,
+      deliveryAddress: null,
     });
     expect(fields[JIRA_FIELDS.deliveryPhone]).toBeUndefined();
     expect(fields[JIRA_FIELDS.deliveryAddress]).toBeUndefined();

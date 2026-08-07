@@ -103,6 +103,15 @@ describe('calculatePrice — electronic (unchanged legacy formula)', () => {
     expect(result.newModel).toBeUndefined();
   });
 
+  it('applies the explicit power_of_attorney coefficient (2026-08-08, same rate as "other": 1.10, but a real config entry, not an implicit fallback)', () => {
+    const input: PricingInput = {
+      sourceLanguage: 'ru', targetLanguage: 'en', serviceLevel: 'electronic',
+      documentType: 'power_of_attorney', sourceWordCount: 500, physicalPageCount: 1,
+    };
+    const result = calculatePrice(input, mockElectronicVersion());
+    expect(result.context.documentCoefficient).toBe(1.10);
+  });
+
   it('still reads BASE_MINIMUM_KZT for electronic', () => {
     const input: PricingInput = { sourceLanguage: 'ru', targetLanguage: 'kk', serviceLevel: 'electronic' };
     const result = calculatePrice(input, mockElectronicVersion());

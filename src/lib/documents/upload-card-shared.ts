@@ -80,6 +80,15 @@ export const UploadFormSchema = z
     customerComment: z.string().max(2000).optional().transform((v) => v?.trim() || undefined),
   })
   .superRefine((data, ctx) => {
+    // 2026-08-08 business change: WPO may need to reach the client about the document
+    // or about pickup, so a contact phone (deliveryPhone — field kept under its
+    // original name to avoid renaming the DB column / Jira custom field) is required
+    // for Official and for every notarized order, regardless of pickup vs delivery.
+    if (data.serviceLevel === 'official_with_translator_signature_and_provider_stamp') {
+      if (!data.deliveryPhone) {
+        ctx.addIssue({ code: 'custom', path: ['deliveryPhone'], message: 'Phone is required for official translation' });
+      }
+    }
     if (data.serviceLevel === 'notarization_through_partners') {
       if (!data.notaryCity) {
         ctx.addIssue({ code: 'custom', path: ['notaryCity'], message: 'City is required for notarization orders' });
@@ -98,8 +107,10 @@ export const UploadFormSchema = z
       if (!data.applicantType) {
         ctx.addIssue({ code: 'custom', path: ['applicantType'], message: 'Applicant type is required for notarization orders' });
       }
+      if (!data.deliveryPhone) {
+        ctx.addIssue({ code: 'custom', path: ['deliveryPhone'], message: 'Phone is required for notarization orders' });
+      }
       if (data.fulfillmentMethod === 'delivery') {
-        if (!data.deliveryPhone) ctx.addIssue({ code: 'custom', path: ['deliveryPhone'], message: 'Phone is required for delivery' });
         if (!data.deliveryAddress) ctx.addIssue({ code: 'custom', path: ['deliveryAddress'], message: 'Address is required for delivery' });
       }
     }

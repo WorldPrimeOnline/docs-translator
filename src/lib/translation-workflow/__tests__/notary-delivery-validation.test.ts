@@ -1,4 +1,10 @@
-import { isNotaryDeliveryValid, isDeliverySelected, isFilledIn, type NotaryDeliveryFormState } from '../notary-delivery-validation';
+import {
+  isNotaryDeliveryValid,
+  isDeliverySelected,
+  isFilledIn,
+  isOfficialContactPhoneValid,
+  type NotaryDeliveryFormState,
+} from '../notary-delivery-validation';
 
 function baseState(overrides: Partial<NotaryDeliveryFormState> = {}): NotaryDeliveryFormState {
   return {
@@ -44,9 +50,14 @@ describe('isNotaryDeliveryValid', () => {
     }))).toBe(true);
   });
 
-  it('pickup does not require phone or address', () => {
+  // 2026-08-08 business change: pickup no longer skips the phone requirement —
+  // WPO may need to reach the client about the document or about pickup itself.
+  it('pickup requires a phone number but not an address', () => {
     expect(isNotaryDeliveryValid(baseState({
       fulfillmentMethod: 'pickup', deliveryPhone: '', deliveryAddress: '',
+    }))).toBe(false);
+    expect(isNotaryDeliveryValid(baseState({
+      fulfillmentMethod: 'pickup', deliveryPhone: '+7 707 123 45 67', deliveryAddress: '',
     }))).toBe(true);
   });
 
@@ -78,15 +89,18 @@ describe('isNotaryDeliveryValid', () => {
     expect(isNotaryDeliveryValid(baseState({ fulfillmentMethod: '' }))).toBe(false);
   });
 
-  it('switching delivery -> pickup drops the phone/address requirement even if they are left empty', () => {
+  it('switching delivery -> pickup drops the address requirement but keeps the phone requirement', () => {
     const deliveryInvalid = baseState({ deliveryPhone: '', deliveryAddress: '' });
     expect(isNotaryDeliveryValid(deliveryInvalid)).toBe(false);
     const afterSwitchToPickup = { ...deliveryInvalid, fulfillmentMethod: 'pickup' };
-    expect(isNotaryDeliveryValid(afterSwitchToPickup)).toBe(true);
+    // still invalid — phone is empty and is required for pickup too
+    expect(isNotaryDeliveryValid(afterSwitchToPickup)).toBe(false);
+    const afterSwitchToPickupWithPhone = { ...afterSwitchToPickup, deliveryPhone: '+7 707 123 45 67' };
+    expect(isNotaryDeliveryValid(afterSwitchToPickupWithPhone)).toBe(true);
   });
 
-  it('switching pickup -> delivery re-imposes the phone/address requirement', () => {
-    const pickupValid = baseState({ fulfillmentMethod: 'pickup', deliveryPhone: '', deliveryAddress: '' });
+  it('switching pickup -> delivery re-imposes the address requirement (phone was already required)', () => {
+    const pickupValid = baseState({ fulfillmentMethod: 'pickup', deliveryAddress: '' });
     expect(isNotaryDeliveryValid(pickupValid)).toBe(true);
     const afterSwitchToDelivery = { ...pickupValid, fulfillmentMethod: 'delivery' };
     expect(isNotaryDeliveryValid(afterSwitchToDelivery)).toBe(false);
@@ -97,5 +111,17 @@ describe('isNotaryDeliveryValid', () => {
     expect(isNotaryDeliveryValid(baseState({ applicantType: 'unknown' }))).toBe(false);
     expect(isNotaryDeliveryValid(baseState({ applicantType: 'individual' }))).toBe(true);
     expect(isNotaryDeliveryValid(baseState({ applicantType: 'legal_entity' }))).toBe(true);
+  });
+});
+
+describe('isOfficialContactPhoneValid', () => {
+  it('rejects empty or whitespace-only phone', () => {
+    expect(isOfficialContactPhoneValid('')).toBe(false);
+    expect(isOfficialContactPhoneValid('   ')).toBe(false);
+  });
+
+  it('accepts any non-empty phone', () => {
+    expect(isOfficialContactPhoneValid('+7 707 123 45 67')).toBe(true);
+    expect(isOfficialContactPhoneValid('+1 415 555 0132')).toBe(true);
   });
 });

@@ -96,6 +96,7 @@
       "visa_documents": "Wiza / Immigrasion resminamalar",
       "driver_license": "Sürüjilik şahadatnamasy",
       "presentation": "Prezentasiýa / Pitch-dek",
+      "power_of_attorney": "Ynanç haty",
       "other": "Beýleki"
     },
     "outputFormat": "Faýl formaty",
@@ -120,6 +121,11 @@
         "desc": "Terjime terjimeçi tarapyndan barlanýar we gol çekilýär, WPO möhüri bilen tassyklanýar, soňra terjimeçiniň goluni tassyklamak üçin hyzmatdaş notariusa iberilýär."
       }
     },
+    "contactPhone": {
+      "label": "TELEFON BELGISI / WHATSAPP",
+      "placeholder": "+7 (___) ___-__-__",
+      "required": "Sargydyňyz barada habarlaşmak üçin telefon belgisini / WhatsApp-y görkeziň"
+    },
     "notary": {
       "city": "ŞÄHER",
       "cityPlaceholder": "Şäheri saýlaň",
@@ -127,8 +133,6 @@
       "fulfillment": "ALMAK ýa-da ELTIP BERMEK",
       "pickup": "Almak",
       "delivery": "Eltip bermek",
-      "phone": "TELEFON BELGISI",
-      "phonePlaceholder": "+7 (___) ___-__-__",
       "address": "ELTIP BERIŞ SALGYSY",
       "addressPlaceholder": "Köçe, bina, öý",
       "applicantType": "ARZA BERIJI GÖRNÜŞI",
@@ -139,7 +143,6 @@
       "extraCopies": "GOŞMAÇA KAGYZ NUSGALARY",
       "cityRequired": "Şäheri saýlaň",
       "fulfillmentRequired": "Almak ýa-da eltip bermegi saýlaň",
-      "phoneRequired": "Eltip bermek üçin telefon belgisi zerur",
       "addressRequired": "Eltip bermek üçin salgy zerur",
       "urgencyLevel": "NOTARIAL TASSYKLAMANYŇ MÖHLETI",
       "urgency": {
