@@ -485,7 +485,8 @@ export type Database = {
       telegram_assignments: {
         Row: {
           id: string;
-          job_id: string;
+          /** Optional linkage to a real WPO job — NULL for Jira-only operational issues (migration 0069). */
+          job_id: string | null;
           jira_issue_key: string;
           role: 'translator' | 'notary';
           status: 'open' | 'claim_pending' | 'claimed' | 'in_progress' | 'completed';
@@ -503,7 +504,7 @@ export type Database = {
         };
         Insert: {
           id?: string;
-          job_id: string;
+          job_id?: string | null;
           jira_issue_key: string;
           role: 'translator' | 'notary';
           status?: 'open' | 'claim_pending' | 'claimed' | 'in_progress' | 'completed';

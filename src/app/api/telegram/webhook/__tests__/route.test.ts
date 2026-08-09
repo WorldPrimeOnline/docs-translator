@@ -126,6 +126,34 @@ describe('POST /api/telegram/webhook', () => {
     expect(mockAnswer).toHaveBeenCalledWith('cbq-1', 'Принято, ожидайте подтверждения.');
   });
 
+  it('claims successfully and forwards translator_claim even with no linked WPO job (Jira-only operational issue, no job_audit_log)', async () => {
+    // Manually created Jira issue: telegram_assignments.job_id is NULL (migration
+    // 0069) — the reservation was created with job_id NULL by /api/telegram/jira-event
+    // because no jobs row exists for this issue at all. Claiming must still succeed
+    // and still dispatch to Jira Automation; only the job_audit_log write is skipped.
+    let jobAuditLogCalled = false;
+    callQueue = [
+      () => chainable({ data: { id: 'assign-manual-1', job_id: null }, error: null }), // atomic update
+    ];
+    const originalFrom = mockFrom.getMockImplementation();
+    mockFrom.mockImplementation((...args: unknown[]) => {
+      if (args[0] === 'job_audit_log') jobAuditLogCalled = true;
+      return originalFrom!(...(args as []));
+    });
+
+    const res = await POST(makeUpdate(makeCallback('translator_claim:WO-900')));
+    expect(res.status).toBe(200);
+    expect(mockForward).toHaveBeenCalledWith({
+      issueKey: 'WO-900',
+      action: 'translator_claim',
+      telegramUserId: '42',
+      executorName: 'Aigerim',
+      role: 'translator',
+    });
+    expect(mockAnswer).toHaveBeenCalledWith('cbq-1', 'Принято, ожидайте подтверждения.');
+    expect(jobAuditLogCalled).toBe(false);
+  });
+
   // ── Claim: lost race ──────────────────────────────────────────────────────
   it('tells the losing translator the order is already claimed and does not forward', async () => {
     callQueue = [() => chainable({ data: null, error: null })]; // atomic update matched nothing

@@ -56,7 +56,10 @@ function chatIdForRole(role: TelegramOpsRole): string | undefined {
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 interface JobResolution {
-  jobId: string;
+  /** Null when no real WPO job exists for this Jira issue — a valid, normal outcome
+   * for a Jira-only operational issue (e.g. a manually created test issue). Telegram
+   * Operations' identity is jira_issue_key + role, never job_id — see migration 0069. */
+  jobId: string | null;
   /** True when resolved via the customfield_10073 fallback — jobs.jira_issue_key should be backfilled. */
   backfillNeeded: boolean;
 }
@@ -79,7 +82,16 @@ function logOrderIdFieldDrift(issueKey: string, resolvedJobId: string, issue: Ji
 }
 
 /**
- * Resolves the real `jobs.id` UUID for a Jira issue key.
+ * Resolves the real `jobs.id` UUID for a Jira issue key, if one exists.
+ *
+ * Telegram Operations is Jira-driven: jira_issue_key + role is the operational
+ * identity of a Telegram assignment (migration 0068's UNIQUE constraint), and a
+ * WPO job is optional enrichment, not a prerequisite — a Jira issue with no
+ * corresponding jobs row (e.g. manually created to test the Jira -> Telegram ->
+ * claim/start/done -> Jira workflow end-to-end, tagged wpo-production, with no
+ * Supabase order ever created) is a fully valid Telegram Operations issue. This
+ * function therefore never fails the caller — { jobId: null } is a normal outcome,
+ * not an error.
  *
  * Primary path: `jobs.jira_issue_key = issueKey` — the same reverse-lookup
  * mechanism `worker/src/lib/jira-order-recovery.ts`'s `resolveJobId()` already
@@ -91,12 +103,13 @@ function logOrderIdFieldDrift(issueKey: string, resolvedJobId: string, issue: Ji
  * Fallback path: customfield_10073 (JIRA_FIELDS.orderId) holds the job UUID from
  * the moment the issue is created — available immediately, unlike jobs.jira_issue_key
  * — but is NEVER trusted blindly. WO-120 (2026-08-09) held the literal string "1" in
- * that field. It is only accepted when BOTH hold: (1) it is syntactically a valid
- * UUID, and (2) a real `jobs` row with that id actually exists. Anything else (empty,
- * malformed, or pointing at a UUID that isn't a real job) is rejected exactly like
- * before.
+ * that field, and a manually created test issue may leave it empty or unset entirely.
+ * It is only accepted as a real job link when BOTH hold: (1) it is syntactically a
+ * valid UUID, and (2) a real `jobs` row with that id actually exists. Anything else
+ * (empty, malformed, or pointing at a UUID that isn't a real job) resolves to
+ * { jobId: null } — never blocks the broadcast, just means no WPO job is linked.
  */
-async function resolveJobId(issueKey: string, issue: JiraIssueSnapshot): Promise<JobResolution | null> {
+async function resolveJobId(issueKey: string, issue: JiraIssueSnapshot): Promise<JobResolution> {
   const { data: byIssueKey, error: byIssueKeyError } = await supabaseServer
     .from('jobs')
     .select('id')
@@ -116,12 +129,12 @@ async function resolveJobId(issueKey: string, issue: JiraIssueSnapshot): Promise
 
   const rawOrderId = extractJobId(issue);
   if (!rawOrderId) {
-    console.warn(`[telegram-jira-event] customfield_10073 empty on ${issueKey} and no jobs row has jira_issue_key set yet`);
-    return null;
+    console.log(`[telegram-jira-event] no jobs.jira_issue_key match and customfield_10073 empty on ${issueKey} — proceeding with job_id=NULL (Jira-only operational issue)`);
+    return { jobId: null, backfillNeeded: false };
   }
   if (!UUID_PATTERN.test(rawOrderId)) {
-    console.warn(`[telegram-jira-event] customfield_10073 on ${issueKey} is not a UUID ("${rawOrderId}") — refusing fallback resolution`);
-    return null;
+    console.log(`[telegram-jira-event] no jobs.jira_issue_key match and customfield_10073 on ${issueKey} is not a UUID ("${rawOrderId}") — proceeding with job_id=NULL`);
+    return { jobId: null, backfillNeeded: false };
   }
 
   const { data: byId, error: byIdError } = await supabaseServer
@@ -131,11 +144,11 @@ async function resolveJobId(issueKey: string, issue: JiraIssueSnapshot): Promise
     .maybeSingle();
   if (byIdError) {
     console.error(`[telegram-jira-event] jobs lookup by id=${rawOrderId} (customfield_10073 fallback) failed:`, byIdError.message);
-    return null;
+    return { jobId: null, backfillNeeded: false };
   }
   if (!byId?.id) {
-    console.warn(`[telegram-jira-event] customfield_10073 on ${issueKey} (${rawOrderId}) is a syntactically valid UUID but no jobs row has that id`);
-    return null;
+    console.log(`[telegram-jira-event] customfield_10073 on ${issueKey} (${rawOrderId}) is a syntactically valid UUID but no jobs row has that id — proceeding with job_id=NULL`);
+    return { jobId: null, backfillNeeded: false };
   }
 
   console.warn(`[telegram-jira-event] resolved job_id for ${issueKey} via customfield_10073 fallback (${rawOrderId}) — jobs.jira_issue_key not yet persisted`);
@@ -169,9 +182,12 @@ async function backfillJiraIssueKey(jobId: string, issueKey: string): Promise<vo
  * Both are null (never fabricated) when no matching row exists.
  */
 async function getOrderExtras(
-  jobId: string,
+  jobId: string | null,
   role: TelegramOpsRole,
 ): Promise<{ pageCount: number | null; payoutKzt: number | null }> {
+  // No linked WPO job (Jira-only operational issue) — there is nothing to look up.
+  if (!jobId) return { pageCount: null, payoutKzt: null };
+
   // price_quotes / cost_reservations are not in the generated Database type (see
   // src/types/supabase.ts header) — same untyped-client convention as
   // src/lib/pricing/service.ts's `const db = supabaseServer as any`.
@@ -237,13 +253,12 @@ async function handleBroadcast(issueKey: string, role: TelegramOpsRole): Promise
     return NextResponse.json({ error: 'Jira issue not found or Jira not configured' }, { status: 404 });
   }
 
-  const resolution = await resolveJobId(issueKey, issue);
-  if (!resolution) {
-    console.error(`[telegram-jira-event] could not resolve a job for ${issueKey} via jobs.jira_issue_key or customfield_10073 — refusing to broadcast`);
-    return NextResponse.json({ error: `No job found for Jira issue ${issueKey} (jobs.jira_issue_key and customfield_10073 fallback both failed)` }, { status: 422 });
-  }
-  const { jobId, backfillNeeded } = resolution;
-  if (backfillNeeded) {
+  // job_id is optional enrichment, never a prerequisite — a Jira issue with no
+  // corresponding WPO job (e.g. a manually created test issue) is a fully valid
+  // Telegram Operations issue. resolveJobId() never fails; { jobId: null } just
+  // means this broadcast proceeds with no WPO job linked.
+  const { jobId, backfillNeeded } = await resolveJobId(issueKey, issue);
+  if (backfillNeeded && jobId) {
     await backfillJiraIssueKey(jobId, issueKey);
   }
 
@@ -299,14 +314,21 @@ async function handleBroadcast(issueKey: string, role: TelegramOpsRole): Promise
     return NextResponse.json({ error: `Telegram message sent but assignment row update failed: ${updateError.message}` }, { status: 500 });
   }
 
-  await supabaseServer.from('job_audit_log').insert({
-    job_id: jobId,
-    actor: 'system',
-    source: 'telegram_jira_event',
-    action: `telegram_broadcast_${role}`,
-    jira_issue_key: issueKey,
-    metadata: { chatId, messageId: sendResult.messageId },
-  });
+  // job_audit_log.job_id is NOT NULL and is a job-domain audit system — it must
+  // never be forced for a Jira-only operational issue with no real job. Jira
+  // Automation's own comments on the issue remain the audit trail in that case.
+  if (jobId) {
+    await supabaseServer.from('job_audit_log').insert({
+      job_id: jobId,
+      actor: 'system',
+      source: 'telegram_jira_event',
+      action: `telegram_broadcast_${role}`,
+      jira_issue_key: issueKey,
+      metadata: { chatId, messageId: sendResult.messageId },
+    });
+  } else {
+    console.log(`[telegram-jira-event] broadcast_${role} sent for ${issueKey} with no linked WPO job — skipping job_audit_log`);
+  }
 
   return NextResponse.json({ ok: true, action: 'broadcast_sent' });
 }
@@ -360,15 +382,19 @@ async function handleStatusChanged(issueKey: string, jiraStatus: string): Promis
 
   await supabaseServer.from('telegram_assignments').update(statusFieldUpdate).eq('id', assignment.id);
 
-  await supabaseServer.from('job_audit_log').insert({
-    job_id: assignment.job_id,
-    actor: 'system',
-    source: 'telegram_jira_event',
-    action: `telegram_status_synced_${mapping.role}`,
-    jira_issue_key: issueKey,
-    new_status: jiraStatus,
-    metadata: { telegramEditOk: editResult.ok },
-  });
+  if (assignment.job_id) {
+    await supabaseServer.from('job_audit_log').insert({
+      job_id: assignment.job_id,
+      actor: 'system',
+      source: 'telegram_jira_event',
+      action: `telegram_status_synced_${mapping.role}`,
+      jira_issue_key: issueKey,
+      new_status: jiraStatus,
+      metadata: { telegramEditOk: editResult.ok },
+    });
+  } else {
+    console.log(`[telegram-jira-event] status_changed synced for ${issueKey}/${mapping.role} with no linked WPO job — skipping job_audit_log`);
+  }
 
   return NextResponse.json({ ok: true, action: 'message_updated' });
 }
