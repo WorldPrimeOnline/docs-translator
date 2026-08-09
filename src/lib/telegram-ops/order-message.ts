@@ -84,15 +84,26 @@ const CLAIM_ACTION: Record<TelegramOpsRole, TelegramOpsAction> = {
   notary: 'notary_claim',
 };
 
+const PAYOUT_LABEL: Record<TelegramOpsRole, string> = {
+  translator: 'Выплата переводчику',
+  notary: 'Выплата нотариусу',
+};
+
+function formatKzt(amount: number): string {
+  // toLocaleString('ru-RU') groups thousands with U+00A0 (non-breaking space) —
+  // normalize to a plain space so the Telegram message text is predictable/copy-safe.
+  return `${Math.round(amount).toLocaleString('ru-RU').replace(/\u00A0/g, ' ')} ₸`;
+}
+
 export function buildOrderBroadcastMessage(
   data: OrderBroadcastData,
 ): { text: string; buttons: CallbackButtonSpec[] } {
-  const lines: string[] = [`🆕 <b>${data.issueKey}</b>`];
-  if (data.translationType) lines.push(data.translationType);
-  if (data.languagePair) lines.push(data.languagePair);
-  if (data.documentType) lines.push(data.documentType);
-  if (data.pageCount != null) lines.push(`${data.pageCount} стр.`);
-  if (data.payoutKzt != null) lines.push(`Сумма исполнителю: ${Math.round(data.payoutKzt)} ₸`);
+  const lines: string[] = [`🆕 <b>${data.issueKey}</b>`, ''];
+  if (data.translationType) lines.push(`Тип услуги: ${data.translationType}`);
+  if (data.documentType) lines.push(`Тип документа: ${data.documentType}`);
+  if (data.languagePair) lines.push(`Языковая пара: ${data.languagePair}`);
+  if (data.pageCount != null) lines.push(`Количество страниц: ${data.pageCount}`);
+  if (data.payoutKzt != null) lines.push(`${PAYOUT_LABEL[data.role]}: ${formatKzt(data.payoutKzt)}`);
   if (data.driveUrl) lines.push(`Материалы: ${data.driveUrl}`);
   lines.push('');
   lines.push('Исполнитель: не назначен');

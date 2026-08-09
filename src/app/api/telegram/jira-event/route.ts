@@ -53,6 +53,55 @@ function chatIdForRole(role: TelegramOpsRole): string | undefined {
     : process.env.TELEGRAM_NOTARY_CHAT_ID;
 }
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Resolves the real `jobs.id` UUID for a Jira issue key via `jobs.jira_issue_key`
+ * — the same reverse-lookup mechanism `worker/src/lib/jira-order-recovery.ts`'s
+ * `resolveJobId()` already uses in production, never trusting the live value of
+ * the Jira custom field. `jobs.jira_issue_key` is set once, right after the real
+ * order-creation code creates the issue (worker/src/lib/integrations.ts), so it is
+ * reliable for every certified/notarized order — the only kind this Telegram flow
+ * targets.
+ *
+ * WO-120 production incident (2026-08-09): customfield_10073 (JIRA_FIELDS.orderId)
+ * held the literal string "1" — not a UUID — which crashed the telegram_assignments
+ * insert (`invalid input syntax for type uuid: "1"`) after the Telegram message had
+ * already been sent, leaving an orphaned message with an unclaimable button. No code
+ * path that creates a real order can write a non-UUID value into that field, so this
+ * function no longer reads it for job_id resolution at all — only jobs.jira_issue_key
+ * is authoritative here.
+ */
+async function resolveJobIdByIssueKey(issueKey: string): Promise<string | null> {
+  const { data, error } = await supabaseServer
+    .from('jobs')
+    .select('id')
+    .eq('jira_issue_key', issueKey)
+    .maybeSingle();
+  if (error) {
+    console.error(`[telegram-jira-event] jobs lookup by jira_issue_key=${issueKey} failed:`, error.message);
+    return null;
+  }
+  return data?.id ?? null;
+}
+
+/**
+ * Non-blocking data-integrity check: logs when customfield_10073 disagrees with the
+ * authoritative jobs.jira_issue_key-based resolution (missing, non-UUID, or pointing
+ * at a different job) — surfaces the WO-120 class of anomaly instead of staying silent.
+ */
+function logOrderIdFieldDrift(issueKey: string, resolvedJobId: string, issue: Awaited<ReturnType<typeof getJiraIssue>>): void {
+  if (!issue) return;
+  const rawOrderId = extractJobId(issue);
+  if (rawOrderId == null) {
+    console.warn(`[telegram-jira-event] customfield_10073 empty on ${issueKey} — resolved job_id ${resolvedJobId} via jobs.jira_issue_key instead`);
+  } else if (!UUID_PATTERN.test(rawOrderId)) {
+    console.warn(`[telegram-jira-event] customfield_10073 on ${issueKey} is not a UUID ("${rawOrderId}") — resolved job_id ${resolvedJobId} via jobs.jira_issue_key instead`);
+  } else if (rawOrderId !== resolvedJobId) {
+    console.warn(`[telegram-jira-event] customfield_10073 on ${issueKey} (${rawOrderId}) does not match jobs.jira_issue_key resolution (${resolvedJobId})`);
+  }
+}
+
 /**
  * Authoritative page count + payout amount for the Telegram broadcast message.
  * physical_page_count (price_quotes) is WPO's pricing engine's own page count, always
@@ -115,6 +164,43 @@ async function handleBroadcast(issueKey: string, role: TelegramOpsRole): Promise
     return NextResponse.json({ ok: true, skipped: 'chat_not_configured' });
   }
 
+  // Resolve job_id FIRST, before any Telegram call — a job we can't resolve means we
+  // must never send a message at all (no valid assignment row could ever back it).
+  const jobId = await resolveJobIdByIssueKey(issueKey);
+  if (!jobId) {
+    console.error(`[telegram-jira-event] no jobs row found for jira_issue_key=${issueKey} (role=${role}) — refusing to broadcast`);
+    return NextResponse.json({ error: `No job found for Jira issue ${issueKey} (jobs.jira_issue_key lookup failed)` }, { status: 422 });
+  }
+
+  // Reserve the (jira_issue_key, role) slot BEFORE sending the Telegram message —
+  // telegram_message_id starts at the sentinel 0 and is filled in once the send
+  // succeeds. This makes the reservation itself the idempotency gate: if anything
+  // below fails, the row is deleted so a retry can cleanly re-attempt, but while a
+  // send is in flight a concurrent retry's insert hits the unique constraint and
+  // exits as "already broadcasting" instead of double-posting to Telegram.
+  const { data: reserved, error: reserveError } = await supabaseServer
+    .from('telegram_assignments')
+    .insert({
+      job_id: jobId,
+      jira_issue_key: issueKey,
+      role,
+      status: 'open',
+      telegram_chat_id: Number(chatId),
+      telegram_message_id: 0,
+    })
+    .select('id')
+    .single();
+
+  if (reserveError) {
+    if (reserveError.code === '23505') {
+      // Unique violation on (jira_issue_key, role) — a concurrent retry already
+      // reserved this slot; that attempt owns sending the message.
+      return NextResponse.json({ ok: true, skipped: 'already_broadcast' });
+    }
+    console.error(`[telegram-jira-event] telegram_assignments reservation insert failed for ${issueKey}/${role}:`, reserveError.message);
+    return NextResponse.json({ error: `Failed to reserve assignment row: ${reserveError.message}` }, { status: 500 });
+  }
+
   const issue = await getJiraIssue(issueKey, [
     JIRA_FIELDS.orderId,
     JIRA_FIELDS.translationType,
@@ -123,13 +209,11 @@ async function handleBroadcast(issueKey: string, role: TelegramOpsRole): Promise
     JIRA_FIELDS.documentsLink,
   ]);
   if (!issue) {
+    await supabaseServer.from('telegram_assignments').delete().eq('id', reserved.id);
     return NextResponse.json({ error: 'Jira issue not found or Jira not configured' }, { status: 404 });
   }
 
-  const jobId = extractJobId(issue);
-  if (!jobId) {
-    return NextResponse.json({ error: 'Jira issue missing orderId (customfield_10073)' }, { status: 422 });
-  }
+  logOrderIdFieldDrift(issueKey, jobId, issue);
 
   const extras = await getOrderExtras(jobId, role);
   const data = buildOrderBroadcastData(issue, role, extras);
@@ -137,22 +221,21 @@ async function handleBroadcast(issueKey: string, role: TelegramOpsRole): Promise
 
   const sendResult = await sendMessageWithCallbackButtons(chatId, text, buttons);
   if (!sendResult.ok || !sendResult.messageId) {
+    await supabaseServer.from('telegram_assignments').delete().eq('id', reserved.id);
     return NextResponse.json({ error: `Telegram send failed: ${sendResult.error}` }, { status: 502 });
   }
 
-  const { error: insertError } = await supabaseServer.from('telegram_assignments').insert({
-    job_id: jobId,
-    jira_issue_key: issueKey,
-    role,
-    status: 'open',
-    telegram_chat_id: Number(chatId),
-    telegram_message_id: Number(sendResult.messageId),
-  });
-  if (insertError && insertError.code !== '23505') {
-    // 23505 = unique_violation on (jira_issue_key, role) — a concurrent retry already
-    // won the insert; the message it recorded is the one users will interact with, so
-    // this is a harmless duplicate-send, not a failure to surface.
-    console.error('[telegram-jira-event] telegram_assignments insert failed:', insertError.message);
+  const { error: updateError } = await supabaseServer
+    .from('telegram_assignments')
+    .update({ telegram_message_id: Number(sendResult.messageId) })
+    .eq('id', reserved.id);
+  if (updateError) {
+    // The message IS live in Telegram at this point, so we can't just delete the row
+    // (that would let a retry post a second message next to the one already sent).
+    // This is a real, surfaced failure — status_changed edits later would silently
+    // no-op against the wrong message_id (0) without this being loud.
+    console.error(`[telegram-jira-event] failed to record real message_id for ${issueKey}/${role} (Telegram message ${sendResult.messageId} was sent):`, updateError.message);
+    return NextResponse.json({ error: `Telegram message sent but assignment row update failed: ${updateError.message}` }, { status: 500 });
   }
 
   await supabaseServer.from('job_audit_log').insert({

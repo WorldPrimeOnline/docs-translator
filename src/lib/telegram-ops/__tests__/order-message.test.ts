@@ -80,10 +80,28 @@ describe('buildOrderBroadcastMessage', () => {
       driveUrl: 'https://drive.example/x',
     });
     expect(text).toContain('🆕 <b>WO-123</b>');
-    expect(text).toContain('3 стр.');
-    expect(text).toContain('Сумма исполнителю: 4500 ₸');
+    expect(text).toContain('Тип услуги: Нотариально заверенный');
+    expect(text).toContain('Тип документа: Доверенность');
+    expect(text).toContain('Языковая пара: RU → EN');
+    expect(text).toContain('Количество страниц: 3');
+    expect(text).toContain('Выплата переводчику: 4 500 ₸');
+    expect(text).toContain('Материалы: https://drive.example/x');
     expect(text).toContain('Исполнитель: не назначен');
     expect(buttons).toEqual([{ text: '🙋 Назначить себя', callback_data: 'translator_claim:WO-123' }]);
+  });
+
+  it('uses the notary-specific payout label', () => {
+    const { text } = buildOrderBroadcastMessage({
+      issueKey: 'WO-9',
+      role: 'notary',
+      translationType: 'Нотариально заверенный',
+      languagePair: 'RU → EN',
+      documentType: 'Доверенность',
+      pageCount: 2,
+      payoutKzt: 3000,
+      driveUrl: null,
+    });
+    expect(text).toContain('Выплата нотариусу: 3 000 ₸');
   });
 
   it('renders notary claim button with ⚖️ and notary_claim action', () => {
@@ -111,8 +129,8 @@ describe('buildOrderBroadcastMessage', () => {
       payoutKzt: null,
       driveUrl: null,
     });
-    expect(text).not.toContain('стр.');
-    expect(text).not.toContain('Сумма исполнителю');
+    expect(text).not.toContain('Количество страниц');
+    expect(text).not.toContain('Выплата переводчику');
   });
 });
 
