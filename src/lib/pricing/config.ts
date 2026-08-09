@@ -112,6 +112,7 @@ export const DOCUMENT_TYPE_COEFFICIENT: Record<string, number> = {
   contract:           1.40,
   medical_document:   1.50,
   presentation:       1.60,
+  power_of_attorney:  1.10,
   other:              1.10,
 };
 

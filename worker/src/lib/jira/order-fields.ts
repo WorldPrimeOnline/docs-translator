@@ -10,8 +10,9 @@
  *  - Document content / AI draft
  *  - Files
  *
- * Delivery phone and address go ONLY in customfield_10075 / customfield_10076
- * (not in summary or description).
+ * Contact phone and delivery address go ONLY in customfield_10075 / customfield_10076
+ * (not in summary or description). Phone is sent for Official orders and both notary
+ * fulfillment methods (pickup and delivery); address remains delivery-only (2026-08-08).
  */
 
 import { normalizeDocumentType } from '../translation-prompts';
@@ -109,6 +110,7 @@ const DOC_TYPE_LABELS: Record<string, string> = {
   visa_documents:      'Визовый документ',
   driver_license:      'Водительское удостоверение',
   presentation:        'Презентация',
+  power_of_attorney:   'Доверенность',
   employment_document: 'Другое',
   other:               'Другое',
   unknown:             'Другое',
@@ -266,10 +268,12 @@ export function buildJiraIssueFields(input: JiraIssueFieldsInput): Record<string
   if (input.customerId) fields[f.customerId] = input.customerId;
   fields[f.orderId] = input.orderId;
 
-  // Delivery-only PII — only included when fulfillment_method=delivery
-  if (input.fulfillmentMethod === 'delivery') {
-    if (input.deliveryPhone) fields[f.deliveryPhone] = input.deliveryPhone;
-    if (input.deliveryAddress) fields[f.deliveryAddress] = input.deliveryAddress;
+  // Contact phone — required for Official and both notary fulfillment methods
+  // (2026-08-08), so it's included whenever present, not gated on delivery. Address
+  // remains delivery-only PII.
+  if (input.deliveryPhone) fields[f.deliveryPhone] = input.deliveryPhone;
+  if (input.fulfillmentMethod === 'delivery' && input.deliveryAddress) {
+    fields[f.deliveryAddress] = input.deliveryAddress;
   }
 
   if (input.amountKzt != null && input.amountKzt > 0) fields[f.totalCost] = input.amountKzt;

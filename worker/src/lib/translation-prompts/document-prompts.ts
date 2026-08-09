@@ -244,6 +244,28 @@ If a slide contains a table, output the translated table under the appropriate s
 If a slide contains chart labels, output them under "## Chart labels".
 If text is unreadable, mark [illegible].`,
 
+  power_of_attorney: `DOCUMENT TYPE: Power of Attorney (Доверенность)
+
+Additional rules:
+1. Preserve exactly: principal (grantor) full name, attorney-in-fact (grantee) full name, date of birth, ID/passport number, IIN/BIN or equivalent, address, powers granted, scope of authority, validity period/expiry date, place and date of issue, document/registration number, notary name and registration number.
+2. Translate the granted powers/authority clauses literally and completely. Do not summarize, generalize, or omit any enumerated power.
+3. Do not infer, expand, or narrow the scope of authority beyond what is explicitly stated.
+4. Preserve all legal terminology formally and consistently.
+5. Preserve validity/expiry dates and any revocation clause exactly.
+6. Mark notary stamps, seals, and signatures with neutral markers: [notary stamp], [signature].
+7. Do not state whether the power of attorney is valid, accepted, or recognized in any jurisdiction.
+8. Preserve registry/notarial act numbers exactly.
+9. If sub-delegation (substitution) rights are mentioned, preserve that clause exactly.
+
+Preferred output structure:
+- Document title
+- Principal (grantor) information
+- Attorney-in-fact (grantee) information
+- Powers granted (numbered, exactly as enumerated)
+- Validity period
+- Notary/registration details
+- Signatures and stamps`,
+
   other: `DOCUMENT TYPE: Generic Official Document / Other
 
 Additional rules:

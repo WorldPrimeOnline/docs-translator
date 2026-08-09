@@ -98,6 +98,7 @@
       "visa_documents": "Vize / Göç belgeleri",
       "driver_license": "Sürücü belgesi",
       "presentation": "Sunum / Pitch deck",
+      "power_of_attorney": "Vekaletname",
       "other": "Diğer"
     },
     "outputFormat": "Dosya biçimi",
@@ -122,6 +123,11 @@
         "desc": "Çeviri incelenir ve çevirmen tarafından imzalanır, sağlayıcı kaşesi basılır; ardından çevirmen imzasının noter onayı için partner notere iletilir."
       }
     },
+    "contactPhone": {
+      "label": "TELEFON NUMARASI / WHATSAPP",
+      "placeholder": "+7 (___) ___-__-__",
+      "required": "Siparişinizle ilgili size ulaşabilmemiz için telefon numarası / WhatsApp gereklidir"
+    },
     "notary": {
       "city": "ŞEHİR",
       "cityPlaceholder": "Şehir seçin",
@@ -129,8 +135,6 @@
       "fulfillment": "TESLİM ALMA VEYA TESLİMAT",
       "pickup": "Teslim alma",
       "delivery": "Teslimat",
-      "phone": "TELEFON NUMARASI",
-      "phonePlaceholder": "+7 (___) ___-__-__",
       "address": "TESLİMAT ADRESİ",
       "addressPlaceholder": "Sokak, bina no, daire no",
       "applicantType": "BAŞVURAN TÜRÜ",
@@ -141,7 +145,6 @@
       "extraCopies": "EK KAĞIT KOPYALAR",
       "cityRequired": "Lütfen bir şehir seçin",
       "fulfillmentRequired": "Lütfen teslim alma veya teslimat seçin",
-      "phoneRequired": "Lütfen teslimat için telefon numarası girin",
       "addressRequired": "Lütfen teslimat adresi girin",
       "urgencyLevel": "NOTER ONAY SÜRESİ",
       "urgency": {

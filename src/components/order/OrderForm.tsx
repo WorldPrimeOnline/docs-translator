@@ -21,7 +21,7 @@ import { Upload, FileText, FileImage, FileCode2, X, Loader2 } from 'lucide-react
 import { createClient } from '@/lib/supabase/client';
 import { Link } from '@/i18n/navigation';
 import { NOTARY_CITIES } from '@/lib/notary/cities';
-import { isNotaryDeliveryValid, isDeliverySelected } from '@/lib/translation-workflow/notary-delivery-validation';
+import { isNotaryDeliveryValid, isDeliverySelected, isOfficialContactPhoneValid } from '@/lib/translation-workflow/notary-delivery-validation';
 import { loadReferralParams } from '@/lib/referral/capture';
 import { MAX_UPLOAD_FILE_COUNT } from '@/lib/order-drafts/upload-constants';
 import { mergeFileSelection, removeFileAt } from '@/lib/order-drafts/file-selection';
@@ -153,6 +153,7 @@ export function OrderForm({ mode, onSubmitSuccess, draftId, onDraftIdChange, onD
     { value: 'visa_documents',      label: t('docTypes.visa_documents')      },
     { value: 'driver_license',      label: t('docTypes.driver_license')      },
     { value: 'presentation',        label: t('docTypes.presentation')        },
+    { value: 'power_of_attorney',   label: t('docTypes.power_of_attorney')   },
     { value: 'other',               label: t('docTypes.other')               },
   ];
 
@@ -286,15 +287,23 @@ export function OrderForm({ mode, onSubmitSuccess, draftId, onDraftIdChange, onD
     return <FileCode2 className="h-4 w-4 shrink-0 text-green-400" />;
   }
 
+  // 2026-08-08: contact phone (deliveryPhone) is required for Official and for
+  // Notary (pickup or delivery), so it must survive switching between those two
+  // levels. It's only cleared when the customer moves to Electronic, which needs
+  // no contact phone at all — no reason to keep holding onto that personal data.
   const handleServiceLevelChange = (newLevel: ServiceLevel) => {
     setServiceLevel(newLevel);
     if (newLevel !== 'notarization_through_partners') {
-      setNotaryCity(''); setFulfillmentMethod(''); setDeliveryPhone(''); setDeliveryAddress('');
+      setNotaryCity(''); setFulfillmentMethod(''); setDeliveryAddress('');
       setApplicantType(''); setNotaryUrgencyLevel('standard');
+    }
+    if (newLevel === 'electronic') {
+      setDeliveryPhone('');
     }
   };
 
   const isNotarization = serviceLevel === 'notarization_through_partners';
+  const isOfficial = serviceLevel === 'official_with_translator_signature_and_provider_stamp';
   const isDelivery = isDeliverySelected({ isNotarization, fulfillmentMethod });
   const totalSize = files.reduce((s, f) => s + f.size, 0);
 
@@ -305,7 +314,8 @@ export function OrderForm({ mode, onSubmitSuccess, draftId, onDraftIdChange, onD
     sourceLang !== targetLang &&
     termsAccepted !== null &&
     (termsAccepted === true || consentChecked) &&
-    isNotaryDeliveryValid({ isNotarization, notaryCity, fulfillmentMethod, deliveryPhone, deliveryAddress, applicantType });
+    isNotaryDeliveryValid({ isNotarization, notaryCity, fulfillmentMethod, deliveryPhone, deliveryAddress, applicantType }) &&
+    (!isOfficial || isOfficialContactPhoneValid(deliveryPhone));
 
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
@@ -339,9 +349,11 @@ export function OrderForm({ mode, onSubmitSuccess, draftId, onDraftIdChange, onD
               notaryUrgencyLevel,
               notaryCity,
               fulfillmentMethod: fulfillmentMethod || undefined,
-              ...(isDelivery ? { deliveryPhone: deliveryPhone.trim(), deliveryAddress: deliveryAddress.trim() } : {}),
+              deliveryPhone: deliveryPhone.trim(),
+              ...(isDelivery ? { deliveryAddress: deliveryAddress.trim() } : {}),
             }
           : {}),
+        ...(isOfficial ? { deliveryPhone: deliveryPhone.trim() } : {}),
         customerComment: customerComment.trim() || undefined,
       };
 
@@ -467,9 +479,11 @@ export function OrderForm({ mode, onSubmitSuccess, draftId, onDraftIdChange, onD
               notaryUrgencyLevel,
               notaryCity,
               fulfillmentMethod: fulfillmentMethod || undefined,
-              ...(isDelivery ? { deliveryPhone: deliveryPhone.trim(), deliveryAddress: deliveryAddress.trim() } : {}),
+              deliveryPhone: deliveryPhone.trim(),
+              ...(isDelivery ? { deliveryAddress: deliveryAddress.trim() } : {}),
             }
           : {}),
+        ...(isOfficial ? { deliveryPhone: deliveryPhone.trim() } : {}),
         customerComment: customerComment.trim() || undefined,
         // isFormValid already required (termsAccepted === true || consentChecked) before this
         // submit could fire — record that acceptance on the draft now, since anonymous
@@ -711,6 +725,28 @@ export function OrderForm({ mode, onSubmitSuccess, draftId, onDraftIdChange, onD
           </div>
         </div>
 
+        {/* Official (certified-translator) service level has no fulfillment/pickup
+            concept — it's a purely electronic handoff — but still needs a contact
+            phone so WPO can reach the client about the document if needed. */}
+        {isOfficial && (
+          <div className="flex flex-col gap-1.5 rounded-lg border border-white/10 bg-white/[0.02] p-4">
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('contactPhone.label')} <span className="text-red-400">*</span></label>
+            <input
+              type="tel"
+              name="official-contact-phone"
+              value={deliveryPhone}
+              onChange={(e) => setDeliveryPhone(e.target.value)}
+              placeholder={t('contactPhone.placeholder')}
+              className={inputClass}
+              required
+              autoComplete="off"
+            />
+            {deliveryPhone.trim().length === 0 && (
+              <p className="text-xs text-red-400">{t('contactPhone.required')}</p>
+            )}
+          </div>
+        )}
+
         {/* Notary delivery fields */}
         {isNotarization && (
           <div className="flex flex-col gap-4 rounded-lg border border-white/10 bg-white/[0.02] p-4">
@@ -727,7 +763,7 @@ export function OrderForm({ mode, onSubmitSuccess, draftId, onDraftIdChange, onD
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('notary.fulfillment')} <span className="text-red-400">*</span></p>
               <div className="flex gap-2">
                 {(['pickup', 'delivery'] as FulfillmentMethod[]).map((method) => (
-                  <button key={method} type="button" onClick={() => { setFulfillmentMethod(method); if (method === 'pickup') { setDeliveryPhone(''); setDeliveryAddress(''); } }}
+                  <button key={method} type="button" onClick={() => { setFulfillmentMethod(method); if (method === 'pickup') { setDeliveryAddress(''); } }}
                     className={`flex flex-1 items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm transition-all duration-150 ${fulfillmentMethod === method ? 'border-primary/40 bg-primary/5 text-foreground font-medium' : 'border-white/10 bg-transparent text-muted-foreground hover:border-white/20 hover:text-foreground'}`}>
                     <span className={`flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border transition-colors ${fulfillmentMethod === method ? 'border-primary bg-primary' : 'border-white/30'}`}>
                       {fulfillmentMethod === method && <span className="h-1.5 w-1.5 rounded-full bg-primary-foreground" />}
@@ -737,44 +773,45 @@ export function OrderForm({ mode, onSubmitSuccess, draftId, onDraftIdChange, onD
                 ))}
               </div>
             </div>
+            {/* Contact phone — required for every notarized order, pickup or delivery
+                alike (2026-08-08 business change), so it lives outside the isDelivery
+                gate. Address remains delivery-only. */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('contactPhone.label')} <span className="text-red-400">*</span></label>
+              <input
+                type="tel"
+                name="order-contact-phone"
+                value={deliveryPhone}
+                onChange={(e) => setDeliveryPhone(e.target.value)}
+                placeholder={t('contactPhone.placeholder')}
+                className={inputClass}
+                required
+                autoComplete="off"
+              />
+              {deliveryPhone.trim().length === 0 && (
+                <p className="text-xs text-red-400">{t('contactPhone.required')}</p>
+              )}
+            </div>
             {isDelivery && (
-              <div className="flex flex-col gap-3">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('notary.phone')} <span className="text-red-400">*</span></label>
-                  <input
-                    type="tel"
-                    name="notary-delivery-phone"
-                    value={deliveryPhone}
-                    onChange={(e) => setDeliveryPhone(e.target.value)}
-                    placeholder={t('notary.phonePlaceholder')}
-                    className={inputClass}
-                    required={isDelivery}
-                    autoComplete="off"
-                  />
-                  {deliveryPhone.trim().length === 0 && (
-                    <p className="text-xs text-red-400">{t('notary.phoneRequired')}</p>
-                  )}
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('notary.address')} <span className="text-red-400">*</span></label>
-                  {/* Free-form text only — no address autocomplete/placeId selection required.
-                      name deliberately avoids the word "address" (a known browser autofill
-                      heuristic trigger, independent of autoComplete="off" in some versions) so
-                      the browser's native address-manager popup does not appear over this field. */}
-                  <textarea
-                    name="notary-delivery-location-note"
-                    value={deliveryAddress}
-                    onChange={(e) => setDeliveryAddress(e.target.value)}
-                    placeholder={t('notary.addressPlaceholder')}
-                    className={`${inputClass} min-h-[80px] resize-none`}
-                    required={isDelivery}
-                    rows={3}
-                    autoComplete="off"
-                  />
-                  {deliveryAddress.trim().length === 0 && (
-                    <p className="text-xs text-red-400">{t('notary.addressRequired')}</p>
-                  )}
-                </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('notary.address')} <span className="text-red-400">*</span></label>
+                {/* Free-form text only — no address autocomplete/placeId selection required.
+                    name deliberately avoids the word "address" (a known browser autofill
+                    heuristic trigger, independent of autoComplete="off" in some versions) so
+                    the browser's native address-manager popup does not appear over this field. */}
+                <textarea
+                  name="notary-delivery-location-note"
+                  value={deliveryAddress}
+                  onChange={(e) => setDeliveryAddress(e.target.value)}
+                  placeholder={t('notary.addressPlaceholder')}
+                  className={`${inputClass} min-h-[80px] resize-none`}
+                  required={isDelivery}
+                  rows={3}
+                  autoComplete="off"
+                />
+                {deliveryAddress.trim().length === 0 && (
+                  <p className="text-xs text-red-400">{t('notary.addressRequired')}</p>
+                )}
               </div>
             )}
             <div className="flex flex-col gap-1.5">

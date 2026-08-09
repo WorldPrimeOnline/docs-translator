@@ -197,6 +197,56 @@ it('9: description is ADF and contains no phone numbers or street address patter
   expect(allText).not.toMatch(/\b\d{12}\b/);
 });
 
+// ── Contact phone gating (2026-08-08) ──────────────────────────────────────────
+it('9b: Official order (no fulfillmentMethod) still sends phone to customfield_10075, never the description', async () => {
+  mockFetchOk();
+  await createJiraIssue({
+    ...BASE_PARAMS,
+    deliveryPhone: '+77001234567',
+  });
+
+  const fields = parsedBody().fields as Record<string, unknown>;
+  expect(fields['customfield_10075']).toBe('+77001234567');
+  const descText = JSON.stringify(fields.description);
+  expect(descText).not.toContain('+77001234567');
+});
+
+it('9c: notary pickup sends phone to customfield_10075 but omits address (customfield_10076)', async () => {
+  mockFetchOk();
+  await createJiraIssue({
+    ...BASE_PARAMS,
+    fulfillmentMethod: 'pickup',
+    deliveryPhone: '+77001234567',
+    deliveryAddress: 'ул. Абая 1',
+  });
+
+  const fields = parsedBody().fields as Record<string, unknown>;
+  expect(fields['customfield_10075']).toBe('+77001234567');
+  expect(fields['customfield_10076']).toBeUndefined();
+});
+
+it('9d: notary delivery sends both phone and address', async () => {
+  mockFetchOk();
+  await createJiraIssue({
+    ...BASE_PARAMS,
+    fulfillmentMethod: 'delivery',
+    deliveryPhone: '+77001234567',
+    deliveryAddress: 'ул. Абая 1',
+  });
+
+  const fields = parsedBody().fields as Record<string, unknown>;
+  expect(fields['customfield_10075']).toBe('+77001234567');
+  expect(fields['customfield_10076']).toBe('ул. Абая 1');
+});
+
+it('9e: power_of_attorney document type maps to "Доверенность" single-select', async () => {
+  mockFetchOk();
+  await createJiraIssue({ ...BASE_PARAMS, documentType: 'power_of_attorney' });
+
+  const fields = parsedBody().fields as Record<string, unknown>;
+  expect(fields['customfield_10082']).toEqual({ value: 'Доверенность' });
+});
+
 // ── Test 10 ───────────────────────────────────────────────────────────────────
 it('10: description includes Drive URL and WPO order URL', async () => {
   mockFetchOk();

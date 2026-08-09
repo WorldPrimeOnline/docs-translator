@@ -95,6 +95,144 @@ export async function sendDirectMessageWithButtons(
   }
 }
 
+// ─── Callback-button messaging (Telegram operations integration) ─────────────
+// Used by /api/telegram/jira-event and /api/telegram/webhook. Buttons here carry
+// callback_data (routed back through our own webhook), unlike TelegramButton's url
+// buttons above which open an external link directly.
+
+export interface TelegramCallbackButton {
+  text: string;
+  callback_data: string;
+}
+
+/** Send a message with inline callback-data buttons. Returns the message_id to store for later edits. */
+export async function sendMessageWithCallbackButtons(
+  chatId: string | number,
+  text: string,
+  buttons: TelegramCallbackButton[],
+): Promise<SendMessageResult> {
+  const token = getToken();
+  if (!token) {
+    return { ok: false, messageId: null, error: 'TELEGRAM_BOT_TOKEN not set' };
+  }
+
+  const body: Record<string, unknown> = {
+    chat_id: chatId,
+    text,
+    parse_mode: 'HTML',
+    disable_web_page_preview: true,
+  };
+  if (buttons.length > 0) {
+    body.reply_markup = { inline_keyboard: buttons.map((btn) => [{ text: btn.text, callback_data: btn.callback_data }]) };
+  }
+
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      const t = await res.text().catch(() => '');
+      const errorMsg = `HTTP ${res.status}: ${t.slice(0, 200)}`;
+      console.error(`[telegram] sendMessageWithCallbackButtons to ${chatId} failed: ${errorMsg}`);
+      return { ok: false, messageId: null, error: errorMsg };
+    }
+
+    const json = (await res.json()) as { ok: boolean; result?: { message_id: number } };
+    const messageId = json.result?.message_id?.toString() ?? null;
+    return { ok: true, messageId, error: null };
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    console.error(`[telegram] sendMessageWithCallbackButtons to ${chatId} threw: ${errorMsg}`);
+    return { ok: false, messageId: null, error: errorMsg };
+  }
+}
+
+/**
+ * Edit an existing message's text and inline keyboard in place — the Telegram
+ * operations UX never posts a new message after the initial broadcast, it edits
+ * this one for every confirmed Jira status change. An empty `buttons` array clears
+ * the keyboard entirely (used for terminal states).
+ *
+ * Telegram returns a 400 "message is not modified" error when the new text/markup
+ * is identical to the current message — treated as success (idempotent no-op), not
+ * a failure, since a duplicate status_changed delivery must not error out.
+ */
+export async function editMessageWithCallbackButtons(
+  chatId: string | number,
+  messageId: string | number,
+  text: string,
+  buttons: TelegramCallbackButton[],
+): Promise<SendMessageResult> {
+  const token = getToken();
+  if (!token) {
+    return { ok: false, messageId: null, error: 'TELEGRAM_BOT_TOKEN not set' };
+  }
+
+  const body: Record<string, unknown> = {
+    chat_id: chatId,
+    message_id: messageId,
+    text,
+    parse_mode: 'HTML',
+    disable_web_page_preview: true,
+    reply_markup: { inline_keyboard: buttons.map((btn) => [{ text: btn.text, callback_data: btn.callback_data }]) },
+  };
+
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${token}/editMessageText`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      const t = await res.text().catch(() => '');
+      if (t.includes('message is not modified')) {
+        return { ok: true, messageId: messageId.toString(), error: null };
+      }
+      const errorMsg = `HTTP ${res.status}: ${t.slice(0, 200)}`;
+      console.error(`[telegram] editMessageWithCallbackButtons ${chatId}/${messageId} failed: ${errorMsg}`);
+      return { ok: false, messageId: null, error: errorMsg };
+    }
+
+    return { ok: true, messageId: messageId.toString(), error: null };
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    console.error(`[telegram] editMessageWithCallbackButtons ${chatId}/${messageId} threw: ${errorMsg}`);
+    return { ok: false, messageId: null, error: errorMsg };
+  }
+}
+
+/** Acknowledge a callback_query — required so the tapping user's client stops showing a loading spinner. */
+export async function answerCallbackQuery(
+  callbackQueryId: string,
+  text?: string,
+  showAlert = false,
+): Promise<void> {
+  const token = getToken();
+  if (!token) return;
+
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${token}/answerCallbackQuery`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        callback_query_id: callbackQueryId,
+        text: text?.slice(0, 200),
+        show_alert: showAlert,
+      }),
+    });
+    if (!res.ok) {
+      const t = await res.text().catch(() => '');
+      console.error(`[telegram] answerCallbackQuery failed: ${res.status} ${t.slice(0, 200)}`);
+    }
+  } catch (err) {
+    console.error('[telegram] answerCallbackQuery threw:', err instanceof Error ? err.message : String(err));
+  }
+}
+
 // ─── Legacy static-chat-ID notifications ──────────────────────────────────────
 
 export async function notifyOperatorNewOrder(params: {

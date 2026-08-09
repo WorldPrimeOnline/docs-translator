@@ -4,7 +4,7 @@ import { JIRA_PROJECT_CONFIG, JIRA_ISSUE_TYPE, stagingSecurityField } from './pr
 
 // ─── Field IDs (kept here for web-app side; mirrored in worker/src/lib/jira/order-fields.ts) ──
 
-const JIRA_FIELDS = {
+export const JIRA_FIELDS = {
   customerId:        'customfield_10074',
   orderId:           'customfield_10073',
   deliveryAddress:   'customfield_10076',
@@ -34,6 +34,7 @@ const DOC_TYPE_LABELS: Record<string, string> = {
   bank_statement: 'Банковская выписка', medical_document: 'Медицинский документ',
   police_clearance: 'Справка о несудимости', visa_documents: 'Визовый документ',
   driver_license: 'Водительское удостоверение', presentation: 'Презентация',
+  power_of_attorney: 'Доверенность',
   employment_document: 'Другое', other: 'Другое',
 };
 
@@ -114,9 +115,12 @@ function buildCustomFields(params: CreateIssueParams): Record<string, unknown> {
   if (params.customerId) fields[f.customerId] = params.customerId;
   fields[f.orderId] = params.jobId;
 
-  if (params.fulfillmentMethod === 'delivery') {
-    if (params.deliveryPhone) fields[f.deliveryPhone] = params.deliveryPhone;
-    if (params.deliveryAddress) fields[f.deliveryAddress] = params.deliveryAddress;
+  // Contact phone — required for Official and both notary fulfillment methods
+  // (2026-08-08), so it's included whenever present, not gated on delivery. Address
+  // remains delivery-only PII.
+  if (params.deliveryPhone) fields[f.deliveryPhone] = params.deliveryPhone;
+  if (params.fulfillmentMethod === 'delivery' && params.deliveryAddress) {
+    fields[f.deliveryAddress] = params.deliveryAddress;
   }
 
   if (params.amountKzt != null && params.amountKzt > 0) fields[f.totalCost] = params.amountKzt;
@@ -198,4 +202,48 @@ export async function updateJiraIssue(
     const text = await res.text().catch(() => '');
     throw new Error(`Jira updateIssue failed: ${res.status} ${text.slice(0, 300)}`);
   }
+}
+
+// ─── Read-only issue fetch (Telegram operations integration) ──────────────────
+// Intentionally read-only: this module never performs a Jira transition. Jira
+// Automation owns every workflow transition — see docs/ai-context/60_INTEGRATIONS_JIRA_DRIVE_TELEGRAM.md.
+
+export interface JiraIssueSnapshot {
+  key: string;
+  statusName: string;
+  fields: Record<string, unknown>;
+}
+
+/**
+ * GET /issue/{key} with a restricted field list. Used by the Telegram jira-event
+ * endpoint to read order data for the broadcast message and to inspect the current
+ * status (defense-in-depth only — Jira Automation is the authoritative status/
+ * transition gate, this is never used to decide whether to call a transition).
+ */
+export async function getJiraIssue(
+  issueKey: string,
+  fields: string[],
+): Promise<JiraIssueSnapshot | null> {
+  const creds = getJiraCredentials();
+  if (!creds) return null;
+
+  const query = new URLSearchParams({ fields: ['status', ...fields].join(',') });
+  const res = await jiraFetch(`/issue/${issueKey}?${query.toString()}`, { method: 'GET' });
+
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Jira getIssue failed: ${res.status} ${text.slice(0, 300)}`);
+  }
+
+  const data = (await res.json()) as {
+    key: string;
+    fields: Record<string, unknown> & { status?: { name?: string } };
+  };
+
+  return {
+    key: data.key,
+    statusName: data.fields.status?.name ?? '',
+    fields: data.fields,
+  };
 }

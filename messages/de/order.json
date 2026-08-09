@@ -98,6 +98,7 @@
       "visa_documents": "Visum / Einwanderungsdokumente",
       "driver_license": "Führerschein",
       "presentation": "Präsentation / Pitch-Deck",
+      "power_of_attorney": "Vollmacht",
       "other": "Sonstiges"
     },
     "outputFormat": "Dateiformat",
@@ -122,6 +123,11 @@
         "desc": "Die Übersetzung wird geprüft und vom Übersetzer unterschrieben, mit dem Anbieterstempel versehen und anschließend an einen Partnernotar zur notariellen Beglaubigung der Übersetzerunterschrift weitergeleitet."
       }
     },
+    "contactPhone": {
+      "label": "TELEFONNUMMER / WHATSAPP",
+      "placeholder": "+7 (___) ___-__-__",
+      "required": "Bitte geben Sie eine Telefonnummer / WhatsApp-Nummer für Rückfragen zu Ihrer Bestellung an"
+    },
     "notary": {
       "city": "STADT",
       "cityPlaceholder": "Stadt auswählen",
@@ -129,8 +135,6 @@
       "fulfillment": "ABHOLUNG ODER LIEFERUNG",
       "pickup": "Abholung",
       "delivery": "Lieferung",
-      "phone": "TELEFONNUMMER",
-      "phonePlaceholder": "+7 (___) ___-__-__",
       "address": "LIEFERADRESSE",
       "addressPlaceholder": "Straße, Hausnummer, Wohnungsnummer",
       "applicantType": "ANTRAGSTELLERTYP",
@@ -141,7 +145,6 @@
       "extraCopies": "ZUSÄTZLICHE PAPIEREXEMPLARE",
       "cityRequired": "Bitte wählen Sie eine Stadt",
       "fulfillmentRequired": "Bitte wählen Sie Abholung oder Lieferung",
-      "phoneRequired": "Bitte geben Sie eine Telefonnummer für die Lieferung an",
       "addressRequired": "Bitte geben Sie eine Lieferadresse an",
       "urgencyLevel": "DRINGLICHKEIT DER NOTARIELLEN BEGLAUBIGUNG",
       "urgency": {

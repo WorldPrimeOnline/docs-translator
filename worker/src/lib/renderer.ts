@@ -65,6 +65,7 @@ const DOC_TYPE_LABEL: Record<string, { en: string; ru: string }> = {
   police_clearance: { en: 'Police Clearance Certificate', ru: 'Справка о несудимости' },
   visa_documents: { en: 'Visa / Immigration Documents', ru: 'Виза / Иммиграционные документы' },
   driver_license: { en: "Driver's License", ru: 'Водительское удостоверение' },
+  power_of_attorney: { en: 'Power of Attorney', ru: 'Доверенность' },
   other: { en: 'Official Document', ru: 'Официальный документ' },
 };
 
