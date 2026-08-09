@@ -636,3 +636,19 @@ Translators and notary partners have no Jira license and cannot use Jira's nativ
 
 **Risks / caveats:**  
 Migration 0068 is prepared, not applied — must be run on staging Supabase before this feature works end-to-end. Requires new env vars (TELEGRAM_WEBHOOK_SECRET, JIRA_AUTOMATION_TELEGRAM_ACTION_WEBHOOK_URL, JIRA_AUTOMATION_ACTION_WEBHOOK_SECRET) and 8 new Jira Automation rules (2 broadcast triggers, 1 status-sync trigger watching 6 statuses, 1 incoming-webhook rule branching on 6 actions) configured externally by the user — see docs/TELEGRAM_OPERATIONS_SETUP.md. Telegram's setWebhook must be called once with the secret_token to point at /api/telegram/webhook.
+
+---
+
+### 2026-08-09 — Telegram Operations is Jira-driven — WPO job linkage is optional, not required
+
+**Decision:**  
+telegram_assignments.job_id is now nullable (migration 0069). jira_issue_key + role (migration 0068's UNIQUE constraint) is the sole operational identity of a Telegram Operations assignment. resolveJobId() in src/app/api/telegram/jira-event/route.ts tries jobs.jira_issue_key, then a validated customfield_10073 cross-reference, and now simply resolves to job_id=NULL (never a 422) when neither finds a real jobs row. translator_order_created/notary_required always fetch the Jira issue and broadcast from its fields regardless of whether a WPO job exists. job_audit_log (job-domain, job_id NOT NULL) is only written when telegram_assignments.job_id is non-null; for a NULL job_id, claim/start/done/status-sync are traced via application logs and Jira Automation's own issue comments only.
+
+**Rationale:**  
+A Jira issue manually created for testing (normal fields populated, wpo-production label added, no jobs/documents/price_quotes row ever created in Supabase) must be able to run the full Jira -> Telegram -> claim/start/done -> Jira loop end-to-end. The prior fix (WO-120/WO-122) still treated 'no resolvable WPO job' as a hard failure (422), which is wrong: Telegram Operations belongs to the Jira workflow domain, and a WPO job is optional enrichment (page count, payout amount, job_audit_log correlation) layered on top of it, not a prerequisite for the feature to function.
+
+**Impacted files/docs:**  
+`Not specified`
+
+**Risks / caveats:**  
+Migration 0069 is prepared, not applied — must run on production Supabase (DROP NOT NULL only, additive/backward-compatible, no data changes, safe on existing rows) before a job_id-NULL broadcast can succeed there. job_audit_log intentionally stays job_id NOT NULL — never weakened for this feature; job_id-NULL assignments are audited via application logs + Jira comments only, by design.

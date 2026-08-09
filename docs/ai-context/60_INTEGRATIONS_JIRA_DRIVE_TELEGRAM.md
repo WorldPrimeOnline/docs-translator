@@ -156,6 +156,21 @@ order. Broadcast messages include `price_quotes.physical_page_count` and
 `cost_reservations.amount_kzt` (`cost_type=translator_payout`/`translator_reserved_cost`/
 `notary_payout`) when present — never fabricated when absent.
 
+**Domain model (2026-08-09 correction): Telegram Operations is Jira-driven, not WPO-job-driven.**
+`jira_issue_key` + `role` (migration 0068's `UNIQUE` constraint) is the operational identity of a
+Telegram assignment — a linked WPO job is optional enrichment, never a prerequisite.
+`telegram_assignments.job_id` is nullable (migration 0069). A Jira issue with no corresponding
+`jobs` row at all — e.g. one created manually in Jira (normal fields populated, `wpo-production`
+label added) purely to test the Jira → Telegram → claim/start/done → Jira loop end-to-end, with no
+Supabase order ever created — is a fully valid Telegram Operations issue: `translator_order_created`
+/ `notary_required` always broadcast successfully regardless of whether a job resolves, never a 422.
+`resolveJobId()` (`src/app/api/telegram/jira-event/route.ts`) tries `jobs.jira_issue_key` first, then
+the validated `customfield_10073` cross-reference, and simply stores `job_id = NULL` when neither
+finds a real job. `job_audit_log` (job-domain, `job_id NOT NULL`) is only ever written when
+`telegram_assignments.job_id` is non-null; for a `job_id`-null assignment, claim/start/done/status
+events are traceable via application logs and Jira Automation's own audit comments only — this is
+intentional, not a gap to “fix” by relaxing `job_audit_log`’s constraints.
+
 Full env vars, Jira Automation rule configs, and exact payloads: `docs/TELEGRAM_OPERATIONS_SETUP.md`.
 
 ## Reference docs

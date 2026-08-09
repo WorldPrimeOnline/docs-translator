@@ -6,6 +6,15 @@
  * message projection, and that no Jira transition is ever attempted (getJiraIssue
  * is the only Jira call this route makes).
  *
+ * Domain model: Telegram Operations is Jira-driven. jira_issue_key + role is the
+ * operational identity of a Telegram assignment (migration 0068's UNIQUE
+ * constraint) — a WPO job is optional enrichment, never a prerequisite. A Jira
+ * issue with no corresponding jobs row (e.g. manually created purely to test the
+ * Jira -> Telegram -> claim/start/done -> Jira workflow, tagged wpo-production,
+ * with no Supabase order ever created) is a fully valid Telegram Operations issue
+ * — the broadcast must succeed with telegram_assignments.job_id = NULL (migration
+ * 0069), never a 422.
+ *
  * job_id resolution regressions:
  *  - WO-120 (2026-08-09): customfield_10073 held "1" instead of a UUID, crashing
  *    the telegram_assignments insert. job_id must always be resolved/verified via
@@ -144,6 +153,33 @@ function successQueueFallback(opts: {
     () => chainable({ data: null, error: null }), // message_id update
     () => chainable({ data: null, error: null }), // job_audit_log insert
   ];
+}
+
+/** Success-path queue for a Jira-only operational issue with NO corresponding WPO
+ * job (manually created test issue): existing-check(null) -> jobs-by-issue-key(miss)
+ * -> [jobs-by-id(miss), only if customfield_10073 is a syntactically valid UUID] ->
+ * reserve insert (job_id: null) -> message_id update. getOrderExtras and
+ * job_audit_log are never called at all — both short-circuit on a null job_id. */
+function successQueueNoJob(opts: {
+  reservedId?: string;
+  attemptedUuidLookup?: boolean;
+  onReserveInsert?: (args: unknown[]) => void;
+}): Array<() => unknown> {
+  const reservedId = opts.reservedId ?? 'assign-1';
+  const queue: Array<() => unknown> = [
+    () => chainable({ data: null, error: null }), // existing-assignment check
+    () => chainable({ data: null, error: null }), // jobs lookup by jira_issue_key: miss
+  ];
+  if (opts.attemptedUuidLookup) {
+    queue.push(() => chainable({ data: null, error: null })); // jobs lookup by id: miss
+  }
+  queue.push(
+    () => chainable({ data: { id: reservedId }, error: null }, (method, args) => {
+      if (method === 'insert' && opts.onReserveInsert) opts.onReserveInsert(args);
+    }), // reservation insert (job_id: null)
+    () => chainable({ data: null, error: null }), // message_id update
+  );
+  return queue;
 }
 
 describe('POST /api/telegram/jira-event', () => {
@@ -319,41 +355,75 @@ describe('POST /api/telegram/jira-event', () => {
       expect(backfillArgs).toEqual({ jira_issue_key: 'WO-122' });
     });
 
-    it('returns 422 without contacting Telegram when customfield_10073 is missing and jobs.jira_issue_key has no match', async () => {
-      callQueue = [
-        () => chainable({ data: null, error: null }), // existing check
-        () => chainable({ data: null, error: null }), // jobs by jira_issue_key: miss
-      ];
+  });
+
+  // ── job_id resolution: Jira-only operational issue, no WPO job at all ────
+
+  describe('job_id resolution — no WPO job exists (manually created Jira operational issue)', () => {
+    it('broadcasts successfully with job_id NULL when customfield_10073 is missing and jobs.jira_issue_key has no match', async () => {
+      let insertedJobId: unknown = 'not-set';
+      callQueue = successQueueNoJob({
+        attemptedUuidLookup: false, // empty field — resolveJobId never attempts the byId lookup
+        onReserveInsert: (args) => { insertedJobId = (args[0] as { job_id: unknown }).job_id; },
+      });
       mockGetJiraIssue.mockResolvedValue(issueWithFields({}, 'WO-999'));
+      mockSend.mockResolvedValue({ ok: true, messageId: '9001', error: null });
 
       const res = await POST(makeRequest({ event: 'translator_order_created', issueKey: 'WO-999' }));
-      expect(res.status).toBe(422);
-      expect(mockSend).not.toHaveBeenCalled();
+      expect(res.status).toBe(200);
+      const body = await res.json() as { action: string };
+      expect(body.action).toBe('broadcast_sent');
+      expect(insertedJobId).toBeNull();
+      expect(mockSend).toHaveBeenCalledWith(
+        '-100111',
+        expect.any(String),
+        expect.arrayContaining([expect.objectContaining({ callback_data: 'translator_claim:WO-999' })]),
+      );
     });
 
-    it('returns 422 when customfield_10073 is non-UUID and jobs.jira_issue_key has no match (WO-120 shape, fresh issue)', async () => {
-      callQueue = [
-        () => chainable({ data: null, error: null }), // existing check
-        () => chainable({ data: null, error: null }), // jobs by jira_issue_key: miss
-      ];
+    it('broadcasts successfully with job_id NULL when customfield_10073 is non-UUID (WO-120 shape) and jobs.jira_issue_key has no match', async () => {
+      let insertedJobId: unknown = 'not-set';
+      callQueue = successQueueNoJob({
+        attemptedUuidLookup: false, // non-UUID field — resolveJobId never attempts the byId lookup
+        onReserveInsert: (args) => { insertedJobId = (args[0] as { job_id: unknown }).job_id; },
+      });
       mockGetJiraIssue.mockResolvedValue(issueWithFields({ [JIRA_FIELDS.orderId]: '1' }, 'WO-120'));
+      mockSend.mockResolvedValue({ ok: true, messageId: '9002', error: null });
 
       const res = await POST(makeRequest({ event: 'translator_order_created', issueKey: 'WO-120' }));
-      expect(res.status).toBe(422);
-      expect(mockSend).not.toHaveBeenCalled();
+      expect(res.status).toBe(200);
+      const body = await res.json() as { action: string };
+      expect(body.action).toBe('broadcast_sent');
+      expect(insertedJobId).toBeNull();
     });
 
-    it('returns 422 when customfield_10073 is a syntactically valid UUID but no jobs row has that id', async () => {
-      callQueue = [
-        () => chainable({ data: null, error: null }), // existing check
-        () => chainable({ data: null, error: null }), // jobs by jira_issue_key: miss
-        () => chainable({ data: null, error: null }), // jobs by id: miss — UUID doesn't correspond to a real job
-      ];
+    it('broadcasts successfully with job_id NULL when customfield_10073 is a syntactically valid UUID but no jobs row has that id', async () => {
+      let insertedJobId: unknown = 'not-set';
+      callQueue = successQueueNoJob({
+        attemptedUuidLookup: true, // valid UUID syntax — resolveJobId does attempt (and misses) the byId lookup
+        onReserveInsert: (args) => { insertedJobId = (args[0] as { job_id: unknown }).job_id; },
+      });
       mockGetJiraIssue.mockResolvedValue(issueWithFields({ [JIRA_FIELDS.orderId]: 'c2eebc99-9c0b-4ef8-bb6d-6bb9bd380a33' }, 'WO-500'));
+      mockSend.mockResolvedValue({ ok: true, messageId: '9003', error: null });
 
       const res = await POST(makeRequest({ event: 'translator_order_created', issueKey: 'WO-500' }));
-      expect(res.status).toBe(422);
-      expect(mockSend).not.toHaveBeenCalled();
+      expect(res.status).toBe(200);
+      const body = await res.json() as { action: string };
+      expect(body.action).toBe('broadcast_sent');
+      expect(insertedJobId).toBeNull();
+    });
+
+    it('never queries price_quotes/cost_reservations or writes job_audit_log for a job_id-NULL broadcast', async () => {
+      callQueue = successQueueNoJob({ attemptedUuidLookup: false });
+      mockGetJiraIssue.mockResolvedValue(issueWithFields({}, 'WO-999'));
+      mockSend.mockResolvedValue({ ok: true, messageId: '9004', error: null });
+
+      await POST(makeRequest({ event: 'translator_order_created', issueKey: 'WO-999' }));
+      // successQueueNoJob only supplies 4 factories (existing-check, jobs-by-key,
+      // reserve, message_id update) — if getOrderExtras or job_audit_log made any
+      // extra .from() calls, mockFrom would fall through to the default stub
+      // instead of throwing, so we assert the exact call count directly.
+      expect(mockFrom).toHaveBeenCalledTimes(4);
     });
   });
 

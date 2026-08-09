@@ -110,14 +110,21 @@ async function handleClaim(
 
   const action: TelegramOpsAction = role === 'translator' ? 'translator_claim' : 'notary_claim';
 
-  await supabaseServer.from('job_audit_log').insert({
-    job_id: claimed.job_id,
-    actor: displayName,
-    source: 'telegram',
-    action: `telegram_${action}`,
-    jira_issue_key: issueKey,
-    metadata: { telegramUserId: from.id, telegramUsername: from.username ?? null },
-  });
+  // job_audit_log.job_id is NOT NULL and is a job-domain audit system — never
+  // forced for a Jira-only operational issue with no real WPO job. Application
+  // logs + Jira Automation's own comment on the issue are the audit trail then.
+  if (claimed.job_id) {
+    await supabaseServer.from('job_audit_log').insert({
+      job_id: claimed.job_id,
+      actor: displayName,
+      source: 'telegram',
+      action: `telegram_${action}`,
+      jira_issue_key: issueKey,
+      metadata: { telegramUserId: from.id, telegramUsername: from.username ?? null },
+    });
+  } else {
+    console.log(`[telegram-webhook] ${action} for ${issueKey} has no linked WPO job — skipping job_audit_log`);
+  }
 
   await forwardActionToJiraAutomation({
     issueKey,
@@ -174,14 +181,18 @@ async function handleStartOrDone(
   const action: TelegramOpsAction = `${role}_${kind}` as TelegramOpsAction;
   const displayName = assignment.telegram_display_name ?? displayNameFor(from);
 
-  await supabaseServer.from('job_audit_log').insert({
-    job_id: assignment.job_id,
-    actor: displayName,
-    source: 'telegram',
-    action: `telegram_${action}`,
-    jira_issue_key: issueKey,
-    metadata: { telegramUserId: from.id },
-  });
+  if (assignment.job_id) {
+    await supabaseServer.from('job_audit_log').insert({
+      job_id: assignment.job_id,
+      actor: displayName,
+      source: 'telegram',
+      action: `telegram_${action}`,
+      jira_issue_key: issueKey,
+      metadata: { telegramUserId: from.id },
+    });
+  } else {
+    console.log(`[telegram-webhook] ${action} for ${issueKey} has no linked WPO job — skipping job_audit_log`);
+  }
 
   await forwardActionToJiraAutomation({
     issueKey,
