@@ -1,11 +1,12 @@
 import {
   extractSelectValue,
   extractTextValue,
-  extractJobId,
+  extractNumberValue,
   buildOrderBroadcastData,
   buildOrderBroadcastMessage,
   resolveStatusMapping,
   buildStatusUpdateMessage,
+  REQUIRED_STATUS_FOR_ACTION,
 } from '../order-message';
 import { JIRA_FIELDS, type JiraIssueSnapshot } from '@/lib/jira/client';
 
@@ -30,9 +31,26 @@ describe('field extraction helpers', () => {
     expect(extractTextValue(null)).toBeNull();
   });
 
-  it('extractJobId reads customfield_10073', () => {
-    const issue = makeIssue({ [JIRA_FIELDS.orderId]: 'job-uuid-1' });
-    expect(extractJobId(issue)).toBe('job-uuid-1');
+  it('extractNumberValue reads finite numbers and rejects everything else', () => {
+    expect(extractNumberValue(3)).toBe(3);
+    expect(extractNumberValue(0)).toBe(0);
+    expect(extractNumberValue('3')).toBeNull();
+    expect(extractNumberValue(null)).toBeNull();
+    expect(extractNumberValue(undefined)).toBeNull();
+    expect(extractNumberValue(NaN)).toBeNull();
+  });
+});
+
+describe('REQUIRED_STATUS_FOR_ACTION', () => {
+  it('defines the exact precondition status for every action', () => {
+    expect(REQUIRED_STATUS_FOR_ACTION).toEqual({
+      translator_claim: 'OPEN',
+      translator_start: 'НАЗНАЧЕН ПЕРЕВОДЧИК',
+      translator_done: 'ПЕРЕВОД В РАБОТЕ',
+      notary_claim: 'ПЕРЕВОД ЗАВЕРШЕН',
+      notary_start: 'НАЗНАЧЕН НОТАРИУС',
+      notary_done: 'В РАБОТЕ У НОТАРИУСА',
+    });
   });
 });
 

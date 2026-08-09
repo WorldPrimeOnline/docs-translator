@@ -652,3 +652,19 @@ A Jira issue manually created for testing (normal fields populated, wpo-producti
 
 **Risks / caveats:**  
 Migration 0069 is prepared, not applied — must run on production Supabase (DROP NOT NULL only, additive/backward-compatible, no data changes, safe on existing rows) before a job_id-NULL broadcast can succeed there. job_audit_log intentionally stays job_id NOT NULL — never weakened for this feature; job_id-NULL assignments are audited via application logs + Jira comments only, by design.
+
+---
+
+### 2026-08-09 — Telegram Operations redesigned to be entirely Jira-driven — Supabase removed
+
+**Decision:**  
+Removed all runtime usage of telegram_assignments, jobs, job_id, job_audit_log, and any job resolution (jobs.jira_issue_key lookup or customfield_10073 cross-reference) from src/app/api/telegram/jira-event/route.ts and src/app/api/telegram/webhook/route.ts. jira_issue_key + role is now the sole operational identity of a Telegram Operations assignment, with zero Supabase dependency. All persistence moved to 8 new Jira custom fields (per-role Message ID / User ID / Display Name, plus a shared Page Count / Payout Amount pair), read/written via env-configured field IDs in the new src/lib/telegram-ops/jira-fields.ts (real customfield_XXXXX IDs are supplied via env vars, never hardcoded, since these are fields the operator creates in Jira admin after this code ships). Message ID is written directly by Railway via the existing updateJiraIssue() right after a successful Telegram send (deterministic integration metadata, same mechanism as the pre-existing Drive-URL backfill). Ownership fields (User ID, Display Name) are written ONLY by the single Jira Automation incoming-webhook rule, as part of the same execution that validates the claim precondition and performs the transition -- Railway never pre-writes them, since that would let two near-simultaneous claims race with no compare-and-swap available. start/done actions read the stored User ID field (GET only) to check ownership and re-check the required status (see REQUIRED_STATUS_FOR_ACTION in src/lib/telegram-ops/order-message.ts) before forwarding. The telegram_assignments Supabase table (migrations 0068/0069) is left in place, unused -- not dropped in this change.
+
+**Rationale:**  
+Two prior fixes (WO-120, WO-122) kept trying to patch the job_id-resolution mechanism to handle Jira issues with no corresponding WPO order (e.g. a manually created test issue), but the underlying premise -- that a Telegram Operations assignment needs a Supabase row at all -- was the actual overengineering. Requiring any job/Supabase state made it impossible to test the Jira -> Telegram -> claim/start/done -> Jira loop against a hand-created Jira issue, which is exactly the workflow this feature exists to serve for staff without Jira licenses. Making jira_issue_key + role (not job_id) the sole identity, and moving all state into Jira custom fields, removes an entire dependency axis and matches the feature's actual domain: Jira is the workflow source of truth, Telegram is a UI layer on top of it, and Supabase involvement was never load-bearing.
+
+**Impacted files/docs:**  
+`Not specified`
+
+**Risks / caveats:**  
+8 new Jira custom fields must be created in Jira admin (project WO) and their real customfield IDs set as env vars (JIRA_FIELD_TG_*) before this feature functions at all -- until then, both routes log-and-skip gracefully (field_not_configured), never error loudly to Jira Automation. The Jira Automation incoming-webhook rule for *_claim actions must be updated to also set the two ownership fields in the same execution as the transition -- see docs/TELEGRAM_OPERATIONS_SETUP.md Rule 4. telegram_assignments (migrations 0068/0069) is now dead code path -- safe to leave, a future cleanup migration can DROP it once confirmed nothing else references it (nothing does as of this decision).

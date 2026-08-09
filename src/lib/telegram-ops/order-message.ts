@@ -1,8 +1,12 @@
 // Telegram operations integration — pure message/keyboard builders.
 //
-// No Jira or Supabase calls here — callers (src/app/api/telegram/jira-event/route.ts)
-// fetch data and pass plain values in. Keeping this module pure makes the exact
-// UX templates (see Telegram section of the feature spec) directly unit-testable.
+// No network calls here — callers (src/app/api/telegram/jira-event/route.ts,
+// src/app/api/telegram/webhook/route.ts) fetch data and pass plain values in.
+// Keeping this module pure makes the exact UX templates directly unit-testable.
+//
+// Telegram Operations is entirely Jira-driven: jira_issue_key + role is the sole
+// operational identity, and no Supabase table backs any of it — see
+// docs/ai-context/60_INTEGRATIONS_JIRA_DRIVE_TELEGRAM.md.
 //
 // Telegram is a projection of Jira state, never the other way round — every button
 // here carries callback_data routed back through /api/telegram/webhook, which only
@@ -36,9 +40,9 @@ export function extractTextValue(field: unknown): string | null {
   return typeof field === 'string' && field.length > 0 ? field : null;
 }
 
-/** Reads customfield_10073 (orderId = job UUID) — always set at issue-create time. */
-export function extractJobId(issue: JiraIssueSnapshot): string | null {
-  return extractTextValue(issue.fields[JIRA_FIELDS.orderId]);
+/** Jira Number custom fields come back as a raw JS number (or null when unset). */
+export function extractNumberValue(field: unknown): number | null {
+  return typeof field === 'number' && Number.isFinite(field) ? field : null;
 }
 
 // ─── Initial broadcast message ─────────────────────────────────────────────────
@@ -135,6 +139,23 @@ const NOTARY_STATUS_MAP: Record<string, StatusMapEntry> = {
   'НАЗНАЧЕН НОТАРИУС': { emoji: '🟡', internalStatus: 'claimed', nextButton: { text: '▶️ Взять в работу', action: 'notary_start' } },
   'В РАБОТЕ У НОТАРИУСА': { emoji: '🔵', internalStatus: 'in_progress', nextButton: { text: '✅ Документ заверен', action: 'notary_done' } },
   'ПЕРЕВОД ЗАВЕРЕН': { emoji: '🟢', internalStatus: 'completed', nextButton: null },
+};
+
+/**
+ * Required current Jira status for each Telegram action to be legitimate — the
+ * precondition Jira Automation itself re-validates authoritatively (as part of the
+ * same rule execution that performs the transition, and for claim actions, also
+ * sets the ownership fields). /api/telegram/webhook's own check against this map
+ * is a fast, non-authoritative UX nicety only — it never substitutes for
+ * Automation's real gate.
+ */
+export const REQUIRED_STATUS_FOR_ACTION: Record<TelegramOpsAction, string> = {
+  translator_claim: 'OPEN',
+  translator_start: 'НАЗНАЧЕН ПЕРЕВОДЧИК',
+  translator_done: 'ПЕРЕВОД В РАБОТЕ',
+  notary_claim: 'ПЕРЕВОД ЗАВЕРШЕН',
+  notary_start: 'НАЗНАЧЕН НОТАРИУС',
+  notary_done: 'В РАБОТЕ У НОТАРИУСА',
 };
 
 /**
