@@ -134,42 +134,42 @@ Unique index on `(event_id, recipient_profile_id) WHERE status IN ('sent','pendi
 
 ## Telegram operations integration (translators / notary partners without a Jira license)
 
-2026-08-08: `src/app/api/telegram/jira-event/route.ts` + `src/app/api/telegram/webhook/route.ts` +
-`src/lib/telegram-ops/` + table `telegram_assignments` (migration `0068`). Lets translators and
-notary partners claim/start/complete orders from Telegram, since they have no Jira license.
+2026-08-08, redesigned 2026-08-09: `src/app/api/telegram/jira-event/route.ts` +
+`src/app/api/telegram/webhook/route.ts` + `src/lib/telegram-ops/`. Lets translators and notary
+partners claim/start/complete orders from Telegram, since they have no Jira license.
+
+**Domain model: Telegram Operations is entirely Jira-driven — `jira_issue_key` + role is the sole
+operational identity. No Supabase table backs any part of it.** A Jira issue with no corresponding
+WPO order at all — e.g. one created manually in Jira (normal fields populated, `wpo-production`
+label added) purely to test the Jira → Telegram → claim/start/done → Jira loop end-to-end, with no
+`jobs`/`documents`/`price_quotes` row ever created — is a fully valid Telegram Operations issue,
+identically to a real order. All persistence is 8 new Jira custom fields (per-role Message ID / User
+ID / Display Name, plus a shared Page Count / Payout Amount pair), read/written via env-configured
+field IDs in `src/lib/telegram-ops/jira-fields.ts` — see `docs/TELEGRAM_OPERATIONS_SETUP.md` for the
+exact field list and env vars. The earlier iteration's `telegram_assignments` Supabase table
+(migrations `0068`/`0069`) is no longer read or written by any runtime code — left in place, unused;
+see `docs/ai-context/DECISIONS.md` for why it wasn't dropped yet.
 
 **This does NOT create an exception to "WPO never calls Jira transitions."** The forward path is
-Telegram button → `/api/telegram/webhook` (validates chat/user/ownership, atomically arbitrates
-simultaneous claims via `telegram_assignments.status` `open→claim_pending`, writes `job_audit_log`)
-→ a single Jira Automation "incoming webhook" rule (`JIRA_AUTOMATION_TELEGRAM_ACTION_WEBHOOK_URL`)
-that validates the current Jira status and performs the actual transition + audit comment — Jira
-Automation remains the only thing that ever writes a Jira transition. The reverse path is the
-normal Jira status-changed event (one Automation rule watching 6 statuses) → `/api/telegram/jira-event`
-(`event=status_changed`) → edits the existing Telegram message in place. Telegram is a pure
-projection of Jira state — never edited optimistically by a button tap.
+Telegram button → `/api/telegram/webhook` (validates chat, does a read-only status precheck against
+the Jira issue — fast/non-authoritative UX only, never writes anything) → the single Jira Automation
+"incoming webhook" rule (`JIRA_AUTOMATION_TELEGRAM_ACTION_WEBHOOK_URL`). For `*_claim` actions, that
+one rule execution atomically validates the current Jira status, **sets the Telegram User ID +
+Display Name fields**, performs the transition, and adds the audit comment — Railway/Vercel
+deliberately never pre-writes those two ownership fields itself (that would race two simultaneous
+claims against each other with no compare-and-swap available), so Jira Automation is the only thing
+that ever writes them, in the same execution that also owns the transition. For `*_start`/`*_done`,
+no field write is needed — Automation just re-validates status and transitions. The reverse path is
+the normal Jira status-changed event (one Automation rule watching 6 statuses) → `/api/telegram/jira-event`
+(`event=status_changed`) → reads the Message ID + Display Name fields and edits the existing Telegram
+message in place. Telegram is a pure projection of Jira state — never edited optimistically by a
+button tap. The Message ID field is the one exception to "Automation writes everything": it's
+deterministic integration metadata (not part of the ownership/workflow state machine), so Railway
+writes it directly via the pre-existing `updateJiraIssue()` right after the Telegram send succeeds —
+same mechanism the Drive-URL backfill already uses elsewhere in this codebase.
 
-`telegram_assignments` status lifecycle: `open → claim_pending → claimed → in_progress → completed`.
-Only the `status_changed` handler advances past `claim_pending` — a button tap only ever moves
-`open→claim_pending` (the atomic race arbitrator) and forwards a request onward. `claim_pending`
-has a 3-minute staleness window so a lost/failed Automation execution can't permanently lock an
-order. Broadcast messages include `price_quotes.physical_page_count` and
-`cost_reservations.amount_kzt` (`cost_type=translator_payout`/`translator_reserved_cost`/
-`notary_payout`) when present — never fabricated when absent.
-
-**Domain model (2026-08-09 correction): Telegram Operations is Jira-driven, not WPO-job-driven.**
-`jira_issue_key` + `role` (migration 0068's `UNIQUE` constraint) is the operational identity of a
-Telegram assignment — a linked WPO job is optional enrichment, never a prerequisite.
-`telegram_assignments.job_id` is nullable (migration 0069). A Jira issue with no corresponding
-`jobs` row at all — e.g. one created manually in Jira (normal fields populated, `wpo-production`
-label added) purely to test the Jira → Telegram → claim/start/done → Jira loop end-to-end, with no
-Supabase order ever created — is a fully valid Telegram Operations issue: `translator_order_created`
-/ `notary_required` always broadcast successfully regardless of whether a job resolves, never a 422.
-`resolveJobId()` (`src/app/api/telegram/jira-event/route.ts`) tries `jobs.jira_issue_key` first, then
-the validated `customfield_10073` cross-reference, and simply stores `job_id = NULL` when neither
-finds a real job. `job_audit_log` (job-domain, `job_id NOT NULL`) is only ever written when
-`telegram_assignments.job_id` is non-null; for a `job_id`-null assignment, claim/start/done/status
-events are traceable via application logs and Jira Automation's own audit comments only — this is
-intentional, not a gap to “fix” by relaxing `job_audit_log`’s constraints.
+Broadcast messages include the shared Page Count / Payout Amount Jira fields when configured and
+populated on the issue — never fabricated when either is absent.
 
 Full env vars, Jira Automation rule configs, and exact payloads: `docs/TELEGRAM_OPERATIONS_SETUP.md`.
 
