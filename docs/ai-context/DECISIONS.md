@@ -620,3 +620,19 @@ src/lib/integrations/workflow.ts, src/app/api/webhooks/jira/route.ts, src/lib/tr
 
 **Risks / caveats:**  
 Migration 0067 must be applied to staging Supabase before ORDER_CLOSED works end-to-end (not yet applied — no Supabase CLI auth / DB password available in this environment). Jira Automation itself needs a new rule configured (external system, outside this repo) to send ORDER_CLOSED on the 'Закрыто' transition.
+
+---
+
+### 2026-08-08 — Telegram operations integration for translators/notaries — Jira remains sole transition owner
+
+**Decision:**  
+Added a Telegram bot integration (src/app/api/telegram/jira-event, src/app/api/telegram/webhook, src/lib/telegram-ops/, new table telegram_assignments) so translators and notary partners without a Jira license can claim/work/complete orders. Jira Automation still owns every workflow transition — WPO never calls a Jira transition API. The forward path is Telegram button -> Vercel API (validates chat/user/ownership, atomically arbitrates simultaneous claims via telegram_assignments.status open->claim_pending, records job_audit_log) -> a single Jira Automation incoming-webhook rule (JIRA_AUTOMATION_TELEGRAM_ACTION_WEBHOOK_URL) that validates the current Jira status and performs the transition + audit comment. The reverse path is the normal Jira status_changed event (one Automation rule watching the 6 relevant statuses) -> /api/telegram/jira-event -> edits the existing Telegram message in place. Telegram is purely a projection of Jira state; it is never edited optimistically. claim_pending has a 3-minute staleness window so a lost/failed Automation execution can never permanently lock an order. Broadcast messages include price_quotes.physical_page_count and cost_reservations.amount_kzt (cost_type=translator_payout/translator_reserved_cost/notary_payout) when present, never fabricated when absent.
+
+**Rationale:**  
+Translators and notary partners have no Jira license and cannot use Jira's native Assignee/transition UI, but the existing architecture principle (documented in worker/src/lib/integrations.ts, src/lib/integrations/workflow.ts, src/app/api/webhooks/jira/route.ts) is that WPO never calls Jira transitions — Jira Automation owns them exclusively. Rather than carve an exception into that principle, this feature keeps it intact: WPO only ever forwards a validated, ownership-checked action request to Jira Automation, which remains the sole party that reads/writes Jira status. This also gives Jira Automation's own status validation as a second, authoritative concurrency guard behind Railway's atomic open->claim_pending arbitration.
+
+**Impacted files/docs:**  
+`Not specified`
+
+**Risks / caveats:**  
+Migration 0068 is prepared, not applied — must be run on staging Supabase before this feature works end-to-end. Requires new env vars (TELEGRAM_WEBHOOK_SECRET, JIRA_AUTOMATION_TELEGRAM_ACTION_WEBHOOK_URL, JIRA_AUTOMATION_ACTION_WEBHOOK_SECRET) and 8 new Jira Automation rules (2 broadcast triggers, 1 status-sync trigger watching 6 statuses, 1 incoming-webhook rule branching on 6 actions) configured externally by the user — see docs/TELEGRAM_OPERATIONS_SETUP.md. Telegram's setWebhook must be called once with the secret_token to point at /api/telegram/webhook.

@@ -132,7 +132,34 @@ Unique index on `(event_id, recipient_profile_id) WHERE status IN ('sent','pendi
 
 `src/lib/notary/cities.ts` — static registry of KZ cities where notarized-translation pickup/delivery is offered. Referenced by the notarized-translation landing page and job creation flow.
 
+## Telegram operations integration (translators / notary partners without a Jira license)
+
+2026-08-08: `src/app/api/telegram/jira-event/route.ts` + `src/app/api/telegram/webhook/route.ts` +
+`src/lib/telegram-ops/` + table `telegram_assignments` (migration `0068`). Lets translators and
+notary partners claim/start/complete orders from Telegram, since they have no Jira license.
+
+**This does NOT create an exception to "WPO never calls Jira transitions."** The forward path is
+Telegram button → `/api/telegram/webhook` (validates chat/user/ownership, atomically arbitrates
+simultaneous claims via `telegram_assignments.status` `open→claim_pending`, writes `job_audit_log`)
+→ a single Jira Automation "incoming webhook" rule (`JIRA_AUTOMATION_TELEGRAM_ACTION_WEBHOOK_URL`)
+that validates the current Jira status and performs the actual transition + audit comment — Jira
+Automation remains the only thing that ever writes a Jira transition. The reverse path is the
+normal Jira status-changed event (one Automation rule watching 6 statuses) → `/api/telegram/jira-event`
+(`event=status_changed`) → edits the existing Telegram message in place. Telegram is a pure
+projection of Jira state — never edited optimistically by a button tap.
+
+`telegram_assignments` status lifecycle: `open → claim_pending → claimed → in_progress → completed`.
+Only the `status_changed` handler advances past `claim_pending` — a button tap only ever moves
+`open→claim_pending` (the atomic race arbitrator) and forwards a request onward. `claim_pending`
+has a 3-minute staleness window so a lost/failed Automation execution can't permanently lock an
+order. Broadcast messages include `price_quotes.physical_page_count` and
+`cost_reservations.amount_kzt` (`cost_type=translator_payout`/`translator_reserved_cost`/
+`notary_payout`) when present — never fabricated when absent.
+
+Full env vars, Jira Automation rule configs, and exact payloads: `docs/TELEGRAM_OPERATIONS_SETUP.md`.
+
 ## Reference docs
 
 - `docs/TELEGRAM_NOTIFICATIONS_SETUP.md`
+- `docs/TELEGRAM_OPERATIONS_SETUP.md`
 - `docs/JIRA_AUTOMATION_SETUP.md`

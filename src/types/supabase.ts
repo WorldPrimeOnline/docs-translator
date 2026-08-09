@@ -4,7 +4,8 @@
 //
 // Manually maintained to match the current target schema (see supabase/STAGING_INIT_ALL.sql).
 // Tables: users, documents, jobs, ocr_results, translations, payment_transactions, subscriptions,
-//         job_audit_log, staff_profiles, notification_log, fiscal_receipts, refund_transactions
+//         job_audit_log, staff_profiles, notification_log, fiscal_receipts, refund_transactions,
+//         telegram_assignments
 // Excluded: payments (dead Stripe-era table), ton_payments (renamed), wallet_links (dropped)
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
@@ -480,6 +481,59 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [];
+      };
+      telegram_assignments: {
+        Row: {
+          id: string;
+          job_id: string;
+          jira_issue_key: string;
+          role: 'translator' | 'notary';
+          status: 'open' | 'claim_pending' | 'claimed' | 'in_progress' | 'completed';
+          telegram_chat_id: number;
+          telegram_message_id: number;
+          telegram_user_id: number | null;
+          telegram_display_name: string | null;
+          telegram_username: string | null;
+          claim_pending_at: string | null;
+          claimed_at: string | null;
+          started_at: string | null;
+          completed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          job_id: string;
+          jira_issue_key: string;
+          role: 'translator' | 'notary';
+          status?: 'open' | 'claim_pending' | 'claimed' | 'in_progress' | 'completed';
+          telegram_chat_id: number;
+          telegram_message_id: number;
+          telegram_user_id?: number | null;
+          telegram_display_name?: string | null;
+          telegram_username?: string | null;
+          claim_pending_at?: string | null;
+          claimed_at?: string | null;
+          started_at?: string | null;
+          completed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          status?: 'open' | 'claim_pending' | 'claimed' | 'in_progress' | 'completed';
+          telegram_message_id?: number;
+          telegram_user_id?: number | null;
+          telegram_display_name?: string | null;
+          telegram_username?: string | null;
+          claim_pending_at?: string | null;
+          claimed_at?: string | null;
+          started_at?: string | null;
+          completed_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          { foreignKeyName: 'telegram_assignments_job_id_fkey'; columns: ['job_id']; referencedRelation: 'jobs'; referencedColumns: ['id'] },
+        ];
       };
       notification_log: {
         Row: {
