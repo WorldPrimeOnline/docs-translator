@@ -91,6 +91,19 @@ async function handleClaim(
     .maybeSingle();
 
   if (!claimed) {
+    // Distinguish a genuine lost race (row exists, already claimed by someone else —
+    // expected, benign) from no row existing at all (broadcast failed or was never
+    // sent for this issue/role — a real anomaly worth logging loudly, since it means
+    // the button the user just tapped can never succeed no matter who taps it).
+    const { data: anyRow } = await supabaseServer
+      .from('telegram_assignments')
+      .select('id')
+      .eq('jira_issue_key', issueKey)
+      .eq('role', role)
+      .maybeSingle();
+    if (!anyRow) {
+      console.error(`[telegram-webhook] claim rejected: no telegram_assignments row exists at all for issueKey=${issueKey} role=${role} — broadcast never created it or failed`);
+    }
     await answerCallbackQuery(callbackQueryId, CLAIM_TAKEN_MESSAGE[role], true);
     return;
   }
@@ -132,6 +145,12 @@ async function handleStartOrDone(
     .maybeSingle();
 
   if (!assignment) {
+    // Unlike the claim path, there is no legitimate "lost race" explanation here —
+    // start/done buttons only ever appear on a message for an already-claimed order,
+    // so a missing row always means something is broken (e.g. the row was never
+    // created, or was removed out from under an in-flight claim). Always worth a
+    // loud log, not just a user-facing message.
+    console.error(`[telegram-webhook] ${kind} rejected: no telegram_assignments row exists for issueKey=${issueKey} role=${role} telegramUserId=${from.id}`);
     await answerCallbackQuery(callbackQueryId, 'Заказ не найден.', true);
     return;
   }

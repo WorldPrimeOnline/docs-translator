@@ -134,18 +134,46 @@ describe('POST /api/telegram/webhook', () => {
     expect(mockForward).not.toHaveBeenCalled();
   });
 
+  it('logs loudly (not just a user message) when no row exists at all for the claim, distinct from a lost race', async () => {
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    callQueue = [
+      () => chainable({ data: null, error: null }), // atomic update matched nothing
+      () => chainable({ data: null, error: null }), // diagnostic follow-up: no row at all
+    ];
+    await POST(makeUpdate(makeCallback('translator_claim:WO-404')));
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('no telegram_assignments row exists at all for issueKey=WO-404'));
+    errorSpy.mockRestore();
+  });
+
+  it('does not log the "no row" anomaly when the row exists but was already claimed (genuine lost race)', async () => {
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    callQueue = [
+      () => chainable({ data: null, error: null }), // atomic update matched nothing
+      () => chainable({ data: { id: 'assign-1' }, error: null }), // diagnostic follow-up: row DOES exist
+    ];
+    await POST(makeUpdate(makeCallback('translator_claim:WO-123')));
+    expect(errorSpy).not.toHaveBeenCalled();
+    errorSpy.mockRestore();
+  });
+
   it('uses the notary-specific taken message and chat id', async () => {
-    callQueue = [() => chainable({ data: null, error: null })];
+    callQueue = [
+      () => chainable({ data: null, error: null }),
+      () => chainable({ data: null, error: null }),
+    ];
     await POST(makeUpdate(makeCallback('notary_claim:WO-9', -100222)));
     expect(mockAnswer).toHaveBeenCalledWith('cbq-1', 'Заказ уже назначен другому нотариусу.', true);
   });
 
   // ── Start/done: not found / wrong owner ──────────────────────────────────
-  it('rejects start when no assignment row exists', async () => {
+  it('rejects start when no assignment row exists and logs it loudly', async () => {
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     callQueue = [() => chainable({ data: null, error: null })];
     await POST(makeUpdate(makeCallback('translator_start:WO-1')));
     expect(mockAnswer).toHaveBeenCalledWith('cbq-1', 'Заказ не найден.', true);
     expect(mockForward).not.toHaveBeenCalled();
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('start rejected: no telegram_assignments row exists for issueKey=WO-1'));
+    errorSpy.mockRestore();
   });
 
   it('rejects start/done from a user who is not the claimant', async () => {
