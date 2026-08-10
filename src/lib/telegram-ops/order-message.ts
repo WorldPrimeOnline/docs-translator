@@ -40,9 +40,15 @@ export function extractTextValue(field: unknown): string | null {
   return typeof field === 'string' && field.length > 0 ? field : null;
 }
 
-/** Jira Number custom fields come back as a raw JS number (or null when unset). */
-export function extractNumberValue(field: unknown): number | null {
-  return typeof field === 'number' && Number.isFinite(field) ? field : null;
+/** The Telegram Operations page-count/payout fields are Text fields holding a
+ * numeric value serialized as a string (not native Jira Number fields) — parses
+ * and validates, returning null for anything absent or non-numeric rather than
+ * fabricating a value. */
+export function extractNumericTextValue(field: unknown): number | null {
+  const raw = extractTextValue(field);
+  if (raw == null) return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
 }
 
 // ─── Initial broadcast message ─────────────────────────────────────────────────
@@ -53,14 +59,17 @@ export interface OrderBroadcastData {
   translationType: string | null;
   languagePair: string | null;
   documentType: string | null;
-  /** price_quotes.physical_page_count — the authoritative page count WPO's pricing engine uses. Null when no paid quote was found. */
+  /** price_quotes.translation_page_count_exact (the pricing engine's authoritative
+   * payable/billable page count — NOT the raw physical PDF page count), populated
+   * into the Jira field at issue-creation time. Null when absent. */
   pageCount: number | null;
-  /** cost_reservations.amount_kzt for this role's payout cost_type. Null when no such reservation exists. */
+  /** cost_reservations.amount_kzt for this role's payout cost_type, populated into
+   * the Jira field at issue-creation time. Null when absent. */
   payoutKzt: number | null;
   driveUrl: string | null;
 }
 
-/** Builds OrderBroadcastData from a raw Jira issue snapshot plus Supabase-sourced extras. */
+/** Builds OrderBroadcastData from a raw Jira issue snapshot plus the already-extracted page-count/payout extras. */
 export function buildOrderBroadcastData(
   issue: JiraIssueSnapshot,
   role: TelegramOpsRole,
@@ -106,7 +115,7 @@ export function buildOrderBroadcastMessage(
   if (data.translationType) lines.push(`Тип услуги: ${data.translationType}`);
   if (data.documentType) lines.push(`Тип документа: ${data.documentType}`);
   if (data.languagePair) lines.push(`Языковая пара: ${data.languagePair}`);
-  if (data.pageCount != null) lines.push(`Количество страниц: ${data.pageCount}`);
+  if (data.pageCount != null) lines.push(`Оплачиваемые страницы: ${data.pageCount}`);
   if (data.payoutKzt != null) lines.push(`${PAYOUT_LABEL[data.role]}: ${formatKzt(data.payoutKzt)}`);
   if (data.driveUrl) lines.push(`Материалы: ${data.driveUrl}`);
   lines.push('');

@@ -192,6 +192,76 @@ async function resolveNotaryUrgencySnapshotForJob(
   }
 }
 
+/**
+ * Telegram Operations fields (2026-08-10, explicitly approved exception to the
+ * DOCX pipeline freeze's "Jira/Google Drive integration workflow" line — targeted
+ * to exactly these 3 Jira fields, nothing else in the pipeline). Read-only,
+ * additive, standalone — does not touch loadPriceBreakdownData() or any other
+ * pricing/rendering logic, so the Price Breakdown Story is entirely unaffected.
+ *
+ * payablePageCount: price_quotes.translation_page_count_exact — the pricing
+ * engine's authoritative payable/billable page count (new-formula only; null for
+ * legacy electronic-formula quotes — never fabricated).
+ *
+ * translatorPayoutKzt / notaryPayoutKzt: cost_reservations.amount_kzt for
+ * cost_type IN (translator_payout, translator_reserved_cost) / notary_payout.
+ * Reservations with status='canceled' are excluded — a canceled cost line must
+ * never be shown as a live payout (explicit instruction, 2026-08-10).
+ */
+async function loadTelegramOpsPricingFields(jobId: string): Promise<{
+  payablePageCount: number | null;
+  translatorPayoutKzt: number | null;
+  notaryPayoutKzt: number | null;
+}> {
+  const empty = { payablePageCount: null, translatorPayoutKzt: null, notaryPayoutKzt: null };
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: quoteRow } = await (supabase as any)
+      .from('price_quotes')
+      .select('id, translation_page_count_exact')
+      .eq('job_id', jobId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const quote = quoteRow as Record<string, unknown> | null;
+    const quoteId = quote?.id as string | undefined;
+    const payablePageCount = quote?.translation_page_count_exact != null
+      ? Number(quote.translation_page_count_exact)
+      : null;
+
+    let translatorPayoutKzt: number | null = null;
+    let notaryPayoutKzt: number | null = null;
+
+    if (quoteId) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: resRows } = await (supabase as any)
+        .from('cost_reservations')
+        .select('cost_type, amount_kzt, status')
+        .eq('quote_id', quoteId)
+        .neq('status', 'canceled');
+
+      for (const row of (resRows as Record<string, unknown>[] | null) ?? []) {
+        const costType = row.cost_type as string;
+        const amount = Number(row.amount_kzt ?? 0);
+        if (costType === 'translator_payout' || costType === 'translator_reserved_cost') {
+          translatorPayoutKzt = amount;
+        } else if (costType === 'notary_payout') {
+          notaryPayoutKzt = amount;
+        }
+      }
+    }
+
+    return { payablePageCount, translatorPayoutKzt, notaryPayoutKzt };
+  } catch (err) {
+    // Non-fatal — these 3 fields are enrichment, never a reason to fail issue
+    // creation. Same convention as getPartnerApplicationId()/
+    // resolveNotaryUrgencySnapshotForJob() just above.
+    console.error(`[worker-jira] loadTelegramOpsPricingFields failed for job ${jobId}:`, err instanceof Error ? err.message : err);
+    return empty;
+  }
+}
+
 async function createJiraIssue(params: {
   jobId: string;
   customerId: string | null;
@@ -213,6 +283,10 @@ async function createJiraIssue(params: {
   partnerApplicationId?: string | null;
   /** Resolved via resolveNotaryUrgencySnapshot() — jobs columns preferred, quote JSON fallback for legacy jobs. */
   notaryUrgencySnapshot?: ResolvedNotaryUrgencySnapshot | null;
+  /** Telegram Operations fields — see loadTelegramOpsPricingFields(). */
+  payablePageCount?: number | null;
+  translatorPayoutKzt?: number | null;
+  notaryPayoutKzt?: number | null;
 }): Promise<{ issueKey: string; issueId: string; issueUrl: string } | null> {
   const auth = getJiraAuth();
   if (!auth) {
@@ -251,6 +325,9 @@ async function createJiraIssue(params: {
     deliveryAddress: params.deliveryAddress ?? null,
     driveUrl: params.driveUrl ?? null,
     partnerApplicationId: params.partnerApplicationId ?? null,
+    payablePageCount: params.payablePageCount ?? null,
+    translatorPayoutKzt: params.translatorPayoutKzt ?? null,
+    notaryPayoutKzt: params.notaryPayoutKzt ?? null,
   });
 
   const envLabel = (process.env.APP_ENV ?? 'production') === 'staging'
@@ -1060,6 +1137,7 @@ export async function initializeOrderIntegrations(params: {
         const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.SITE_URL ?? 'https://wpotranslations.org';
         const partnerApplicationId = await getPartnerApplicationId(params.jobId);
         const notaryUrgencySnapshot = await resolveNotaryUrgencySnapshotForJob(params.jobId, params.serviceLevel);
+        const telegramOpsPricingFields = await loadTelegramOpsPricingFields(params.jobId);
         const issue = await createJiraIssue({
           jobId: params.jobId,
           customerId: params.customerId ?? null,
@@ -1079,6 +1157,9 @@ export async function initializeOrderIntegrations(params: {
           customerComment: params.customerComment ?? null,
           partnerApplicationId,
           notaryUrgencySnapshot,
+          payablePageCount: telegramOpsPricingFields.payablePageCount,
+          translatorPayoutKzt: telegramOpsPricingFields.translatorPayoutKzt,
+          notaryPayoutKzt: telegramOpsPricingFields.notaryPayoutKzt,
         });
 
         if (issue) {

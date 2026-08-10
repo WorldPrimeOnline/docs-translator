@@ -107,14 +107,7 @@ async function handleStartOrDone(
 ): Promise<void> {
   const action: TelegramOpsAction = `${role}_${kind}` as TelegramOpsAction;
 
-  const fieldIds = telegramRoleFieldIds(role);
-  const userIdField = fieldIds.userId;
-  if (!userIdField) {
-    console.error(`[telegram-webhook] ${action} rejected: ${role} user-id Jira field not configured`);
-    await answerCallbackQuery(callbackQueryId, 'Заказ не найден.', true);
-    return;
-  }
-
+  const userIdField = telegramRoleFieldIds(role).userId;
   const issue = await getJiraIssue(issueKey, [userIdField]);
   if (!issue) {
     console.error(`[telegram-webhook] ${action} rejected: Jira issue ${issueKey} not found`);

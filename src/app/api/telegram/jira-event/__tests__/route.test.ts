@@ -3,31 +3,23 @@
  *
  * Telegram Operations is entirely Jira-driven — jira_issue_key + role is the sole
  * operational identity. No Supabase table backs this feature; all persistence is
- * Jira custom fields (message-id per role, read/written via env-configured field
- * IDs — see src/lib/telegram-ops/jira-fields.ts). A Jira issue with no
- * corresponding WPO order at all (e.g. one created manually purely to test this
- * integration) is a fully valid Telegram Operations issue — there is nothing
- * Supabase-specific left to special-case, this is now simply the only case.
+ * Jira custom fields, hardcoded in JIRA_FIELDS (src/lib/jira/client.ts, mirrored
+ * in worker/src/lib/jira/order-fields.ts) — no env vars for field IDs. A Jira
+ * issue with no corresponding WPO order at all (e.g. one created manually purely
+ * to test this integration) is a fully valid Telegram Operations issue.
  *
  * Verifies: auth, payload validation, broadcast from Jira fields only, idempotency
  * via the message-id field already being set, message-id field write after send,
- * status_changed message projection reading message-id/display-name fields, and
- * that no Jira transition is ever attempted (getJiraIssue/updateJiraIssue are the
- * only Jira calls this route makes — updateJiraIssue only ever sets the
- * deterministic message-id field, never ownership state).
+ * text-serialized page-count/payout parsing, status_changed message projection
+ * reading message-id/display-name fields, and that no Jira transition is ever
+ * attempted (getJiraIssue/updateJiraIssue are the only Jira calls this route
+ * makes — updateJiraIssue only ever sets the deterministic message-id field,
+ * never ownership state).
  */
 
 process.env.JIRA_WEBHOOK_SECRET = 'test-secret';
 process.env.TELEGRAM_TRANSLATOR_CHAT_ID = '-100111';
 process.env.TELEGRAM_NOTARY_CHAT_ID = '-100222';
-process.env.JIRA_FIELD_TG_TRANSLATOR_MESSAGE_ID = 'customfield_20001';
-process.env.JIRA_FIELD_TG_TRANSLATOR_USER_ID = 'customfield_20002';
-process.env.JIRA_FIELD_TG_TRANSLATOR_NAME = 'customfield_20003';
-process.env.JIRA_FIELD_TG_NOTARY_MESSAGE_ID = 'customfield_20004';
-process.env.JIRA_FIELD_TG_NOTARY_USER_ID = 'customfield_20005';
-process.env.JIRA_FIELD_TG_NOTARY_NAME = 'customfield_20006';
-process.env.JIRA_FIELD_TG_PAGE_COUNT = 'customfield_20007';
-process.env.JIRA_FIELD_TG_PAYOUT_AMOUNT_KZT = 'customfield_20008';
 
 jest.mock('@/lib/jira/client', () => {
   const actual = jest.requireActual('@/lib/jira/client');
@@ -43,6 +35,7 @@ import { POST } from '../route';
 import { getJiraIssue, updateJiraIssue, JIRA_FIELDS } from '@/lib/jira/client';
 import { sendMessageWithCallbackButtons, editMessageWithCallbackButtons } from '@/lib/telegram/client';
 
+const F = JIRA_FIELDS;
 const mockGetJiraIssue = getJiraIssue as jest.Mock;
 const mockUpdateJiraIssue = updateJiraIssue as jest.Mock;
 const mockSend = sendMessageWithCallbackButtons as jest.Mock;
@@ -99,12 +92,12 @@ describe('POST /api/telegram/jira-event', () => {
 
   it('broadcasts purely from Jira fields — including a manually created issue with no WPO order at all', async () => {
     mockGetJiraIssue.mockResolvedValue(issueWithFields({
-      [JIRA_FIELDS.translationType]: { value: 'Нотариально заверенный' },
-      [JIRA_FIELDS.documentType]: { value: 'Доверенность' },
-      [JIRA_FIELDS.languagePair]: 'RU → EN',
-      [JIRA_FIELDS.documentsLink]: 'https://drive.example/x',
-      customfield_20007: 3,
-      customfield_20008: 4500,
+      [F.translationType]: { value: 'Нотариально заверенный' },
+      [F.documentType]: { value: 'Доверенность' },
+      [F.languagePair]: 'RU → EN',
+      [F.documentsLink]: 'https://drive.example/x',
+      [F.payablePageCount]: '3',
+      [F.translatorPayout]: '4500',
       // message-id field intentionally empty — never broadcast yet
     }, 'WO-900'));
     mockSend.mockResolvedValue({ ok: true, messageId: '999', error: null });
@@ -116,17 +109,31 @@ describe('POST /api/telegram/jira-event', () => {
 
     expect(mockSend).toHaveBeenCalledWith(
       '-100111',
-      expect.stringContaining('Количество страниц: 3'),
+      expect.stringContaining('Оплачиваемые страницы: 3'),
       expect.arrayContaining([expect.objectContaining({ callback_data: 'translator_claim:WO-900' })]),
     );
     expect(mockSend.mock.calls[0][1]).toContain('Выплата переводчику: 4 500 ₸');
 
     // The returned Telegram message_id is persisted directly onto the Jira issue.
-    expect(mockUpdateJiraIssue).toHaveBeenCalledWith('WO-900', { customfield_20001: '999' });
+    expect(mockUpdateJiraIssue).toHaveBeenCalledWith('WO-900', { [F.telegramTranslatorMessageId]: '999' });
+  });
+
+  it('reads the notary-specific payout field (not the translator one) when broadcasting for role=notary', async () => {
+    mockGetJiraIssue.mockResolvedValue(issueWithFields({
+      [F.payablePageCount]: '2',
+      [F.translatorPayout]: '999999', // must NOT leak into a notary broadcast
+      [F.notaryPayout]: '6000',
+    }, 'WO-9'));
+    mockSend.mockResolvedValue({ ok: true, messageId: '2000', error: null });
+
+    await POST(makeRequest({ event: 'notary_required', issueKey: 'WO-9' }));
+    const text = mockSend.mock.calls[0][1] as string;
+    expect(text).toContain('Выплата нотариусу: 6 000 ₸');
+    expect(text).not.toContain('999999');
   });
 
   it('is idempotent — skips broadcasting when the message-id field is already set', async () => {
-    mockGetJiraIssue.mockResolvedValue(issueWithFields({ customfield_20001: '555' }));
+    mockGetJiraIssue.mockResolvedValue(issueWithFields({ [F.telegramTranslatorMessageId]: '555' }));
     const res = await POST(makeRequest({ event: 'translator_order_created', issueKey: 'WO-123' }));
     const body = await res.json() as { skipped: string };
     expect(body.skipped).toBe('already_broadcast');
@@ -146,18 +153,6 @@ describe('POST /api/telegram/jira-event', () => {
     process.env.TELEGRAM_TRANSLATOR_CHAT_ID = original;
   });
 
-  it('skips gracefully when the message-id field env var is not configured', async () => {
-    const original = process.env.JIRA_FIELD_TG_TRANSLATOR_MESSAGE_ID;
-    delete process.env.JIRA_FIELD_TG_TRANSLATOR_MESSAGE_ID;
-
-    const res = await POST(makeRequest({ event: 'translator_order_created', issueKey: 'WO-123' }));
-    const body = await res.json() as { skipped: string };
-    expect(body.skipped).toBe('field_not_configured');
-    expect(mockGetJiraIssue).not.toHaveBeenCalled();
-
-    process.env.JIRA_FIELD_TG_TRANSLATOR_MESSAGE_ID = original;
-  });
-
   it('returns 404 when the Jira issue cannot be found', async () => {
     mockGetJiraIssue.mockResolvedValue(null);
     const res = await POST(makeRequest({ event: 'translator_order_created', issueKey: 'WO-404' }));
@@ -165,22 +160,23 @@ describe('POST /api/telegram/jira-event', () => {
     expect(mockSend).not.toHaveBeenCalled();
   });
 
-  it('omits page count and payout lines when neither Jira field is configured/present', async () => {
-    const originalPage = process.env.JIRA_FIELD_TG_PAGE_COUNT;
-    const originalPayout = process.env.JIRA_FIELD_TG_PAYOUT_AMOUNT_KZT;
-    delete process.env.JIRA_FIELD_TG_PAGE_COUNT;
-    delete process.env.JIRA_FIELD_TG_PAYOUT_AMOUNT_KZT;
-
+  it('omits page count and payout lines when the Jira text fields are empty (never fabricated)', async () => {
     mockGetJiraIssue.mockResolvedValue(issueWithFields({}));
     mockSend.mockResolvedValue({ ok: true, messageId: '1000', error: null });
 
     await POST(makeRequest({ event: 'translator_order_created', issueKey: 'WO-777' }));
     const text = mockSend.mock.calls[0][1] as string;
-    expect(text).not.toContain('Количество страниц');
+    expect(text).not.toContain('Оплачиваемые страницы');
     expect(text).not.toContain('Выплата переводчику');
+  });
 
-    process.env.JIRA_FIELD_TG_PAGE_COUNT = originalPage;
-    process.env.JIRA_FIELD_TG_PAYOUT_AMOUNT_KZT = originalPayout;
+  it('omits the payout line when the field holds a non-numeric value (never fabricated)', async () => {
+    mockGetJiraIssue.mockResolvedValue(issueWithFields({ [F.translatorPayout]: 'TBD' }));
+    mockSend.mockResolvedValue({ ok: true, messageId: '1001', error: null });
+
+    await POST(makeRequest({ event: 'translator_order_created', issueKey: 'WO-778' }));
+    const text = mockSend.mock.calls[0][1] as string;
+    expect(text).not.toContain('Выплата переводчику');
   });
 
   // ── notary_required ───────────────────────────────────────────────────────
@@ -196,7 +192,7 @@ describe('POST /api/telegram/jira-event', () => {
       expect.any(String),
       expect.arrayContaining([expect.objectContaining({ callback_data: 'notary_claim:WO-9' })]),
     );
-    expect(mockUpdateJiraIssue).toHaveBeenCalledWith('WO-9', { customfield_20004: '2000' });
+    expect(mockUpdateJiraIssue).toHaveBeenCalledWith('WO-9', { [F.telegramNotaryMessageId]: '2000' });
   });
 
   // ── Send / persist failure handling — must never silently succeed ──────────
@@ -232,8 +228,8 @@ describe('POST /api/telegram/jira-event', () => {
 
   it('edits the stored Telegram message when a recognized status is confirmed', async () => {
     mockGetJiraIssue.mockResolvedValue(issueWithFields({
-      customfield_20001: '999',
-      customfield_20003: 'Aigerim',
+      [F.telegramTranslatorMessageId]: '999',
+      [F.telegramTranslatorName]: 'Aigerim',
     }));
     mockEdit.mockResolvedValue({ ok: true, messageId: '999', error: null });
 
@@ -258,8 +254,8 @@ describe('POST /api/telegram/jira-event', () => {
 
   it('sends an empty button list for terminal statuses', async () => {
     mockGetJiraIssue.mockResolvedValue(issueWithFields({
-      customfield_20004: '555',
-      customfield_20006: 'Notary A',
+      [F.telegramNotaryMessageId]: '555',
+      [F.telegramNotaryName]: 'Notary A',
     }, 'WO-5'));
     mockEdit.mockResolvedValue({ ok: true, messageId: '555', error: null });
 
@@ -268,7 +264,7 @@ describe('POST /api/telegram/jira-event', () => {
   });
 
   it('falls back to "не назначен" when the display-name field is empty', async () => {
-    mockGetJiraIssue.mockResolvedValue(issueWithFields({ customfield_20001: '111' }));
+    mockGetJiraIssue.mockResolvedValue(issueWithFields({ [F.telegramTranslatorMessageId]: '111' }));
     mockEdit.mockResolvedValue({ ok: true, messageId: '111', error: null });
 
     await POST(makeRequest({ event: 'status_changed', issueKey: 'WO-123', jiraStatus: 'ПЕРЕВОД В РАБОТЕ' }));

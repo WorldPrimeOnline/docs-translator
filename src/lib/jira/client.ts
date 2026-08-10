@@ -17,6 +17,17 @@ export const JIRA_FIELDS = {
   documentType:      'customfield_10082',
   languagePair:      'customfield_10088',
   fulfillmentMethod: 'customfield_10087',
+  // Telegram Operations (2026-08-10) — see docs/TELEGRAM_OPERATIONS_SETUP.md.
+  // All 9 are Text fields; the last 3 hold numeric values serialized as text.
+  telegramTranslatorMessageId: 'customfield_10123',
+  telegramNotaryMessageId:     'customfield_10124',
+  telegramTranslatorUserId:    'customfield_10125',
+  telegramNotaryUserId:        'customfield_10126',
+  telegramTranslatorName:      'customfield_10127', // "Переводчик"
+  telegramNotaryName:          'customfield_10128', // "Нотариус"
+  payablePageCount:            'customfield_10129', // price_quotes.translation_page_count_exact
+  translatorPayout:            'customfield_10130', // cost_reservations translator_payout/translator_reserved_cost
+  notaryPayout:                'customfield_10131', // cost_reservations notary_payout
 } as const;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

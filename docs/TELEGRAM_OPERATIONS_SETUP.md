@@ -68,22 +68,35 @@ result of a button tap — only ever as a result of the `status_changed` event a
 
 Removed entirely: `telegram_assignments`, `jobs`, `job_id`, `job_audit_log`, any
 lookup by `jobs.jira_issue_key` or `customfield_10073` — none of that is read or
-written anywhere in this feature. All Telegram-specific state lives in 8 new Jira
-custom fields you create yourself (project **WO**, issue type **Заказ**), whose
-real `customfield_XXXXX` IDs you provide via env vars — the code never hardcodes a
-guessed ID for these (unlike the pre-existing `customfield_100XX` fields in
-`src/lib/jira/client.ts`, which were baked in because they already existed).
+written anywhere in this feature. All Telegram-specific state lives in 9 Jira
+custom fields (project **WO**, issue type **Заказ**), all Text fields, hardcoded
+in `JIRA_FIELDS` in `src/lib/jira/client.ts` (mirrored in
+`worker/src/lib/jira/order-fields.ts`, kept in sync manually per the existing
+repository convention) — **no env vars for field IDs**, same convention as every
+other Jira custom field in this codebase.
 
-| Field (create in Jira admin) | Type | Env var | Written by |
+| Field | `JIRA_FIELDS` key | ID | Written by |
 |---|---|---|---|
-| Telegram Translator Message ID | Text | `JIRA_FIELD_TG_TRANSLATOR_MESSAGE_ID` | Railway, directly, right after the Telegram send succeeds |
-| Telegram Translator User ID | Text | `JIRA_FIELD_TG_TRANSLATOR_USER_ID` | **Jira Automation only** — set as part of the `translator_claim` rule execution |
-| Telegram Translator Display Name | Text | `JIRA_FIELD_TG_TRANSLATOR_NAME` | **Jira Automation only** — same rule execution |
-| Telegram Notary Message ID | Text | `JIRA_FIELD_TG_NOTARY_MESSAGE_ID` | Railway, directly |
-| Telegram Notary User ID | Text | `JIRA_FIELD_TG_NOTARY_USER_ID` | **Jira Automation only** — `notary_claim` rule |
-| Telegram Notary Display Name | Text | `JIRA_FIELD_TG_NOTARY_NAME` | **Jira Automation only** — same rule |
-| (shared) Page count | Number | `JIRA_FIELD_TG_PAGE_COUNT` | Not written by this integration — populate on the issue however you already do |
-| (shared) Payout amount (KZT) | Number | `JIRA_FIELD_TG_PAYOUT_AMOUNT_KZT` | Same — whichever role's broadcast is current reads whatever is populated |
+| Telegram ID сообщения (переводчик) | `telegramTranslatorMessageId` | `customfield_10123` | Railway, directly, right after the Telegram send succeeds |
+| Telegram ID сообщения (нотариус) | `telegramNotaryMessageId` | `customfield_10124` | Railway, directly |
+| Telegram User ID (переводчик) | `telegramTranslatorUserId` | `customfield_10125` | **Jira Automation only** — set as part of the `translator_claim` rule execution |
+| Telegram User ID (нотариус) | `telegramNotaryUserId` | `customfield_10126` | **Jira Automation only** — `notary_claim` rule |
+| Переводчик | `telegramTranslatorName` | `customfield_10127` | **Jira Automation only** — same rule as User ID above |
+| Нотариус | `telegramNotaryName` | `customfield_10128` | **Jira Automation only** — same rule as User ID above |
+| Оплачиваемые страницы | `payablePageCount` | `customfield_10129` | **Order-creation pipeline**, at issue-creation time — `price_quotes.translation_page_count_exact` serialized as text |
+| Выплата переводчику | `translatorPayout` | `customfield_10130` | **Order-creation pipeline**, at issue-creation time — `cost_reservations.amount_kzt` (`translator_payout`/`translator_reserved_cost`) serialized as text |
+| Выплата нотариусу | `notaryPayout` | `customfield_10131` | **Order-creation pipeline**, at issue-creation time — `cost_reservations.amount_kzt` (`notary_payout`) serialized as text |
+
+`Оплачиваемые страницы` is the pricing engine's authoritative **payable/billable**
+page count — **not** the raw physical PDF page count. It's null (and the field is
+correctly left empty, never fabricated) for orders still on the legacy
+electronic-formula pricing.
+
+`Выплата переводчику` / `Выплата нотариусу` are two separate fields (not one
+shared field) even though only one role's broadcast is ever "current" at a time —
+both amounts are known upfront from the same quote computation, so populating both
+at issue-creation time avoids any handoff/overwrite timing dependency between the
+translator and notary phases.
 
 **Why message-id is written directly but user-id/display-name are not:** message-id
 is deterministic integration metadata (which Telegram message corresponds to this
@@ -107,14 +120,13 @@ runtime code. It is left in place, unused, rather than dropped — see
 
 ## Env vars
 
+No env vars are used for Jira field IDs — see the field table above.
+
 | Var | Where | Notes |
 |---|---|---|
 | `TELEGRAM_WEBHOOK_SECRET` | Vercel (web) | Value you choose; passed to `setWebhook` as `secret_token` (see below) and checked against the `X-Telegram-Bot-Api-Secret-Token` header on every `/api/telegram/webhook` call. |
 | `JIRA_AUTOMATION_TELEGRAM_ACTION_WEBHOOK_URL` | Vercel (web) | The single Jira Automation "Incoming webhook" trigger URL (see Rule 4 below). |
 | `JIRA_AUTOMATION_ACTION_WEBHOOK_SECRET` | Vercel (web) | Sent as `X-WPO-Action-Secret` on every forwarded action; check it in the Automation rule's first condition. |
-| `JIRA_FIELD_TG_TRANSLATOR_MESSAGE_ID` / `_USER_ID` / `_NAME` | Vercel (web) | The real `customfield_XXXXX` IDs of the 3 translator fields above, once created. |
-| `JIRA_FIELD_TG_NOTARY_MESSAGE_ID` / `_USER_ID` / `_NAME` | Vercel (web) | Same, for the 3 notary fields. |
-| `JIRA_FIELD_TG_PAGE_COUNT` / `JIRA_FIELD_TG_PAYOUT_AMOUNT_KZT` | Vercel (web) | Optional — the message simply omits the corresponding line if unset or empty on the issue. |
 
 Reused, unchanged:
 
@@ -211,10 +223,10 @@ right role + button state. Any other status this issue passes through later
 
 | `action` | Precondition (validate current status) | Also sets these fields | Transition | Comment |
 |---|---|---|---|---|
-| `translator_claim` | `status = OPEN` | **Telegram Translator User ID** = `{{webhookData.telegramUserId}}`, **Telegram Translator Display Name** = `{{webhookData.executorName}}` | → `НАЗНАЧЕН ПЕРЕВОДЧИК` | `Translator claimed order via Telegram: {{webhookData.executorName}}` |
+| `translator_claim` | `status = OPEN` | **Telegram User ID (переводчик)** = `{{webhookData.telegramUserId}}`, **Переводчик** = `{{webhookData.executorName}}` | → `НАЗНАЧЕН ПЕРЕВОДЧИК` | `Translator claimed order via Telegram: {{webhookData.executorName}}` |
 | `translator_start` | `status = НАЗНАЧЕН ПЕРЕВОДЧИК` | — | → `ПЕРЕВОД В РАБОТЕ` | `Translator started work via Telegram: {{webhookData.executorName}}` |
 | `translator_done` | `status = ПЕРЕВОД В РАБОТЕ` | — | → `ПЕРЕВОД ЗАВЕРШЕН` | `Translator completed work via Telegram: {{webhookData.executorName}}` |
-| `notary_claim` | `status = ПЕРЕВОД ЗАВЕРШЕН` (the state the issue is in when the notary broadcast goes out) | **Telegram Notary User ID** = `{{webhookData.telegramUserId}}`, **Telegram Notary Display Name** = `{{webhookData.executorName}}` | → `НАЗНАЧЕН НОТАРИУС` | `Notary claimed order via Telegram: {{webhookData.executorName}}` |
+| `notary_claim` | `status = ПЕРЕВОД ЗАВЕРШЕН` (the state the issue is in when the notary broadcast goes out) | **Telegram User ID (нотариус)** = `{{webhookData.telegramUserId}}`, **Нотариус** = `{{webhookData.executorName}}` | → `НАЗНАЧЕН НОТАРИУС` | `Notary claimed order via Telegram: {{webhookData.executorName}}` |
 | `notary_start` | `status = НАЗНАЧЕН НОТАРИУС` | — | → `В РАБОТЕ У НОТАРИУСА` | `Notary started work via Telegram: {{webhookData.executorName}}` |
 | `notary_done` | `status = В РАБОТЕ У НОТАРИУСА` | — | → `ПЕРЕВОД ЗАВЕРЕН` | `Notary certified document via Telegram: {{webhookData.executorName}}` |
 
@@ -244,10 +256,11 @@ any kind:
 - `customfield_10083` (translation type), `customfield_10088` (language pair),
   `customfield_10082` (document type), `customfield_10079` (Drive link) — the
   pre-existing order fields, same ones the main issue is created with.
-- Page count / payout amount — read from `JIRA_FIELD_TG_PAGE_COUNT` /
-  `JIRA_FIELD_TG_PAYOUT_AMOUNT_KZT` if configured and populated on the issue;
-  omitted from the message entirely (never fabricated) when either the env var
-  isn't set or the field is empty on that issue.
+- `Оплачиваемые страницы` (`customfield_10129`) / `Выплата переводчику`
+  (`customfield_10130`) or `Выплата нотариусу` (`customfield_10131`, role-specific)
+  — Text fields holding a numeric value serialized as text, parsed via
+  `extractNumericTextValue()`. Omitted from the message entirely (never
+  fabricated) when the field is empty or holds a non-numeric value.
 
 ## Concurrency & recovery
 

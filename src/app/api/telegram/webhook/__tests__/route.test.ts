@@ -16,8 +16,6 @@
 process.env.TELEGRAM_WEBHOOK_SECRET = 'tg-secret';
 process.env.TELEGRAM_TRANSLATOR_CHAT_ID = '-100111';
 process.env.TELEGRAM_NOTARY_CHAT_ID = '-100222';
-process.env.JIRA_FIELD_TG_TRANSLATOR_USER_ID = 'customfield_20002';
-process.env.JIRA_FIELD_TG_NOTARY_USER_ID = 'customfield_20005';
 
 jest.mock('@/lib/jira/client', () => {
   const actual = jest.requireActual('@/lib/jira/client');
@@ -28,10 +26,11 @@ jest.mock('@/lib/telegram-ops/automation-actions', () => ({ forwardActionToJiraA
 
 import { NextRequest } from 'next/server';
 import { POST } from '../route';
-import { getJiraIssue } from '@/lib/jira/client';
+import { getJiraIssue, JIRA_FIELDS } from '@/lib/jira/client';
 import { answerCallbackQuery } from '@/lib/telegram/client';
 import { forwardActionToJiraAutomation } from '@/lib/telegram-ops/automation-actions';
 
+const F = JIRA_FIELDS;
 const mockGetJiraIssue = getJiraIssue as jest.Mock;
 const mockAnswer = answerCallbackQuery as jest.Mock;
 const mockForward = forwardActionToJiraAutomation as jest.Mock;
@@ -172,18 +171,7 @@ describe('POST /api/telegram/webhook', () => {
     errorSpy.mockRestore();
   });
 
-  // ── Start/done: field not configured / issue not found ───────────────────
-  it('rejects start when the user-id Jira field env var is not configured', async () => {
-    const original = process.env.JIRA_FIELD_TG_TRANSLATOR_USER_ID;
-    delete process.env.JIRA_FIELD_TG_TRANSLATOR_USER_ID;
-
-    await POST(makeUpdate(makeCallback('translator_start:WO-1')));
-    expect(mockAnswer).toHaveBeenCalledWith('cbq-1', 'Заказ не найден.', true);
-    expect(mockGetJiraIssue).not.toHaveBeenCalled();
-
-    process.env.JIRA_FIELD_TG_TRANSLATOR_USER_ID = original;
-  });
-
+  // ── Start/done: issue not found ───────────────────────────────────────────
   it('rejects start when the Jira issue cannot be found', async () => {
     mockGetJiraIssue.mockResolvedValue(null);
     await POST(makeUpdate(makeCallback('translator_start:WO-1')));
@@ -200,7 +188,7 @@ describe('POST /api/telegram/webhook', () => {
 
   // ── Start/done: ownership ─────────────────────────────────────────────────
   it('rejects start/done from a user who is not the recorded claimant', async () => {
-    mockGetJiraIssue.mockResolvedValue(issueWithStatus('НАЗНАЧЕН ПЕРЕВОДЧИК', { customfield_20002: '999' }));
+    mockGetJiraIssue.mockResolvedValue(issueWithStatus('НАЗНАЧЕН ПЕРЕВОДЧИК', { [F.telegramTranslatorUserId]: '999' }));
     await POST(makeUpdate(makeCallback('translator_start:WO-1', -100111, 42)));
     expect(mockAnswer).toHaveBeenCalledWith('cbq-1', 'Этот заказ назначен другому исполнителю.', true);
     expect(mockForward).not.toHaveBeenCalled();
@@ -208,14 +196,14 @@ describe('POST /api/telegram/webhook', () => {
 
   // ── Start: precondition / idempotency ────────────────────────────────────
   it('treats a stale/duplicate start tap as an idempotent no-op when status is not "НАЗНАЧЕН ПЕРЕВОДЧИК"', async () => {
-    mockGetJiraIssue.mockResolvedValue(issueWithStatus('ПЕРЕВОД В РАБОТЕ', { customfield_20002: '42' }));
+    mockGetJiraIssue.mockResolvedValue(issueWithStatus('ПЕРЕВОД В РАБОТЕ', { [F.telegramTranslatorUserId]: '42' }));
     await POST(makeUpdate(makeCallback('translator_start:WO-1')));
     expect(mockAnswer).toHaveBeenCalledWith('cbq-1', 'Действие уже выполнено или ожидает подтверждения от Jira.');
     expect(mockForward).not.toHaveBeenCalled();
   });
 
   it('forwards translator_start when status is "НАЗНАЧЕН ПЕРЕВОДЧИК" and the caller is the recorded claimant', async () => {
-    mockGetJiraIssue.mockResolvedValue(issueWithStatus('НАЗНАЧЕН ПЕРЕВОДЧИК', { customfield_20002: '42' }));
+    mockGetJiraIssue.mockResolvedValue(issueWithStatus('НАЗНАЧЕН ПЕРЕВОДЧИК', { [F.telegramTranslatorUserId]: '42' }));
     await POST(makeUpdate(makeCallback('translator_start:WO-1')));
     expect(mockForward).toHaveBeenCalledWith({
       issueKey: 'WO-1', action: 'translator_start', telegramUserId: '42', executorName: 'Aigerim', role: 'translator',
@@ -224,13 +212,13 @@ describe('POST /api/telegram/webhook', () => {
 
   // ── Done: requires ПЕРЕВОД В РАБОТЕ / В РАБОТЕ У НОТАРИУСА ────────────────
   it('rejects done when status is still "НАЗНАЧЕН ПЕРЕВОДЧИК" (start not yet confirmed by Jira)', async () => {
-    mockGetJiraIssue.mockResolvedValue(issueWithStatus('НАЗНАЧЕН ПЕРЕВОДЧИК', { customfield_20002: '42' }));
+    mockGetJiraIssue.mockResolvedValue(issueWithStatus('НАЗНАЧЕН ПЕРЕВОДЧИК', { [F.telegramTranslatorUserId]: '42' }));
     await POST(makeUpdate(makeCallback('translator_done:WO-1')));
     expect(mockForward).not.toHaveBeenCalled();
   });
 
   it('forwards notary_done when status is "В РАБОТЕ У НОТАРИУСА" and the caller is the recorded claimant', async () => {
-    mockGetJiraIssue.mockResolvedValue(issueWithStatus('В РАБОТЕ У НОТАРИУСА', { customfield_20005: '7' }));
+    mockGetJiraIssue.mockResolvedValue(issueWithStatus('В РАБОТЕ У НОТАРИУСА', { [F.telegramNotaryUserId]: '7' }));
     await POST(makeUpdate(makeCallback('notary_done:WO-9', -100222, 7)));
     expect(mockForward).toHaveBeenCalledWith({
       issueKey: 'WO-9', action: 'notary_done', telegramUserId: '7', executorName: 'Aigerim', role: 'notary',
