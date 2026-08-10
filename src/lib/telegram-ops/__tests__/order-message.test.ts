@@ -176,6 +176,31 @@ describe('resolveStatusMapping', () => {
     expect(resolveStatusMapping('OUT_FOR_DELIVERY')).toBeNull();
     expect(resolveStatusMapping('Закрыто')).toBeNull();
   });
+
+  // Regression: WO-122 production incident (2026-08-10) — Jira Automation's real
+  // status_changed payload sends sentence case ("Назначен переводчик"), not the
+  // ALL-CAPS this file's maps use internally. Every case below is the exact casing
+  // Jira Automation actually sends in production.
+  it('resolves real Jira Automation sentence-case status values (not just this file\'s internal ALL-CAPS keys)', () => {
+    expect(resolveStatusMapping('Назначен переводчик')).toEqual({
+      role: 'translator',
+      entry: expect.objectContaining({ internalStatus: 'claimed' }),
+    });
+    expect(resolveStatusMapping('Перевод в работе')?.entry.internalStatus).toBe('in_progress');
+    expect(resolveStatusMapping('Перевод завершен')?.entry.internalStatus).toBe('completed');
+    expect(resolveStatusMapping('Назначен нотариус')?.role).toBe('notary');
+    expect(resolveStatusMapping('В работе у нотариуса')?.entry.internalStatus).toBe('in_progress');
+    expect(resolveStatusMapping('Перевод заверен')?.entry.internalStatus).toBe('completed');
+  });
+
+  it('is whitespace-tolerant on top of case-insensitivity', () => {
+    expect(resolveStatusMapping('  Назначен переводчик  ')?.role).toBe('translator');
+  });
+
+  it('still resolves the internal ALL-CAPS keys unchanged (no regression on the existing convention)', () => {
+    expect(resolveStatusMapping('НАЗНАЧЕН ПЕРЕВОДЧИК')?.role).toBe('translator');
+    expect(resolveStatusMapping('НАЗНАЧЕН НОТАРИУС')?.role).toBe('notary');
+  });
 });
 
 describe('buildStatusUpdateMessage', () => {

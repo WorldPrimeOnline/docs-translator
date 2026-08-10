@@ -116,16 +116,51 @@ async function handleBroadcast(issueKey: string, role: TelegramOpsRole): Promise
 
 // ─── status_changed ─────────────────────────────────────────────────────────────
 
+/**
+ * Explicit, structured log line for every status_changed request, regardless of
+ * outcome — so a 200 response can never silently hide a skipped or failed edit.
+ * See docs/ai-context/DECISIONS.md (2026-08-10, "Назначен переводчик" case-mismatch
+ * incident) for why this exists: resolveStatusMapping() previously failed silently
+ * on a real Jira status casing with zero log trace.
+ */
+function logStatusChangedOutcome(params: {
+  issueKey: string;
+  jiraStatus: string;
+  role: TelegramOpsRole | null;
+  messageId: string | null;
+  executorName: string | null;
+  nextAction: string | null;
+  editAttempted: boolean;
+  editSuccess: boolean | null;
+  skipReason: string | null;
+}): void {
+  console.log(
+    `[telegram-jira-event] status_changed issueKey=${params.issueKey} jiraStatus=${params.jiraStatus} ` +
+    `role=${params.role ?? '-'} messageId=${params.messageId ?? '-'} executorName=${params.executorName ?? '-'} ` +
+    `nextAction=${params.nextAction ?? '-'} editAttempted=${params.editAttempted ? 'yes' : 'no'} ` +
+    `editSuccess=${params.editSuccess === null ? '-' : params.editSuccess ? 'yes' : 'no'} ` +
+    `skipReason=${params.skipReason ?? '-'}`,
+  );
+}
+
 async function handleStatusChanged(issueKey: string, jiraStatus: string): Promise<NextResponse> {
   const mapping = resolveStatusMapping(jiraStatus);
   if (!mapping) {
     // Issues pass through many other statuses (delivery, pickup, etc.) unrelated to
     // this Telegram sub-flow — silently ignore rather than treat as an error.
+    logStatusChangedOutcome({
+      issueKey, jiraStatus, role: null, messageId: null, executorName: null, nextAction: null,
+      editAttempted: false, editSuccess: null, skipReason: 'status_not_mapped',
+    });
     return NextResponse.json({ ok: true, action: 'no_op' });
   }
 
   const chatId = chatIdForRole(mapping.role);
   if (!chatId) {
+    logStatusChangedOutcome({
+      issueKey, jiraStatus, role: mapping.role, messageId: null, executorName: null, nextAction: null,
+      editAttempted: false, editSuccess: null, skipReason: 'chat_not_configured',
+    });
     return NextResponse.json({ ok: true, skipped: 'chat_not_configured' });
   }
 
@@ -134,16 +169,25 @@ async function handleStatusChanged(issueKey: string, jiraStatus: string): Promis
 
   const issue = await getJiraIssue(issueKey, [messageIdField, fieldIds.displayName]);
   if (!issue) {
+    logStatusChangedOutcome({
+      issueKey, jiraStatus, role: mapping.role, messageId: null, executorName: null, nextAction: null,
+      editAttempted: false, editSuccess: null, skipReason: 'issue_not_found',
+    });
     return NextResponse.json({ error: 'Jira issue not found or Jira not configured' }, { status: 404 });
   }
 
   const messageId = extractTextValue(issue.fields[messageIdField]);
   if (!messageId) {
     console.warn(`[telegram-jira-event] status_changed for ${issueKey}/${mapping.role} but no Telegram message has been broadcast yet (message-id field empty)`);
+    logStatusChangedOutcome({
+      issueKey, jiraStatus, role: mapping.role, messageId: null, executorName: null, nextAction: null,
+      editAttempted: false, editSuccess: null, skipReason: 'no_broadcast_message',
+    });
     return NextResponse.json({ ok: true, action: 'no_broadcast' });
   }
 
   const executorName = extractTextValue(issue.fields[fieldIds.displayName]);
+  const nextAction = mapping.entry.nextButton?.action ?? null;
 
   const { text, buttons } = buildStatusUpdateMessage({
     issueKey,
@@ -156,6 +200,11 @@ async function handleStatusChanged(issueKey: string, jiraStatus: string): Promis
   if (!editResult.ok) {
     console.error(`[telegram-jira-event] failed to edit Telegram message ${messageId} for ${issueKey}/${mapping.role}: ${editResult.error}`);
   }
+
+  logStatusChangedOutcome({
+    issueKey, jiraStatus, role: mapping.role, messageId, executorName, nextAction,
+    editAttempted: true, editSuccess: editResult.ok, skipReason: null,
+  });
 
   return NextResponse.json({ ok: true, action: 'message_updated' });
 }
