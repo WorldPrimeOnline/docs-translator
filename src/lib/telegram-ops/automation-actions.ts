@@ -54,6 +54,10 @@ export async function forwardActionToJiraAutomation(
 
     if (!res.ok) {
       const text = await res.text().catch(() => '');
+      // Full body (never contains our own secret — that's a request header, not
+      // anything Jira echoes back) so a 400's actual Automation validation error
+      // is visible, not silently cut at 200 chars.
+      console.error(`[telegram-ops] Jira Automation rejected the action — issueKey=${params.issueKey} action=${params.action} status=${res.status} body=${text}`);
       const error = `HTTP ${res.status}: ${text.slice(0, 200)}`;
       console.error(`[telegram-ops] forwardActionToJiraAutomation failed: ${error}`);
       return { ok: false, error, httpStatus: res.status };
