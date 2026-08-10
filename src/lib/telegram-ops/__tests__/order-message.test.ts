@@ -1,7 +1,7 @@
 import {
   extractSelectValue,
   extractTextValue,
-  extractNumberValue,
+  extractNumericTextValue,
   buildOrderBroadcastData,
   buildOrderBroadcastMessage,
   resolveStatusMapping,
@@ -31,13 +31,16 @@ describe('field extraction helpers', () => {
     expect(extractTextValue(null)).toBeNull();
   });
 
-  it('extractNumberValue reads finite numbers and rejects everything else', () => {
-    expect(extractNumberValue(3)).toBe(3);
-    expect(extractNumberValue(0)).toBe(0);
-    expect(extractNumberValue('3')).toBeNull();
-    expect(extractNumberValue(null)).toBeNull();
-    expect(extractNumberValue(undefined)).toBeNull();
-    expect(extractNumberValue(NaN)).toBeNull();
+  it('extractNumericTextValue parses a text-serialized number and rejects everything else', () => {
+    expect(extractNumericTextValue('3')).toBe(3);
+    expect(extractNumericTextValue('4500')).toBe(4500);
+    expect(extractNumericTextValue('2.5')).toBe(2.5);
+    expect(extractNumericTextValue('0')).toBe(0);
+    expect(extractNumericTextValue('')).toBeNull();
+    expect(extractNumericTextValue(null)).toBeNull();
+    expect(extractNumericTextValue(undefined)).toBeNull();
+    expect(extractNumericTextValue('not-a-number')).toBeNull();
+    expect(extractNumericTextValue(3)).toBeNull(); // native number, not text — never expected from these fields, but must not be silently accepted
   });
 });
 
@@ -101,7 +104,7 @@ describe('buildOrderBroadcastMessage', () => {
     expect(text).toContain('Тип услуги: Нотариально заверенный');
     expect(text).toContain('Тип документа: Доверенность');
     expect(text).toContain('Языковая пара: RU → EN');
-    expect(text).toContain('Количество страниц: 3');
+    expect(text).toContain('Оплачиваемые страницы: 3');
     expect(text).toContain('Выплата переводчику: 4 500 ₸');
     expect(text).toContain('Материалы: https://drive.example/x');
     expect(text).toContain('Исполнитель: не назначен');
@@ -147,7 +150,7 @@ describe('buildOrderBroadcastMessage', () => {
       payoutKzt: null,
       driveUrl: null,
     });
-    expect(text).not.toContain('Количество страниц');
+    expect(text).not.toContain('Оплачиваемые страницы');
     expect(text).not.toContain('Выплата переводчику');
   });
 });

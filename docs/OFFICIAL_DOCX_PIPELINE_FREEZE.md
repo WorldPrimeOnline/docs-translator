@@ -20,6 +20,10 @@
 
 Only critical runtime failures that block job completion. No OCR, prompt, vision, or table-classification changes without a separate approved project.
 
+## Approved exceptions to "Jira/Google Drive integration workflow"
+
+- **2026-08-10** — explicit written approval to add exactly 3 new Jira custom fields (`customfield_10129/10130/10131`, Telegram Operations' payable page count / translator payout / notary payout) to the main order issue's create-payload in `worker/src/lib/integrations.ts` (`loadTelegramOpsPricingFields()`) and `worker/src/lib/jira/order-fields.ts` (`buildJiraIssueFields()`). Scoped narrowly: read-only, additive, no other Jira field, no OCR/translation/rendering logic, no `loadPriceBreakdownData()` change. See `docs/ai-context/DECISIONS.md` (2026-08-10 entry) and `docs/TELEGRAM_OPERATIONS_SETUP.md`.
+
 ## Current layout (official-layout-v1)
 
 - 2-column key-value tables (label 33% / value 67%) with localized "Field | Value" header

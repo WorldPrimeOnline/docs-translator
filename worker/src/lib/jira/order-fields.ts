@@ -34,6 +34,17 @@ export const JIRA_FIELDS = {
   languagePair:      'customfield_10088', // text
   fulfillmentMethod: 'customfield_10087', // single-select
   partnerApplicationId: 'customfield_10121', // text — partner_applications.id (UUID) when order came via a referral
+  // Telegram Operations (2026-08-10) — see docs/TELEGRAM_OPERATIONS_SETUP.md.
+  // All 9 are Text fields; the last 3 hold numeric values serialized as text.
+  telegramTranslatorMessageId: 'customfield_10123',
+  telegramNotaryMessageId:     'customfield_10124',
+  telegramTranslatorUserId:    'customfield_10125',
+  telegramNotaryUserId:        'customfield_10126',
+  telegramTranslatorName:      'customfield_10127', // "Переводчик"
+  telegramNotaryName:          'customfield_10128', // "Нотариус"
+  payablePageCount:            'customfield_10129', // price_quotes.translation_page_count_exact
+  translatorPayout:            'customfield_10130', // cost_reservations translator_payout/translator_reserved_cost
+  notaryPayout:                'customfield_10131', // cost_reservations notary_payout
 } as const;
 
 // ─── Security level (staging isolation) ──────────────────────────────────────
@@ -254,6 +265,10 @@ export interface JiraIssueFieldsInput {
   amountKzt?: number | null;
   /** partner_applications.id (UUID) of the referring partner — omitted when the order has no referral. */
   partnerApplicationId?: string | null;
+  /** Telegram Operations fields (2026-08-10) — see loadTelegramOpsPricingFields() in worker/src/lib/integrations.ts. All 3 are Text fields, serialized as text; omitted entirely when the pricing engine hasn't produced a value. */
+  payablePageCount?: number | null;
+  translatorPayoutKzt?: number | null;
+  notaryPayoutKzt?: number | null;
 }
 
 /**
@@ -305,6 +320,14 @@ export function buildJiraIssueFields(input: JiraIssueFieldsInput): Record<string
     const label = FULFILLMENT_LABELS[input.fulfillmentMethod];
     if (label) fields[f.fulfillmentMethod] = { value: label };
   }
+
+  // Telegram Operations fields — Text fields, numeric value serialized as text.
+  // Never fabricated: omitted when the pricing engine produced no value (e.g.
+  // legacy-formula quotes for payablePageCount, or no reservation of that
+  // cost_type for the payout fields).
+  if (input.payablePageCount != null) fields[f.payablePageCount] = String(input.payablePageCount);
+  if (input.translatorPayoutKzt != null) fields[f.translatorPayout] = String(input.translatorPayoutKzt);
+  if (input.notaryPayoutKzt != null) fields[f.notaryPayout] = String(input.notaryPayoutKzt);
 
   return fields;
 }

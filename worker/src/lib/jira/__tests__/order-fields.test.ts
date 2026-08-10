@@ -225,6 +225,55 @@ describe('partnerApplicationId field', () => {
   });
 });
 
+// ── Telegram Operations fields (2026-08-10) — payablePageCount / translatorPayoutKzt / notaryPayoutKzt ──
+
+describe('Telegram Operations fields', () => {
+  it('omits all 3 fields when none are provided', () => {
+    const fields = buildJiraIssueFields(BASE_INPUT);
+    expect(fields[JIRA_FIELDS.payablePageCount]).toBeUndefined();
+    expect(fields[JIRA_FIELDS.translatorPayout]).toBeUndefined();
+    expect(fields[JIRA_FIELDS.notaryPayout]).toBeUndefined();
+  });
+
+  it('omits all 3 fields when explicitly null (never fabricated)', () => {
+    const fields = buildJiraIssueFields({
+      ...BASE_INPUT,
+      payablePageCount: null,
+      translatorPayoutKzt: null,
+      notaryPayoutKzt: null,
+    });
+    expect(fields[JIRA_FIELDS.payablePageCount]).toBeUndefined();
+    expect(fields[JIRA_FIELDS.translatorPayout]).toBeUndefined();
+    expect(fields[JIRA_FIELDS.notaryPayout]).toBeUndefined();
+  });
+
+  it('serializes payablePageCount as text (customfield_10129 is a Text field)', () => {
+    const fields = buildJiraIssueFields({ ...BASE_INPUT, payablePageCount: 2.5 });
+    expect(fields[JIRA_FIELDS.payablePageCount]).toBe('2.5');
+    expect(typeof fields[JIRA_FIELDS.payablePageCount]).toBe('string');
+  });
+
+  it('serializes translatorPayoutKzt as text', () => {
+    const fields = buildJiraIssueFields({ ...BASE_INPUT, translatorPayoutKzt: 4500 });
+    expect(fields[JIRA_FIELDS.translatorPayout]).toBe('4500');
+  });
+
+  it('serializes notaryPayoutKzt as text, independently of translatorPayoutKzt', () => {
+    const fields = buildJiraIssueFields({
+      ...BASE_INPUT,
+      translatorPayoutKzt: 4500,
+      notaryPayoutKzt: 6000,
+    });
+    expect(fields[JIRA_FIELDS.translatorPayout]).toBe('4500');
+    expect(fields[JIRA_FIELDS.notaryPayout]).toBe('6000');
+  });
+
+  it('sets payablePageCount = "0" (a real value) rather than omitting it', () => {
+    const fields = buildJiraIssueFields({ ...BASE_INPUT, payablePageCount: 0 });
+    expect(fields[JIRA_FIELDS.payablePageCount]).toBe('0');
+  });
+});
+
 // ── buildApplicantTypeDescriptionLine (WO-75 incident follow-up, 2026-07-10) ──
 // individual vs legal_entity determines the notary official fee tier but had no
 // visibility in Jira — no custom field exists for it, so it's a description line.

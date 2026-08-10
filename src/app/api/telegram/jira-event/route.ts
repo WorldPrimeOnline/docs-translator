@@ -32,12 +32,12 @@ import {
   buildOrderBroadcastData,
   buildOrderBroadcastMessage,
   buildStatusUpdateMessage,
-  extractNumberValue,
+  extractNumericTextValue,
   extractTextValue,
   resolveStatusMapping,
   type TelegramOpsRole,
 } from '@/lib/telegram-ops/order-message';
-import { pageCountFieldId, payoutFieldId, telegramRoleFieldIds } from '@/lib/telegram-ops/jira-fields';
+import { PAGE_COUNT_FIELD, payoutFieldForRole, telegramRoleFieldIds } from '@/lib/telegram-ops/jira-fields';
 import { sendMessageWithCallbackButtons, editMessageWithCallbackButtons } from '@/lib/telegram/client';
 
 // ─── Payload schema ───────────────────────────────────────────────────────────
@@ -65,21 +65,15 @@ async function handleBroadcast(issueKey: string, role: TelegramOpsRole): Promise
 
   const fieldIds = telegramRoleFieldIds(role);
   const messageIdField = fieldIds.messageId;
-  if (!messageIdField) {
-    console.error(`[telegram-jira-event] ${role} message-id Jira field not configured — cannot broadcast for ${issueKey}`);
-    return NextResponse.json({ ok: true, skipped: 'field_not_configured' });
-  }
-
-  const pageField = pageCountFieldId();
-  const payoutField = payoutFieldId();
+  const payoutField = payoutFieldForRole(role);
   const requestedFields = [
     JIRA_FIELDS.translationType,
     JIRA_FIELDS.documentType,
     JIRA_FIELDS.languagePair,
     JIRA_FIELDS.documentsLink,
     messageIdField,
-    ...(pageField ? [pageField] : []),
-    ...(payoutField ? [payoutField] : []),
+    PAGE_COUNT_FIELD,
+    payoutField,
   ];
 
   const issue = await getJiraIssue(issueKey, requestedFields);
@@ -93,8 +87,11 @@ async function handleBroadcast(issueKey: string, role: TelegramOpsRole): Promise
     return NextResponse.json({ ok: true, skipped: 'already_broadcast' });
   }
 
-  const pageCount = pageField ? extractNumberValue(issue.fields[pageField]) : null;
-  const payoutKzt = payoutField ? extractNumberValue(issue.fields[payoutField]) : null;
+  // Both text fields hold a numeric value serialized as text, populated by the
+  // order-creation pipeline at issue-creation time from the pricing engine's own
+  // output — never computed here, never fabricated when absent.
+  const pageCount = extractNumericTextValue(issue.fields[PAGE_COUNT_FIELD]);
+  const payoutKzt = extractNumericTextValue(issue.fields[payoutField]);
 
   const data = buildOrderBroadcastData(issue, role, { pageCount, payoutKzt });
   const { text, buttons } = buildOrderBroadcastMessage(data);
@@ -134,13 +131,8 @@ async function handleStatusChanged(issueKey: string, jiraStatus: string): Promis
 
   const fieldIds = telegramRoleFieldIds(mapping.role);
   const messageIdField = fieldIds.messageId;
-  if (!messageIdField) {
-    console.error(`[telegram-jira-event] ${mapping.role} message-id Jira field not configured — cannot project status for ${issueKey}`);
-    return NextResponse.json({ ok: true, skipped: 'field_not_configured' });
-  }
 
-  const requestedFields = [messageIdField, ...(fieldIds.displayName ? [fieldIds.displayName] : [])];
-  const issue = await getJiraIssue(issueKey, requestedFields);
+  const issue = await getJiraIssue(issueKey, [messageIdField, fieldIds.displayName]);
   if (!issue) {
     return NextResponse.json({ error: 'Jira issue not found or Jira not configured' }, { status: 404 });
   }
@@ -151,7 +143,7 @@ async function handleStatusChanged(issueKey: string, jiraStatus: string): Promis
     return NextResponse.json({ ok: true, action: 'no_broadcast' });
   }
 
-  const executorName = fieldIds.displayName ? extractTextValue(issue.fields[fieldIds.displayName]) : null;
+  const executorName = extractTextValue(issue.fields[fieldIds.displayName]);
 
   const { text, buttons } = buildStatusUpdateMessage({
     issueKey,

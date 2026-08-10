@@ -1,61 +1,43 @@
-import { telegramRoleFieldIds, pageCountFieldId, payoutFieldId } from '../jira-fields';
-
-const ORIGINAL_ENV = { ...process.env };
-
-afterEach(() => {
-  process.env = { ...ORIGINAL_ENV };
-});
+import { telegramRoleFieldIds, payoutFieldForRole, PAGE_COUNT_FIELD } from '../jira-fields';
+import { JIRA_FIELDS } from '@/lib/jira/client';
 
 describe('telegramRoleFieldIds', () => {
-  it('returns translator field IDs for role=translator', () => {
-    process.env.JIRA_FIELD_TG_TRANSLATOR_MESSAGE_ID = 'customfield_20001';
-    process.env.JIRA_FIELD_TG_TRANSLATOR_USER_ID = 'customfield_20002';
-    process.env.JIRA_FIELD_TG_TRANSLATOR_NAME = 'customfield_20003';
-
+  it('returns the hardcoded translator field IDs for role=translator', () => {
     expect(telegramRoleFieldIds('translator')).toEqual({
-      messageId: 'customfield_20001',
-      userId: 'customfield_20002',
-      displayName: 'customfield_20003',
+      messageId: JIRA_FIELDS.telegramTranslatorMessageId,
+      userId: JIRA_FIELDS.telegramTranslatorUserId,
+      displayName: JIRA_FIELDS.telegramTranslatorName,
     });
   });
 
-  it('returns notary field IDs for role=notary', () => {
-    process.env.JIRA_FIELD_TG_NOTARY_MESSAGE_ID = 'customfield_20004';
-    process.env.JIRA_FIELD_TG_NOTARY_USER_ID = 'customfield_20005';
-    process.env.JIRA_FIELD_TG_NOTARY_NAME = 'customfield_20006';
-
+  it('returns the hardcoded notary field IDs for role=notary', () => {
     expect(telegramRoleFieldIds('notary')).toEqual({
-      messageId: 'customfield_20004',
-      userId: 'customfield_20005',
-      displayName: 'customfield_20006',
+      messageId: JIRA_FIELDS.telegramNotaryMessageId,
+      userId: JIRA_FIELDS.telegramNotaryUserId,
+      displayName: JIRA_FIELDS.telegramNotaryName,
     });
   });
 
-  it('returns undefined for any field whose env var is not configured', () => {
-    delete process.env.JIRA_FIELD_TG_TRANSLATOR_MESSAGE_ID;
-    delete process.env.JIRA_FIELD_TG_TRANSLATOR_USER_ID;
-    delete process.env.JIRA_FIELD_TG_TRANSLATOR_NAME;
-
-    expect(telegramRoleFieldIds('translator')).toEqual({
-      messageId: undefined,
-      userId: undefined,
-      displayName: undefined,
-    });
+  it('never returns undefined — these are always-hardcoded constants, not optional config', () => {
+    const translator = telegramRoleFieldIds('translator');
+    const notary = telegramRoleFieldIds('notary');
+    expect(Object.values(translator).every((v) => typeof v === 'string' && v.length > 0)).toBe(true);
+    expect(Object.values(notary).every((v) => typeof v === 'string' && v.length > 0)).toBe(true);
   });
 });
 
-describe('pageCountFieldId / payoutFieldId', () => {
-  it('read the shared (non-role-specific) env vars', () => {
-    process.env.JIRA_FIELD_TG_PAGE_COUNT = 'customfield_20007';
-    process.env.JIRA_FIELD_TG_PAYOUT_AMOUNT_KZT = 'customfield_20008';
-    expect(pageCountFieldId()).toBe('customfield_20007');
-    expect(payoutFieldId()).toBe('customfield_20008');
+describe('payoutFieldForRole', () => {
+  it('returns the translator payout field for role=translator', () => {
+    expect(payoutFieldForRole('translator')).toBe(JIRA_FIELDS.translatorPayout);
   });
 
-  it('return undefined when not configured', () => {
-    delete process.env.JIRA_FIELD_TG_PAGE_COUNT;
-    delete process.env.JIRA_FIELD_TG_PAYOUT_AMOUNT_KZT;
-    expect(pageCountFieldId()).toBeUndefined();
-    expect(payoutFieldId()).toBeUndefined();
+  it('returns the notary payout field for role=notary', () => {
+    expect(payoutFieldForRole('notary')).toBe(JIRA_FIELDS.notaryPayout);
+  });
+});
+
+describe('PAGE_COUNT_FIELD', () => {
+  it('is the shared payable-page-count field', () => {
+    expect(PAGE_COUNT_FIELD).toBe(JIRA_FIELDS.payablePageCount);
   });
 });

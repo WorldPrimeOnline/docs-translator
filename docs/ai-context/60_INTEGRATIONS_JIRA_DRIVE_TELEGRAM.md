@@ -143,12 +143,18 @@ operational identity. No Supabase table backs any part of it.** A Jira issue wit
 WPO order at all — e.g. one created manually in Jira (normal fields populated, `wpo-production`
 label added) purely to test the Jira → Telegram → claim/start/done → Jira loop end-to-end, with no
 `jobs`/`documents`/`price_quotes` row ever created — is a fully valid Telegram Operations issue,
-identically to a real order. All persistence is 8 new Jira custom fields (per-role Message ID / User
-ID / Display Name, plus a shared Page Count / Payout Amount pair), read/written via env-configured
-field IDs in `src/lib/telegram-ops/jira-fields.ts` — see `docs/TELEGRAM_OPERATIONS_SETUP.md` for the
-exact field list and env vars. The earlier iteration's `telegram_assignments` Supabase table
-(migrations `0068`/`0069`) is no longer read or written by any runtime code — left in place, unused;
-see `docs/ai-context/DECISIONS.md` for why it wasn't dropped yet.
+identically to a real order. All persistence is 9 Jira custom fields (per-role Message ID / User ID /
+name — "Переводчик"/"Нотариус" — plus per-role payout and a shared payable-page-count field),
+**hardcoded** in `JIRA_FIELDS` (`src/lib/jira/client.ts`, mirrored in
+`worker/src/lib/jira/order-fields.ts`) exactly like every other Jira custom field in this codebase —
+no env vars for field IDs. `src/lib/telegram-ops/jira-fields.ts` is just the role-dispatch layer on
+top of those constants. See `docs/TELEGRAM_OPERATIONS_SETUP.md` for the exact field list. The payable
+page count and both payout fields are populated by the order-creation pipeline at issue-creation time
+from the pricing engine's own output (`price_quotes.translation_page_count_exact`,
+`cost_reservations.amount_kzt`) — Telegram Operations itself never computes or writes them, only
+reads. The earlier iteration's `telegram_assignments` Supabase table (migrations `0068`/`0069`) is no
+longer read or written by any runtime code — left in place, unused; see
+`docs/ai-context/DECISIONS.md` for why it wasn't dropped yet.
 
 **This does NOT create an exception to "WPO never calls Jira transitions."** The forward path is
 Telegram button → `/api/telegram/webhook` (validates chat, does a read-only status precheck against
