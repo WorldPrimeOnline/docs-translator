@@ -684,3 +684,19 @@ The prior design used env vars for field IDs (defensible when the real Jira fiel
 
 **Risks / caveats:**  
 None of the 9 fields have real production data yet until the Jira Automation claim rules are updated to write customfield_10125-10128 (see docs/TELEGRAM_OPERATIONS_SETUP.md Rule 4) -- broadcast/status-projection code paths already handle empty fields gracefully (never fabricates, never errors). The 3 pricing fields will only populate for new orders created after this deploy; existing in-flight Jira issues will have those 3 fields empty (message lines correctly omitted, not an error) until backfilled manually if desired -- no backfill script written, out of scope.
+
+---
+
+### 2026-08-10 — Telegram claim dispatch: Jira Automation is the sole authority, no local status precheck
+
+**Decision:**  
+Removed the local 'already claimed' status precheck from /api/telegram/webhook's handleClaim(). translator_claim and notary_claim now always dispatch to Jira Automation once the Telegram-side envelope (webhook secret, chat id, callback_data shape) is valid — zero Jira reads, zero local accept/reject decision for claims. Jira Automation's own status-precondition check, executed atomically with the ownership field writes and the transition, is the sole gate. Start/done keep their existing ownership (Jira User ID field) and status-precondition checks unchanged.
+
+**Rationale:**  
+WO-122 production incident (2026-08-10): the local precheck compared a separately-fetched Jira status snapshot against a hardcoded expected value and rejected a legitimately-claimable OPEN issue before Jira Automation was ever contacted, leaving the issue OPEN/unassigned with no way to claim it via Telegram. The precheck had no guarantee of matching what Automation's own authoritative check would see moments later — it was a single point of failure with zero benefit beyond marginally faster (but sometimes wrong) UX feedback.
+
+**Impacted files/docs:**  
+`Not specified`
+
+**Risks / caveats:**  
+`Not specified`

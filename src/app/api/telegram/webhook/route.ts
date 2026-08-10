@@ -1,13 +1,25 @@
 // Telegram -> WPO callback-button handler.
 //
 // Telegram Operations is entirely Jira-driven — no Supabase table backs this
-// feature. Ownership state (who claimed an issue) lives only in Jira custom
-// fields, written ONLY by Jira Automation as part of the same rule execution that
-// validates the current status and performs the claim transition — this route
-// never pre-writes ownership fields itself. Railway/Vercel never calls a Jira
-// transition either; it only ever forwards a validated action request to the
-// single Jira Automation incoming-webhook rule
+// feature. Railway/Vercel never calls a Jira transition; it only ever forwards a
+// validated action request to the single Jira Automation incoming-webhook rule
 // (JIRA_AUTOMATION_TELEGRAM_ACTION_WEBHOOK_URL).
+//
+// *_claim (translator_claim / notary_claim): Jira Automation is the SOLE
+// authority for claim acceptance. This route does not fetch the Jira issue, does
+// not inspect its status, and does not locally decide whether an order is
+// already claimed — it only validates the Telegram-side envelope (webhook
+// secret, chat, action shape) and dispatches. WO-122 production incident
+// (2026-08-10): a local status precheck here rejected a legitimately-claimable
+// OPEN issue ("Заказ уже назначен другому переводчику.") before Automation was
+// ever contacted, based on a separately-fetched status value with no guarantee
+// of matching what Automation's own check would see — removed entirely, not
+// patched, per docs/ai-context/DECISIONS.md.
+//
+// *_start / *_done: ownership validation against the stored Jira User ID field
+// DOES remain — these actions must only be available to whoever actually
+// claimed the order, and that check is a plain read with no accept/reject
+// ambiguity like the claim precheck had.
 //
 // This route never edits the Telegram message — the message is only ever edited
 // by /api/telegram/jira-event's status_changed handler, driven by Jira's own
@@ -56,13 +68,39 @@ function chatIdForRole(role: TelegramOpsRole): string | undefined {
     : process.env.TELEGRAM_NOTARY_CHAT_ID;
 }
 
-const CLAIM_TAKEN_MESSAGE: Record<TelegramOpsRole, string> = {
-  translator: 'Заказ уже назначен другому переводчику.',
-  notary: 'Заказ уже назначен другому нотариусу.',
-};
+/**
+ * Explicit, structured log line for every action callback (claim/start/done),
+ * regardless of outcome — the single place all of issueKey/action/telegramUserId/
+ * role/dispatch-decision/Automation HTTP status are recorded together, for
+ * production debugging of exactly the WO-122 class of incident.
+ */
+function logCallbackOutcome(params: {
+  issueKey: string;
+  action: TelegramOpsAction;
+  telegramUserId: string;
+  role: TelegramOpsRole;
+  dispatched: boolean;
+  rejectionReason?: string;
+  automationHttpStatus?: number | null;
+}): void {
+  console.log(
+    `[telegram-webhook] callback issueKey=${params.issueKey} action=${params.action} ` +
+    `telegramUserId=${params.telegramUserId} role=${params.role} ` +
+    `dispatch=${params.dispatched ? 'yes' : 'no'} ` +
+    `reason=${params.rejectionReason ?? '-'} ` +
+    `automationStatus=${params.automationHttpStatus ?? '-'}`,
+  );
+}
 
 // ─── Handling ─────────────────────────────────────────────────────────────────
 
+/**
+ * translator_claim / notary_claim: Jira Automation is the sole authority.
+ * No Jira read, no local accept/reject decision — validate the Telegram-side
+ * envelope only (already done by the caller: secret, chat, action shape) and
+ * always dispatch. Automation validates the current status itself and either
+ * writes ownership fields + transitions, or silently no-ops.
+ */
 async function handleClaim(
   issueKey: string,
   role: TelegramOpsRole,
@@ -70,29 +108,24 @@ async function handleClaim(
   callbackQueryId: string,
 ): Promise<void> {
   const action: TelegramOpsAction = role === 'translator' ? 'translator_claim' : 'notary_claim';
-
-  // Read-only, fast-fail precheck only — never writes anything. Jira Automation's
-  // own status check, as part of the same execution that sets the ownership
-  // fields and transitions, is the real (and only) gate against a double claim.
-  const issue = await getJiraIssue(issueKey, []);
-  if (!issue) {
-    console.error(`[telegram-webhook] ${action} rejected: Jira issue ${issueKey} not found`);
-    await answerCallbackQuery(callbackQueryId, 'Заказ не найден.', true);
-    return;
-  }
-  if (issue.statusName !== REQUIRED_STATUS_FOR_ACTION[action]) {
-    await answerCallbackQuery(callbackQueryId, CLAIM_TAKEN_MESSAGE[role], true);
-    return;
-  }
-
+  const telegramUserId = String(from.id);
   const displayName = displayNameFor(from);
 
-  await forwardActionToJiraAutomation({
+  const result = await forwardActionToJiraAutomation({
     issueKey,
     action,
-    telegramUserId: String(from.id),
+    telegramUserId,
     executorName: displayName,
     role,
+  });
+
+  logCallbackOutcome({
+    issueKey,
+    action,
+    telegramUserId,
+    role,
+    dispatched: true,
+    automationHttpStatus: result.httpStatus,
   });
 
   await answerCallbackQuery(callbackQueryId, 'Принято, ожидайте подтверждения.');
@@ -106,11 +139,13 @@ async function handleStartOrDone(
   callbackQueryId: string,
 ): Promise<void> {
   const action: TelegramOpsAction = `${role}_${kind}` as TelegramOpsAction;
+  const telegramUserId = String(from.id);
 
   const userIdField = telegramRoleFieldIds(role).userId;
   const issue = await getJiraIssue(issueKey, [userIdField]);
   if (!issue) {
     console.error(`[telegram-webhook] ${action} rejected: Jira issue ${issueKey} not found`);
+    logCallbackOutcome({ issueKey, action, telegramUserId, role, dispatched: false, rejectionReason: 'issue_not_found' });
     await answerCallbackQuery(callbackQueryId, 'Заказ не найден.', true);
     return;
   }
@@ -118,10 +153,12 @@ async function handleStartOrDone(
   const storedUserId = extractTextValue(issue.fields[userIdField]);
   if (!storedUserId) {
     console.error(`[telegram-webhook] ${action} rejected: no claimant recorded on ${issueKey} yet`);
+    logCallbackOutcome({ issueKey, action, telegramUserId, role, dispatched: false, rejectionReason: 'no_claimant_recorded' });
     await answerCallbackQuery(callbackQueryId, 'Заказ ещё не назначен.', true);
     return;
   }
-  if (storedUserId !== String(from.id)) {
+  if (storedUserId !== telegramUserId) {
+    logCallbackOutcome({ issueKey, action, telegramUserId, role, dispatched: false, rejectionReason: 'not_owner' });
     await answerCallbackQuery(callbackQueryId, 'Этот заказ назначен другому исполнителю.', true);
     return;
   }
@@ -133,18 +170,28 @@ async function handleStartOrDone(
   // confirmed "in progress" (this route's check is a fast UX nicety; Automation
   // re-validates the same precondition authoritatively before transitioning).
   if (issue.statusName !== REQUIRED_STATUS_FOR_ACTION[action]) {
+    logCallbackOutcome({ issueKey, action, telegramUserId, role, dispatched: false, rejectionReason: `wrong_status:${issue.statusName}` });
     await answerCallbackQuery(callbackQueryId, 'Действие уже выполнено или ожидает подтверждения от Jira.');
     return;
   }
 
   const displayName = displayNameFor(from);
 
-  await forwardActionToJiraAutomation({
+  const result = await forwardActionToJiraAutomation({
     issueKey,
     action,
-    telegramUserId: String(from.id),
+    telegramUserId,
     executorName: displayName,
     role,
+  });
+
+  logCallbackOutcome({
+    issueKey,
+    action,
+    telegramUserId,
+    role,
+    dispatched: true,
+    automationHttpStatus: result.httpStatus,
   });
 
   await answerCallbackQuery(callbackQueryId, 'Принято, ожидайте подтверждения.');

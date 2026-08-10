@@ -6,11 +6,15 @@
  * Automation as part of the claim-transition rule execution — this route never
  * pre-writes ownership fields.
  *
- * Verifies: auth, callback_data parsing, chat validation, claim precheck against
- * Jira issue status (fast/non-authoritative — never writes), ownership checks for
- * start/done against the stored Jira user-id field, status-precondition
- * idempotency, and that every successful action is forwarded to Jira Automation
- * (never a direct Jira transition, never a direct field write for ownership).
+ * Claim (translator_claim / notary_claim): Jira Automation is the SOLE authority
+ * for claim acceptance. WO-122 production incident (2026-08-10) — a local status
+ * precheck here rejected a legitimately-claimable OPEN issue before Automation was
+ * ever contacted. Fixed by removing the local check entirely: this route never
+ * calls getJiraIssue for a claim and always dispatches once the Telegram-side
+ * envelope (secret, chat, action shape) is valid.
+ *
+ * Start/done: ownership checks against the stored Jira user-id field, and
+ * status-precondition idempotency, are unchanged and still verified here.
  */
 
 process.env.TELEGRAM_WEBHOOK_SECRET = 'tg-secret';
@@ -37,7 +41,7 @@ const mockForward = forwardActionToJiraAutomation as jest.Mock;
 
 beforeEach(() => {
   jest.clearAllMocks();
-  mockForward.mockResolvedValue({ ok: true, error: null });
+  mockForward.mockResolvedValue({ ok: true, error: null, httpStatus: 200 });
 });
 
 function makeUpdate(body: unknown, secret = 'tg-secret'): NextRequest {
@@ -84,27 +88,30 @@ describe('POST /api/telegram/webhook', () => {
   it('returns 200 ok for updates with no callback_query', async () => {
     const res = await POST(makeUpdate({ message: { text: 'hi' } }));
     expect(res.status).toBe(200);
-    expect(mockGetJiraIssue).not.toHaveBeenCalled();
+    expect(mockForward).not.toHaveBeenCalled();
   });
 
   it('acknowledges but ignores unrecognized callback_data', async () => {
     const res = await POST(makeUpdate(makeCallback('something_else:WO-1')));
     expect(res.status).toBe(200);
     expect(mockAnswer).toHaveBeenCalledWith('cbq-1');
-    expect(mockGetJiraIssue).not.toHaveBeenCalled();
+    expect(mockForward).not.toHaveBeenCalled();
   });
 
   // ── Chat validation ───────────────────────────────────────────────────────
   it('rejects a claim from the wrong chat', async () => {
     await POST(makeUpdate(makeCallback('translator_claim:WO-1', -999999)));
     expect(mockAnswer).toHaveBeenCalledWith('cbq-1', 'Недоступно в этом чате.', true);
+    expect(mockForward).not.toHaveBeenCalled();
+  });
+
+  // ── Claim: Jira Automation is the sole authority — no local Jira read/check ──
+  it('never calls getJiraIssue for a claim — no local status precheck exists', async () => {
+    await POST(makeUpdate(makeCallback('translator_claim:WO-123')));
     expect(mockGetJiraIssue).not.toHaveBeenCalled();
   });
 
-  // ── Claim: happy path ─────────────────────────────────────────────────────
-  it('claims successfully and forwards translator_claim to Automation when status is OPEN', async () => {
-    mockGetJiraIssue.mockResolvedValue(issueWithStatus('OPEN'));
-
+  it('always dispatches translator_claim to Jira Automation once the Telegram envelope is valid, regardless of Jira state', async () => {
     const res = await POST(makeUpdate(makeCallback('translator_claim:WO-123')));
     expect(res.status).toBe(200);
 
@@ -118,57 +125,43 @@ describe('POST /api/telegram/webhook', () => {
     expect(mockAnswer).toHaveBeenCalledWith('cbq-1', 'Принято, ожидайте подтверждения.');
   });
 
-  it('claims successfully for a manually created Jira issue with no corresponding WPO order at all', async () => {
-    // This route never touches Supabase or a WPO job in any way — a Jira issue
-    // created purely to test the integration works identically to a real order.
-    mockGetJiraIssue.mockResolvedValue(issueWithStatus('OPEN'));
+  // Regression test for the WO-122 production incident: an OPEN issue with no
+  // claimant fields set yet must always be dispatched to Jira Automation for
+  // translator_claim — this route must never independently decide the issue is
+  // "already claimed" or otherwise unclaimable.
+  it('regression WO-122: OPEN issue with empty claimant fields always dispatches translator_claim to Jira Automation', async () => {
+    // Even though nothing stubs getJiraIssue to be consulted, assert dispatch
+    // happens unconditionally by never wiring a status/fields lookup at all.
+    mockGetJiraIssue.mockResolvedValue(issueWithStatus('OPEN', {
+      [F.telegramTranslatorUserId]: '',
+      [F.telegramTranslatorName]: '',
+    }));
 
-    const res = await POST(makeUpdate(makeCallback('translator_claim:WO-900')));
+    const res = await POST(makeUpdate(makeCallback('translator_claim:WO-122')));
+
     expect(res.status).toBe(200);
-    expect(mockForward).toHaveBeenCalledWith(expect.objectContaining({ issueKey: 'WO-900', action: 'translator_claim' }));
+    expect(mockGetJiraIssue).not.toHaveBeenCalled();
+    expect(mockForward).toHaveBeenCalledTimes(1);
+    expect(mockForward).toHaveBeenCalledWith(expect.objectContaining({
+      issueKey: 'WO-122',
+      action: 'translator_claim',
+    }));
+    expect(mockAnswer).toHaveBeenCalledWith('cbq-1', 'Принято, ожидайте подтверждения.');
   });
 
-  it('notary_claim requires status ПЕРЕВОД ЗАВЕРШЕН', async () => {
-    mockGetJiraIssue.mockResolvedValue(issueWithStatus('ПЕРЕВОД ЗАВЕРШЕН'));
-
+  it('always dispatches notary_claim to Jira Automation once the Telegram envelope is valid', async () => {
     const res = await POST(makeUpdate(makeCallback('notary_claim:WO-9', -100222)));
     expect(res.status).toBe(200);
+    expect(mockGetJiraIssue).not.toHaveBeenCalled();
     expect(mockForward).toHaveBeenCalledWith(expect.objectContaining({ issueKey: 'WO-9', action: 'notary_claim', role: 'notary' }));
   });
 
-  // ── Claim: never pre-writes ownership, never calls a transition ──────────
-  it('never calls anything beyond a read-only getJiraIssue before forwarding a claim', async () => {
-    mockGetJiraIssue.mockResolvedValue(issueWithStatus('OPEN'));
-    await POST(makeUpdate(makeCallback('translator_claim:WO-123')));
-    // getJiraIssue is read-only by construction (GET); the only other Jira-facing
-    // call this route ever makes is forwardActionToJiraAutomation — verified below.
-    expect(mockGetJiraIssue).toHaveBeenCalledTimes(1);
-    expect(mockForward).toHaveBeenCalledTimes(1);
-  });
-
-  // ── Claim: already claimed / wrong precondition ───────────────────────────
-  it('tells the translator the order is already claimed when status is not OPEN, and does not forward', async () => {
-    mockGetJiraIssue.mockResolvedValue(issueWithStatus('НАЗНАЧЕН ПЕРЕВОДЧИК'));
-    await POST(makeUpdate(makeCallback('translator_claim:WO-123')));
-    expect(mockAnswer).toHaveBeenCalledWith('cbq-1', 'Заказ уже назначен другому переводчику.', true);
-    expect(mockForward).not.toHaveBeenCalled();
-  });
-
-  it('uses the notary-specific taken message when status is not ПЕРЕВОД ЗАВЕРШЕН', async () => {
-    mockGetJiraIssue.mockResolvedValue(issueWithStatus('НАЗНАЧЕН НОТАРИУС'));
-    await POST(makeUpdate(makeCallback('notary_claim:WO-9', -100222)));
-    expect(mockAnswer).toHaveBeenCalledWith('cbq-1', 'Заказ уже назначен другому нотариусу.', true);
-    expect(mockForward).not.toHaveBeenCalled();
-  });
-
-  it('denies and logs loudly when the Jira issue cannot be found at all', async () => {
-    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    mockGetJiraIssue.mockResolvedValue(null);
-    await POST(makeUpdate(makeCallback('translator_claim:WO-404')));
-    expect(mockAnswer).toHaveBeenCalledWith('cbq-1', 'Заказ не найден.', true);
-    expect(mockForward).not.toHaveBeenCalled();
-    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('Jira issue WO-404 not found'));
-    errorSpy.mockRestore();
+  it('claims successfully for a manually created Jira issue with no corresponding WPO order at all', async () => {
+    // This route never touches Supabase or a WPO job in any way — a Jira issue
+    // created purely to test the integration works identically to a real order.
+    const res = await POST(makeUpdate(makeCallback('translator_claim:WO-900')));
+    expect(res.status).toBe(200);
+    expect(mockForward).toHaveBeenCalledWith(expect.objectContaining({ issueKey: 'WO-900', action: 'translator_claim' }));
   });
 
   // ── Start/done: issue not found ───────────────────────────────────────────
