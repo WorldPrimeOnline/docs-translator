@@ -38,7 +38,7 @@ describe('forwardActionToJiraAutomation', () => {
     expect(result.httpStatus).toBe(200);
     expect(fetchSpy).toHaveBeenCalledWith('https://automation.example/hook', expect.objectContaining({
       method: 'POST',
-      headers: expect.objectContaining({ 'X-WPO-Action-Secret': 'shh' }),
+      headers: expect.objectContaining({ 'X-Automation-Webhook-Token': 'shh' }),
     }));
     const body = JSON.parse((fetchSpy.mock.calls[0][1] as { body: string }).body) as Record<string, unknown>;
     expect(body).toEqual({

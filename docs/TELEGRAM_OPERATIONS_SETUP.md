@@ -127,7 +127,7 @@ No env vars are used for Jira field IDs — see the field table above.
 |---|---|---|
 | `TELEGRAM_WEBHOOK_SECRET` | Vercel (web) | Value you choose; passed to `setWebhook` as `secret_token` (see below) and checked against the `X-Telegram-Bot-Api-Secret-Token` header on every `/api/telegram/webhook` call. |
 | `JIRA_AUTOMATION_TELEGRAM_ACTION_WEBHOOK_URL` | Vercel (web) | The single Jira Automation "Incoming webhook" trigger URL (see Rule 4 below). |
-| `JIRA_AUTOMATION_ACTION_WEBHOOK_SECRET` | Vercel (web) | Sent as `X-WPO-Action-Secret` on every forwarded action; check it in the Automation rule's first condition. |
+| `JIRA_AUTOMATION_ACTION_WEBHOOK_SECRET` | Vercel (web) | Sent as `X-Automation-Webhook-Token` on every forwarded action; check it in the Automation rule's first condition. |
 
 Reused, unchanged:
 
@@ -206,7 +206,7 @@ right role + button state. Any other status this issue passes through later
 
 **Trigger**: Incoming webhook.
 
-**First step — validate the secret**: Condition on the request header `X-WPO-Action-Secret` equals `<JIRA_AUTOMATION_ACTION_WEBHOOK_SECRET>` (reject/stop otherwise).
+**First step — validate the secret**: Condition on the request header `X-Automation-Webhook-Token` equals `<JIRA_AUTOMATION_ACTION_WEBHOOK_SECRET>` (reject/stop otherwise).
 
 **Payload received**:
 

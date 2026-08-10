@@ -41,7 +41,7 @@ export async function forwardActionToJiraAutomation(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(secret ? { 'X-WPO-Action-Secret': secret } : {}),
+        ...(secret ? { 'X-Automation-Webhook-Token': secret } : {}),
       },
       body: JSON.stringify({
         issueKey: params.issueKey,
