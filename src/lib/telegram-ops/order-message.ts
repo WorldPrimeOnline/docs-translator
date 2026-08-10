@@ -168,6 +168,26 @@ export const REQUIRED_STATUS_FOR_ACTION: Record<TelegramOpsAction, string> = {
 };
 
 /**
+ * Case/whitespace-insensitive lookup key. Jira Automation's actual status_changed
+ * payload casing (e.g. "Назначен переводчик") doesn't reliably match this file's
+ * ALL-CAPS map keys byte-for-byte — WO-122 incident (2026-08-10): a real production
+ * payload silently missed the map on exact-match lookup, so the Telegram message
+ * was never edited, with no log trace. Does not rename any Jira status, Automation
+ * rule, or workflow value — comparison-only normalization.
+ */
+function normalizeStatusKey(value: string): string {
+  return value.trim().toLocaleLowerCase('ru-RU');
+}
+
+const TRANSLATOR_STATUS_MAP_NORMALIZED: Record<string, StatusMapEntry> = Object.fromEntries(
+  Object.entries(TRANSLATOR_STATUS_MAP).map(([key, entry]) => [normalizeStatusKey(key), entry]),
+);
+
+const NOTARY_STATUS_MAP_NORMALIZED: Record<string, StatusMapEntry> = Object.fromEntries(
+  Object.entries(NOTARY_STATUS_MAP).map(([key, entry]) => [normalizeStatusKey(key), entry]),
+);
+
+/**
  * Maps a raw Jira status name to the role + display entry it belongs to.
  * Returns null for any status outside these 6 — the issue may pass through many
  * other statuses (delivery, pickup, etc.) unrelated to this Telegram sub-flow, and
@@ -176,10 +196,12 @@ export const REQUIRED_STATUS_FOR_ACTION: Record<TelegramOpsAction, string> = {
 export function resolveStatusMapping(
   jiraStatus: string,
 ): { role: TelegramOpsRole; entry: StatusMapEntry } | null {
-  const translatorEntry = TRANSLATOR_STATUS_MAP[jiraStatus];
+  const key = normalizeStatusKey(jiraStatus);
+
+  const translatorEntry = TRANSLATOR_STATUS_MAP_NORMALIZED[key];
   if (translatorEntry) return { role: 'translator', entry: translatorEntry };
 
-  const notaryEntry = NOTARY_STATUS_MAP[jiraStatus];
+  const notaryEntry = NOTARY_STATUS_MAP_NORMALIZED[key];
   if (notaryEntry) return { role: 'notary', entry: notaryEntry };
 
   return null;

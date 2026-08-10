@@ -226,7 +226,66 @@ describe('POST /api/telegram/jira-event', () => {
     expect(mockGetJiraIssue).not.toHaveBeenCalled();
   });
 
+  // Regression: production WO-122 incident (2026-08-10) — Jira Automation sends the
+  // real status name in sentence case ("Назначен переводчик"). resolveStatusMapping()
+  // is now case/whitespace-insensitive (normalizeStatusKey), so this must edit the
+  // Telegram message exactly like the internal ALL-CAPS key does, with a full,
+  // non-skipped diagnostic log line.
+  it('regression WO-122: real sentence-case jiraStatus from Jira Automation resolves and edits the Telegram message', async () => {
+    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    mockGetJiraIssue.mockResolvedValue(issueWithFields({
+      [F.telegramTranslatorMessageId]: '7',
+      [F.telegramTranslatorName]: 'Test User',
+    }, 'WO-122'));
+    mockEdit.mockResolvedValue({ ok: true, messageId: '7', error: null });
+
+    const res = await POST(makeRequest({ event: 'status_changed', issueKey: 'WO-122', jiraStatus: 'Назначен переводчик' }));
+    const body = await res.json() as { action: string };
+
+    expect(res.status).toBe(200);
+    expect(body.action).toBe('message_updated');
+    expect(mockGetJiraIssue).toHaveBeenCalledTimes(1);
+    expect(mockEdit).toHaveBeenCalledWith(
+      '-100111', 7,
+      expect.stringContaining('Исполнитель: Test User'),
+      expect.arrayContaining([expect.objectContaining({ callback_data: 'translator_start:WO-122' })]),
+    );
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining(
+      'status_changed issueKey=WO-122 jiraStatus=Назначен переводчик role=translator messageId=7 executorName=Test User ' +
+      'nextAction=translator_start editAttempted=yes editSuccess=yes skipReason=-',
+    ));
+
+    logSpy.mockRestore();
+  });
+
+  // The six exact status strings Jira Automation sends in production — each must
+  // resolve to an edit attempt (not a silent no_op) end-to-end through this route.
+  it.each([
+    ['Назначен переводчик', F.telegramTranslatorMessageId, '-100111', 'translator_start:WO-1'],
+    ['Перевод в работе', F.telegramTranslatorMessageId, '-100111', 'translator_done:WO-1'],
+    ['Перевод завершен', F.telegramTranslatorMessageId, '-100111', null],
+    ['Назначен нотариус', F.telegramNotaryMessageId, '-100222', 'notary_start:WO-1'],
+    ['В работе у нотариуса', F.telegramNotaryMessageId, '-100222', 'notary_done:WO-1'],
+    ['Перевод заверен', F.telegramNotaryMessageId, '-100222', null],
+  ])('resolves the real Jira Automation status "%s" and edits the Telegram message', async (jiraStatus, messageIdField, chatId, expectedCallbackData) => {
+    mockGetJiraIssue.mockResolvedValue(issueWithFields({ [messageIdField]: '42' }, 'WO-1'));
+    mockEdit.mockResolvedValue({ ok: true, messageId: '42', error: null });
+
+    const res = await POST(makeRequest({ event: 'status_changed', issueKey: 'WO-1', jiraStatus }));
+    const body = await res.json() as { action: string };
+
+    expect(body.action).toBe('message_updated');
+    if (expectedCallbackData) {
+      expect(mockEdit).toHaveBeenCalledWith(chatId, 42, expect.any(String), expect.arrayContaining([
+        expect.objectContaining({ callback_data: expectedCallbackData }),
+      ]));
+    } else {
+      expect(mockEdit).toHaveBeenCalledWith(chatId, 42, expect.any(String), []);
+    }
+  });
+
   it('edits the stored Telegram message when a recognized status is confirmed', async () => {
+    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
     mockGetJiraIssue.mockResolvedValue(issueWithFields({
       [F.telegramTranslatorMessageId]: '999',
       [F.telegramTranslatorName]: 'Aigerim',
@@ -242,6 +301,12 @@ describe('POST /api/telegram/jira-event', () => {
       expect.stringContaining('Исполнитель: Aigerim'),
       expect.arrayContaining([expect.objectContaining({ callback_data: 'translator_start:WO-123' })]),
     );
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining(
+      'status_changed issueKey=WO-123 jiraStatus=НАЗНАЧЕН ПЕРЕВОДЧИК role=translator messageId=999 executorName=Aigerim ' +
+      'nextAction=translator_start editAttempted=yes editSuccess=yes skipReason=-',
+    ));
+
+    logSpy.mockRestore();
   });
 
   it('returns no_broadcast and does not call Telegram when the message-id field is empty', async () => {
