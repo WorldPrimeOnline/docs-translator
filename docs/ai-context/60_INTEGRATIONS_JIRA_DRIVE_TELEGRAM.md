@@ -157,15 +157,31 @@ longer read or written by any runtime code — left in place, unused; see
 `docs/ai-context/DECISIONS.md` for why it wasn't dropped yet.
 
 **This does NOT create an exception to "WPO never calls Jira transitions."** The forward path is
-Telegram button → `/api/telegram/webhook` (validates chat, does a read-only status precheck against
-the Jira issue — fast/non-authoritative UX only, never writes anything) → the single Jira Automation
-"incoming webhook" rule (`JIRA_AUTOMATION_TELEGRAM_ACTION_WEBHOOK_URL`). For `*_claim` actions, that
-one rule execution atomically validates the current Jira status, **sets the Telegram User ID +
-Display Name fields**, performs the transition, and adds the audit comment — Railway/Vercel
-deliberately never pre-writes those two ownership fields itself (that would race two simultaneous
-claims against each other with no compare-and-swap available), so Jira Automation is the only thing
-that ever writes them, in the same execution that also owns the transition. For `*_start`/`*_done`,
-no field write is needed — Automation just re-validates status and transitions. The reverse path is
+Telegram button → `/api/telegram/webhook` (validates Telegram webhook secret, chat, and
+`callback_data` shape only) → the single Jira Automation "incoming webhook" rule
+(`JIRA_AUTOMATION_TELEGRAM_ACTION_WEBHOOK_URL`). For `*_claim` actions, **Jira Automation is the sole
+authority for claim acceptance** — the route performs zero Jira reads and zero local accept/reject
+decisions before dispatching; it always forwards once the Telegram-side envelope is valid. One rule
+execution on the Automation side atomically validates the current Jira status, **sets the Telegram
+User ID + Display Name fields**, performs the transition, and adds the audit comment — or rejects/
+no-ops if the status is no longer claimable. Railway/Vercel deliberately never pre-writes those two
+ownership fields itself (that would race two simultaneous claims against each other with no
+compare-and-swap available), so Jira Automation is the only thing that ever writes them, in the same
+execution that also owns the transition.
+
+**Incident (WO-122, 2026-08-10):** the original implementation of this route *did* perform a local
+"already claimed" precheck against the fetched Jira status before dispatching, as fast/
+non-authoritative UX. In production this rejected a legitimately-claimable OPEN issue — the bot
+answered "Заказ уже назначен другому переводчику" and Jira Automation never received the request, so
+the issue stayed OPEN/unassigned. The precheck was a single point of failure comparing a
+separately-fetched status value against a hardcoded expectation, with no guarantee of matching what
+Automation's own (authoritative) check would see moments later. **Fix: removed entirely, not
+patched** — claim dispatch is now unconditional. `*_start`/`*_done` keep their local ownership check
+(Jira User ID field comparison) and status-precondition check unchanged, since those must gate on
+"is this the claimant," a plain read with no accept/reject ambiguity like the claim precheck had.
+
+For `*_start`/`*_done`, no field write is needed — Automation just re-validates status and
+transitions. The reverse path is
 the normal Jira status-changed event (one Automation rule watching 6 statuses) → `/api/telegram/jira-event`
 (`event=status_changed`) → reads the Message ID + Display Name fields and edits the existing Telegram
 message in place. Telegram is a pure projection of Jira state — never edited optimistically by a

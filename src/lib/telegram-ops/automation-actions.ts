@@ -19,6 +19,10 @@ export interface ForwardActionParams {
 export interface ForwardActionResult {
   ok: boolean;
   error: string | null;
+  /** The Jira Automation incoming-webhook's raw HTTP response status, for the
+   * caller's explicit per-callback logging. Null when no response was ever
+   * received (URL not configured, or the request itself threw — DNS/network). */
+  httpStatus: number | null;
 }
 
 export async function forwardActionToJiraAutomation(
@@ -27,7 +31,7 @@ export async function forwardActionToJiraAutomation(
   const url = process.env.JIRA_AUTOMATION_TELEGRAM_ACTION_WEBHOOK_URL;
   if (!url) {
     console.error('[telegram-ops] JIRA_AUTOMATION_TELEGRAM_ACTION_WEBHOOK_URL not set — cannot forward action');
-    return { ok: false, error: 'JIRA_AUTOMATION_TELEGRAM_ACTION_WEBHOOK_URL not set' };
+    return { ok: false, error: 'JIRA_AUTOMATION_TELEGRAM_ACTION_WEBHOOK_URL not set', httpStatus: null };
   }
 
   const secret = process.env.JIRA_AUTOMATION_ACTION_WEBHOOK_SECRET;
@@ -52,13 +56,13 @@ export async function forwardActionToJiraAutomation(
       const text = await res.text().catch(() => '');
       const error = `HTTP ${res.status}: ${text.slice(0, 200)}`;
       console.error(`[telegram-ops] forwardActionToJiraAutomation failed: ${error}`);
-      return { ok: false, error };
+      return { ok: false, error, httpStatus: res.status };
     }
 
-    return { ok: true, error: null };
+    return { ok: true, error: null, httpStatus: res.status };
   } catch (err) {
     const error = err instanceof Error ? err.message : String(err);
     console.error(`[telegram-ops] forwardActionToJiraAutomation threw: ${error}`);
-    return { ok: false, error };
+    return { ok: false, error, httpStatus: null };
   }
 }

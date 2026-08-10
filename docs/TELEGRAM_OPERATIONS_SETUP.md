@@ -30,13 +30,14 @@ Jira issue reaches "ПЕРЕВОД ЗАВЕРШЕН" + your ────► /api
                                                           Message ID field
 
 Telegram button tap (claim) ──────────────────────► /api/telegram/webhook
-                                                        → validates chat + Jira
-                                                          issue status (read-only
-                                                          fast-fail precheck)
-                                                        → forwards {issueKey, action,
-                                                          telegramUserId, executorName,
-                                                          role} to the ONE Automation
-                                                          incoming-webhook rule below
+                                                        → validates chat + callback
+                                                          shape only — NO Jira read,
+                                                          NO local claimable check
+                                                        → always forwards {issueKey,
+                                                          action, telegramUserId,
+                                                          executorName, role} to the
+                                                          ONE Automation incoming-
+                                                          webhook rule below
                                                         → NEVER writes any Jira field
 
 Jira Automation incoming-webhook rule ────────────► For *_claim: validates status,
@@ -238,8 +239,10 @@ deliberately never writes these two fields itself.
 
 If the precondition fails (someone else already advanced the status, or a
 duplicate Telegram tap arrived), **do not transition and do not set the fields** —
-this rule's own status check is the authoritative concurrency guard; Railway's own
-precheck (in `/api/telegram/webhook`) is a fast, non-authoritative UX nicety only.
+this rule's own status check is the *sole* concurrency/eligibility guard for claims.
+`/api/telegram/webhook` performs no Jira read and no local claimable check before
+forwarding a `*_claim` action (see incident note below) — it forwards unconditionally
+once the Telegram-side envelope (secret, chat, `callback_data` shape) is valid.
 Failing silently (no web response needed) is fine: Telegram never waits on this
 rule's result, it only waits on the later `status_changed` event.
 
@@ -264,17 +267,28 @@ any kind:
 
 ## Concurrency & recovery
 
-- **Claim** (`translator_claim`/`notary_claim`): Railway does a read-only status
-  precheck (fast "already claimed" feedback) but never writes anything. The real
-  gate is Jira Automation's own status-precondition check, executed atomically
-  alongside the User ID/Display Name field writes and the transition (Rule 4
-  above). Accepted trade-off versus the previous Supabase-backed design: there is
-  no database-level compare-and-swap on the field write itself, so in a very tight
-  simultaneous-tap race the two Automation executions could both attempt to set
-  the ownership fields before either's status check re-runs — but Jira's own
-  transition locking still ensures only one execution actually transitions the
-  issue, so the workflow state is always correct; at worst the displayed executor
-  name could be briefly wrong until corrected by a subsequent action.
+- **Claim** (`translator_claim`/`notary_claim`): Railway/Vercel performs **zero**
+  Jira reads and **zero** local accept/reject decisions before dispatching — Jira
+  Automation is the sole authority for claim acceptance. The gate is entirely Jira
+  Automation's own status-precondition check, executed atomically alongside the
+  User ID/Display Name field writes and the transition (Rule 4 above). Accepted
+  trade-off versus the previous Supabase-backed design: there is no database-level
+  compare-and-swap on the field write itself, so in a very tight simultaneous-tap
+  race the two Automation executions could both attempt to set the ownership
+  fields before either's status check re-runs — but Jira's own transition locking
+  still ensures only one execution actually transitions the issue, so the
+  workflow state is always correct; at worst the displayed executor name could be
+  briefly wrong until corrected by a subsequent action.
+  **Incident (WO-122, 2026-08-10):** an earlier version of this route *did* run a
+  local "already claimed" precheck against the fetched Jira status before
+  dispatching, as fast non-authoritative UX. In production it rejected a
+  legitimately-claimable OPEN issue (bot replied "Заказ уже назначен другому
+  переводчику"; Jira Automation never received the request; the issue stayed
+  OPEN/unassigned) — a single point of failure comparing a separately-fetched
+  status snapshot against a hardcoded expectation, with no guarantee of matching
+  what Automation's own authoritative check would see moments later. Removed
+  entirely, not patched — see `docs/ai-context/60_INTEGRATIONS_JIRA_DRIVE_TELEGRAM.md`
+  and `docs/ai-context/DECISIONS.md`.
 - **Start/done**: gated by the issue's current status (must already equal the
   action's precondition — see `REQUIRED_STATUS_FOR_ACTION` in
   `src/lib/telegram-ops/order-message.ts`) *and* by the caller's Telegram user id

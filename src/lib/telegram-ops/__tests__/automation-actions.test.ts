@@ -20,13 +20,14 @@ describe('forwardActionToJiraAutomation', () => {
     });
 
     expect(result.ok).toBe(false);
+    expect(result.httpStatus).toBeNull();
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it('POSTs the action payload with the secret header when configured', async () => {
     process.env.JIRA_AUTOMATION_TELEGRAM_ACTION_WEBHOOK_URL = 'https://automation.example/hook';
     process.env.JIRA_AUTOMATION_ACTION_WEBHOOK_SECRET = 'shh';
-    const fetchSpy = jest.fn().mockResolvedValue({ ok: true, text: async () => '' });
+    const fetchSpy = jest.fn().mockResolvedValue({ ok: true, status: 200, text: async () => '' });
     global.fetch = fetchSpy as unknown as typeof fetch;
 
     const result = await forwardActionToJiraAutomation({
@@ -34,6 +35,7 @@ describe('forwardActionToJiraAutomation', () => {
     });
 
     expect(result.ok).toBe(true);
+    expect(result.httpStatus).toBe(200);
     expect(fetchSpy).toHaveBeenCalledWith('https://automation.example/hook', expect.objectContaining({
       method: 'POST',
       headers: expect.objectContaining({ 'X-WPO-Action-Secret': 'shh' }),
@@ -44,7 +46,7 @@ describe('forwardActionToJiraAutomation', () => {
     });
   });
 
-  it('returns ok:false on non-2xx response', async () => {
+  it('returns ok:false on non-2xx response, with the response status surfaced for logging', async () => {
     process.env.JIRA_AUTOMATION_TELEGRAM_ACTION_WEBHOOK_URL = 'https://automation.example/hook';
     global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 500, text: async () => 'boom' }) as unknown as typeof fetch;
 
@@ -54,9 +56,10 @@ describe('forwardActionToJiraAutomation', () => {
 
     expect(result.ok).toBe(false);
     expect(result.error).toContain('500');
+    expect(result.httpStatus).toBe(500);
   });
 
-  it('returns ok:false when fetch throws', async () => {
+  it('returns ok:false and httpStatus:null when fetch throws', async () => {
     process.env.JIRA_AUTOMATION_TELEGRAM_ACTION_WEBHOOK_URL = 'https://automation.example/hook';
     global.fetch = jest.fn().mockRejectedValue(new Error('network down')) as unknown as typeof fetch;
 
@@ -66,5 +69,6 @@ describe('forwardActionToJiraAutomation', () => {
 
     expect(result.ok).toBe(false);
     expect(result.error).toBe('network down');
+    expect(result.httpStatus).toBeNull();
   });
 });
