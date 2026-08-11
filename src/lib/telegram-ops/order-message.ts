@@ -108,16 +108,23 @@ function formatKzt(amount: number): string {
   return `${Math.round(amount).toLocaleString('ru-RU').replace(/\u00A0/g, ' ')} ₸`;
 }
 
-export function buildOrderBroadcastMessage(
-  data: OrderBroadcastData,
-): { text: string; buttons: CallbackButtonSpec[] } {
-  const lines: string[] = [`🆕 <b>${data.issueKey}</b>`, ''];
+/** Order-detail lines shared by the initial broadcast and every status_changed
+ * re-render — a status update must never drop this in favor of a bare summary. */
+function buildOrderDetailLines(data: OrderBroadcastData): string[] {
+  const lines: string[] = [];
   if (data.translationType) lines.push(`Тип услуги: ${data.translationType}`);
   if (data.documentType) lines.push(`Тип документа: ${data.documentType}`);
   if (data.languagePair) lines.push(`Языковая пара: ${data.languagePair}`);
   if (data.pageCount != null) lines.push(`Оплачиваемые страницы: ${data.pageCount}`);
   if (data.payoutKzt != null) lines.push(`${PAYOUT_LABEL[data.role]}: ${formatKzt(data.payoutKzt)}`);
   if (data.driveUrl) lines.push(`Материалы: ${data.driveUrl}`);
+  return lines;
+}
+
+export function buildOrderBroadcastMessage(
+  data: OrderBroadcastData,
+): { text: string; buttons: CallbackButtonSpec[] } {
+  const lines: string[] = [`🆕 <b>${data.issueKey}</b>`, '', ...buildOrderDetailLines(data)];
   lines.push('');
   lines.push('Исполнитель: не назначен');
 
@@ -179,6 +186,16 @@ function normalizeStatusKey(value: string): string {
   return value.trim().toLocaleLowerCase('ru-RU');
 }
 
+/**
+ * Case/whitespace-insensitive equality check for Jira status names, using the same
+ * normalization as resolveStatusMapping(). Exported for other Jira-status
+ * comparisons (e.g. /api/telegram/webhook's REQUIRED_STATUS_FOR_ACTION ownership/
+ * precondition check) that must not repeat the WO-122 exact-match bug.
+ */
+export function statusNamesMatch(a: string, b: string): boolean {
+  return normalizeStatusKey(a) === normalizeStatusKey(b);
+}
+
 const TRANSLATOR_STATUS_MAP_NORMALIZED: Record<string, StatusMapEntry> = Object.fromEntries(
   Object.entries(TRANSLATOR_STATUS_MAP).map(([key, entry]) => [normalizeStatusKey(key), entry]),
 );
@@ -207,20 +224,30 @@ export function resolveStatusMapping(
   return null;
 }
 
+/**
+ * Re-renders the FULL original broadcast card (same order-detail lines as
+ * buildOrderBroadcastMessage) with the executor/status/next-button swapped in —
+ * this is what editMessageWithCallbackButtons() writes over the original message.
+ * A status update must never collapse the detailed order card down to a bare
+ * issueKey/executor/status summary (WO-122 incident, 2026-08-10).
+ */
 export function buildStatusUpdateMessage(params: {
-  issueKey: string;
+  data: OrderBroadcastData;
   jiraStatus: string;
   entry: StatusMapEntry;
   executorName: string | null;
 }): { text: string; buttons: CallbackButtonSpec[] } {
-  const lines = [
-    `${params.entry.emoji} <b>${params.issueKey}</b>`,
+  const lines: string[] = [
+    `${params.entry.emoji} <b>${params.data.issueKey}</b>`,
+    '',
+    ...buildOrderDetailLines(params.data),
+    '',
     `Исполнитель: ${params.executorName ?? 'не назначен'}`,
     `Статус: ${params.jiraStatus}`,
   ];
 
   const buttons: CallbackButtonSpec[] = params.entry.nextButton
-    ? [{ text: params.entry.nextButton.text, callback_data: `${params.entry.nextButton.action}:${params.issueKey}` }]
+    ? [{ text: params.entry.nextButton.text, callback_data: `${params.entry.nextButton.action}:${params.data.issueKey}` }]
     : [];
 
   return { text: lines.join('\n'), buttons };

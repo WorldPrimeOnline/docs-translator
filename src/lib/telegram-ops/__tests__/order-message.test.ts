@@ -204,22 +204,44 @@ describe('resolveStatusMapping', () => {
 });
 
 describe('buildStatusUpdateMessage', () => {
-  it('renders claimed state with start button', () => {
+  // WO-122 incident (2026-08-10): this used to render a bare issueKey/executor/status
+  // summary, discarding the full order card the original broadcast showed. It must
+  // now re-render the exact same order-detail lines buildOrderBroadcastMessage does.
+  const fullData = {
+    issueKey: 'WO-123',
+    role: 'translator' as const,
+    translationType: 'Нотариально заверенный',
+    languagePair: 'RU → EN',
+    documentType: 'Доверенность',
+    pageCount: 3,
+    payoutKzt: 4500,
+    driveUrl: 'https://drive.example/x',
+  };
+
+  it('re-renders the full order card (not a bare summary) with the current status/executor/next-button', () => {
     const mapping = resolveStatusMapping('НАЗНАЧЕН ПЕРЕВОДЧИК')!;
     const { text, buttons } = buildStatusUpdateMessage({
-      issueKey: 'WO-123',
+      data: fullData,
       jiraStatus: 'НАЗНАЧЕН ПЕРЕВОДЧИК',
       entry: mapping.entry,
       executorName: 'Aigerim',
     });
-    expect(text).toBe('🟡 <b>WO-123</b>\nИсполнитель: Aigerim\nСтатус: НАЗНАЧЕН ПЕРЕВОДЧИК');
+    expect(text).toContain('🟡 <b>WO-123</b>');
+    expect(text).toContain('Тип услуги: Нотариально заверенный');
+    expect(text).toContain('Тип документа: Доверенность');
+    expect(text).toContain('Языковая пара: RU → EN');
+    expect(text).toContain('Оплачиваемые страницы: 3');
+    expect(text).toContain('Выплата переводчику: 4 500 ₸');
+    expect(text).toContain('Материалы: https://drive.example/x');
+    expect(text).toContain('Исполнитель: Aigerim');
+    expect(text).toContain('Статус: НАЗНАЧЕН ПЕРЕВОДЧИК');
     expect(buttons).toEqual([{ text: '▶️ Взять в работу', callback_data: 'translator_start:WO-123' }]);
   });
 
   it('renders terminal state with no buttons', () => {
     const mapping = resolveStatusMapping('ПЕРЕВОД ЗАВЕРЕН')!;
     const { buttons } = buildStatusUpdateMessage({
-      issueKey: 'WO-9',
+      data: { ...fullData, issueKey: 'WO-9', role: 'notary' as const },
       jiraStatus: 'ПЕРЕВОД ЗАВЕРЕН',
       entry: mapping.entry,
       executorName: 'Notary A',
@@ -230,11 +252,39 @@ describe('buildStatusUpdateMessage', () => {
   it('falls back to "не назначен" when executorName is null', () => {
     const mapping = resolveStatusMapping('ПЕРЕВОД В РАБОТЕ')!;
     const { text } = buildStatusUpdateMessage({
-      issueKey: 'WO-1',
+      data: { ...fullData, issueKey: 'WO-1' },
       jiraStatus: 'ПЕРЕВОД В РАБОТЕ',
       entry: mapping.entry,
       executorName: null,
     });
     expect(text).toContain('Исполнитель: не назначен');
+  });
+
+  it('uses the notary-specific payout label when role is notary', () => {
+    const mapping = resolveStatusMapping('В РАБОТЕ У НОТАРИУСА')!;
+    const { text } = buildStatusUpdateMessage({
+      data: { ...fullData, issueKey: 'WO-9', role: 'notary' as const },
+      jiraStatus: 'В РАБОТЕ У НОТАРИУСА',
+      entry: mapping.entry,
+      executorName: 'Notary A',
+    });
+    expect(text).toContain('Выплата нотариусу: 4 500 ₸');
+    expect(text).not.toContain('Выплата переводчику');
+  });
+
+  // Regression: real Jira Automation status casing must produce the identical full
+  // card, not just resolve — resolving without preserving order details would still
+  // reproduce the WO-122 "tiny message" symptom.
+  it('preserves full order-detail lines and displays the real sentence-case status text as-is', () => {
+    const mapping = resolveStatusMapping('Перевод в работе')!;
+    const { text } = buildStatusUpdateMessage({
+      data: fullData,
+      jiraStatus: 'Перевод в работе',
+      entry: mapping.entry,
+      executorName: 'Aigerim',
+    });
+    expect(text).toContain('Тип услуги: Нотариально заверенный');
+    expect(text).toContain('Оплачиваемые страницы: 3');
+    expect(text).toContain('Статус: Перевод в работе');
   });
 });

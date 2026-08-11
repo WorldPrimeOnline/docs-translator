@@ -217,4 +217,95 @@ describe('POST /api/telegram/webhook', () => {
       issueKey: 'WO-9', action: 'notary_done', telegramUserId: '7', executorName: 'Aigerim', role: 'notary',
     });
   });
+
+  // ── Regression: WO-122 (2026-08-10) — real Jira sentence-case statusName ────
+  // Production log: action=translator_start dispatch=no reason=wrong_status:Назначен
+  // переводчик, even though the issue's real status WAS the precondition status.
+  // handleStartOrDone() compared issue.statusName against REQUIRED_STATUS_FOR_ACTION
+  // with exact equality; Jira's real statusName is sentence case, not this file's
+  // ALL-CAPS test fixtures. Must dispatch for all 4 start/done actions.
+  describe('regression WO-122: real Jira Automation sentence-case statusName', () => {
+    it('forwards translator_start when statusName is "Назначен переводчик" (sentence case)', async () => {
+      mockGetJiraIssue.mockResolvedValue(issueWithStatus('Назначен переводчик', { [F.telegramTranslatorUserId]: '42' }));
+      await POST(makeUpdate(makeCallback('translator_start:WO-122')));
+      expect(mockForward).toHaveBeenCalledWith({
+        issueKey: 'WO-122', action: 'translator_start', telegramUserId: '42', executorName: 'Aigerim', role: 'translator',
+      });
+    });
+
+    it('forwards translator_done when statusName is "Перевод в работе" (sentence case)', async () => {
+      mockGetJiraIssue.mockResolvedValue(issueWithStatus('Перевод в работе', { [F.telegramTranslatorUserId]: '42' }));
+      await POST(makeUpdate(makeCallback('translator_done:WO-122')));
+      expect(mockForward).toHaveBeenCalledWith(expect.objectContaining({
+        issueKey: 'WO-122', action: 'translator_done',
+      }));
+    });
+
+    it('forwards notary_start when statusName is "Назначен нотариус" (sentence case)', async () => {
+      mockGetJiraIssue.mockResolvedValue(issueWithStatus('Назначен нотариус', { [F.telegramNotaryUserId]: '7' }));
+      await POST(makeUpdate(makeCallback('notary_start:WO-9', -100222, 7)));
+      expect(mockForward).toHaveBeenCalledWith(expect.objectContaining({
+        issueKey: 'WO-9', action: 'notary_start',
+      }));
+    });
+
+    it('forwards notary_done when statusName is "В работе у нотариуса" (sentence case)', async () => {
+      mockGetJiraIssue.mockResolvedValue(issueWithStatus('В работе у нотариуса', { [F.telegramNotaryUserId]: '7' }));
+      await POST(makeUpdate(makeCallback('notary_done:WO-9', -100222, 7)));
+      expect(mockForward).toHaveBeenCalledWith(expect.objectContaining({
+        issueKey: 'WO-9', action: 'notary_done',
+      }));
+    });
+
+    it('still rejects a genuinely wrong status regardless of case (does not become permissive)', async () => {
+      mockGetJiraIssue.mockResolvedValue(issueWithStatus('открыто', { [F.telegramTranslatorUserId]: '42' }));
+      await POST(makeUpdate(makeCallback('translator_start:WO-1')));
+      expect(mockForward).not.toHaveBeenCalled();
+    });
+  });
+
+  // ── Regression: executorName "???" (2026-08-10) ──────────────────────────────
+  // Telegram's own service messages ("??? created the group") confirmed this is a
+  // real Telegram-side first_name, not mojibake/encoding corruption. displayNameFor()
+  // must treat a "?"-only name as useless and fall through to username, then tg:<id>.
+  describe('regression: "???" placeholder executor name', () => {
+    it('logs the raw callback_query.from identity fields for a claim (no secrets)', async () => {
+      const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+      await POST(makeUpdate(makeCallback('translator_claim:WO-122', -100111, 799615728, {
+        first_name: '???', last_name: undefined, username: 'aigerim_tg',
+      })));
+      expect(logSpy).toHaveBeenCalledWith(
+        '[telegram-webhook] callback_query.from identity issueKey=WO-122 first_name=??? last_name=- username=aigerim_tg id=799615728',
+      );
+      logSpy.mockRestore();
+    });
+
+    it('falls back to @username when first_name is "???" and no last_name is set', async () => {
+      await POST(makeUpdate(makeCallback('translator_claim:WO-122', -100111, 799615728, {
+        first_name: '???', last_name: undefined, username: 'aigerim_tg',
+      })));
+      expect(mockForward).toHaveBeenCalledWith(expect.objectContaining({ executorName: 'aigerim_tg' }));
+    });
+
+    it('falls back to tg:<id> when first_name is "???" and no username is set either', async () => {
+      await POST(makeUpdate(makeCallback('translator_claim:WO-122', -100111, 799615728, {
+        first_name: '???', last_name: undefined, username: undefined,
+      })));
+      expect(mockForward).toHaveBeenCalledWith(expect.objectContaining({ executorName: 'tg:799615728' }));
+    });
+
+    it('drops only the placeholder part when last_name is a real name', async () => {
+      await POST(makeUpdate(makeCallback('translator_claim:WO-1', -100111, 42, {
+        first_name: '???', last_name: 'Смирнов', username: 'x',
+      })));
+      expect(mockForward).toHaveBeenCalledWith(expect.objectContaining({ executorName: 'Смирнов' }));
+    });
+
+    it('a genuinely non-placeholder name is unaffected', async () => {
+      await POST(makeUpdate(makeCallback('translator_claim:WO-1', -100111, 42, {
+        first_name: 'Айгерим', last_name: undefined, username: 'x',
+      })));
+      expect(mockForward).toHaveBeenCalledWith(expect.objectContaining({ executorName: 'Айгерим' }));
+    });
+  });
 });
