@@ -166,8 +166,22 @@ async function handleStatusChanged(issueKey: string, jiraStatus: string): Promis
 
   const fieldIds = telegramRoleFieldIds(mapping.role);
   const messageIdField = fieldIds.messageId;
+  const payoutField = payoutFieldForRole(mapping.role);
 
-  const issue = await getJiraIssue(issueKey, [messageIdField, fieldIds.displayName]);
+  // Same field set handleBroadcast() reads — a status update re-renders the same
+  // full order card, it does not shrink it down to a bare summary (WO-122 incident).
+  const requestedFields = [
+    JIRA_FIELDS.translationType,
+    JIRA_FIELDS.documentType,
+    JIRA_FIELDS.languagePair,
+    JIRA_FIELDS.documentsLink,
+    messageIdField,
+    fieldIds.displayName,
+    PAGE_COUNT_FIELD,
+    payoutField,
+  ];
+
+  const issue = await getJiraIssue(issueKey, requestedFields);
   if (!issue) {
     logStatusChangedOutcome({
       issueKey, jiraStatus, role: mapping.role, messageId: null, executorName: null, nextAction: null,
@@ -189,13 +203,20 @@ async function handleStatusChanged(issueKey: string, jiraStatus: string): Promis
   const executorName = extractTextValue(issue.fields[fieldIds.displayName]);
   const nextAction = mapping.entry.nextButton?.action ?? null;
 
+  const pageCount = extractNumericTextValue(issue.fields[PAGE_COUNT_FIELD]);
+  const payoutKzt = extractNumericTextValue(issue.fields[payoutField]);
+  const data = buildOrderBroadcastData(issue, mapping.role, { pageCount, payoutKzt });
+
   const { text, buttons } = buildStatusUpdateMessage({
-    issueKey,
+    data,
     jiraStatus,
     entry: mapping.entry,
     executorName,
   });
 
+  // editMessageText only — this route must NEVER call sendMessage as a fallback.
+  // A failed edit is a real, surfaced failure (logged below), not silently patched
+  // over by posting a second message.
   const editResult = await editMessageWithCallbackButtons(chatId, Number(messageId), text, buttons);
   if (!editResult.ok) {
     console.error(`[telegram-jira-event] failed to edit Telegram message ${messageId} for ${issueKey}/${mapping.role}: ${editResult.error}`);

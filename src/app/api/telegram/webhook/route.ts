@@ -33,7 +33,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getJiraIssue } from '@/lib/jira/client';
 import { answerCallbackQuery } from '@/lib/telegram/client';
 import { forwardActionToJiraAutomation } from '@/lib/telegram-ops/automation-actions';
-import { extractTextValue, REQUIRED_STATUS_FOR_ACTION, type TelegramOpsAction, type TelegramOpsRole } from '@/lib/telegram-ops/order-message';
+import { extractTextValue, REQUIRED_STATUS_FOR_ACTION, statusNamesMatch, type TelegramOpsAction, type TelegramOpsRole } from '@/lib/telegram-ops/order-message';
 import { telegramRoleFieldIds } from '@/lib/telegram-ops/jira-fields';
 
 const ACTION_PATTERN = /^(translator|notary)_(claim|start|done):(.+)$/;
@@ -56,10 +56,41 @@ interface TelegramUpdate {
   callback_query?: TelegramCallbackQuery;
 }
 
+// Diagnostic only, per-callback — logs the raw non-secret identity fields Telegram
+// sent, so a "???" executor name can be distinguished from an encoding bug (real
+// Telegram-side data) vs. anything happening in our own pipeline. No secrets here:
+// first_name/last_name/username/id are all fields the recipient chat already sees.
+function logRawIdentityFields(issueKey: string, from: TelegramFrom): void {
+  console.log(
+    `[telegram-webhook] callback_query.from identity issueKey=${issueKey} ` +
+    `first_name=${from.first_name ?? '-'} last_name=${from.last_name ?? '-'} ` +
+    `username=${from.username ?? '-'} id=${from.id}`,
+  );
+}
+
+const PLACEHOLDER_NAME_PATTERN = /^\?+$/;
+
+/**
+ * Telegram accounts can genuinely have a first/last name consisting only of "?"
+ * characters — confirmed independently via Telegram's own service messages for this
+ * exact account ("??? created the group", "??? updated group photo"), which is
+ * Telegram-rendered, not something WPO's pipeline could corrupt. Not evidence of an
+ * encoding bug (see docs/ai-context/DECISIONS.md, 2026-08-10). Such a name is
+ * useless as an executor identifier though, so it's treated the same as an absent
+ * name and skipped in favor of the next fallback.
+ */
+function isPlaceholderName(value: string): boolean {
+  const stripped = value.replace(/\s+/g, '');
+  return stripped.length > 0 && PLACEHOLDER_NAME_PATTERN.test(stripped);
+}
+
 function displayNameFor(from: TelegramFrom): string {
-  const parts = [from.first_name, from.last_name].filter((p): p is string => !!p);
+  const parts = [from.first_name, from.last_name].filter(
+    (p): p is string => !!p && !isPlaceholderName(p),
+  );
   if (parts.length > 0) return parts.join(' ');
-  return from.username ?? `tg:${from.id}`;
+  if (from.username && !isPlaceholderName(from.username)) return from.username;
+  return `tg:${from.id}`;
 }
 
 function chatIdForRole(role: TelegramOpsRole): string | undefined {
@@ -109,6 +140,7 @@ async function handleClaim(
 ): Promise<void> {
   const action: TelegramOpsAction = role === 'translator' ? 'translator_claim' : 'notary_claim';
   const telegramUserId = String(from.id);
+  logRawIdentityFields(issueKey, from);
   const displayName = displayNameFor(from);
 
   const result = await forwardActionToJiraAutomation({
@@ -169,12 +201,17 @@ async function handleStartOrDone(
   // the concurrency guard here: nobody can forward "done" before Jira itself
   // confirmed "in progress" (this route's check is a fast UX nicety; Automation
   // re-validates the same precondition authoritatively before transitioning).
-  if (issue.statusName !== REQUIRED_STATUS_FOR_ACTION[action]) {
+  // Case/whitespace-insensitive per WO-122 (2026-08-10): Jira's real statusName
+  // comes back sentence-case ("Назначен переводчик"), not this file's ALL-CAPS
+  // REQUIRED_STATUS_FOR_ACTION values — an exact-match comparison here rejected
+  // legitimate translator_start/notary_start/translator_done/notary_done taps.
+  if (!statusNamesMatch(issue.statusName, REQUIRED_STATUS_FOR_ACTION[action])) {
     logCallbackOutcome({ issueKey, action, telegramUserId, role, dispatched: false, rejectionReason: `wrong_status:${issue.statusName}` });
     await answerCallbackQuery(callbackQueryId, 'Действие уже выполнено или ожидает подтверждения от Jira.');
     return;
   }
 
+  logRawIdentityFields(issueKey, from);
   const displayName = displayNameFor(from);
 
   const result = await forwardActionToJiraAutomation({
