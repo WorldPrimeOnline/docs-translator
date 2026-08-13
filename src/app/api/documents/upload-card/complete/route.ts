@@ -14,6 +14,9 @@
  * documents.id. A retried /complete call (raw objects may already be deleted from a
  * prior successful run) is detected via findExistingCardOrder() and replays a
  * success response without re-converting or creating a duplicate document/job.
+ *
+ * Deliberately does NOT gate on Halyk/card-payment availability — see the same note
+ * in src/app/api/documents/upload-card/init/route.ts.
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
@@ -22,7 +25,6 @@ import { downloadFile, uploadFile, deleteFile, headFile } from '@/lib/r2/client'
 import { matchesClaimedMimeType } from '@/lib/file-validation/signature';
 import { convertToPdf, mergePdfs } from '@/lib/convert-to-pdf';
 import { getPhysicalPageCount } from '@/lib/document-analysis/physical-pages';
-import { getHalykConfig } from '@/lib/payments/halyk/config';
 import { supabaseServer } from '@/lib/supabase/server';
 import {
   UploadFormSchema,
@@ -67,11 +69,6 @@ async function deleteRawObjects(keys: string[]): Promise<void> {
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const config = getHalykConfig();
-    if (!config.enabled) {
-      return NextResponse.json({ error: 'Card payments are not available at this time' }, { status: 503 });
-    }
-
     const user = await getAuthUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 

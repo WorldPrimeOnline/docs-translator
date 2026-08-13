@@ -3,6 +3,10 @@
  * Creates document + job in payment_pending state without consuming subscription quota.
  * Computes a dynamic price quote via the pricing engine.
  * Returns job ID, quote ID, and price so the frontend can initiate Halyk ePay payment.
+ *
+ * Deliberately does NOT gate on Halyk/card-payment availability — job/quote creation
+ * must work even while the payment gateway is disabled; only
+ * POST /api/payments/halyk/initiate (the actual payment step) rejects on that basis.
  */
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
@@ -11,7 +15,6 @@ import { uploadFile } from '@/lib/r2/client';
 import { convertToPdf, mergePdfs } from '@/lib/convert-to-pdf';
 import { getPhysicalPageCount } from '@/lib/document-analysis/physical-pages';
 import { deriveBackcompatBooleans } from '@/lib/translation-workflow/output-plan';
-import { getHalykConfig } from '@/lib/payments/halyk/config';
 import { computeQuoteForJob, saveQuote } from '@/lib/pricing/service';
 import { DOCUMENT_TYPE_COEFFICIENT } from '@/lib/pricing/config';
 import { classifyPricingReviewReasons } from '@/lib/pricing/review-classification';
@@ -65,14 +68,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 }
 
 async function handlePost(request: NextRequest): Promise<NextResponse> {
-  const config = getHalykConfig();
-  if (!config.enabled) {
-    return NextResponse.json(
-      { error: 'Card payments are not available at this time' },
-      { status: 503 },
-    );
-  }
-
   const user = await getAuthUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 

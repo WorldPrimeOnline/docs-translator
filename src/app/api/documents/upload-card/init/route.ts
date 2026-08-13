@@ -1,14 +1,19 @@
 /**
  * Batch init step of the dashboard/card-payment direct-to-R2 upload flow. Same
- * gates as the legacy endpoint (Halyk enabled, auth, terms accepted, rate limit,
- * business-field validation) but returns presigned R2 PUT URLs instead of receiving
- * file bytes — no file body ever passes through this Vercel Function.
+ * gates as the legacy endpoint (auth, terms accepted, rate limit, business-field
+ * validation) but returns presigned R2 PUT URLs instead of receiving file bytes —
+ * no file body ever passes through this Vercel Function.
+ *
+ * Deliberately does NOT gate on Halyk/card-payment availability (getHalykConfig()
+ * / BUSINESS_PROFILE.cardPaymentsActive) — job/quote creation must work even while
+ * the payment gateway is disabled; only POST /api/payments/halyk/initiate (the
+ * actual payment step) is allowed to reject on that basis. See
+ * docs/ai-context/50_PAYMENTS_FINANCE_FISCALIZATION.md.
  *
  * See src/app/api/documents/upload-card/complete/route.ts for the second half.
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getHalykConfig } from '@/lib/payments/halyk/config';
 import { getPresignedPutUrl } from '@/lib/r2/client';
 import {
   UploadFormSchema,
@@ -42,11 +47,6 @@ const InitBodySchema = z.object({
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const config = getHalykConfig();
-    if (!config.enabled) {
-      return NextResponse.json({ error: 'Card payments are not available at this time' }, { status: 503 });
-    }
-
     const user = await getAuthUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 

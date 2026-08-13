@@ -4,9 +4,6 @@
  * verification, the existing magic-byte/convert/merge pipeline, idempotent replay
  * (document/job created only once), and pricing/status preservation.
  */
-jest.mock('@/lib/payments/halyk/config', () => ({
-  getHalykConfig: jest.fn(),
-}));
 jest.mock('@/lib/documents/upload-card-shared', () => {
   const actual = jest.requireActual('@/lib/documents/upload-card-shared');
   return {
@@ -37,7 +34,7 @@ jest.mock('@/lib/convert-to-pdf', () => ({
 
 import { NextRequest } from 'next/server';
 import { POST } from '../route';
-import { getHalykConfig } from '@/lib/payments/halyk/config';
+import { BUSINESS_PROFILE } from '@/lib/business-profile';
 import {
   getAuthUser,
   getClientIp,
@@ -50,7 +47,6 @@ import { downloadFile, uploadFile, deleteFile, headFile } from '@/lib/r2/client'
 import { matchesClaimedMimeType } from '@/lib/file-validation/signature';
 import { convertToPdf, mergePdfs } from '@/lib/convert-to-pdf';
 
-const mockGetHalykConfig = getHalykConfig as jest.Mock;
 const mockGetAuthUser = getAuthUser as jest.Mock;
 const mockGetClientIp = getClientIp as jest.Mock;
 const mockCheckRateLimit = checkCardUploadRateLimit as jest.Mock;
@@ -97,7 +93,6 @@ function makeRequest(body: unknown): NextRequest {
 
 beforeEach(() => {
   jest.resetAllMocks();
-  mockGetHalykConfig.mockReturnValue({ enabled: true });
   mockGetAuthUser.mockResolvedValue({ id: 'user-1', email: 'a@b.com' });
   mockGetClientIp.mockReturnValue('1.2.3.4');
   mockFrom.mockReturnValue(chain({ data: { terms_accepted_at: '2026-01-01T00:00:00.000Z' }, error: null }));
@@ -116,10 +111,15 @@ beforeEach(() => {
 });
 
 describe('gates', () => {
-  it('returns 503 when Halyk is disabled', async () => {
-    mockGetHalykConfig.mockReturnValue({ enabled: false });
+  // Regression (2026-08-13): this route used to hard-gate on getHalykConfig().enabled,
+  // so disabling Halyk (BUSINESS_PROFILE.cardPaymentsActive=false) broke document
+  // upload completion in production. Upload/quote creation must succeed regardless of
+  // payment-gateway availability; only POST /api/payments/halyk/initiate rejects on it.
+  it('still succeeds while BUSINESS_PROFILE.cardPaymentsActive is false (payments disabled)', async () => {
+    expect(BUSINESS_PROFILE.cardPaymentsActive).toBe(false);
+    mockHeadFile.mockResolvedValueOnce({ contentLength: 100, contentType: 'application/pdf' });
     const res = await POST(makeRequest({ ...VALID_BODY_BASE, uploads: oneUpload }));
-    expect(res.status).toBe(503);
+    expect(res.status).toBe(200);
   });
 
   it('returns 401 when unauthenticated', async () => {

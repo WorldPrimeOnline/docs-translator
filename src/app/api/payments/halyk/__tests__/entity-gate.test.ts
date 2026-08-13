@@ -110,3 +110,39 @@ describe('Footer layout — collapses to 2 columns when payment compliance is hi
     expect(layoutSrc).toContain('{showPaymentCompliance && <PaymentComplianceBlock variant="footer-column" />}');
   });
 });
+
+describe('Regression (2026-08-13): upload/quote creation must not gate on Halyk availability', () => {
+  // Production incident: /api/documents/upload-card/init returned 503 for every
+  // upload once Halyk was disabled, because these routes pre-existingly (since
+  // 2026-07-14, unrelated to the entity-gate work above) hard-gated on
+  // getHalykConfig().enabled purely as an availability check — not because they
+  // needed the config for anything. Only the actual payment step
+  // (POST /api/payments/halyk/initiate) may reject on Halyk/entity availability.
+  const uploadCardRoutes = [
+    'src/app/api/documents/upload-card/route.ts',
+    'src/app/api/documents/upload-card/init/route.ts',
+    'src/app/api/documents/upload-card/complete/route.ts',
+  ];
+
+  // Checks the actual import/usage patterns, not bare substrings — these files'
+  // doc-comments deliberately explain (and name) what they must NOT do, which would
+  // false-positive a plain substring check against 'getHalykConfig'/'cardPaymentsActive'.
+  it.each(uploadCardRoutes)('%s does not import getHalykConfig', (rel) => {
+    const src = fs.readFileSync(path.join(process.cwd(), rel), 'utf-8');
+    expect(src).not.toMatch(/import\s*\{[^}]*getHalykConfig[^}]*\}\s*from/);
+  });
+
+  it.each(uploadCardRoutes)('%s does not import BUSINESS_PROFILE (so it cannot gate on cardPaymentsActive)', (rel) => {
+    const src = fs.readFileSync(path.join(process.cwd(), rel), 'utf-8');
+    expect(src).not.toMatch(/import\s*\{[^}]*BUSINESS_PROFILE[^}]*\}\s*from/);
+  });
+
+  it('only initiate/route.ts among payment/upload routes hard-gates on config.enabled or cardPaymentsActive for job/payment creation', () => {
+    // status/[paymentId]/route.ts also references config.enabled, but only to decide
+    // whether to poll Halyk for reconciliation — it never blocks the response, and
+    // already-terminal (e.g. paid) payments skip that check entirely, so it's
+    // intentionally excluded here rather than asserted against.
+    expect(initiateSrc).toContain('BUSINESS_PROFILE.cardPaymentsActive');
+    expect(initiateSrc).toContain('config.enabled');
+  });
+});
