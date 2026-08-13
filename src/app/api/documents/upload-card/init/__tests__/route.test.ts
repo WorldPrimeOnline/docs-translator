@@ -2,9 +2,6 @@
  * Tests for POST /api/documents/upload-card/init — the metadata-only first step of
  * the dashboard/card-payment direct-to-R2 upload flow.
  */
-jest.mock('@/lib/payments/halyk/config', () => ({
-  getHalykConfig: jest.fn(),
-}));
 jest.mock('@/lib/documents/upload-card-shared', () => {
   const actual = jest.requireActual('@/lib/documents/upload-card-shared');
   return {
@@ -22,12 +19,11 @@ jest.mock('@/lib/r2/client', () => ({
 
 import { NextRequest } from 'next/server';
 import { POST } from '../route';
-import { getHalykConfig } from '@/lib/payments/halyk/config';
+import { BUSINESS_PROFILE } from '@/lib/business-profile';
 import { getAuthUser, checkCardUploadRateLimit } from '@/lib/documents/upload-card-shared';
 import { supabaseServer } from '@/lib/supabase/server';
 import { getPresignedPutUrl } from '@/lib/r2/client';
 
-const mockGetHalykConfig = getHalykConfig as jest.Mock;
 const mockGetAuthUser = getAuthUser as jest.Mock;
 const mockCheckRateLimit = checkCardUploadRateLimit as jest.Mock;
 const mockFrom = supabaseServer.from as jest.Mock;
@@ -58,7 +54,6 @@ const VALID_BODY_BASE = {
 
 beforeEach(() => {
   jest.clearAllMocks();
-  mockGetHalykConfig.mockReturnValue({ enabled: true });
   mockGetAuthUser.mockResolvedValue({ id: 'user-1', email: 'a@b.com' });
   mockFrom.mockReturnValue(chain({ data: { terms_accepted_at: '2026-01-01T00:00:00.000Z' }, error: null }));
   mockCheckRateLimit.mockResolvedValue(true);
@@ -105,10 +100,19 @@ describe('regression (2026-07-24): module load never pulls in document-analysis/
   });
 });
 
-it('returns 503 when Halyk card payments are disabled', async () => {
-  mockGetHalykConfig.mockReturnValue({ enabled: false });
+// Regression (2026-08-13): this route used to hard-gate on getHalykConfig().enabled,
+// so disabling Halyk (via BUSINESS_PROFILE.cardPaymentsActive=false in the same commit
+// that added the /api/payments/halyk/initiate entity gate) broke document upload in
+// production — 503 on every /upload-card/init call. Upload/quote creation must succeed
+// regardless of payment-gateway availability; only POST /api/payments/halyk/initiate
+// is allowed to reject on that basis.
+it('succeeds even when BUSINESS_PROFILE.cardPaymentsActive is false (payments disabled)', () => {
+  expect(BUSINESS_PROFILE.cardPaymentsActive).toBe(false);
+});
+
+it('still returns 200 and a presigned upload URL while card payments are disabled', async () => {
   const res = await POST(makeRequest({ ...VALID_BODY_BASE, files: [{ originalName: 'a.pdf', mimeType: 'application/pdf', sizeBytes: 100 }] }));
-  expect(res.status).toBe(503);
+  expect(res.status).toBe(200);
 });
 
 it('returns 401 when unauthenticated', async () => {
