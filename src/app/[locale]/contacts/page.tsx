@@ -57,10 +57,6 @@ export default async function ContactsPage({
             <dd className="font-medium text-foreground">{BUSINESS_PROFILE.legalAddress}</dd>
           </div>
           <div className="grid grid-cols-[1fr_2fr] gap-3 text-sm sm:grid-cols-[180px_1fr]">
-            <dt className="text-muted-foreground">{t('phoneLabel')}</dt>
-            <dd className="font-medium text-foreground">{BUSINESS_PROFILE.phone}</dd>
-          </div>
-          <div className="grid grid-cols-[1fr_2fr] gap-3 text-sm sm:grid-cols-[180px_1fr]">
             <dt className="text-muted-foreground">{t('emailLabel')}</dt>
             <dd>
               <a

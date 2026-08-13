@@ -3,6 +3,7 @@
 > **PIPELINE FREEZE ACTIVE** as of 2026-06-19. See `docs/OFFICIAL_DOCX_PIPELINE_FREEZE.md`.
 > Do not modify OCR prompts, translation parameters, table-classification logic, or visual-element detection without explicit approval.
 > **Approved exception (2026-07-02):** the "Translator/provider block" listed as frozen was explicitly approved for removal from automatic output — see "Electronic output policy" below. OCR, translation prompts/parameters, and visual-element detection were NOT touched.
+> **Approved exception (2026-08):** legal-entity data inside the still-intact (but never auto-invoked) `renderTranslatorProviderBlock()`/`certificationRows()` was updated for the entity change — old IIN `840324300155` and ИП/IE/Individual-Entrepreneur-style legal-form names replaced with the new BIN `260840011541` and `ТОО World Prime Online` / `TOO World Prime Online` (Cyrillic for Cyrillic-script target languages, Latin otherwise) across all `TRANSLATOR_BLOCK_I18N` locales in `worker/src/lib/docx-renderer.ts` and the two RU/EN rows in `worker/src/lib/renderer.ts`. No OCR/translation/table-classification/visual-element logic touched — see `src/lib/business-profile.ts` for the canonical new entity values.
 
 ## Electronic output policy (2026-07-02)
 

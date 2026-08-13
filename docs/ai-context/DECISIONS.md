@@ -700,3 +700,19 @@ WO-122 production incident (2026-08-10): the local precheck compared a separatel
 
 **Risks / caveats:**  
 `Not specified`
+
+---
+
+### 2026-08-13 — Legal entity change: ИП/IE WorldPrimeOnline → ТОО World Prime Online; Halyk ePay disabled
+
+**Decision:**  
+Registered entity changed to ТОО World Prime Online (BIN 260840011541, address in src/lib/business-profile.ts). BUSINESS_PROFILE.cardPaymentsActive set to false and now gates /api/payments/halyk/initiate, HalykPayButton, and PaymentComplianceBlock — not just wording. Public phone number removed site-wide, not replaced. Old IIN 840324300155 and ИП/IE/Individual-Entrepreneur-style legal-form names replaced everywhere on the public site, legal documents (11 locales), and the dormant provider-identity block in the DOCX/HTML renderers. Halyk integration, historical payments, refunds, Webkassa, and DB schema were not modified.
+
+**Rationale:**  
+Halyk ePay acquiring has not yet been migrated to the new entity, so new charges must not be accepted under it. User provided verified new entity details explicitly and required zero fabricated data, minimal blast radius, and preservation of all existing payment/refund/fiscal infrastructure for a later migration.
+
+**Impacted files/docs:**  
+`Not specified`
+
+**Risks / caveats:**  
+`Not specified`

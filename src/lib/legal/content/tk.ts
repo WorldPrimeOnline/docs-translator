@@ -15,11 +15,10 @@ export const legalDocs: LegalDocs = {
         heading: '1. Umumy Düzgünler',
         body: [
           'Bu resminama WorldPrimeOnline platformasynyň (mundan beýläk — Ýerine ýetiriji) ulanyjylara (mundan beýläk — Müşderi) teklibidir we hyzmat şertnamasynyň düzgünlerini kesgitleýär.',
-          'Ýerine ýetiriji: IE WorldPrimeOnline',
-          'IIN/BIN: 840324300155',
-          'Salgy: Almaty',
+          'Ýerine ýetiriji: TOO World Prime Online',
+          'BIN: 260840011541',
+          'Ýuridik salgysy: Gazagystan, Almaty, Auezov etraby, Ryskulbekow köçesi 39A, poçta indeksi 050042',
           'E-poçta: worldprimeonline@gmail.com',
-          'Telefon: +7 701 136 63 76',
           'Saýt: https://www.wpotranslations.org/',
           'GGH: göz öňünde tutulmaýar',
           'Platformany hasaba almak ýa-da platformany ulanmak şu Teklibi doly kabul etmegi aňladýar.',
@@ -164,7 +163,7 @@ export const legalDocs: LegalDocs = {
         heading: '16. Habarlaşmak',
         body: [
           'WorldPrimeOnline',
-          'Salgy: Almaty',
+          'Ýuridik salgysy: Gazagystan, Almaty, Auezov etraby, Ryskulbekow köçesi 39A, poçta indeksi 050042',
           'E-poçta: worldprimeonline@gmail.com',
           'Saýt: https://www.wpotranslations.org/',
         ],
@@ -290,7 +289,7 @@ export const legalDocs: LegalDocs = {
         heading: '12. Habarlaşmak',
         body: [
           'WorldPrimeOnline',
-          'Salgy: Almaty',
+          'Ýuridik salgysy: Gazagystan, Almaty, Auezov etraby, Ryskulbekow köçesi 39A, poçta indeksi 050042',
           'E-poçta: worldprimeonline@gmail.com',
           'Saýt: https://www.wpotranslations.org/',
         ],
@@ -355,7 +354,7 @@ export const legalDocs: LegalDocs = {
         heading: '6. Habarlaşmak',
         body: [
           'WorldPrimeOnline',
-          'Salgy: Almaty',
+          'Ýuridik salgysy: Gazagystan, Almaty, Auezov etraby, Ryskulbekow köçesi 39A, poçta indeksi 050042',
           'E-poçta: worldprimeonline@gmail.com',
           'Saýt: https://www.wpotranslations.org/',
         ],
@@ -429,7 +428,7 @@ export const legalDocs: LegalDocs = {
         heading: '7. Habarlaşmak',
         body: [
           'WorldPrimeOnline',
-          'Salgy: Almaty',
+          'Ýuridik salgysy: Gazagystan, Almaty, Auezov etraby, Ryskulbekow köçesi 39A, poçta indeksi 050042',
           'E-poçta: worldprimeonline@gmail.com',
           'Saýt: https://www.wpotranslations.org/',
         ],
@@ -499,7 +498,7 @@ export const legalDocs: LegalDocs = {
         heading: '7. Habarlaşmak',
         body: [
           'WorldPrimeOnline',
-          'Salgy: Almaty',
+          'Ýuridik salgysy: Gazagystan, Almaty, Auezov etraby, Ryskulbekow köçesi 39A, poçta indeksi 050042',
           'E-poçta: worldprimeonline@gmail.com',
           'Saýt: https://www.wpotranslations.org/',
         ],
@@ -587,7 +586,7 @@ export const legalDocs: LegalDocs = {
         heading: '9. Habarlaşmak',
         body: [
           'WorldPrimeOnline',
-          'Salgy: Almaty',
+          'Ýuridik salgysy: Gazagystan, Almaty, Auezov etraby, Ryskulbekow köçesi 39A, poçta indeksi 050042',
           'E-poçta: worldprimeonline@gmail.com',
           'Saýt: https://www.wpotranslations.org/',
         ],
@@ -676,7 +675,7 @@ export const legalDocs: LegalDocs = {
         heading: '9. Hyzmatdaşlyk Baradaky Soraglar',
         body: [
           'WorldPrimeOnline',
-          'Salgy: Almaty',
+          'Ýuridik salgysy: Gazagystan, Almaty, Auezov etraby, Ryskulbekow köçesi 39A, poçta indeksi 050042',
           'E-poçta: worldprimeonline@gmail.com',
           'Saýt: https://www.wpotranslations.org/',
         ],

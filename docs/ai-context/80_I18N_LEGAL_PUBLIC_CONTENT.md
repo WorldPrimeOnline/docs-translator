@@ -24,6 +24,10 @@ English (`en`) uses no URL prefix. All other locales prefix with `/{locale}`.
 
 When editing legal content, update all 11 locale files. Never modify legal text for one locale only.
 
+## Legal entity change (2026-08)
+
+The registered legal entity changed from a sole proprietorship (ИП/IE WorldPrimeOnline, IIN `840324300155`) to **ТОО World Prime Online** (BIN `260840011541`, legal address in `src/lib/business-profile.ts`). All 11 legal-content locale files' "Provider Details"/"Data Controller" sections were updated with the new name/BIN/address; the phone number was removed entirely (not replaced) per instruction — do not re-add a phone number without explicit instruction. Legal-entity name rendering: Cyrillic "ТОО" for Cyrillic-script locales (ru, kk, ky, mn, tj), Latin "TOO" for all others — `npm run i18n:language` enforces no Cyrillic leakage into Latin/other-script locale files, which is why this split exists. `footer.legalEntity` (`messages/{locale}/footer.json`) and `contactsPage.iinBinLabel` (`messages/{locale}/common.json`, now "BIN"-only wording, not "IIN/BIN") were updated the same way. Halyk-merchant-specific old-entity references in `docs/payments/FISCALIZATION.md` and `docs/payments/WEBKASSA_API.md` were deliberately left untouched — those describe the old entity's pending Webkassa/fiscal accountant confirmation, which (like Halyk acquiring) has not been migrated to the new entity yet.
+
 ## Public content invariants
 
 - Do not claim "guaranteed accepted", "AI certified translation", or "automatic notarization" in any user-facing copy.

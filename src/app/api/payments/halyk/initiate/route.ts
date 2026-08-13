@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { supabaseServer } from '@/lib/supabase/server';
 import { getHalykConfig } from '@/lib/payments/halyk/config';
+import { BUSINESS_PROFILE } from '@/lib/business-profile';
 import { createPaymentToken, HalykApiError } from '@/lib/payments/halyk/client';
 import { generateUniqueInvoiceId, getInvoiceSuffix6 } from '@/lib/payments/halyk/invoice';
 import { generateSecretHash, digestSecretHash } from '@/lib/payments/halyk/security';
@@ -69,6 +70,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
 async function handlePost(request: NextRequest, correlationId: string): Promise<NextResponse> {
   const config = getHalykConfig();
+
+  // ── Entity gate ──────────────────────────────────────────────────────────────
+  // Halyk ePay acquiring has not been migrated to the current legal entity yet
+  // (see src/lib/business-profile.ts). Reject before any Halyk API call, independent
+  // of frontend state — mirrors NEXT_PUBLIC_HALYK_EPAY_ENABLED's frontend button gate.
+  if (!BUSINESS_PROFILE.cardPaymentsActive) {
+    console.warn('[halyk/initiate] rejected — card payments inactive for current entity', { correlationId });
+    return NextResponse.json(
+      { error: 'CARD_PAYMENTS_INACTIVE', correlationId },
+      { status: 503 },
+    );
+  }
 
   // ── Config gate ─────────────────────────────────────────────────────────────
   if (!config.enabled) {

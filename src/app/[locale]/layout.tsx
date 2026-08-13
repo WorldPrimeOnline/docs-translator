@@ -7,7 +7,7 @@ import { Navbar } from '@/components/navbar';
 import { WpoLogo } from '@/components/wpo-logo';
 import { Link } from '@/i18n/navigation';
 import { routing } from '@/i18n/routing';
-import { PaymentComplianceBlock } from '@/components/payment/PaymentComplianceBlock';
+import { PaymentComplianceBlock, isHalykComplianceVisible } from '@/components/payment/PaymentComplianceBlock';
 import { BUSINESS_PROFILE } from '@/lib/business-profile';
 import { ReferralCapture } from '@/components/referral/ReferralCapture';
 
@@ -34,6 +34,7 @@ export default async function LocaleLayout({
   const tFooter = await getTranslations('footer');
   const tLegal = await getTranslations('legal');
   const tContacts = await getTranslations('contactsPage');
+  const showPaymentCompliance = isHalykComplianceVisible();
 
   return (
     <NextIntlClientProvider messages={messages}>
@@ -45,12 +46,18 @@ export default async function LocaleLayout({
       <footer className="border-t border-white/8 bg-navy">
         <div className="mx-auto max-w-6xl px-4 py-10">
           {/*
-           * 3-column footer grid:
+           * Footer grid — 3 columns when payment compliance is visible, 2 when it
+           * isn't (PaymentComplianceBlock returns null while Halyk is disabled;
+           * this keeps the grid from reserving an empty third column for it):
            *   Col 1 — brand + full provider identification (Halyk Bank requires visible company info)
            *   Col 2 — legal document links
-           *   Col 3 — payment compliance (Halyk ePay, Visa, Mastercard, 3D Secure, VAT)
+           *   Col 3 — payment compliance (Halyk ePay, Visa, Mastercard, 3D Secure, VAT), when visible
            */}
-          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 md:grid-cols-[2fr_1fr_1.5fr]">
+          <div
+            className={`grid grid-cols-1 gap-8 sm:grid-cols-2 ${
+              showPaymentCompliance ? 'md:grid-cols-[2fr_1fr_1.5fr]' : 'md:grid-cols-[2fr_1fr]'
+            }`}
+          >
 
             {/* ── Col 1: Brand + provider identification ─────────────────── */}
             <div className="flex flex-col gap-1.5">
@@ -67,7 +74,6 @@ export default async function LocaleLayout({
                 >
                   {BUSINESS_PROFILE.email}
                 </a>
-                <span>{BUSINESS_PROFILE.phone}</span>
                 <span>{tFooter('city')}</span>
                 <Link href="/contacts" className="mt-1 text-primary/70 transition-colors hover:text-primary">
                   {tContacts('title')} →
@@ -109,7 +115,7 @@ export default async function LocaleLayout({
             </div>
 
             {/* ── Col 3: Payment compliance (inline, no detached second footer) */}
-            <PaymentComplianceBlock variant="footer-column" />
+            {showPaymentCompliance && <PaymentComplianceBlock variant="footer-column" />}
 
           </div>
 
