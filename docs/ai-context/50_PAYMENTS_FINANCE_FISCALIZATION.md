@@ -2,17 +2,23 @@
 
 ## Current payment state
 
-**Halyk ePay card payments are live; subscriptions remain gated off.**
+**Halyk ePay card payments are disabled (2026-08) — legal entity change in progress; subscriptions remain gated off.**
+- The registered legal entity changed from a sole proprietorship (ИП/IE WorldPrimeOnline, IIN 840324300155) to ТОО World Prime Online (BIN 260840011541, `src/lib/business-profile.ts`). Halyk ePay acquiring has **not** been migrated to the new entity yet — Halyk env credentials still belong to the old entity's merchant account and must not be used to accept new charges.
+- `BUSINESS_PROFILE.cardPaymentsActive = false` — this is now the primary code-level gate (previously wording-only, see below).
 - `src/lib/stripe/` and `src/lib/polar/` are empty placeholder directories.
 - `POST /api/subscriptions/create` returns HTTP 503 ("temporarily unavailable").
 - The subscription modal shows a "coming soon" message.
 - `jobs.payment_source` column: `'card_payment' | 'subscription'` — TON cryptocurrency payments are fully removed.
 
-## Halyk Bank ePay (card payments in KZT)
+## Halyk Bank ePay (card payments in KZT) — currently disabled
 
-The integration is fully implemented in `src/lib/payments/halyk/` (client, config, invoice, pricing, security, status-map, locale, types).
+The integration is fully implemented in `src/lib/payments/halyk/` (client, config, invoice, pricing, security, status-map, locale, types) and is intentionally preserved for a future migration to the new entity or a new acquiring provider — do not delete it.
 
-**Live** — `BUSINESS_PROFILE.cardPaymentsActive` in `src/lib/business-profile.ts` is `true` (2026-07-08): Halyk credentials are in env and the integration processes real payments. This only switches the "processed by" wording in `PaymentComplianceBlock`; it does not gate the payment API routes themselves.
+**Disabled (2026-08)** — `BUSINESS_PROFILE.cardPaymentsActive` in `src/lib/business-profile.ts` is now `false`. Unlike before, this **does** gate the payment path, not just wording:
+- `POST /api/payments/halyk/initiate` checks `BUSINESS_PROFILE.cardPaymentsActive` first and returns `503 CARD_PAYMENTS_INACTIVE` before any Halyk API call, independent of `HALYK_EPAY_ENABLED`/credentials state.
+- `HalykPayButton.tsx` and `PaymentComplianceBlock.tsx` both gate on `PAYMENTS_ENABLED = NEXT_PUBLIC_HALYK_EPAY_ENABLED !== 'false' && BUSINESS_PROFILE.cardPaymentsActive` — either signal being false hides the button / shows the neutral `payment.unavailable` message instead of Halyk/Visa/Mastercard/3DS wording.
+- The env-var kill-switch from `docs/payments/PRODUCTION_READINESS.md` §12 (`HALYK_EPAY_ENABLED=false` + `NEXT_PUBLIC_HALYK_EPAY_ENABLED=false`) still works independently and remains the mechanism to use once/if Halyk is re-enabled for a different reason than the entity gate.
+- To re-enable once Halyk is migrated to the new entity: flip `cardPaymentsActive` back to `true` (per the existing rule in `90_SECURITY_INVARIANTS.md`, only after credentials are confirmed and an end-to-end test succeeds under the new entity).
 
 API routes:
 - `POST /api/payments/halyk/initiate` — initiate payment, returns redirect URL

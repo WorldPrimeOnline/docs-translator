@@ -49,9 +49,29 @@ interface Props {
   variant?: 'standalone' | 'footer-column';
 }
 
+// Payments kill-switch — see docs/payments/PRODUCTION_READINESS.md §12. While disabled,
+// do not display Halyk/Visa/Mastercard/3DS wording as if card payments are currently active.
+const PAYMENTS_ENABLED = process.env.NEXT_PUBLIC_HALYK_EPAY_ENABLED !== 'false';
+
+/**
+ * Whether PaymentComplianceBlock will render anything. Halyk is only actually live
+ * for the current legal entity when both are true — cardPaymentsActive reflects
+ * entity/credential reality, PAYMENTS_ENABLED is the operational kill-switch.
+ * Exported so layout containers (e.g. the footer grid) can reflow around this block
+ * instead of reserving space for something that renders null.
+ */
+export function isHalykComplianceVisible(): boolean {
+  return PAYMENTS_ENABLED && BUSINESS_PROFILE.cardPaymentsActive;
+}
+
 export async function PaymentComplianceBlock({ variant = 'standalone' }: Props) {
+  // This block renders on every page (global footer) and on /contacts, so when not
+  // live it must not show Halyk/Visa/Mastercard/3DS wording, and must not show a
+  // payment-unavailable message outside an actual payment context either (see
+  // HalykPayButton for that) — it returns null, not a substitute message.
+  if (!isHalykComplianceVisible()) return null;
+
   const t = await getTranslations('paymentCompliance');
-  const processedByKey = BUSINESS_PROFILE.cardPaymentsActive ? 'processedBy' : 'processedByPending';
 
   const inner = (
     <div className="flex flex-col gap-2.5">
@@ -59,7 +79,7 @@ export async function PaymentComplianceBlock({ variant = 'standalone' }: Props) 
         <VisaLogo />
         <MastercardLogo />
       </div>
-      <p className="text-xs leading-relaxed text-muted-foreground">{t(processedByKey)}</p>
+      <p className="text-xs leading-relaxed text-muted-foreground">{t('processedBy')}</p>
       <p className="text-xs leading-relaxed text-muted-foreground">{t('threeDSecure')}</p>
       <p className="text-xs text-muted-foreground/70">{t('deliveryCost')}</p>
       <p className="text-xs text-muted-foreground/70">{t('vatStatus')}</p>

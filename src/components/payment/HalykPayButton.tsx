@@ -4,6 +4,7 @@ import React, { useState, useRef, useCallback, useLayoutEffect } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { CreditCard, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import type { HalykPayBootstrap, HalykPaymentObject } from '@/lib/payments/halyk/types';
+import { BUSINESS_PROFILE } from '@/lib/business-profile';
 
 // TypeScript declaration for the Halyk SDK injected into window
 declare global {
@@ -27,6 +28,13 @@ interface Props {
   /** Overrides the loading-state label while autoStart is in flight. */
   loadingLabel?: string;
 }
+
+// Payments kill-switch — see docs/payments/PRODUCTION_READINESS.md §12. Setting
+// NEXT_PUBLIC_HALYK_EPAY_ENABLED=false hides the pay button; HALYK_EPAY_ENABLED=false
+// independently blocks /api/payments/halyk/initiate server-side regardless of this flag.
+// cardPaymentsActive additionally reflects that Halyk acquiring has not been migrated
+// to the current legal entity — either signal being off must hide the button.
+const PAYMENTS_ENABLED = process.env.NEXT_PUBLIC_HALYK_EPAY_ENABLED !== 'false' && BUSINESS_PROFILE.cardPaymentsActive;
 
 export function HalykPayButton({ jobId, quoteId, priceKzt, className = '', onSuccess, autoStart = false, loadingLabel }: Props): React.ReactElement {
   const t = useTranslations('payment');
@@ -57,6 +65,7 @@ export function HalykPayButton({ jobId, quoteId, priceKzt, className = '', onSuc
   }, []);
 
   const handlePay = useCallback(async (): Promise<void> => {
+    if (!PAYMENTS_ENABLED) return;
     // Prevent double invocation (double-click, React StrictMode)
     if (initiated.current || state === 'loading' || state === 'script_loading' || state === 'paid') {
       return;
@@ -139,9 +148,17 @@ export function HalykPayButton({ jobId, quoteId, priceKzt, className = '', onSuc
   // Layout effect (fires before paint) so the loading state is applied before
   // the idle "pay" button ever renders — avoids a one-frame flash of a second button.
   useLayoutEffect(() => {
-    if (autoStart) void handlePay();
+    if (autoStart && PAYMENTS_ENABLED) void handlePay();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  if (!PAYMENTS_ENABLED) {
+    return (
+      <div className={`text-sm text-muted-foreground ${className}`}>
+        {t('unavailable')}
+      </div>
+    );
+  }
 
   if (state === 'paid') {
     return (

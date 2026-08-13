@@ -245,7 +245,7 @@ function checkFile(filePath: string, locale: string, ns: string): void {
         'за документ', 'Электронный перевод', 'Перевод с печатью исполнителя',
         'Перевод с нотариальным заверением', 'Как это работает', 'Четыре шага',
         'Стоимость', 'Простая цена', 'Загрузите документ', 'Проверьте цену',
-        'ИП WorldPrimeOnline', 'г. Алматы',
+        'ТОО World Prime Online', 'Ауэзовский район',
       ];
       // Check only the value portion to avoid false positives from JSON key names like "simplePricing"
       const TH_FORBIDDEN_ENGLISH = [

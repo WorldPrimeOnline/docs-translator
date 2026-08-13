@@ -23,7 +23,9 @@ export interface RenderMeta {
   outputMode?: OutputMode;
 }
 
-const PROVIDER_IIN_BIN = '';
+// Legal entity changed 2026-08 — old IP/IE (840324300155) replaced with the new
+// registered ТОО (BIN 260840011541). See src/lib/business-profile.ts.
+const PROVIDER_IIN_BIN = '260840011541';
 
 const LANG_SRC: Record<string, { en: string; ru: string }> = {
   en: { en: 'English', ru: 'английского' },
@@ -138,8 +140,8 @@ function certificationRows(meta: RenderMeta): Array<[string, string]> {
       ['Переводчик:', '______________________'],
       ['Квалификация переводчика:', '______________________'],
       ['Подпись переводчика:', '______________________'],
-      ['Исполнитель:', 'WorldPrimeOnline'],
-      ['ИИН/БИН:', iinBin],
+      ['Исполнитель:', 'ТОО World Prime Online'],
+      ['БИН:', iinBin],
       ['Печать Исполнителя:', '______________________'],
       ['Дата:', '______________________'],
     ];
@@ -152,8 +154,8 @@ function certificationRows(meta: RenderMeta): Array<[string, string]> {
     ['Translator:', '______________________'],
     ['Translator qualification:', '______________________'],
     ['Translator signature:', '______________________'],
-    ['Provider:', 'WorldPrimeOnline'],
-    ['IIN/BIN:', iinBin],
+    ['Provider:', 'TOO World Prime Online'],
+    ['BIN:', iinBin],
     ["Provider's stamp:", '______________________'],
     ['Date:', '______________________'],
   ];
