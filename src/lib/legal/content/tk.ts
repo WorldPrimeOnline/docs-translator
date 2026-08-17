@@ -18,7 +18,7 @@ export const legalDocs: LegalDocs = {
           'Ýerine ýetiriji: TOO World Prime Online',
           'BIN: 260840011541',
           'Ýuridik salgysy: Gazagystan, Almaty, Auezov etraby, Ryskulbekow köçesi 39A, poçta indeksi 050042',
-          'E-poçta: worldprimeonline@gmail.com',
+          'E-poçta: wpotranslations@gmail.com',
           'Saýt: https://www.wpotranslations.org/',
           'GGH: göz öňünde tutulmaýar',
           'Platformany hasaba almak ýa-da platformany ulanmak şu Teklibi doly kabul etmegi aňladýar.',
@@ -164,7 +164,7 @@ export const legalDocs: LegalDocs = {
         body: [
           'WorldPrimeOnline',
           'Ýuridik salgysy: Gazagystan, Almaty, Auezov etraby, Ryskulbekow köçesi 39A, poçta indeksi 050042',
-          'E-poçta: worldprimeonline@gmail.com',
+          'E-poçta: wpotranslations@gmail.com',
           'Saýt: https://www.wpotranslations.org/',
         ],
       },
@@ -249,7 +249,7 @@ export const legalDocs: LegalDocs = {
           '• Nädogry maglumatlary düzetmek.',
           '• Belli şertlerde maglumatlar öçürilmegini talap etmek.',
           '• Işlemegi çäklendirmäge razylyk bermedik.',
-          'Bu hukuklardan peýdalanmak üçin worldprimeonline@gmail.com salgysyndan habarlaşyňyz.',
+          'Bu hukuklardan peýdalanmak üçin wpotranslations@gmail.com salgysyndan habarlaşyňyz.',
         ],
       },
       {
@@ -290,7 +290,7 @@ export const legalDocs: LegalDocs = {
         body: [
           'WorldPrimeOnline',
           'Ýuridik salgysy: Gazagystan, Almaty, Auezov etraby, Ryskulbekow köçesi 39A, poçta indeksi 050042',
-          'E-poçta: worldprimeonline@gmail.com',
+          'E-poçta: wpotranslations@gmail.com',
           'Saýt: https://www.wpotranslations.org/',
         ],
       },
@@ -337,7 +337,7 @@ export const legalDocs: LegalDocs = {
         id: 'withdrawal',
         heading: '4. Razylygы Yzyna Almak',
         body: [
-          'Razylygыňyzy islendik wagt worldprimeonline@gmail.com salgysyndan yzyna alyp bilersiňiz.',
+          'Razylygыňyzy islendik wagt wpotranslations@gmail.com salgysyndan yzyna alyp bilersiňiz.',
           'Razylygы yzyna almak öň amala aşyrylan hyzmatlaryň kanuny esasyna täsir etmeýär.',
         ],
       },
@@ -346,7 +346,7 @@ export const legalDocs: LegalDocs = {
         heading: '5. Hukuklar',
         body: [
           'Siz öz maglumatlaryna elýeterlilik, düzetmek we öçürmek hukugyňyz bar.',
-          'Bu hukuklardan peýdalanmak üçin worldprimeonline@gmail.com arkaly ýüz tutup bilersiňiz.',
+          'Bu hukuklardan peýdalanmak üçin wpotranslations@gmail.com arkaly ýüz tutup bilersiňiz.',
         ],
       },
       {
@@ -355,7 +355,7 @@ export const legalDocs: LegalDocs = {
         body: [
           'WorldPrimeOnline',
           'Ýuridik salgysy: Gazagystan, Almaty, Auezov etraby, Ryskulbekow köçesi 39A, poçta indeksi 050042',
-          'E-poçta: worldprimeonline@gmail.com',
+          'E-poçta: wpotranslations@gmail.com',
           'Saýt: https://www.wpotranslations.org/',
         ],
       },
@@ -402,7 +402,7 @@ export const legalDocs: LegalDocs = {
         id: 'process',
         heading: '4. Gaýtarmagyň Tertibi',
         body: [
-          '7 (ýedi) iş gününiň dowamynda worldprimeonline@gmail.com salgysyndan sargytyň belgisi bilen arz bermelidir.',
+          '7 (ýedi) iş gününiň dowamynda wpotranslations@gmail.com salgysyndan sargytyň belgisi bilen arz bermelidir.',
           'Arz berilenden soň 5 (bäş) iş günüň dowamynda seredilýär.',
           'Onaylanan töleg 10 (on) iş gününiň dowamynda başlangyç usul bilen gaýtarylýar.',
         ],
@@ -429,7 +429,7 @@ export const legalDocs: LegalDocs = {
         body: [
           'WorldPrimeOnline',
           'Ýuridik salgysy: Gazagystan, Almaty, Auezov etraby, Ryskulbekow köçesi 39A, poçta indeksi 050042',
-          'E-poçta: worldprimeonline@gmail.com',
+          'E-poçta: wpotranslations@gmail.com',
           'Saýt: https://www.wpotranslations.org/',
         ],
       },
@@ -499,7 +499,7 @@ export const legalDocs: LegalDocs = {
         body: [
           'WorldPrimeOnline',
           'Ýuridik salgysy: Gazagystan, Almaty, Auezov etraby, Ryskulbekow köçesi 39A, poçta indeksi 050042',
-          'E-poçta: worldprimeonline@gmail.com',
+          'E-poçta: wpotranslations@gmail.com',
           'Saýt: https://www.wpotranslations.org/',
         ],
       },
@@ -587,7 +587,7 @@ export const legalDocs: LegalDocs = {
         body: [
           'WorldPrimeOnline',
           'Ýuridik salgysy: Gazagystan, Almaty, Auezov etraby, Ryskulbekow köçesi 39A, poçta indeksi 050042',
-          'E-poçta: worldprimeonline@gmail.com',
+          'E-poçta: wpotranslations@gmail.com',
           'Saýt: https://www.wpotranslations.org/',
         ],
       },
@@ -676,7 +676,7 @@ export const legalDocs: LegalDocs = {
         body: [
           'WorldPrimeOnline',
           'Ýuridik salgysy: Gazagystan, Almaty, Auezov etraby, Ryskulbekow köçesi 39A, poçta indeksi 050042',
-          'E-poçta: worldprimeonline@gmail.com',
+          'E-poçta: wpotranslations@gmail.com',
           'Saýt: https://www.wpotranslations.org/',
         ],
       },

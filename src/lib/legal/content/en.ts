@@ -19,7 +19,7 @@ export const legalDocs: LegalDocs = {
           'Provider: TOO World Prime Online',
           'BIN: 260840011541',
           'Legal address: Kazakhstan, Almaty, Auezov district, Ryskulbekova street 39A, postal code 050042',
-          'Email: worldprimeonline@gmail.com',
+          'Email: wpotranslations@gmail.com',
           'Website: https://www.wpotranslations.org/',
           'VAT: not applicable',
           'Publication date: 2026-05-26',
@@ -112,7 +112,7 @@ export const legalDocs: LegalDocs = {
         heading: '10. Fiscal Receipts',
         body: [
           'Where required by applicable law, the Provider issues fiscal receipts or equivalent payment confirmations for completed payments.',
-          'Customers may request a copy of their payment confirmation through the Platform account or by contacting the Provider at worldprimeonline@gmail.com.',
+          'Customers may request a copy of their payment confirmation through the Platform account or by contacting the Provider at wpotranslations@gmail.com.',
         ],
       },
       {
@@ -184,7 +184,7 @@ export const legalDocs: LegalDocs = {
         heading: '18. Document Storage and Deletion',
         body: [
           'Uploaded documents and Translated Documents are stored on the Provider\'s servers for a maximum of 30 days from the date of translation completion.',
-          'After 30 days, all files are automatically and permanently deleted. The Customer may request earlier deletion through the Platform account settings or by contacting worldprimeonline@gmail.com.',
+          'After 30 days, all files are automatically and permanently deleted. The Customer may request earlier deletion through the Platform account settings or by contacting wpotranslations@gmail.com.',
         ],
       },
       {
@@ -196,7 +196,7 @@ export const legalDocs: LegalDocs = {
         id: 'disputes',
         heading: '20. Dispute Resolution',
         body: [
-          'Any dispute arising from or related to this Agreement shall first be subject to pre-trial resolution. The Customer shall submit a written claim to the Provider at worldprimeonline@gmail.com. The Provider shall respond within 30 calendar days.',
+          'Any dispute arising from or related to this Agreement shall first be subject to pre-trial resolution. The Customer shall submit a written claim to the Provider at wpotranslations@gmail.com. The Provider shall respond within 30 calendar days.',
           'If the dispute cannot be resolved amicably, it shall be submitted to the competent court at the Provider\'s registered address, in accordance with applicable law.',
         ],
       },
@@ -206,7 +206,7 @@ export const legalDocs: LegalDocs = {
         body: [
           'Provider: TOO World Prime Online',
           'Legal address: Kazakhstan, Almaty, Auezov district, Ryskulbekova street 39A, postal code 050042',
-          'Email: worldprimeonline@gmail.com',
+          'Email: wpotranslations@gmail.com',
           'Website: https://www.wpotranslations.org/',
         ],
       },
@@ -228,7 +228,7 @@ export const legalDocs: LegalDocs = {
           'Provider: TOO World Prime Online',
           'BIN: 260840011541',
           'Legal address: Kazakhstan, Almaty, Auezov district, Ryskulbekova street 39A, postal code 050042',
-          'Email: worldprimeonline@gmail.com',
+          'Email: wpotranslations@gmail.com',
           'Website: https://www.wpotranslations.org/',
         ],
       },
@@ -281,7 +281,7 @@ export const legalDocs: LegalDocs = {
         id: 'deletion',
         heading: '6. Deletion Request',
         body: [
-          'The Customer may request immediate deletion of their uploaded files before the 30-day retention period expires. Deletion requests can be submitted through the Platform account settings or by contacting worldprimeonline@gmail.com.',
+          'The Customer may request immediate deletion of their uploaded files before the 30-day retention period expires. Deletion requests can be submitted through the Platform account settings or by contacting wpotranslations@gmail.com.',
           'Account deletion requests will result in the permanent deletion of all personal data associated with the account, subject to mandatory retention obligations.',
         ],
       },
@@ -326,7 +326,7 @@ export const legalDocs: LegalDocs = {
           '• Request deletion of personal data (subject to legal retention obligations).',
           '• Object to or restrict processing in certain circumstances.',
           '• Withdraw consent at any time without affecting the lawfulness of prior processing.',
-          'To exercise these rights, contact the Provider at worldprimeonline@gmail.com. Requests will be addressed within 30 calendar days.',
+          'To exercise these rights, contact the Provider at wpotranslations@gmail.com. Requests will be addressed within 30 calendar days.',
         ],
       },
       {
@@ -354,7 +354,7 @@ export const legalDocs: LegalDocs = {
         body: [
           'Provider: TOO World Prime Online',
           'Legal address: Kazakhstan, Almaty, Auezov district, Ryskulbekova street 39A, postal code 050042',
-          'Contact: worldprimeonline@gmail.com',
+          'Contact: wpotranslations@gmail.com',
           'Website: https://www.wpotranslations.org/',
         ],
       },
@@ -415,14 +415,14 @@ export const legalDocs: LegalDocs = {
         body: [
           'Uploaded source documents and translated files are automatically and permanently deleted 30 days after translation completion.',
           'Account data is retained until account deletion is requested.',
-          'The Customer may request earlier deletion at any time via the Platform account settings or by contacting worldprimeonline@gmail.com.',
+          'The Customer may request earlier deletion at any time via the Platform account settings or by contacting wpotranslations@gmail.com.',
         ],
       },
       {
         id: 'withdrawal',
         heading: '6. Withdrawal of Consent',
         body: [
-          'The Customer may withdraw consent at any time by deleting their account or contacting the Provider at worldprimeonline@gmail.com. Withdrawal of consent does not affect the lawfulness of processing carried out before the withdrawal.',
+          'The Customer may withdraw consent at any time by deleting their account or contacting the Provider at wpotranslations@gmail.com. Withdrawal of consent does not affect the lawfulness of processing carried out before the withdrawal.',
           'Withdrawal of consent may prevent the Customer from using certain features of the Service.',
         ],
       },
@@ -447,7 +447,7 @@ export const legalDocs: LegalDocs = {
         body: [
           'The Customer may cancel an order and receive a full refund if the cancellation request is submitted before the Provider begins processing the uploaded document.',
           'Processing may begin automatically immediately after payment confirmation and order creation. Once OCR, AI processing, translation, PDF generation, or transfer to a translator or notary partner has commenced, order cancellation may not be possible.',
-          'To cancel, the Customer should contact the Provider at worldprimeonline@gmail.com as soon as possible after placing the order.',
+          'To cancel, the Customer should contact the Provider at wpotranslations@gmail.com as soon as possible after placing the order.',
         ],
       },
       {
@@ -464,7 +464,7 @@ export const legalDocs: LegalDocs = {
         body: [
           'If the Translated Document cannot be delivered or is delivered demonstrably incomplete or corrupted due to a technical error on the Provider\'s side, the Provider may perform reprocessing at no additional charge.',
           'A refund is provided if reprocessing is not possible, does not resolve the technical error, or the Translated Document cannot be delivered due to the Provider\'s fault.',
-          'Requests must be submitted within 7 days of document delivery by contacting worldprimeonline@gmail.com with a description of the issue and the order reference.',
+          'Requests must be submitted within 7 days of document delivery by contacting wpotranslations@gmail.com with a description of the issue and the order reference.',
         ],
       },
       {
@@ -497,7 +497,7 @@ export const legalDocs: LegalDocs = {
         body: [
           'Approved refunds are processed through the same payment method used for the original transaction.',
           'Refunds are typically processed within 10 business days of approval. Processing time may vary depending on the payment provider.',
-          'To request a refund, contact worldprimeonline@gmail.com with the order reference and a description of the issue.',
+          'To request a refund, contact wpotranslations@gmail.com with the order reference and a description of the issue.',
         ],
       },
       {
@@ -621,7 +621,7 @@ export const legalDocs: LegalDocs = {
         heading: '5. Account Responsibility',
         body: [
           'The Customer is responsible for maintaining the confidentiality of their account credentials and for all activities that occur under their account.',
-          'The Customer must notify the Provider at worldprimeonline@gmail.com immediately upon becoming aware of any unauthorized use of their account.',
+          'The Customer must notify the Provider at wpotranslations@gmail.com immediately upon becoming aware of any unauthorized use of their account.',
           'The Provider reserves the right to suspend or terminate accounts that violate these Terms.',
         ],
       },
@@ -660,7 +660,7 @@ export const legalDocs: LegalDocs = {
         body: [
           'Provider: TOO World Prime Online',
           'Legal address: Kazakhstan, Almaty, Auezov district, Ryskulbekova street 39A, postal code 050042',
-          'Contact: worldprimeonline@gmail.com',
+          'Contact: wpotranslations@gmail.com',
           'Website: https://www.wpotranslations.org/',
         ],
       },
@@ -747,7 +747,7 @@ export const legalDocs: LegalDocs = {
         body: [
           'Provider: TOO World Prime Online',
           'Legal address: Kazakhstan, Almaty, Auezov district, Ryskulbekova street 39A, postal code 050042',
-          'Contact: worldprimeonline@gmail.com',
+          'Contact: wpotranslations@gmail.com',
           'Website: https://www.wpotranslations.org/',
         ],
       },

@@ -116,7 +116,7 @@ WHERE payment_transaction_id = '<payment_transaction_id>'
 
 ### Step 6: Notify customer
 
-Send refund confirmation to customer via `worldprimeonline@gmail.com` or Telegram.
+Send refund confirmation to customer via `wpotranslations@gmail.com` or Telegram.
 Include:
 - Amount refunded
 - Original payment date

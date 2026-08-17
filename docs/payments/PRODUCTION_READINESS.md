@@ -64,7 +64,7 @@ See `docs/payments/FISCALIZATION.md` for provider setup.
 - [ ] Operator confirmed: refunds go through Halyk merchant cabinet (manual process)
 - [ ] Operator knows to run `SELECT * FROM refund_transactions WHERE status='pending_manual'`
 - [ ] Accounting confirmed refund fiscal correction process (OFD correction receipt)
-- [ ] Customer refund contact is `worldprimeonline@gmail.com`
+- [ ] Customer refund contact is `wpotranslations@gmail.com`
 
 See `docs/payments/REFUNDS.md` for process details.
 

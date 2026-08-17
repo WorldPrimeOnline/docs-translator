@@ -18,7 +18,7 @@ export const legalDocs: LegalDocs = {
           'Аткаруучу: ТОО World Prime Online',
           'БИН: 260840011541',
           'Юридикалык дарек: Казакстан, Алматы шаары, Ауэзов району, Рыскулбеков көчөсү, 39А, почта индекси 050042',
-          'Электрондук почта: worldprimeonline@gmail.com',
+          'Электрондук почта: wpotranslations@gmail.com',
           'Сайт: https://www.wpotranslations.org/',
           'КНС: каралбаган',
           'Платформада каттоодон өтүү же платформаны пайдалануу ушул Сунушту толук кабыл алуу дегенди билдирет.',
@@ -164,7 +164,7 @@ export const legalDocs: LegalDocs = {
         body: [
           'WorldPrimeOnline',
           'Юридикалык дарек: Казакстан, Алматы шаары, Ауэзов району, Рыскулбеков көчөсү, 39А, почта индекси 050042',
-          'Электрондук почта: worldprimeonline@gmail.com',
+          'Электрондук почта: wpotranslations@gmail.com',
           'Сайт: https://www.wpotranslations.org/',
         ],
       },
@@ -249,7 +249,7 @@ export const legalDocs: LegalDocs = {
           '• Туура эмес маалыматтарды оңдоо.',
           '• Белгилүү шарттарда маалыматтарды жоюуну талап кылуу.',
           '• Иштетүүнү чектөө.',
-          'Бул укуктарды колдонуу үчүн worldprimeonline@gmail.com дарегине кайрылыңыз.',
+          'Бул укуктарды колдонуу үчүн wpotranslations@gmail.com дарегине кайрылыңыз.',
         ],
       },
       {
@@ -290,7 +290,7 @@ export const legalDocs: LegalDocs = {
         body: [
           'WorldPrimeOnline',
           'Юридикалык дарек: Казакстан, Алматы шаары, Ауэзов району, Рыскулбеков көчөсү, 39А, почта индекси 050042',
-          'Электрондук почта: worldprimeonline@gmail.com',
+          'Электрондук почта: wpotranslations@gmail.com',
           'Сайт: https://www.wpotranslations.org/',
         ],
       },
@@ -337,7 +337,7 @@ export const legalDocs: LegalDocs = {
         id: 'withdrawal',
         heading: '4. Макулдукту Кайтаруу',
         body: [
-          'Макулдугуңузду каалаган убакытта worldprimeonline@gmail.com дарегине кайрылуу аркылуу кайтара аласыз.',
+          'Макулдугуңузду каалаган убакытта wpotranslations@gmail.com дарегине кайрылуу аркылуу кайтара аласыз.',
           'Макулдукту кайтаруу мурда аткарылган кызматтардын мыйзамдык негизине таасир этпейт.',
         ],
       },
@@ -346,7 +346,7 @@ export const legalDocs: LegalDocs = {
         heading: '5. Укуктар',
         body: [
           'Сиз өз маалыматтарыңызга кирүү, оңдоо жана жоюу укугуна ээсиз.',
-          'Бул укуктарды колдонуу үчүн worldprimeonline@gmail.com аркылуу байланышсаңыз болот.',
+          'Бул укуктарды колдонуу үчүн wpotranslations@gmail.com аркылуу байланышсаңыз болот.',
         ],
       },
       {
@@ -355,7 +355,7 @@ export const legalDocs: LegalDocs = {
         body: [
           'WorldPrimeOnline',
           'Юридикалык дарек: Казакстан, Алматы шаары, Ауэзов району, Рыскулбеков көчөсү, 39А, почта индекси 050042',
-          'Электрондук почта: worldprimeonline@gmail.com',
+          'Электрондук почта: wpotranslations@gmail.com',
           'Сайт: https://www.wpotranslations.org/',
         ],
       },
@@ -402,7 +402,7 @@ export const legalDocs: LegalDocs = {
         id: 'process',
         heading: '4. Кайтаруу Тартиби',
         body: [
-          '7 (жети) жумуш күн ичинде worldprimeonline@gmail.com дарегине буйрутманын номери менен кайрылуу керек.',
+          '7 (жети) жумуш күн ичинде wpotranslations@gmail.com дарегине буйрутманын номери менен кайрылуу керек.',
           'Кайрылуудан кийин 5 (беш) жумуш күн ичинде каралат.',
           'Макулдашылган төлөм 10 (он) жумуш күн ичинде баштапкы ыкма аркылуу кайтарылат.',
         ],
@@ -429,7 +429,7 @@ export const legalDocs: LegalDocs = {
         body: [
           'WorldPrimeOnline',
           'Юридикалык дарек: Казакстан, Алматы шаары, Ауэзов району, Рыскулбеков көчөсү, 39А, почта индекси 050042',
-          'Электрондук почта: worldprimeonline@gmail.com',
+          'Электрондук почта: wpotranslations@gmail.com',
           'Сайт: https://www.wpotranslations.org/',
         ],
       },
@@ -499,7 +499,7 @@ export const legalDocs: LegalDocs = {
         body: [
           'WorldPrimeOnline',
           'Юридикалык дарек: Казакстан, Алматы шаары, Ауэзов району, Рыскулбеков көчөсү, 39А, почта индекси 050042',
-          'Электрондук почта: worldprimeonline@gmail.com',
+          'Электрондук почта: wpotranslations@gmail.com',
           'Сайт: https://www.wpotranslations.org/',
         ],
       },
@@ -587,7 +587,7 @@ export const legalDocs: LegalDocs = {
         body: [
           'WorldPrimeOnline',
           'Юридикалык дарек: Казакстан, Алматы шаары, Ауэзов району, Рыскулбеков көчөсү, 39А, почта индекси 050042',
-          'Электрондук почта: worldprimeonline@gmail.com',
+          'Электрондук почта: wpotranslations@gmail.com',
           'Сайт: https://www.wpotranslations.org/',
         ],
       },
@@ -676,7 +676,7 @@ export const legalDocs: LegalDocs = {
         body: [
           'WorldPrimeOnline',
           'Юридикалык дарек: Казакстан, Алматы шаары, Ауэзов району, Рыскулбеков көчөсү, 39А, почта индекси 050042',
-          'Электрондук почта: worldprimeonline@gmail.com',
+          'Электрондук почта: wpotranslations@gmail.com',
           'Сайт: https://www.wpotranslations.org/',
         ],
       },
