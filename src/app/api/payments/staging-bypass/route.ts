@@ -165,6 +165,10 @@ async function handlePost(request: NextRequest, correlationId: string): Promise<
     }
 
     const now = new Date().toISOString();
+    // Same 30-minute payment window as /api/payments/halyk/initiate (route.ts:303) —
+    // expires_at is NOT NULL with no default (src/types/supabase.ts payment_transactions
+    // Insert type), so it must always be set explicitly on insert.
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: newTx, error: txError } = await (supabaseServer as any)
       .from('payment_transactions')
@@ -184,6 +188,7 @@ async function handlePost(request: NextRequest, correlationId: string): Promise<
         price_locked_at: now,
         pricing_snapshot_json: { quoteId, amountKzt: quoteCheck.amountKzt, source: 'staging_payment_bypass' },
         ip_address: getClientIp(request),
+        expires_at: expiresAt,
       })
       .select('id')
       .single();

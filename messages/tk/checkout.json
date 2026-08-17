@@ -89,7 +89,8 @@
       "dialogDescription": "Пропускает реальную оплату Halyk и запускает тот же процесс, что и после успешной оплаты. Только для staging.",
       "passwordLabel": "Пароль",
       "confirmButton": "Подтвердить",
-      "invalidPassword": "Неверный тестовый пароль"
+      "invalidPassword": "Неверный тестовый пароль",
+      "bypassError": "Ошибка тестовой оплаты"
     }
   }
 }

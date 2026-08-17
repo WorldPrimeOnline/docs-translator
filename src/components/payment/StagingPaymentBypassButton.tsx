@@ -30,7 +30,12 @@ interface Props {
   onSuccess?: (paymentId: string) => void;
 }
 
-type Status = 'idle' | 'submitting' | 'error';
+type Status = 'idle' | 'submitting' | 'invalid_password' | 'bypass_error';
+
+interface ErrorDetail {
+  code?: string;
+  correlationId?: string;
+}
 
 /**
  * Split out from the exported wrapper so useRouter() is only ever called when the
@@ -43,11 +48,13 @@ function StagingPaymentBypassButtonImpl({ jobId, quoteId, className = '', onSucc
   const [open, setOpen] = useState(false);
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState<Status>('idle');
+  const [errorDetail, setErrorDetail] = useState<ErrorDetail | null>(null);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (status === 'submitting') return;
     setStatus('submitting');
+    setErrorDetail(null);
 
     try {
       const res = await fetch('/api/payments/staging-bypass', {
@@ -58,8 +65,17 @@ function StagingPaymentBypassButtonImpl({ jobId, quoteId, className = '', onSucc
       });
 
       if (!res.ok) {
-        setPassword('');
-        setStatus('error');
+        // 401 = the password itself was wrong. Anything else (400/404/409/422/500) is a
+        // real failure unrelated to the password — surface the error code/correlationId
+        // instead of the misleading "wrong password" message.
+        if (res.status === 401) {
+          setPassword('');
+          setStatus('invalid_password');
+          return;
+        }
+        const body = await res.json().catch(() => null) as { error?: string; correlationId?: string } | null;
+        setErrorDetail({ code: body?.error, correlationId: body?.correlationId });
+        setStatus('bypass_error');
         return;
       }
 
@@ -70,8 +86,8 @@ function StagingPaymentBypassButtonImpl({ jobId, quoteId, className = '', onSucc
       onSuccess?.(data.paymentId);
       router.push(`/payment/result?payment=${encodeURIComponent(data.paymentId)}`);
     } catch {
-      setPassword('');
-      setStatus('error');
+      setErrorDetail(null);
+      setStatus('bypass_error');
     }
   }, [jobId, quoteId, password, status, onSuccess, router]);
 
@@ -81,7 +97,7 @@ function StagingPaymentBypassButtonImpl({ jobId, quoteId, className = '', onSucc
         type="button"
         variant="outline"
         size="sm"
-        onClick={() => { setStatus('idle'); setPassword(''); setOpen(true); }}
+        onClick={() => { setStatus('idle'); setPassword(''); setErrorDetail(null); setOpen(true); }}
         className="w-full gap-2 border-dashed border-amber-500/50 text-amber-500 hover:bg-amber-500/10 hover:text-amber-400"
       >
         <FlaskConical className="h-3.5 w-3.5" />
@@ -107,8 +123,18 @@ function StagingPaymentBypassButtonImpl({ jobId, quoteId, className = '', onSucc
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={status === 'submitting'}
               />
-              {status === 'error' && (
+              {status === 'invalid_password' && (
                 <p className="text-sm text-red-400">{t('invalidPassword')}</p>
+              )}
+              {status === 'bypass_error' && (
+                <p className="text-sm text-red-400">
+                  {t('bypassError')}
+                  {(errorDetail?.code || errorDetail?.correlationId) && (
+                    <span className="block text-xs text-muted-foreground">
+                      {[errorDetail?.code, errorDetail?.correlationId].filter(Boolean).join(' · ')}
+                    </span>
+                  )}
+                </p>
               )}
             </div>
 

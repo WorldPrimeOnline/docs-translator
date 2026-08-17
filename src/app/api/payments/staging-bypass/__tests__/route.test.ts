@@ -120,3 +120,73 @@ describe('staging-bypass route — created transactions are clearly distinguisha
     expect(routeSrc).toContain("payment_source: 'card_payment'");
   });
 });
+
+describe('staging-bypass route — created payment_transactions row satisfies the DB schema', () => {
+  // Regression test for: "null value in column expires_at ... violates not-null
+  // constraint". Derives the required (non-optional) Insert fields directly from the
+  // generated Supabase types (the schema source of truth) instead of a hand-maintained
+  // list, so this catches ANY future NOT NULL column the insert forgets to set —
+  // not just expires_at.
+  const typesSrc = fs.readFileSync(path.join(process.cwd(), 'src/types/supabase.ts'), 'utf-8');
+
+  /** Extracts the substring between the `{` right after `marker` and its matching `}`. */
+  function extractBracedBlock(src: string, marker: string): string {
+    const markerIdx = src.indexOf(marker);
+    if (markerIdx === -1) throw new Error(`marker not found: ${marker}`);
+    const braceStart = src.indexOf('{', markerIdx);
+    let depth = 0;
+    for (let i = braceStart; i < src.length; i++) {
+      if (src[i] === '{') depth++;
+      else if (src[i] === '}') {
+        depth--;
+        if (depth === 0) return src.slice(braceStart + 1, i);
+      }
+    }
+    throw new Error(`unbalanced braces for marker: ${marker}`);
+  }
+
+  function requiredInsertFields(table: string): string[] {
+    const tableBlock = extractBracedBlock(typesSrc, `${table}: {`);
+    const insertBlock = extractBracedBlock(tableBlock, 'Insert: {');
+    return insertBlock
+      .split('\n')
+      .map((line) => line.trim())
+      .map((line) => /^(\w+)(\??):/.exec(line))
+      .filter((m): m is RegExpExecArray => m !== null && m[2] !== '?')
+      // Group 1 is mandatory in this pattern — it's always present when the match succeeds.
+      .map((m) => m[1]!);
+  }
+
+  function insertedFields(): string[] {
+    const insertBlock = extractBracedBlock(routeSrc, '.insert({');
+    return insertBlock
+      .split('\n')
+      .map((line) => line.trim())
+      .map((line) => /^(\w+):/.exec(line))
+      .filter((m): m is RegExpExecArray => m !== null)
+      .map((m) => m[1]!);
+  }
+
+  it('sanity check: the schema currently requires user_id, document_id, job_id, amount, expires_at', () => {
+    // If this fails, the generated types changed — re-derive, don't hardcode around it.
+    expect(requiredInsertFields('payment_transactions').sort()).toEqual(
+      ['user_id', 'document_id', 'job_id', 'amount', 'expires_at'].sort(),
+    );
+  });
+
+  it('sets every NOT NULL-without-default payment_transactions column on insert', () => {
+    const required = requiredInsertFields('payment_transactions');
+    const inserted = insertedFields();
+    for (const field of required) {
+      expect(inserted).toContain(field);
+    }
+  });
+
+  it('specifically sets expires_at (regression: was previously missing)', () => {
+    expect(insertedFields()).toContain('expires_at');
+  });
+
+  it('computes expires_at with the same 30-minute window as /api/payments/halyk/initiate', () => {
+    expect(routeSrc).toContain("new Date(Date.now() + 30 * 60 * 1000).toISOString()");
+  });
+});
