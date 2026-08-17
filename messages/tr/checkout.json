@@ -82,6 +82,14 @@
     "QUOTE_NOT_FOUND": "Teklif bulunamadı. Lütfen yenileyin.",
     "PRICING_NOT_CONFIGURED": "Fiyatlandırma yapılandırılmamış. Lütfen destek ekibiyle iletişime geçin.",
     "LANGUAGE_PAIR_MUST_DIFFER": "Kaynak ve hedef dil farklı olmalıdır.",
-    "NOTARY_CUTOFF_PASSED": "Bu hesaplama artık geçerli değil — noter başvuru son tarihi geçti. Yeni bir hesaplama için belgeyi yeniden yükleyin."
+    "NOTARY_CUTOFF_PASSED": "Bu hesaplama artık geçerli değil — noter başvuru son tarihi geçti. Yeni bir hesaplama için belgeyi yeniden yükleyin.",
+    "stagingBypass": {
+      "buttonLabel": "Тестовая оплата — staging",
+      "dialogTitle": "Тестовая оплата — staging",
+      "dialogDescription": "Пропускает реальную оплату Halyk и запускает тот же процесс, что и после успешной оплаты. Только для staging.",
+      "passwordLabel": "Пароль",
+      "confirmButton": "Подтвердить",
+      "invalidPassword": "Неверный тестовый пароль"
+    }
   }
 }

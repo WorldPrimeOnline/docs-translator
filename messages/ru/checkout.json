@@ -82,6 +82,14 @@
     "QUOTE_NOT_FOUND": "Quote not found. Please refresh.",
     "PRICING_NOT_CONFIGURED": "Pricing is not configured. Please contact support.",
     "LANGUAGE_PAIR_MUST_DIFFER": "Исходный и целевой языки должны отличаться.",
-    "NOTARY_CUTOFF_PASSED": "Этот расчёт больше недействителен — истёк нотариальный срок подачи. Загрузите документ заново для нового расчёта."
+    "NOTARY_CUTOFF_PASSED": "Этот расчёт больше недействителен — истёк нотариальный срок подачи. Загрузите документ заново для нового расчёта.",
+    "stagingBypass": {
+      "buttonLabel": "Тестовая оплата — staging",
+      "dialogTitle": "Тестовая оплата — staging",
+      "dialogDescription": "Пропускает реальную оплату Halyk и запускает тот же процесс, что и после успешной оплаты. Только для staging.",
+      "passwordLabel": "Пароль",
+      "confirmButton": "Подтвердить",
+      "invalidPassword": "Неверный тестовый пароль"
+    }
   }
 }

@@ -82,6 +82,14 @@
     "paymentPendingTitle": "Payment is being verified",
     "paymentPendingDesc": "If money was charged, do not pay again. We will update the status automatically.",
     "authorizedTitle": "Payment authorized",
-    "authorizedDesc": "Your payment is authorized and will be confirmed shortly. Please wait."
+    "authorizedDesc": "Your payment is authorized and will be confirmed shortly. Please wait.",
+    "stagingBypass": {
+      "buttonLabel": "Тестовая оплата — staging",
+      "dialogTitle": "Тестовая оплата — staging",
+      "dialogDescription": "Пропускает реальную оплату Halyk и запускает тот же процесс, что и после успешной оплаты. Только для staging.",
+      "passwordLabel": "Пароль",
+      "confirmButton": "Подтвердить",
+      "invalidPassword": "Неверный тестовый пароль"
+    }
   }
 }

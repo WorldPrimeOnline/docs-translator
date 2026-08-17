@@ -82,6 +82,14 @@
     "paymentPendingTitle": "To'lov tekshirilmoqda",
     "paymentPendingDesc": "Agar mablag' yechilgan bo'lsa, qayta to'lamang. Holatni avtomatik yangilaymiz.",
     "authorizedTitle": "To'lov ruxsat etildi",
-    "authorizedDesc": "To'lovingiz ruxsat etildi va tez orada tasdiqlanadi. Iltimos, kuting."
+    "authorizedDesc": "To'lovingiz ruxsat etildi va tez orada tasdiqlanadi. Iltimos, kuting.",
+    "stagingBypass": {
+      "buttonLabel": "Тестовая оплата — staging",
+      "dialogTitle": "Тестовая оплата — staging",
+      "dialogDescription": "Пропускает реальную оплату Halyk и запускает тот же процесс, что и после успешной оплаты. Только для staging.",
+      "passwordLabel": "Пароль",
+      "confirmButton": "Подтвердить",
+      "invalidPassword": "Неверный тестовый пароль"
+    }
   }
 }

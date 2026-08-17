@@ -82,6 +82,14 @@
     "pendingLongDesc": "This is taking longer than usual. You can go to your account — we will update the status automatically.",
     "retryPayment": "Return to payment",
     "paymentPendingTitle": "Payment is being verified",
-    "paymentPendingDesc": "If money was charged, do not pay again. We will update the status automatically."
+    "paymentPendingDesc": "If money was charged, do not pay again. We will update the status automatically.",
+    "stagingBypass": {
+      "buttonLabel": "Тестовая оплата — staging",
+      "dialogTitle": "Тестовая оплата — staging",
+      "dialogDescription": "Пропускает реальную оплату Halyk и запускает тот же процесс, что и после успешной оплаты. Только для staging.",
+      "passwordLabel": "Пароль",
+      "confirmButton": "Подтвердить",
+      "invalidPassword": "Неверный тестовый пароль"
+    }
   }
 }
