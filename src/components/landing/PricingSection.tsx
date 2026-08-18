@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { getTranslations } from 'next-intl/server';
 import { CheckCircle2 } from 'lucide-react';
 import type { PricingTier } from '@/lib/landing-pages/types';
