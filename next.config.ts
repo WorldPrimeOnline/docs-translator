@@ -1,6 +1,7 @@
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
 import { withSentryConfig } from '@sentry/nextjs';
+import { LOCALES, DEFAULT_LOCALE } from './src/i18n/locales';
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
@@ -129,6 +130,34 @@ const nextConfig: NextConfig = {
         destination: 'https://www.wpotranslations.org/:path*',
         permanent: true,
       },
+
+      // SEO audit finding #7: /{locale}/privacy and /{locale}/tos duplicated
+      // /{locale}/legal/privacy and /{locale}/legal/terms as separate 200 pages, not
+      // redirects/aliases. /legal/* is the actively-linked, actively-maintained legal
+      // system (footer, OrderForm consent checkboxes) — confirmed by content re-audit
+      // that nothing in the standalone pages is legally unique; it's redistributed
+      // across the already-live /legal/{terms,offer,disclaimer,refund-policy,privacy}
+      // family, not lost. Enumerated per-locale (from the same LOCALES source of truth
+      // as src/app/sitemap.ts and src/app/robots.ts) rather than a single `/:locale/*`
+      // wildcard rule, specifically so disabled locales resolve straight to their
+      // /ru/legal/* destination in one hop — next.config.ts redirects run before
+      // middleware, so this fully bypasses (rather than chains with) the disabled-locale
+      // redirect in src/middleware.ts. The now-unreachable page.tsx files were deleted.
+      ...LOCALES.flatMap(({ code, enabled }) => {
+        const targetLocale = enabled ? code : DEFAULT_LOCALE;
+        return [
+          {
+            source: `/${code}/privacy`,
+            destination: `/${targetLocale}/legal/privacy`,
+            permanent: true,
+          },
+          {
+            source: `/${code}/tos`,
+            destination: `/${targetLocale}/legal/terms`,
+            permanent: true,
+          },
+        ];
+      }),
     ];
   },
 };
