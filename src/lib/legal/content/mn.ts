@@ -18,7 +18,7 @@ export const legalDocs: LegalDocs = {
           'Гүйцэтгэгч: ТОО World Prime Online',
           'БИН: 260840011541',
           'Хууль ёсны хаяг: Казахстан, Алматы хот, Ауэзов дүүрэг, Рыскулбеков гудамж, 39А байр, 050042 шуудангийн код',
-          'И-мэйл: worldprimeonline@gmail.com',
+          'И-мэйл: wpotranslations@gmail.com',
           'Вебсайт: https://www.wpotranslations.org/',
           'НӨАТ: хамаарахгүй',
           'Платформд бүртгүүлэх эсвэл платформыг ашиглах нь энэхүү Санлыг бүрэн хүлээн зөвшөөрч байгааг илэрхийлнэ.',
@@ -165,7 +165,7 @@ export const legalDocs: LegalDocs = {
         body: [
           'WorldPrimeOnline',
           'Хууль ёсны хаяг: Казахстан, Алматы хот, Ауэзов дүүрэг, Рыскулбеков гудамж, 39А байр, 050042 шуудангийн код',
-          'И-мэйл: worldprimeonline@gmail.com',
+          'И-мэйл: wpotranslations@gmail.com',
           'Вебсайт: https://www.wpotranslations.org/',
         ],
       },
@@ -250,7 +250,7 @@ export const legalDocs: LegalDocs = {
           '• Буруу мэдээллийг засуулах.',
           '• Тодорхой нөхцөлд мэдээллийг устгуулах.',
           '• Боловсруулалтыг хязгаарлах.',
-          'Эдгээр эрхийг эдлэхийн тулд worldprimeonline@gmail.com хаягаар холбоо барина уу.',
+          'Эдгээр эрхийг эдлэхийн тулд wpotranslations@gmail.com хаягаар холбоо барина уу.',
         ],
       },
       {
@@ -291,7 +291,7 @@ export const legalDocs: LegalDocs = {
         body: [
           'WorldPrimeOnline',
           'Хууль ёсны хаяг: Казахстан, Алматы хот, Ауэзов дүүрэг, Рыскулбеков гудамж, 39А байр, 050042 шуудангийн код',
-          'И-мэйл: worldprimeonline@gmail.com',
+          'И-мэйл: wpotranslations@gmail.com',
           'Вебсайт: https://www.wpotranslations.org/',
         ],
       },
@@ -338,7 +338,7 @@ export const legalDocs: LegalDocs = {
         id: 'withdrawal',
         heading: '4. Зөвшөөрлөө Татах',
         body: [
-          'Та зөвшөөрлөө хүссэн үедээ worldprimeonline@gmail.com хаягаар татаж авч болно.',
+          'Та зөвшөөрлөө хүссэн үедээ wpotranslations@gmail.com хаягаар татаж авч болно.',
           'Зөвшөөрлийг татах нь өмнө хийгдсэн үйлчилгээний хуулийн үндэслэлд нөлөөлөхгүй.',
         ],
       },
@@ -347,7 +347,7 @@ export const legalDocs: LegalDocs = {
         heading: '5. Эрхүүд',
         body: [
           'Та өөрийн мэдээлэлд нэвтрэх, засах, устгах эрхтэй.',
-          'Эдгээр эрхийг эдлэхийн тулд worldprimeonline@gmail.com хаягаар холбоо барина уу.',
+          'Эдгээр эрхийг эдлэхийн тулд wpotranslations@gmail.com хаягаар холбоо барина уу.',
         ],
       },
       {
@@ -356,7 +356,7 @@ export const legalDocs: LegalDocs = {
         body: [
           'WorldPrimeOnline',
           'Хууль ёсны хаяг: Казахстан, Алматы хот, Ауэзов дүүрэг, Рыскулбеков гудамж, 39А байр, 050042 шуудангийн код',
-          'И-мэйл: worldprimeonline@gmail.com',
+          'И-мэйл: wpotranslations@gmail.com',
           'Вебсайт: https://www.wpotranslations.org/',
         ],
       },
@@ -403,7 +403,7 @@ export const legalDocs: LegalDocs = {
         id: 'process',
         heading: '4. Буцааж Олголтын Журам',
         body: [
-          '7 (долоо) ажлын хоногийн дотор worldprimeonline@gmail.com хаягаар захиалгын дугаартай хамт хүсэлт гаргах ёстой.',
+          '7 (долоо) ажлын хоногийн дотор wpotranslations@gmail.com хаягаар захиалгын дугаартай хамт хүсэлт гаргах ёстой.',
           'Хүсэлт гаргасны дараа 5 (тав) ажлын хоногт хянагдана.',
           'Зөвшөөрөгдсөн төлбөрийг 10 (арав) ажлын хоногт анхны аргаар буцаана.',
         ],
@@ -430,7 +430,7 @@ export const legalDocs: LegalDocs = {
         body: [
           'WorldPrimeOnline',
           'Хууль ёсны хаяг: Казахстан, Алматы хот, Ауэзов дүүрэг, Рыскулбеков гудамж, 39А байр, 050042 шуудангийн код',
-          'И-мэйл: worldprimeonline@gmail.com',
+          'И-мэйл: wpotranslations@gmail.com',
           'Вебсайт: https://www.wpotranslations.org/',
         ],
       },
@@ -500,7 +500,7 @@ export const legalDocs: LegalDocs = {
         body: [
           'WorldPrimeOnline',
           'Хууль ёсны хаяг: Казахстан, Алматы хот, Ауэзов дүүрэг, Рыскулбеков гудамж, 39А байр, 050042 шуудангийн код',
-          'И-мэйл: worldprimeonline@gmail.com',
+          'И-мэйл: wpotranslations@gmail.com',
           'Вебсайт: https://www.wpotranslations.org/',
         ],
       },
@@ -588,7 +588,7 @@ export const legalDocs: LegalDocs = {
         body: [
           'WorldPrimeOnline',
           'Хууль ёсны хаяг: Казахстан, Алматы хот, Ауэзов дүүрэг, Рыскулбеков гудамж, 39А байр, 050042 шуудангийн код',
-          'И-мэйл: worldprimeonline@gmail.com',
+          'И-мэйл: wpotranslations@gmail.com',
           'Вебсайт: https://www.wpotranslations.org/',
         ],
       },
@@ -677,7 +677,7 @@ export const legalDocs: LegalDocs = {
         body: [
           'WorldPrimeOnline',
           'Хууль ёсны хаяг: Казахстан, Алматы хот, Ауэзов дүүрэг, Рыскулбеков гудамж, 39А байр, 050042 шуудангийн код',
-          'И-мэйл: worldprimeonline@gmail.com',
+          'И-мэйл: wpotranslations@gmail.com',
           'Вебсайт: https://www.wpotranslations.org/',
         ],
       },

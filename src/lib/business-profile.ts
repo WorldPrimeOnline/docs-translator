@@ -31,7 +31,7 @@ export const BUSINESS_PROFILE: BusinessProfile = {
   iinBin: '260840011541',
   legalAddress: 'Казахстан, город Алматы, Ауэзовский район, улица Рыскулбекова, дом 39А, почтовый индекс 050042',
   phone: '',
-  email: 'worldprimeonline@gmail.com',
+  email: 'wpotranslations@gmail.com',
   website: 'https://wpotranslations.org',
   cardPaymentsActive: false,
 };

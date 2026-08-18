@@ -6,6 +6,7 @@ import { useTranslations, useLocale } from 'next-intl';
 import { toast } from 'sonner';
 import { FileText, Download, AlertCircle, Loader2, Clock, RefreshCw, Receipt } from 'lucide-react';
 import { HalykPayButton } from '@/components/payment/HalykPayButton';
+import { StagingPaymentBypassButton } from '@/components/payment/StagingPaymentBypassButton';
 import { createClient } from '@/lib/supabase/client';
 import { bucketOrders, visibleOrders } from '@/lib/translation-workflow/order-buckets';
 import { resolveDownloadAction } from '@/lib/translation-workflow/download-action';
@@ -327,6 +328,11 @@ function ActiveOrderCard({ entry, locale, onRecalculate }: { entry: OrderEntry; 
                 jobId={entry.jobId}
                 quoteId={entry.latestQuoteId!}
                 priceKzt={entry.quoteAmountKzt!}
+              />
+              <StagingPaymentBypassButton
+                jobId={entry.jobId}
+                quoteId={entry.latestQuoteId!}
+                className="mt-2"
               />
             </div>
           );

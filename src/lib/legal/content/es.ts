@@ -18,7 +18,7 @@ export const legalDocs: LegalDocs = {
           'Proveedor: TOO World Prime Online',
           'BIN: 260840011541',
           'Dirección legal: Kazajistán, Almaty, distrito Auezov, calle Ryskulbekova 39A, código postal 050042',
-          'Correo electrónico: worldprimeonline@gmail.com',
+          'Correo electrónico: wpotranslations@gmail.com',
           'Sitio web: https://www.wpotranslations.org/',
           'IVA: no aplicable',
           'El registro en la plataforma o su uso implica la aceptación plena e incondicional de esta Oferta.',
@@ -164,7 +164,7 @@ export const legalDocs: LegalDocs = {
         body: [
           'WorldPrimeOnline',
           'Dirección legal: Kazajistán, Almaty, distrito Auezov, calle Ryskulbekova 39A, código postal 050042',
-          'Correo electrónico: worldprimeonline@gmail.com',
+          'Correo electrónico: wpotranslations@gmail.com',
           'Sitio web: https://www.wpotranslations.org/',
         ],
       },
@@ -249,7 +249,7 @@ export const legalDocs: LegalDocs = {
           '• Corregir datos inexactos.',
           '• Solicitar la supresión de datos en determinadas condiciones.',
           '• Limitar el tratamiento.',
-          'Para ejercer estos derechos, contacte con nosotros en worldprimeonline@gmail.com.',
+          'Para ejercer estos derechos, contacte con nosotros en wpotranslations@gmail.com.',
         ],
       },
       {
@@ -290,7 +290,7 @@ export const legalDocs: LegalDocs = {
         body: [
           'WorldPrimeOnline',
           'Dirección legal: Kazajistán, Almaty, distrito Auezov, calle Ryskulbekova 39A, código postal 050042',
-          'Correo electrónico: worldprimeonline@gmail.com',
+          'Correo electrónico: wpotranslations@gmail.com',
           'Sitio web: https://www.wpotranslations.org/',
         ],
       },
@@ -337,7 +337,7 @@ export const legalDocs: LegalDocs = {
         id: 'withdrawal',
         heading: '4. Revocación del Consentimiento',
         body: [
-          'Puede revocar su consentimiento en cualquier momento contactando con nosotros en worldprimeonline@gmail.com.',
+          'Puede revocar su consentimiento en cualquier momento contactando con nosotros en wpotranslations@gmail.com.',
           'La revocación no afecta a la licitud del tratamiento efectuado antes de la misma.',
         ],
       },
@@ -346,7 +346,7 @@ export const legalDocs: LegalDocs = {
         heading: '5. Derechos',
         body: [
           'Tiene derecho de acceso, rectificación y supresión de sus datos.',
-          'Para ejercer estos derechos, puede contactar con nosotros en worldprimeonline@gmail.com.',
+          'Para ejercer estos derechos, puede contactar con nosotros en wpotranslations@gmail.com.',
         ],
       },
       {
@@ -355,7 +355,7 @@ export const legalDocs: LegalDocs = {
         body: [
           'WorldPrimeOnline',
           'Dirección legal: Kazajistán, Almaty, distrito Auezov, calle Ryskulbekova 39A, código postal 050042',
-          'Correo electrónico: worldprimeonline@gmail.com',
+          'Correo electrónico: wpotranslations@gmail.com',
           'Sitio web: https://www.wpotranslations.org/',
         ],
       },
@@ -402,7 +402,7 @@ export const legalDocs: LegalDocs = {
         id: 'process',
         heading: '4. Procedimiento de Reembolso',
         body: [
-          'La solicitud deberá presentarse en un plazo de 7 (siete) días hábiles a través de worldprimeonline@gmail.com, indicando el número de pedido.',
+          'La solicitud deberá presentarse en un plazo de 7 (siete) días hábiles a través de wpotranslations@gmail.com, indicando el número de pedido.',
           'La solicitud será tramitada en un plazo de 5 (cinco) días hábiles.',
           'El reembolso aprobado se realizará en un plazo de 10 (diez) días hábiles mediante el método de pago original.',
         ],
@@ -429,7 +429,7 @@ export const legalDocs: LegalDocs = {
         body: [
           'WorldPrimeOnline',
           'Dirección legal: Kazajistán, Almaty, distrito Auezov, calle Ryskulbekova 39A, código postal 050042',
-          'Correo electrónico: worldprimeonline@gmail.com',
+          'Correo electrónico: wpotranslations@gmail.com',
           'Sitio web: https://www.wpotranslations.org/',
         ],
       },
@@ -499,7 +499,7 @@ export const legalDocs: LegalDocs = {
         body: [
           'WorldPrimeOnline',
           'Dirección legal: Kazajistán, Almaty, distrito Auezov, calle Ryskulbekova 39A, código postal 050042',
-          'Correo electrónico: worldprimeonline@gmail.com',
+          'Correo electrónico: wpotranslations@gmail.com',
           'Sitio web: https://www.wpotranslations.org/',
         ],
       },
@@ -587,7 +587,7 @@ export const legalDocs: LegalDocs = {
         body: [
           'WorldPrimeOnline',
           'Dirección legal: Kazajistán, Almaty, distrito Auezov, calle Ryskulbekova 39A, código postal 050042',
-          'Correo electrónico: worldprimeonline@gmail.com',
+          'Correo electrónico: wpotranslations@gmail.com',
           'Sitio web: https://www.wpotranslations.org/',
         ],
       },
@@ -676,7 +676,7 @@ export const legalDocs: LegalDocs = {
         body: [
           'WorldPrimeOnline',
           'Dirección legal: Kazajistán, Almaty, distrito Auezov, calle Ryskulbekova 39A, código postal 050042',
-          'Correo electrónico: worldprimeonline@gmail.com',
+          'Correo electrónico: wpotranslations@gmail.com',
           'Sitio web: https://www.wpotranslations.org/',
         ],
       },

@@ -82,6 +82,15 @@
     "QUOTE_NOT_FOUND": "Angebot nicht gefunden. Bitte aktualisieren Sie die Seite.",
     "PRICING_NOT_CONFIGURED": "Preisgestaltung nicht konfiguriert. Bitte kontaktieren Sie den Support.",
     "LANGUAGE_PAIR_MUST_DIFFER": "Ausgangs- und Zielsprache müssen unterschiedlich sein.",
-    "NOTARY_CUTOFF_PASSED": "Diese Kalkulation ist nicht mehr gültig — die notarielle Einreichungsfrist ist abgelaufen. Laden Sie das Dokument erneut hoch, um eine neue Kalkulation zu erhalten."
+    "NOTARY_CUTOFF_PASSED": "Diese Kalkulation ist nicht mehr gültig — die notarielle Einreichungsfrist ist abgelaufen. Laden Sie das Dokument erneut hoch, um eine neue Kalkulation zu erhalten.",
+    "stagingBypass": {
+      "buttonLabel": "Тестовая оплата — staging",
+      "dialogTitle": "Тестовая оплата — staging",
+      "dialogDescription": "Пропускает реальную оплату Halyk и запускает тот же процесс, что и после успешной оплаты. Только для staging.",
+      "passwordLabel": "Пароль",
+      "confirmButton": "Подтвердить",
+      "invalidPassword": "Неверный тестовый пароль",
+      "bypassError": "Ошибка тестовой оплаты"
+    }
   }
 }

@@ -82,6 +82,15 @@
     "paymentPendingTitle": "支付验证中",
     "paymentPendingDesc": "如已扣款，请勿重复支付，我们将自动更新状态。",
     "authorizedTitle": "支付已授权",
-    "authorizedDesc": "支付已授权，即将确认，请稍候。"
+    "authorizedDesc": "支付已授权，即将确认，请稍候。",
+    "stagingBypass": {
+      "buttonLabel": "Тестовая оплата — staging",
+      "dialogTitle": "Тестовая оплата — staging",
+      "dialogDescription": "Пропускает реальную оплату Halyk и запускает тот же процесс, что и после успешной оплаты. Только для staging.",
+      "passwordLabel": "Пароль",
+      "confirmButton": "Подтвердить",
+      "invalidPassword": "Неверный тестовый пароль",
+      "bypassError": "Ошибка тестовой оплаты"
+    }
   }
 }

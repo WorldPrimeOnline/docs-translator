@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Loader2 } from 'lucide-react';
 import { HalykPayButton } from '@/components/payment/HalykPayButton';
+import { StagingPaymentBypassButton } from '@/components/payment/StagingPaymentBypassButton';
 import { Link } from '@/i18n/navigation';
 
 interface DraftSummary {
@@ -125,6 +126,11 @@ export function CheckoutClient() {
         className="w-full"
         autoStart
         loadingLabel={paymentT('redirectingToPayment')}
+      />
+      <StagingPaymentBypassButton
+        jobId={order.jobId}
+        quoteId={order.quoteId}
+        className="mt-3"
       />
     </div>
   );
