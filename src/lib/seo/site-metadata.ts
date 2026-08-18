@@ -71,16 +71,24 @@ export function buildFallbackMetadata(locale: string): Metadata {
 export function buildHomepageMetadata(locale: string): Metadata {
   const { title, description } = getLocaleCopy(locale);
   const url = localeUrl(locale);
+
+  // Hreflang covers every enabled locale's homepage (SEO audit residual finding #3) —
+  // never a disabled locale, same convention as buildLandingMetadata. Does not affect
+  // title/description, which stay on the ru/en-only COPY fallback above (content
+  // backlog, out of scope here).
+  const languages: Record<string, string> = {};
+  for (const { code, enabled } of LOCALES) {
+    if (!enabled) continue;
+    languages[code] = localeUrl(code);
+  }
+  languages['x-default'] = localeUrl(DEFAULT_LOCALE);
+
   return {
     title,
     description,
     alternates: {
       canonical: url,
-      languages: {
-        ru: localeUrl('ru'),
-        en: localeUrl('en'),
-        'x-default': localeUrl(DEFAULT_LOCALE),
-      },
+      languages,
     },
     openGraph: {
       title,

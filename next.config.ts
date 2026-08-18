@@ -158,6 +158,24 @@ const nextConfig: NextConfig = {
           },
         ];
       }),
+
+      // SEO audit residual finding #4 (P2): the enumerated rules above only match
+      // locale-prefixed sources (/{locale}/privacy, /{locale}/tos). A bare unprefixed
+      // request — no rule matched it — fell through to next-intl middleware's own
+      // locale-detection redirect (307, adds /ru) *before* reaching the 308 rule above
+      // on its second request, a two-hop chain. These two rules match the bare path
+      // directly, so next.config.ts redirects (which run before middleware) resolve it
+      // in a single 308 hop, same as every other alias here.
+      {
+        source: '/privacy',
+        destination: `/${DEFAULT_LOCALE}/legal/privacy`,
+        permanent: true,
+      },
+      {
+        source: '/tos',
+        destination: `/${DEFAULT_LOCALE}/legal/terms`,
+        permanent: true,
+      },
     ];
   },
 };
