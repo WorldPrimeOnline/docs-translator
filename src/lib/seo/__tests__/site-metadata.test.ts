@@ -1,5 +1,6 @@
-import { buildHomepageMetadata, buildFallbackMetadata, buildLandingMetadata, SITE_URL, SITE_NAME } from '../site-metadata';
+import { buildHomepageMetadata, buildFallbackMetadata, buildLandingMetadata, buildLegalMetadata, SITE_URL, SITE_NAME } from '../site-metadata';
 import { LOCALES } from '@/i18n/locales';
+import { LEGAL_SUPPORTED_LOCALES } from '@/lib/legal';
 
 const FORBIDDEN_PATTERNS = [
   /AI\s+Document\s+Translation/i,
@@ -241,6 +242,99 @@ describe('buildLandingMetadata', () => {
   it('does not set robots (must stay indexable — no accidental noindex)', () => {
     const meta = buildLandingMetadata('ru', passportInput);
     expect(meta.robots).toBeUndefined();
+  });
+});
+
+describe('buildLegalMetadata', () => {
+  const ALL_LEGAL_SLUGS = ['offer', 'privacy', 'personal-data-consent', 'refund-policy', 'disclaimer', 'terms', 'partners'];
+  const UNSUPPORTED_ENABLED_LOCALES = ['de', 'tr', 'th'];
+  const DISABLED_LOCALES = ['ko', 'tj', 'tk', 'mn', 'es'];
+
+  const privacyInput = { slug: 'privacy', title: 'Privacy Policy — WPO Translations', description: 'x' };
+  const termsInput = { slug: 'terms', title: 'Terms of Use — WPO Translations', description: 'y' };
+
+  it('LEGAL_SUPPORTED_LOCALES is exactly ru en kk zh uz ky — no de/tr/th, no disabled locales', () => {
+    expect([...LEGAL_SUPPORTED_LOCALES].sort()).toEqual(['en', 'kk', 'ky', 'ru', 'uz', 'zh'].sort());
+    for (const code of UNSUPPORTED_ENABLED_LOCALES) expect(LEGAL_SUPPORTED_LOCALES).not.toContain(code);
+    for (const code of DISABLED_LOCALES) expect(LEGAL_SUPPORTED_LOCALES).not.toContain(code);
+  });
+
+  describe('supported locale (ru, en, kk representative)', () => {
+    it.each(['ru', 'en', 'kk'])('%s/legal/privacy — self-canonical, indexable (no robots field)', (locale) => {
+      const meta = buildLegalMetadata(locale, privacyInput);
+      expect(meta.alternates?.canonical).toBe(`${SITE_URL}/${locale}/legal/privacy`);
+      expect(meta.robots).toBeUndefined();
+    });
+
+    it.each(['ru', 'en', 'kk'])('%s/legal/privacy — hreflang contains only LEGAL_SUPPORTED_LOCALES + x-default, self-reference present', (locale) => {
+      const meta = buildLegalMetadata(locale, privacyInput);
+      const languages = meta.alternates?.languages as Record<string, string>;
+      expect(languages).toBeDefined();
+      for (const code of LEGAL_SUPPORTED_LOCALES) {
+        expect(languages[code]).toBe(`${SITE_URL}/${code}/legal/privacy`);
+      }
+      expect(languages[locale]).toBe(`${SITE_URL}/${locale}/legal/privacy`); // self-reference
+      expect(languages['x-default']).toBe(`${SITE_URL}/ru/legal/privacy`);
+      expect(Object.keys(languages)).toHaveLength(LEGAL_SUPPORTED_LOCALES.length + 1); // +1 for x-default
+    });
+
+    it('hreflang never includes de/tr/th or any disabled locale', () => {
+      const meta = buildLegalMetadata('ru', privacyInput);
+      const languages = meta.alternates?.languages as Record<string, string>;
+      for (const code of [...UNSUPPORTED_ENABLED_LOCALES, ...DISABLED_LOCALES]) {
+        expect(languages[code]).toBeUndefined();
+      }
+    });
+  });
+
+  describe('unsupported-but-enabled locale (de, tr, th) — verified 100% English fallback for every slug', () => {
+    it.each(UNSUPPORTED_ENABLED_LOCALES)('%s/legal/privacy — noindex, follow', (locale) => {
+      const meta = buildLegalMetadata(locale, privacyInput);
+      expect(meta.robots).toEqual({ index: false, follow: true });
+    });
+
+    it.each(UNSUPPORTED_ENABLED_LOCALES)('%s/legal/privacy — self-canonical (never cross-language-canonicalized to en/ru)', (locale) => {
+      const meta = buildLegalMetadata(locale, privacyInput);
+      expect(meta.alternates?.canonical).toBe(`${SITE_URL}/${locale}/legal/privacy`);
+    });
+
+    it.each(UNSUPPORTED_ENABLED_LOCALES)('%s/legal/privacy — no hreflang block at all (not a real translation, participates in neither direction)', (locale) => {
+      const meta = buildLegalMetadata(locale, privacyInput);
+      expect(meta.alternates?.languages).toBeUndefined();
+    });
+
+    it.each(UNSUPPORTED_ENABLED_LOCALES)('%s applies to every legal slug, not just privacy', (locale) => {
+      for (const slug of ALL_LEGAL_SLUGS) {
+        const meta = buildLegalMetadata(locale, { slug, title: 'x', description: 'y' });
+        expect(meta.robots).toEqual({ index: false, follow: true });
+      }
+    });
+  });
+
+  describe('same-slug integrity', () => {
+    it('privacy hreflang alternates all end in /legal/privacy', () => {
+      const meta = buildLegalMetadata('ru', privacyInput);
+      const languages = meta.alternates?.languages as Record<string, string>;
+      for (const url of Object.values(languages)) {
+        expect(url.endsWith('/legal/privacy')).toBe(true);
+      }
+    });
+
+    it('terms hreflang alternates all end in /legal/terms, never /legal/privacy', () => {
+      const meta = buildLegalMetadata('ru', termsInput);
+      const languages = meta.alternates?.languages as Record<string, string>;
+      for (const url of Object.values(languages)) {
+        expect(url.endsWith('/legal/terms')).toBe(true);
+        expect(url.endsWith('/legal/privacy')).toBe(false);
+      }
+    });
+  });
+
+  it('no query params, no old/staging/vercel domain in canonical or hreflang', () => {
+    const meta = buildLegalMetadata('ru', privacyInput);
+    const json = JSON.stringify(meta.alternates);
+    expect(json).not.toContain('?');
+    expect(json).not.toMatch(/vercel\.app|docs-translator|staging/);
   });
 });
 

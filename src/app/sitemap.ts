@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next';
 import { SITE_URL } from '@/lib/seo/site-metadata';
 import { LOCALES } from '@/i18n/locales';
 import { LEGAL_SLUGS } from '@/lib/legal/types';
+import { LEGAL_SUPPORTED_LOCALES } from '@/lib/legal';
 
 const ENABLED_LOCALES = LOCALES.filter((l) => l.enabled).map((l) => l.code);
 
@@ -28,14 +29,15 @@ const PUBLIC_PATHS = [
 ];
 
 /**
- * Locales whose legal content in src/lib/legal/index.ts's loadDocs() has a real,
- * locale-specific case. `de`, `tr`, and `th` are enabled locales but fall through
- * to loadDocs()'s English default — including their /legal/* pages here would
- * sitemap near-duplicate English content under 3 extra locale URLs (SEO audit
- * finding #5). Excluded until real translations exist for those three.
+ * Legal locale support is now a single source of truth (LEGAL_SUPPORTED_LOCALES,
+ * src/lib/legal/index.ts) shared with buildLegalMetadata (src/lib/seo/site-metadata.ts,
+ * canonical/hreflang/noindex) — this file no longer keeps its own separate list, so the
+ * two can't drift apart (SEO audit finding #5). `de`, `tr`, and `th` are enabled
+ * locales but have no content/{locale}.ts file — loadDocs() falls through to English
+ * for all 7 slugs — so they're excluded here exactly as they were before, just from
+ * the shared list instead of a locally duplicated one.
  */
-const LOCALES_WITHOUT_LEGAL_TRANSLATION = new Set(['de', 'tr', 'th']);
-const LEGAL_LOCALES = ENABLED_LOCALES.filter((code) => !LOCALES_WITHOUT_LEGAL_TRANSLATION.has(code));
+const LEGAL_LOCALES = ENABLED_LOCALES.filter((code) => LEGAL_SUPPORTED_LOCALES.includes(code));
 
 /**
  * Single locale/page exclusion (SEO audit finding #3 fix): messages/de/landing-pages.json

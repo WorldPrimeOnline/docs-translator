@@ -8,6 +8,8 @@
 import sitemap from '../sitemap';
 import { SITE_URL } from '@/lib/seo/site-metadata';
 import { LOCALES } from '@/i18n/locales';
+import { LEGAL_SLUGS } from '@/lib/legal/types';
+import { LEGAL_SUPPORTED_LOCALES } from '@/lib/legal';
 
 const DISABLED_LOCALE_CODES = LOCALES.filter((l) => !l.enabled).map((l) => l.code);
 
@@ -100,6 +102,24 @@ describe('sitemap()', () => {
   it('includes legal pages for a locale with real translated content (ru)', () => {
     expect(urls).toContain(`${SITE_URL}/ru/legal/privacy`);
     expect(urls).toContain(`${SITE_URL}/ru/legal/terms`);
+  });
+
+  it('source-of-truth consistency: sitemap\'s legal-locale set exactly equals LEGAL_SUPPORTED_LOCALES (SEO audit finding #5) — no drift between the two', () => {
+    const legalUrls = urls.filter((u) => /\/legal\//.test(u));
+    const localesInSitemap = new Set(
+      legalUrls.map((u) => u.slice(SITE_URL.length + 1).split('/')[0]),
+    );
+    expect([...localesInSitemap].sort()).toEqual([...LEGAL_SUPPORTED_LOCALES].sort());
+  });
+
+  it('every LEGAL_SUPPORTED_LOCALES × LEGAL_SLUGS combination is present, and nothing else', () => {
+    const legalUrls = new Set(urls.filter((u) => /\/legal\//.test(u)));
+    expect(legalUrls.size).toBe(LEGAL_SUPPORTED_LOCALES.length * LEGAL_SLUGS.length);
+    for (const locale of LEGAL_SUPPORTED_LOCALES) {
+      for (const slug of LEGAL_SLUGS) {
+        expect(legalUrls.has(`${SITE_URL}/${locale}/legal/${slug}`)).toBe(true);
+      }
+    }
   });
 
   it('includes the vertical landing pages for every enabled locale', () => {

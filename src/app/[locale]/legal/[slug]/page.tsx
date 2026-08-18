@@ -6,6 +6,7 @@ import type { Locale } from '@/i18n/routing';
 import { getLegalDocument, LEGAL_SLUGS } from '@/lib/legal';
 import type { LegalSlug } from '@/lib/legal';
 import { LegalPageLayout } from '@/components/legal/LegalPageLayout';
+import { buildLegalMetadata } from '@/lib/seo/site-metadata';
 
 interface Props {
   params: Promise<{ locale: string; slug: string }>;
@@ -29,10 +30,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const doc = await getLegalDocument(locale as Locale, slug as LegalSlug);
   if (!doc) return {};
 
-  return {
+  return buildLegalMetadata(locale, {
+    slug,
     title: doc.metaTitle,
     description: doc.metaDescription,
-  };
+  });
 }
 
 export default async function LegalPage({ params }: Props) {
