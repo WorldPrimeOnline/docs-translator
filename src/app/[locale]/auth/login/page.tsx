@@ -1,8 +1,8 @@
 'use client';
 
 import { Suspense, useState } from 'react';
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { Link, useRouter as useLocaleRouter } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -30,7 +30,14 @@ export default function LoginPage() {
 }
 
 function LoginForm() {
+  // Two routers, deliberately: `next` (when present) is a full path already prefixed
+  // with a locale by whoever set it (middleware's checkout auth-gate, OrderWizard) —
+  // pushing that through the locale-aware router would double-prefix it (e.g.
+  // /kk/kk/checkout), since next-intl's prefixing has no "already prefixed" check.
+  // The '/dashboard' fallback is a plain unprefixed path, so it needs the
+  // locale-aware router to preserve the current locale (SEO audit finding #8).
   const router = useRouter();
+  const localeRouter = useLocaleRouter();
   const searchParams = useSearchParams();
   const next = searchParams.get('next');
   const t = useTranslations('auth');
@@ -56,7 +63,11 @@ function LoginForm() {
       return;
     }
 
-    router.push(next ?? '/dashboard');
+    if (next) {
+      router.push(next);
+    } else {
+      localeRouter.push('/dashboard');
+    }
     router.refresh();
   };
 

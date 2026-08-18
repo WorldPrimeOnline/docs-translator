@@ -8,9 +8,10 @@ const ENABLED_LOCALES = LOCALES.filter((l) => l.enabled).map((l) => l.code);
 /**
  * Public, indexable, canonical page paths (relative to a locale prefix).
  * Excludes: auth/dashboard/checkout/payment (private/transactional), /start
- * (pre-checkout wizard entry point, not an SEO landing page), and /privacy
- * + /tos (duplicate-content aliases of /legal/privacy and /legal/terms —
- * see SEO audit finding #7; not resolved yet, so left out of the sitemap).
+ * (pre-checkout wizard entry point, not an SEO landing page). /privacy and /tos
+ * (formerly duplicate-content pages alongside /legal/privacy and /legal/terms,
+ * SEO audit finding #7) no longer exist at all — they 308-redirect to their
+ * /legal/* equivalent (next.config.ts), so there's nothing to list or exclude here.
  */
 const PUBLIC_PATHS = [
   '',

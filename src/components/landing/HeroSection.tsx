@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { getTranslations } from 'next-intl/server';
 import { Upload, ChevronDown, FileText, ArrowRight, Download, Zap } from 'lucide-react';
 import type { BreadcrumbItem } from '@/lib/landing-pages/types';
