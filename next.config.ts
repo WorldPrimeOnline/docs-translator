@@ -113,6 +113,24 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+
+  async redirects() {
+    return [
+      // Regression guard for the docs-translator.vercel.app SEO-duplicate incident:
+      // this Vercel project-default alias (auto-generated from the "docs-translator"
+      // name in package.json) was found live, unprotected, and serving a full
+      // crawlable mirror of production — including a stale sitemap.xml hardcoded to
+      // this same domain. Destination must stay in sync with SITE_URL in
+      // src/lib/seo/site-metadata.ts (kept as a literal here, not an import, since
+      // next.config.ts is loaded outside the app's normal module resolution).
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'docs-translator.vercel.app' }],
+        destination: 'https://www.wpotranslations.org/:path*',
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default withSentryConfig(withNextIntl(nextConfig), {
