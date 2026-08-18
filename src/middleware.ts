@@ -113,12 +113,16 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
 
   // 3. Disabled-locale guard — redirect /zh/..., /ko/..., etc. to /ru/...
   //    Must run before handleI18n so next-intl never serves a disabled locale.
+  //    308 (permanent), not 307: a disabled locale is a deliberate, permanent product
+  //    state, not a temporary outage — 307 told search engines the wrong thing
+  //    (SEO audit finding #10). url.pathname is the only part reassigned; .search
+  //    (query string) survives from the request.nextUrl.clone() untouched.
   for (const disabledCode of DISABLED_LOCALE_CODES) {
     if (pathname.startsWith(`/${disabledCode}/`) || pathname === `/${disabledCode}`) {
       const rest = pathname === `/${disabledCode}` ? '' : pathname.slice(disabledCode.length + 1);
       const url = request.nextUrl.clone();
       url.pathname = `/${DEFAULT_LOCALE}${rest}`;
-      return NextResponse.redirect(url, { status: 307 });
+      return NextResponse.redirect(url, { status: 308 });
     }
   }
 
