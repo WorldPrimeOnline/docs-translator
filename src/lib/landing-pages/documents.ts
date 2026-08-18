@@ -16,6 +16,7 @@ import {
   defaultPricingTiers,
   defaultPricingFootnote,
 } from './shared';
+import { SERVICE_PROVIDER_REF } from '@/lib/seo/organization';
 
 export const passportTranslationConfig: LandingPageConfig = {
   title: 'Passport Translation — Any Language, Online — WPO Translations',
@@ -122,9 +123,9 @@ export const passportTranslationConfig: LandingPageConfig = {
     {
       '@context': 'https://schema.org',
       '@type': 'Service',
-      name: 'Passport Translation — WPO Online Translations',
+      name: 'Passport Translation — WPO Translations',
       description: 'Translate a passport or ID card online. Clean structured output with all biographic data preserved for visa applications and immigration workflows.',
-      provider: { '@type': 'Organization', name: 'WPO Online Translations', url: 'https://wpo.online' },
+      provider: SERVICE_PROVIDER_REF,
       serviceType: 'Document Translation',
     },
   ],
@@ -235,9 +236,9 @@ export const bankStatementTranslationConfig: LandingPageConfig = {
     {
       '@context': 'https://schema.org',
       '@type': 'Service',
-      name: 'Bank Statement Translation — WPO Online Translations',
+      name: 'Bank Statement Translation — WPO Translations',
       description: 'Translate bank statements online for visa applications, immigration, and income verification. All amounts and balances preserved exactly.',
-      provider: { '@type': 'Organization', name: 'WPO Online Translations', url: 'https://wpo.online' },
+      provider: SERVICE_PROVIDER_REF,
       serviceType: 'Document Translation',
     },
   ],
@@ -350,9 +351,9 @@ export const diplomaTranslationConfig: LandingPageConfig = {
     {
       '@context': 'https://schema.org',
       '@type': 'Service',
-      name: 'Diploma Translation — WPO Online Translations',
+      name: 'Diploma Translation — WPO Translations',
       description: 'Translate diplomas, degree certificates, and academic transcripts online for university applications, professional licensing, and credential evaluation.',
-      provider: { '@type': 'Organization', name: 'WPO Online Translations', url: 'https://wpo.online' },
+      provider: SERVICE_PROVIDER_REF,
       serviceType: 'Document Translation',
     },
   ],

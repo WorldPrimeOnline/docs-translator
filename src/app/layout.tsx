@@ -3,6 +3,8 @@ import { Cormorant_Garamond, Geist_Mono, Inter } from 'next/font/google';
 import { headers } from 'next/headers';
 import { DEFAULT_LOCALE } from '@/i18n/locales';
 import { buildFallbackMetadata } from '@/lib/seo/site-metadata';
+import { getOrganizationSchema, getWebsiteSchema } from '@/lib/seo/organization';
+import { StructuredData } from '@/components/landing/StructuredData';
 import './globals.css';
 
 const inter = Inter({
@@ -49,6 +51,11 @@ export default async function RootLayout({
   return (
     <html lang={locale} suppressHydrationWarning>
       <body className={`${inter.variable} ${cormorant.variable} ${geistMono.variable} antialiased`}>
+        {/* Sitewide entity anchor (SEO audit finding #6) — one Organization + WebSite
+            node per page load, locale-independent. Landing-page Service schemas
+            (src/lib/landing-pages/{documents,kazakhstan}.ts) reference the Organization
+            via @id (SERVICE_PROVIDER_REF) instead of duplicating it. */}
+        <StructuredData schemas={[getOrganizationSchema(), getWebsiteSchema()]} />
         {IS_STAGING && (
           <div
             style={{
