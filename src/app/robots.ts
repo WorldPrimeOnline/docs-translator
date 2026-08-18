@@ -12,13 +12,23 @@ import { SITE_URL } from '@/lib/seo/site-metadata';
  * /{locale}/auth/..., etc., not the bare /dashboard the previous static file assumed.
  * The `/*\/...` wildcard patterns match any locale prefix without hardcoding the
  * locale list, so this file doesn't need updating when locales are enabled/disabled.
- * The unprefixed rules are kept for the routes that genuinely aren't locale-prefixed:
- * /api/* (skipped by i18n in middleware) and /auth/callback (outside [locale]).
  *
- * robots.txt is defense-in-depth for crawl budget only — it is not the only
- * protection against indexing. Explicit `noindex` metadata (NOINDEX_METADATA,
- * src/lib/seo/site-metadata.ts) is set directly on each of these route's
- * layout/page, and auth/access control is enforced independently in middleware.
+ * IMPORTANT — only Disallow a route here if we do NOT need a crawler to read its
+ * `noindex` meta tag (NOINDEX_METADATA, src/lib/seo/site-metadata.ts). Disallow blocks
+ * the crawler from ever fetching the HTML, so it can never see a noindex tag on that
+ * URL — combining both on the same route is self-defeating, not extra-safe.
+ *
+ * - /{locale}/auth/* (login, signup, forgot-password, reset-password) and
+ *   /{locale}/payment/result are publicly reachable HTML — no auth gate in
+ *   middleware — and rely on their own noindex meta tag. NOT disallowed here.
+ * - /{locale}/dashboard and /{locale}/checkout ARE auth-gated in middleware
+ *   (anonymous requests always redirect to /auth/login before any real HTML
+ *   renders) — Disallow here is pure crawl-budget savings on a URL that's a
+ *   redirect either way; their noindex meta tag is defense-in-depth for if
+ *   that auth behavior ever regresses, not the primary mechanism.
+ * - /api/* and /auth/callback (a route.ts handler, not a [locale] HTML page —
+ *   never conflate the two) return no HTML at all, so noindex doesn't apply;
+ *   Disallow is the only relevant mechanism, and the sole reason to block them.
  */
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -27,12 +37,10 @@ export default function robots(): MetadataRoute.Robots {
       allow: '/',
       disallow: [
         '/api/',
-        '/auth/',
-        '/*/auth/',
+        '/auth/', // unprefixed only — /auth/callback route handler, not [locale]/auth/*
         '/dashboard',
         '/*/dashboard',
         '/*/checkout',
-        '/*/payment',
       ],
     },
     sitemap: `${SITE_URL}/sitemap.xml`,
