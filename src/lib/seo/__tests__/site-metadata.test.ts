@@ -67,12 +67,45 @@ describe('buildHomepageMetadata', () => {
     expect((buildHomepageMetadata('en').alternates?.canonical)).toBe(`${SITE_URL}/en`);
   });
 
-  it('hreflang alternates include ru, en, and x-default → ru', () => {
-    const meta = buildHomepageMetadata('en');
-    const languages = meta.alternates?.languages as Record<string, string>;
-    expect(languages.ru).toBe(`${SITE_URL}/ru`);
-    expect(languages.en).toBe(`${SITE_URL}/en`);
-    expect(languages['x-default']).toBe(`${SITE_URL}/ru`);
+  describe('hreflang (SEO audit residual finding #3 — all 9 enabled locales, not just ru/en)', () => {
+    const ENABLED_LOCALE_CODES = LOCALES.filter((l) => l.enabled).map((l) => l.code);
+    const DISABLED_LOCALE_CODES = LOCALES.filter((l) => !l.enabled).map((l) => l.code);
+
+    it('includes every enabled locale, self-referencing that locale\'s homepage', () => {
+      const meta = buildHomepageMetadata('en');
+      const languages = meta.alternates?.languages as Record<string, string>;
+      expect(ENABLED_LOCALE_CODES.length).toBe(9); // sanity — locked expectation
+      for (const code of ENABLED_LOCALE_CODES) {
+        expect(languages[code]).toBe(`${SITE_URL}/${code}`);
+      }
+    });
+
+    it('x-default points at the default-locale (ru) homepage', () => {
+      const meta = buildHomepageMetadata('en');
+      const languages = meta.alternates?.languages as Record<string, string>;
+      expect(languages['x-default']).toBe(`${SITE_URL}/ru`);
+    });
+
+    it('never includes a disabled locale', () => {
+      const meta = buildHomepageMetadata('ru');
+      const languages = meta.alternates?.languages as Record<string, string>;
+      expect(DISABLED_LOCALE_CODES.length).toBeGreaterThan(0); // sanity
+      for (const code of DISABLED_LOCALE_CODES) {
+        expect(languages[code]).toBeUndefined();
+      }
+    });
+
+    it('exactly 10 entries — 9 enabled locales + x-default, no more no less', () => {
+      const meta = buildHomepageMetadata('ru');
+      const languages = meta.alternates?.languages as Record<string, string>;
+      expect(Object.keys(languages)).toHaveLength(ENABLED_LOCALE_CODES.length + 1);
+    });
+
+    it('is identical regardless of which locale is requesting it (same alternates graph on every homepage)', () => {
+      const ru = buildHomepageMetadata('ru').alternates?.languages;
+      const de = buildHomepageMetadata('de').alternates?.languages;
+      expect(ru).toEqual(de);
+    });
   });
 
   it('unknown locale falls back to English copy, never the old AI wording', () => {

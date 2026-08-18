@@ -1,6 +1,7 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { Metadata } from 'next';
 import { PartnerApplicationForm } from '@/components/partners/PartnerApplicationForm';
+import { buildLandingMetadata } from '@/lib/seo/site-metadata';
 
 export async function generateMetadata({
   params,
@@ -10,10 +11,11 @@ export async function generateMetadata({
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations('partnersPage');
-  return {
+  return buildLandingMetadata(locale, {
+    path: '/partners',
     title: t('metaTitle'),
     description: t('metaDescription'),
-  };
+  });
 }
 
 export default async function PartnersPage({

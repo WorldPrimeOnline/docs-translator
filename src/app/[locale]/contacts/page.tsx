@@ -2,6 +2,7 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import { BUSINESS_PROFILE } from '@/lib/business-profile';
+import { buildLandingMetadata } from '@/lib/seo/site-metadata';
 
 export async function generateMetadata({
   params,
@@ -11,10 +12,11 @@ export async function generateMetadata({
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations('contactsPage');
-  return {
+  return buildLandingMetadata(locale, {
+    path: '/contacts',
     title: t('metaTitle'),
     description: t('metaDescription'),
-  };
+  });
 }
 
 export default async function ContactsPage({
