@@ -116,6 +116,16 @@ export interface LandingMetadataInput {
    * exists yet" for title/description). Do not add speculatively.
    */
   excludeFromHreflang?: string[];
+  /**
+   * Locale codes where THIS page gets explicit `noindex, follow` — for the same kind of
+   * verified content gap as excludeFromHreflang (normally set together), where excluding
+   * the URL from sitemap/hreflang alone still leaves it technically indexable if Google
+   * finds it another way (e.g. a backlink). `follow: true` (not `follow: false`): the
+   * page itself shouldn't rank, but its internal links don't need to be devalued.
+   * canonical/hreflang/routing are otherwise untouched — noindex is the removal signal,
+   * not a routing change. Do not add speculatively.
+   */
+  noindexForLocales?: string[];
 }
 
 /**
@@ -127,7 +137,7 @@ export interface LandingMetadataInput {
  * instead of duplicating this shape 8 times.
  */
 export function buildLandingMetadata(locale: string, input: LandingMetadataInput): Metadata {
-  const { path, title, description, excludeFromHreflang = [] } = input;
+  const { path, title, description, excludeFromHreflang = [], noindexForLocales = [] } = input;
   const url = `${SITE_URL}/${locale}${path}`;
 
   const languages: Record<string, string> = {};
@@ -140,10 +150,14 @@ export function buildLandingMetadata(locale: string, input: LandingMetadataInput
   // localePrefix is 'always', so there is no bare-path canonical content URL.
   languages['x-default'] = `${SITE_URL}/${DEFAULT_LOCALE}${path}`;
 
-  return {
+  const metadata: Metadata = {
     title,
     description,
     alternates: {
+      // Self-canonical even when noindexForLocales applies to this locale: noindex is
+      // the removal signal here, not canonical — cross-language-canonicalizing a broken
+      // /de/... page onto its /en/... or /ru/... equivalent would be wrong (they're
+      // different-language URLs, not duplicates of each other).
       canonical: url,
       languages,
     },
@@ -161,6 +175,12 @@ export function buildLandingMetadata(locale: string, input: LandingMetadataInput
       description,
     },
   };
+
+  if (noindexForLocales.includes(locale)) {
+    metadata.robots = { index: false, follow: true };
+  }
+
+  return metadata;
 }
 
 /**

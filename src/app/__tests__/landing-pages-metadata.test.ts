@@ -98,6 +98,17 @@ describe('landing pages — generateMetadata wiring', () => {
       }
     }
   });
+
+  it('only kazakhstan/university-document-translation sets noindexForLocales — no other DE landing page gets noindex', () => {
+    for (const { file, path: p } of LANDING_PAGES) {
+      const src = readSource(file);
+      if (p === '/kazakhstan/university-document-translation') {
+        expect(src).toMatch(/noindexForLocales:\s*\['de'\]/);
+      } else {
+        expect(src).not.toContain('noindexForLocales');
+      }
+    }
+  });
 });
 
 describe('next-intl alternate Link header (finding #9 minimal fix)', () => {

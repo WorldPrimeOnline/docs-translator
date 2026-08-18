@@ -167,6 +167,42 @@ describe('buildLandingMetadata', () => {
     });
   });
 
+  describe('noindexForLocales — per-locale content-gap noindex (e.g. de/kazakhstanUniversity)', () => {
+    const universityInput = {
+      path: '/kazakhstan/university-document-translation',
+      title: 'Academic Document Translation for University Applications — Kazakhstan — WPO Translations',
+      description: 'y',
+      excludeFromHreflang: ['de'],
+      noindexForLocales: ['de'],
+    };
+
+    it('sets robots index:false, follow:true for the listed locale', () => {
+      const meta = buildLandingMetadata('de', universityInput);
+      expect(meta.robots).toEqual({ index: false, follow: true });
+    });
+
+    it('does not set robots at all for locales not in the list (stays indexable)', () => {
+      for (const locale of ['ru', 'en', 'kk', 'zh', 'uz', 'ky', 'tr', 'th']) {
+        const meta = buildLandingMetadata(locale, universityInput);
+        expect(meta.robots).toBeUndefined();
+      }
+    });
+
+    it('canonical stays self-referencing even when noindexed — never cross-language-canonicalized to en/ru', () => {
+      const meta = buildLandingMetadata('de', universityInput);
+      expect(meta.alternates?.canonical).toBe(
+        `${SITE_URL}/de/kazakhstan/university-document-translation`,
+      );
+    });
+
+    it('a page with no noindexForLocales never sets robots for any locale', () => {
+      for (const locale of ['ru', 'en', 'de']) {
+        const meta = buildLandingMetadata(locale, passportInput);
+        expect(meta.robots).toBeUndefined();
+      }
+    });
+  });
+
   describe('page-specific metadata', () => {
     it('different pages produce different title/description (not one collapsed fallback)', () => {
       const passport = buildLandingMetadata('en', passportInput);
