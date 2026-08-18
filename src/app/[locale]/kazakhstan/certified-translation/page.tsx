@@ -2,11 +2,20 @@ import type { Metadata } from 'next';
 import { setRequestLocale, getTranslations } from 'next-intl/server';
 import { LandingPage } from '@/components/landing/LandingPage';
 import { kazakhstanCertifiedConfig } from '@/lib/landing-pages/kazakhstan';
+import { buildLandingMetadata } from '@/lib/seo/site-metadata';
 
-export const metadata: Metadata = {
-  title: kazakhstanCertifiedConfig.title,
-  description: kazakhstanCertifiedConfig.description,
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return buildLandingMetadata(locale, {
+    path: '/kazakhstan/certified-translation',
+    title: kazakhstanCertifiedConfig.title,
+    description: kazakhstanCertifiedConfig.description,
+  });
+}
 
 export default async function KazakhstanCertifiedPage({
   params,

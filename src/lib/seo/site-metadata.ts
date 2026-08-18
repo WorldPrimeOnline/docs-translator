@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { DEFAULT_LOCALE } from '@/i18n/locales';
+import { DEFAULT_LOCALE, LOCALES } from '@/i18n/locales';
 
 // Canonical SEO domain. Deliberately hardcoded rather than reading
 // NEXT_PUBLIC_SITE_URL: the apex (wpotranslations.org, used by that env var
@@ -95,6 +95,92 @@ export function buildHomepageMetadata(locale: string): Metadata {
       description,
     },
   };
+}
+
+export interface LandingMetadataInput {
+  /** Locale-unprefixed page path, e.g. '/documents/passport-translation'. No trailing slash. */
+  path: string;
+  /**
+   * From the page's LandingPageConfig.title/.description (src/lib/landing-pages/*.ts) —
+   * whatever language that config currently contains (English for most; Russian for
+   * kazakhstanConfig/kazakhstanNotarizedConfig — see SEO audit finding #3 report for why
+   * that's not "invented" here, just made locale-independent rather than locale-aware).
+   * This helper does not translate or vary title/description by locale — that's a
+   * content decision out of scope for this technical-SEO fix.
+   */
+  title: string;
+  description: string;
+  /**
+   * Locale codes to exclude from this page's hreflang alternates — use only for a
+   * verified, documented content gap (missing i18n keys, not just "no translation
+   * exists yet" for title/description). Do not add speculatively.
+   */
+  excludeFromHreflang?: string[];
+  /**
+   * Locale codes where THIS page gets explicit `noindex, follow` — for the same kind of
+   * verified content gap as excludeFromHreflang (normally set together), where excluding
+   * the URL from sitemap/hreflang alone still leaves it technically indexable if Google
+   * finds it another way (e.g. a backlink). `follow: true` (not `follow: false`): the
+   * page itself shouldn't rank, but its internal links don't need to be devalued.
+   * canonical/hreflang/routing are otherwise untouched — noindex is the removal signal,
+   * not a routing change. Do not add speculatively.
+   */
+  noindexForLocales?: string[];
+}
+
+/**
+ * Landing page metadata (SEO audit finding #3) — canonical + hreflang (enabled locales
+ * only, self-referencing this exact page path — never the hub page or a different
+ * landing page) + minimal OG/Twitter, all locale-aware in URL even though
+ * title/description are currently a single static string per page (see
+ * LandingMetadataInput's doc comment). One helper shared by all 8 landing pages
+ * instead of duplicating this shape 8 times.
+ */
+export function buildLandingMetadata(locale: string, input: LandingMetadataInput): Metadata {
+  const { path, title, description, excludeFromHreflang = [], noindexForLocales = [] } = input;
+  const url = `${SITE_URL}/${locale}${path}`;
+
+  const languages: Record<string, string> = {};
+  for (const { code, enabled } of LOCALES) {
+    if (!enabled || excludeFromHreflang.includes(code)) continue;
+    languages[code] = `${SITE_URL}/${code}${path}`;
+  }
+  // Same convention as buildHomepageMetadata: x-default points at the real
+  // default-locale URL for this exact page, not an unprefixed/invented one —
+  // localePrefix is 'always', so there is no bare-path canonical content URL.
+  languages['x-default'] = `${SITE_URL}/${DEFAULT_LOCALE}${path}`;
+
+  const metadata: Metadata = {
+    title,
+    description,
+    alternates: {
+      // Self-canonical even when noindexForLocales applies to this locale: noindex is
+      // the removal signal here, not canonical — cross-language-canonicalizing a broken
+      // /de/... page onto its /en/... or /ru/... equivalent would be wrong (they're
+      // different-language URLs, not duplicates of each other).
+      canonical: url,
+      languages,
+    },
+    openGraph: {
+      title,
+      description,
+      url,
+      siteName: SITE_NAME,
+      locale: ogLocaleFor(locale),
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+    },
+  };
+
+  if (noindexForLocales.includes(locale)) {
+    metadata.robots = { index: false, follow: true };
+  }
+
+  return metadata;
 }
 
 /**

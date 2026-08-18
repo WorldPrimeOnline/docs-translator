@@ -1,4 +1,5 @@
-import { buildHomepageMetadata, buildFallbackMetadata, SITE_URL, SITE_NAME } from '../site-metadata';
+import { buildHomepageMetadata, buildFallbackMetadata, buildLandingMetadata, SITE_URL, SITE_NAME } from '../site-metadata';
+import { LOCALES } from '@/i18n/locales';
 
 const FORBIDDEN_PATTERNS = [
   /AI\s+Document\s+Translation/i,
@@ -82,6 +83,164 @@ describe('buildHomepageMetadata', () => {
   it('no forbidden AI-translator positioning anywhere in ru/en metadata', () => {
     assertNoForbiddenPositioning(buildHomepageMetadata('ru'));
     assertNoForbiddenPositioning(buildHomepageMetadata('en'));
+  });
+});
+
+describe('buildLandingMetadata', () => {
+  const ENABLED_LOCALE_CODES = LOCALES.filter((l) => l.enabled).map((l) => l.code);
+  const DISABLED_LOCALE_CODES = LOCALES.filter((l) => !l.enabled).map((l) => l.code);
+
+  const passportInput = {
+    path: '/documents/passport-translation',
+    title: 'Passport Translation — Any Language, Online — WPO Translations',
+    description: 'Translate a passport or ID card online.',
+  };
+  const bankStatementInput = {
+    path: '/documents/bank-statement-translation',
+    title: 'Bank Statement Translation for Visa & Immigration — WPO Translations',
+    description: 'Translate bank statements online for visa applications.',
+  };
+
+  describe('canonical', () => {
+    it.each(['ru', 'en', 'kk'])('uses SITE_URL + locale + path for %s', (locale) => {
+      const meta = buildLandingMetadata(locale, passportInput);
+      expect(meta.alternates?.canonical).toBe(`${SITE_URL}/${locale}/documents/passport-translation`);
+    });
+
+    it('never contains vercel.app or the old domain', () => {
+      const meta = buildLandingMetadata('ru', passportInput);
+      const canonical = String(meta.alternates?.canonical);
+      expect(canonical).not.toMatch(/vercel\.app/);
+      expect(canonical).not.toContain('docs-translator');
+    });
+
+    it('has no query params', () => {
+      const meta = buildLandingMetadata('ru', passportInput);
+      expect(String(meta.alternates?.canonical)).not.toContain('?');
+    });
+  });
+
+  describe('hreflang', () => {
+    it('includes every enabled locale, self-referencing the same page path', () => {
+      const meta = buildLandingMetadata('ru', passportInput);
+      const languages = meta.alternates?.languages as Record<string, string>;
+      for (const code of ENABLED_LOCALE_CODES) {
+        expect(languages[code]).toBe(`${SITE_URL}/${code}/documents/passport-translation`);
+      }
+    });
+
+    it('never includes a disabled locale', () => {
+      const meta = buildLandingMetadata('ru', passportInput);
+      const languages = meta.alternates?.languages as Record<string, string>;
+      expect(DISABLED_LOCALE_CODES.length).toBeGreaterThan(0); // sanity
+      for (const code of DISABLED_LOCALE_CODES) {
+        expect(languages[code]).toBeUndefined();
+      }
+    });
+
+    it('x-default points at the default-locale version of the SAME page, not the homepage or another landing page', () => {
+      const meta = buildLandingMetadata('en', passportInput);
+      const languages = meta.alternates?.languages as Record<string, string>;
+      expect(languages['x-default']).toBe(`${SITE_URL}/ru/documents/passport-translation`);
+    });
+
+    it('excludeFromHreflang removes only the specified locale, keeps every other enabled locale', () => {
+      const meta = buildLandingMetadata('ru', {
+        path: '/kazakhstan/university-document-translation',
+        title: 'x',
+        description: 'y',
+        excludeFromHreflang: ['de'],
+      });
+      const languages = meta.alternates?.languages as Record<string, string>;
+      expect(languages.de).toBeUndefined();
+      for (const code of ENABLED_LOCALE_CODES.filter((c) => c !== 'de')) {
+        expect(languages[code]).toBe(`${SITE_URL}/${code}/kazakhstan/university-document-translation`);
+      }
+    });
+
+    it('two different pages never share a hreflang path (no cross-linking passport with the /documents hub)', () => {
+      const passport = buildLandingMetadata('ru', passportInput);
+      const hub = buildLandingMetadata('ru', { path: '/documents', title: 'x', description: 'y' });
+      const passportLangs = passport.alternates?.languages as Record<string, string>;
+      const hubLangs = hub.alternates?.languages as Record<string, string>;
+      expect(passportLangs.ru).not.toBe(hubLangs.ru);
+    });
+  });
+
+  describe('noindexForLocales — per-locale content-gap noindex (e.g. de/kazakhstanUniversity)', () => {
+    const universityInput = {
+      path: '/kazakhstan/university-document-translation',
+      title: 'Academic Document Translation for University Applications — Kazakhstan — WPO Translations',
+      description: 'y',
+      excludeFromHreflang: ['de'],
+      noindexForLocales: ['de'],
+    };
+
+    it('sets robots index:false, follow:true for the listed locale', () => {
+      const meta = buildLandingMetadata('de', universityInput);
+      expect(meta.robots).toEqual({ index: false, follow: true });
+    });
+
+    it('does not set robots at all for locales not in the list (stays indexable)', () => {
+      for (const locale of ['ru', 'en', 'kk', 'zh', 'uz', 'ky', 'tr', 'th']) {
+        const meta = buildLandingMetadata(locale, universityInput);
+        expect(meta.robots).toBeUndefined();
+      }
+    });
+
+    it('canonical stays self-referencing even when noindexed — never cross-language-canonicalized to en/ru', () => {
+      const meta = buildLandingMetadata('de', universityInput);
+      expect(meta.alternates?.canonical).toBe(
+        `${SITE_URL}/de/kazakhstan/university-document-translation`,
+      );
+    });
+
+    it('a page with no noindexForLocales never sets robots for any locale', () => {
+      for (const locale of ['ru', 'en', 'de']) {
+        const meta = buildLandingMetadata(locale, passportInput);
+        expect(meta.robots).toBeUndefined();
+      }
+    });
+  });
+
+  describe('page-specific metadata', () => {
+    it('different pages produce different title/description (not one collapsed fallback)', () => {
+      const passport = buildLandingMetadata('en', passportInput);
+      const bankStatement = buildLandingMetadata('en', bankStatementInput);
+      expect(passport.title).not.toBe(bankStatement.title);
+      expect(passport.description).not.toBe(bankStatement.description);
+    });
+
+    it('title/description do not vary by locale (documented single-source fallback, not invented per-locale copy)', () => {
+      const ru = buildLandingMetadata('ru', passportInput);
+      const en = buildLandingMetadata('en', passportInput);
+      const kk = buildLandingMetadata('kk', passportInput);
+      expect(ru.title).toBe(passportInput.title);
+      expect(en.title).toBe(passportInput.title);
+      expect(kk.title).toBe(passportInput.title);
+    });
+  });
+
+  describe('Open Graph / Twitter', () => {
+    it('OG url is the locale-aware canonical URL, not a fixed one', () => {
+      const meta = buildLandingMetadata('kk', passportInput);
+      const og = meta.openGraph as Record<string, unknown>;
+      expect(og.url).toBe(`${SITE_URL}/kk/documents/passport-translation`);
+      expect(og.title).toBe(passportInput.title);
+      expect(og.siteName).toBe(SITE_NAME);
+    });
+
+    it('Twitter card fields match title/description', () => {
+      const meta = buildLandingMetadata('en', passportInput);
+      const twitter = meta.twitter as Record<string, unknown>;
+      expect(twitter.card).toBe('summary_large_image');
+      expect(twitter.title).toBe(passportInput.title);
+    });
+  });
+
+  it('does not set robots (must stay indexable — no accidental noindex)', () => {
+    const meta = buildLandingMetadata('ru', passportInput);
+    expect(meta.robots).toBeUndefined();
   });
 });
 
