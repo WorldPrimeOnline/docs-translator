@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { DEFAULT_LOCALE, LOCALES } from '@/i18n/locales';
+import { LEGAL_SUPPORTED_LOCALES } from '@/lib/legal';
 
 // Canonical SEO domain. Deliberately hardcoded rather than reading
 // NEXT_PUBLIC_SITE_URL: the apex (wpotranslations.org, used by that env var
@@ -177,6 +178,63 @@ export function buildLandingMetadata(locale: string, input: LandingMetadataInput
   };
 
   if (noindexForLocales.includes(locale)) {
+    metadata.robots = { index: false, follow: true };
+  }
+
+  return metadata;
+}
+
+export interface LegalMetadataInput {
+  /** e.g. 'privacy', 'terms' — the page path is always `/legal/${slug}`. */
+  slug: string;
+  /** From the existing LegalDocument.metaTitle/.metaDescription (src/lib/legal/content/*.ts)
+   * for whatever locale actually rendered (English, if this is a fallback render) —
+   * never translated or invented here. */
+  title: string;
+  description: string;
+}
+
+/**
+ * Legal page metadata (SEO audit finding #5) — one shared helper for all
+ * locale × LEGAL_SLUGS combinations instead of duplicating this per slug.
+ *
+ * Self-canonical always, for both supported and fallback locales — never
+ * cross-language-canonicalized onto the English/RU version, since a /de/legal/privacy
+ * URL is not a duplicate of /en/legal/privacy, just an unsupported-language render of
+ * the same URL.
+ *
+ * Supported locale (LEGAL_SUPPORTED_LOCALES): hreflang links only the other supported
+ * locales for this exact slug (never a different slug, never de/tr/th, never a
+ * disabled locale) + x-default → the default-locale version, same convention as
+ * buildHomepageMetadata/buildLandingMetadata.
+ *
+ * Unsupported-but-enabled locale (de/tr/th today): no hreflang block at all — a
+ * fallback render isn't a real translation, so it doesn't participate in the hreflang
+ * graph as source or target — plus explicit `noindex, follow`. Disabled locales never
+ * reach this function; middleware redirects them first (finding #10).
+ */
+export function buildLegalMetadata(locale: string, input: LegalMetadataInput): Metadata {
+  const { slug, title, description } = input;
+  const path = `/legal/${slug}`;
+  const url = `${SITE_URL}/${locale}${path}`;
+  const isSupported = LEGAL_SUPPORTED_LOCALES.includes(locale);
+
+  const metadata: Metadata = {
+    title,
+    description,
+    alternates: {
+      canonical: url,
+    },
+  };
+
+  if (isSupported) {
+    const languages: Record<string, string> = {};
+    for (const code of LEGAL_SUPPORTED_LOCALES) {
+      languages[code] = `${SITE_URL}/${code}${path}`;
+    }
+    languages['x-default'] = `${SITE_URL}/${DEFAULT_LOCALE}${path}`;
+    metadata.alternates!.languages = languages;
+  } else {
     metadata.robots = { index: false, follow: true };
   }
 
