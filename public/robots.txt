@@ -1,7 +1,0 @@
-User-agent: *
-Allow: /
-Disallow: /dashboard
-Disallow: /api/
-Disallow: /auth/
-
-Sitemap: https://wpotranslations.org/sitemap.xml

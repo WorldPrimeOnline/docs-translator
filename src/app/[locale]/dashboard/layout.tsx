@@ -1,3 +1,8 @@
+import type { Metadata } from 'next';
+import { NOINDEX_METADATA } from '@/lib/seo/site-metadata';
+
+export const metadata: Metadata = NOINDEX_METADATA;
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background">
