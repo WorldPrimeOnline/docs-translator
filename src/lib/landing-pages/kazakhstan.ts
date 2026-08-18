@@ -19,6 +19,7 @@ import {
   notarizedPricingTiers,
   defaultPricingFootnote,
 } from './shared';
+import { SERVICE_PROVIDER_REF } from '@/lib/seo/organization';
 
 export const kazakhstanConfig: LandingPageConfig = {
   title: 'Перевод документов для Казахстана — WPO Translations',
@@ -143,9 +144,9 @@ export const kazakhstanConfig: LandingPageConfig = {
     {
       '@context': 'https://schema.org',
       '@type': 'Service',
-      name: 'Document Translation for Kazakhstan — WPO Online Translations',
+      name: 'Document Translation for Kazakhstan — WPO Translations',
       description: 'Online document translation for Kazakhstan workflows: university admissions, immigration, notary preparation, and apostille documents.',
-      provider: { '@type': 'Organization', name: 'WPO Online Translations', url: 'https://wpo.online' },
+      provider: SERVICE_PROVIDER_REF,
       areaServed: 'Kazakhstan',
       serviceType: 'Document Translation',
     },
@@ -281,9 +282,9 @@ export const kazakhstanNotarizedConfig: LandingPageConfig = {
     {
       '@context': 'https://schema.org',
       '@type': 'Service',
-      name: 'Notary Translation Draft — Kazakhstan — WPO Online Translations',
+      name: 'Notary Translation Draft — Kazakhstan — WPO Translations',
       description: 'Clean translation drafts for notary review in Kazakhstan. Upload your document and receive a structured translation to present to a notary or certified translator.',
-      provider: { '@type': 'Organization', name: 'WPO Online Translations', url: 'https://wpo.online' },
+      provider: SERVICE_PROVIDER_REF,
       areaServed: 'Kazakhstan',
       serviceType: 'Document Translation',
     },
@@ -393,9 +394,9 @@ export const kazakhstanUniversityConfig: LandingPageConfig = {
     {
       '@context': 'https://schema.org',
       '@type': 'Service',
-      name: 'Academic Document Translation — Kazakhstan — WPO Online Translations',
+      name: 'Academic Document Translation — Kazakhstan — WPO Translations',
       description: 'Translate diplomas, transcripts, and academic certificates from Kazakhstan for international university applications.',
-      provider: { '@type': 'Organization', name: 'WPO Online Translations', url: 'https://wpo.online' },
+      provider: SERVICE_PROVIDER_REF,
       areaServed: 'Kazakhstan',
       serviceType: 'Document Translation',
     },
@@ -505,7 +506,7 @@ export const kazakhstanCertifiedConfig: LandingPageConfig = {
       '@type': 'Service',
       name: 'Translation with Agent Stamp — Kazakhstan — WPO Translations',
       description: 'Official translation with human translator review and Provider stamp for Kazakhstan.',
-      provider: { '@type': 'Organization', name: 'WPO Translations', url: 'https://wpotranslations.org' },
+      provider: SERVICE_PROVIDER_REF,
       areaServed: 'Kazakhstan',
       serviceType: 'Document Translation',
     },
