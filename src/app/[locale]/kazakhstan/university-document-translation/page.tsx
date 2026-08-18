@@ -2,11 +2,26 @@ import type { Metadata } from 'next';
 import { setRequestLocale, getTranslations } from 'next-intl/server';
 import { LandingPage } from '@/components/landing/LandingPage';
 import { kazakhstanUniversityConfig } from '@/lib/landing-pages/kazakhstan';
+import { buildLandingMetadata } from '@/lib/seo/site-metadata';
 
-export const metadata: Metadata = {
-  title: kazakhstanUniversityConfig.title,
-  description: kazakhstanUniversityConfig.description,
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return buildLandingMetadata(locale, {
+    path: '/kazakhstan/university-document-translation',
+    title: kazakhstanUniversityConfig.title,
+    description: kazakhstanUniversityConfig.description,
+    // messages/de/landing-pages.json is missing 18 keys under kazakhstanUniversity
+    // (docs list + all 4 pain points) — verified via a full key-diff against en during
+    // this fix's re-audit. Real content gap, not just "no SEO copy yet" — excluding /de
+    // from hreflang here so we don't advertise it as an equivalent-language version of
+    // this specific page. Translation work is out of scope for this task.
+    excludeFromHreflang: ['de'],
+  });
+}
 
 export default async function KazakhstanUniversityPage({
   params,

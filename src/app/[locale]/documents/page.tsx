@@ -8,6 +8,7 @@ import { PricingSection } from '@/components/landing/PricingSection';
 import { FAQSection } from '@/components/landing/FAQSection';
 import { FinalCTASection } from '@/components/landing/FinalCTASection';
 import { documentsHubConfig } from '@/lib/landing-pages/documents';
+import { buildLandingMetadata } from '@/lib/seo/site-metadata';
 import {
   IdCard,
   Landmark,
@@ -20,10 +21,18 @@ import {
   FileText,
 } from 'lucide-react';
 
-export const metadata: Metadata = {
-  title: documentsHubConfig.title,
-  description: documentsHubConfig.description,
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return buildLandingMetadata(locale, {
+    path: '/documents',
+    title: documentsHubConfig.title,
+    description: documentsHubConfig.description,
+  });
+}
 
 export default async function DocumentsHubPage({
   params,

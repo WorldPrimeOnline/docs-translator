@@ -2,11 +2,20 @@ import type { Metadata } from 'next';
 import { setRequestLocale, getTranslations } from 'next-intl/server';
 import { LandingPage } from '@/components/landing/LandingPage';
 import { diplomaTranslationConfig } from '@/lib/landing-pages/documents';
+import { buildLandingMetadata } from '@/lib/seo/site-metadata';
 
-export const metadata: Metadata = {
-  title: diplomaTranslationConfig.title,
-  description: diplomaTranslationConfig.description,
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return buildLandingMetadata(locale, {
+    path: '/documents/diploma-translation',
+    title: diplomaTranslationConfig.title,
+    description: diplomaTranslationConfig.description,
+  });
+}
 
 export default async function DiplomaTranslationPage({
   params,

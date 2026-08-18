@@ -36,11 +36,24 @@ const PUBLIC_PATHS = [
 const LOCALES_WITHOUT_LEGAL_TRANSLATION = new Set(['de', 'tr', 'th']);
 const LEGAL_LOCALES = ENABLED_LOCALES.filter((code) => !LOCALES_WITHOUT_LEGAL_TRANSLATION.has(code));
 
+/**
+ * Single locale/page exclusion (SEO audit finding #3 fix): messages/de/landing-pages.json
+ * is missing 18 keys under kazakhstanUniversity (docs list + all 4 pain points) —
+ * verified via a full key-diff against en. The page renders 200, but with the raw i18n
+ * key path visible in place of that missing text (e.g. literal "kazakhstanUniversity.
+ * painHeadline" in the rendered HTML), not real German content — not something to
+ * submit to Google as an indexable canonical page. Same exclusion is applied to this
+ * page's hreflang alternates (src/app/[locale]/kazakhstan/university-document-translation
+ * /page.tsx). Translation work to fill the gap is out of scope here.
+ */
+const EXCLUDED_LOCALE_PATHS: ReadonlySet<string> = new Set(['de:/kazakhstan/university-document-translation']);
+
 export default function sitemap(): MetadataRoute.Sitemap {
   const entries: MetadataRoute.Sitemap = [];
 
   for (const locale of ENABLED_LOCALES) {
     for (const path of PUBLIC_PATHS) {
+      if (EXCLUDED_LOCALE_PATHS.has(`${locale}:${path}`)) continue;
       entries.push({ url: `${SITE_URL}/${locale}${path}` });
     }
   }

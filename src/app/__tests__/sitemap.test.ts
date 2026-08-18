@@ -108,4 +108,14 @@ describe('sitemap()', () => {
       expect(urls).toContain(`${SITE_URL}/${locale}/kazakhstan/notarized-translation`);
     }
   });
+
+  it('excludes /de/kazakhstan/university-document-translation (verified incomplete i18n content, finding #3)', () => {
+    expect(urls).not.toContain(`${SITE_URL}/de/kazakhstan/university-document-translation`);
+  });
+
+  it('still includes /kazakhstan/university-document-translation for every OTHER enabled locale', () => {
+    for (const locale of LOCALES.filter((l) => l.enabled && l.code !== 'de').map((l) => l.code)) {
+      expect(urls).toContain(`${SITE_URL}/${locale}/kazakhstan/university-document-translation`);
+    }
+  });
 });

@@ -2,11 +2,20 @@ import type { Metadata } from 'next';
 import { setRequestLocale, getTranslations } from 'next-intl/server';
 import { LandingPage } from '@/components/landing/LandingPage';
 import { bankStatementTranslationConfig } from '@/lib/landing-pages/documents';
+import { buildLandingMetadata } from '@/lib/seo/site-metadata';
 
-export const metadata: Metadata = {
-  title: bankStatementTranslationConfig.title,
-  description: bankStatementTranslationConfig.description,
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return buildLandingMetadata(locale, {
+    path: '/documents/bank-statement-translation',
+    title: bankStatementTranslationConfig.title,
+    description: bankStatementTranslationConfig.description,
+  });
+}
 
 export default async function BankStatementTranslationPage({
   params,
