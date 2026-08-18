@@ -96,3 +96,14 @@ export function buildHomepageMetadata(locale: string): Metadata {
     },
   };
 }
+
+/**
+ * Explicit noindex for private/service surfaces (auth, dashboard, checkout, payment,
+ * /start) — defense in depth alongside robots.txt's Disallow rules (SEO audit finding
+ * #11). robots.txt only stops crawling; it does not stop a URL Google already knows
+ * about (e.g. from a backlink) from appearing in search results without this tag.
+ * Does not affect auth/access control, which is enforced independently in middleware.
+ */
+export const NOINDEX_METADATA: Metadata = {
+  robots: { index: false, follow: false },
+};

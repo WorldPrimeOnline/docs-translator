@@ -1,5 +1,9 @@
+import type { Metadata } from 'next';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
+import { NOINDEX_METADATA } from '@/lib/seo/site-metadata';
+
+export const metadata: Metadata = NOINDEX_METADATA;
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
