@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Cormorant_Garamond, Geist_Mono, Inter } from 'next/font/google';
 import { headers } from 'next/headers';
+import { GoogleAnalytics } from '@next/third-parties/google';
 import { DEFAULT_LOCALE } from '@/i18n/locales';
 import { buildFallbackMetadata } from '@/lib/seo/site-metadata';
 import { getOrganizationSchema, getWebsiteSchema } from '@/lib/seo/organization';
@@ -34,6 +35,10 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 const IS_STAGING = process.env.NEXT_PUBLIC_APP_ENV === 'staging';
+
+// GA4 loads only when this is set. Left unset on staging/local by convention
+// (see .env.staging.example) so staging traffic never hits the production property.
+const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
 
 /**
  * Minimal root layout — only provides <html>/<body> wrappers.
@@ -78,6 +83,7 @@ export default async function RootLayout({
           </div>
         )}
         {children}
+        {GA_MEASUREMENT_ID && <GoogleAnalytics gaId={GA_MEASUREMENT_ID} />}
       </body>
     </html>
   );

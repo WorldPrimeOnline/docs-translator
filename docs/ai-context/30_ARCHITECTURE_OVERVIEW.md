@@ -163,7 +163,7 @@ Worker feature flags (all optional, default to safe/live behavior):
 - `PAYMENTS_MODE` — `live | test` (default: `live`)
 - `OFFICIAL_WORKFLOW_ENABLED` — set to `false` to disable the notarized/certified workflow path entirely
 
-Not in Zod schemas (read via `process.env` directly): `NEXT_PUBLIC_SITE_URL`, `CRON_SECRET`, `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN`.
+Not in Zod schemas (read via `process.env` directly): `NEXT_PUBLIC_SITE_URL`, `CRON_SECRET`, `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN`, `NEXT_PUBLIC_GA_MEASUREMENT_ID`.
 
 `CRON_SECRET` must be set in the Vercel dashboard — matched against `Authorization: Bearer <secret>` sent by the Vercel cron scheduler. Do not add new env vars beyond those listed in `PROJECT_CONTEXT.md § 15`.
 
@@ -174,6 +174,10 @@ Config: `components.json`. Style: `base-nova`. Uses `@base-ui/react` (not `@radi
 ## Sentry
 
 Three config files at root: `sentry.client.config.ts`, `sentry.server.config.ts`, `sentry.edge.config.ts`. Instrumentation entry at `src/instrumentation.ts`. Global error boundary at `src/app/global-error.tsx`.
+
+## Analytics (GA4)
+
+`GoogleAnalytics` from `@next/third-parties/google`, mounted once in `src/app/layout.tsx` (root layout — covers every locale/route since `[locale]/layout.tsx` nests inside it, no duplicate tag risk). Conditionally rendered only when `NEXT_PUBLIC_GA_MEASUREMENT_ID` is set — deliberately unset on staging/local so staging traffic never reaches the production GA4 property. Basic page-view tracking only: no custom events, no ecommerce/`purchase`, no consent management, no GTM. Never pass PII (name, email, phone, filename, document text, OCR output, IIN/BIN) into any GA call if custom events are added later.
 
 ## Code standards
 
