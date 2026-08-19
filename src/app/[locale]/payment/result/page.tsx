@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { Link } from '@/i18n/navigation';
 import { Loader2, CheckCircle2, XCircle, Clock, RefreshCw } from 'lucide-react';
+import { trackPurchaseOnce, readCheckoutServiceLevel } from '@/lib/analytics/yandex-metrica';
 
 // Public payment statuses — matches PublicPaymentStatus in status-map.ts.
 // Internal-only statuses (requires_review, duplicate_charge_review) are never returned by the API.
@@ -132,6 +133,27 @@ export default function PaymentResultPage(): React.ReactElement {
     }
     setManualChecking(false);
   }, [fetchStatus, startInterval, stopPolling]);
+
+  // Yandex Metrica purchase — fires only on the canonical confirmed-paid state.
+  // Deliberately checks response.status === 'paid' only, NOT response.isSuccess:
+  // isSuccess in the API route is defined as `publicResult.status === 'paid'` — a
+  // redundant field derived from the same status, not an independent guarantee. Using
+  // only the canonical status field means this stays correct even if isSuccess's
+  // derivation ever changes independently. mapToPublicStatus() (status-map.ts) has
+  // exactly one branch returning 'paid', reachable only via mapHalykStatus()'s
+  // resultCode===100 && statusName==='CHARGE' — authorized/pending/review/processing
+  // all map to a different status string ('authorized'/'payment_pending'/'unknown'),
+  // never 'paid'. trackPurchaseOnce dedupes per paymentId via localStorage, so
+  // repeated polls/reloads of this page never double-count.
+  useEffect(() => {
+    if (!paymentId || !response) return;
+    if (response.status !== 'paid') return;
+    trackPurchaseOnce(paymentId, {
+      value: response.amount,
+      currency: response.currency,
+      service_level: readCheckoutServiceLevel(paymentId) ?? undefined,
+    });
+  }, [paymentId, response]);
 
   if (!paymentId) {
     return (

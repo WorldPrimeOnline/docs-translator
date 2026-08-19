@@ -5,6 +5,7 @@ import { useTranslations, useLocale } from 'next-intl';
 import { CreditCard, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import type { HalykPayBootstrap, HalykPaymentObject } from '@/lib/payments/halyk/types';
 import { BUSINESS_PROFILE } from '@/lib/business-profile';
+import { trackBeginCheckout, storeCheckoutServiceLevel } from '@/lib/analytics/yandex-metrica';
 
 // TypeScript declaration for the Halyk SDK injected into window
 declare global {
@@ -27,6 +28,8 @@ interface Props {
   autoStart?: boolean;
   /** Overrides the loading-state label while autoStart is in flight. */
   loadingLabel?: string;
+  /** Analytics label only (Yandex Metrica begin_checkout/purchase) — never used for pricing/business logic. */
+  serviceLevel?: string;
 }
 
 // Payments kill-switch — see docs/payments/PRODUCTION_READINESS.md §12. Setting
@@ -36,7 +39,7 @@ interface Props {
 // to the current legal entity — either signal being off must hide the button.
 const PAYMENTS_ENABLED = process.env.NEXT_PUBLIC_HALYK_EPAY_ENABLED !== 'false' && BUSINESS_PROFILE.cardPaymentsActive;
 
-export function HalykPayButton({ jobId, quoteId, priceKzt, className = '', onSuccess, autoStart = false, loadingLabel }: Props): React.ReactElement {
+export function HalykPayButton({ jobId, quoteId, priceKzt, className = '', onSuccess, autoStart = false, loadingLabel, serviceLevel }: Props): React.ReactElement {
   const t = useTranslations('payment');
   const locale = useLocale();
   const [state, setState] = useState<ButtonState>('idle');
@@ -111,6 +114,13 @@ export function HalykPayButton({ jobId, quoteId, priceKzt, className = '', onSuc
       return;
     }
 
+    // Checkout has genuinely started here — /initiate succeeded and we're committed to
+    // the Halyk redirect below, not just a UI click. Stash service_level for the
+    // purchase event on /payment/result (that endpoint doesn't have it — see
+    // src/lib/analytics/yandex-metrica.ts's service_level propagation comment).
+    trackBeginCheckout({ service_level: serviceLevel ?? 'unknown' });
+    storeCheckoutServiceLevel(bootstrap.paymentId, serviceLevel ?? 'unknown');
+
     // Load the Halyk script
     setState('script_loading');
 
@@ -138,7 +148,7 @@ export function HalykPayButton({ jobId, quoteId, priceKzt, className = '', onSuc
     if (onSuccess) {
       onSuccess(bootstrap.paymentId);
     }
-  }, [jobId, quoteId, locale, loadScript, onSuccess, state]);
+  }, [jobId, quoteId, locale, loadScript, onSuccess, state, serviceLevel]);
 
   const handleRetry = useCallback((): void => {
     initiated.current = false;

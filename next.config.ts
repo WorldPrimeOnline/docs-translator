@@ -44,6 +44,13 @@ const GA4_CONNECT_DOMAINS = [
   'https://*.googletagmanager.com',
 ].join(' ');
 
+// Yandex Metrica (mc.yandex.ru) — see src/components/analytics/YandexMetrica.tsx,
+// only active when NEXT_PUBLIC_YANDEX_METRICA_ID is set (production only) and the
+// runtime hostname matches. script-src loads tag.js; connect-src covers the hit/
+// reachGoal beacon requests, both on the same single domain — no wildcard, no
+// Webvisor/frame domains (Webvisor is explicitly disabled in the init config).
+const YANDEX_METRICA_DOMAIN = 'https://mc.yandex.ru';
+
 // Direct-to-R2 browser uploads (presigned PUT — src/lib/r2/client.ts getPresignedPutUrl)
 // connect to the R2 bucket's own origin directly, bypassing this Next.js app entirely.
 // Derived from the same server-side R2_ACCOUNT_ID/R2_BUCKET_NAME env vars the R2 client
@@ -73,11 +80,11 @@ const securityHeaders = [
     key: 'Content-Security-Policy',
     value: [
       `default-src 'self'`,
-      `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${HALYK_SCRIPT_DOMAINS} ${GA4_SCRIPT_DOMAINS}${VERCEL_LIVE_DOMAINS}`,
+      `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${HALYK_SCRIPT_DOMAINS} ${GA4_SCRIPT_DOMAINS} ${YANDEX_METRICA_DOMAIN}${VERCEL_LIVE_DOMAINS}`,
       `style-src 'self' 'unsafe-inline'`,
       `img-src 'self' data: blob: https:`,
       `font-src 'self' data:`,
-      `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://sentry.io ${HALYK_CONNECT_DOMAINS} ${GA4_CONNECT_DOMAINS}${R2_UPLOAD_ORIGIN ? ` ${R2_UPLOAD_ORIGIN}` : ''}`,
+      `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://sentry.io ${HALYK_CONNECT_DOMAINS} ${GA4_CONNECT_DOMAINS} ${YANDEX_METRICA_DOMAIN}${R2_UPLOAD_ORIGIN ? ` ${R2_UPLOAD_ORIGIN}` : ''}`,
       `frame-src 'self' ${HALYK_FRAME_DOMAINS}${VERCEL_LIVE_DOMAINS}`,
       `frame-ancestors 'self'`,
       `form-action 'self'`,
