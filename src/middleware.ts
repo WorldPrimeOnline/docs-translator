@@ -190,7 +190,10 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
 }
 
 export const config = {
+  // .html excluded so static verification files in public/ (e.g. Yandex Webmaster,
+  // yandex_d7675c24f66a32b2.html) are served as-is at the bare root path instead of
+  // being redirected by next-intl's localePrefix: 'always' to a nonexistent /{locale}/ version.
   matcher: [
-    '/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|txt|xml|webmanifest|pdf|ico|woff2?|ttf|otf|eot)$).*)',
+    '/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|txt|xml|webmanifest|pdf|ico|woff2?|ttf|otf|eot|html)$).*)',
   ],
 };
