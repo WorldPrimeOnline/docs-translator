@@ -31,6 +31,19 @@ const HALYK_FRAME_DOMAINS = [
   'https://epay.homebank.kz',
 ].join(' ');
 
+// Google Analytics 4 (gtag.js) — see src/app/layout.tsx's GoogleAnalytics, only
+// active when NEXT_PUBLIC_GA_MEASUREMENT_ID is set (production only). script-src
+// loads gtag.js from googletagmanager.com; connect-src covers the measurement
+// beacons gtag.js sends (google-analytics.com and analytics.google.com collect
+// endpoints, plus googletagmanager.com for its own config fetch). No img-src
+// change needed — img-src already allows any https: origin.
+const GA4_SCRIPT_DOMAINS = 'https://*.googletagmanager.com';
+const GA4_CONNECT_DOMAINS = [
+  'https://*.google-analytics.com',
+  'https://*.analytics.google.com',
+  'https://*.googletagmanager.com',
+].join(' ');
+
 // Direct-to-R2 browser uploads (presigned PUT — src/lib/r2/client.ts getPresignedPutUrl)
 // connect to the R2 bucket's own origin directly, bypassing this Next.js app entirely.
 // Derived from the same server-side R2_ACCOUNT_ID/R2_BUCKET_NAME env vars the R2 client
@@ -60,11 +73,11 @@ const securityHeaders = [
     key: 'Content-Security-Policy',
     value: [
       `default-src 'self'`,
-      `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${HALYK_SCRIPT_DOMAINS}${VERCEL_LIVE_DOMAINS}`,
+      `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${HALYK_SCRIPT_DOMAINS} ${GA4_SCRIPT_DOMAINS}${VERCEL_LIVE_DOMAINS}`,
       `style-src 'self' 'unsafe-inline'`,
       `img-src 'self' data: blob: https:`,
       `font-src 'self' data:`,
-      `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://sentry.io ${HALYK_CONNECT_DOMAINS}${R2_UPLOAD_ORIGIN ? ` ${R2_UPLOAD_ORIGIN}` : ''}`,
+      `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://sentry.io ${HALYK_CONNECT_DOMAINS} ${GA4_CONNECT_DOMAINS}${R2_UPLOAD_ORIGIN ? ` ${R2_UPLOAD_ORIGIN}` : ''}`,
       `frame-src 'self' ${HALYK_FRAME_DOMAINS}${VERCEL_LIVE_DOMAINS}`,
       `frame-ancestors 'self'`,
       `form-action 'self'`,
