@@ -21,7 +21,7 @@ describe('buildHomepageMetadata', () => {
     const meta = buildHomepageMetadata('ru');
     expect(meta.title).toBe('WPO Translations — перевод документов онлайн');
     expect(meta.description).toBe(
-      'Перевод документов для виз, учёбы, банков, миграции и релокации. Электронный, официальный и нотариальный перевод через партнёров. Цена рассчитывается онлайн.',
+      'Перевод документов онлайн в Казахстане: электронный, официальный с проверкой переводчиком и нотариальное заверение через партнёра. Точная стоимость до оплаты.',
     );
   });
 
@@ -245,13 +245,57 @@ describe('buildLandingMetadata', () => {
       expect(passport.description).not.toBe(bankStatement.description);
     });
 
-    it('title/description do not vary by locale (documented single-source fallback, not invented per-locale copy)', () => {
+    it('title/description do not vary by locale when no ruOverride is given (documented single-source fallback, not invented per-locale copy)', () => {
       const ru = buildLandingMetadata('ru', passportInput);
       const en = buildLandingMetadata('en', passportInput);
       const kk = buildLandingMetadata('kk', passportInput);
       expect(ru.title).toBe(passportInput.title);
       expect(en.title).toBe(passportInput.title);
       expect(kk.title).toBe(passportInput.title);
+    });
+  });
+
+  describe('ruOverride (Yandex snippet-quality fix, 2026-08-19) — opt-in per page', () => {
+    const ruOverride = {
+      title: 'RU Override Title',
+      description: 'RU override description.',
+    };
+
+    it('ru locale uses ruOverride title/description when provided', () => {
+      const meta = buildLandingMetadata('ru', { ...passportInput, ruOverride });
+      expect(meta.title).toBe(ruOverride.title);
+      expect(meta.description).toBe(ruOverride.description);
+    });
+
+    it('every other locale ignores ruOverride and keeps the base title/description', () => {
+      for (const locale of ['en', 'kk', 'de']) {
+        const meta = buildLandingMetadata(locale, { ...passportInput, ruOverride });
+        expect(meta.title).toBe(passportInput.title);
+        expect(meta.description).toBe(passportInput.description);
+      }
+    });
+
+    it('OG/Twitter fields reflect the ru override too, not the base copy', () => {
+      const meta = buildLandingMetadata('ru', { ...passportInput, ruOverride });
+      const og = meta.openGraph as Record<string, unknown>;
+      const twitter = meta.twitter as Record<string, unknown>;
+      expect(og.title).toBe(ruOverride.title);
+      expect(og.description).toBe(ruOverride.description);
+      expect(twitter.title).toBe(ruOverride.title);
+      expect(twitter.description).toBe(ruOverride.description);
+    });
+
+    it('canonical/hreflang are unaffected by ruOverride — still URL-only, not text-based', () => {
+      const withOverride = buildLandingMetadata('ru', { ...passportInput, ruOverride });
+      const withoutOverride = buildLandingMetadata('ru', passportInput);
+      expect(withOverride.alternates?.canonical).toBe(withoutOverride.alternates?.canonical);
+      expect(withOverride.alternates?.languages).toEqual(withoutOverride.alternates?.languages);
+    });
+
+    it('omitting ruOverride entirely behaves identically to before (no regression for pages that never opt in)', () => {
+      const meta = buildLandingMetadata('ru', passportInput);
+      expect(meta.title).toBe(passportInput.title);
+      expect(meta.description).toBe(passportInput.description);
     });
   });
 

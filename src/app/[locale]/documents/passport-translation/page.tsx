@@ -14,6 +14,15 @@ export async function generateMetadata({
     path: '/documents/passport-translation',
     title: passportTranslationConfig.title,
     description: passportTranslationConfig.description,
+    // Yandex snippet-quality fix (2026-08-19): base title/description above are
+    // English-only, so RU queries (e.g. "перевод паспорта алматы wpo") had no
+    // RU-specific signal on this page and Yandex sometimes surfaced the homepage
+    // instead. RU-only override — en/kk/other locales keep the config copy above.
+    ruOverride: {
+      title: 'Перевод паспорта онлайн — WPO Translations',
+      description:
+        'Перевод паспорта онлайн для виз, банков и миграционных задач. Электронный и официальный перевод; нотариальное заверение — через партнёрский процесс.',
+    },
   });
 }
 
