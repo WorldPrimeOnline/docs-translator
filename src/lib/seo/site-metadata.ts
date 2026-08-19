@@ -24,7 +24,7 @@ const COPY: Record<'ru' | 'en', LocaleCopy> = {
   ru: {
     title: 'WPO Translations — перевод документов онлайн',
     description:
-      'Перевод документов для виз, учёбы, банков, миграции и релокации. Электронный, официальный и нотариальный перевод через партнёров. Цена рассчитывается онлайн.',
+      'Перевод документов онлайн в Казахстане: электронный, официальный с проверкой переводчиком и нотариальное заверение через партнёра. Точная стоимость до оплаты.',
   },
   en: {
     title: 'WPO Translations — Online Document Translation',
@@ -135,6 +135,16 @@ export interface LandingMetadataInput {
    * not a routing change. Do not add speculatively.
    */
   noindexForLocales?: string[];
+  /**
+   * RU-specific title/description override — Yandex snippet-quality initiative
+   * (2026-08-19: contacts/passport pages were showing English or generic-homepage
+   * copy against RU queries). Opt-in per page, applies only when locale === 'ru';
+   * every other locale keeps using title/description above completely unchanged.
+   * Do not add speculatively — only for a page where RU copy has been reviewed and
+   * approved (no keyword stuffing, no AI positioning, no acceptance guarantees,
+   * notarization framed as a partner process).
+   */
+  ruOverride?: { title: string; description: string };
 }
 
 /**
@@ -146,7 +156,9 @@ export interface LandingMetadataInput {
  * instead of duplicating this shape 8 times.
  */
 export function buildLandingMetadata(locale: string, input: LandingMetadataInput): Metadata {
-  const { path, title, description, excludeFromHreflang = [], noindexForLocales = [] } = input;
+  const { path, excludeFromHreflang = [], noindexForLocales = [], ruOverride } = input;
+  const title = locale === 'ru' && ruOverride ? ruOverride.title : input.title;
+  const description = locale === 'ru' && ruOverride ? ruOverride.description : input.description;
   const url = `${SITE_URL}/${locale}${path}`;
 
   const languages: Record<string, string> = {};

@@ -109,6 +109,17 @@ describe('landing pages — generateMetadata wiring', () => {
       }
     }
   });
+
+  it('only documents/passport-translation sets ruOverride (Yandex snippet-quality fix, 2026-08-19) — no other landing page gets a RU-specific override', () => {
+    for (const { file, path: p } of LANDING_PAGES) {
+      const src = readSource(file);
+      if (p === '/documents/passport-translation') {
+        expect(src).toContain('ruOverride:');
+      } else {
+        expect(src).not.toContain('ruOverride');
+      }
+    }
+  });
 });
 
 describe('next-intl alternate Link header (finding #9 minimal fix)', () => {
