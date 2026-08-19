@@ -328,6 +328,7 @@ function ActiveOrderCard({ entry, locale, onRecalculate }: { entry: OrderEntry; 
                 jobId={entry.jobId}
                 quoteId={entry.latestQuoteId!}
                 priceKzt={entry.quoteAmountKzt!}
+                serviceLevel={entry.serviceLevel}
               />
               <StagingPaymentBypassButton
                 jobId={entry.jobId}

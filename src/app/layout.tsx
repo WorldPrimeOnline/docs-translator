@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import { Cormorant_Garamond, Geist_Mono, Inter } from 'next/font/google';
 import { headers } from 'next/headers';
 import { GoogleAnalytics } from '@next/third-parties/google';
@@ -6,6 +7,8 @@ import { DEFAULT_LOCALE } from '@/i18n/locales';
 import { buildFallbackMetadata } from '@/lib/seo/site-metadata';
 import { getOrganizationSchema, getWebsiteSchema } from '@/lib/seo/organization';
 import { StructuredData } from '@/components/landing/StructuredData';
+import { YandexMetrica } from '@/components/analytics/YandexMetrica';
+import { YandexMetricaPageviews } from '@/components/analytics/YandexMetricaPageviews';
 import './globals.css';
 
 const inter = Inter({
@@ -39,6 +42,12 @@ const IS_STAGING = process.env.NEXT_PUBLIC_APP_ENV === 'staging';
 // GA4 loads only when this is set. Left unset on staging/local by convention
 // (see .env.staging.example) so staging traffic never hits the production property.
 const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+
+// Yandex Metrica — same env-var gate as GA4, plus an internal hostname check
+// (see YandexMetrica.tsx) as a second, independent safety net.
+const YANDEX_METRICA_COUNTER_ID = process.env.NEXT_PUBLIC_YANDEX_METRICA_ID
+  ? Number(process.env.NEXT_PUBLIC_YANDEX_METRICA_ID)
+  : null;
 
 /**
  * Minimal root layout — only provides <html>/<body> wrappers.
@@ -84,6 +93,14 @@ export default async function RootLayout({
         )}
         {children}
         {GA_MEASUREMENT_ID && <GoogleAnalytics gaId={GA_MEASUREMENT_ID} />}
+        {YANDEX_METRICA_COUNTER_ID !== null && (
+          <>
+            <YandexMetrica counterId={YANDEX_METRICA_COUNTER_ID} />
+            <Suspense fallback={null}>
+              <YandexMetricaPageviews />
+            </Suspense>
+          </>
+        )}
       </body>
     </html>
   );

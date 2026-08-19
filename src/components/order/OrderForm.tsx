@@ -26,6 +26,7 @@ import { loadReferralParams } from '@/lib/referral/capture';
 import { MAX_UPLOAD_FILE_COUNT } from '@/lib/order-drafts/upload-constants';
 import { mergeFileSelection, removeFileAt } from '@/lib/order-drafts/file-selection';
 import type { ServiceLevel } from '@/lib/translation-prompts/types';
+import { trackUploadCompleted, trackQuoteGenerated } from '@/lib/analytics/yandex-metrica';
 
 interface PromoDiscountInfo {
   discountType: string;
@@ -447,6 +448,15 @@ export function OrderForm({ mode, onSubmitSuccess, draftId, onDraftIdChange, onD
 
       setUploading(false);
       setFiles([]);
+      // Yandex Metrica funnel events — upload-card/complete returns both the upload
+      // result and the computed price in one response, so both fire together here.
+      // No PII in either call (see trackUploadCompleted/trackQuoteGenerated docs).
+      trackUploadCompleted();
+      trackQuoteGenerated({
+        value: data.priceKzt ?? 0,
+        currency: data.currency ?? 'KZT',
+        service_level: serviceLevel,
+      });
       // 2026-07-22: requiresOperatorReview is never true on a successful (ok:true) response
       // anymore — createCardOrder() treats it as a terminal UNSUPPORTED_DOCUMENT failure before
       // any job is created (WPO has no manual operator pricing process), so reaching this branch
@@ -590,6 +600,7 @@ export function OrderForm({ mode, onSubmitSuccess, draftId, onDraftIdChange, onD
       // fails below and the customer adds a file before retrying, addFiles() must
       // replace this stale-but-completed selection, never append to it.
       uploadedBatchRef.current = true;
+      trackUploadCompleted();
 
       const calcRes = await fetch(`/api/order-drafts/${currentDraftId}/calculate`, { method: 'POST' });
       const calcData = await calcRes.json() as DraftPriceResult & { error?: string; reason?: string };
@@ -606,6 +617,11 @@ export function OrderForm({ mode, onSubmitSuccess, draftId, onDraftIdChange, onD
       }
 
       setUploading(false);
+      trackQuoteGenerated({
+        value: calcData.priceKzt,
+        currency: calcData.currency,
+        service_level: serviceLevel,
+      });
       onDraftPriced?.(calcData, currentDraftId);
     } catch {
       toast.error(tStart('errors.genericError'));

@@ -10,6 +10,9 @@ import { Link } from '@/i18n/navigation';
 
 interface DraftSummary {
   consent_accepted_at: string | null;
+  /** Analytics label only (Yandex Metrica begin_checkout/purchase) — already part of
+   * the existing GET /api/order-drafts/[draftId] response, just not read here before now. */
+  service_level: string | null;
 }
 
 interface ConvertedOrder {
@@ -126,6 +129,7 @@ export function CheckoutClient() {
         className="w-full"
         autoStart
         loadingLabel={paymentT('redirectingToPayment')}
+        serviceLevel={draft?.service_level ?? undefined}
       />
       <StagingPaymentBypassButton
         jobId={order.jobId}
