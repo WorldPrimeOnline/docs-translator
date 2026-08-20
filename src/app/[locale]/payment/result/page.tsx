@@ -50,6 +50,9 @@ export default function PaymentResultPage(): React.ReactElement {
   const t = useTranslations('payment');
   const searchParams = useSearchParams();
   const paymentId = searchParams.get('payment');
+  // Absent/unrecognized provider defaults to Halyk — existing Halyk backLinks never
+  // include this param, so their behavior is unchanged.
+  const provider = searchParams.get('provider') === 'freedom_pay' ? 'freedompay' : 'halyk';
 
   const [response, setResponse] = useState<PaymentStatusResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -69,13 +72,13 @@ export default function PaymentResultPage(): React.ReactElement {
   const fetchStatus = useCallback(async (): Promise<PaymentStatusResponse | null> => {
     if (!paymentId || unmountedRef.current) return null;
     try {
-      const res = await fetch(`/api/payments/halyk/status/${encodeURIComponent(paymentId)}`);
+      const res = await fetch(`/api/payments/${provider}/status/${encodeURIComponent(paymentId)}`);
       if (!res.ok) return null;
       return await res.json() as PaymentStatusResponse;
     } catch {
       return null;
     }
-  }, [paymentId]);
+  }, [paymentId, provider]);
 
   const startInterval = useCallback(() => {
     if (intervalRef.current) return;

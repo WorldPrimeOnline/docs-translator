@@ -75,7 +75,7 @@ export async function finalizePaymentForStaging(
   // ── 1. Load transaction ────────────────────────────────────────────────────
   const { data: tx, error: txErr } = await db
     .from('payment_transactions')
-    .select('id, status, job_id, quote_id, amount, currency, provider_invoice_id, provider_environment, paid_at, callback_received_at, provider_transaction_id')
+    .select('id, status, job_id, quote_id, amount, currency, provider_invoice_id, provider_environment, paid_at, callback_received_at, provider_transaction_id, payment_provider')
     .eq('id', transactionId)
     .maybeSingle();
 
@@ -193,7 +193,7 @@ async function repairHalfFinalizedPayment(
   return { ok: true, action: 'repaired', paymentId: tx.id as string, jobId: tx.job_id as string, jobStatus: 'queued' };
 }
 
-// ─── Case C: Finalize via existing finalize_halyk_payment RPC ─────────────────
+// ─── Case C: Finalize via the provider's finalization RPC (Halyk or Freedom Pay) ──
 
 async function finalizeViaRpc(
   db: ReturnType<typeof createClient>,
@@ -204,8 +204,15 @@ async function finalizeViaRpc(
 ): Promise<ManualConfirmResult> {
   const txShort = (tx.id as string).slice(0, 8);
 
+  // Route to the correct finalization RPC by provider — a present provider_invoice_id
+  // no longer implies Halyk now that Freedom Pay also populates this column with its
+  // own pg_order_id. Both RPCs share identical row-lock/idempotency/duplicate-charge
+  // logic; only the name differs (finalize_halyk_payment is frozen/untouched,
+  // finalize_payment_transaction is the new generic RPC — see migration 0070).
+  const rpcName = tx.payment_provider === 'freedom_pay' ? 'finalize_payment_transaction' : 'finalize_halyk_payment';
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: rpcResult, error: rpcError } = await (db as any).rpc('finalize_halyk_payment', {
+  const { data: rpcResult, error: rpcError } = await (db as any).rpc(rpcName, {
     p_invoice_id: tx.provider_invoice_id,
     p_transaction_id: `manual-staging-${txShort}`,
     p_provider_status: 'CHARGE',
@@ -227,7 +234,7 @@ async function finalizeViaRpc(
   });
 
   if (rpcError) {
-    return { ok: false, error: `finalize_halyk_payment RPC failed: ${rpcError.message}` };
+    return { ok: false, error: `${rpcName} RPC failed: ${rpcError.message}` };
   }
 
   const result = rpcResult as Record<string, unknown>;

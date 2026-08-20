@@ -1,0 +1,206 @@
+/**
+ * @jest-environment node
+ *
+ * Structural tests for the Freedom Pay routes — same convention as
+ * src/app/api/payments/halyk/__tests__/status-finalization.test.ts: these routes need
+ * Supabase + HTTP, which can't be meaningfully mocked at unit level without
+ * recreating the full stack, so we assert invariants against the actual source.
+ */
+import * as fs from 'fs';
+import * as path from 'path';
+
+const ROOT = path.join(process.cwd(), 'src/app/api/payments/freedompay');
+
+function readRoute(rel: string): string {
+  return fs.readFileSync(path.join(ROOT, rel), 'utf-8');
+}
+
+describe('initiate route', () => {
+  const src = readRoute('initiate/route.ts');
+
+  it('does NOT import or check BUSINESS_PROFILE.cardPaymentsActive (Halyk-only gate)', () => {
+    expect(src).not.toContain('BUSINESS_PROFILE');
+    expect(src).not.toContain('cardPaymentsActive');
+  });
+
+  it('gates on FreedomPayConfig.enabled (FREEDOMPAY_ENABLED)', () => {
+    expect(src).toContain('getFreedomPayConfig');
+    expect(src).toContain('config.enabled');
+  });
+
+  it('reads the payable amount from verifyQuotePayable, never from the client', () => {
+    expect(src).toContain('verifyQuotePayable(quoteId, jobId, user.id)');
+    expect(src).not.toMatch(/priceKzt\s*=\s*(body|parsed\.data)\./);
+  });
+
+  it('creates the payment_transactions row before calling Freedom Pay', () => {
+    const insertPos = src.indexOf(".from('payment_transactions')\n    .insert(");
+    const initCallPos = src.indexOf('await initPayment(');
+    expect(insertPos).toBeGreaterThan(-1);
+    expect(initCallPos).toBeGreaterThan(-1);
+    expect(insertPos).toBeLessThan(initCallPos);
+  });
+
+  it('uses the payment_transactions row id as both id and provider_invoice_id (pg_order_id)', () => {
+    expect(src).toContain('id: paymentId');
+    expect(src).toContain('provider_invoice_id: paymentId');
+  });
+
+  it('enforces a 10-minute idempotency window scoped to payment_provider=freedom_pay', () => {
+    expect(src).toContain("eq('payment_provider', 'freedom_pay')");
+    expect(src).toContain('PAYMENT_ALREADY_PENDING');
+    expect(src).toContain('10 * 60 * 1000');
+  });
+
+  it('marks the transaction failed (not left pending) on init_payment failure', () => {
+    expect(src).toContain("status: 'failed'");
+  });
+
+  it('success/failure URLs carry payment=<id>&provider=freedom_pay so /payment/result knows which status endpoint to poll', () => {
+    // If this ever regresses, the browser return page silently defaults to the Halyk
+    // status endpoint after a real Freedom Pay payment — see payment/result/page.tsx's
+    // provider query param handling.
+    expect(src).toContain('`${appBaseUrl}/payment/result?payment=${paymentId}&provider=freedom_pay`');
+    // failureUrl must not silently diverge from successUrl (both need the same provider hint).
+    const successPos = src.indexOf('const successUrl =');
+    const failurePos = src.indexOf('const failureUrl =');
+    expect(successPos).toBeGreaterThan(-1);
+    expect(failurePos).toBeGreaterThan(successPos);
+    expect(src).toContain('const failureUrl = successUrl;');
+  });
+});
+
+describe('result route (Result URL webhook)', () => {
+  const src = readRoute('result/route.ts');
+
+  it('is public — no auth/session check', () => {
+    expect(src).not.toContain('getAuthUser');
+    expect(src).not.toContain('Unauthorized');
+  });
+
+  it('does NOT call any fiscalization function', () => {
+    expect(src).not.toContain('ensureSaleFiscalReceiptForPaidPayment');
+    expect(src).not.toContain('createRefundReceiptForRefund');
+    expect(src).not.toContain('fiscal_receipts');
+  });
+
+  it('does NOT check BUSINESS_PROFILE.cardPaymentsActive', () => {
+    expect(src).not.toContain('BUSINESS_PROFILE');
+    expect(src).not.toContain('cardPaymentsActive');
+  });
+
+  it('verifies the inbound signature before doing anything with the payload', () => {
+    const verifyPos = src.indexOf('verifySignature(');
+    const rpcPos = src.indexOf("rpc('finalize_payment_transaction'");
+    expect(verifyPos).toBeGreaterThan(-1);
+    expect(rpcPos).toBeGreaterThan(-1);
+    expect(verifyPos).toBeLessThan(rpcPos);
+  });
+
+  it('excludes pg_sig from the fields used to verify the signature', () => {
+    expect(src).toContain('delete fieldsForVerification.pg_sig');
+  });
+
+  it('replays a stored ACK instead of recomputing salt/sig on a duplicate delivery', () => {
+    expect(src).toContain('_wpo_response');
+    expect(src).toContain('storedAck');
+    // The replay branch must return before any RPC call.
+    const replayPos = src.indexOf('if (storedAck)');
+    const rpcPos = src.indexOf("rpc('finalize_payment_transaction'");
+    expect(replayPos).toBeGreaterThan(-1);
+    expect(replayPos).toBeLessThan(rpcPos);
+  });
+
+  it('never trusts pg_result=1 alone — confirms via checkStatus() before finalizing', () => {
+    const mappedPaidPos = src.indexOf("mapped === 'paid'");
+    const checkStatusPos = src.indexOf('await checkStatus(pgOrderId)');
+    const rpcPos = src.indexOf("rpc('finalize_payment_transaction'");
+    expect(mappedPaidPos).toBeGreaterThan(-1);
+    expect(checkStatusPos).toBeGreaterThan(-1);
+    expect(checkStatusPos).toBeLessThan(rpcPos);
+  });
+
+  it('calls the generic finalize_payment_transaction RPC, not finalize_halyk_payment', () => {
+    expect(src).toContain("rpc('finalize_payment_transaction'");
+    expect(src).not.toContain('finalize_halyk_payment');
+  });
+
+  it('validates amount and currency against the stored snapshot before finalizing', () => {
+    expect(src).toContain('storedAmount');
+    expect(src).toContain('requires_review');
+  });
+
+  it('reuses markQuotePaid and confirmReferral (provider-neutral, unchanged functions)', () => {
+    expect(src).toContain('markQuotePaid(');
+    expect(src).toContain('confirmReferral(');
+  });
+
+  it('always returns HTTP 200 with a signed XML body', () => {
+    expect(src).toContain("'Content-Type': 'application/xml'");
+    expect(src).toContain('status: 200');
+  });
+});
+
+describe('status route (frontend polling)', () => {
+  const src = readRoute('status/[paymentId]/route.ts');
+
+  it('requires an authenticated, owning user', () => {
+    expect(src).toContain('getAuthUser');
+    expect(src).toContain('Unauthorized');
+    expect(src).toContain('paymentTx.user_id !== user.id');
+  });
+
+  it('does NOT call any fiscalization function', () => {
+    expect(src).not.toContain('ensureSaleFiscalReceiptForPaidPayment');
+    expect(src).not.toContain('fiscal_receipts');
+  });
+
+  it('gates on-demand reconciliation with a cooldown to avoid hammering Freedom Pay', () => {
+    expect(src).toContain('RECONCILE_COOLDOWN_MS');
+    expect(src).toContain('shouldReconcile');
+  });
+
+  it('calls the generic finalize_payment_transaction RPC, not finalize_halyk_payment', () => {
+    expect(src).toContain("rpc('finalize_payment_transaction'");
+    expect(src).not.toContain('finalize_halyk_payment');
+  });
+
+  it('scopes its lookup to payment_provider=freedom_pay', () => {
+    expect(src).toContain("eq('payment_provider', 'freedom_pay')");
+  });
+});
+
+describe('cross-route consistency', () => {
+  it('the migration adds finalize_payment_transaction without defining/altering finalize_halyk_payment', () => {
+    const migrationPath = path.join(process.cwd(), 'supabase/migrations/0070_finalize_payment_transaction_rpc.sql');
+    const migrationSrc = fs.readFileSync(migrationPath, 'utf-8');
+    expect(migrationSrc).toContain('CREATE OR REPLACE FUNCTION public.finalize_payment_transaction');
+    expect(migrationSrc).toContain('GRANT EXECUTE ON FUNCTION public.finalize_payment_transaction TO service_role');
+    // finalize_halyk_payment may be mentioned in prose/comments explaining rationale,
+    // but must never appear as a CREATE/ALTER/DROP target — this migration must not
+    // define or modify it.
+    expect(migrationSrc).not.toMatch(/(CREATE|ALTER|DROP)[^;]*finalize_halyk_payment/i);
+  });
+
+  it('the pre-existing finalize_halyk_payment migration (0015) is untouched by this integration', () => {
+    const migrationPath = path.join(process.cwd(), 'supabase/migrations/0015_halyk_epay.sql');
+    const migrationSrc = fs.readFileSync(migrationPath, 'utf-8');
+    expect(migrationSrc).toContain('CREATE OR REPLACE FUNCTION public.finalize_halyk_payment');
+  });
+
+  it('/payment/result reads the provider query param and polls the matching status endpoint', () => {
+    const pagePath = path.join(process.cwd(), 'src/app/[locale]/payment/result/page.tsx');
+    const pageSrc = fs.readFileSync(pagePath, 'utf-8');
+    expect(pageSrc).toContain("searchParams.get('provider') === 'freedom_pay' ? 'freedompay' : 'halyk'");
+    expect(pageSrc).toContain('/api/payments/${provider}/status/');
+    // Absent provider param must still resolve to Halyk — existing Halyk backLinks
+    // never include it, so their behavior must stay unchanged.
+    expect(pageSrc).toMatch(/const provider = searchParams\.get\('provider'\)[^;]*: 'halyk'/);
+  });
+
+  it('FreedomPayButton is not wired into the automatic one-step checkout flow (deliberate — see CheckoutClient regression test)', () => {
+    const checkoutPath = path.join(process.cwd(), 'src/components/order/CheckoutClient.tsx');
+    const checkoutSrc = fs.readFileSync(checkoutPath, 'utf-8');
+    expect(checkoutSrc).not.toContain('FreedomPayButton');
+  });
+});

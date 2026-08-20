@@ -372,3 +372,32 @@ describe('confirm-payment-paid.ts CLI script', () => {
     expect(diagIdx).toBeLessThan(guardIdx);
   });
 });
+
+// ─── Provider-routing in finalizeViaRpc (Case C) ───────────────────────────────
+// Added for the Freedom Pay integration: a present provider_invoice_id no longer
+// implies Halyk, since Freedom Pay also populates that column with its own
+// pg_order_id. finalize_halyk_payment itself must remain completely untouched.
+
+describe('finalizeViaRpc — provider routing', () => {
+  it('selects payment_provider so finalizeViaRpc can route by it', async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+    const src = fs.readFileSync(path.join(process.cwd(), 'src/lib/payments/finalize-payment.ts'), 'utf-8');
+    expect(src).toMatch(/\.select\('[^']*payment_provider[^']*'\)/);
+  });
+
+  it('routes freedom_pay transactions to finalize_payment_transaction, everything else to finalize_halyk_payment', async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+    const src = fs.readFileSync(path.join(process.cwd(), 'src/lib/payments/finalize-payment.ts'), 'utf-8');
+    expect(src).toContain("tx.payment_provider === 'freedom_pay' ? 'finalize_payment_transaction' : 'finalize_halyk_payment'");
+  });
+
+  it('does not hardcode finalize_halyk_payment as the only RPC name any more', async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+    const src = fs.readFileSync(path.join(process.cwd(), 'src/lib/payments/finalize-payment.ts'), 'utf-8');
+    // The literal RPC call must use the computed rpcName variable, not a hardcoded string.
+    expect(src).toContain('(db as any).rpc(rpcName,');
+  });
+});

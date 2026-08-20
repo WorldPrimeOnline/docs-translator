@@ -13,12 +13,27 @@ jest.mock('@/lib/supabase/server', () => ({
 }));
 
 // Mock fiscal service (refund service calls createRefundReceiptForRefund)
+const mockCreateRefundReceipt = jest.fn().mockResolvedValue({
+  fiscalReceiptId: 'fr-1',
+  status: 'pending',
+  isNew: true,
+});
 jest.mock('@/lib/fiscal/service', () => ({
-  createRefundReceiptForRefund: jest.fn().mockResolvedValue({
-    fiscalReceiptId: 'fr-1',
-    status: 'pending',
-    isNew: true,
-  }),
+  createRefundReceiptForRefund: (...args: unknown[]) => mockCreateRefundReceipt(...args),
+}));
+
+// Mock the Freedom Pay client (refund service calls its refund() for freedom_pay rows)
+const mockFreedomPayRefund = jest.fn();
+class MockFreedomPayApiError extends Error {
+  code: string;
+  constructor(params: { code: string; message?: string }) {
+    super(params.message ?? params.code);
+    this.code = params.code;
+  }
+}
+jest.mock('@/lib/payments/freedompay/client', () => ({
+  refund: (...args: unknown[]) => mockFreedomPayRefund(...args),
+  FreedomPayApiError: MockFreedomPayApiError,
 }));
 
 function makeChain(result: unknown): Record<string, jest.Mock> {
@@ -195,6 +210,120 @@ describe('initiateRefund', () => {
 
     expect(result.status).toBe('pending_manual');
     expect(result.refundTransactionId).toBe('rt-new');
+  });
+});
+
+describe('initiateRefund — Freedom Pay provider branch', () => {
+  it('calls freedompay refund() and marks the refund succeeded, without any fiscal receipt call', async () => {
+    mockRpc.mockResolvedValue({
+      data: { ok: true, total_paid: 1500, total_refunded: 0, refundable: 1500 },
+      error: null,
+    });
+    const noExistingChain = makeChain({ data: null, error: null });
+    const paymentChain = makeChain({
+      data: { job_id: 'j-1', provider_transaction_id: 'fp-payment-1', provider_environment: 'test', payment_provider: 'freedom_pay' },
+      error: null,
+    });
+    const insertChain = makeChain({ data: { id: 'rt-fp-1' }, error: null });
+    const updateRefundChain = makeChain({ data: null, error: null });
+    const updatePaymentChain = makeChain({ data: null, error: null });
+
+    mockFrom
+      .mockReturnValueOnce(noExistingChain)     // idempotency check
+      .mockReturnValueOnce(paymentChain)        // get payment (includes payment_provider)
+      .mockReturnValueOnce(insertChain)         // insert refund_transactions
+      .mockReturnValueOnce(updateRefundChain)   // update refund_transactions -> succeeded
+      .mockReturnValueOnce(updatePaymentChain); // update payment_transactions -> refunded
+
+    mockFreedomPayRefund.mockResolvedValue({ ok: true, raw: { pg_status: 'ok', pg_refund_id: 'fp-refund-1' } });
+
+    const { initiateRefund } = await import('../service');
+    const result = await initiateRefund({
+      paymentTransactionId: 'pt-fp-1',
+      refundAmountKzt: 1500,
+      reason: 'test refund',
+      operatorId: 'op@test.com',
+      idempotencyKey: 'idem-fp-1',
+    });
+
+    // idempotencyKey must be passed through to the Freedom Pay client (pg_idempotency_key).
+    expect(mockFreedomPayRefund).toHaveBeenCalledWith({ pgPaymentId: 'fp-payment-1', amountKzt: 1500, idempotencyKey: 'idem-fp-1' });
+    expect(mockCreateRefundReceipt).not.toHaveBeenCalled();
+    expect(result.status).toBe('succeeded');
+    expect(result.refundTransactionId).toBe('rt-fp-1');
+    expect(result.providerRefundId).toBe('fp-refund-1');
+  });
+
+  it('leaves the refund pending_manual (not succeeded) when Freedom Pay rejects the refund', async () => {
+    mockRpc.mockResolvedValue({
+      data: { ok: true, total_paid: 1500, total_refunded: 0, refundable: 1500 },
+      error: null,
+    });
+    const noExistingChain = makeChain({ data: null, error: null });
+    const paymentChain = makeChain({
+      data: { job_id: 'j-1', provider_transaction_id: 'fp-payment-1', provider_environment: 'test', payment_provider: 'freedom_pay' },
+      error: null,
+    });
+    const insertChain = makeChain({ data: { id: 'rt-fp-2' }, error: null });
+    const updateRefundChain = makeChain({ data: null, error: null });
+
+    mockFrom
+      .mockReturnValueOnce(noExistingChain)
+      .mockReturnValueOnce(paymentChain)
+      .mockReturnValueOnce(insertChain)
+      .mockReturnValueOnce(updateRefundChain);
+
+    mockFreedomPayRefund.mockResolvedValue({ ok: false, raw: { pg_status: 'error' } });
+
+    const { initiateRefund } = await import('../service');
+    const result = await initiateRefund({
+      paymentTransactionId: 'pt-fp-2',
+      refundAmountKzt: 1500,
+      reason: 'test refund',
+      operatorId: 'op@test.com',
+    });
+
+    expect(result.status).toBe('failed');
+    expect(mockCreateRefundReceipt).not.toHaveBeenCalled();
+  });
+
+  it('leaves the refund pending_manual when the Freedom Pay API call itself throws (network/timeout)', async () => {
+    mockRpc.mockResolvedValue({
+      data: { ok: true, total_paid: 1500, total_refunded: 0, refundable: 1500 },
+      error: null,
+    });
+    const noExistingChain = makeChain({ data: null, error: null });
+    const paymentChain = makeChain({
+      data: { job_id: 'j-1', provider_transaction_id: 'fp-payment-1', provider_environment: 'test', payment_provider: 'freedom_pay' },
+      error: null,
+    });
+    const insertChain = makeChain({ data: { id: 'rt-fp-3' }, error: null });
+    const ambiguousUpdateChain = makeChain({ data: null, error: null });
+
+    mockFrom
+      .mockReturnValueOnce(noExistingChain)
+      .mockReturnValueOnce(paymentChain)
+      .mockReturnValueOnce(insertChain)
+      .mockReturnValueOnce(ambiguousUpdateChain); // marks the ambiguous-timeout note
+
+    mockFreedomPayRefund.mockRejectedValue(new MockFreedomPayApiError({ code: 'FREEDOMPAY_REFUND_NETWORK_ERROR' }));
+
+    const { initiateRefund } = await import('../service');
+    const result = await initiateRefund({
+      paymentTransactionId: 'pt-fp-3',
+      refundAmountKzt: 1500,
+      reason: 'test refund',
+      operatorId: 'op@test.com',
+    });
+
+    // Distinct from a confirmed rejection — signals "do not blindly retry" to callers.
+    expect(result.status).toBe('pending_manual');
+    expect(result.errorMessage).toBe('freedompay_refund_ambiguous_timeout');
+    expect(mockCreateRefundReceipt).not.toHaveBeenCalled();
+
+    // The ambiguity must be recorded on the refund_transactions row for operator review.
+    const updateCall = ambiguousUpdateChain.update!.mock.calls[0][0] as { provider_response_sanitized: { ambiguous_timeout: boolean } };
+    expect(updateCall.provider_response_sanitized.ambiguous_timeout).toBe(true);
   });
 });
 

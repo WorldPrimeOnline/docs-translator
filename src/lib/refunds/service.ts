@@ -5,9 +5,14 @@
  * Architecture:
  * - No public customer endpoint for refunds.
  * - Operator calls this service via a protected admin API route.
- * - Halyk refund API is not yet integrated → all refunds go to pending_manual.
- * - Operator must process via Halyk merchant cabinet manually.
- * - On success, fiscal refund receipt is created (also pending_manual if no provider).
+ * - Halyk refund API is not yet integrated → Halyk refunds go to pending_manual;
+ *   operator must process via Halyk merchant cabinet manually. On success, a fiscal
+ *   refund receipt is created for Halyk refunds only (also pending_manual).
+ * - Freedom Pay refunds call the live revoke() API synchronously (see
+ *   src/lib/payments/freedompay/client.ts) and resolve to 'succeeded'/'failed'
+ *   without any fiscal receipt call — fiscalization is entirely out of scope for
+ *   Freedom Pay in this phase; WPO payment/refund and the future online cash
+ *   register for the current legal entity are two separate tasks.
  * - All actions are audited.
  *
  * TODO: Implement real Halyk refund adapter when:
@@ -19,6 +24,7 @@
 import crypto from 'crypto';
 import { supabaseServer } from '@/lib/supabase/server';
 import { createRefundReceiptForRefund } from '@/lib/fiscal/service';
+import { refund as freedomPayRefund, FreedomPayApiError } from '@/lib/payments/freedompay/client';
 import type { RefundRequest, RefundResult, RefundableAmountResult } from './types';
 
 /**
@@ -107,7 +113,7 @@ export async function initiateRefund(request: RefundRequest): Promise<RefundResu
   // Get job_id for the refund record
   const { data: payment } = await supabaseServer
     .from('payment_transactions')
-    .select('job_id, provider_transaction_id, provider_environment')
+    .select('job_id, provider_transaction_id, provider_environment, payment_provider')
     .eq('id', request.paymentTransactionId)
     .maybeSingle();
 
@@ -115,13 +121,18 @@ export async function initiateRefund(request: RefundRequest): Promise<RefundResu
     return { refundTransactionId: '', status: 'failed', errorMessage: 'payment_not_found' };
   }
 
-  // Create refund record (pending_manual since no Halyk refund adapter)
+  const provider = payment.payment_provider ?? 'halyk_epay';
+
+  // Create refund record — pending_manual by default (Halyk refund API is not yet
+  // integrated; operator processes manually via Halyk merchant cabinet). Freedom Pay
+  // rows are updated below to 'succeeded'/'failed' once the live revoke() call
+  // resolves, since that API is documented and available.
   const { data: refundRow, error: insertError } = await supabaseServer
     .from('refund_transactions')
     .insert({
       job_id: payment.job_id,
       payment_transaction_id: request.paymentTransactionId,
-      provider: 'halyk_epay',
+      provider,
       provider_environment: payment.provider_environment ?? 'test',
       refund_amount_kzt: request.refundAmountKzt,
       currency: 'KZT',
@@ -130,7 +141,9 @@ export async function initiateRefund(request: RefundRequest): Promise<RefundResu
       operator_id: request.operatorId,
       idempotency_key: idempotencyKey,
       provider_response_sanitized: {
-        note: 'Halyk refund API not yet integrated. Process via Halyk merchant cabinet.',
+        note: provider === 'freedom_pay'
+          ? 'Freedom Pay revoke() will be called synchronously.'
+          : 'Halyk refund API not yet integrated. Process via Halyk merchant cabinet.',
         providerTransactionId: payment.provider_transaction_id,
         requestedAt: new Date().toISOString(),
       },
@@ -150,9 +163,105 @@ export async function initiateRefund(request: RefundRequest): Promise<RefundResu
     paymentTransactionId: request.paymentTransactionId,
     amountKzt: request.refundAmountKzt,
     operatorId: request.operatorId,
+    provider,
   });
 
-  // Create fiscal refund receipt (also pending_manual since no real provider)
+  // ── Freedom Pay: call the live revoke() API, no fiscal receipt call ─────────
+  // Fiscalization is entirely out of scope for Freedom Pay in this phase — WPO
+  // payment/refund and the future online cash register for the current entity are
+  // two separate tasks. createRefundReceiptForRefund() is never invoked here.
+  if (provider === 'freedom_pay') {
+    if (!payment.provider_transaction_id) {
+      console.error('[refund/service] freedom_pay refund missing provider_transaction_id (pg_payment_id)', { refundId });
+      return { refundTransactionId: refundId, status: 'pending_manual', errorMessage: 'missing_pg_payment_id' };
+    }
+
+    try {
+      const refundResp = await freedomPayRefund({
+        pgPaymentId: payment.provider_transaction_id,
+        amountKzt: request.refundAmountKzt,
+        // Passed through as pg_idempotency_key — see client.ts's RefundParams doc
+        // comment on why this is defense-in-depth, not a substitute for WPO's own
+        // idempotency_key uniqueness check above.
+        idempotencyKey,
+      });
+
+      const now = new Date().toISOString();
+
+      if (refundResp.ok) {
+        await supabaseServer
+          .from('refund_transactions')
+          .update({
+            status: 'succeeded',
+            provider_response_sanitized: { pg_status: refundResp.raw.pg_status, pg_refund_id: refundResp.raw.pg_refund_id ?? null },
+            updated_at: now,
+          })
+          .eq('id', refundId);
+
+        await supabaseServer
+          .from('payment_transactions')
+          .update({ status: 'refunded', refunded_at: now, updated_at: now })
+          .eq('id', request.paymentTransactionId);
+
+        console.info('[refund/service] freedom_pay refund succeeded', { refundId, paymentTransactionId: request.paymentTransactionId });
+
+        return {
+          refundTransactionId: refundId,
+          status: 'succeeded',
+          providerRefundId: refundResp.raw.pg_refund_id,
+        };
+      }
+
+      console.error('[refund/service] freedom_pay revoke rejected', { refundId, raw: refundResp.raw });
+      await supabaseServer
+        .from('refund_transactions')
+        .update({ status: 'failed', provider_response_sanitized: { pg_status: refundResp.raw.pg_status ?? 'unknown' }, updated_at: now })
+        .eq('id', refundId);
+
+      return { refundTransactionId: refundId, status: 'failed', errorMessage: 'freedompay_refund_rejected' };
+    } catch (err) {
+      // Ambiguous outcome: the revoke() call threw before WPO could read a confirmed
+      // pg_status (network error, timeout, or unparseable response). Freedom Pay may
+      // have already processed the refund on their end — WPO cannot tell from this
+      // exception alone. Do NOT treat this the same as a confirmed rejection above:
+      // leave status at pending_manual (never 'failed', which would invite an operator
+      // to casually retry) and record the ambiguity explicitly so an operator checks
+      // the Freedom Pay cabinet/status before deciding to retry.
+      //
+      // WPO-side idempotency: retrying initiateRefund() with the SAME idempotencyKey
+      // short-circuits at the top of this function (existing idempotency_key uniqueness
+      // check) and never calls revoke() a second time. That protection only holds if
+      // the caller reuses the same key — an operator who retries via a fresh UI action
+      // without the original key would generate a new key and call revoke() again.
+      // pg_idempotency_key is now sent to Freedom Pay per-request (see above), which
+      // may provide provider-side dedup on retry, but this is NOT independently
+      // confirmed against docs.freedompay.kz — flagged as a pre-production
+      // verification item, not relied upon here as the sole safety net.
+      const isFp = err instanceof FreedomPayApiError;
+      console.error('[refund/service] freedom_pay revoke call failed — ambiguous outcome, do not auto-retry', {
+        refundId,
+        code: isFp ? err.code : 'UNKNOWN',
+        message: err instanceof Error ? err.message : String(err),
+      });
+
+      await supabaseServer
+        .from('refund_transactions')
+        .update({
+          provider_response_sanitized: {
+            ambiguous_timeout: true,
+            note: 'revoke() call threw before a confirmed pg_status was read — Freedom Pay may have already processed this refund. Verify via the Freedom Pay merchant cabinet or a status check before retrying.',
+            errorCode: isFp ? err.code : 'UNKNOWN',
+            idempotencyKeySent: idempotencyKey,
+          },
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', refundId);
+
+      return { refundTransactionId: refundId, status: 'pending_manual', errorMessage: 'freedompay_refund_ambiguous_timeout' };
+    }
+  }
+
+  // ── Halyk (and any other non-Freedom-Pay provider): unchanged existing behavior ──
   let fiscalReceiptId: string | undefined;
   try {
     const fiscalResult = await createRefundReceiptForRefund(
