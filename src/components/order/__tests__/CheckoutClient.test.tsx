@@ -46,6 +46,20 @@ jest.mock('@/components/payment/HalykPayButton', () => ({
   ),
 }));
 
+jest.mock('@/components/payment/FreedomPayButton', () => ({
+  FreedomPayButton: (props: { jobId: string; quoteId: string; priceKzt: number; autoStart?: boolean; loadingLabel?: string }) => (
+    <div
+      data-testid="freedompay-pay-button"
+      data-job-id={props.jobId}
+      data-quote-id={props.quoteId}
+      data-price-kzt={props.priceKzt}
+      data-auto-start={String(props.autoStart)}
+    >
+      {props.loadingLabel}
+    </div>
+  ),
+}));
+
 import { CheckoutClient } from '../CheckoutClient';
 
 const FORBIDDEN_STRINGS = [
@@ -157,5 +171,53 @@ describe('CheckoutClient — draft checkout is a payment bridge', () => {
     await waitFor(() => expect(screen.getByRole('link')).toBeInTheDocument());
     expect((screen.getByRole('link') as HTMLAnchorElement).getAttribute('href')).toBe('/start');
     expect(global.fetch).not.toHaveBeenCalled();
+  });
+});
+
+describe('CheckoutClient — staging checkout uses Freedom Pay, production keeps Halyk', () => {
+  const originalAppEnv = process.env.NEXT_PUBLIC_APP_ENV;
+
+  afterEach(() => {
+    if (originalAppEnv === undefined) delete process.env.NEXT_PUBLIC_APP_ENV;
+    else process.env.NEXT_PUBLIC_APP_ENV = originalAppEnv;
+  });
+
+  it('renders FreedomPayButton with autoStart, not HalykPayButton, when NEXT_PUBLIC_APP_ENV=staging', async () => {
+    process.env.NEXT_PUBLIC_APP_ENV = 'staging';
+    mockFetchByPath({
+      '/attach': { ok: true, body: {} },
+      '/convert': { ok: true, body: { jobId: 'job-1', quoteId: 'quote-1', priceKzt: 1440, currency: 'KZT' } },
+      '/api/order-drafts/draft-1': { ok: true, body: { draft: { consent_accepted_at: '2026-01-01T00:00:00.000Z' } } },
+    });
+
+    render(<CheckoutClient />);
+
+    const button = await waitFor(() => screen.getByTestId('freedompay-pay-button'));
+    expect(button.dataset.jobId).toBe('job-1');
+    expect(button.dataset.quoteId).toBe('quote-1');
+    expect(button.dataset.priceKzt).toBe('1440');
+    expect(button.dataset.autoStart).toBe('true');
+    expect(screen.queryByTestId('halyk-pay-button')).not.toBeInTheDocument();
+  });
+
+  it('renders HalykPayButton, not FreedomPayButton, when NEXT_PUBLIC_APP_ENV is unset (production default)', async () => {
+    delete process.env.NEXT_PUBLIC_APP_ENV;
+    mockFetchByPath({
+      '/attach': { ok: true, body: {} },
+      '/convert': { ok: true, body: { jobId: 'job-1', quoteId: 'quote-1', priceKzt: 1440, currency: 'KZT' } },
+      '/api/order-drafts/draft-1': { ok: true, body: { draft: { consent_accepted_at: '2026-01-01T00:00:00.000Z' } } },
+    });
+
+    render(<CheckoutClient />);
+
+    await waitFor(() => screen.getByTestId('halyk-pay-button'));
+    expect(screen.queryByTestId('freedompay-pay-button')).not.toBeInTheDocument();
+  });
+
+  it('never imports/renders StagingPaymentBypassButton from checkout, regardless of environment', async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+    const src = fs.readFileSync(path.join(process.cwd(), 'src/components/order/CheckoutClient.tsx'), 'utf-8');
+    expect(src).not.toContain('StagingPaymentBypassButton');
   });
 });

@@ -198,9 +198,33 @@ describe('cross-route consistency', () => {
     expect(pageSrc).toMatch(/const provider = searchParams\.get\('provider'\)[^;]*: 'halyk'/);
   });
 
-  it('FreedomPayButton is not wired into the automatic one-step checkout flow (deliberate — see CheckoutClient regression test)', () => {
+  it('CheckoutClient switches between FreedomPayButton and HalykPayButton via getCheckoutPaymentProvider(), and never renders the staging bypass button', () => {
     const checkoutPath = path.join(process.cwd(), 'src/components/order/CheckoutClient.tsx');
     const checkoutSrc = fs.readFileSync(checkoutPath, 'utf-8');
-    expect(checkoutSrc).not.toContain('FreedomPayButton');
+    expect(checkoutSrc).toContain('getCheckoutPaymentProvider');
+    expect(checkoutSrc).toContain('FreedomPayButton');
+    expect(checkoutSrc).toContain('HalykPayButton');
+    expect(checkoutSrc).not.toContain('StagingPaymentBypassButton');
+  });
+
+  it('dashboard "pay now" card switches between FreedomPayButton and HalykPayButton, and never renders the staging bypass button', () => {
+    const dashboardPath = path.join(process.cwd(), 'src/app/[locale]/dashboard/page.tsx');
+    const dashboardSrc = fs.readFileSync(dashboardPath, 'utf-8');
+    expect(dashboardSrc).toContain('getCheckoutPaymentProvider');
+    expect(dashboardSrc).toContain('FreedomPayButton');
+    expect(dashboardSrc).toContain('HalykPayButton');
+    expect(dashboardSrc).not.toContain('StagingPaymentBypassButton');
+  });
+
+  it('the staging payment bypass mechanism itself is untouched — route, service, and CLI script still exist and are unmodified by this checkout switch', () => {
+    const bypassRoutePath = path.join(process.cwd(), 'src/app/api/payments/staging-bypass/route.ts');
+    const bypassServicePath = path.join(process.cwd(), 'src/lib/payments/staging-bypass.ts');
+    const bypassScriptPath = path.join(process.cwd(), 'scripts/staging/confirm-payment-paid.ts');
+    expect(fs.existsSync(bypassRoutePath)).toBe(true);
+    expect(fs.existsSync(bypassServicePath)).toBe(true);
+    expect(fs.existsSync(bypassScriptPath)).toBe(true);
+    const bypassSrc = fs.readFileSync(bypassServicePath, 'utf-8');
+    expect(bypassSrc).toContain('isStagingBypassEnabled');
+    expect(bypassSrc).toContain('verifyStagingBypassPassword');
   });
 });

@@ -6,7 +6,8 @@ import { useTranslations, useLocale } from 'next-intl';
 import { toast } from 'sonner';
 import { FileText, Download, AlertCircle, Loader2, Clock, RefreshCw, Receipt } from 'lucide-react';
 import { HalykPayButton } from '@/components/payment/HalykPayButton';
-import { StagingPaymentBypassButton } from '@/components/payment/StagingPaymentBypassButton';
+import { FreedomPayButton } from '@/components/payment/FreedomPayButton';
+import { getCheckoutPaymentProvider } from '@/lib/payments/checkout-provider';
 import { createClient } from '@/lib/supabase/client';
 import { bucketOrders, visibleOrders } from '@/lib/translation-workflow/order-buckets';
 import { resolveDownloadAction } from '@/lib/translation-workflow/download-action';
@@ -324,17 +325,21 @@ function ActiveOrderCard({ entry, locale, onRecalculate }: { entry: OrderEntry; 
                   {tElectronic('formats.body')}
                 </p>
               )}
-              <HalykPayButton
-                jobId={entry.jobId}
-                quoteId={entry.latestQuoteId!}
-                priceKzt={entry.quoteAmountKzt!}
-                serviceLevel={entry.serviceLevel}
-              />
-              <StagingPaymentBypassButton
-                jobId={entry.jobId}
-                quoteId={entry.latestQuoteId!}
-                className="mt-2"
-              />
+              {getCheckoutPaymentProvider() === 'freedompay' ? (
+                <FreedomPayButton
+                  jobId={entry.jobId}
+                  quoteId={entry.latestQuoteId!}
+                  priceKzt={entry.quoteAmountKzt!}
+                  serviceLevel={entry.serviceLevel}
+                />
+              ) : (
+                <HalykPayButton
+                  jobId={entry.jobId}
+                  quoteId={entry.latestQuoteId!}
+                  priceKzt={entry.quoteAmountKzt!}
+                  serviceLevel={entry.serviceLevel}
+                />
+              )}
             </div>
           );
         }

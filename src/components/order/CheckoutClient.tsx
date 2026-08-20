@@ -5,7 +5,8 @@ import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Loader2 } from 'lucide-react';
 import { HalykPayButton } from '@/components/payment/HalykPayButton';
-import { StagingPaymentBypassButton } from '@/components/payment/StagingPaymentBypassButton';
+import { FreedomPayButton } from '@/components/payment/FreedomPayButton';
+import { getCheckoutPaymentProvider } from '@/lib/payments/checkout-provider';
 import { Link } from '@/i18n/navigation';
 
 interface DraftSummary {
@@ -28,8 +29,10 @@ interface ConvertedOrder {
  * the /start "Continue to payment" -> login redirect), consent was already recorded
  * on the draft itself (order_drafts.consent_accepted_at, set from the /start submit —
  * see migration 0047 and OrderForm.tsx's publicStart payload). This component's only
- * job is: verify that recorded consent, auto-convert the draft, and auto-start Halyk —
- * it must never re-render a confirm/terms/pay screen. See
+ * job is: verify that recorded consent, auto-convert the draft, and auto-start the
+ * checkout payment provider (see src/lib/payments/checkout-provider.ts — Halyk in
+ * production, Freedom Pay on staging) — it must never re-render a confirm/terms/pay
+ * screen. See
  * docs/ai-context/50_PAYMENTS_FINANCE_FISCALIZATION.md.
  *
  * If consent was never recorded (e.g. a pre-migration or otherwise malformed draft),
@@ -120,22 +123,31 @@ export function CheckoutClient() {
     );
   }
 
+  const provider = getCheckoutPaymentProvider();
+
   return (
     <div className="mx-auto max-w-lg rounded-lg border border-white/10 bg-card p-6 text-center">
-      <HalykPayButton
-        jobId={order.jobId}
-        quoteId={order.quoteId}
-        priceKzt={order.priceKzt}
-        className="w-full"
-        autoStart
-        loadingLabel={paymentT('redirectingToPayment')}
-        serviceLevel={draft?.service_level ?? undefined}
-      />
-      <StagingPaymentBypassButton
-        jobId={order.jobId}
-        quoteId={order.quoteId}
-        className="mt-3"
-      />
+      {provider === 'freedompay' ? (
+        <FreedomPayButton
+          jobId={order.jobId}
+          quoteId={order.quoteId}
+          priceKzt={order.priceKzt}
+          className="w-full"
+          autoStart
+          loadingLabel={paymentT('redirectingToPayment')}
+          serviceLevel={draft?.service_level ?? undefined}
+        />
+      ) : (
+        <HalykPayButton
+          jobId={order.jobId}
+          quoteId={order.quoteId}
+          priceKzt={order.priceKzt}
+          className="w-full"
+          autoStart
+          loadingLabel={paymentT('redirectingToPayment')}
+          serviceLevel={draft?.service_level ?? undefined}
+        />
+      )}
     </div>
   );
 }
