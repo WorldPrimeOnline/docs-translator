@@ -1,5 +1,7 @@
 {
   "documentsHub": {
+    "metaTitle": "Document Translation by Type — WPO Translations",
+    "metaDescription": "Translate any official document online — passports, bank statements, diplomas, birth certificates, and more. Clean PDF output in minutes.",
     "heroBadge": "All Document Types",
     "heroHeadline": "Translate Any Official Document",
     "heroAccentLine": "Online, in Minutes",
@@ -26,6 +28,8 @@
     "pricingHeadline": "Document translation pricing"
   },
   "kazakhstan": {
+    "metaTitle": "Document Translation for Kazakhstan — WPO Translations",
+    "metaDescription": "Online document translation for Kazakhstan: study, migration, notary preparation, and official processes.",
     "heroBadge": "Kazakhstan · Document Workflows",
     "heroHeadline": "Document Translation for Kazakhstan",
     "heroAccentLine": "Study, Migration & Official Workflows",
@@ -90,6 +94,8 @@
     "seoParagraph3": "Acceptance of translations by third parties is not guaranteed. Before submitting a document to a bank, university, consulate, immigration authority, or notary, verify the requirements of the receiving party."
   },
   "kazakhstanNotarized": {
+    "metaTitle": "Notarized Translation in Kazakhstan — WPO Translations",
+    "metaDescription": "Prepare a translation online and complete official or notarized certification through a partner process, for Kazakhstan.",
     "heroBadge": "Kazakhstan · Notary Preparation",
     "heroHeadline": "Translation for",
     "heroAccentLine": "Notary Review & Certification",
@@ -146,6 +152,8 @@
     "pricingHeadline": "Notarized translation pricing"
   },
   "kazakhstanUniversity": {
+    "metaTitle": "University Document Translation for Kazakhstan — WPO Translations",
+    "metaDescription": "Translate diplomas and transcripts for international university applications from Kazakhstan. Clean formatting preserved.",
     "heroBadge": "Kazakhstan · University Applications",
     "heroHeadline": "Translate Academic Documents",
     "heroAccentLine": "for International University Applications",
@@ -196,6 +204,8 @@
     "docsSectionLabel": "ACADEMIC DOCUMENTS"
   },
   "passportTranslation": {
+    "metaTitle": "Passport Translation Online — WPO Translations",
+    "metaDescription": "Translate a passport or ID online for visas, banks, and immigration. Electronic and official translation; notarization through a partner.",
     "heroBadge": "Document Type · Passport & ID",
     "heroHeadline": "Passport Translation",
     "heroAccentLine": "Any Language — Online in Minutes",
@@ -249,6 +259,8 @@
     "pricingHeadline": "Passport translation pricing"
   },
   "diplomaTranslation": {
+    "metaTitle": "Diploma & Transcript Translation Online — WPO Translations",
+    "metaDescription": "Translate diplomas, transcripts, and academic certificates online for university applications and credential evaluation.",
     "heroBadge": "Document Type · Diploma & Transcript",
     "heroHeadline": "Diploma & Academic Credential",
     "heroAccentLine": "Translation Online",
@@ -303,6 +315,8 @@
     "docsSectionLabel": "ACADEMIC DOCUMENTS"
   },
   "bankStatementTranslation": {
+    "metaTitle": "Bank Statement Translation Online — WPO Translations",
+    "metaDescription": "Translate bank statements online for visa applications and income verification. All amounts and balances preserved exactly.",
     "heroBadge": "Document Type · Bank Statement",
     "heroHeadline": "Bank Statement Translation",
     "heroAccentLine": "for Visa, Immigration & Income Proof",
@@ -355,6 +369,8 @@
     "docsSectionLabel": "FINANCIAL DOCUMENTS"
   },
   "kazakhstanCertified": {
+    "metaTitle": "Certified Translation in Kazakhstan — WPO Translations",
+    "metaDescription": "Official translation with translator review and provider stamp, for banks, universities, and migration in Kazakhstan.",
     "heroBadge": "Kazakhstan · Official Translation",
     "heroHeadline": "Translation with Agent Stamp",
     "heroAccentLine": "of Documents Online",

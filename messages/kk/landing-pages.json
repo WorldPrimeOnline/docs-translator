@@ -1,5 +1,7 @@
 {
   "documentsHub": {
+    "metaTitle": "Түрі бойынша құжат аудармасы — WPO Translations",
+    "metaDescription": "Кез келген ресми құжатты онлайн аударыңыз — паспорттар, банк үзінділері, дипломдар, туу туралы куәліктер және т.б. Бірнеше минутта дайын PDF.",
     "heroBadge": "Барлық құжат түрлері",
     "heroHeadline": "Кез келген ресми құжатты аудару",
     "heroAccentLine": "Онлайн, бірнеше минутта",
@@ -26,6 +28,8 @@
     "pricingHeadline": "Құжат аудармасының бағасы"
   },
   "kazakhstan": {
+    "metaTitle": "Қазақстан үшін құжат аудармасы — WPO Translations",
+    "metaDescription": "Қазақстан үшін онлайн құжат аудармасы: оқу, көші-қон, нотариусқа дайындық және ресми процестер.",
     "heroBadge": "Қазақстан · Құжат жұмыс ағыны",
     "heroHeadline": "Қазақстан үшін құжат аудармасы",
     "heroAccentLine": "Оқу, Миграция және Ресми Процестер",
@@ -90,6 +94,8 @@
     "seoParagraph3": "Acceptance of translations by third parties is not guaranteed. Before submitting a document to a bank, university, consulate, immigration authority, or notary, verify the requirements of the receiving party."
   },
   "kazakhstanNotarized": {
+    "metaTitle": "Нотариалды растауға аударма — Қазақстан — WPO Translations",
+    "metaDescription": "Аударманы онлайн дайындаңыз және серіктес процесі арқылы ресми аударма немесе нотариалды растау рәсімдеңіз. Қазақстан үшін.",
     "heroBadge": "Қазақстан · Нотариалдық дайындық",
     "heroHeadline": "Нотариалдық тексеру үшін",
     "heroAccentLine": "Аударма дайындау",
@@ -146,6 +152,8 @@
     "pricingHeadline": "Нотариалды куәландырылған аударма бағасы"
   },
   "kazakhstanUniversity": {
+    "metaTitle": "ЖОО-ға арналған құжат аудармасы — Қазақстан — WPO Translations",
+    "metaDescription": "Қазақстаннан шетелдік университеттерге түсу үшін диплом мен қосымшаны аудару. Академиялық форматтау сақталады.",
     "heroBadge": "Қазақстан · Университетке түсу",
     "heroHeadline": "Академиялық құжаттарды аудару",
     "heroAccentLine": "халықаралық университеттерге түсу үшін",
@@ -196,6 +204,8 @@
     "docsSectionLabel": "АКАДЕМИЯЛЫҚ ҚҰЖАТТАР"
   },
   "passportTranslation": {
+    "metaTitle": "Паспортты онлайн аудару — WPO Translations",
+    "metaDescription": "Виза, банк және көші-қон мәселелері үшін паспортты онлайн аудару. Электрондық және ресми аударма; нотариалды растау — серіктес арқылы.",
     "heroBadge": "Құжат түрі · Паспорт және куәлік",
     "heroHeadline": "Паспорт аудармасы",
     "heroAccentLine": "Кез келген тілге — Онлайн бірнеше минутта",
@@ -249,6 +259,8 @@
     "pricingHeadline": "Паспорт аудармасының бағасы"
   },
   "diplomaTranslation": {
+    "metaTitle": "Диплом мен қосымшаны аудару — WPO Translations",
+    "metaDescription": "Шетелдік университетке түсу және біліктілікті бағалау үшін диплом, қосымша және академиялық анықтамаларды онлайн аудару.",
     "heroBadge": "Құжат түрі · Диплом мен транскрипт",
     "heroHeadline": "Диплом және академиялық куәлік",
     "heroAccentLine": "Онлайн аудармасы",
@@ -303,6 +315,8 @@
     "docsSectionLabel": "АКАДЕМИЯЛЫҚ ҚҰЖАТТАР"
   },
   "bankStatementTranslation": {
+    "metaTitle": "Банк үзіндісін онлайн аудару — WPO Translations",
+    "metaDescription": "Виза және табысты растау үшін банк үзіндісін онлайн аудару. Барлық сомалар мен қалдықтар дәл сақталады.",
     "heroBadge": "Құжат түрі · Банк үзіндісі",
     "heroHeadline": "Банк үзіндісін аудару",
     "heroAccentLine": "Виза, иммиграция және кіріс дәлелдемесі үшін",
@@ -355,6 +369,8 @@
     "docsSectionLabel": "ҚАРЖЫЛЫҚ ҚҰЖАТТАР"
   },
   "kazakhstanCertified": {
+    "metaTitle": "Агент мөрімен аударма — Қазақстан — WPO Translations",
+    "metaDescription": "Аудармашы тексеруімен және WPO мөрімен ресми аударма — Қазақстандағы банктер, ЖОО және көші-қон үшін.",
     "heroBadge": "Қазақстан · Ресми аударма",
     "heroHeadline": "Агент мөрімен аударма",
     "heroAccentLine": "онлайн",

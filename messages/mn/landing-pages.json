@@ -1,5 +1,7 @@
 {
   "documentsHub": {
+    "metaTitle": "Document Translation by Type — WPO Translations",
+    "metaDescription": "Translate any official document online — passports, bank statements, diplomas, birth certificates, and more. Clean PDF output in minutes.",
     "heroBadge": "Бүх баримт бичгийн төрлүүд",
     "heroHeadline": "Аливаа албан ёсны баримт бичгийг орчуулах",
     "heroAccentLine": "Онлайн, минутуудын дотор",
@@ -26,6 +28,8 @@
     "pricingHeadline": "Стоимость перевода документов"
   },
   "kazakhstan": {
+    "metaTitle": "Document Translation for Kazakhstan — WPO Translations",
+    "metaDescription": "Online document translation for Kazakhstan: study, migration, notary preparation, and official processes.",
     "heroBadge": "Казахстан · Баримт бичгийн ажлын урсгал",
     "heroHeadline": "Казахстаны баримт бичгийн орчуулга",
     "heroAccentLine": "Суралцах, нүүдэл болон албан ёсны ажлын урсгал",
@@ -90,6 +94,8 @@
     "seoParagraph3": "Acceptance of translations by third parties is not guaranteed. Before submitting a document to a bank, university, consulate, immigration authority, or notary, verify the requirements of the receiving party."
   },
   "kazakhstanNotarized": {
+    "metaTitle": "Notarized Translation in Kazakhstan — WPO Translations",
+    "metaDescription": "Prepare a translation online and complete official or notarized certification through a partner process, for Kazakhstan.",
     "heroBadge": "Казахстан · Нотариусын бэлтгэл",
     "heroHeadline": "Орчуулга",
     "heroAccentLine": "Нотариусын хянан үзэх болон баталгаажуулахад",
@@ -146,6 +152,8 @@
     "pricingHeadline": "Стоимость нотариально заверенного перевода"
   },
   "kazakhstanUniversity": {
+    "metaTitle": "University Document Translation for Kazakhstan — WPO Translations",
+    "metaDescription": "Translate diplomas and transcripts for international university applications from Kazakhstan. Clean formatting preserved.",
     "heroBadge": "Казахстан · Их сургуулийн өргөдлүүд",
     "heroHeadline": "Академик баримт бичгүүдийг орчуулах",
     "heroAccentLine": "Олон улсын их сургуулийн өргөдлүүдэд",
@@ -196,6 +204,8 @@
     "docsSectionLabel": "АКАДЕМИЧЕСКИЕ ДОКУМЕНТЫ"
   },
   "passportTranslation": {
+    "metaTitle": "Passport Translation Online — WPO Translations",
+    "metaDescription": "Translate a passport or ID online for visas, banks, and immigration. Electronic and official translation; notarization through a partner.",
     "heroBadge": "Баримт бичгийн төрөл · Паспорт ба ID",
     "heroHeadline": "Паспортын орчуулга",
     "heroAccentLine": "Ямар ч хэл — Хэдхэн минутад онлайн",
@@ -249,6 +259,8 @@
     "pricingHeadline": "Стоимость перевода паспорта"
   },
   "diplomaTranslation": {
+    "metaTitle": "Diploma & Transcript Translation Online — WPO Translations",
+    "metaDescription": "Translate diplomas, transcripts, and academic certificates online for university applications and credential evaluation.",
     "heroBadge": "Баримт бичгийн төрөл · Диплом ба Академик хуулга",
     "heroHeadline": "Диплом ба Академик Итгэмжлэл",
     "heroAccentLine": "Онлайн орчуулга",
@@ -303,6 +315,8 @@
     "docsSectionLabel": "АКАДЕМИЧЕСКИЕ ДОКУМЕНТЫ"
   },
   "bankStatementTranslation": {
+    "metaTitle": "Bank Statement Translation Online — WPO Translations",
+    "metaDescription": "Translate bank statements online for visa applications and income verification. All amounts and balances preserved exactly.",
     "heroBadge": "Баримт бичгийн төрөл · Банкны хуулга",
     "heroHeadline": "Банкны хуулгын орчуулга",
     "heroAccentLine": "Виз, цагаачлал болон орлогын нотолгод",
@@ -355,6 +369,8 @@
     "docsSectionLabel": "ФИНАНСОВЫЕ ДОКУМЕНТЫ"
   },
   "kazakhstanCertified": {
+    "metaTitle": "Certified Translation in Kazakhstan — WPO Translations",
+    "metaDescription": "Official translation with translator review and provider stamp, for banks, universities, and migration in Kazakhstan.",
     "heroBadge": "Kazakhstan · Official Translation",
     "heroHeadline": "Certified Translation",
     "heroAccentLine": "of Documents Online",

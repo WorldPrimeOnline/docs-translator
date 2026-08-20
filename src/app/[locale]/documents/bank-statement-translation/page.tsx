@@ -10,10 +10,12 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
+  setRequestLocale(locale);
+  const t = await getTranslations('bankStatementTranslation');
   return buildLandingMetadata(locale, {
     path: '/documents/bank-statement-translation',
-    title: bankStatementTranslationConfig.title,
-    description: bankStatementTranslationConfig.description,
+    title: t('metaTitle'),
+    description: t('metaDescription'),
   });
 }
 
@@ -69,5 +71,5 @@ export default async function BankStatementTranslationPage({
     },
   };
 
-  return <LandingPage config={config} />;
+  return <LandingPage config={config} locale={locale} />;
 }

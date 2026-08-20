@@ -20,38 +20,44 @@ function readSource(relativePath: string): string {
   return fs.readFileSync(path.join(__dirname, relativePath), 'utf-8');
 }
 
-const LANDING_PAGES: Array<{ file: string; path: string; configVar: string }> = [
-  { file: '../[locale]/documents/page.tsx', path: '/documents', configVar: 'documentsHubConfig' },
+const LANDING_PAGES: Array<{ file: string; path: string; configVar: string; namespace: string }> = [
+  { file: '../[locale]/documents/page.tsx', path: '/documents', configVar: 'documentsHubConfig', namespace: 'documentsHub' },
   {
     file: '../[locale]/documents/passport-translation/page.tsx',
     path: '/documents/passport-translation',
     configVar: 'passportTranslationConfig',
+    namespace: 'passportTranslation',
   },
   {
     file: '../[locale]/documents/bank-statement-translation/page.tsx',
     path: '/documents/bank-statement-translation',
     configVar: 'bankStatementTranslationConfig',
+    namespace: 'bankStatementTranslation',
   },
   {
     file: '../[locale]/documents/diploma-translation/page.tsx',
     path: '/documents/diploma-translation',
     configVar: 'diplomaTranslationConfig',
+    namespace: 'diplomaTranslation',
   },
-  { file: '../[locale]/kazakhstan/page.tsx', path: '/kazakhstan', configVar: 'kazakhstanConfig' },
+  { file: '../[locale]/kazakhstan/page.tsx', path: '/kazakhstan', configVar: 'kazakhstanConfig', namespace: 'kazakhstan' },
   {
     file: '../[locale]/kazakhstan/certified-translation/page.tsx',
     path: '/kazakhstan/certified-translation',
     configVar: 'kazakhstanCertifiedConfig',
+    namespace: 'kazakhstanCertified',
   },
   {
     file: '../[locale]/kazakhstan/notarized-translation/page.tsx',
     path: '/kazakhstan/notarized-translation',
     configVar: 'kazakhstanNotarizedConfig',
+    namespace: 'kazakhstanNotarized',
   },
   {
     file: '../[locale]/kazakhstan/university-document-translation/page.tsx',
     path: '/kazakhstan/university-document-translation',
     configVar: 'kazakhstanUniversityConfig',
+    namespace: 'kazakhstanUniversity',
   },
 ];
 
@@ -70,13 +76,19 @@ describe('landing pages — generateMetadata wiring', () => {
     expect(src).toMatch(new RegExp(`path:\\s*['"]${escaped}['"]`));
   });
 
-  it.each(LANDING_PAGES)('$file sources title/description from its own distinct config ($configVar)', ({ file, configVar }) => {
+  it.each(LANDING_PAGES)('$file sources title/description from real getTranslations($namespace) calls, not invented copy (2026-08-20 SEO audit)', ({ file, namespace }) => {
     const src = readSource(file);
-    expect(src).toContain(`title: ${configVar}.title`);
-    expect(src).toContain(`description: ${configVar}.description`);
+    expect(src).toMatch(new RegExp(`getTranslations\\(['"]${namespace}['"]\\)`));
+    expect(src).toMatch(/title:\s*\w+\('metaTitle'\)/);
+    expect(src).toMatch(/description:\s*\w+\('metaDescription'\)/);
   });
 
-  it('every landing page imports a DIFFERENT config — no two pages share the same source object', () => {
+  it('every landing page uses a DIFFERENT i18n namespace for its metadata — no two pages share the same source', () => {
+    const namespaces = LANDING_PAGES.map((p) => p.namespace);
+    expect(new Set(namespaces).size).toBe(namespaces.length);
+  });
+
+  it('every landing page still imports its own distinct visual-content config ($configVar) — unrelated to metadata sourcing above', () => {
     const configVars = LANDING_PAGES.map((p) => p.configVar);
     expect(new Set(configVars).size).toBe(configVars.length);
   });
@@ -110,16 +122,6 @@ describe('landing pages — generateMetadata wiring', () => {
     }
   });
 
-  it('only documents/passport-translation sets ruOverride (Yandex snippet-quality fix, 2026-08-19) — no other landing page gets a RU-specific override', () => {
-    for (const { file, path: p } of LANDING_PAGES) {
-      const src = readSource(file);
-      if (p === '/documents/passport-translation') {
-        expect(src).toContain('ruOverride:');
-      } else {
-        expect(src).not.toContain('ruOverride');
-      }
-    }
-  });
 });
 
 describe('next-intl alternate Link header (finding #9 minimal fix)', () => {

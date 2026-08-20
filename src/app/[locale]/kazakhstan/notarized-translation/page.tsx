@@ -10,10 +10,12 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
+  setRequestLocale(locale);
+  const t = await getTranslations('kazakhstanNotarized');
   return buildLandingMetadata(locale, {
     path: '/kazakhstan/notarized-translation',
-    title: kazakhstanNotarizedConfig.title,
-    description: kazakhstanNotarizedConfig.description,
+    title: t('metaTitle'),
+    description: t('metaDescription'),
   });
 }
 
@@ -70,5 +72,5 @@ export default async function KazakhstanNotarizedPage({
     },
   };
 
-  return <LandingPage config={config} />;
+  return <LandingPage config={config} locale={locale} />;
 }

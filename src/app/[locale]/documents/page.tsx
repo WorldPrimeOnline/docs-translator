@@ -9,6 +9,8 @@ import { FAQSection } from '@/components/landing/FAQSection';
 import { FinalCTASection } from '@/components/landing/FinalCTASection';
 import { documentsHubConfig } from '@/lib/landing-pages/documents';
 import { buildLandingMetadata } from '@/lib/seo/site-metadata';
+import { getBreadcrumbListSchema } from '@/lib/seo/organization';
+import { StructuredData } from '@/components/landing/StructuredData';
 import {
   IdCard,
   Landmark,
@@ -27,10 +29,12 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
+  setRequestLocale(locale);
+  const tHub = await getTranslations('documentsHub');
   return buildLandingMetadata(locale, {
     path: '/documents',
-    title: documentsHubConfig.title,
-    description: documentsHubConfig.description,
+    title: tHub('metaTitle'),
+    description: tHub('metaDescription'),
   });
 }
 
@@ -45,6 +49,16 @@ export default async function DocumentsHubPage({
   const t = await getTranslations();
   const tHub = await getTranslations('documentsHub');
   const c = documentsHubConfig;
+
+  // BreadcrumbList JSON-LD only (no visible breadcrumb UI on this page, unlike the
+  // sub-pages) — same [Home, Documents] route this page already sits at.
+  const breadcrumbSchema = getBreadcrumbListSchema(
+    [
+      { label: 'WPO Translations', href: '/' },
+      { label: 'Documents', href: '/documents' },
+    ],
+    locale,
+  );
 
   // Translated hero (overrides English config strings)
   const hero = {
@@ -121,6 +135,7 @@ export default async function DocumentsHubPage({
           ctaHref={c.hero.ctaHref}
         />
       )}
+      {breadcrumbSchema && <StructuredData schemas={[breadcrumbSchema]} />}
     </div>
   );
 }

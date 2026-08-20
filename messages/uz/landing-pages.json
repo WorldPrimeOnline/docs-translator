@@ -1,5 +1,7 @@
 {
   "documentsHub": {
+    "metaTitle": "Turi bo'yicha hujjat tarjimasi — WPO Translations",
+    "metaDescription": "Har qanday rasmiy hujjatni onlayn tarjima qiling — pasportlar, bank ko'chirmalari, diplomlar, tug'ilganlik haqida guvohnomalar va boshqalar. Bir necha daqiqada toza PDF.",
     "heroBadge": "Barcha hujjat turlari",
     "heroHeadline": "Har qanday rasmiy hujjatni tarjima qiling",
     "heroAccentLine": "Onlayn, daqiqalarda",
@@ -26,6 +28,8 @@
     "pricingHeadline": "Hujjat tarjimasi narxi"
   },
   "kazakhstan": {
+    "metaTitle": "Qozog'iston uchun hujjat tarjimasi — WPO Translations",
+    "metaDescription": "Qozog'iston uchun onlayn hujjat tarjimasi: o'qish, migratsiya, notarius uchun tayyorgarlik va rasmiy jarayonlar.",
     "heroBadge": "Qozog'iston · Hujjat ish oqimlari",
     "heroHeadline": "Qozog'iston uchun hujjat tarjimasi",
     "heroAccentLine": "Ta'lim, migratsiya va rasmiy ish oqimlari",
@@ -90,6 +94,8 @@
     "seoParagraph3": "Tarjimaning uchinchi tomonlar tomonidan qabul qilinishi kafolatlanmaydi. Hujjatni bankka, universitetga, konsulxonaga, immigratsiya organiga yoki notariusga topshirishdan oldin qabul qiluvchi tomonning talablarini tekshiring."
   },
   "kazakhstanNotarized": {
+    "metaTitle": "Notarial tasdiqlash uchun tarjima — Qozog'iston — WPO Translations",
+    "metaDescription": "Tarjimani onlayn tayyorlang va hamkor jarayoni orqali rasmiy tarjima yoki notarial tasdiqlashni rasmiylashtiring. Qozog'iston uchun.",
     "heroBadge": "Qozog'iston · Notariat tayyorgarlik",
     "heroHeadline": "Tarjima",
     "heroAccentLine": "Notariat ko'rib chiqish va sertifikatlash uchun",
@@ -146,6 +152,8 @@
     "pricingHeadline": "Notarial tasdiqlangan tarjima narxi"
   },
   "kazakhstanUniversity": {
+    "metaTitle": "Universitet uchun hujjat tarjimasi — Qozog'iston — WPO Translations",
+    "metaDescription": "Qozog'istondan chet el universitetlariga kirish uchun diplom va ilovalarni tarjima qiling. Akademik formatlash saqlanadi.",
     "heroBadge": "Qozog'iston · Universitet arizalari",
     "heroHeadline": "Akademik hujjatlarni tarjima qiling",
     "heroAccentLine": "Xalqaro universitet arizalari uchun",
@@ -196,6 +204,8 @@
     "docsSectionLabel": "AKADEMIK HUJJATLAR"
   },
   "passportTranslation": {
+    "metaTitle": "Pasportni onlayn tarjima qilish — WPO Translations",
+    "metaDescription": "Viza, bank va migratsiya ishlari uchun pasportni onlayn tarjima qiling. Elektron va rasmiy tarjima; notarial tasdiqlash — hamkor orqali.",
     "heroBadge": "Hujjat turi · Pasport va ID",
     "heroHeadline": "Pasport tarjimasi",
     "heroAccentLine": "Har qanday til — Onlayn bir necha daqiqada",
@@ -249,6 +259,8 @@
     "pricingHeadline": "Pasport tarjimasi narxi"
   },
   "diplomaTranslation": {
+    "metaTitle": "Diplom va ilova tarjimasi — WPO Translations",
+    "metaDescription": "Chet el universitetiga kirish va malakani baholash uchun diplom, ilova va akademik ma'lumotnomalarni onlayn tarjima qiling.",
     "heroBadge": "Hujjat turi · Diplom va Akademik ko'chirma",
     "heroHeadline": "Diplom va Akademik hisob",
     "heroAccentLine": "Onlayn tarjima",
@@ -303,6 +315,8 @@
     "docsSectionLabel": "AKADEMIK HUJJATLAR"
   },
   "bankStatementTranslation": {
+    "metaTitle": "Bank ko'chirmasini onlayn tarjima qilish — WPO Translations",
+    "metaDescription": "Viza arizasi va daromadni tasdiqlash uchun bank ko'chirmasini onlayn tarjima qiling. Barcha summalar aniq saqlanadi.",
     "heroBadge": "Hujjat turi · Bank ko'chirmasi",
     "heroHeadline": "Bank ko'chirmasi tarjimasi",
     "heroAccentLine": "Viza, immigratsiya va daromad isboti uchun",
@@ -355,6 +369,8 @@
     "docsSectionLabel": "MOLIYAVIY HUJJATLAR"
   },
   "kazakhstanCertified": {
+    "metaTitle": "Agent muhri bilan tarjima — Qozog'iston — WPO Translations",
+    "metaDescription": "Tarjimon tomonidan tekshirilgan va WPO muhri bilan rasmiy tarjima — Qozog'istondagi banklar, universitetlar va migratsiya uchun.",
     "heroBadge": "Qozog'iston · Rasmiy Tarjima",
     "heroHeadline": "Rasmiy Tarjima",
     "heroAccentLine": "Hujjatlarning Onlayn",

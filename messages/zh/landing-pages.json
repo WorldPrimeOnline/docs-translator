@@ -1,5 +1,7 @@
 {
   "documentsHub": {
+    "metaTitle": "按类型翻译文件 — WPO Translations",
+    "metaDescription": "在线翻译任何官方文件——护照、银行对账单、学历证书、出生证明等。几分钟内生成清晰的PDF。",
     "heroBadge": "所有文件类型",
     "heroHeadline": "翻译任何官方文件",
     "heroAccentLine": "在线，几分钟内完成",
@@ -26,6 +28,8 @@
     "pricingHeadline": "文件翻译报价"
   },
   "kazakhstan": {
+    "metaTitle": "哈萨克斯坦文件翻译 — WPO Translations",
+    "metaDescription": "面向哈萨克斯坦的在线文件翻译：留学、移民、公证准备及官方手续。",
     "heroBadge": "哈萨克斯坦 · 文件流程",
     "heroHeadline": "哈萨克斯坦文件翻译",
     "heroAccentLine": "留学、移民与官方流程",
@@ -90,6 +94,8 @@
     "seoParagraph3": "第三方是否接受翻译不作保证。在将文件提交给银行、大学、领事馆、移民机关或公证人之前，请核实接收方的具体要求。"
   },
   "kazakhstanNotarized": {
+    "metaTitle": "公证翻译 — 哈萨克斯坦 — WPO Translations",
+    "metaDescription": "在线准备翻译，并通过合作伙伴流程完成正式翻译或公证认证。适用于哈萨克斯坦。",
     "heroBadge": "哈萨克斯坦 · 公证准备",
     "heroHeadline": "为公证准备翻译",
     "heroAccentLine": "认证与公证准备",
@@ -146,6 +152,8 @@
     "pricingHeadline": "公证翻译报价"
   },
   "kazakhstanUniversity": {
+    "metaTitle": "大学申请文件翻译 — 哈萨克斯坦 — WPO Translations",
+    "metaDescription": "为从哈萨克斯坦申请国外大学翻译学历证书和成绩单，保留学术格式。",
     "heroBadge": "哈萨克斯坦 · 大学申请",
     "heroHeadline": "学术文件翻译",
     "heroAccentLine": "用于国际大学申请",
@@ -196,6 +204,8 @@
     "docsSectionLabel": "学术文件"
   },
   "passportTranslation": {
+    "metaTitle": "护照在线翻译 — WPO Translations",
+    "metaDescription": "为签证、银行和移民事务在线翻译护照。提供电子翻译和正式翻译；公证通过合作伙伴办理。",
     "heroBadge": "文件类型 · 护照和身份证",
     "heroHeadline": "护照翻译",
     "heroAccentLine": "任何语言 — 在线几分钟完成",
@@ -249,6 +259,8 @@
     "pricingHeadline": "护照翻译报价"
   },
   "diplomaTranslation": {
+    "metaTitle": "学历证书与成绩单翻译 — WPO Translations",
+    "metaDescription": "为大学申请和学历认证在线翻译学历证书、成绩单和学术证明。",
     "heroBadge": "文件类型 · 学历证书和成绩单",
     "heroHeadline": "学历证书翻译",
     "heroAccentLine": "在线翻译",
@@ -303,6 +315,8 @@
     "docsSectionLabel": "学术文件"
   },
   "bankStatementTranslation": {
+    "metaTitle": "银行对账单在线翻译 — WPO Translations",
+    "metaDescription": "为签证申请和收入证明在线翻译银行对账单。所有金额和余额精确保留。",
     "heroBadge": "文件类型 · 银行对账单",
     "heroHeadline": "银行对账单翻译",
     "heroAccentLine": "用于签证、移民和收入证明",
@@ -355,6 +369,8 @@
     "docsSectionLabel": "金融文件"
   },
   "kazakhstanCertified": {
+    "metaTitle": "代理盖章翻译 — 哈萨克斯坦 — WPO Translations",
+    "metaDescription": "经译者审核并加盖WPO印章的正式翻译，适用于哈萨克斯坦的银行、大学和移民事务。",
     "heroBadge": "哈萨克斯坦 · 官方翻译",
     "heroHeadline": "官方翻译",
     "heroAccentLine": "在线文件翻译",

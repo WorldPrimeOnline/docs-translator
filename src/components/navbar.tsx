@@ -104,20 +104,27 @@ export function Navbar() {
                 <ChevronDown className={`h-3 w-3 transition-transform duration-150 ${openDropdown === link.href ? 'rotate-180' : ''}`} />
               </button>
 
-              {openDropdown === link.href && (
-                <div className="absolute left-0 top-full z-50 mt-1 w-52 rounded-lg border border-white/10 bg-navy-light py-1 shadow-xl shadow-black/30">
-                  {link.children.map((child) => (
-                    <Link
-                      key={child.href}
-                      href={child.href}
-                      onClick={() => setOpenDropdown(null)}
-                      className="block px-4 py-2 text-xs text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
-                    >
-                      {child.label}
-                    </Link>
-                  ))}
-                </div>
-              )}
+              {/* Always rendered (SEO audit P0 fix, 2026-08-20) — was previously mounted
+                  only while open (`openDropdown === link.href && (...)`), so these Links
+                  never existed in the DOM at all unless a user clicked, making every
+                  child page (kazakhstan/*, documents/*) undiscoverable to crawlers that
+                  don't simulate clicks. `hidden` toggles the exact same closed/open
+                  visual and interactive behavior as before via CSS display:none instead
+                  of JSX mount/unmount — no visual or interaction change. */}
+              <div
+                className={`absolute left-0 top-full z-50 mt-1 w-52 rounded-lg border border-white/10 bg-navy-light py-1 shadow-xl shadow-black/30 ${openDropdown === link.href ? '' : 'hidden'}`}
+              >
+                {link.children.map((child) => (
+                  <Link
+                    key={child.href}
+                    href={child.href}
+                    onClick={() => setOpenDropdown(null)}
+                    className="block px-4 py-2 text-xs text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
+                  >
+                    {child.label}
+                  </Link>
+                ))}
+              </div>
             </div>
           ))}
           <Link
@@ -185,46 +192,49 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* Mobile menu */}
-      {menuOpen && (
-        <div className="border-t border-white/10 bg-navy/98 px-4 py-4 lg:hidden">
-          <div className="space-y-1">
-            {NAV_LINKS.map((link) => (
-              <div key={link.href}>
-                <div className="mb-1 px-2 pt-2 text-[10px] font-semibold uppercase tracking-widest text-primary">
-                  {link.label}
-                </div>
-                {link.children.map((child) => (
-                  <Link
-                    key={child.href}
-                    href={child.href}
-                    className="block rounded-md px-2 py-2 text-sm text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
-                  >
-                    {child.label}
-                  </Link>
-                ))}
+      {/* Mobile menu — always rendered (SEO audit P0 fix, 2026-08-20), same reasoning
+          as the desktop dropdown above: was JSX-conditional (`menuOpen && (...)`), so
+          none of these Links existed in the DOM without a tap. `hidden` (combined with
+          the existing lg:hidden) reproduces the exact same closed/open + desktop/mobile
+          visibility via CSS instead of mount/unmount — no visual or interaction change.
+          Mobile-first indexing makes this DOM arguably the more important one. */}
+      <div className={`border-t border-white/10 bg-navy/98 px-4 py-4 lg:hidden ${menuOpen ? '' : 'hidden'}`}>
+        <div className="space-y-1">
+          {NAV_LINKS.map((link) => (
+            <div key={link.href}>
+              <div className="mb-1 px-2 pt-2 text-[10px] font-semibold uppercase tracking-widest text-primary">
+                {link.label}
               </div>
-            ))}
-
-            <div className="mt-4 border-t border-white/10 pt-4">
-              <Link
-                href="/partners"
-                className="block rounded-md px-2 py-2 text-sm text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
-              >
-                {t('partners')}
-              </Link>
-              {!isLoggedIn && (
+              {link.children.map((child) => (
                 <Link
-                  href="/auth/login"
+                  key={child.href}
+                  href={child.href}
                   className="block rounded-md px-2 py-2 text-sm text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
                 >
-                  {t('login')}
+                  {child.label}
                 </Link>
-              )}
+              ))}
             </div>
+          ))}
+
+          <div className="mt-4 border-t border-white/10 pt-4">
+            <Link
+              href="/partners"
+              className="block rounded-md px-2 py-2 text-sm text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
+            >
+              {t('partners')}
+            </Link>
+            {!isLoggedIn && (
+              <Link
+                href="/auth/login"
+                className="block rounded-md px-2 py-2 text-sm text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
+              >
+                {t('login')}
+              </Link>
+            )}
           </div>
         </div>
-      )}
+      </div>
     </header>
   );
 }
