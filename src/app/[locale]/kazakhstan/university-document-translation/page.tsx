@@ -10,10 +10,12 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
+  setRequestLocale(locale);
+  const t = await getTranslations('kazakhstanUniversity');
   return buildLandingMetadata(locale, {
     path: '/kazakhstan/university-document-translation',
-    title: kazakhstanUniversityConfig.title,
-    description: kazakhstanUniversityConfig.description,
+    title: t('metaTitle'),
+    description: t('metaDescription'),
     // messages/de/landing-pages.json is missing 18 keys under kazakhstanUniversity
     // (docs list + all 4 pain points) — verified via a full key-diff against en during
     // this fix's re-audit. Real content gap, not just "no SEO copy yet" — excluding /de
@@ -81,5 +83,5 @@ export default async function KazakhstanUniversityPage({
     },
   };
 
-  return <LandingPage config={config} />;
+  return <LandingPage config={config} locale={locale} />;
 }

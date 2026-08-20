@@ -1,5 +1,7 @@
 {
   "documentsHub": {
+    "metaTitle": "Türüne Göre Belge Çevirisi — WPO Translations",
+    "metaDescription": "Herhangi bir resmi belgeyi çevrimiçi çevirin — pasaportlar, banka ekstreleri, diplomalar, doğum belgeleri ve daha fazlası. Dakikalar içinde temiz PDF.",
     "heroBadge": "Tüm belge türleri",
     "heroHeadline": "Her resmi belgeyi çevirin",
     "heroAccentLine": "Çevrimiçi, dakikalar içinde",
@@ -26,6 +28,8 @@
     "pricingHeadline": "Belge çeviri fiyatları"
   },
   "kazakhstan": {
+    "metaTitle": "Kazakistan için Belge Çevirisi — WPO Translations",
+    "metaDescription": "Kazakistan için çevrimiçi belge çevirisi: eğitim, göç, noter hazırlığı ve resmi işlemler.",
     "heroBadge": "Kazakistan · Belge işlemleri",
     "heroHeadline": "Kazakistan için belge çevirisi",
     "heroAccentLine": "Eğitim, Göç ve Resmi İşlemler",
@@ -90,6 +94,8 @@
     "seoParagraph3": "Üçüncü taraflarca kabul garantisi yoktur. Bir belgeyi bankaya, üniversiteye, konsolosluğa, göç kurumuna veya notere sunmadan önce kabul eden tarafın gereksinimleri doğrulanmalıdır."
   },
   "kazakhstanNotarized": {
+    "metaTitle": "Noter Tasdiki için Çeviri — Kazakistan — WPO Translations",
+    "metaDescription": "Çeviriyi çevrimiçi hazırlayın ve bir partner süreciyle resmi çeviri veya noter tasdikini tamamlayın. Kazakistan için.",
     "heroBadge": "Kazakistan · Partner süreci ile noter onayı",
     "heroHeadline": "Noter onayı için",
     "heroAccentLine": "belge çevirisi",
@@ -146,6 +152,8 @@
     "pricingHeadline": "Noter onaylı çeviri fiyatları"
   },
   "kazakhstanUniversity": {
+    "metaTitle": "Üniversite Belgesi Çevirisi — Kazakistan — WPO Translations",
+    "metaDescription": "Kazakistan'dan yurt dışı üniversite başvuruları için diploma ve transkript çevirisi. Akademik biçim korunur.",
     "heroBadge": "Kazakistan · Üniversite başvuruları",
     "heroHeadline": "Akademik belge çevirisi",
     "heroAccentLine": "uluslararası üniversite başvuruları için",
@@ -196,6 +204,8 @@
     "docsSectionLabel": "AKADEMİK BELGELER"
   },
   "passportTranslation": {
+    "metaTitle": "Pasaport Çevrimiçi Çeviri — WPO Translations",
+    "metaDescription": "Vize, banka ve göçmenlik işlemleri için pasaportu çevrimiçi çevirin. Elektronik ve resmi çeviri; noter tasdiki bir partner aracılığıyla.",
     "heroBadge": "Belge türü · Pasaport ve kimlik",
     "heroHeadline": "Pasaport çevirisi",
     "heroAccentLine": "Her dile — dakikalar içinde çevrimiçi",
@@ -249,6 +259,8 @@
     "pricingHeadline": "Pasaport çevirisi fiyatları"
   },
   "diplomaTranslation": {
+    "metaTitle": "Diploma ve Transkript Çevirisi — WPO Translations",
+    "metaDescription": "Üniversite başvuruları ve denklik işlemleri için diploma, transkript ve akademik belgeleri çevrimiçi çevirin.",
     "heroBadge": "Belge türü · Diploma ve transkript",
     "heroHeadline": "Diploma ve akademik belge",
     "heroAccentLine": "çevirisi çevrimiçi",
@@ -303,6 +315,8 @@
     "docsSectionLabel": "AKADEMİK BELGELER"
   },
   "bankStatementTranslation": {
+    "metaTitle": "Banka Ekstresi Çevrimiçi Çeviri — WPO Translations",
+    "metaDescription": "Vize başvuruları ve gelir doğrulaması için banka ekstresini çevrimiçi çevirin. Tüm tutarlar ve bakiyeler tam olarak korunur.",
     "heroBadge": "Belge türü · Banka ekstresi",
     "heroHeadline": "Banka ekstresi çevirisi",
     "heroAccentLine": "vize, göç ve gelir kanıtı için",
@@ -355,6 +369,8 @@
     "docsSectionLabel": "FİNANSAL BELGELER"
   },
   "kazakhstanCertified": {
+    "metaTitle": "Temsilci Kaşeli Çeviri — Kazakistan — WPO Translations",
+    "metaDescription": "Çevirmen kontrollü ve WPO kaşeli resmi çeviri — Kazakistan'daki bankalar, üniversiteler ve göç işlemleri için.",
     "heroBadge": "Kazakistan · Resmi çeviri",
     "heroHeadline": "Acente kaşeli çeviri",
     "heroAccentLine": "belgeleri çevrimiçi",

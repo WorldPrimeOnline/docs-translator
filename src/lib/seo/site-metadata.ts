@@ -16,31 +16,82 @@ interface LocaleCopy {
   description: string;
 }
 
-// Brand-approved homepage/sitewide copy. Only ru/en are specified; every other
-// locale (kk, zh, uz, ky, de, tr, th, and the disabled locales that redirect to
-// /ru at middleware level) falls back to the English copy — never the old
-// AI-translator-style positioning this replaced (see docs/ai-context/DECISIONS.md).
-const COPY: Record<'ru' | 'en', LocaleCopy> = {
+type EnabledLocale = 'ru' | 'en' | 'kk' | 'zh' | 'uz' | 'ky' | 'de' | 'tr' | 'th';
+
+// Brand-approved homepage/sitewide copy, one real (non-machine-duplicated) entry per
+// enabled locale (2026-08-20 SEO audit P1: all 9 previously shared one English string
+// outside ru/en). Deliberately brand-first + generic "online document translation"
+// intent, with no Kazakhstan-specific phrasing — buildLandingMetadata's kazakhstan
+// copy owns that angle; keeping this generic avoids the two pages competing for the
+// same query intent. Disabled locales never reach this (middleware redirects to /ru
+// first); an unrecognized code falls back to English, never the old AI-translator
+// positioning (see docs/ai-context/DECISIONS.md).
+const COPY: Record<EnabledLocale, LocaleCopy> = {
   ru: {
     title: 'WPO Translations — перевод документов онлайн',
     description:
-      'Перевод документов онлайн в Казахстане: электронный, официальный с проверкой переводчиком и нотариальное заверение через партнёра. Точная стоимость до оплаты.',
+      'WPO Translations — перевод документов онлайн: электронный, официальный с проверкой переводчиком и нотариальное заверение через партнёра. Точная стоимость до оплаты.',
   },
   en: {
     title: 'WPO Translations — Online Document Translation',
     description:
-      'Document translation for visas, education, banking, immigration and relocation. Electronic, official and notarized services with online pricing.',
+      'Document translation online: electronic, official with translator review, and notarized translation through a partner. Exact pricing before you pay.',
+  },
+  kk: {
+    title: 'WPO Translations — құжаттарды онлайн аудару',
+    description:
+      'WPO Translations — құжаттарды онлайн аудару: электрондық, аудармашы тексеруімен ресми аударма және серіктес арқылы нотариалды растау. Төлемге дейінгі нақты баға.',
+  },
+  zh: {
+    title: 'WPO Translations — 在线文件翻译',
+    description:
+      'WPO Translations — 在线文件翻译：电子翻译、经译者审核的正式翻译，以及通过合作伙伴办理的公证翻译。付款前提供准确报价。',
+  },
+  uz: {
+    title: 'WPO Translations — hujjatlarni onlayn tarjima qilish',
+    description:
+      "WPO Translations — hujjatlarni onlayn tarjima qilish: elektron, tarjimon tomonidan tekshirilgan rasmiy tarjima va hamkor orqali notarial tasdiqlash. To'lovdan oldin aniq narx.",
+  },
+  ky: {
+    title: 'WPO Translations — документтерди онлайн котормо',
+    description:
+      'WPO Translations — документтерди онлайн которуу: электрондук, котормочу текшерген расмий котормо жана өнөктөш аркылуу нотариалдык күбөлөндүрүү. Төлөөгө чейин так баа.',
+  },
+  de: {
+    title: 'WPO Translations — Online-Dokumentenübersetzung',
+    description:
+      'WPO Translations — Online-Dokumentenübersetzung: elektronisch, offiziell mit Übersetzerprüfung und notarielle Beglaubigung über einen Partner. Genauer Preis vor der Zahlung.',
+  },
+  tr: {
+    title: 'WPO Translations — Çevrimiçi Belge Çevirisi',
+    description:
+      "WPO Translations — çevrimiçi belge çevirisi: elektronik, çevirmen kontrollü resmi çeviri ve bir partner aracılığıyla noter tasdiki. Ödemeden önce net fiyat.",
+  },
+  th: {
+    title: 'WPO Translations — แปลเอกสารออนไลน์',
+    description:
+      'WPO Translations — แปลเอกสารออนไลน์: แปลอิเล็กทรอนิกส์ แปลทางการที่ตรวจสอบโดยนักแปล และรับรองเอกสารผ่านพาร์ทเนอร์ ราคาชัดเจนก่อนชำระเงิน',
   },
 };
 
-const OG_LOCALE: Record<string, string> = { ru: 'ru_RU', en: 'en_US' };
+const OG_LOCALE: Record<EnabledLocale, string> = {
+  ru: 'ru_RU',
+  en: 'en_US',
+  kk: 'kk_KZ',
+  zh: 'zh_CN',
+  uz: 'uz_UZ',
+  ky: 'ky_KG',
+  de: 'de_DE',
+  tr: 'tr_TR',
+  th: 'th_TH',
+};
 
 export function getLocaleCopy(locale: string): LocaleCopy {
-  return COPY[locale as 'ru' | 'en'] ?? COPY.en;
+  return COPY[locale as EnabledLocale] ?? COPY.en;
 }
 
 export function ogLocaleFor(locale: string): string {
-  return OG_LOCALE[locale] ?? 'en_US';
+  return OG_LOCALE[locale as EnabledLocale] ?? 'en_US';
 }
 
 export function localeUrl(locale: string): string {
@@ -110,12 +161,11 @@ export interface LandingMetadataInput {
   /** Locale-unprefixed page path, e.g. '/documents/passport-translation'. No trailing slash. */
   path: string;
   /**
-   * From the page's LandingPageConfig.title/.description (src/lib/landing-pages/*.ts) —
-   * whatever language that config currently contains (English for most; Russian for
-   * kazakhstanConfig/kazakhstanNotarizedConfig — see SEO audit finding #3 report for why
-   * that's not "invented" here, just made locale-independent rather than locale-aware).
-   * This helper does not translate or vary title/description by locale — that's a
-   * content decision out of scope for this technical-SEO fix.
+   * Locale-aware title/description (2026-08-20 SEO audit P0/P1 fix) — callers pass
+   * `t('metaTitle')`/`t('metaDescription')` from that page's own i18n namespace
+   * (messages/{locale}/landing-pages.json), the same getTranslations(namespace)
+   * pattern already used for contacts/partners. One real value per enabled locale,
+   * not a single static string reused everywhere.
    */
   title: string;
   description: string;
@@ -135,30 +185,17 @@ export interface LandingMetadataInput {
    * not a routing change. Do not add speculatively.
    */
   noindexForLocales?: string[];
-  /**
-   * RU-specific title/description override — Yandex snippet-quality initiative
-   * (2026-08-19: contacts/passport pages were showing English or generic-homepage
-   * copy against RU queries). Opt-in per page, applies only when locale === 'ru';
-   * every other locale keeps using title/description above completely unchanged.
-   * Do not add speculatively — only for a page where RU copy has been reviewed and
-   * approved (no keyword stuffing, no AI positioning, no acceptance guarantees,
-   * notarization framed as a partner process).
-   */
-  ruOverride?: { title: string; description: string };
 }
 
 /**
- * Landing page metadata (SEO audit finding #3) — canonical + hreflang (enabled locales
- * only, self-referencing this exact page path — never the hub page or a different
- * landing page) + minimal OG/Twitter, all locale-aware in URL even though
- * title/description are currently a single static string per page (see
- * LandingMetadataInput's doc comment). One helper shared by all 8 landing pages
- * instead of duplicating this shape 8 times.
+ * Landing page metadata (SEO audit finding #3; made locale-aware per the 2026-08-20
+ * P0/P1 audit) — canonical + hreflang (enabled locales only, self-referencing this
+ * exact page path — never the hub page or a different landing page) + minimal
+ * OG/Twitter. title/description are locale-aware, sourced by the caller from i18n.
+ * One helper shared by all 8 landing pages instead of duplicating this shape 8 times.
  */
 export function buildLandingMetadata(locale: string, input: LandingMetadataInput): Metadata {
-  const { path, excludeFromHreflang = [], noindexForLocales = [], ruOverride } = input;
-  const title = locale === 'ru' && ruOverride ? ruOverride.title : input.title;
-  const description = locale === 'ru' && ruOverride ? ruOverride.description : input.description;
+  const { path, title, description, excludeFromHreflang = [], noindexForLocales = [] } = input;
   const url = `${SITE_URL}/${locale}${path}`;
 
   const languages: Record<string, string> = {};

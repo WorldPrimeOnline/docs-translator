@@ -1,5 +1,7 @@
 {
   "documentsHub": {
+    "metaTitle": "Document Translation by Type — WPO Translations",
+    "metaDescription": "Translate any official document online — passports, bank statements, diplomas, birth certificates, and more. Clean PDF output in minutes.",
     "heroBadge": "Todos los Tipos de Documentos",
     "heroHeadline": "Traduce Cualquier Documento Oficial",
     "heroAccentLine": "En línea, en minutos",
@@ -26,6 +28,8 @@
     "pricingHeadline": "Стоимость перевода документов"
   },
   "kazakhstan": {
+    "metaTitle": "Document Translation for Kazakhstan — WPO Translations",
+    "metaDescription": "Online document translation for Kazakhstan: study, migration, notary preparation, and official processes.",
     "heroBadge": "Kazajistán · Gestión de documentos",
     "heroHeadline": "Traducción de documentos para Kazajistán",
     "heroAccentLine": "Estudios, Migración y Trámites Oficiales",
@@ -90,6 +94,8 @@
     "seoParagraph3": "Acceptance of translations by third parties is not guaranteed. Before submitting a document to a bank, university, consulate, immigration authority, or notary, verify the requirements of the receiving party."
   },
   "kazakhstanNotarized": {
+    "metaTitle": "Notarized Translation in Kazakhstan — WPO Translations",
+    "metaDescription": "Prepare a translation online and complete official or notarized certification through a partner process, for Kazakhstan.",
     "heroBadge": "Kazajistán · Preparación para notario",
     "heroHeadline": "Traducción para",
     "heroAccentLine": "Revisión y Certificación Notarial",
@@ -146,6 +152,8 @@
     "pricingHeadline": "Стоимость нотариально заверенного перевода"
   },
   "kazakhstanUniversity": {
+    "metaTitle": "University Document Translation for Kazakhstan — WPO Translations",
+    "metaDescription": "Translate diplomas and transcripts for international university applications from Kazakhstan. Clean formatting preserved.",
     "heroBadge": "Kazajistán · Solicitudes universitarias",
     "heroHeadline": "Traducción de documentos académicos",
     "heroAccentLine": "para solicitudes a universidades internacionales",
@@ -196,6 +204,8 @@
     "docsSectionLabel": "АКАДЕМИЧЕСКИЕ ДОКУМЕНТЫ"
   },
   "passportTranslation": {
+    "metaTitle": "Passport Translation Online — WPO Translations",
+    "metaDescription": "Translate a passport or ID online for visas, banks, and immigration. Electronic and official translation; notarization through a partner.",
     "heroBadge": "Tipo de documento · Pasaporte e ID",
     "heroHeadline": "Traducción de pasaporte",
     "heroAccentLine": "Cualquier idioma — En línea en minutos",
@@ -249,6 +259,8 @@
     "pricingHeadline": "Стоимость перевода паспорта"
   },
   "diplomaTranslation": {
+    "metaTitle": "Diploma & Transcript Translation Online — WPO Translations",
+    "metaDescription": "Translate diplomas, transcripts, and academic certificates online for university applications and credential evaluation.",
     "heroBadge": "Tipo de documento · Diploma y Expediente",
     "heroHeadline": "Diploma y credencial académica",
     "heroAccentLine": "Traducción en línea",
@@ -303,6 +315,8 @@
     "docsSectionLabel": "АКАДЕМИЧЕСКИЕ ДОКУМЕНТЫ"
   },
   "bankStatementTranslation": {
+    "metaTitle": "Bank Statement Translation Online — WPO Translations",
+    "metaDescription": "Translate bank statements online for visa applications and income verification. All amounts and balances preserved exactly.",
     "heroBadge": "Tipo de documento · Extracto bancario",
     "heroHeadline": "Traducción de extracto bancario",
     "heroAccentLine": "para Visa, Inmigración y Prueba de Ingresos",
@@ -355,6 +369,8 @@
     "docsSectionLabel": "ФИНАНСОВЫЕ ДОКУМЕНТЫ"
   },
   "kazakhstanCertified": {
+    "metaTitle": "Certified Translation in Kazakhstan — WPO Translations",
+    "metaDescription": "Official translation with translator review and provider stamp, for banks, universities, and migration in Kazakhstan.",
     "heroBadge": "Kazakhstan · Official Translation",
     "heroHeadline": "Certified Translation",
     "heroAccentLine": "of Documents Online",

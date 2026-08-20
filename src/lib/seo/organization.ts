@@ -1,4 +1,6 @@
 import { SITE_URL, SITE_NAME } from './site-metadata';
+import { BUSINESS_PROFILE } from '@/lib/business-profile';
+import type { BreadcrumbItem } from '@/lib/landing-pages/types';
 
 /**
  * Sitewide entity anchor (SEO audit finding #6). Rendered once, in the root layout
@@ -10,11 +12,21 @@ import { SITE_URL, SITE_NAME } from './site-metadata';
  * current brand but the apex host instead of www. Both are unified here to the single
  * source of truth already used for canonical/OG (SITE_URL, SITE_NAME).
  *
- * Deliberately minimal — name + url + @id only. logo/contactPoint/email/legalName are
- * real, public facts (business-profile.ts) that could be added later, but adding them
- * now isn't needed to fix the stale-domain/brand defect this task targets, and this
- * project's SEO fixes have consistently kept structured data to the minimum that's
- * actually true and useful rather than filling in every optional Schema.org field.
+ * 2026-08-20 SEO audit P0 fix: added legalName/alternateName/logo. Root cause this
+ * addresses — every page's visible header/footer logo (wpo-logo.tsx) renders "World
+ * Prime Online" (the legal entity name), while every <title>/OG/JSON-LD name says
+ * "WPO Translations" (the product brand) — two different strings with zero structured
+ * link between them anywhere, a plausible contributor to Google conflating "WPO" with
+ * the unrelated, far more authoritative WIPO entity. alternateName ties the two
+ * strings together explicitly; legalName is the real registered entity name from
+ * business-profile.ts (single source of truth, same file the footer/contacts page
+ * already read from — not invented here). logo points at the same file the contacts
+ * page already displays as the provider logo. No visible page content changes.
+ *
+ * sameAs deliberately omitted: no confirmed official WPO social/business-listing
+ * profile URL exists anywhere in this codebase (grepped for LinkedIn/Instagram/
+ * Facebook/2GIS/Google Business/etc. — zero matches) — inventing one would be worse
+ * than omitting it. Add sameAs only once a real, confirmed profile URL is provided.
  */
 export const ORGANIZATION_ID = `${SITE_URL}/#organization`;
 export const WEBSITE_ID = `${SITE_URL}/#website`;
@@ -25,7 +37,10 @@ export function getOrganizationSchema(): Record<string, unknown> {
     '@type': 'Organization',
     '@id': ORGANIZATION_ID,
     name: SITE_NAME,
+    alternateName: 'World Prime Online',
+    legalName: BUSINESS_PROFILE.legalName,
     url: SITE_URL,
+    logo: `${SITE_URL}/logo/logo.png`,
   };
 }
 
@@ -45,3 +60,24 @@ export function getWebsiteSchema(): Record<string, unknown> {
  * node (getOrganizationSchema(), rendered in the root layout on the same page) by @id.
  */
 export const SERVICE_PROVIDER_REF: Record<string, unknown> = { '@id': ORGANIZATION_ID };
+
+/**
+ * BreadcrumbList JSON-LD (2026-08-20 SEO audit P1) — built from the same breadcrumb
+ * array every landing page already renders visibly (HeroSection.tsx), never a
+ * separately-invented trail. Same >1-item guard as the visible breadcrumb (a lone
+ * "Home" crumb isn't a real trail). Absolute URLs via SITE_URL + locale, matching the
+ * convention every other schema/canonical/hreflang builder in this file already uses.
+ */
+export function getBreadcrumbListSchema(breadcrumb: BreadcrumbItem[], locale: string): Record<string, unknown> | null {
+  if (breadcrumb.length < 2) return null;
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: breadcrumb.map((item, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: item.label,
+      item: `${SITE_URL}/${locale}${item.href === '/' ? '' : item.href}`,
+    })),
+  };
+}

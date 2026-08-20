@@ -1,4 +1,5 @@
 import type { LandingPageConfig } from '@/lib/landing-pages/types';
+import { getBreadcrumbListSchema } from '@/lib/seo/organization';
 import { HeroSection } from './HeroSection';
 import { HowItWorksSection } from './HowItWorksSection';
 import { SupportedDocumentsSection } from './SupportedDocumentsSection';
@@ -11,9 +12,11 @@ import { StructuredData } from './StructuredData';
 
 interface Props {
   config: LandingPageConfig;
+  /** Used only to build absolute URLs for BreadcrumbList JSON-LD — no visible effect. */
+  locale: string;
 }
 
-export function LandingPage({ config }: Props) {
+export function LandingPage({ config, locale }: Props) {
   const {
     hero,
     howItWorks,
@@ -27,6 +30,11 @@ export function LandingPage({ config }: Props) {
     structuredData,
     breadcrumb,
   } = config;
+
+  // BreadcrumbList JSON-LD (SEO audit P1) — from the same breadcrumb array the
+  // visible <HeroSection> breadcrumb already renders, not a separate invented trail.
+  const breadcrumbSchema = breadcrumb ? getBreadcrumbListSchema(breadcrumb, locale) : null;
+  const schemas = [...(structuredData ?? []), ...(breadcrumbSchema ? [breadcrumbSchema] : [])];
 
   return (
     <div className="bg-background">
@@ -99,7 +107,7 @@ export function LandingPage({ config }: Props) {
         />
       )}
 
-      {structuredData && <StructuredData schemas={structuredData} />}
+      {schemas.length > 0 && <StructuredData schemas={schemas} />}
     </div>
   );
 }

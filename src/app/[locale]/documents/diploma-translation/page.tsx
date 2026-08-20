@@ -10,10 +10,12 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
+  setRequestLocale(locale);
+  const t = await getTranslations('diplomaTranslation');
   return buildLandingMetadata(locale, {
     path: '/documents/diploma-translation',
-    title: diplomaTranslationConfig.title,
-    description: diplomaTranslationConfig.description,
+    title: t('metaTitle'),
+    description: t('metaDescription'),
   });
 }
 
@@ -69,5 +71,5 @@ export default async function DiplomaTranslationPage({
     },
   };
 
-  return <LandingPage config={config} />;
+  return <LandingPage config={config} locale={locale} />;
 }

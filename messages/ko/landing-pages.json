@@ -1,5 +1,7 @@
 {
   "documentsHub": {
+    "metaTitle": "Document Translation by Type — WPO Translations",
+    "metaDescription": "Translate any official document online — passports, bank statements, diplomas, birth certificates, and more. Clean PDF output in minutes.",
     "heroBadge": "모든 문서 유형",
     "heroHeadline": "모든 공식 문서 번역",
     "heroAccentLine": "온라인, 몇 분 만에",
@@ -26,6 +28,8 @@
     "pricingHeadline": "Стоимость перевода документов"
   },
   "kazakhstan": {
+    "metaTitle": "Document Translation for Kazakhstan — WPO Translations",
+    "metaDescription": "Online document translation for Kazakhstan: study, migration, notary preparation, and official processes.",
     "heroBadge": "카자흐스탄 · 문서 워크플로",
     "heroHeadline": "카자흐스탄 문서 번역",
     "heroAccentLine": "유학, 이민 및 공식 업무",
@@ -90,6 +94,8 @@
     "seoParagraph3": "Acceptance of translations by third parties is not guaranteed. Before submitting a document to a bank, university, consulate, immigration authority, or notary, verify the requirements of the receiving party."
   },
   "kazakhstanNotarized": {
+    "metaTitle": "Notarized Translation in Kazakhstan — WPO Translations",
+    "metaDescription": "Prepare a translation online and complete official or notarized certification through a partner process, for Kazakhstan.",
     "heroBadge": "카자흐스탄 · 공증 준비",
     "heroHeadline": "공증 검토를 위한",
     "heroAccentLine": "번역 준비",
@@ -146,6 +152,8 @@
     "pricingHeadline": "Стоимость нотариально заверенного перевода"
   },
   "kazakhstanUniversity": {
+    "metaTitle": "University Document Translation for Kazakhstan — WPO Translations",
+    "metaDescription": "Translate diplomas and transcripts for international university applications from Kazakhstan. Clean formatting preserved.",
     "heroBadge": "카자흐스탄 · 대학 지원",
     "heroHeadline": "학술 문서 번역",
     "heroAccentLine": "국제 대학 지원을 위한",
@@ -196,6 +204,8 @@
     "docsSectionLabel": "АКАДЕМИЧЕСКИЕ ДОКУМЕНТЫ"
   },
   "passportTranslation": {
+    "metaTitle": "Passport Translation Online — WPO Translations",
+    "metaDescription": "Translate a passport or ID online for visas, banks, and immigration. Electronic and official translation; notarization through a partner.",
     "heroBadge": "문서 유형 · 여권 및 신분증",
     "heroHeadline": "여권 번역",
     "heroAccentLine": "모든 언어 — 온라인 몇 분 만에",
@@ -249,6 +259,8 @@
     "pricingHeadline": "Стоимость перевода паспорта"
   },
   "diplomaTranslation": {
+    "metaTitle": "Diploma & Transcript Translation Online — WPO Translations",
+    "metaDescription": "Translate diplomas, transcripts, and academic certificates online for university applications and credential evaluation.",
     "heroBadge": "문서 유형 · 학위증서 및 성적표",
     "heroHeadline": "학위증서 및 학술 자격",
     "heroAccentLine": "온라인 번역",
@@ -303,6 +315,8 @@
     "docsSectionLabel": "АКАДЕМИЧЕСКИЕ ДОКУМЕНТЫ"
   },
   "bankStatementTranslation": {
+    "metaTitle": "Bank Statement Translation Online — WPO Translations",
+    "metaDescription": "Translate bank statements online for visa applications and income verification. All amounts and balances preserved exactly.",
     "heroBadge": "문서 유형 · 은행 명세서",
     "heroHeadline": "은행 명세서 번역",
     "heroAccentLine": "비자, 이민 및 소득 증명을 위한",
@@ -355,6 +369,8 @@
     "docsSectionLabel": "ФИНАНСОВЫЕ ДОКУМЕНТЫ"
   },
   "kazakhstanCertified": {
+    "metaTitle": "Certified Translation in Kazakhstan — WPO Translations",
+    "metaDescription": "Official translation with translator review and provider stamp, for banks, universities, and migration in Kazakhstan.",
     "heroBadge": "Kazakhstan · Official Translation",
     "heroHeadline": "Certified Translation",
     "heroAccentLine": "of Documents Online",

@@ -1,5 +1,7 @@
 {
   "documentsHub": {
+    "metaTitle": "Dokumentenübersetzung nach Typ — WPO Translations",
+    "metaDescription": "Übersetzen Sie jedes offizielle Dokument online — Pässe, Kontoauszüge, Diplome, Geburtsurkunden und mehr. Sauberes PDF in wenigen Minuten.",
     "heroBadge": "Alle Dokumenttypen",
     "heroHeadline": "Übersetzen Sie jedes offizielle Dokument",
     "heroAccentLine": "Online, in Minuten",
@@ -26,6 +28,8 @@
     "pricingHeadline": "Preise für Dokumentenübersetzung"
   },
   "kazakhstan": {
+    "metaTitle": "Dokumentenübersetzung für Kasachstan — WPO Translations",
+    "metaDescription": "Online-Dokumentenübersetzung für Kasachstan: Studium, Migration, Notarvorbereitung und offizielle Verfahren.",
     "heroBadge": "Kasachstan · Dokumentenvorgänge",
     "heroHeadline": "Dokumentenübersetzung für Kasachstan",
     "heroAccentLine": "Studium, Migration und offizielle Vorgänge",
@@ -90,6 +94,8 @@
     ]
   },
   "kazakhstanNotarized": {
+    "metaTitle": "Übersetzung zur notariellen Beglaubigung — Kasachstan — WPO Translations",
+    "metaDescription": "Bereiten Sie die Übersetzung online vor und erledigen Sie die offizielle Übersetzung oder notarielle Beglaubigung über einen Partnerprozess. Für Kasachstan.",
     "heroBadge": "Kasachstan · Notarielle Beglaubigung über Partner",
     "heroHeadline": "Übersetzung für",
     "heroAccentLine": "notarielle Beglaubigung",
@@ -146,6 +152,8 @@
     "pricingHeadline": "Preise für notariell beglaubigte Übersetzung"
   },
   "kazakhstanUniversity": {
+    "metaTitle": "Dokumentenübersetzung für Universitäten — Kasachstan — WPO Translations",
+    "metaDescription": "Diplome und Zeugnisse für internationale Universitätsbewerbungen aus Kasachstan übersetzen. Akademische Formatierung bleibt erhalten.",
     "heroBadge": "Kasachstan · Universitätsbewerbungen",
     "heroHeadline": "Übersetzung akademischer Dokumente",
     "heroAccentLine": "für internationale Universitätsbewerbungen",
@@ -178,6 +186,8 @@
     "docsSectionLabel": "AKADEMISCHE DOKUMENTE"
   },
   "passportTranslation": {
+    "metaTitle": "Reisepass online übersetzen — WPO Translations",
+    "metaDescription": "Reisepass online übersetzen für Visa, Banken und Einwanderung. Elektronische und offizielle Übersetzung; notarielle Beglaubigung über einen Partner.",
     "heroBadge": "Dokumenttyp · Reisepass und Ausweis",
     "heroHeadline": "Reisepassübersetzung",
     "heroAccentLine": "Jede Sprache — Online in Minuten",
@@ -231,6 +241,8 @@
     "pricingHeadline": "Preise für Reisepassübersetzung"
   },
   "diplomaTranslation": {
+    "metaTitle": "Diplom- und Zeugnisübersetzung — WPO Translations",
+    "metaDescription": "Diplome, Zeugnisse und akademische Nachweise online übersetzen für Universitätsbewerbungen und Anerkennungsverfahren.",
     "heroBadge": "Dokumenttyp · Diplom und Transcript",
     "heroHeadline": "Diplom- und Hochschulzeugnis",
     "heroAccentLine": "Übersetzung Online",
@@ -285,6 +297,8 @@
     "docsSectionLabel": "AKADEMISCHE DOKUMENTE"
   },
   "bankStatementTranslation": {
+    "metaTitle": "Kontoauszug online übersetzen — WPO Translations",
+    "metaDescription": "Kontoauszüge online übersetzen für Visumanträge und Einkommensnachweise. Alle Beträge und Salden bleiben exakt erhalten.",
     "heroBadge": "Dokumenttyp · Kontoauszug",
     "heroHeadline": "Kontoauszug-Übersetzung",
     "heroAccentLine": "für Visum, Einwanderung und Einkommensnachweis",
@@ -337,6 +351,8 @@
     "docsSectionLabel": "FINANZDOKUMENTE"
   },
   "kazakhstanCertified": {
+    "metaTitle": "Übersetzung mit Vertreterstempel — Kasachstan — WPO Translations",
+    "metaDescription": "Offizielle Übersetzung mit Übersetzerprüfung und WPO-Stempel — für Banken, Universitäten und Migration in Kasachstan.",
     "heroBadge": "Kasachstan · Offizielle Übersetzung",
     "heroHeadline": "Übersetzung mit Agenturstempel",
     "heroAccentLine": "von Dokumenten Online",
