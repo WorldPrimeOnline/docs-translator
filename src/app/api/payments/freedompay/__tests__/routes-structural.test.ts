@@ -68,6 +68,17 @@ describe('initiate route', () => {
     expect(failurePos).toBeGreaterThan(successPos);
     expect(src).toContain('const failureUrl = successUrl;');
   });
+
+  it('persists provider_transaction_id from initResult.pgPaymentId immediately after a successful init (2026-08-20 fix)', () => {
+    expect(src).toContain('if (initResult.pgPaymentId)');
+    expect(src).toContain('provider_transaction_id: initResult.pgPaymentId');
+    // Must happen after the row exists and after init succeeded, before returning.
+    const insertPos = src.indexOf(".from('payment_transactions')\n    .insert(");
+    const persistPos = src.indexOf('provider_transaction_id: initResult.pgPaymentId');
+    const returnPos = src.indexOf('return NextResponse.json({ paymentId, redirectUrl');
+    expect(persistPos).toBeGreaterThan(insertPos);
+    expect(persistPos).toBeLessThan(returnPos);
+  });
 });
 
 describe('result route (Result URL webhook)', () => {
@@ -139,6 +150,22 @@ describe('result route (Result URL webhook)', () => {
     expect(src).toContain("'Content-Type': 'application/xml'");
     expect(src).toContain('status: 200');
   });
+
+  it('confirms via mapFreedomPayPaymentStatus (Status API schema), not mapFreedomPayResult, when checking checkStatus()\'s response (2026-08-20 fix)', () => {
+    expect(src).toContain('mapFreedomPayPaymentStatus(statusResp.pgPaymentStatus)');
+    expect(src).not.toContain('mapFreedomPayResult(statusResp');
+  });
+
+  it('marks the payment failed if the Status API confirms error, even though the callback said pg_result=1', () => {
+    expect(src).toContain("providerMapped === 'failed'");
+    expect(src).toContain("status: 'failed', failed_at: now");
+  });
+
+  it('persists provider_transaction_id/provider_status/provider_reason breadcrumb on every successful status check, not only on the paid path', () => {
+    expect(src).toContain('breadcrumb.provider_transaction_id = statusResp.pgPaymentId');
+    expect(src).toContain('breadcrumb.provider_status = statusResp.pgPaymentStatus');
+    expect(src).toContain('breadcrumb.provider_reason');
+  });
 });
 
 describe('status route (frontend polling)', () => {
@@ -167,6 +194,35 @@ describe('status route (frontend polling)', () => {
 
   it('scopes its lookup to payment_provider=freedom_pay', () => {
     expect(src).toContain("eq('payment_provider', 'freedom_pay')");
+  });
+
+  it('maps get_status3.php via mapFreedomPayPaymentStatus (pg_payment_status), not mapFreedomPayResult (pg_result) — the 2026-08-20 infinite-spinner root cause', () => {
+    expect(src).toContain('mapFreedomPayPaymentStatus');
+    expect(src).not.toContain('mapFreedomPayResult');
+    expect(src).toContain('mapFreedomPayPaymentStatus(statusResp.pgPaymentStatus)');
+  });
+
+  it('marks the payment locally failed when the Status API reports error, and never touches jobs.status for that transition', () => {
+    const failedBranchPos = src.indexOf("mapped === 'failed'");
+    expect(failedBranchPos).toBeGreaterThan(-1);
+    const branchSlice = src.slice(failedBranchPos, failedBranchPos + 600);
+    expect(branchSlice).toContain("status: 'failed', failed_at: now");
+    expect(branchSlice).not.toContain(".from('jobs')");
+  });
+
+  it('persists provider_transaction_id/provider_status/provider_reason breadcrumb on every successful status check, including non-terminal pending/unknown outcomes', () => {
+    expect(src).toContain('breadcrumb.provider_transaction_id = statusResp.pgPaymentId');
+    expect(src).toContain('breadcrumb.provider_status = statusResp.pgPaymentStatus');
+    expect(src).toContain('breadcrumb.provider_reason');
+    // The pending/unknown branch must still write the breadcrumb, not skip persistence.
+    expect(src).toContain("if (mapped === 'unknown')");
+  });
+
+  it('treats an unrecognized pg_payment_status as pending, never as paid', () => {
+    // mapFreedomPayPaymentStatus itself already guarantees this (tested in
+    // status-map.test.ts) — this asserts the route doesn't add its own separate
+    // 'unknown -> paid' branch anywhere.
+    expect(src).not.toMatch(/mapped === 'unknown'[\s\S]*?currentStatus = 'paid'/);
   });
 });
 

@@ -21,8 +21,8 @@ import { supabaseServer } from '@/lib/supabase/server';
 import { getFreedomPayConfig } from '@/lib/payments/freedompay/config';
 import { verifySignature } from '@/lib/payments/freedompay/signature';
 import { buildResultAck, resultAckToXml, FREEDOMPAY_RESULT_SCRIPT_NAME, type FreedomPayAckFields } from '@/lib/payments/freedompay/result-ack';
-import { checkStatus } from '@/lib/payments/freedompay/client';
-import { mapFreedomPayResult } from '@/lib/payments/freedompay/status-map';
+import { checkStatus, type StatusResult } from '@/lib/payments/freedompay/client';
+import { mapFreedomPayResult, mapFreedomPayPaymentStatus } from '@/lib/payments/freedompay/status-map';
 import { markQuotePaid } from '@/lib/pricing/service';
 import { notifyOperatorPaymentAlert } from '@/lib/telegram/client';
 import { confirmReferral } from '@/lib/referral/server';
@@ -188,34 +188,71 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const mapped = mapFreedomPayResult(payload.pg_result);
 
   // ── Success path — never trust pg_result alone, confirm via Status API first ──
+  // NOTE: the Status API (get_status3.php) and this Result URL callback are DIFFERENT
+  // response schemas — pg_result (callback) vs pg_payment_status (Status API). Do not
+  // conflate them; see status-map.ts's doc comment for the 2026-08-20 incident this
+  // caused (a real provider "error" status was read as an unrecognized field and the
+  // payment stayed stuck pending forever).
   if (mapped === 'paid') {
-    let confirmed = false;
+    let statusResp: StatusResult | null = null;
     try {
-      const statusResp = await checkStatus(pgOrderId);
-      confirmed = mapFreedomPayResult(statusResp.pgResult) === 'paid';
-      if (!confirmed) {
-        console.warn('[freedompay/result] pg_result=1 but status API disagrees', {
-          correlationId, paymentId: paymentTx.id, statusApiResult: statusResp.pgResult,
-        });
-      }
+      statusResp = await checkStatus(pgOrderId);
     } catch (err) {
       console.error('[freedompay/result] status confirmation failed', {
         correlationId, paymentId: paymentTx.id, error: (err as Error).message,
       });
     }
 
-    if (!confirmed) {
-      // Not yet resolved — do not finalize, do not store an ACK (leave room for a
-      // future retry or the on-demand reconciliation endpoint to resolve this).
+    const providerMapped = statusResp ? mapFreedomPayPaymentStatus(statusResp.pgPaymentStatus) : 'unknown';
+
+    if (statusResp) {
+      // Persist sanitized provider breadcrumb fields on every successful get_status3.php
+      // response, regardless of outcome — never skipped just because the outcome isn't 'paid'.
+      const now = new Date().toISOString();
+      const breadcrumb: Record<string, unknown> = { status_checked_at: now, updated_at: now };
+      if (statusResp.pgPaymentId) breadcrumb.provider_transaction_id = statusResp.pgPaymentId;
+      if (statusResp.pgPaymentStatus) breadcrumb.provider_status = statusResp.pgPaymentStatus;
+      if (statusResp.pgErrorDescription || statusResp.pgErrorCode) {
+        breadcrumb.provider_reason = statusResp.pgErrorDescription ?? statusResp.pgErrorCode;
+      }
+
+      if (providerMapped === 'failed') {
+        // Result URL callback said pg_result=1, but the authoritative Status API says
+        // error — trust the Status API. Do not touch jobs.status (never was queued).
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabaseServer as any)
+          .from('payment_transactions')
+          .update({ ...breadcrumb, status: 'failed', failed_at: now })
+          .eq('id', paymentTx.id);
+        console.warn('[freedompay/result] pg_result=1 but Status API reports error', {
+          correlationId, paymentId: paymentTx.id, pgPaymentStatus: statusResp.pgPaymentStatus,
+        });
+        const ack = buildResultAck('ok', describeStatus('failed'));
+        await storeAck(paymentTx.id, ack);
+        return xmlResponse(ack);
+      }
+
+      if (providerMapped !== 'paid') {
+        // process/pending/unknown — persist the breadcrumb, do not finalize, do not
+        // store an ACK yet (leave room for a future retry or on-demand reconciliation).
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabaseServer as any).from('payment_transactions').update(breadcrumb).eq('id', paymentTx.id);
+      }
+    }
+
+    if (providerMapped !== 'paid') {
+      console.warn('[freedompay/result] pg_result=1 but Status API does not yet confirm success', {
+        correlationId, paymentId: paymentTx.id, statusApiPaymentStatus: statusResp?.pgPaymentStatus ?? null,
+      });
       return xmlResponse(buildResultAck('ok', 'Received — pending confirmation'));
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: rpcResult, error: rpcError } = await (supabaseServer as any).rpc('finalize_payment_transaction', {
       p_invoice_id: pgOrderId,
-      p_transaction_id: payload.pg_payment_id ?? null,
-      p_provider_status: payload.pg_result ?? null,
-      p_provider_reason: payload.pg_description ?? null,
+      p_transaction_id: statusResp?.pgPaymentId ?? payload.pg_payment_id ?? null,
+      p_provider_status: statusResp?.pgPaymentStatus ?? payload.pg_result ?? null,
+      p_provider_reason: statusResp?.pgErrorDescription ?? payload.pg_description ?? null,
       p_provider_reason_code: null,
       p_card_mask: payload.pg_card_pan ?? null,
       p_card_type: payload.pg_card_brand ?? null,

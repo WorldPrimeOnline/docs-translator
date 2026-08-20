@@ -255,6 +255,22 @@ async function handlePost(request: NextRequest, correlationId: string): Promise<
     return NextResponse.json({ error: 'FREEDOMPAY_INIT_FAILED', correlationId }, { status: 502 });
   }
 
+  // Persist pg_payment_id immediately if the init response included one — gives
+  // refunds/diagnostics a provider_transaction_id breadcrumb before any callback or
+  // status check ever runs. Best-effort: a failure here must not block returning the
+  // redirect URL to the customer.
+  if (initResult.pgPaymentId) {
+    const { error: ptidError } = await supabaseServer
+      .from('payment_transactions')
+      .update({ provider_transaction_id: initResult.pgPaymentId, updated_at: new Date().toISOString() })
+      .eq('id', paymentId);
+    if (ptidError) {
+      console.error('[freedompay/initiate] failed to persist provider_transaction_id (non-fatal)', {
+        correlationId, paymentId, error: ptidError.message,
+      });
+    }
+  }
+
   console.log('[freedompay/initiate] payment created, returning redirect', { correlationId, paymentId, jobId });
 
   return NextResponse.json({ paymentId, redirectUrl: initResult.redirectUrl });

@@ -716,3 +716,19 @@ Halyk ePay acquiring has not yet been migrated to the new entity, so new charges
 
 **Risks / caveats:**  
 `Not specified`
+
+---
+
+### 2026-08-20 — Freedom Pay Status API mapping bug — pg_payment_status vs pg_result confusion
+
+**Decision:**  
+get_status3.php (Status API) reconciliation now maps via mapFreedomPayPaymentStatus(pg_payment_status: success|error|process|pending), a separate function from mapFreedomPayResult(pg_result: 0|1|2) which is only for the Result URL callback schema. The Status API never returns pg_result. Status route and result route's confirm-step both now persist sanitized provider_transaction_id/provider_status/provider_reason on every successful status check, not only on the paid path, and mark payment_transactions failed when pg_payment_status=error. initiate route now also persists provider_transaction_id from init_payment's pg_payment_id immediately.
+
+**Rationale:**  
+2026-08-20 staging incident: two real Freedom Pay test payments (merchant #588913) failed card entry (provider error 10005) and showed provider status 'error' in the Freedom Pay cabinet, but WPO's status route was reading pg_result (a field get_status3.php never returns) instead of pg_payment_status, so the failure was silently read as an unrecognized field and payment_transactions.status stayed 'payment_pending' forever — the customer-facing /payment/result page polled indefinitely with no way to reach a terminal failed state.
+
+**Impacted files/docs:**  
+src/lib/payments/freedompay/status-map.ts, src/lib/payments/freedompay/client.ts, src/app/api/payments/freedompay/status/[paymentId]/route.ts, src/app/api/payments/freedompay/result/route.ts, src/app/api/payments/freedompay/initiate/route.ts
+
+**Risks / caveats:**  
+pg_sig on the init_payment response is still not verified (flagged, not fixed in this pass). Root cause of the underlying error 10005 itself (likely a test card not provisioned for this specific merchant) is separate and unresolved — this fix addresses WPO's reconciliation/mapping bug only.

@@ -125,6 +125,9 @@ export async function initPayment(params: InitPaymentParams): Promise<InitPaymen
     });
   }
 
+  // FREEDOMPAY_INIT_RESPONSE_UNVERIFIED: pg_sig on this response is not checked.
+  // Flagged explicitly per the 2026-08-20 diagnostic audit — not fixed here.
+
   const redirectUrl = parsed.pg_redirect_url;
   if (parsed.pg_status !== 'ok' || !redirectUrl) {
     throw new FreedomPayApiError({
@@ -139,9 +142,22 @@ export async function initPayment(params: InitPaymentParams): Promise<InitPaymen
 
 // ─── Status check ─────────────────────────────────────────────────────────────
 
+/**
+ * get_status3.php's own status field is pg_payment_status ('success'|'error'|
+ * 'process'|'pending'|...) — NOT pg_result, which belongs to the Result URL callback
+ * schema only and is never present in this response. Confirmed against real Freedom
+ * Pay cabinet data for merchant #588913 (2026-08-20): two failed test payments both
+ * showed provider status "error" in the cabinet while this endpoint was being read
+ * for a pg_result field that doesn't exist here — see status-map.ts's doc comment.
+ */
 export interface StatusResult {
-  pgResult?: string;
   pgPaymentId?: string;
+  pgPaymentStatus?: string;
+  /** Protocol-level ack field (ok/error) — distinct from pgPaymentStatus, kept for
+   * diagnostics only, never used to drive payment finalization. */
+  pgStatus?: string;
+  pgErrorCode?: string;
+  pgErrorDescription?: string;
   amount?: string;
   currency?: string;
   raw: Record<string, string>;
@@ -195,9 +211,25 @@ export async function checkStatus(orderId: string): Promise<StatusResult> {
     });
   }
 
+  // Staging-only sanitized diagnostic log — pg_sig, secret, and PAN are never present
+  // in this field set (get_status3.php doesn't return card data), listed explicitly
+  // per the 2026-08-20 incident fix rather than dumping the full raw response.
+  if (process.env.NEXT_PUBLIC_APP_ENV === 'staging') {
+    console.log('[freedompay/client] get_status3.php diagnostic', {
+      pg_payment_id: parsed.pg_payment_id,
+      pg_payment_status: parsed.pg_payment_status,
+      pg_status: parsed.pg_status,
+      pg_error_code: parsed.pg_error_code,
+      pg_error_description: parsed.pg_error_description,
+    });
+  }
+
   return {
-    pgResult: parsed.pg_result,
     pgPaymentId: parsed.pg_payment_id,
+    pgPaymentStatus: parsed.pg_payment_status,
+    pgStatus: parsed.pg_status,
+    pgErrorCode: parsed.pg_error_code,
+    pgErrorDescription: parsed.pg_error_description,
     amount: parsed.pg_amount,
     currency: parsed.pg_currency,
     raw: parsed,

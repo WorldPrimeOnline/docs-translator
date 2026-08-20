@@ -13,7 +13,7 @@ import { createServerClient } from '@supabase/ssr';
 import { supabaseServer } from '@/lib/supabase/server';
 import { checkStatus } from '@/lib/payments/freedompay/client';
 import { getFreedomPayConfig } from '@/lib/payments/freedompay/config';
-import { mapFreedomPayResult } from '@/lib/payments/freedompay/status-map';
+import { mapFreedomPayPaymentStatus } from '@/lib/payments/freedompay/status-map';
 import { notifyOperatorPaymentAlert } from '@/lib/telegram/client';
 import { markQuotePaid } from '@/lib/pricing/service';
 import { confirmReferral } from '@/lib/referral/server';
@@ -110,22 +110,33 @@ export async function GET(
   if (shouldReconcile) {
     try {
       const statusResp = await checkStatus(paymentTx.provider_invoice_id!);
+      const now = new Date().toISOString();
 
-      await supabaseServer
-        .from('payment_transactions')
-        .update({ status_checked_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-        .eq('id', paymentTx.id);
+      // Persist sanitized provider breadcrumb fields on every successful
+      // get_status3.php response, regardless of outcome (2026-08-20 fix — this used
+      // to only happen implicitly via the finalize RPC on the 'paid' path, so a
+      // provider "error" status was silently dropped and never surfaced anywhere).
+      const breadcrumb: Record<string, unknown> = { status_checked_at: now, updated_at: now };
+      if (statusResp.pgPaymentId) breadcrumb.provider_transaction_id = statusResp.pgPaymentId;
+      if (statusResp.pgPaymentStatus) breadcrumb.provider_status = statusResp.pgPaymentStatus;
+      if (statusResp.pgErrorDescription || statusResp.pgErrorCode) {
+        breadcrumb.provider_reason = statusResp.pgErrorDescription ?? statusResp.pgErrorCode;
+      }
 
-      const mapped = mapFreedomPayResult(statusResp.pgResult);
+      // get_status3.php's status field is pg_payment_status, NOT pg_result (that
+      // field belongs to the Result URL callback schema only and is never present
+      // here) — see status-map.ts's doc comment for the 2026-08-20 incident this
+      // distinction fixes.
+      const mapped = mapFreedomPayPaymentStatus(statusResp.pgPaymentStatus);
 
       if (mapped === 'paid') {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data: rpcResult, error: rpcError } = await (supabaseServer as any).rpc('finalize_payment_transaction', {
           p_invoice_id: paymentTx.provider_invoice_id,
           p_transaction_id: statusResp.pgPaymentId ?? null,
-          p_provider_status: statusResp.pgResult ?? null,
-          p_provider_reason: null,
-          p_provider_reason_code: null,
+          p_provider_status: statusResp.pgPaymentStatus ?? null,
+          p_provider_reason: statusResp.pgErrorDescription ?? null,
+          p_provider_reason_code: statusResp.pgErrorCode ?? null,
           p_card_mask: null,
           p_card_type: null,
           p_issuer: null,
@@ -137,6 +148,10 @@ export async function GET(
 
         if (rpcError) {
           console.error('[freedompay/status] finalization RPC error', { correlationId, paymentId: paymentTx.id, error: rpcError.message });
+          // RPC already sets its own fields on success — on failure, still record
+          // that we checked, so the cooldown/breadcrumb stay accurate.
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (supabaseServer as any).from('payment_transactions').update(breadcrumb).eq('id', paymentTx.id);
         } else {
           const result = rpcResult as { ok: boolean; duplicate_charge?: boolean; job_id?: string } | null;
           if (result?.duplicate_charge) {
@@ -149,7 +164,7 @@ export async function GET(
               quoteId: paymentTx.quote_id,
               amountKzt: paymentTx.amount,
               currency: paymentTx.currency,
-              providerStatus: statusResp.pgResult ?? null,
+              providerStatus: statusResp.pgPaymentStatus ?? null,
               reason: 'DUPLICATE CHARGE — second successful Freedom Pay charge detected via status polling for an already-paid job.',
               env: 'staging/test',
             });
@@ -170,13 +185,29 @@ export async function GET(
           }
         }
       } else if (mapped === 'failed') {
-        const now = new Date().toISOString();
-        await supabaseServer
+        // Provider-confirmed failure (pg_payment_status=error) — mark locally
+        // failed. Never touch jobs.status here: the job was never queued for this
+        // payment, so there is nothing to roll back.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabaseServer as any)
           .from('payment_transactions')
-          .update({ status: 'failed', failed_at: now, updated_at: now })
+          .update({ ...breadcrumb, status: 'failed', failed_at: now })
           .eq('id', paymentTx.id);
         currentStatus = 'failed';
         currentFailedAt = now;
+      } else {
+        // process/pending/unknown — persist the breadcrumb only. Deliberately never
+        // sets status to 'paid' here; 'unknown' is treated the same as pending
+        // (caller must not finalize), and is logged via the client's own staging
+        // diagnostic log (see freedompay/client.ts) rather than silently retried
+        // forever with no visibility.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabaseServer as any).from('payment_transactions').update(breadcrumb).eq('id', paymentTx.id);
+        if (mapped === 'unknown') {
+          console.warn('[freedompay/status] unrecognized pg_payment_status — treating as pending, not finalizing', {
+            correlationId, paymentId: paymentTx.id, pgPaymentStatus: statusResp.pgPaymentStatus ?? null,
+          });
+        }
       }
     } catch (err) {
       console.error('[freedompay/status] provider reconciliation failed', {

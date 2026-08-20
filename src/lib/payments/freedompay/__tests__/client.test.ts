@@ -102,7 +102,7 @@ describe('initPayment', () => {
 
 describe('checkStatus', () => {
   it('calls POST https://api.freedompay.kz/get_status3.php with form encoding', async () => {
-    const xml = buildFreedomPayResponseXml({ pg_result: '1', pg_payment_id: 'fp-123', pg_amount: '1500', pg_currency: 'KZT' });
+    const xml = buildFreedomPayResponseXml({ pg_payment_status: 'success', pg_payment_id: 'fp-123', pg_amount: '1500', pg_currency: 'KZT' });
     const fetchMock = mockFetchOnce(200, xml);
 
     const result = await checkStatus('order-1');
@@ -113,8 +113,48 @@ describe('checkStatus', () => {
     expect(init.headers['Content-Type']).toBe('application/x-www-form-urlencoded');
     expect(String(init.body)).toContain('pg_order_id=order-1');
 
-    expect(result.pgResult).toBe('1');
+    // get_status3.php's status field is pg_payment_status, NOT pg_result (that field
+    // belongs to the Result URL callback schema only and is never present here).
+    expect(result.pgPaymentStatus).toBe('success');
     expect(result.pgPaymentId).toBe('fp-123');
+  });
+
+  it('exposes pg_status/pg_error_code/pg_error_description for diagnostics', async () => {
+    const xml = buildFreedomPayResponseXml({
+      pg_payment_status: 'error',
+      pg_status: 'ok',
+      pg_error_code: '10005',
+      pg_error_description: 'Неверно указаны данные карты списания',
+    });
+    mockFetchOnce(200, xml);
+
+    const result = await checkStatus('order-1');
+    expect(result.pgPaymentStatus).toBe('error');
+    expect(result.pgStatus).toBe('ok');
+    expect(result.pgErrorCode).toBe('10005');
+    expect(result.pgErrorDescription).toBe('Неверно указаны данные карты списания');
+  });
+
+  it('logs a sanitized diagnostic (no pg_sig) only when NEXT_PUBLIC_APP_ENV=staging', async () => {
+    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    const original = process.env.NEXT_PUBLIC_APP_ENV;
+
+    process.env.NEXT_PUBLIC_APP_ENV = 'staging';
+    mockFetchOnce(200, buildFreedomPayResponseXml({ pg_payment_status: 'error', pg_sig: 'should-not-appear' }));
+    await checkStatus('order-1');
+    const stagingCall = logSpy.mock.calls.find(([msg]) => msg === '[freedompay/client] get_status3.php diagnostic');
+    expect(stagingCall).toBeDefined();
+    expect(JSON.stringify(stagingCall![1])).not.toContain('should-not-appear');
+
+    logSpy.mockClear();
+    process.env.NEXT_PUBLIC_APP_ENV = 'production';
+    mockFetchOnce(200, buildFreedomPayResponseXml({ pg_payment_status: 'error' }));
+    await checkStatus('order-1');
+    expect(logSpy.mock.calls.find(([msg]) => msg === '[freedompay/client] get_status3.php diagnostic')).toBeUndefined();
+
+    if (original === undefined) delete process.env.NEXT_PUBLIC_APP_ENV;
+    else process.env.NEXT_PUBLIC_APP_ENV = original;
+    logSpy.mockRestore();
   });
 
   it('throws FreedomPayApiError on HTTP error', async () => {
