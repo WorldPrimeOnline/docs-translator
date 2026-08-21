@@ -732,3 +732,19 @@ src/lib/payments/freedompay/status-map.ts, src/lib/payments/freedompay/client.ts
 
 **Risks / caveats:**  
 pg_sig on the init_payment response is still not verified (flagged, not fixed in this pass). Root cause of the underlying error 10005 itself (likely a test card not provisioned for this specific merchant) is separate and unresolved — this fix addresses WPO's reconciliation/mapping bug only.
+
+---
+
+### 2026-08-21 — Freedom Pay Result URL delivery fix (Vercel protection bypass + observability + fallback cron)
+
+**Decision:**  
+Staging pg_result_url now appends ?x-vercel-protection-bypass=$VERCEL_AUTOMATION_BYPASS_SECRET (staging only, never production) via getFreedomPayResultUrl() in src/lib/payments/freedompay/config.ts, so Freedom Pay's server-to-server Result URL POST can pass Vercel Deployment Protection SSO on the *.vercel.app staging domain. finalize_payment_transaction RPC (migration 0071, CREATE OR REPLACE, no schema change) no longer sets callback_received_at — that column is now the exclusive responsibility of src/app/api/payments/freedompay/result/route.ts, stamped only on a real signature-verified inbound POST. status_checked_at is now persisted unconditionally on every successful get_status3.php call in result/route.ts, status/route.ts, and the new reconcile-freedompay-payments cron, including the paid path (previously skipped there). Added GET /api/cron/reconcile-freedompay-payments (payment_provider=freedom_pay, payment_pending/requires_review only) as a server-side fallback so a payment survives the customer closing their browser before polling /payment/result — triggered from the Railway worker every 15 min alongside (not replacing) the existing Halyk reconcile-payments trigger.
+
+**Rationale:**  
+2026-08-21 Result URL delivery audit on a real successful staging payment (WPO payment 0f15adf3-524c-4d83-bfe6-1d3f310d6b43) found zero evidence the Result URL POST ever reached Next.js — an unsigned test POST to the staging Result URL returned HTTP 302 to vercel.com/sso-api (Vercel Authentication), confirmed via the Vercel API (ssoProtection.deploymentType=all_except_custom_domains — staging has no custom domain, so its entire *.vercel.app deployment sits behind SSO). The same audit found callback_received_at was set unconditionally inside finalize_payment_transaction regardless of whether it was called from the real Result route or the on-demand status route's get_status3.php reconciliation, so the column could not be trusted as delivery evidence; and reconcile-payments (the only existing fallback cron) is hardcoded to payment_provider=halyk_epay, so a Freedom Pay payment with a missed/blocked callback had zero automatic recovery path.
+
+**Impacted files/docs:**  
+`Not specified`
+
+**Risks / caveats:**  
+`Not specified`

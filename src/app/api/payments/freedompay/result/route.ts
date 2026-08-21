@@ -136,6 +136,20 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return xmlResponse(buildResultAck('error', 'Unknown order'));
   }
 
+  // callback_received_at is stamped HERE ONLY — this is the exclusive writer for that
+  // column (see migration 0071). A signature-verified POST matching a known payment
+  // row is, by definition, a real inbound Result URL delivery, regardless of what
+  // outcome branch runs next — including idempotent retries, which re-stamp the same
+  // fact rather than leaving it stale. finalize_payment_transaction (called from this
+  // route AND from the unrelated on-demand status route) deliberately no longer
+  // touches this column, so its presence can no longer be confused with a status-route
+  // reconciliation. Never include this timestamp or the request URL in provider_payload
+  // — it is WPO-internal delivery evidence, not part of Freedom Pay's payload.
+  await supabaseServer
+    .from('payment_transactions')
+    .update({ callback_received_at: new Date().toISOString() })
+    .eq('id', paymentTx.id);
+
   // Idempotency: an earlier delivery already computed and stored the ACK for this
   // payment's terminal outcome — replay it verbatim, never recompute salt/sig.
   const storedAck = paymentTx.provider_payload?._wpo_response as FreedomPayAckFields | undefined;
@@ -207,7 +221,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     if (statusResp) {
       // Persist sanitized provider breadcrumb fields on every successful get_status3.php
-      // response, regardless of outcome — never skipped just because the outcome isn't 'paid'.
+      // response, regardless of outcome — including the 'paid' path, which used to skip
+      // this write entirely and fall straight through to the finalize RPC, leaving
+      // status_checked_at stale/null even though a check had just happened (2026-08-21
+      // observability fix — see docs/ai-context/DECISIONS.md).
       const now = new Date().toISOString();
       const breadcrumb: Record<string, unknown> = { status_checked_at: now, updated_at: now };
       if (statusResp.pgPaymentId) breadcrumb.provider_transaction_id = statusResp.pgPaymentId;
@@ -215,14 +232,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       if (statusResp.pgErrorDescription || statusResp.pgErrorCode) {
         breadcrumb.provider_reason = statusResp.pgErrorDescription ?? statusResp.pgErrorCode;
       }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabaseServer as any).from('payment_transactions').update(breadcrumb).eq('id', paymentTx.id);
 
       if (providerMapped === 'failed') {
         // Result URL callback said pg_result=1, but the authoritative Status API says
         // error — trust the Status API. Do not touch jobs.status (never was queued).
+        // breadcrumb (incl. status_checked_at) already persisted above.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await (supabaseServer as any)
           .from('payment_transactions')
-          .update({ ...breadcrumb, status: 'failed', failed_at: now })
+          .update({ status: 'failed', failed_at: now })
           .eq('id', paymentTx.id);
         console.warn('[freedompay/result] pg_result=1 but Status API reports error', {
           correlationId, paymentId: paymentTx.id, pgPaymentStatus: statusResp.pgPaymentStatus,
@@ -232,12 +252,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         return xmlResponse(ack);
       }
 
-      if (providerMapped !== 'paid') {
-        // process/pending/unknown — persist the breadcrumb, do not finalize, do not
-        // store an ACK yet (leave room for a future retry or on-demand reconciliation).
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (supabaseServer as any).from('payment_transactions').update(breadcrumb).eq('id', paymentTx.id);
-      }
+      // process/pending/unknown: breadcrumb already persisted above — do not finalize,
+      // do not store an ACK yet (leave room for a future retry or on-demand reconciliation).
     }
 
     if (providerMapped !== 'paid') {

@@ -15,7 +15,7 @@ Generated types at `src/types/supabase.ts`, re-exported from `src/types/index.ts
 | `job_audit_log` | `job_id`, `actor`, `source`, `action`, `previous_status`, `new_status`, `jira_issue_key`, `correlation_id`, `metadata` — append-only log of all status transitions and integration events |
 | `staff_profiles` | `display_name`, `jira_account_id`, `telegram_chat_id`, `telegram_username`, `telegram_notifications_enabled`, `role` (`operator\|translator\|notary_partner\|admin`), `is_active` — service role only (RLS blocks browser). Unique constraint on `jira_account_id WHERE is_active=true`. |
 | `notification_log` | `event_id`, `order_id`, `jira_issue_key`, `recipient_profile_id`, `channel`, `template`, `status` (`pending\|sent\|failed\|skipped`), `provider_message_id`, `error`, `sent_at` — delivery audit for every Telegram notification attempt. Unique index on `(event_id, recipient_profile_id) WHERE status IN ('sent','pending')` for idempotency. |
-| `payment_transactions` | `job_id`, `document_id`, `amount`, `currency`, `status` (`pending\|paid\|failed\|expired`), `provider` (`halyk_epay`), `provider_environment` (`test\|production`), `provider_transaction_id`, `card_mask` — one row per Halyk ePay payment attempt. |
+| `payment_transactions` | `job_id`, `document_id`, `amount`, `currency`, `status` (`pending\|paid\|failed\|expired\|requires_review\|duplicate_charge_review`), `payment_provider` (`halyk_epay\|freedom_pay`), `provider_environment` (`test\|production`), `provider_transaction_id`, `provider_status`, `card_mask`, `callback_received_at`, `status_checked_at` — one row per payment attempt (either provider). See `50_PAYMENTS_FINANCE_FISCALIZATION.md` for `callback_received_at`/`status_checked_at` ownership rules (fixed 2026-08-21, migration `0071`). |
 | `fiscal_receipts` | `payment_transaction_id`, `operation_type` (`sale\|refund\|correction`), `status` (`pending\|pending_manual\|issued\|failed\|retry_required`), `amount_kzt`, `provider` (`manual\|webkassa`), `fiscal_url`, `provider_receipt_id`, `receipt_payload_sanitized`, `customer_email` — migration `0017_fiscal_receipts.sql`. |
 | `refund_transactions` | `payment_transaction_id`, `refund_amount_kzt`, `status` (`pending_manual\|pending\|succeeded\|failed\|requires_review`), `provider` (`halyk_epay`), `reason`, `operator_id`, `idempotency_key`, `fiscal_refund_receipt_id`, `refund_policy_case`, `approval_status` — migration `0018` + `0023`. |
 | `pricing_versions` | `code`, `status` (`draft\|active\|archived`), rate columns (all numeric fractions) — one `active` row at a time. Migration `0019`. |
@@ -48,7 +48,11 @@ Generated types at `src/types/supabase.ts`, re-exported from `src/types/index.ts
 | POST | `/api/payments/halyk/initiate` | Initiate Halyk ePay payment, returns redirect URL |
 | POST | `/api/payments/halyk/callback` | Halyk ePay payment result callback — updates job payment status |
 | GET | `/api/cron/cleanup` | Daily 02:00 UTC — deletes files older than 30 days, expired `order_drafts`, and orphaned `draft-upload-raw/` R2 objects older than 24h (secured via `CRON_SECRET`) |
+| POST | `/api/payments/freedompay/initiate` | Initiate Freedom Pay payment (staging), returns redirect URL |
+| POST | `/api/payments/freedompay/result` | Freedom Pay Result URL webhook — public, no session |
+| GET | `/api/payments/freedompay/status/[paymentId]` | Session-authed on-demand Freedom Pay reconciliation, polled by `/payment/result` |
 | GET | `/api/cron/reconcile-payments` | Scheduled reconciliation of Halyk ePay payment statuses |
+| GET | `/api/cron/reconcile-freedompay-payments` | Scheduled fallback reconciliation of Freedom Pay payment statuses (added 2026-08-21) — separate route, does not modify `reconcile-payments` |
 | POST | `/api/admin/payments/refund` | Operator-initiated refund — creates `refund_transactions` row (pending_manual) |
 | POST | `/api/admin/payments/[paymentId]/refunds` | Same as above, payment-scoped path |
 | POST | `/api/users/accept-terms` | Records `terms_accepted_at` timestamp in users table |

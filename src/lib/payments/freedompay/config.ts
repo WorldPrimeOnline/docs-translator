@@ -61,3 +61,41 @@ export function getFreedomPayConfig(): FreedomPayConfig {
 export function _resetFreedomPayConfigCache(): void {
   _config = null;
 }
+
+/**
+ * Builds the Result URL sent to Freedom Pay as pg_result_url.
+ *
+ * Staging (`*.vercel.app`, no custom domain) sits behind Vercel Deployment
+ * Protection (SSO) — see docs/ai-context/DECISIONS.md 2026-08-21: any unauthenticated
+ * external request, including Freedom Pay's own server-to-server Result URL POST, is
+ * redirected to vercel.com/sso-api before it ever reaches this Next.js route. The fix
+ * is Vercel's own documented mechanism for exactly this case — appending
+ * `?x-vercel-protection-bypass=<VERCEL_AUTOMATION_BYPASS_SECRET>` as a query parameter
+ * lets that one request through the SSO layer. Vercel auto-injects this env var into
+ * every environment once a "Protection Bypass for Automation" secret exists on the
+ * project — nothing new to provision.
+ *
+ * Guarded to staging only: appEnv must not be 'production' AND the secret must be
+ * present. Production's custom domain (wpotranslations.org) is already excluded from
+ * SSO protection (`ssoProtection.deploymentType = 'all_except_custom_domains'`), so
+ * production's Result URL must never carry this query param — it would leak an
+ * unnecessary secret into a public webhook URL that doesn't need it.
+ *
+ * script_name for verifying Freedom Pay's inbound signature and for signing WPO's ACK
+ * is derived from FREEDOMPAY_RESULT_PATH (a path constant), never from the live
+ * request URL — see signature.ts / result-ack.ts — so this query param never
+ * participates in either signature.
+ */
+export function getFreedomPayResultUrl(appBaseUrl: string): string {
+  const baseUrl = `${appBaseUrl}${FREEDOMPAY_RESULT_PATH}`;
+  const appEnv = process.env.NEXT_PUBLIC_APP_ENV ?? process.env.APP_ENV ?? 'production';
+  const bypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
+
+  if (appEnv === 'production' || !bypassSecret) {
+    return baseUrl;
+  }
+
+  const url = new URL(baseUrl);
+  url.searchParams.set('x-vercel-protection-bypass', bypassSecret);
+  return url.toString();
+}

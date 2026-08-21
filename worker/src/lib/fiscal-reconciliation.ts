@@ -78,6 +78,37 @@ export async function triggerReconcilePayments(): Promise<void> {
 }
 
 /**
+ * Trigger Next.js reconcile-freedompay-payments cron endpoint from the worker.
+ * Separate endpoint from reconcile-payments (Halyk-only) — added 2026-08-21 as the
+ * server-side fallback for missed/blocked Freedom Pay Result URL deliveries (see
+ * docs/ai-context/DECISIONS.md). Runs every 15 minutes from index.ts, same cadence as
+ * triggerReconcilePayments(), since vercel.json cannot host additional crons on the
+ * Vercel Hobby plan.
+ */
+export async function triggerReconcileFreedomPayPayments(): Promise<void> {
+  if (!env.CRON_SECRET) {
+    console.warn('[fiscal-reconcile] CRON_SECRET not set — skipping reconcile-freedompay-payments trigger');
+    return;
+  }
+  try {
+    const url = `${env.SITE_URL}/api/cron/reconcile-freedompay-payments`;
+    const resp = await fetch(url, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${env.CRON_SECRET}` },
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (!resp.ok) {
+      console.error('[fiscal-reconcile] reconcile-freedompay-payments returned:', resp.status);
+    } else {
+      const body = await resp.json() as Record<string, unknown>;
+      console.info('[fiscal-reconcile] reconcile-freedompay-payments result:', body);
+    }
+  } catch (err) {
+    console.error('[fiscal-reconcile] reconcile-freedompay-payments trigger error:', (err as Error).message);
+  }
+}
+
+/**
  * Trigger Next.js reconcile-refunds cron endpoint from the worker.
  * This runs every 30 minutes from index.ts.
  */

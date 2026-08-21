@@ -123,6 +123,14 @@ export async function GET(
         breadcrumb.provider_reason = statusResp.pgErrorDescription ?? statusResp.pgErrorCode;
       }
 
+      // Persisted unconditionally, BEFORE branching on outcome — including the 'paid'
+      // path, which used to skip this write and fall straight to the finalize RPC,
+      // leaving status_checked_at stale/null even after a real successful check
+      // (2026-08-21 observability fix — finalize_payment_transaction itself never sets
+      // status_checked_at, by design; this route owns that column exclusively).
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabaseServer as any).from('payment_transactions').update(breadcrumb).eq('id', paymentTx.id);
+
       // get_status3.php's status field is pg_payment_status, NOT pg_result (that
       // field belongs to the Result URL callback schema only and is never present
       // here) — see status-map.ts's doc comment for the 2026-08-20 incident this
@@ -148,10 +156,7 @@ export async function GET(
 
         if (rpcError) {
           console.error('[freedompay/status] finalization RPC error', { correlationId, paymentId: paymentTx.id, error: rpcError.message });
-          // RPC already sets its own fields on success — on failure, still record
-          // that we checked, so the cooldown/breadcrumb stay accurate.
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          await (supabaseServer as any).from('payment_transactions').update(breadcrumb).eq('id', paymentTx.id);
+          // breadcrumb (incl. status_checked_at) already persisted above.
         } else {
           const result = rpcResult as { ok: boolean; duplicate_charge?: boolean; job_id?: string } | null;
           if (result?.duplicate_charge) {
@@ -187,22 +192,20 @@ export async function GET(
       } else if (mapped === 'failed') {
         // Provider-confirmed failure (pg_payment_status=error) — mark locally
         // failed. Never touch jobs.status here: the job was never queued for this
-        // payment, so there is nothing to roll back.
+        // payment, so there is nothing to roll back. breadcrumb already persisted above.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await (supabaseServer as any)
           .from('payment_transactions')
-          .update({ ...breadcrumb, status: 'failed', failed_at: now })
+          .update({ status: 'failed', failed_at: now })
           .eq('id', paymentTx.id);
         currentStatus = 'failed';
         currentFailedAt = now;
       } else {
-        // process/pending/unknown — persist the breadcrumb only. Deliberately never
-        // sets status to 'paid' here; 'unknown' is treated the same as pending
+        // process/pending/unknown — breadcrumb already persisted above. Deliberately
+        // never sets status to 'paid' here; 'unknown' is treated the same as pending
         // (caller must not finalize), and is logged via the client's own staging
         // diagnostic log (see freedompay/client.ts) rather than silently retried
         // forever with no visibility.
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (supabaseServer as any).from('payment_transactions').update(breadcrumb).eq('id', paymentTx.id);
         if (mapped === 'unknown') {
           console.warn('[freedompay/status] unrecognized pg_payment_status — treating as pending, not finalizing', {
             correlationId, paymentId: paymentTx.id, pgPaymentStatus: statusResp.pgPaymentStatus ?? null,

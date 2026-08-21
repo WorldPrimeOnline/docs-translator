@@ -79,6 +79,26 @@ describe('initiate route', () => {
     expect(persistPos).toBeGreaterThan(insertPos);
     expect(persistPos).toBeLessThan(returnPos);
   });
+
+  it('builds pg_result_url via getFreedomPayResultUrl(), not raw string concatenation (2026-08-21 Vercel protection bypass fix)', () => {
+    expect(src).toContain('import { getFreedomPayConfig, getFreedomPayResultUrl }');
+    expect(src).toContain('const resultUrl = getFreedomPayResultUrl(appBaseUrl);');
+    expect(src).not.toContain('const resultUrl = `${appBaseUrl}');
+  });
+
+  it('never logs the resultUrl (which carries VERCEL_AUTOMATION_BYPASS_SECRET on staging)', () => {
+    const logCalls = src.match(/console\.\w+\([^;]*?\);/g) ?? [];
+    for (const call of logCalls) {
+      expect(call).not.toMatch(/\bresultUrl\b/);
+    }
+  });
+
+  it('never persists resultUrl into a payment_transactions insert/update payload', () => {
+    expect(src).not.toMatch(/resultUrl,?\s*\n\s*(user_id|status|provider_payload)/);
+    // The only two uses of resultUrl must be its declaration and passing it into initPayment().
+    const occurrences = (src.match(/\bresultUrl\b/g) ?? []).length;
+    expect(occurrences).toBe(2); // declaration + `resultUrl,` in the initPayment() call
+  });
 });
 
 describe('result route (Result URL webhook)', () => {
@@ -166,6 +186,29 @@ describe('result route (Result URL webhook)', () => {
     expect(src).toContain('breadcrumb.provider_status = statusResp.pgPaymentStatus');
     expect(src).toContain('breadcrumb.provider_reason');
   });
+
+  it('is the ONLY writer of callback_received_at (2026-08-21 observability fix)', () => {
+    expect(src).toContain("update({ callback_received_at: new Date().toISOString() })");
+    // Must be stamped right after the payment row is found — before the idempotent
+    // ACK-replay short circuit — so every accepted delivery (including retries) is
+    // recorded, not just the first one.
+    const paymentTxFoundPos = src.indexOf('if (!paymentTx) {');
+    const stampPos = src.indexOf('callback_received_at: new Date().toISOString()');
+    const replayPos = src.indexOf('if (storedAck)');
+    expect(stampPos).toBeGreaterThan(paymentTxFoundPos);
+    expect(stampPos).toBeLessThan(replayPos);
+  });
+
+  it('persists the status_checked_at breadcrumb unconditionally, before branching on providerMapped — including the paid path', () => {
+    const breadcrumbBuildPos = src.indexOf('const breadcrumb: Record<string, unknown> = { status_checked_at: now, updated_at: now };');
+    const breadcrumbWritePos = src.indexOf(
+      "await (supabaseServer as any).from('payment_transactions').update(breadcrumb).eq('id', paymentTx.id);",
+    );
+    const providerMappedFailedPos = src.indexOf("providerMapped === 'failed'");
+    expect(breadcrumbBuildPos).toBeGreaterThan(-1);
+    expect(breadcrumbWritePos).toBeGreaterThan(breadcrumbBuildPos);
+    expect(breadcrumbWritePos).toBeLessThan(providerMappedFailedPos);
+  });
 });
 
 describe('status route (frontend polling)', () => {
@@ -224,6 +267,21 @@ describe('status route (frontend polling)', () => {
     // 'unknown -> paid' branch anywhere.
     expect(src).not.toMatch(/mapped === 'unknown'[\s\S]*?currentStatus = 'paid'/);
   });
+
+  it('never writes callback_received_at — that column is result/route.ts\'s exclusive responsibility (2026-08-21 observability fix)', () => {
+    expect(src).not.toContain('callback_received_at');
+  });
+
+  it('persists the status_checked_at breadcrumb unconditionally, before branching on mapped — including the paid path', () => {
+    const breadcrumbBuildPos = src.indexOf('const breadcrumb: Record<string, unknown> = { status_checked_at: now, updated_at: now };');
+    const breadcrumbWritePos = src.indexOf(
+      "await (supabaseServer as any).from('payment_transactions').update(breadcrumb).eq('id', paymentTx.id);",
+    );
+    const mappedPaidPos = src.indexOf("mapped === 'paid'");
+    expect(breadcrumbBuildPos).toBeGreaterThan(-1);
+    expect(breadcrumbWritePos).toBeGreaterThan(breadcrumbBuildPos);
+    expect(breadcrumbWritePos).toBeLessThan(mappedPaidPos);
+  });
 });
 
 describe('cross-route consistency', () => {
@@ -242,6 +300,32 @@ describe('cross-route consistency', () => {
     const migrationPath = path.join(process.cwd(), 'supabase/migrations/0015_halyk_epay.sql');
     const migrationSrc = fs.readFileSync(migrationPath, 'utf-8');
     expect(migrationSrc).toContain('CREATE OR REPLACE FUNCTION public.finalize_halyk_payment');
+  });
+
+  it('migration 0071 supersedes 0070 and stops finalize_payment_transaction from stamping callback_received_at (2026-08-21 observability fix)', () => {
+    const migrationPath = path.join(process.cwd(), 'supabase/migrations/0071_finalize_payment_transaction_no_callback_stamp.sql');
+    const migrationSrc = fs.readFileSync(migrationPath, 'utf-8');
+    expect(migrationSrc).toContain('CREATE OR REPLACE FUNCTION public.finalize_payment_transaction');
+    // callback_received_at is mentioned only in the header comment explaining the
+    // removal — the actual UPDATE statement body must not set that column.
+    const updateStart = migrationSrc.indexOf('UPDATE public.payment_transactions SET');
+    const updateEnd = migrationSrc.indexOf('WHERE id = v_payment.id;', updateStart);
+    const updateBody = migrationSrc.slice(updateStart, updateEnd);
+    expect(updateBody).not.toContain('callback_received_at');
+    expect(updateBody).toContain('paid_at');
+    // Table-schema-neutral: function-only migration, no ALTER TABLE / DROP / ADD COLUMN.
+    expect(migrationSrc.toUpperCase()).not.toContain('ALTER TABLE');
+    expect(migrationSrc.toUpperCase()).not.toContain('DROP COLUMN');
+    expect(migrationSrc.toUpperCase()).not.toContain('ADD COLUMN');
+    // Everything else the RPC does must be preserved: paid_at, job transition, duplicate detection.
+    expect(migrationSrc).toContain("paid_at                 = NOW()");
+    expect(migrationSrc).toContain("'queued'");
+    expect(migrationSrc).toContain('duplicate_charge_review');
+    expect(migrationSrc).toContain('GRANT EXECUTE ON FUNCTION public.finalize_payment_transaction TO service_role');
+    // Does not touch finalize_halyk_payment (tight match on an actual DDL statement
+    // targeting it — not just prose mentioning "CREATE OR REPLACE FUNCTION" generically,
+    // which this file's own header comment does, harmlessly, while explaining the fix).
+    expect(migrationSrc).not.toMatch(/(CREATE OR REPLACE FUNCTION|ALTER FUNCTION|DROP FUNCTION)\s+public\.finalize_halyk_payment/i);
   });
 
   it('/payment/result reads the provider query param and polls the matching status endpoint', () => {

@@ -2,7 +2,7 @@ import { env } from './lib/env';
 import { supabase, type JobRow, type PaymentTransactionRow } from './lib/supabase';
 import { processJob } from './processor';
 import { closeBrowser } from './lib/pdf';
-import { reconcileFiscalAndRefunds, triggerReconcilePayments, triggerReconcileRefunds } from './lib/fiscal-reconciliation';
+import { reconcileFiscalAndRefunds, triggerReconcilePayments, triggerReconcileRefunds, triggerReconcileFreedomPayPayments } from './lib/fiscal-reconciliation';
 import { processPendingFiscalReceipts } from './lib/fiscal-processor';
 import { diagnoseWebkassaConnectivity } from './lib/webkassa-client';
 import { logDriveAuthModeWithHealthCheck } from './lib/google-drive';
@@ -275,6 +275,16 @@ async function main(): Promise<void> {
   setInterval(() => {
     void triggerReconcilePayments().catch((err: unknown) => {
       console.error('[worker] reconcile-payments trigger error:', (err as Error).message);
+    });
+  }, PAYMENTS_RECONCILE_INTERVAL_MS);
+
+  // Reconcile pending Freedom Pay payments (payment_pending → paid) every 15 minutes.
+  // Separate from the Halyk trigger above — recovers payments whose Result URL POST
+  // was missed or blocked (2026-08-21, see docs/ai-context/DECISIONS.md), independent
+  // of whether the customer's browser ever polls /payment/result.
+  setInterval(() => {
+    void triggerReconcileFreedomPayPayments().catch((err: unknown) => {
+      console.error('[worker] reconcile-freedompay-payments trigger error:', (err as Error).message);
     });
   }, PAYMENTS_RECONCILE_INTERVAL_MS);
 

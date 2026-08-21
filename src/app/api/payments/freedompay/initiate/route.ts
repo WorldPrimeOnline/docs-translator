@@ -16,7 +16,7 @@ import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { randomUUID } from 'crypto';
 import { supabaseServer } from '@/lib/supabase/server';
-import { getFreedomPayConfig, FREEDOMPAY_RESULT_PATH } from '@/lib/payments/freedompay/config';
+import { getFreedomPayConfig, getFreedomPayResultUrl } from '@/lib/payments/freedompay/config';
 import { initPayment, FreedomPayApiError } from '@/lib/payments/freedompay/client';
 import { verifyQuotePayable, markQuotePaymentPending } from '@/lib/pricing/service';
 import type { Database } from '@/types';
@@ -213,7 +213,10 @@ async function handlePost(request: NextRequest, correlationId: string): Promise<
   });
 
   // ── Call Freedom Pay init_payment ─────────────────────────────────────────────
-  const resultUrl = `${appBaseUrl}${FREEDOMPAY_RESULT_PATH}`;
+  // getFreedomPayResultUrl() appends the Vercel protection-bypass query param on
+  // staging only (never production) — see its doc comment in config.ts. Never log
+  // this value: it carries VERCEL_AUTOMATION_BYPASS_SECRET on staging.
+  const resultUrl = getFreedomPayResultUrl(appBaseUrl);
   // provider=freedom_pay lets the shared /payment/result page know which status
   // endpoint to poll — Halyk's existing backLink (no provider param) is unchanged
   // and continues to default to the Halyk status endpoint.
